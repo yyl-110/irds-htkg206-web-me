@@ -1,0 +1,757 @@
+{
+    "ParseNode": {
+        "Type": "root",
+        "Name": "",
+        "Value": "",
+        "Locked": false,
+        "Children": [
+            {
+                "Type": "category",
+                "Name": "Startup",
+                "Value": "",
+                "Locked": false,
+                "Children": [
+                    {
+                        "Type": "preference",
+                        "Name": "Enable item lists",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Enable markups",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Enable measurements",
+                        "Value": "true",
+                        "Locked": false
+                    },
+					{
+                        "Type": "preference",
+                        "Name": "Enable construction geometry",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Transition animation duration",
+                        "Value": "700",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Enable section cuts",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Pvk system properties",
+                        "Value": "CalcEachTime",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Enable feature manager",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Use adv selection manager",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Enable screen space dragger",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Override color transparency",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Gnomon mode",
+                        "Value": "CreoView",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference_list",
+                        "Name": "Onshape gnomon",
+                        "Locked": false,
+                        "Children": [
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Size",
+                                        "Value": "150.0",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Show axis",
+                                        "Value": "true",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Show box",
+                                        "Value": "true",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Show camera controls",
+                                        "Value": "true",
+                                        "Locked": false
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "Type": "category",
+                "Name": "Loader",
+                "Value": "",
+                "Locked": false,
+                "Children": [
+                    {
+                        "Type": "preference",
+                        "Name": "Load pvs properties",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Annotation set unload parts",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Illustration unload parts",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Render while loading",
+                        "Value": "markups only if nothing loaded",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Generate accurate bbox",
+                        "Value": "false",
+                        "Locked": false
+                    }
+                ]
+            },
+            {
+                "Type": "category",
+                "Name": "Session",
+                "Value": "",
+                "Locked": false,
+                "Children": [
+                    {
+                        "Type": "preference",
+                        "Name": "Clear unused shapes on destruction",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Do multi-body drilldown",
+                        "Value": "true",
+                        "Locked": false
+                    }
+                ]
+            },
+            {
+                "Type": "category",
+                "Name": "Shape Scene",
+                "Value": "",
+                "Locked": false,
+                "Children": [
+                    {
+                        "Type": "preference",
+                        "Name": "Default LOD",
+                        "Value": "-1",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Transition override inherit behaviour",
+                        "Value": "false",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Zoom on load",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Display sequence label",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference_list",
+                        "Name": "Sequence label options",
+                        "Locked": false,
+                        "Children": [
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Anchor point",
+                                        "Value": "top left",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "X offset",
+                                        "Value": "10",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Y offset",
+                                        "Value": "-10",
+                                        "Locked": false
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Default pick mode",
+                        "Value": "smart",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Picking on Phantom",
+                        "Value": "false",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Hidden items are unpickable",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Disable sbom selection",
+                        "Value": "false",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Merge appearances in animations",
+                        "Value": "false",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Default geometry mode",
+                        "Value": "solid",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Default light layout",
+                        "Value": "CreoView",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Default part diffuse color",
+                        "Value": "0",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Ignore self selection",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Use 3D thumbnails",
+                        "Value": "false",
+                        "Locked": false
+                    }
+                ]
+            },
+            {
+                "Type": "category",
+                "Name": "Shape View",
+                "Value": "",
+                "Locked": false,
+                "Children": [
+                    {
+                        "Type": "preference",
+                        "Name": "Text Localization",
+                        "Locked": false,
+                        "Value": "en"
+                    },
+                    {
+                        "Type": "preference_list",
+                        "Name": "Default background color",
+                        "Locked": false,
+                        "Children": [
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Top",
+                                        "Value": "16777215",
+                                        "Locked": false
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Default floor size",
+                        "Value": "0.4",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference_list",
+                        "Name": "Default view orientation",
+                        "Locked": false,
+                        "Children": [
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "DegX",
+                                        "Value": "-53.837",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "DegY",
+                                        "Value": "14.008",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "DegZ",
+                                        "Value": "-18.324",
+                                        "Locked": false
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Generation mode",
+                        "Value": "best fit",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Projection mode",
+                        "Value": "perspective",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Orthographic view width",
+                        "Value": "1.0",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Perspective HFOV",
+                        "Value": "60.0",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Use color phantom",
+                        "Value": "false",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Convert buffered geometry",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Antialiasing quality",
+                        "Value": "2",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Show gnomon",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Precreate dragger",
+                        "Value": "true",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference_list",
+                        "Name": "Selection highlight styles",
+                        "Locked": false,
+                        "Children": [
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Primary selection",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill color",
+                                        "Value": "0x33CC4D",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill opacity",
+                                        "Value": "0.75",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0xCC33CC",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "fill",
+                                        "Locked": false
+                                    }
+                                ]
+                            },
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Preselection",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill color",
+                                        "Value": "0x90F000",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill opacity",
+                                        "Value": "0.75",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0x3333CC",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "fill",
+                                        "Locked": false
+                                    }
+                                ]
+                            },
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Secondary selection",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill color",
+                                        "Value": "0x2EE5E5",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill opacity",
+                                        "Value": "0.75",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0xFF0000",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "fill",
+                                        "Locked": false
+                                    }
+                                ]
+                            },
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Custom Select 1",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill color",
+                                        "Value": "0xFF0000",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill opacity",
+                                        "Value": "0.75",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0xFF8080",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "fill",
+                                        "Locked": false
+                                    }
+                                ]
+                            },
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Custom Select 2",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill color",
+                                        "Value": "0x00FF00",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill opacity",
+                                        "Value": "0.75",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0x80FF80",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "fill",
+                                        "Locked": false
+                                    }
+                                ]
+                            },
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Custom Select 3",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill color",
+                                        "Value": "0x0000FF",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill opacity",
+                                        "Value": "0.75",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0x8080FF",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "fill",
+                                        "Locked": false
+                                    }
+                                ]
+                            },
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Custom Select 4",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill color",
+                                        "Value": "0xFFFF00",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Fill opacity",
+                                        "Value": "0.75",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0xFFFF80",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "fill",
+                                        "Locked": false
+                                    }
+                                ]
+                            },
+                            {
+                                "Type": "preference_item",
+                                "Children": [
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Selection list",
+                                        "Value": "Custom Select 5",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Outline color",
+                                        "Value": "0xFF00FF",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight style",
+                                        "Value": "outline",
+                                        "Locked": false
+                                    },
+                                    {
+                                        "Type": "preference",
+                                        "Name": "Highlight width",
+                                        "Value": "13.0",
+                                        "Locked": false
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Renderer geometry processing priority",
+                        "Value": "6",
+                        "Locked": false
+                    }
+                ]
+            },
+            {
+                "Type": "category",
+                "Name": "Experimental",
+                "Value": "",
+                "Locked": false,
+                "Children": [
+                    {
+                        "Type": "preference",
+                        "Name": "Display leaderline pipes",
+                        "Value": "false",
+                        "Locked": false
+                    },
+                    {
+                        "Type": "preference",
+                        "Name": "Thicken planar pick area",
+                        "Value": "true",
+                        "Locked": false
+                    }
+                ]
+            },
+            {
+                "Type": "category",
+                "Name": "Platform",
+                "Value": "",
+                "Locked": false,
+                "Children": [
+                    {
+                        "Type": "category",
+                        "Name": "JS",
+                        "Value": "",
+                        "Locked": false,
+                        "Children": [
+                            {
+                                "Type": "preference",
+                                "Name": "Consume middle mouse button down",
+                                "Value": "false",
+                                "Locked": false
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
