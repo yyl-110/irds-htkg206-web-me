@@ -1,0 +1,29 @@
+import type { App } from 'vue'
+import { CACHE_KEY, useCache } from '@/hooks/web/useCache'
+
+// const { t } = useI18n() // 国际化
+const t = (text: string) => text
+
+export function hasRole(app: App<Element>) {
+  app.directive('hasRole', (el, binding) => {
+    const { wsCache } = useCache()
+    const { value } = binding
+    const super_admin = 'admin'
+    const roles = wsCache.get(CACHE_KEY.USER).roles
+
+    if (value && Array.isArray(value) && value.length > 0) {
+      const roleFlag = value
+
+      console.log(roles)
+      const hasRole = roles.some((role: string) => {
+        return super_admin === role || roleFlag.includes(role)
+      })
+
+      if (!hasRole)
+        el.parentNode && el.parentNode.removeChild(el)
+    }
+    else {
+      throw new Error(t('请设置角色权限标签值'))
+    }
+  })
+}

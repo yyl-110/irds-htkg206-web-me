@@ -1,0 +1,3 @@
+@import './variables.css';
+@import './theme.css';
+@import '../views/bmp/processDefinition/package/theme/index.less';

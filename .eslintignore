@@ -1,0 +1,4 @@
+/dist/**
+/*.cjs
+node_modules
+src/api/templates/ui-schema.template.ts

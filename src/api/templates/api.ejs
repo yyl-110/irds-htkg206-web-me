@@ -1,0 +1,81 @@
+<%
+const { utils, route, config, modelTypes } = it;
+const { _, pascalCase, require } = utils;
+// console.log(route.routes[0])
+// const apiClassName = pascalCase(route.moduleName);
+const tagName = route.moduleName;
+const routes = route.routes;
+const apiClassName = route.routes.length ? getFirstRouteResourceName(route.routes[0]) : pascalCase(route.moduleName)
+const dataContracts = _.map(modelTypes, "name");
+
+/** 引入 JSON Schema */
+const schemasImportFragment = modelTypes.map(t => `import $${t.name} from '../schemas/${t.name}'`)
+
+/** 引入 Model Class */
+const modelClassImportFragment = modelTypes.map(t => `import { ${t.name}Model } from '../models/${t.name}Model'`)
+
+/**
+ * 从第一个 path 获取当前 tag 的唯一标识
+ * @example `/admin-api/system/user/create` => `AdminApiSystemUser`
+ * @param {string} route
+ */
+function getFirstRouteResourceName(route) {
+  const routeParts = route.request.path.split('/')
+  routeParts.pop()
+  let name = _.camelCase(routeParts.join('/'))
+  name = name[0].toUpperCase() + name.substring(1)
+  return name
+}
+
+const requestTypesMap = ['page', 'list', 'list-all-simple', 'get', 'create', 'update', 'delete', 'export-excel']
+
+function getRequestType(path) {
+  const pathParts = path.split('/')
+  if (!Array.isArray(pathParts) || pathParts.length < 1) return `undefined`
+  const type = pathParts[pathParts.length - 1]
+  return requestTypesMap.includes(type) ? (type.indexOf('-') === -1 ? `OpenApiActions.${type}` : `OpenApiActions['${type}']`) : `undefined`
+}
+%>
+
+<% if (config.httpClientType === config.constants.HTTP_CLIENT.AXIOS) { %> import { AxiosRequestConfig, AxiosResponse } from "axios"; <% } %>
+
+import { httpClient, RequestParams, ContentType, HttpResponse } from "./<%~ config.fileNames.httpClient %>";
+<% if (dataContracts.length) { %>
+import { <%~ dataContracts.join(", ") %> } from "./<%~ config.fileNames.dataContracts %>"
+<% } %>
+import { OpenApiTagActions, OpenApiTag, OpenApiActions, OpenApiTagSchemas } from "../OpenApiTags";
+
+<% /* <%~ schemasImportFragment.join('\n') + '\n' %> */ %>
+<%~ modelClassImportFragment.join('\n') + '\n' %>
+
+/**
+ * <%= tagName %> 
+ */
+export class <%= apiClassName %><% if (!config.singleHttpClient) { %><% } %> {
+<% if(config.singleHttpClient) { %>
+  http: HttpClient<SecurityDataType>;
+
+  constructor (http: HttpClient<SecurityDataType>) {
+    this.http = http;
+  }
+<% } %>
+  /** `OpenApi` 中的 `tag` 名称, 作为默认的资源名称 */
+  static $tagName: string = `<%~ tagName %>`
+
+    <% routes.forEach((route) => { %>
+        <%~ includeFile('./procedure-call.ejs', { ...it, route }) %>
+    <% }) %>
+}
+
+
+/**
+ * 记录当前 `tag` 下所有接口的请求参数和返回值的 `JSON Schema` / `UI Schema` / `Model Class` 等信息
+ * @description 用于代码生成
+ */
+export const $tag: OpenApiTag<typeof <%= apiClassName %>> = {
+  api: {
+    <% routes.forEach((route) => { %>
+        <%~ includeFile('./schema-procedure-call.ejs', { ...it, route, getRequestType }) %>
+    <% }) %>
+  }
+}

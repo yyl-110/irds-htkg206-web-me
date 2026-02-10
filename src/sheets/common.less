@@ -1,0 +1,235 @@
+:root {
+  --main-selected: #165dff; //鼠标悬停颜色
+  --main-page-background: #f7f8fa; //页面背景色
+  --main-page-background-color: #ffffff; //页面背景色
+  --main-text-color: #333; //文字主颜色
+  --main-border2: #909399; //文字次颜色
+  --main-border: #ededed; //文字次颜色   下边框颜色  、割线
+  --main-success-text-color: #52c41a; //成功颜色  正在处理
+  --main-progress-text-color: #f5222d; //  失败颜色   进行中
+  --main-finish-text-color: #165dff; //     已完成
+  --main-operation1-width: 100; //   操作列宽度------(编辑、删除)------------  1 个操作按钮
+  --main-operation2-width: 120; //   操作列宽度------(编辑、删除)------------  2 个操作按钮
+  --main-operation3-width: 160; //   操作列宽度------(编辑、删除、加购)------------    3个操作按钮
+  --main-operation4-width: 200; //   操作列宽度------(查看、编辑、删除、开关)------------    4个操作按钮
+  --main-operation5-width: 250; //   操作列宽度------(查看、编辑、删除、开关)------------    5个操作按钮
+  --main-operation6-width: 380; //   操作列宽度------(查看、编辑、删除、开关、提交、驳回、变更)------------    6个操作按钮
+}
+
+// 左边距距离
+.m-left {
+  margin-left: 20px;
+}
+
+// 右边距距离
+.m-right {
+  margin-right: 20px;
+}
+
+// 表格操作按钮 右边距
+.table-m-right {
+  margin-left: 16px;
+}
+
+// 文字溢出显示省略号
+.text-overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+
+// flex布局
+.flex-layout {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+/*可以设置成全局样式
+  *鼠标进入显示的区域后，如果有滚动条，则出现
+  */
+/*定义滚动条高宽及背景
+  高宽分别对应横竖滚动条的尺寸*/
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+/*定义滑块
+  内阴影+圆角*/
+/*  鼠标hover的时候才显示滚动条 */
+:hover::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.full-modal {
+  .ant-modal {
+    max-width: 100%;
+    top: 0;
+    padding-bottom: 0;
+    margin: 0;
+  }
+
+  .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh);
+  }
+
+  .ant-modal-body {
+    flex: 1;
+  }
+  .modelstyle .ant-modal-body {
+    padding: 0px !important;
+  }
+}
+
+.ant-card-body {
+  padding: 18px;
+}
+
+/** ant 原生表格样修改 */
+/* 修改表头背景颜色 */
+.ant-table-thead > tr > th {
+  background-color: #ededed;
+}
+
+.ant-table-thead {
+  .ant-table-cell-scrollbar {
+    box-shadow: 0 1px 0 1px #ededed !important;
+  }
+}
+
+/*** 表格斑马样式 **/
+.odd {
+  background-color: #ffffff;
+}
+
+.even {
+  background-color: #f7f7f7;
+
+  .ant-table-cell-fix-left,
+  .ant-table-cell-fix-right {
+    background: #f7f7f7;
+  }
+}
+
+.hilight-row {
+  background-color: #6aa1ff;
+  color: white;
+
+  // 解决表格悬浮样式冲突问题
+  .ant-table-cell {
+    background-color: #6aa1ff !important;
+  }
+
+  .ant-table-cell-fix-left,
+  .ant-table-cell-fix-right {
+    background: #6aa1ff;
+    color: white;
+  }
+}
+
+/** 表格 鼠标悬停样式 **/
+.ant-table-cell-row-hover {
+  background: #e6f1ff !important;
+}
+
+/** 弹窗标题背景色 **/
+.ant-modal-header {
+  background-color: #ededed;
+}
+
+/**  tree 组件选中颜色 **/
+.ant-tree-treenode-selected:before {
+  // background: #94BFFF !important;
+  background: #6aa1ff !important;
+}
+
+// 解决树结构悬浮样式冲突问题
+.ant-tree-block-node {
+  .ant-tree-treenode-selected:hover:before {
+    background: #6aa1ff !important;
+
+    &:hover:before {
+      background: #6aa1ff !important;
+    }
+  }
+}
+
+.ant-tree-treenode:hover:before {
+  background: #e6f1ff !important;
+}
+
+.ant-drawer-body {
+  padding-left: 10px;
+}
+
+/** 保持tree 数据不换行 */
+.ant-tree-node-content-wrapper {
+  display: flex !important;
+}
+
+/** 保持tree 数据不换行 */
+.ant-tree-title {
+  white-space: nowrap !important;
+}
+
+/** 高亮文字样式 **/
+.highlight {
+  color: #ff5500;
+  padding: 0 5px;
+}
+
+/** 表格固定 **/
+.b-body {
+  height: calc(100vh - 205px);
+  overflow: auto;
+}
+
+/** 表格固定 **/
+.b-body2 {
+  height: calc(100vh - 205px);
+  overflow: auto;
+}
+
+/** 空状态文字 **/
+.empty-text {
+  text-align: center;
+  color: #909399;
+}
+
+html,
+body {
+  touch-action: manipulation;
+}
+.pagecontent-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 28px;
+}
+.pagecontent-title i {
+  width: 6px;
+  height: 20px;
+  background: #0d53e2;
+  border-radius: 0px 0px 0px 0px;
+  margin-right: 8px;
+}
+.pagecontent-title span {
+  height: 20px;
+  font-family:
+    Source Sans 3,
+    Source Sans 3;
+  font-weight: 600;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 20px;
+  text-align: center;
+  font-style: normal;
+  text-transform: none;
+}

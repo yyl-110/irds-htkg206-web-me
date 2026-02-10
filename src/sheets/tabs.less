@@ -1,0 +1,24 @@
+.ant-tabs {
+  // 圆角按钮样式的 tab, 参考原型图: https://modao.cc/app/Xwfn35xbrs1zuvUaX9X8mi#screen=slfrv1pp2p6w1au
+  &.wei-round-button-tabs {
+    .ant-tabs-tab {
+      padding: 5px 15px;
+      border-radius: 15px;
+      margin-left: 10px;
+      // background-color: transparent;
+      // transition: all 0.2s ease-in-out;
+      &:first-of-type {
+        margin-left: 0;
+      }
+      &.ant-tabs-tab-active {
+        background-color: rgb(var(--color-bg-tab-button));
+      }
+    }
+    .ant-tabs-ink-bar {
+      display: none;
+    }
+    .ant-tabs-nav::before {
+      display: none;
+    }
+  }
+}

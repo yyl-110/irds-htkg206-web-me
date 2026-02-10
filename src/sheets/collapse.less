@@ -1,0 +1,65 @@
+/* 1. 面板容器样式 */
+.custom-collapse {
+  --collapse-header-bg: #f5f7fa; /* 头部背景色 */
+  --collapse-content-bg: #fff; /* 内容区背景色 */
+  --collapse-border-color: #e8e8e8; /* 边框色 */
+  --collapse-header-height: 56px; /* 头部高度 */
+}
+
+/* 2. 面板头部样式（标题+图标） */
+:deep(.custom-panel .ant-collapse-header) {
+  height: var(--collapse-header-height);
+  line-height: var(--collapse-header-height);
+  padding: 0 20px; /* 左右内边距 */
+  background: var(--collapse-header-bg);
+  border-radius: 8px 8px 0 0; /* 顶部圆角 */
+  font-size: 16px;
+  font-weight: 500;
+  color: #333; /* 标题文字色 */
+}
+
+/* 3. 展开/折叠图标样式 */
+:deep(.ant-collapse-arrow) {
+  color: #666; /* 图标默认色 */
+  font-size: 18px; /* 图标大小 */
+  transition: transform 0.3s ease; /* 展开动画 */
+}
+/* 展开时图标旋转 */
+:deep(.ant-collapse-item-active .ant-collapse-arrow) {
+  transform: rotate(90deg);
+  color: #1890ff; /* 展开时图标高亮色 */
+}
+
+/* 4. 面板内容区样式 */
+:deep(.ant-collapse-content-box) {
+  padding: 20px;
+  background: var(--collapse-content-bg);
+  border: 1px solid var(--collapse-border-color);
+  border-top: none; /* 与头部边框合并 */
+  border-radius: 0 0 8px 8px; /* 底部圆角 */
+}
+
+/* 5. 面板间距与边框 */
+:deep(.ant-collapse-item) {
+  margin-bottom: 16px; /* 面板之间的间距 */
+  border: none; /* 移除默认边框 */
+}
+/* 卡片式容器 */
+:deep(.ant-collapse-item) {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); /* 轻微阴影 */
+  overflow: hidden; /* 裁剪圆角外内容 */
+  transition: all 0.3s ease; /* 整体过渡效果 */
+}
+/* 悬停时阴影加深 */
+:deep(.ant-collapse-item):hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* 头部hover效果 */
+:deep(.ant-collapse-header):hover {
+  background: #84a4f4; /* 浅蓝色hover背景 */
+}
+:deep(.ant-collapse-borderless > .ant-collapse-item:last-child, .ant-collapse-borderless > .ant-collapse-item:last-child .ant-collapse-header) {
+  border-radius: 12px;
+}

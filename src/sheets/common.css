@@ -1,0 +1,187 @@
+:root {
+  --main-selected: #165dff;
+  --main-page-background: #f7f8fa;
+  --main-page-background-color: #ffffff;
+  --main-text-color: #333;
+  --main-border2: #909399;
+  --main-border: #ededed;
+  --main-success-text-color: #52c41a;
+  --main-progress-text-color: #f5222d;
+  --main-finish-text-color: #165dff;
+  --main-operation1-width: 100;
+  --main-operation2-width: 120;
+  --main-operation3-width: 160;
+  --main-operation4-width: 200;
+  --main-operation5-width: 250;
+  --main-operation6-width: 380;
+}
+.m-left {
+  margin-left: 20px;
+}
+.m-right {
+  margin-right: 20px;
+}
+.table-m-right {
+  margin-left: 16px;
+}
+.text-overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+.flex-layout {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+/*可以设置成全局样式
+  *鼠标进入显示的区域后，如果有滚动条，则出现
+  */
+/*定义滚动条高宽及背景
+  高宽分别对应横竖滚动条的尺寸*/
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+/*定义滑块
+  内阴影+圆角*/
+/*  鼠标hover的时候才显示滚动条 */
+:hover::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.full-modal .ant-modal {
+  max-width: 100%;
+  top: 0;
+  padding-bottom: 0;
+  margin: 0;
+}
+.full-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh);
+}
+.full-modal .ant-modal-body {
+  flex: 1;
+}
+.full-modal .modelstyle .ant-modal-body {
+  padding: 0px !important;
+}
+.ant-card-body {
+  padding: 18px;
+}
+/** ant 原生表格样修改 */
+/* 修改表头背景颜色 */
+.ant-table-thead > tr > th {
+  background-color: #ededed;
+}
+.ant-table-thead .ant-table-cell-scrollbar {
+  box-shadow: 0 1px 0 1px #ededed !important;
+}
+/*** 表格斑马样式 **/
+.odd {
+  background-color: #ffffff;
+}
+.even {
+  background-color: #f7f7f7;
+}
+.even .ant-table-cell-fix-left,
+.even .ant-table-cell-fix-right {
+  background: #f7f7f7;
+}
+.hilight-row {
+  background-color: #6aa1ff;
+  color: white;
+}
+.hilight-row .ant-table-cell {
+  background-color: #6aa1ff !important;
+}
+.hilight-row .ant-table-cell-fix-left,
+.hilight-row .ant-table-cell-fix-right {
+  background: #6aa1ff;
+  color: white;
+}
+/** 表格 鼠标悬停样式 **/
+.ant-table-cell-row-hover {
+  background: #e6f1ff !important;
+}
+/** 弹窗标题背景色 **/
+.ant-modal-header {
+  background-color: #ededed;
+}
+/**  tree 组件选中颜色 **/
+.ant-tree-treenode-selected:before {
+  background: #6aa1ff !important;
+}
+.ant-tree-block-node .ant-tree-treenode-selected:hover:before {
+  background: #6aa1ff !important;
+}
+.ant-tree-block-node .ant-tree-treenode-selected:hover:before:hover:before {
+  background: #6aa1ff !important;
+}
+.ant-tree-treenode:hover:before {
+  background: #e6f1ff !important;
+}
+.ant-drawer-body {
+  padding-left: 10px;
+}
+/** 保持tree 数据不换行 */
+.ant-tree-node-content-wrapper {
+  display: flex !important;
+}
+/** 保持tree 数据不换行 */
+.ant-tree-title {
+  white-space: nowrap !important;
+}
+/** 高亮文字样式 **/
+.highlight {
+  color: #ff5500;
+  padding: 0 5px;
+}
+/** 表格固定 **/
+.b-body {
+  height: calc(100vh - 205px);
+  overflow: auto;
+}
+/** 表格固定 **/
+.b-body2 {
+  height: calc(100vh - 205px);
+  overflow: auto;
+}
+/** 空状态文字 **/
+.empty-text {
+  text-align: center;
+  color: #909399;
+}
+html,
+body {
+  touch-action: manipulation;
+}
+.pagecontent-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 28px;
+}
+.pagecontent-title i {
+  width: 6px;
+  height: 20px;
+  background: #0d53e2;
+  border-radius: 0px 0px 0px 0px;
+  margin-right: 8px;
+}
+.pagecontent-title span {
+  height: 20px;
+  font-family: Source Sans 3,
+    Source Sans 3;
+  font-weight: 600;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 20px;
+  text-align: center;
+  font-style: normal;
+  text-transform: none;
+}

@@ -1,0 +1,63 @@
+:root {
+  --color-highlight: 59, 130, 246;
+  --color-primary: 22, 93, 255;
+  --color-bg-layout-header: 255, 255, 255;
+  --color-bg-layout-header-blue: 14, 74, 196;
+  --color-bg-base: 249, 250, 251;
+  --color-bg-nav: 243, 244, 246;
+  --color-border-highlight: 229, 230, 235; /* 线条 - 常规/白底 */
+  --color-bg-tab-button: 242, 243, 248; /* 圆角 tab 样式的背景色 */
+  --color-text-main: 31, 41, 55;
+  --color-text-secondary: 134, 144, 156; /* 文本 - 次要信息 */
+  --color-text-muted: 243, 244, 246;
+  --color-text-invert: 249, 250, 251;
+  --color-fill-main: 59, 130, 246;
+  --color-fill-muted: 191, 219, 254;
+}
+
+.dark-theme,
+[data-doc-theme='dark'] {
+  --color-highlight: 37, 99, 235;
+  --color-primary: 20, 20, 20;
+  --color-bg-layout-header: 40, 40, 40;
+  --color-bg-base: 75, 85, 99;
+  --color-bg-nav: 55, 65, 81;
+  --color-border-highlight: 201, 205, 212; /* 线条 - 常规/白底 */
+  --color-bg-tab-button: 242, 243, 248; /* 圆角 tab 样式的背景色 */
+  --color-text-main: 245, 245, 244;
+  --color-text-secondary: 255, 255, 255; /* 文本 - 次要信息 TODO: 重构以支持页面模式下的透明度 */
+  --color-text-muted: 250, 250, 249;
+  --color-text-invert: 245, 245, 244;
+  --color-fill-main: 37, 99, 235;
+  --color-fill-muted: 147, 197, 253;
+}
+
+.tiger-theme {
+  --color-highlight: 245, 158, 11;
+  --color-bg: 249, 250, 251;
+  --color-bg-nav: 243, 244, 246;
+  --color-text-main: 31, 41, 55;
+  --color-text-muted: 252, 211, 77;
+  --color-text-invert: 254, 252, 232;
+  --color-fill-main: 251, 113, 133;
+  --color-fill-muted: 255, 241, 242;
+}
+
+/* 鼠标悬停在相应的按钮上显示一个动物爪子的图标 */
+#tiger-theme {
+  cursor:
+    url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAABmJLR0QA/wD/AP+gvaeTAAAB0klEQVRIie3WTYhNYRzH8c9cL0nJhI0SkaYsiJqyQc3IS1ZW7JAmLykrCy8LpcR2yoKFBQlFdoblFMXCxttCSUpIeUlqasIdi+vkmec8955z7r2Kml89dc/9/Z/f9/zP85znXqb0H2g7buE4eroVegzvcR3TE/5ZTARjUzegO6PQg5G/JfIncLgb4EdR6Ejk302Ad3QKnYWfUeiLqOZT5P/AwqqgeP1moxZ9Nx5dj2FecH1VYz9kqmEQfXiC+2Vv5p3JHZ2P/KOBN4o5gdeP54Ffx7qy4CPBxI9YnqjpTwSuxjf59T9UFgy7cRorKsy5nYDWsaYKuB29SYAvdhK4AKdwDw8wjEWJussR9AZmVoXVsAon8EW+k6/YFc3pxRmcw9aqQNiHzwlYav0OtANIqVfjvS2CZuM71rbIW4wlZcB9FaDZuBll9GAvXgc1d+QPpkmaIX+AFI2XUcZwk7qlRV1vU+1xPw7mbmxS8zbuONX+CDbgWdEd/tZo8Hlzws82Yb1knmkYwgetOx4M5uyJvDH516605uNVC/DKqH4IF3ASy9qFZhrQeFQp8ECn4UW61AS8/m+D5+JpBH2ojfOYxgYqq3Fc8+d3+gr2y/9DmdK/pV/36dhJBaPm3gAAAABJRU5ErkJggg==),
+    auto;
+}
+
+/* 全局字体设置 */
+* {
+  font-family: 'Microsoft YaHei', '微软雅黑', sans-serif !important;
+}
+/* 针对表单元素（如input、select）单独加强，避免浏览器默认样式覆盖 */
+input,
+button,
+select,
+textarea {
+  font-family: inherit !important; /* 继承父元素字体 */
+}

@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "preserve",
+    "lib": ["ESNext", "DOM"],
+    "useDefineForClassFields": true,
+    "experimentals": true,
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "resolveJsonModule": true,
+    "types": ["@types/node", "@intlify/unplugin-vue-i18n/types", "wei-ui-vue/dist/types/components", "./types/web-storage-cache.d.ts"],
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "references": [{ "path": "./tsconfig.node.json" }],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "types/**/*.d.ts", "scripts/**/*.ts", "tests/e2e/**/*.ts", "tests/fixtures/**/*.ts"],
+  "exclude": ["src/api/templates/*"]
+}

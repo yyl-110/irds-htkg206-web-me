@@ -1,0 +1,51 @@
+.ant-card:not(.antd) {
+  // 不包含边距和边框的 card, 用于特定的 card 样式
+  &.inner-card {
+    padding: 0;
+    border: 0;
+    .ant-card-body {
+      padding: 0;
+    }
+  }
+  // body 容器宽高 100%
+  &.wei-content-full {
+    .ant-card-body {
+      width: 100%;
+      height: 100%;
+    }
+  }
+  // 卡片列表页中的 card
+  &.wei-list-card {
+    .ant-card-body {
+      padding: 20px;
+    }
+  }
+}
+
+.wei-card-header {
+  
+  min-height: 36px;
+  & > .title {
+    
+  }
+  & > .extra {
+  }
+}
+
+// 包含 border-left 装饰的标题
+.wei-card-decoration-title {
+  padding-left: 15px;
+  position: relative;
+  margin-bottom: 10px;
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10%;
+    width: 5px;
+    background-color: var(--ant-primary-color);
+    // background-color: #404DFB;
+    height: 80%;
+  }
+}
+

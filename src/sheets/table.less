@@ -1,0 +1,33 @@
+.ant-table:not(.antd) {
+  // 不显示边框
+  .ant-table-cell::before {
+    background-color: transparent !important;
+  }
+}
+
+.wei-table-link-button {
+}
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  // border-bottom: 1px solid #f0f0f0;
+  border: 0.5px solid #e0dddd;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 600;
+  position: relative;
+  text-align: left;
+  transition: background 0.3s ease;
+  padding: 10px;
+}
+
+.ant-table-tbody > tr > td {
+  padding: 10px;
+}
+
+:deep(.ant-table-column-sorters) {
+  justify-content: center;
+  align-items: flex-end;
+}
+
+:deep(.ant-table-column-title) {
+  flex: none;
+}

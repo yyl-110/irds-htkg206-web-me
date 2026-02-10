@@ -1,0 +1,1 @@
+export { vitePluginVersionOutput } from './plugin'

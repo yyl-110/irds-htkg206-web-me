@@ -1,0 +1,292 @@
+.create-pop {
+  font-family: Source Sans 3,
+    Source Sans 3;
+  font-weight: 400;
+  font-size: 14px;
+  color: #6a696e;
+  line-height: 22px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+  display: flex;
+}
+.create-pop .user {
+  height: 24px;
+  background: #fff;
+  border-radius: 15px 15px 15px 15px;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+}
+.create-pop .user img {
+  min-width: 20px;
+  max-width: 20px;
+  height: 20px;
+  border-radius: 20px;
+  margin: 1px 4px 1px 2px;
+}
+.top-block {
+  width: 100%;
+  height: 152px;
+  background: #f3f2f7;
+  border-radius: 8px 8px 8px 8px;
+  margin: 20px 20px 20px 16px;
+}
+.top-block .block-inner {
+  padding: 16px 20px 16px 16px;
+  display: flex;
+}
+.top-block .block-inner .pic {
+  min-width: 168px;
+  max-width: 168px;
+  height: 120px;
+  border-radius: 4px 4px 4px 4px;
+  background: #ccc;
+  margin-right: 20px;
+}
+.top-block .block-inner .dec-wrap {
+  width: 100%;
+}
+.top-block .block-inner .dec-wrap .t {
+  height: 22px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 22px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+  margin: 4px 0 5px 0;
+}
+.top-block .block-inner .dec-wrap .tm {
+  height: 22px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 12px;
+  color: #6a696e;
+  line-height: 22px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+  margin-bottom: 0px;
+}
+.top-block .block-inner .dec-wrap .pr {
+  height: 22px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 12px;
+  color: #6a696e;
+  line-height: 20px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+}
+.top-block .block-inner .dec-wrap .pr span:last-child {
+  margin-left: 170px;
+}
+.top-block .block-inner .dec-wrap .user-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.top-block .block-inner .dec-wrap .user-wrap .elprogress {
+  width: 366px;
+}
+.top-block .block-inner .dec-wrap .user-wrap .elprogress :deep(.ant-progress-inner) {
+  background-color: #ebeef5;
+}
+.content-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 28px;
+  margin-left: 16px;
+}
+.content-title i {
+  width: 6px;
+  height: 20px;
+  background: #0d53e2;
+  border-radius: 0px 0px 0px 0px;
+  margin-right: 8px;
+}
+.content-title span {
+  height: 20px;
+  font-family: Source Sans 3,
+      Source Sans 3;
+  font-weight: 600;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 20px;
+  text-align: center;
+  font-style: normal;
+  text-transform: none;
+}
+.sub-title {
+  height: 22px;
+  font-family: Source Sans 3,
+    Source Sans 3;
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 22px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+  margin-bottom: 8px;
+}
+.upload-layout {
+  width: 100%;
+  overflow: hidden;
+  margin: 0 20px 28px 16px;
+}
+.upload-layout .upload-btn-wrap {
+  height: 88px;
+  display: flex;
+}
+.upload-layout .upload-btn-wrap .upload-btn {
+  min-width: 88px;
+  max-width: 88px;
+  height: 88px;
+  border-radius: 4px 4px 4px 4px;
+  border: 1px solid #d3d2d9;
+  text-align: center;
+  margin-right: 12px;
+  position: relative;
+}
+.upload-layout .upload-btn-wrap .upload-btn div {
+  position: absolute;
+  top: 45px;
+  height: 22px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 14px;
+  color: #0d53e2;
+  line-height: 22px;
+  font-style: normal;
+  text-transform: none;
+  width: 100%;
+  text-align: center;
+}
+.upload-layout .upload-btn-wrap .upload-dec div {
+  height: 22px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 14px;
+  color: #6a696e;
+  line-height: 22px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+  margin-top: 20px;
+  margin-bottom: 4px;
+}
+.upload-layout .upload-btn-wrap .upload-dec p {
+  height: 10px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 12px;
+  color: #a2a1a6;
+  line-height: 22px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+}
+.upload-file-wrap {
+  margin: 0 20px 28px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  width: calc(100% + 50px);
+}
+.upload-file-wrap .file-list {
+  min-width: 493px;
+  max-width: 493px;
+  height: 72px;
+  background: #f3f2f7;
+  border-radius: 4px 4px 4px 4px;
+  display: flex;
+  margin-right: 12px;
+  margin-bottom: 12px;
+}
+.upload-file-wrap .file-list .icon {
+  min-width: 40px;
+  max-width: 40px;
+  height: 40px;
+  color: #0d53e2;
+  margin: 15px 13px 20px 15px;
+}
+.upload-file-wrap .file-list .file-dec {
+  position: relative;
+  width: 100%;
+}
+.upload-file-wrap .file-list .file-dec .tit {
+  margin: 16px 0 4px 0;
+  height: 22px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 22px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+}
+.upload-file-wrap .file-list .file-dec .number {
+  display: flex;
+  align-items: center;
+  height: 12px;
+  font-family: Source Sans 3,
+          Source Sans 3;
+  font-weight: 400;
+  font-size: 12px;
+  color: #6a696e;
+  line-height: 12px;
+  text-align: left;
+  font-style: normal;
+  text-transform: none;
+}
+.upload-file-wrap .file-list .file-dec .number .hover-link {
+  margin-left: 27px;
+  font-size: 12px !important;
+  height: 14px;
+  width: 280px;
+  color: #0d53e2;
+  cursor: pointer;
+  white-space: nowrap;
+  /* 强制文本不换行 */
+  overflow: hidden;
+  /* 超出容器部分隐藏 */
+  text-overflow: ellipsis;
+  /* 超出部分显示省略号 */
+}
+.upload-file-wrap .file-list .file-dec .elbutton {
+  position: absolute;
+  right: 0px;
+  top: 20px;
+  background: none !important;
+  border: none !important;
+}
+.textar-wrap {
+  margin: 0 20px 28px 16px;
+  width: 100%;
+}
+.textar-wrap .textarea {
+  width: 100%;
+}
+.foot-btn {
+  width: 100%;
+  height: 60px;
+  background-color: #fff;
+  margin-left: 16px;
+  margin-bottom: 30px;
+}
+.foot-btn .btn_left {
+  margin-left: 15px;
+}

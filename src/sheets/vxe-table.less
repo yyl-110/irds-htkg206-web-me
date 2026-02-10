@@ -1,0 +1,42 @@
+/// vxe-table 相关样式
+/// 已在 `src/plugins/vxe/index.ts` 中增加每个部分的 class, 在此文件中增加样式, 详见 https://vxetable.cn/#/table/api?q=style
+
+[data-vxe-ui-theme='light'] {
+  --vxe-ui-font-color: rgba(0, 0, 0, 0.85) !important;
+  --vxe-ui-table-row-height-default: 65px !important;
+}
+
+[data-vxe-ui-theme='dark'] {
+  --vxe-ui-font-color: rgba(255, 255, 255, 0.85) !important;
+  --vxe-ui-table-row-height-default: 65px !important;
+}
+
+@thead-cell-padding-y: 16px;
+@cell-padding-y: 21px;
+
+// header row
+.vxe-header--row {
+}
+
+// body row
+.vxe-body--row {
+}
+
+// column
+.vxe-body--column {
+  // &:not(.is--virtual-y) {
+  //   padding-top: @cell-padding-y !important;
+  //   padding-bottom: @cell-padding-y !important;
+  // }
+}
+
+// header column
+.vxe-header--column {
+  padding-top: @thead-cell-padding-y !important;
+  padding-bottom: @thead-cell-padding-y !important;
+}
+
+.vxe-table .vxe-cell {
+  padding-left: @thead-cell-padding-y !important;
+  padding-right: @thead-cell-padding-y !important;
+}

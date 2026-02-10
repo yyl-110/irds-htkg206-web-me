@@ -1,0 +1,16 @@
+[data-vxe-ui-theme='light'] {
+  --vxe-ui-font-color: rgba(0, 0, 0, 0.85) !important;
+  --vxe-ui-table-row-height-default: 65px !important;
+}
+[data-vxe-ui-theme='dark'] {
+  --vxe-ui-font-color: rgba(255, 255, 255, 0.85) !important;
+  --vxe-ui-table-row-height-default: 65px !important;
+}
+.vxe-header--column {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
+.vxe-table .vxe-cell {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}

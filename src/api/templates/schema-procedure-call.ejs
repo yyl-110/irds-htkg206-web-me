@@ -1,0 +1,126 @@
+<%
+const { utils, route, config, getRequestType } = it;
+const { requestBodyInfo, responseBodyInfo, specificArgNameResolver } = route;
+const { _, getInlineParseContent, getParseContent, parseSchema, getComponentByRef, require } = utils;
+const { parameters, path, method, payload, query, formData, security, requestParams } = route.request;
+const { type, errorType, contentTypes } = route.response;
+const { HTTP_CLIENT, RESERVED_REQ_PARAMS_ARG_NAMES } = config.constants;
+const routeDocs = includeFile("./route-docs", { config, route, utils });
+const queryName = (query && query.name) || "query";
+const pathParams = _.values(parameters);
+const pathParamsNames = _.map(pathParams, "name");
+
+const RouteHandler = require('./route.cjs')
+const handler = new RouteHandler(config, route)
+const responseDataSchemaName = handler.getResponseDataSchemaName()
+
+const isFetchTemplate = config.httpClientType === HTTP_CLIENT.FETCH;
+
+const requestConfigParam = {
+    name: specificArgNameResolver.resolve(RESERVED_REQ_PARAMS_ARG_NAMES),
+    optional: true,
+    type: "RequestParams",
+    defaultValue: "{}",
+}
+
+const argToTmpl = ({ name, optional, displayType, type, defaultValue }) => `${name}${!defaultValue && optional ? '?' : ''}: ${displayType}${defaultValue ? ` = ${defaultValue}` : ''}`;
+
+const rawWrapperArgs = config.extractRequestParams ?
+    _.compact([
+        requestParams && {
+          name: pathParams.length ? `{ ${_.join(pathParamsNames, ", ")}, ...${queryName} }` : queryName,
+          optional: false,
+          type: getInlineParseContent(requestParams),
+        },
+        ...(!requestParams ? pathParams : []),
+        payload,
+        requestConfigParam,
+    ]) :
+    _.compact([
+        ...pathParams,
+        query,
+        payload,
+        requestConfigParam,
+    ])
+
+for (const arg of rawWrapperArgs) {
+    arg.displayType = arg.type
+}
+
+// if (route.routeName.usage === 'getUserPage' || route.routeName.usage === 'getDept1') {
+//     console.log(requestParams, rawWrapperArgs)
+// }
+
+if (requestParams && requestParams.type === 'object') {
+    const properties = Object.keys(requestParams.properties)
+    if (properties.length === 1 && requestParams.properties[properties[0]].in === 'query' && requestParams.properties[properties[0]].$ref) {
+        // const commentMatches = rawWrapperArgs[0].type.match(/\/\*\*.*\*\//)
+        // const commentnst comment = commentMatches
+    
+        const typeMatches = rawWrapperArgs[0].type.match(/:\s+(.*),/)
+        if (typeMatches && typeMatches[1]) rawWrapperArgs[0].displayType = typeMatches[1]
+    }
+}
+
+/** 第一个参数的泛型类型名称 */
+const firstReqGenericType = 'Req'
+/** 第一个参数的名称名称 */
+let firstReqTypeName = ''
+// 将第一个参数改为泛型类型
+if (rawWrapperArgs.length > 1 && rawWrapperArgs[0] && rawWrapperArgs[0].type && !rawWrapperArgs[0].defaultValue) {
+    firstReqTypeName = rawWrapperArgs[0].displayType
+    rawWrapperArgs[0].displayType = firstReqGenericType
+}
+
+const wrapperArgs = _
+    // Sort by optionality
+    .sortBy(rawWrapperArgs, [o => o.optional])
+    .map(argToTmpl)
+    .join(', ')
+
+// RequestParams["type"]
+const requestContentKind = {
+    "JSON": "ContentType.Json",
+    "URL_ENCODED": "ContentType.UrlEncoded",
+    "FORM_DATA": "ContentType.FormData",
+    "TEXT": "ContentType.Text",
+}
+// RequestParams["format"]
+const responseContentKind = {
+    "JSON": '"json"',
+    "IMAGE": '"blob"',
+    "FORM_DATA": isFetchTemplate ? '"formData"' : '"document"'
+}
+
+const bodyTmpl = _.get(payload, "name") || null;
+const queryTmpl = (query != null && queryName) || null;
+const bodyContentKindTmpl = requestContentKind[requestBodyInfo.contentKind] || null;
+const responseFormatTmpl = responseContentKind[responseBodyInfo.success && responseBodyInfo.success.schema && responseBodyInfo.success.schema.contentKind] || null;
+const securityTmpl = security ? 'true' : null;
+
+const describeReturnType = () => {
+    if (!config.toJS) return "";
+
+    switch(config.httpClientType) {
+        case HTTP_CLIENT.AXIOS: {
+          return `Promise<AxiosResponse<${type}>>`
+        }
+        default: {
+          return `Promise<HttpResponse<${type}, ${errorType}>`
+        }
+    }
+}
+
+%>
+
+<%~ route.routeName.usage %>: {
+    path: `<%~ path %>`,
+    method: '<%~ _.upperCase(method) %>',
+    type: <%~ getRequestType(path) %>,
+    paramModel: <%~ firstReqTypeName && firstReqTypeName[0] !== '{' ? (RouteHandler.getModelNameBySchemaName(firstReqTypeName)) : undefined %>,
+    responseModel: <%~ handler.getResponseModelClass(type) %>,
+    responseDataModel: <%~ responseDataSchemaName ? (RouteHandler.getModelNameBySchemaName(responseDataSchemaName)) : undefined %>,
+    // paramSchema: <%~ firstReqTypeName && firstReqTypeName[0] !== '{' ? (RouteHandler.getJSONSchemaNameBySchemaName(firstReqTypeName)) : undefined %>,
+    // responseSchema: <%~ RouteHandler.getJSONSchemaNameBySchemaName(type, handler) %>,
+    // responseDataSchema: <%~ responseDataSchemaName ? (RouteHandler.getJSONSchemaNameBySchemaName(responseDataSchemaName)) : undefined %>,
+},
