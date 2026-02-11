@@ -23,7 +23,7 @@ export function langValue(lang: any, langtype: any) {
       Verificationcodesenterrorfully: '验证码发送失败',
       forgotpassword: '忘记密码?',
       Resendinseconds: '秒后重新发送',
-      ElectronicCatalogPublishingSystem: '中车长客数智研发系统(CRIS)',
+      ElectronicCatalogPublishingSystem: '机械设备快速设计系统',
       Welcometologin: '欢迎登录',
       Customersatisfaction: '客户满意',
       Itisourmission: '是我们的宗旨',

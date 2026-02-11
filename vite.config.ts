@@ -105,9 +105,9 @@ export default defineConfig({
     host: '0.0.0.0',
     proxy: {
       '/Api': {
-        target: 'http://39.106.130.85:9328',
+        // target: 'http://39.106.130.85:9328',
         // target: 'http://10.151.129.89:9328',
-        // target: 'http://127.0.0.1:9327',
+        target: 'http://127.0.0.1:9327',
         ws: false,
         changeOrigin: true,
         /**

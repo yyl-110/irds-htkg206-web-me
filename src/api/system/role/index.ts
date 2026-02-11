@@ -6,7 +6,7 @@ import httpRequest from "../../../httpRequest/index";
  */
 export function getRoleTableData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/role/page",
+    url: "/system-service/system/role/page",
     method: "GET",
     params,
   });
@@ -17,7 +17,7 @@ export function getRoleTableData(params: any) {
  */
 export function getRoleDeleteTableData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/role/delete",
+    url: "/system-service/system/role/delete",
     method: "GET",
     params,
   });
@@ -72,7 +72,7 @@ export function getRoleUpdateSaveData(data: any) {
  */
 export function getRoleMenuListData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/menu/list-all-simple",
+    url: "/system-service/system/menu/list-all-simple",
     method: "GET",
     params,
   });
@@ -83,7 +83,7 @@ export function getRoleMenuListData(params: any) {
  */
 export function getRoleMenuData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/permission/list-role-resources",
+    url: "/system-service/system/permission/list-role-resources",
     method: "GET",
     params,
   });
@@ -94,7 +94,7 @@ export function getRoleMenuData(params: any) {
  */
 export function getRoleUpdateMenuData(data: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/permission/assign-role-menu",
+    url: "/system-service/system/permission/assign-role-menu",
     method: "POST",
     data,
   });
@@ -105,7 +105,7 @@ export function getRoleUpdateMenuData(data: any) {
  */
 export function getRolePowerData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/dept/list-all-simple",
+    url: "/system-service/system/dept/list-all-simple",
     method: "GET",
     params,
   });

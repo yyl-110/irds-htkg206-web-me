@@ -271,7 +271,7 @@ async function getTaskMessageList(type: boolean = false) {
       <img class="h-[32px]" src="@/assets/zg_yt.png" />
       <!-- <a-image class="h-[24px] inline" :src="imgUrl" :preview="false" /> -->
       <!-- <a-image class="h-[24px] ml-[13px] inline" :src="titleLogo" :preview="false" /> -->
-      <span class="font-bold text-[20px] leading-[20px] w-min-[125px]" style="color: #ffffff">{{ $t('中车长客数智研发系统(CRIS)') }}</span>
+      <span class="font-bold text-[20px] leading-[20px] w-min-[125px]" style="color: #ffffff">{{ $t('机械设备快速设计系统') }}</span>
       <!-- <span class="text-lg font-semibold text-white">前端基础框架</span> -->
     </div>
 

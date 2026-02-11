@@ -136,7 +136,7 @@ export function updateUserStatus(id: number, status: number) {
  */
 export function getSimpleUserList(): Promise<UserVO[]> {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/user/list-all-simple",
+    url: "/system-service/system/user/list-all-simple",
     method: "GET",
   });
 }
