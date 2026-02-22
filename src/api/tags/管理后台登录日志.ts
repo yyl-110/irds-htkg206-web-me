@@ -29,7 +29,7 @@ export class AdminApiSystemLoginLog {
   ) =>
     httpClient.request<CommonResultPageResultLoginLogResponseDTOModel, any>(
       {
-        path: `/system-service/system/login-log/page`,
+        path: `/cirpoint-auth-api/system/login-log/page`,
         method: "GET",
         query: query,
         secure: true,

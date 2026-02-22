@@ -49,7 +49,7 @@ onUnmounted(() => {
   <main class="w-full h-full flex justify-center align-middle p-4">
     <div class="example">
       <a-spin class="spin" />
-      <h1 class="spin" style="margin-left: 10px">{{ '加载快速设计系统中...' }}</h1>
+      <h1 class="spin" style="margin-left: 10px">{{ '加载数智研发系统中...' }}</h1>
     </div>
   </main>
 </template>

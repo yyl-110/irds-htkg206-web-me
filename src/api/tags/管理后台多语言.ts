@@ -328,7 +328,7 @@ export class AdminApiSystemLanguage {
   static updateUserLanguage = <Req extends LanguageRequestDTOModel = LanguageRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultPageResultLanguagePOModel, any>(
       {
-        path: `/system-service/system/epc-user/update-user-language`,
+        path: `/cirpoint-auth-api/system/epc-user/update-user-language`,
         method: 'POST',
         body: data,
         secure: true,

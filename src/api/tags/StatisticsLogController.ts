@@ -28,7 +28,7 @@ export class AdminApiSystemStatisticsLog {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/system-service/system/statistics-log/add`,
+        path: `/cirpoint-auth-api/system/statistics-log/add`,
         method: "POST",
         body: data,
         secure: true,
