@@ -132,7 +132,7 @@ export class AdminApiLog {
   ) =>
     httpClient.request<CommonResultPageResultLoginLogPOModel, any>(
       {
-        path: `/system-service/system/login-log/page`,
+        path: `/cirpoint-auth-api/system/login-log/page`,
         method: "GET",
         query: query,
         secure: true,
@@ -157,7 +157,7 @@ export class AdminApiLog {
   ) =>
     httpClient.request<CommonResultPageResultOperateLogPOModel, any>(
       {
-        path: `/system-service/system/statistics-log/operation-log-list`,
+        path: `/cirpoint-auth-api/system/statistics-log/operation-log-list`,
         method: "POST",
         body: query,
         secure: true,

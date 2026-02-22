@@ -105,7 +105,7 @@ export class AdminApiSystemUserProfile {
   ) =>
     httpClient.request<CommonResultUserProfileResponseDTOModel, any>(
       {
-        path: `/system-service/system/epc-user/get`,
+        path: `/cirpoint-auth-api/system/epc-user/get`,
         method: "GET",
         query: data,
         secure: true,
@@ -131,7 +131,7 @@ export class AdminApiSystemUserProfile {
   ) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/system-service/system/auth/send-phone-code-utils`,
+        path: `/cirpoint-auth-api/system/auth/send-phone-code-utils`,
         method: "POST",
         // body: data,
         query: data,
@@ -187,7 +187,7 @@ export class AdminApiSystemUserProfile {
   ) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/system-service/system/auth/check-phone-code-utils`,
+        path: `/cirpoint-auth-api/system/auth/check-phone-code-utils`,
         method: "POST",
         query: data,
         secure: true,

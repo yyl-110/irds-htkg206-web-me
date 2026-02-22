@@ -40,7 +40,7 @@ export class AdminApiSystemDept {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/system-service/system/dept/update`,
+        path: `/cirpoint-auth-api/system/dept/update`,
         method: "POST",
         body: data,
         secure: true,
@@ -66,7 +66,7 @@ export class AdminApiSystemDept {
   ) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/system-service/system/dept/create`,
+        path: `/cirpoint-auth-api/system/dept/create`,
         method: "POST",
         body: data,
         secure: true,
@@ -111,7 +111,7 @@ export class AdminApiSystemDept {
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/system-service/system/dept/list`,
+        path: `/cirpoint-auth-api/system/dept/list`,
         method: "GET",
         query: query,
         secure: true,
@@ -136,7 +136,7 @@ export class AdminApiSystemDept {
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/system-service/system/dept/listLazy`,
+        path: `/cirpoint-auth-api/system/dept/listLazy`,
         method: "GET",
         query: query,
         secure: true,
@@ -206,7 +206,7 @@ export class AdminApiSystemDept {
   static getSimpleDepts = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptSimpleResponseDTOModel, any>(
       {
-        path: `/system-service/system/dept/list-all-simple`,
+        path: `/cirpoint-auth-api/system/dept/list-all-simple`,
         method: "GET",
         secure: true,
         ...params,
@@ -225,7 +225,7 @@ export class AdminApiSystemDept {
   static getSimpleDeptsRight = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptSimpleResponseDTOModel, any>(
       {
-        path: `/system-service/system/dept/list-all-simple-right`,
+        path: `/cirpoint-auth-api/system/dept/list-all-simple-right`,
         method: "GET",
         secure: true,
         ...params,
@@ -263,7 +263,7 @@ export class AdminApiSystemDept {
   ) =>
     httpClient.request<CommonResultDeptResponseDTOModel, any>(
       {
-        path: `/system-service/system/dept/get`,
+        path: `/cirpoint-auth-api/system/dept/get`,
         method: "GET",
         query: query,
         secure: true,
@@ -380,7 +380,7 @@ export class AdminApiSystemDept {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/system-service/system/dept/delete`,
+        path: `/cirpoint-auth-api/system/dept/delete`,
         method: "GET",
         query: query,
         secure: true,

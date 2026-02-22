@@ -37,7 +37,7 @@ export function getDictTypePage(params: PageParam) {
  */
 export function getDictType(id: number) {
   return request({
-    url: `/system-service/system/dict-type/get?id=${id}`,
+    url: `/cirpoint-auth-api/system/dict-type/get?id=${id}`,
     method: "get",
   });
 }
@@ -48,7 +48,7 @@ export function getDictType(id: number) {
  */
 export function createDictType(data: DictTypeVO) {
   return request({
-    url: "/system-service/system/dict-type/create",
+    url: "/cirpoint-auth-api/system/dict-type/create",
     data,
     method: "post",
   });
@@ -60,7 +60,7 @@ export function createDictType(data: DictTypeVO) {
  */
 export function updateDictType(data: DictTypeVO) {
   return request({
-    url: "/system-service/system/dict-type/update",
+    url: "/cirpoint-auth-api/system/dict-type/update",
     data,
     method: "POST",
   });
@@ -72,7 +72,7 @@ export function updateDictType(data: DictTypeVO) {
  */
 export function deleteDictType(id: number) {
   return request({
-    url: `/system-service/system/dict-type/delete?id=${id}`,
+    url: `/cirpoint-auth-api/system/dict-type/delete?id=${id}`,
     method: "GET",
   });
 }

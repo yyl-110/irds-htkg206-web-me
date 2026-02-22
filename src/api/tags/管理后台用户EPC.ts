@@ -28,7 +28,7 @@ export class AdminApiSystemEpcUser {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/system-service/system/epc-user/profile/update-password`,
+        path: `/cirpoint-auth-api/system/epc-user/profile/update-password`,
         method: "POST",
         body: data,
         secure: true,

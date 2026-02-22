@@ -36,7 +36,7 @@ export class AdminApiSystemMenu {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/system-service/system/menu/update`,
+        path: `/cirpoint-auth-api/system/menu/update`,
         method: "POST",
         body: data,
         secure: true,
@@ -62,7 +62,7 @@ export class AdminApiSystemMenu {
   ) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/system-service/system/menu/create`,
+        path: `/cirpoint-auth-api/system/menu/create`,
         method: "POST",
         body: data,
         secure: true,
@@ -88,7 +88,7 @@ export class AdminApiSystemMenu {
   ) =>
     httpClient.request<CommonResultListMenuResponseDTOModel, any>(
       {
-        path: `/system-service/system/menu/list`,
+        path: `/cirpoint-auth-api/system/menu/list`,
         method: "GET",
         query: query,
         secure: true,
@@ -108,7 +108,7 @@ export class AdminApiSystemMenu {
   static getSimpleMenuList = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListMenuSimpleResponseDTOModel, any>(
       {
-        path: `/system-service/system/menu/list-all-simple`,
+        path: `/cirpoint-auth-api/system/menu/list-all-simple`,
         method: "GET",
         secure: true,
         ...params,
@@ -138,7 +138,7 @@ export class AdminApiSystemMenu {
   ) =>
     httpClient.request<CommonResultMenuResponseDTOModel, any>(
       {
-        path: `/system-service/system/menu/get`,
+        path: `/cirpoint-auth-api/system/menu/get`,
         method: "GET",
         query: query,
         secure: true,
@@ -177,7 +177,7 @@ export class AdminApiSystemMenu {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/system-service/system/menu/delete`,
+        path: `/cirpoint-auth-api/system/menu/delete`,
         method: "DELETE",
         query: query,
         secure: true,
