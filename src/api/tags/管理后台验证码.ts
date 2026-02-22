@@ -26,7 +26,7 @@ export class AdminApiSystemCaptcha {
   ) =>
     httpClient.request<ResponseModelModel, any>(
       {
-        path: `/cirpoint-auth-api/system/captcha/getCaptcha`,
+        path: `/system-service/system/captcha/getCaptcha`,
         method: "GET",
         body: data,
         secure: true,
@@ -50,7 +50,7 @@ export class AdminApiSystemCaptcha {
   ) =>
     httpClient.request<ResponseModelModel, any>(
       {
-        path: `/cirpoint-auth-api/system/captcha/check`,
+        path: `/system-service/system/captcha/check`,
         method: "POST",
         body: data,
         secure: true,

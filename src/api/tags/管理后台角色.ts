@@ -39,7 +39,7 @@ export class AdminApiSystemRole {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/role/update`,
+        path: `/system-service/system/role/update`,
         method: "POST",
         body: data,
         secure: true,
@@ -66,7 +66,7 @@ export class AdminApiSystemRole {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/role/update-status`,
+        path: `/system-service/system/role/update-status`,
         method: "POST",
         body: data,
         secure: true,
@@ -90,7 +90,7 @@ export class AdminApiSystemRole {
   ) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/cirpoint-auth-api/system/role/create`,
+        path: `/system-service/system/role/create`,
         method: "POST",
         body: data,
         secure: true,
@@ -116,7 +116,7 @@ export class AdminApiSystemRole {
   ) =>
     httpClient.request<CommonResultPageResultRolePOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/role/page`,
+        path: `/system-service/system/role/page`,
         method: "GET",
         query: query,
         secure: true,
@@ -136,7 +136,7 @@ export class AdminApiSystemRole {
   static getSimpleRoleList = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListRoleSimpleResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/role/list-all-simple`,
+        path: `/system-service/system/role/list-all-simple`,
         method: "GET",
         secure: true,
         ...params,
@@ -230,7 +230,7 @@ export class AdminApiSystemRole {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/role/delete`,
+        path: `/system-service/system/role/delete`,
         method: "GET",
         query: query,
         secure: true,

@@ -17,7 +17,7 @@ export function getMenuTableData(params: any) {
  */
 export function getParMenuData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/menu/list-all-simple",
+    url: "/system-service/system/menu/list-all-simple",
     method: "GET",
     params,
   });
@@ -28,7 +28,7 @@ export function getParMenuData(params: any) {
  */
 export function getDeleteTableData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/menu/delete/",
+    url: "/system-service/system/menu/delete/",
     method: "GET",
     params,
   });
@@ -39,7 +39,7 @@ export function getDeleteTableData(params: any) {
  */
 export function getMenuUpdateData(params: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/menu/get",
+    url: "/system-service/system/menu/get",
     method: "GET",
     params,
   });
@@ -50,7 +50,7 @@ export function getMenuUpdateData(params: any) {
  */
 export function getMenuAddSaveData(data: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/menu/create",
+    url: "/system-service/system/menu/create",
     method: "POST",
     data,
   });
@@ -61,7 +61,7 @@ export function getMenuAddSaveData(data: any) {
  */
 export function getMenuUpdateSaveData(data: any) {
   return httpRequest({
-    url: "/cirpoint-auth-api/system/menu/update",
+    url: "/system-service/system/menu/update",
     method: "POST",
     data,
   });

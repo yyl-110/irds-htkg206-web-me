@@ -40,7 +40,7 @@ export class AdminApiSystemUser {
   static excelExport = (params: RequestParams = {}) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/export`,
+        path: `/system-service/system/epc-user/export`,
         method: 'GET',
         secure: true,
         format: 'blob', // 返回二进制流
@@ -60,7 +60,7 @@ export class AdminApiSystemUser {
   static updatepasswor = <Req extends any = any>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/update-password`,
+        path: `/system-service/system/epc-user/update-password`,
         method: 'POST',
         body: data,
         secure: true,
@@ -202,7 +202,7 @@ export class AdminApiSystemUser {
   static updateUser = <Req extends UserUpdateRequestDTOModel = UserUpdateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/update`,
+        path: `/system-service/system/epc-user/update`,
         method: 'POST',
         body: data,
         secure: true,
@@ -223,7 +223,7 @@ export class AdminApiSystemUser {
   static updateDeactivate = <Req extends UserUDeactivateRequestDTOModel = UserUDeactivateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/updateDeactivate`,
+        path: `/system-service/system/epc-user/updateDeactivate`,
         method: 'POST',
         body: data,
         secure: true,
@@ -244,7 +244,7 @@ export class AdminApiSystemUser {
   static updateUserStatus = <Req extends UserUpdateStatusRequestDTOModel = UserUpdateStatusRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/update-status`,
+        path: `/system-service/system/epc-user/update-status`,
         method: 'POST',
         body: data,
         secure: true,
@@ -286,7 +286,7 @@ export class AdminApiSystemUser {
   static createUser = <Req extends UserCreateRequestDTOModel = UserCreateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/create`,
+        path: `/system-service/system/epc-user/create`,
         method: 'POST',
         body: data,
         secure: true,
@@ -307,7 +307,7 @@ export class AdminApiSystemUser {
   static getUserPage = <Req extends UserPageRequestDTOModel = UserPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultPageResultUserPageItemResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/page`,
+        path: `/system-service/system/epc-user/page`,
         method: 'GET',
         query: query,
         secure: true,
@@ -384,7 +384,7 @@ export class AdminApiSystemUser {
   static getSimpleUsers = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListUserSimpleResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/list-all-simple`,
+        path: `/system-service/system/epc-user/list-all-simple`,
         method: 'GET',
         secure: true,
         ...params,
@@ -403,7 +403,7 @@ export class AdminApiSystemUser {
   static getSimpleUsersRight = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListUserSimpleResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/user/list-all-simple-right`,
+        path: `/system-service/system/user/list-all-simple-right`,
         method: 'GET',
         secure: true,
         ...params,
@@ -441,7 +441,7 @@ export class AdminApiSystemUser {
   ) =>
     httpClient.request<CommonResultUserResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/get`,
+        path: `/system-service/system/epc-user/get`,
         method: 'GET',
         query: query,
         secure: true,
@@ -517,7 +517,7 @@ export class AdminApiSystemUser {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/epc-user/delete`,
+        path: `/system-service/system/epc-user/delete`,
         method: 'DELETE',
         query: query,
         secure: true,
