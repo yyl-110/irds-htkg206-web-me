@@ -12,7 +12,6 @@ import ParameterDefinition from './conmmonets/parameterDefinition.vue';
 import GBOMDefinition from './conmmonets/GBOMDefinition.vue';
 import GBOMDefinitionChirdren from './conmmonets/GBOMDefinitionChirdren.vue';
 import ProjectManager from './conmmonets/projectManager.vue';
-import PlatformRequirements from './conmmonets/PlatformRequirements.vue';
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 import addGBOMParameterInfoModule from './conmmonets/modalComponent/selecgGBOMParamterInfoModuleUse.vue';
 // 树结构相关属性
@@ -499,7 +498,7 @@ async function reloadTree() {
                   <ProjectManager ref="projectManager" :current-node-data="currentNodeData" />
                 </a-tab-pane>
                 <a-tab-pane key="3" tab="平台需求" v-if="currentNodeLevel === 2">
-                  <PlatformRequirements ref="platformRequirements" :current-node-data="PlatformRequirements" />
+             
                 </a-tab-pane>
               </a-tabs>
             </a-card>

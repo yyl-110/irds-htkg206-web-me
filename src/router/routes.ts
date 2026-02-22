@@ -97,36 +97,6 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       {
-        name: '/home/designFlow',
-        path: '/home/designFlow',
-        component: () => import('@/views/home/designFlow/index.vue'),
-        meta: {
-          title: '流程设计',
-          icon: UserOutlined,
-          keepAlive: false,
-        },
-      },
-      {
-        name: '/home/engineerFlow',
-        path: '/home/engineerFlow',
-        component: () => import('@/views/home/engineerFlow/index.vue'),
-        meta: {
-          title: '流程设计',
-          icon: UserOutlined,
-          keepAlive: false,
-        },
-      },
-      {
-        name: '/home/endFlow',
-        path: '/home/endFlow',
-        component: () => import('@/views/home/endFlow/index.vue'),
-        meta: {
-          title: '流程设计',
-          icon: UserOutlined,
-          keepAlive: false,
-        },
-      },
-      {
         name: '/home/taskFlow',
         path: '/home/taskFlow',
         component: () => import('@/views/Integdevelopment/taskInfo-management/index.vue'),

@@ -15,7 +15,6 @@ import GBOMDefinition from './conmmonets/GBOMDefinition.vue';
 import GBOMDefinitionChirdren from './conmmonets/GBOMDefinitionChirdren.vue';
 import ProjectManager from './conmmonets/projectManager.vue';
 import ProjectManagerPrient from './conmmonets/projectManagerPrient.vue';
-import PlatformRequirements from './conmmonets/PlatformRequirements.vue';
 import MemberAuthModal from '@/components/MemberAuthModal/index.vue'; // 引入封装组件
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 import addGBOMParameterInfoModule from './conmmonets/modalComponent/selecgGBOMParamterInfoModule.vue';
@@ -634,7 +633,7 @@ function handleClose() {
                   <ProjectManager ref="projectManager" :current-node-data="currentNodeData" />
                 </a-tab-pane>
                 <a-tab-pane key="3" tab="平台需求" v-if="currentNodeLevel === 2">
-                  <PlatformRequirements ref="platformRequirements" :current-node-data="currentNodeData" />
+             
                 </a-tab-pane>
                 <a-tab-pane key="4" tab="平台项目" v-if="currentNodeLevel === 2">
                   <ProjectManagerPrient ref="projectManagerPrient" :current-node-data="currentNodeData" />
