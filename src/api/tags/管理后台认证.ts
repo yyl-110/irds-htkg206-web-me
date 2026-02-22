@@ -70,7 +70,7 @@ export class AdminApiSystemAuth {
   ) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/refresh-token`,
+        path: `/system-service/system/auth/refresh-token`,
         method: "POST",
         query: query,
         secure: true,
@@ -90,7 +90,7 @@ export class AdminApiSystemAuth {
   static logout = (params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/logout`,
+        path: `/system-service/system/auth/logout`,
         method: "POST",
         secure: true,
         ...params,
@@ -115,7 +115,7 @@ export class AdminApiSystemAuth {
   ) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/login`,
+        path: `/system-service/system/auth/login`,
         method: "POST",
         body: data,
         secure: true,
@@ -234,7 +234,7 @@ export class AdminApiSystemAuth {
   static getMenus = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListAuthMenuResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/list-menus`,
+        path: `/system-service/system/auth/list-menus`,
         method: "GET",
         secure: true,
         ...params,
@@ -262,7 +262,7 @@ export class AdminApiSystemAuth {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/isCode`,
+        path: `/system-service/system/auth/isCode`,
         method: "GET",
         query: query,
         secure: true,
@@ -291,7 +291,7 @@ export class AdminApiSystemAuth {
   ) =>
     httpClient.request<CommonResultStringModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/getEncryptPassword`,
+        path: `/system-service/system/auth/getEncryptPassword`,
         method: "GET",
         query: query,
         secure: true,
@@ -311,7 +311,7 @@ export class AdminApiSystemAuth {
   static getPermissionInfo = (params: RequestParams = {}) =>
     httpClient.request<CommonResultAuthPermissionInfoResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/get-permission-info`,
+        path: `/system-service/system/auth/get-permission-info`,
         method: "GET",
         secure: true,
         ...params,
@@ -336,7 +336,7 @@ export class AdminApiSystemAuth {
   ) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/send-phone-code`,
+        path: `/system-service/system/auth/send-phone-code`,
         method: "POST",
         // body: data,
         query: data,
@@ -364,7 +364,7 @@ export class AdminApiSystemAuth {
   ) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/auth/check-phone-code`,
+        path: `/system-service/system/auth/check-phone-code`,
         method: "POST",
         // body: data,
         query: data,

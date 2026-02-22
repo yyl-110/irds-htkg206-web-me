@@ -66,7 +66,7 @@ export class AdminApiSystemModular {
   ) =>
     httpClient.request<CommonResultBooleanModulemanaGementModel, any>(
       {
-        path: `/cirpoint-auth-api/system/func-menu/update`,
+        path: `/system-service/system/func-menu/update`,
         method: "POST",
         body: data,
         secure: true,
@@ -93,7 +93,7 @@ export class AdminApiSystemModular {
   ) =>
     httpClient.request<CommonResultLongModulemanaGementModel, any>(
       {
-        path: `/cirpoint-auth-api/system/func-menu/create`,
+        path: `/system-service/system/func-menu/create`,
         method: "POST",
         body: data,
         secure: true,
@@ -123,7 +123,7 @@ export class AdminApiSystemModular {
       any
     >(
       {
-        path: `/cirpoint-auth-api/system/func-menu/list`,
+        path: `/system-service/system/func-menu/list`,
         method: "GET",
         query: query,
         secure: true,
@@ -146,7 +146,7 @@ export class AdminApiSystemModular {
       any
     >(
       {
-        path: `/cirpoint-auth-api/system/menu/list-all-simple`,
+        path: `/system-service/system/menu/list-all-simple`,
         method: "GET",
         secure: true,
         ...params,
@@ -176,7 +176,7 @@ export class AdminApiSystemModular {
   ) =>
     httpClient.request<CommonResultMenuResponseDTOModulemanaGementModel, any>(
       {
-        path: `/cirpoint-auth-api/system/func-menu/get`,
+        path: `/system-service/system/func-menu/get`,
         method: "GET",
         query: query,
         secure: true,
@@ -215,7 +215,7 @@ export class AdminApiSystemModular {
   ) =>
     httpClient.request<CommonResultBooleanModulemanaGementModel, any>(
       {
-        path: `/cirpoint-auth-api/system/func-menu/delete`,
+        path: `/system-service/system/func-menu/delete`,
         method: "DELETE",
         query: query,
         secure: true,

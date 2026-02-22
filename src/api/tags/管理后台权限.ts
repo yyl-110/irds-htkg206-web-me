@@ -35,7 +35,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/assign-role-doc`,
+        path: `/system-service/system/permission/assign-role-doc`,
         method: "POST",
         body: data,
         secure: true,
@@ -63,7 +63,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/list-role-dir`,
+        path: `/system-service/system/permission/list-role-dir`,
         method: "GET",
         query: query,
         secure: true,
@@ -116,7 +116,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/assign-role-func`,
+        path: `/system-service/system/permission/assign-role-func`,
         method: "POST",
         body: data,
         secure: true,
@@ -144,7 +144,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/list-role-func`,
+        path: `/system-service/system/permission/list-role-func`,
         method: "GET",
         query: query,
         secure: true,
@@ -171,7 +171,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/assign-users-role`,
+        path: `/system-service/system/permission/assign-users-role`,
         method: "POST",
         body: data,
         secure: true,
@@ -225,7 +225,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/assign-role-menu`,
+        path: `/system-service/system/permission/assign-role-menu`,
         method: "POST",
         body: data,
         secure: true,
@@ -327,7 +327,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultSetLongModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/list-role-resources`,
+        path: `/system-service/system/permission/list-role-resources`,
         method: "GET",
         query: query,
         secure: true,
@@ -358,7 +358,7 @@ export class AdminApiSystemPermission {
   ) =>
     httpClient.request<CommonResultListAdminListItemResponseDTOModel, any>(
       {
-        path: `/cirpoint-auth-api/system/permission/getUsersByRole`,
+        path: `/system-service/system/permission/getUsersByRole`,
         method: "GET",
         query: query,
         secure: true,
