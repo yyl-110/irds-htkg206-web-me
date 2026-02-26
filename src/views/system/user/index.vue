@@ -423,19 +423,19 @@ async function exportData() {
           </a-button>
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" @click="handleAddOrUpdate(undefined, false)">
+          <a-button v-if="userStore.getUser.userType != '4'" type="primary" @click="handleAddOrUpdate(undefined, false)">
             <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
             {{ $t('添加') }}
           </a-button>
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" :loading="synchronizeLoading" @click="synchronizeUsers">
+          <a-button v-if="userStore.getUser.userType != '4'" type="primary" :loading="synchronizeLoading" @click="synchronizeUsers">
             <EpcIcon type="icon-tongbu2" style="font-size: 15px" />
             {{ $t('同步用户') }}
           </a-button>
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" class="m-right" :loading="iconLoading" @click="exportData">
+          <a-button v-if="userStore.getUser.userType != '4'" type="primary" class="m-right" :loading="iconLoading" @click="exportData">
             <EpcIcon type="icon-daochu" style="font-size: 12px" />
             {{ $t('导出') }}
           </a-button>
@@ -447,18 +447,18 @@ async function exportData() {
         <template #operation_default="{ row }">
           <!-- @click="handleClick" -->
 
-          <a @click="handleAddOrUpdate(row.id, false)"> {{ $t('编辑') }}</a>
-          <a-divider type="vertical" />
+          <a @click="handleAddOrUpdate(row.id, false)" v-if="userStore.getUser.userType != '4'"> {{ $t('编辑') }}</a>
+          <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
           <a @click="handleAddOrUpdate(row.id, true)"> {{ $t('详情') }}</a>
-          <a-divider type="vertical" />
+          <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
           <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(row.id)">
             <!-- v-hasPermi="['system:role:delete']" -->
-            <a-button type="link" danger class="p-0">
+            <a-button type="link" danger class="p-0" v-if="userStore.getUser.userType != '4'">
               {{ $t('删除') }}
             </a-button>
           </a-popconfirm>
-          <a-divider type="vertical" />
-          <a @click="resetpassword(row)"> {{ $t('重置密码') }}</a>
+          <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
+          <a @click="resetpassword(row)" v-if="userStore.getUser.userType != '4'"> {{ $t('重置密码') }}</a>
         </template>
         <template #workCard_default="{ row }">
           <a @click.stop="handleAddOrUpdate(row.id, true)">{{ row.workCard }}</a>
