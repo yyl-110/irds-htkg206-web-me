@@ -103,8 +103,12 @@ const columns: VxeGridPropTypes.Columns<UserPageItemResponseDTOModel> = [
     width: 130,
     slots: {
       default(params) {
+        // 判断是否可以点击（userType != '4' 时可以点击）
+        const canClick = userStore.getUser.userType !== '4';
+
         return h(Switch, {
           checked: Number(params.row.status) === 0,
+          disabled: !canClick, // 如果不能点击，则禁用 Switch
           onChange() {
             // 修改状态的二次确认
             const _text = params.row.status === CommonStatusEnum.ENABLE ? WeiI18n.t('停用').value : WeiI18n.t('启用').value;
