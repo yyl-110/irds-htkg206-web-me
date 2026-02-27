@@ -240,6 +240,12 @@ async function handleLogin(params: any) {
       if (userStore.user.userCategoryName === '匹配手册用户') {
         layoutStore.setSystemType(SystemType.other);
         push({ path: '/EngineMatching' });
+      } else if (userStore.user.userType === '3') {
+        push({ path: 'system/abnormalmanage/dept' });
+      } else if (userStore.user.userType === '4') {
+        push({ path: 'system/abnormalmanage/user' });
+      } else if (userStore.user.userType === '5') {
+        push({ path: 'system/log/system:operate-log:query' });
       } else {
         push({ path: HOME_PAGE_ROUTE_NAME });
       }

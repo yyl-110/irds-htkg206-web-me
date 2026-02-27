@@ -200,7 +200,15 @@ function switchSystem(type: boolean) {
       layoutStore.setHomeType('home');
     }
     layoutStore.setIsHomepage(type);
-    $router.push({ path: '/home/workbench' });
+    if (userStore.user.userType === '3') {
+      $router.push({ path: 'system/abnormalmanage/dept' });
+    } else if (userStore.user.userType === '4') {
+      $router.push({ path: 'system/abnormalmanage/user' });
+    } else if (userStore.user.userType === '5') {
+      $router.push({ path: 'system/log/system:operate-log:query' });
+    } else {
+      $router.push({ path: '/home/workbench' });
+    }
   }
 }
 
@@ -239,7 +247,7 @@ initFeedbackReadFlag('2');
 watch(
   () => $router.currentRoute.value.path,
   (newPath, oldPath) => {},
-  { immediate: true }
+  { immediate: true },
 );
 onMounted(() => {
   //initLanguage();
