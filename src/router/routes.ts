@@ -96,26 +96,26 @@ export const routes: RouteRecordRaw[] = [
           keepAlive: false,
         },
       },
-      {
-        name: '/home/taskFlow',
-        path: '/home/taskFlow',
-        component: () => import('@/views/Integdevelopment/taskInfo-management/index.vue'),
-        meta: {
-          title: '产品规划设计',
-          icon: UserOutlined,
-          keepAlive: false,
-        },
-      },
-      {
-        name: '/home/calcpage',
-        path: '/home/calcpage',
-        component: () => import('@/views/check/use/components/calcPage.vue'),
-        meta: {
-          title: '计算设计',
-          icon: UserOutlined,
-          keepAlive: false,
-        },
-      },
+      // {
+      //   name: '/home/taskFlow',
+      //   path: '/home/taskFlow',
+      //   component: () => import('@/views/Integdevelopment/taskInfo-management/index.vue'),
+      //   meta: {
+      //     title: '产品规划设计',
+      //     icon: UserOutlined,
+      //     keepAlive: false,
+      //   },
+      // },
+      // {
+      //   name: '/home/calcpage',
+      //   path: '/home/calcpage',
+      //   component: () => import('@/views/check/use/components/calcPage.vue'),
+      //   meta: {
+      //     title: '计算设计',
+      //     icon: UserOutlined,
+      //     keepAlive: false,
+      //   },
+      // },
     ],
   },
 ];
