@@ -95,6 +95,8 @@ export default defineConfig({
     // 添加别名
     alias: {
       '@': resolve(__dirname, 'src'),
+      // 修复 bpmn-js-token-simulation 对 ids 的默认导入：ids 仅提供命名导出
+      ids: resolve(__dirname, 'src/shims/ids.js'),
       // 'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
     },
   },
@@ -105,9 +107,9 @@ export default defineConfig({
     host: '0.0.0.0',
     proxy: {
       '/Api': {
-        target: 'http://39.106.130.85:9328',
+        // target: 'http://39.106.130.85:9328',
         // target: 'http://10.151.129.89:9328',
-        // target: 'http://127.0.0.1:9327',
+        target: 'http://127.0.0.1:9327',
         ws: false,
         changeOrigin: true,
         /**
