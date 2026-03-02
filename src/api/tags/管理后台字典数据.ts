@@ -1,16 +1,16 @@
 // import { OpenApiActions, type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
-import { ContentType, httpClient, type RequestParams } from "./http-client";
+import { ContentType, httpClient, type RequestParams } from './http-client';
 
-import { CommonResultBooleanModel } from "../models/CommonResultBooleanModel";
-import { CommonResultDictDataResponseDTOModel } from "../models/CommonResultDictDataResponseDTOModel";
-import { CommonResultListDictDataSimpleResponseDTOModel } from "../models/CommonResultListDictDataSimpleResponseDTOModel";
-import { CommonResultLongModel } from "../models/CommonResultLongModel";
-import { CommonResultPageResultDictDataResponseDTOModel } from "../models/CommonResultPageResultDictDataResponseDTOModel";
-import { DictDataCreateRequestDTOModel } from "../models/DictDataCreateRequestDTOModel";
-import { DictDataPageRequestDTOModel } from "../models/DictDataPageRequestDTOModel";
-import { DictDataResponseDTOModel } from "../models/DictDataResponseDTOModel";
-import { DictDataSimpleResponseDTOModel } from "../models/DictDataSimpleResponseDTOModel";
-import { DictDataUpdateRequestDTOModel } from "../models/DictDataUpdateRequestDTOModel";
+import { CommonResultBooleanModel } from '../models/CommonResultBooleanModel';
+import { CommonResultDictDataResponseDTOModel } from '../models/CommonResultDictDataResponseDTOModel';
+import { CommonResultListDictDataSimpleResponseDTOModel } from '../models/CommonResultListDictDataSimpleResponseDTOModel';
+import { CommonResultLongModel } from '../models/CommonResultLongModel';
+import { CommonResultPageResultDictDataResponseDTOModel } from '../models/CommonResultPageResultDictDataResponseDTOModel';
+import { DictDataCreateRequestDTOModel } from '../models/DictDataCreateRequestDTOModel';
+import { DictDataPageRequestDTOModel } from '../models/DictDataPageRequestDTOModel';
+import { DictDataResponseDTOModel } from '../models/DictDataResponseDTOModel';
+import { DictDataSimpleResponseDTOModel } from '../models/DictDataSimpleResponseDTOModel';
+import { DictDataUpdateRequestDTOModel } from '../models/DictDataUpdateRequestDTOModel';
 
 /**
  * 管理后台字典数据
@@ -28,22 +28,17 @@ export class AdminApiSystemDictData {
    * @request POST:/admin-api/system/dict-data/update
    * @secure
    */
-  static updateDictData = <
-    Req extends DictDataUpdateRequestDTOModel = DictDataUpdateRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static updateDictData = <Req extends DictDataUpdateRequestDTOModel = DictDataUpdateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
         path: `/admin-api/system/dict-data/update`,
-        method: "POST",
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
   /**
    * 新增字典数据
@@ -54,22 +49,17 @@ export class AdminApiSystemDictData {
    * @request POST:/admin-api/system/dict-data/create
    * @secure
    */
-  static createDictData = <
-    Req extends DictDataCreateRequestDTOModel = DictDataCreateRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static createDictData = <Req extends DictDataCreateRequestDTOModel = DictDataCreateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultLongModel, any>(
       {
         path: `/admin-api/system/dict-data/create`,
-        method: "POST",
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultLongModel
+      CommonResultLongModel,
     );
   /**
    * 获得字典类型的分页列表
@@ -80,21 +70,16 @@ export class AdminApiSystemDictData {
    * @request GET:/system/dict-data/page
    * @secure
    */
-  static getDictTypePage = <
-    Req extends DictDataPageRequestDTOModel = DictDataPageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getDictTypePage = <Req extends DictDataPageRequestDTOModel = DictDataPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultPageResultDictDataResponseDTOModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-data/page`,
-        method: "GET",
+        path: `/system-service/system/dict-data/page`,
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultPageResultDictDataResponseDTOModel
+      CommonResultPageResultDictDataResponseDTOModel,
     );
   /**
    * @description 一般用于管理后台缓存字典数据在本地
@@ -102,18 +87,18 @@ export class AdminApiSystemDictData {
    * @tags 管理后台 - 字典数据
    * @name GetSimpleDictDataList
    * @summary 获得全部字典数据列表
-   * @request GET:/cirpoint-demand-api/system/dict-data/list-all-simple
+   * @request GET:/system-service/system/dict-data/list-all-simple
    * @secure
    */
   static getSimpleDictDataList = (params: RequestParams = {}) =>
     httpClient.request<CommonResultListDictDataSimpleResponseDTOModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-data/list-all-simple`,
-        method: "GET",
+        path: `/system-service/system/dict-data/list-all-simple`,
+        method: 'GET',
         secure: true,
         ...params,
       },
-      CommonResultListDictDataSimpleResponseDTOModel
+      CommonResultListDictDataSimpleResponseDTOModel,
     );
   /**
    * 查询字典数据详细
@@ -142,17 +127,17 @@ export class AdminApiSystemDictData {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultDictDataResponseDTOModel, any>(
       {
         path: `/admin-api/system/dict-data/get`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultDictDataResponseDTOModel
+      CommonResultDictDataResponseDTOModel,
     );
   /**
    * 删除字典数据
@@ -181,16 +166,16 @@ export class AdminApiSystemDictData {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-data/delete`,
-        method: "GET",
+        path: `/system-service/system/dict-data/delete`,
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
 }

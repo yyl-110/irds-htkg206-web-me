@@ -1,4 +1,4 @@
-import httpRequest from "../../../httpRequest/index";
+import httpRequest from '../../../httpRequest/index';
 
 /**
  * 获取字典管理表格数据
@@ -6,8 +6,8 @@ import httpRequest from "../../../httpRequest/index";
  */
 export function getDictTableData(params: any) {
   return httpRequest({
-    url: "/cirpoint-demand-api/system/dict-type/page",
-    method: "GET",
+    url: '/system-service/system/dict-type/page',
+    method: 'GET',
     params,
   });
 }
@@ -17,8 +17,8 @@ export function getDictTableData(params: any) {
  */
 export function getDeleteTableData(params: any) {
   return httpRequest({
-    url: "/cirpoint-demand-api/system/dict-type/delete",
-    method: "GET",
+    url: '/system-service/system/dict-type/delete',
+    method: 'GET',
     params,
   });
 }
@@ -28,8 +28,8 @@ export function getDeleteTableData(params: any) {
  */
 export function getUpdateDictData(params: any) {
   return httpRequest({
-    url: "/cirpoint-demand-api/system/dict-type/get",
-    method: "GET",
+    url: '/system-service/system/dict-type/get',
+    method: 'GET',
     params,
   });
 }
@@ -39,8 +39,8 @@ export function getUpdateDictData(params: any) {
  */
 export function getDictAddSaveData(data: any) {
   return httpRequest({
-    url: "/cirpoint-demand-api/system/dict-type/create",
-    method: "POST",
+    url: '/system-service/system/dict-type/create',
+    method: 'POST',
     data,
   });
 }
@@ -50,8 +50,8 @@ export function getDictAddSaveData(data: any) {
  */
 export function getDictUpdateSaveData(data: any) {
   return httpRequest({
-    url: "/cirpoint-demand-api/system/dict-type/update",
-    method: "POST",
+    url: '/system-service/system/dict-type/update',
+    method: 'POST',
     data,
   });
 }

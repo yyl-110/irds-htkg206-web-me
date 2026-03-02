@@ -1,16 +1,16 @@
 // import { OpenApiActions, type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
-import { ContentType, httpClient, type RequestParams } from "./http-client";
+import { ContentType, httpClient, type RequestParams } from './http-client';
 
-import { CommonResultBooleanModel } from "../models/CommonResultBooleanModel";
-import { CommonResultDictTypeResponseDTOModel } from "../models/CommonResultDictTypeResponseDTOModel";
-import { CommonResultListDictTypeSimpleResponseDTOModel } from "../models/CommonResultListDictTypeSimpleResponseDTOModel";
-import { CommonResultLongModel } from "../models/CommonResultLongModel";
-import { CommonResultPageResultDictTypeResponseDTOModel } from "../models/CommonResultPageResultDictTypeResponseDTOModel";
-import { DictTypeCreateRequestDTOModel } from "../models/DictTypeCreateRequestDTOModel";
-import { DictTypePageRequestDTOModel } from "../models/DictTypePageRequestDTOModel";
-import { DictTypeResponseDTOModel } from "../models/DictTypeResponseDTOModel";
-import { DictTypeSimpleResponseDTOModel } from "../models/DictTypeSimpleResponseDTOModel";
-import { DictTypeUpdateRequestDTOModel } from "../models/DictTypeUpdateRequestDTOModel";
+import { CommonResultBooleanModel } from '../models/CommonResultBooleanModel';
+import { CommonResultDictTypeResponseDTOModel } from '../models/CommonResultDictTypeResponseDTOModel';
+import { CommonResultListDictTypeSimpleResponseDTOModel } from '../models/CommonResultListDictTypeSimpleResponseDTOModel';
+import { CommonResultLongModel } from '../models/CommonResultLongModel';
+import { CommonResultPageResultDictTypeResponseDTOModel } from '../models/CommonResultPageResultDictTypeResponseDTOModel';
+import { DictTypeCreateRequestDTOModel } from '../models/DictTypeCreateRequestDTOModel';
+import { DictTypePageRequestDTOModel } from '../models/DictTypePageRequestDTOModel';
+import { DictTypeResponseDTOModel } from '../models/DictTypeResponseDTOModel';
+import { DictTypeSimpleResponseDTOModel } from '../models/DictTypeSimpleResponseDTOModel';
+import { DictTypeUpdateRequestDTOModel } from '../models/DictTypeUpdateRequestDTOModel';
 
 /**
  * 管理后台字典类型
@@ -28,22 +28,17 @@ export class AdminApiSystemDictType {
    * @request POST:/system/dict-type/update
    * @secure
    */
-  static updateDictType = <
-    Req extends DictTypeUpdateRequestDTOModel = DictTypeUpdateRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static updateDictType = <Req extends DictTypeUpdateRequestDTOModel = DictTypeUpdateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-type/update`,
-        method: "POST",
+        path: `/system-service/system/dict-type/update`,
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
   /**
    * @description 根据ID获取下拉值信息
@@ -62,17 +57,17 @@ export class AdminApiSystemDictType {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-data/list-dict-data`,
-        method: "POST",
+        path: `/system-service/system/dict-data/list-dict-data`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultLongModel
+      CommonResultLongModel,
     );
   /**
    * 创建字典类型
@@ -83,22 +78,17 @@ export class AdminApiSystemDictType {
    * @request POST:/system/dict-type/create
    * @secure
    */
-  static createDictType = <
-    Req extends DictTypeCreateRequestDTOModel = DictTypeCreateRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static createDictType = <Req extends DictTypeCreateRequestDTOModel = DictTypeCreateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultLongModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-type/create`,
-        method: "POST",
+        path: `/system-service/system/dict-type/create`,
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultLongModel
+      CommonResultLongModel,
     );
   /**
    * 获得字典类型的分页列表
@@ -109,21 +99,16 @@ export class AdminApiSystemDictType {
    * @request GET:/system/dict-type/page
    * @secure
    */
-  static pageDictTypes = <
-    Req extends DictTypePageRequestDTOModel = DictTypePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static pageDictTypes = <Req extends DictTypePageRequestDTOModel = DictTypePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultPageResultDictTypeResponseDTOModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-type/page`,
-        method: "GET",
+        path: `/system-service/system/dict-type/page`,
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultPageResultDictTypeResponseDTOModel
+      CommonResultPageResultDictTypeResponseDTOModel,
     );
   /**
    * @description 包括开启 + 禁用的字典类型，主要用于前端的下拉选项
@@ -138,11 +123,11 @@ export class AdminApiSystemDictType {
     httpClient.request<CommonResultListDictTypeSimpleResponseDTOModel, any>(
       {
         path: `/admin-api/system/dict-type/list-all-simple`,
-        method: "GET",
+        method: 'GET',
         secure: true,
         ...params,
       },
-      CommonResultListDictTypeSimpleResponseDTOModel
+      CommonResultListDictTypeSimpleResponseDTOModel,
     );
   /**
    * 查询字典类型详细
@@ -171,17 +156,17 @@ export class AdminApiSystemDictType {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultDictTypeResponseDTOModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-type/get`,
-        method: "GET",
+        path: `/system-service/system/dict-type/get`,
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultDictTypeResponseDTOModel
+      CommonResultDictTypeResponseDTOModel,
     );
   /**
    * 删除字典类型
@@ -210,16 +195,16 @@ export class AdminApiSystemDictType {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/cirpoint-demand-api/system/dict-type/delete`,
-        method: "GET",
+        path: `/system-service/system/dict-type/delete`,
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
 }

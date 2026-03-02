@@ -1,4 +1,4 @@
-import request from "@/httpRequest";
+import request from '@/httpRequest';
 
 export interface DictDataVO {
   id: number | undefined;
@@ -18,8 +18,8 @@ export interface DictDataVO {
  */
 export function listSimpleDictData() {
   return request({
-    url: "/cirpoint-demand-api/system/dict-data/list-all-simple",
-    method: "get",
+    url: '/system-service/system/dict-data/list-all-simple',
+    method: 'get',
   });
 }
 
@@ -29,9 +29,9 @@ export function listSimpleDictData() {
  */
 export function getDictDataPage(params: PageParam) {
   return request({
-    url: "/cirpoint-demand-api/system/dict-data/page",
+    url: '/system-service/system/dict-data/page',
     params,
-    method: "get",
+    method: 'get',
   });
 }
 
@@ -41,8 +41,8 @@ export function getDictDataPage(params: PageParam) {
  */
 export function getDictData(id: number) {
   return request({
-    url: `/cirpoint-demand-api/system/dict-data/get?id=${id}`,
-    method: "get",
+    url: `/system-service/system/dict-data/get?id=${id}`,
+    method: 'get',
   });
 }
 
@@ -52,9 +52,9 @@ export function getDictData(id: number) {
  */
 export function createDictData(data: DictDataVO) {
   return request({
-    url: "/cirpoint-demand-api/system/dict-data/create",
+    url: '/system-service/system/dict-data/create',
     data,
-    method: "post",
+    method: 'post',
   });
 }
 
@@ -64,9 +64,9 @@ export function createDictData(data: DictDataVO) {
  */
 export function updateDictData(data: DictDataVO) {
   return request({
-    url: "/cirpoint-demand-api/system/dict-data/update",
+    url: '/system-service/system/dict-data/update',
     data,
-    method: "POST",
+    method: 'POST',
   });
 }
 
@@ -76,8 +76,8 @@ export function updateDictData(data: DictDataVO) {
  */
 export function deleteDictData(id: number) {
   return request({
-    url: `/cirpoint-demand-api/system/dict-data/delete?id=${id}`,
-    method: "GET",
+    url: `/system-service/system/dict-data/delete?id=${id}`,
+    method: 'GET',
   });
 }
 
@@ -87,8 +87,8 @@ export function deleteDictData(id: number) {
  */
 export function exportDictData(params: any) {
   return request({
-    url: "/cirpoint-demand-api/system/dict-data/export",
+    url: '/system-service/system/dict-data/export',
     params,
-    method: "get",
+    method: 'get',
   });
 }
