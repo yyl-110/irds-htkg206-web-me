@@ -276,10 +276,10 @@ async function getTaskMessageList(type: boolean = false) {
 <template>
   <div class="w-[100%] h-[100%] flex justify-between text-left px-3" style="box-shadow: var(--wei-page-layout-header-box-shadow); color: #ffffff">
     <div class="flex items-center space-x-4 min-w-[280px]" style="cursor: pointer" @click="switchSystem(true)">
-      <img class="h-[32px]" src="@/assets/zg_yt.png" />
+      <img class="h-[40px]" src="@/assets/zg_yt.png" />
       <!-- <a-image class="h-[24px] inline" :src="imgUrl" :preview="false" /> -->
       <!-- <a-image class="h-[24px] ml-[13px] inline" :src="titleLogo" :preview="false" /> -->
-      <span class="font-bold text-[20px] leading-[20px] w-min-[125px]" style="color: #ffffff">{{ $t('机械设备快速设计系统') }}</span>
+      <span class="font-bold text-[22px] leading-[22px] w-min-[125px]" style="color: #ffffff">{{ $t('机械设备快速设计系统') }}</span>
       <!-- <span class="text-lg font-semibold text-white">前端基础框架</span> -->
     </div>
 

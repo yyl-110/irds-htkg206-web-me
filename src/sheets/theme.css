@@ -13,6 +13,9 @@
   --color-text-invert: 249, 250, 251;
   --color-fill-main: 59, 130, 246;
   --color-fill-muted: 191, 219, 254;
+
+
+  --color-bg-layout-header-blue-new: #1A3677;
 }
 
 .dark-theme,

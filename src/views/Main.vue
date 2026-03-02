@@ -171,10 +171,10 @@ onBeforeMount(() => {
       </a-layout-header>
       <a-layout class="mt-[57px]" style="height: calc(100vh - 64px)">
         <a-layout-sider ref="asideRef" v-model:collapsed="collapsed" :trigger="null" class="sider-wrapper p-0 overflow-y-auto" :data-resizing="asideResizing" collapsible>
-          <aside style="height: calc(100% - 40px)" class="overflow-y-auto overflow-x-hidden wei-scrollbar wei-scrollbar-hover">
+          <aside style="height: calc(100% - 40px);background-color: #1A3677" class="overflow-y-auto overflow-x-hidden wei-scrollbar wei-scrollbar-hover">
             <WeiLayoutMenuSider :collapsed="true" />
           </aside>
-          <footer class="h-[50px] flex justify-center items-center" style="background-color: rgb(var(--color-bg-layout-header))">
+          <footer class="h-[50px] flex justify-center items-center" style="background-color: #1A3677">
             <a-button type="text" size="small" @click="collapsed = !collapsed">
               <MenuFoldOutlined v-if="collapsed" class="text-base" />
               <MenuUnfoldOutlined v-else class="text-base" />
@@ -226,7 +226,7 @@ onBeforeMount(() => {
     flex-direction: column;
   }
 
-  background-color: rgb(var(--color-bg-layout-header));
+  background-color: #1A3677;
   &[data-resizing='true'] {
     transition: none;
   }
@@ -278,6 +278,13 @@ onBeforeMount(() => {
   }
 }
 :deep(.ant-layout-header) {
-  background-color: rgb(var(--color-bg-layout-header-blue)) !important;
+  background-color: #1A3677 !important;
 }
+
+:deep(.ant-menu) {
+  background-color: #1A3677 !important;
+  color: #ffffff;
+}
+
+
 </style>
