@@ -126,17 +126,18 @@ async function customRequest(options: any, type: any) {
   let data: any = {};
   data.userId = userStore.getUser.id;
   data.file = options.file as File;
+  data.securityLevel = '1';
   fileloading.value = true;
   try {
     const res = await AdminApiSystemUploadFile.uploadWordToPDF(data);
     console.log(res);
-    if (res.data.code == 200) {
+    if (res.data.code == 0) {
       fileListDataEnds.value.push({
-        fileId: res.data.data.id,
-        oldFileName: res.data.data.oldFileName,
-        fileName: res.data.data.newFileName,
-        filePath: imgRooturl + res.data.data.newFileName,
-        pdfFileName: imgRooturl + res.data.data.pdfFileName,
+        fileId: res.data.id,
+        oldFileName: res.data.oldFileName,
+        fileName: res.data.newFileName,
+        filePath: imgRooturl + res.data.newFileName,
+        pdfFileName: imgRooturl + res.data.pdfFileName,
       });
       message.success(WeiI18n.t('上传成功').value);
     } else {

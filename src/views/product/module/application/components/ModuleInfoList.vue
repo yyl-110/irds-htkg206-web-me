@@ -697,8 +697,8 @@ async function customRequest(options: any) {
       file: options.file as File,
       userId: userStore.getUser.id,
     });
-    if (res.data.code === 200) {
-      const file: any = { ...res.data.data, name: res.data.data?.oldFileName };
+    if (res.data.code === 0) {
+      const file: any = { ...res.data, name: res.data?.oldFileName };
       fileList.value[0] = file;
       message.success(WeiI18n.t('上传成功').value);
     } else {

@@ -1,7 +1,7 @@
 export interface NoticInfoRequestPO {
   id?: number;
-  fileid?: string;
-  userid?: string;
+  fileId?: string;
+  userId?: string;
   title?: string;
   type?: string;
   content?: string;

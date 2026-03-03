@@ -1,8 +1,8 @@
 // import { OpenApiActions, type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
-import { ContentType, httpClient, type RequestParams } from "../http-client";
-import { NoticePageRequestDTOModel } from "@/api/models/notice/NoticePageRequestDTOModel";
-import { CommonResultListDeptResponseDTOModel } from "../../models/CommonResultListDeptResponseDTOModel";
-import { NoticeInfoRequestDTOModel } from "@/api/models/notice/NoticePOModel";
+import { ContentType, httpClient, type RequestParams } from '../http-client';
+import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
+import { CommonResultListDeptResponseDTOModel } from '../../models/CommonResultListDeptResponseDTOModel';
+import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 /**
  * 公告管理
  */
@@ -13,24 +13,19 @@ export class AdminApiSystemNotice {
    * @tags 管理后台 - 公告
    * @name GetNoticeList
    * @summary 获得公告信息
-   * @request /cirpoint-base-api/notice/getNoticePageList.json
+   * @request /system-service/notice/getNoticePageList.json
    * @secure
    */
-  static getNoticePageList = <
-    Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getNoticePageList = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/notice/getNoticePageList.json`,
-        method: "POST",
+        path: `/system-service/notice/page`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -39,24 +34,19 @@ export class AdminApiSystemNotice {
    * @tags 管理后台 - 公告
    * @name getNoticeInfoById
    * @summary 获得公告信息
-   * @request POST:/cirpoint-base-api/notice/getNoticeDetail.json
+   * @request POST:/system-service/notice/getNoticeDetail
    * @secure
    */
-  static getNoticeInfoById = <
-    Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getNoticeInfoById = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<NoticeInfoRequestDTOModel, any>(
       {
-        path: `/cirpoint-base-api/notice/getNoticeDetail.json`,
-        method: "POST",
+        path: `/system-service/notice/getNoticeDetail`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      NoticeInfoRequestDTOModel
+      NoticeInfoRequestDTOModel,
     );
 
   /**
@@ -65,24 +55,40 @@ export class AdminApiSystemNotice {
    * @tags 管理后台 - 发布公告
    * @name noticeRelease
    * @summary 发布公告
-   * @request POST:/cirpoint-base-api/notice/noticeRelease.json
+   * @request POST:/system-service/notice/noticeRelease.json
    * @secure
    */
-  static noticeRelease = <
-    Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static noticeRelease = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<NoticeInfoRequestDTOModel, any>(
       {
-        path: `/cirpoint-base-api/notice/noticeRelease.json`,
-        method: "POST",
+        path: `/system-service/notice/noticeRelease`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      NoticeInfoRequestDTOModel
+      NoticeInfoRequestDTOModel,
+    );
+
+  /**
+   * 撤销发布
+   *
+   * @tags 管理后台 - 撤销发布
+   * @name goBackNotice
+   * @summary 撤销发布
+   * @request POST:/system-service/notice/goBackNotice
+   * @secure
+   */
+  static goBackNotice = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<NoticeInfoRequestDTOModel, any>(
+      {
+        path: `/system-service/notice/goBackNotice`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      NoticeInfoRequestDTOModel,
     );
 
   /**
@@ -102,17 +108,17 @@ export class AdminApiSystemNotice {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<NoticeInfoRequestDTOModel, any>(
       {
-        path: `/cirpoint-base-api/notice/noticeDelete.json`,
-        method: "POST",
+        path: `/system-service/notice/noticeDelete`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      NoticeInfoRequestDTOModel
+      NoticeInfoRequestDTOModel,
     );
 
   /**
@@ -121,24 +127,19 @@ export class AdminApiSystemNotice {
    * @tags 保存数据
    * @name noticeSave
    * @summary 保存数据
-   * @request POST:/cirpoint-base-api/notice/noticeSave.json;
+   * @request POST:/system-service/notice/noticeSave.json;
    * @secure
    */
-  static noticeSave = <
-    Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static noticeSave = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<NoticeInfoRequestDTOModel, any>(
       {
-        path: `/cirpoint-base-api/notice/noticeSave.json`,
-        method: "POST",
+        path: `/system-service/notice/noticeSave`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      NoticeInfoRequestDTOModel
+      NoticeInfoRequestDTOModel,
     );
 
   /**
@@ -147,24 +148,19 @@ export class AdminApiSystemNotice {
    * @tags 修改数据
    * @name noticeUpdate
    * @summary 修改数据
-   * @request POST:/cirpoint-base-api/notice/noticeUpdate.json;
+   * @request POST:/system-service/notice/noticeUpdate;
    * @secure
    */
-  static noticeUpdate = <
-    Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static noticeUpdate = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<NoticeInfoRequestDTOModel, any>(
       {
-        path: `/cirpoint-base-api/notice/noticeUpdate.json`,
-        method: "POST",
+        path: `/system-service/notice/noticeUpdate`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      NoticeInfoRequestDTOModel
+      NoticeInfoRequestDTOModel,
     );
 
   /**
@@ -173,23 +169,18 @@ export class AdminApiSystemNotice {
    * @tags 获得公告详情
    * @name getNoticeDetail
    * @summary 获得公告详情
-   * @request /cirpoint-base-api/notice/getNoticeDetail.json
+   * @request /system-service/notice/getNoticeDetail
    * @secure
    */
-  static getNoticeDetail = <
-    Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getNoticeDetail = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/notice/getNoticeDetail.json`,
-        method: "POST",
+        path: `/system-service/notice/getNoticeDetail`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 }

@@ -33,6 +33,7 @@ interface Props {
   // /** 组件边框圆角 */
   // borderRadius?: string;
   fileList?: Array<UploadFile>;
+  confidentialLevel?: number;
   width?: string;
   fileTypesImg?: boolean;
 }
@@ -114,7 +115,7 @@ watch(
   (newVal: any, oldVal) => {
     UploadfileList.value = newVal;
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 </script>
 

@@ -21,7 +21,7 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<PreviewFileDTOModel, any>(
       {
@@ -31,7 +31,7 @@ export class AdminApiSystemUploadFile {
         secure: true,
         ...params,
       },
-      PreviewFileDTOModel
+      PreviewFileDTOModel,
     );
 
   /** 使用公共组件预览 */
@@ -45,7 +45,7 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<PreviewFileDTOModel, any>(
       {
@@ -55,7 +55,7 @@ export class AdminApiSystemUploadFile {
         secure: true,
         ...params,
       },
-      PreviewFileDTOModel
+      PreviewFileDTOModel,
     );
 
   /**
@@ -79,18 +79,18 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
-        path: `cirpoint-base-api/fileManagerController/upload.json`,
+        path: `system-service/fileManagerController/upload.json`,
         method: 'POST',
         body: data,
         secure: true,
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -107,25 +107,27 @@ export class AdminApiSystemUploadFile {
       /** @format binary */
       file?: File;
       userId?: number;
+      securityLevel?: string;
     } = {
       /** @format binary */
       file?: File;
       userId?: number;
+      securityLevel?: string;
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
-        path: `cirpoint-base-api/fileManagerController/uploadWordToPDF.json`,
+        path: `system-service/fileManagerController/uploadWordToPDF.json`,
         method: 'POST',
         body: data,
         secure: true,
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -147,18 +149,18 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/fileManagerController/download`,
+        path: `/system-service/fileManagerController/download`,
         method: 'GET',
         query: data,
         secure: true,
         format: 'blob',
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -167,7 +169,7 @@ export class AdminApiSystemUploadFile {
    * @tags 模块树属性管理文件上传 - 上传
    * @name uploadFile
    * @summary  模块树属性管理文件上传
-   * @request POST:cirpoint-base-api/fileManagerController/uploadFileTransfer.json
+   * @request POST:system-service/fileManagerController/uploadFileTransfer.json
    * @secure
    */
   static uploadFileTransfer = <
@@ -182,18 +184,18 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/fileManagerController/uploadFileTransfer.json`,
+        path: `/system-service/fileManagerController/uploadFileTransfer.json`,
         method: 'POST',
         body: data,
         secure: true,
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -221,7 +223,7 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
@@ -232,7 +234,7 @@ export class AdminApiSystemUploadFile {
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -259,7 +261,7 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
@@ -270,7 +272,7 @@ export class AdminApiSystemUploadFile {
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -296,7 +298,7 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
@@ -307,7 +309,7 @@ export class AdminApiSystemUploadFile {
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -316,7 +318,7 @@ export class AdminApiSystemUploadFile {
    * @tags 参数字典导入功能
    * @name templateImportData
    * @summary  参数字典导入功能
-   * @request POST:/cirpoint-base-api/tempalteinfo/import
+   * @request POST:/system-service/tempalteinfo/import
    * @secure
    */
   static templateImportData = <
@@ -333,18 +335,18 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
-        path: `cirpoint-base-api/tempalteinfo/import`,
+        path: `system-service/tempalteinfo/import`,
         method: 'POST',
         body: data,
         secure: true,
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 
   /**
@@ -368,7 +370,7 @@ export class AdminApiSystemUploadFile {
     },
   >(
     data: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
@@ -379,6 +381,6 @@ export class AdminApiSystemUploadFile {
         type: ContentType.FormData,
         ...params,
       },
-      CommonResultFileUploadResponseDTOModel
+      CommonResultFileUploadResponseDTOModel,
     );
 }

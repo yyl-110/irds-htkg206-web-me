@@ -83,8 +83,8 @@ const onFileChange: UploadProps['onChange'] = async evt => {};
 const customRequest: UploadProps['customRequest'] = async options => {
   try {
     const res = await AdminApiSystemUploadFile.uploadFile({ file: options.file as File, userId: userStore.getUser.id });
-    if (res.data.code === 200) {
-      let data = res.data.data;
+    if (res.data.code === 0) {
+      let data = res.data;
       emit('customRequest', data);
     }
   } catch (err) {
@@ -124,7 +124,7 @@ watch(
   (newVal: any, oldVal) => {
     UploadfileList.value = newVal;
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 defineExpose({ ResetData });
 </script>

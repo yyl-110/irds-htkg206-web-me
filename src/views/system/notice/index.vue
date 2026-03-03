@@ -42,12 +42,12 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
   },
   {
     title: WeiI18n.$t('创建时间'),
-    key: 'addTime',
-    dataIndex: 'addTime',
+    key: 'createTime',
+    dataIndex: 'createTime',
     align: 'center',
     resizable: true,
     width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.addTime, b.addTime),
+    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
     /**
      * customRender
      * @param root0 params
@@ -114,8 +114,9 @@ async function getResources() {
     const res = await AdminApiSystemNotice.getNoticePageList({
       ...requestParams,
     });
-    resources.value = res.data.data.data || [];
-    pagination.total = res.data?.data.pageCount;
+    console.log(res);
+    resources.value = res.data.data.list || [];
+    pagination.total = res.data?.data.total;
   } finally {
     loading.value = false;
   }
@@ -126,7 +127,7 @@ async function getResources() {
 async function seeDetailFun(id: string) {
   requestParams.id = id;
   const res = await AdminApiSystemNotice.getNoticeInfoById({ ...requestParams });
-  let data = res.data.data.data;
+  let data = res.data.data.systemNoticeInfoBaseDTO;
   let filedata = res.data.data;
   powVisible.value = true;
   nextTick(() => {
@@ -143,6 +144,19 @@ async function pushFun(id: string) {
   nextTick(() => {
     //发布成功刷新页面
     message.success(WeiI18n.$t('发布成功'));
+    getResources();
+  });
+}
+
+/**
+ * 撤销发布
+ */
+async function goBackPushFun(id: string) {
+  requestParams.id = id;
+  const res = await AdminApiSystemNotice.goBackNotice({ ...requestParams });
+  nextTick(() => {
+    //撤销成功刷新页面
+    message.success(WeiI18n.$t('撤销成功'));
     getResources();
   });
 }
@@ -177,7 +191,8 @@ async function noticeAdd(record?: any) {
   if (record) {
     requestParams.id = record.id;
     const res = await AdminApiSystemNotice.getNoticeInfoById({ ...requestParams });
-    let data = res.data.data.data;
+    console.log(res);
+    let data = res.data.data.systemNoticeInfoBaseDTO;
     let filedata = res.data.data;
     nextTick(() => {
       addOrUpdateModel.value?.noticeInfoAddOrUpdate(data, filedata);
@@ -263,6 +278,7 @@ function handleReset() {
             </a-popconfirm>
             <a-divider type="vertical" />
             <a v-if="record.status === '0'" @click="pushFun(record.id)">{{ $t('发布') }}</a>
+            <a v-else @click="goBackPushFun(record.id)">{{ $t('撤销') }}</a>
           </template>
           <!-- <template v-else>
           {{ column.dataIndex }}

@@ -425,30 +425,30 @@ async function customRequest(options: any, type: any) {
       file: options.file as File,
       userId: userStore.getUser.id,
     });
-    if (res.data.code === 200) {
+    if (res.data.code === 0) {
       if (type == 1) {
         fileListExcel.value = [];
         fileListExcel.value.push({
-          fileId: res.data.data.id,
-          oldFileName: res.data.data.oldFileName,
-          fileName: res.data.data.newFileName,
-          filePath: imgRooturl + res.data.data.newFileName,
-          pdfFileName: imgRooturl + res.data.data.pdfFileName,
+          fileId: res.data.id,
+          oldFileName: res.data.oldFileName,
+          fileName: res.data.newFileName,
+          filePath: imgRooturl + res.data.newFileName,
+          pdfFileName: imgRooturl + res.data.pdfFileName,
         });
       } else if (type == 2) {
         fileListWord.value = [];
         fileListWord.value.push({
-          fileId: res.data.data.id,
-          oldFileName: res.data.data.oldFileName,
-          fileName: res.data.data.newFileName,
-          filePath: imgRooturl + res.data.data.newFileName,
-          pdfFileName: imgRooturl + res.data.data.pdfFileName,
+          fileId: res.data.id,
+          oldFileName: res.data.oldFileName,
+          fileName: res.data.newFileName,
+          filePath: imgRooturl + res.data.newFileName,
+          pdfFileName: imgRooturl + res.data.pdfFileName,
         });
       } else {
-        ruleForm.imageFileId = res.data.data.id || '';
+        ruleForm.imageFileId = res.data.id || '';
         const file: any = {
-          ...res.data.data,
-          name: res.data.data?.oldFileName,
+          ...res.data,
+          name: res.data?.oldFileName,
         };
         fileList.value[0] = file;
       }

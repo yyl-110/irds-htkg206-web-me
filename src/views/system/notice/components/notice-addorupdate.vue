@@ -25,11 +25,11 @@ const visible = computed(() => {
 });
 const requestParams = reactive(new NoticeInfoRequestDTOModel());
 requestParams.releaseFlag = 0;
-requestParams.userid = userStore.getUser.id;
+requestParams.userId = userStore.getUser.id;
 
 const id = ref(0);
 const title = ref('');
-
+const confidentialLevel = ref(0);
 const content = ref('');
 const ckeditorRef = ref();
 
@@ -60,28 +60,28 @@ async function savePageInfo() {
   if (id.value != undefined && id.value > 0) {
     requestParams.id = id.value;
     if (fileList.value !== undefined && fileList.value.length > 0) {
-      requestParams.fileid = fileList.value[0].id;
+      requestParams.fileId = fileList.value[0].id;
     } else {
-      requestParams.fileid = '';
+      requestParams.fileId = '';
     }
     requestParams.title = title.value;
     requestParams.type = type.value;
     requestParams.content = content.value;
-    requestParams.userid = `${userStore.getUser.id}`;
+    requestParams.userId = `${userStore.getUser.id}`;
     // 保存页面信息
     const res = await AdminApiSystemNotice.noticeUpdate({
       ...requestParams,
     });
   } else {
     if (fileList.value !== undefined && fileList.value.length > 0) {
-      requestParams.fileid = fileList.value[0].id;
+      requestParams.fileId = fileList.value[0].id;
     } else {
-      requestParams.fileid = '';
+      requestParams.fileId = '';
     }
     requestParams.title = title.value;
     requestParams.type = type.value;
     requestParams.content = content.value;
-    requestParams.userid = `${userStore.getUser.id}`;
+    requestParams.userId = `${userStore.getUser.id}`;
     // 保存页面信息
     const res = await AdminApiSystemNotice.noticeSave({
       ...requestParams,
@@ -100,9 +100,10 @@ async function customRequest(options: any) {
   const data = new FormData();
   data.append('file', options.file);
   try {
-    const res = await AdminApiSystemUploadFile.uploadWordToPDF({ file: options.file as File, userId: userStore.getUser.id });
-    if (res.data.code === 200) {
-      const file: any = { ...res.data.data, name: res.data.data?.oldFileName };
+    const res = await AdminApiSystemUploadFile.uploadWordToPDF({ file: options.file as File, userId: userStore.getUser.id, securityLevel: confidentialLevel.value + '' });
+    console.log(res);
+    if (res.data.code === 0) {
+      const file: any = { ...res.data, name: res.data?.oldFileName };
       fileList.value[0] = file;
       message.success(WeiI18n.t('上传成功').value);
     } else {
@@ -124,6 +125,7 @@ function noticeInfoAddOrUpdate(data: any, filedata: any) {
     type.value = data.type;
     content.value = data.content;
     fileList.value = [{ ...filedata, name: filedata.oldFileName }];
+    confidentialLevel.value = filedata.confidentialLevel;
     nextTick(() => {
       if (ckeditorRef.value) {
         ckeditorRef.value.setData(data.content);
@@ -135,6 +137,7 @@ function noticeInfoAddOrUpdate(data: any, filedata: any) {
     type.value = '1';
     content.value = '';
     fileList.value = [];
+    confidentialLevel.value = 0;
     nextTick(() => {
       if (ckeditorRef.value) {
         ckeditorRef.value.setData(data.content);
@@ -171,19 +174,26 @@ defineExpose({ noticeInfoAddOrUpdate });
           <a-radio value="2"> 附件 </a-radio>
         </a-radio-group>
       </a-form-item>
+      <a-form-item v-if="type === '2'" :label="$t('附件密级')">
+        <a-select v-model:value="confidentialLevel" placeholder="请选择密级">
+          <a-select-option v-for="item in userStore.getConfidentialLevel" :key="item.value" :value="item.value">
+            {{ item.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item :label="$t('公告内容')" name="code">
         <CkeditorPlugin v-if="type === '1'" ref="ckeditorRef" height="400" style="margin-top: 10px" />
-        <Uploado_draggerFile v-if="type === '2'" width="600px" :file-list="fileList" @change="filechange" @custom-request="customRequest" />
+        <Uploado_draggerFile v-if="type === '2'" width="600px" :file-list="fileList" :confidential-level="confidentialLevel" @change="filechange" @custom-request="customRequest" />
       </a-form-item>
     </a-form>
     <template #footer>
-        <a-button type="primary" @click="savePageInfo">
-          {{ $t('确定') }}
-        </a-button>
-        <a-button @click="handleClose">
-          {{ $t('取消') }}
-        </a-button>
-      </template>
+      <a-button type="primary" @click="savePageInfo">
+        {{ $t('确定') }}
+      </a-button>
+      <a-button @click="handleClose">
+        {{ $t('取消') }}
+      </a-button>
+    </template>
   </a-modal>
   <!-- </div> -->
 </template>

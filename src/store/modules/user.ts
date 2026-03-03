@@ -58,6 +58,27 @@ export const useUserStore = defineStore('admin-user', {
     getUser(): UserVO {
       return this.user;
     },
+    getConfidentialLevel(): Array<{ value: number; label: string }> {
+      // 可以从用户信息中获取用户权限级别，或者返回静态的密级配置
+      return [
+        {
+          value: 0,
+          label: '公开',
+        },
+        {
+          value: 1,
+          label: '内部',
+        },
+        {
+          value: 2,
+          label: '秘密',
+        },
+        {
+          value: 3,
+          label: '机密',
+        },
+      ];
+    },
     getDocDir(): number[] {
       return this.docDir;
     },

@@ -117,7 +117,7 @@ const visible = computed(() => {
 const onCustomRequest: any['onCustomRequest'] = async file => {
   const res = await AdminApiSystemUploadFile.uploadFile({ file });
   // fileList.value.push({ ...res.data.data })
-  return res.data.data;
+  return res.data;
 };
 
 /**
