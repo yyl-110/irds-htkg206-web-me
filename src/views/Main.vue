@@ -188,7 +188,7 @@ onBeforeMount(() => {
           <!-- 页面标签栏 -->
           <WeiPageTabs v-if="!layoutStore.homepage" />
           <!-- 页面容器 -->
-          <a-layout-content v-overlay-scrollbar :class="!layoutStore.homepage ? 'p-[5px] pt-[10px] overflow-y-hidden' : ''">
+          <a-layout-content v-overlay-scrollbar :class="!layoutStore.homepage ? 'p-[5px] pt-[1px] overflow-y-hidden' : ''">
             <pre style="display: none">{{ caches }}</pre>
             <router-view v-slot="{ Component, route }">
               <keep-alive :include="caches">

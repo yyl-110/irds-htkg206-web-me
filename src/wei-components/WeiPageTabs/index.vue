@@ -133,7 +133,7 @@ watch(() => route.path, changeCurTab, {
 }
 
 :deep(.ant-tabs-nav) {
-  top: 8px;
+  top: 2px;
   margin-bottom: 0 !important;
 }
 
