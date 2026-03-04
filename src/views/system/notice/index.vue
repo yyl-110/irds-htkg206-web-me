@@ -218,22 +218,19 @@ function handleReset() {
   <div class="drawerContent">
     <a-card>
       <a-form layout="inline" :label-col="{ style: { width: '70px' } }" :model="requestParams">
-        <a-form-item :label="$t('公告名称')" name="roleName">
-          <a-input v-model:value="requestParams.title" style="width: 220px" allow-clear :placeholder="$t('请输入')" />
+        <a-input v-model:value="requestParams.title" style="width: 220px" allow-clear :placeholder="$t('请输入公告名称')" />
+        <a-form-item style="margin-left: 15px">
+          <a-button type="primary" @click="handleFinish"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />{{ $t('查询') }} </a-button>
         </a-form-item>
         <a-form-item>
-          <!-- v-hasPermi="['system:role:create']" -->
-          <a-button type="primary" @click="noticeAdd(undefined)" style="margin-left: 15px">
+          <a-button type="primary" @click="noticeAdd(undefined)">
             <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
             {{ $t('添加') }}
           </a-button>
         </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="handleFinish"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />{{ $t('查询') }} </a-button>
-        </a-form-item>
-        <a-form-item>
+        <!-- <a-form-item>
           <a-button @click="handleReset"> <EpcIcon type="icon-zhongzhi" style="font-size: 12px" />{{ $t('重置') }} </a-button>
-        </a-form-item>
+        </a-form-item> -->
       </a-form>
     </a-card>
 

@@ -163,10 +163,10 @@ function handleResizeColumn(w, col) {
             <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
             {{ $t('查询') }}
           </a-button>
-          <a-button @click="handleReset" style="margin-left: 8px">
+          <!-- <a-button @click="handleReset" style="margin-left: 8px">
             <EpcIcon type="icon-zhongzhi" style="font-size: 12px" />
             {{ $t('重置') }}
-          </a-button>
+          </a-button> -->
         </a-form-item>
       </a-form>
     </a-card>
