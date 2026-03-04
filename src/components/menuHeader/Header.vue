@@ -492,7 +492,7 @@ async function getTaskMessageList(type: boolean = false) {
 }
 
 .bg-img-avatar {
-  background-image: url('@/assets/images/peopel.png') !important;
+  background-image: url('@/assets/images/people.png') !important;
   background-size: cover;
   background-position: center;
   color: white;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/modules/user';
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import * as echarts from 'echarts';
 import { message, Modal } from 'ant-design-vue';
@@ -20,12 +20,222 @@ const locale = ref({
     style: { paddingBottom: '50px' },
   }),
 });
+const viewTypeName = ref('任务卡片');
+const isShowRigth = ref('展开');
+const userInfoObj = ref<any>({
+  name: '',
+  departName: '',
+});
+const projectStatistics = ref<any>({});
+const activeName = ref('myWork');
+const taskIndex = ref('1');
+// 定义问候语文本
+const greetingText = ref('');
+// 定时器标识，用于清除定时器
+let timer = null;
 
-onMounted(() => {});
+const tabList = reactive([
+  {
+    title: '平台公告',
+    name: 'sysnotice',
+    list: [],
+  },
+]);
+
+function showRightContent() {
+  if (isShowRigth.value == '展开') {
+    isShowRigth.value = '收起';
+  } else {
+    isShowRigth.value = '展开';
+  }
+}
+
+function getGreeting (){
+  const hour = new Date().getHours(); // 获取当前小时数（0-23）
+  
+  if (hour >= 0 && hour < 6) {
+    greetingText.value = '凌晨好';
+  } else if (hour >= 12 && hour < 18) {
+    // 12-18点 下午
+    greetingText.value = '下午好';
+  } else if (hour >= 18 && hour < 24) {
+    // 18-24点 晚上
+    greetingText.value = '晚上好';
+  } else {
+    // 6-12点 上午（兜底也显示上午好）
+    greetingText.value = '上午好';
+  }
+};
+
+// 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
+onMounted(() => {
+  getGreeting();
+  // 每分钟更新一次，确保时间准确
+  timer = setInterval(getGreeting, 60 * 1000);
+});
+
+// 页面卸载时清除定时器，避免内存泄漏
+onUnmounted(() => {
+  //clearInterval(timer);
+});
+
 </script>
 
 <template>
-  <div>首页</div>
+  <div class="layout" :style="{ height: viewTypeName == '任务列表' ? 'calc(100vh - 60px)' : 'calc(100vh - 60px)' }">
+    <div class="layout-content">
+      <div class="lf-cont" :style="{ marginRight: isShowRigth == '展开' ? '0' : '10px' }">
+        <div class="top-wrap">
+          <a-row style="height: 100%; width: 100%">
+            <a-col :span="7">
+              <a-card :hoverable="true" style="height: 108px;">
+                <div class="user-info">
+                  <!-- <i :class="userInfoObj.sex == '男' ? 'man' : 'women'"></i> -->
+                  <div class="pic"><img src="../../assets/workbench/people.png" alt="" /></div>
+                  <div class="info">
+                    <div class="name">
+                      {{ greetingText }}，{{ userInfoObj.name }}</div>
+                    <div class="job">
+                      部门：<span>{{ userInfoObj.departName }}</span>
+                    </div>
+                  </div>
+                </div>
+              </a-card>
+            </a-col>
+            <a-col :span="17">
+              <div class="statistics-info">
+                <a-card :hoverable="true" style="height: 108px;">
+                  <a-card-grid style="width: 20%;height: 108px;">
+                    <!-- @click="getActOnSbTo(1)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
+                    <div class="sta-list">
+                      
+                      <div class="num">
+                        <span class="num-num" style="color:#124DD6">{{ projectStatistics.totalNum }}5</span
+                        >
+                      </div>
+                      <div class="type" style="margin-top: 20px;color: #6A696E;">待办任务</div>
+                    </div>
+                  </a-card-grid>
+                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                    <div class="sta-list">
+                      <div class="num">
+                        <span class="num-num" style="color:#124DD6">{{ projectStatistics.participatedPlanProjectCount }}6</span
+                        >
+                      </div>
+                      <div class="type" style="margin-top: 20px;color: #6A696E;">审批待办</div>
+                    </div>
+                  </a-card-grid>
+                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                    <!-- @click="getActOnSbTo(4)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
+                    <div class="sta-list">
+                      <div class="num" :style="{ color: projectStatistics.deferredNum > 0 ? 'red' : '' }">
+                        <span class="num-num">{{ projectStatistics.deferredNum }}2</span
+                        >
+                      </div>
+                      <div class="type" style="margin-top: 20px;color: #6A696E;">延期任务</div>
+                    </div>
+                  </a-card-grid>
+                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                    <!-- @click="getActOnSbTo(3)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
+                    <div class="sta-list">
+                      <div class="num">
+                        <span class="num-num" style="color:#124DD6">{{ projectStatistics.forwardNum }}6</span
+                        >
+                      </div>
+                      <div class="type" style="margin-top: 20px;color: #6A696E;">转办任务</div>
+                    </div>
+                  </a-card-grid>
+                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                    <div class="sta-list">
+                      <div class="num">
+                        <span class="num-num">{{ projectStatistics.inNum }}9</span
+                        >
+                      </div>
+                      <div class="type" style="margin-top: 20px;color: #6A696E;">参与项目</div>
+                      
+                    </div>
+                  </a-card-grid>
+                  
+                </a-card>
+              </div>
+            </a-col>
+          </a-row>
+        </div>
+        <div class="work-wrap">
+          <div class="onoff-btn" v-if="activeName != 'processtask'">{{ viewTypeName }}</div>
+          <a-tabs v-model="activeName" class="work_nav_top" >
+            <a-tab-pane key="myWork">
+              <template #tab>
+                产品设计任务<span v-if="projectStatistics.todoNum > 0">&nbsp;&nbsp;&nbsp;</span>
+                <a-badge
+                  v-if="projectStatistics.todoNum > 0"
+                  style="position: absolute; left: 43px; top: -0px; display: flex; justify-content: center"
+                  :count="projectStatistics.todoNum"
+                  :overflow-count="99">
+                </a-badge>
+              </template>
+              <a-tabs v-model="taskIndex"  class="body_box">
+
+              </a-tabs>
+            </a-tab-pane>
+            <a-tab-pane key="processtask">
+              <template #tab>
+                审批 / 打分任务<span v-if="projectStatistics.flowNum > 0">&nbsp;&nbsp;&nbsp;</span>
+                <a-badge
+                  v-if="projectStatistics.flowNum > 0"
+                  style="position: absolute; left: 50px; top: -0px; display: flex; justify-content: center"
+                  :count="projectStatistics.flowNum"
+                  :overflow-count="99">
+                </a-badge>
+              </template>
+            </a-tab-pane>
+          </a-tabs>
+        </div>
+      </div>
+      <div class="rt-cont" :style="{ display: isShowRigth == '展开' ? 'none' : 'block' }">
+        <div class="rt-cont-list quick-entry">
+          <div class="rt-cont-title">系统快速入口</div>
+          <div class="cont-list">
+            <div class="lis" >
+              <img src="../../assets/workbench/quick-entry-logo.png" />
+              <span>快速入口</span>
+            </div>
+            <div class="lis" >
+              <img src="../../assets/workbench/quick-entry-logo.png" />
+              <span>快速入口</span>
+            </div>
+            <div class="lis" >
+              <img src="../../assets/workbench/quick-entry-logo.png" />
+              <span>快速入口</span>
+            </div>
+            <div class="lis" >
+              <img src="../../assets/workbench/quick-entry-logo.png" />
+              <span>快速入口</span>
+            </div>
+          </div>
+        </div>
+        <div class="rt-cont-list project-statistics">
+          <div class="rt-cont-title">待办任务统计</div>
+          <div class="eachrts-wrap">
+            <div id="eachart-main"></div>
+          </div>
+        </div>
+        <div class="rt-cont-list announcement">
+          <div class="rt-cont-title">通知公告</div>
+          <div class="cont-list">
+            <div class="news-list"  >
+              <img src="../../assets/workbench/news.png" />
+              <div class="news-cont">
+                <div class="title" >1</div>
+                <div class="detalis">平台公告 ｜2222</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="show-right-content-btn" @click="showRightContent">{{ isShowRigth }}</div>
 </template>
 
 <style lang="less" scoped>

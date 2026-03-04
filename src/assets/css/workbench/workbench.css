@@ -108,8 +108,8 @@
   height: 26px;
   font-family: Source Sans 3,
                 Source Sans 3;
-  font-weight: 600;
-  font-size: 18px;
+  font-weight: 300;
+  font-size: 16px;
   color: #313133;
   line-height: 21px;
   text-align: left;
@@ -140,9 +140,9 @@
   font-style: normal;
   text-transform: none;
   height: 24px;
-  background: #ddf6f2;
+  background: #E6EAFF;
   border-radius: 4px 4px 4px 4px;
-  border: 1px solid #b6ded7;
+  border: 1px solid #124DD61A;
   padding: 5px 8px;
 }
 .layout .layout-content .lf-cont .top-wrap .statistics-info {

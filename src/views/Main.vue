@@ -282,7 +282,8 @@ onBeforeMount(() => {
 }
 
 :deep(.ant-menu) {
-  background-color: #1A3677 !important;
+ background-color: #1A3677 !important;
+ //background: linear-gradient(1deg, #1a3b7a, #1A3677);
   color: #ffffff;
 }
 
