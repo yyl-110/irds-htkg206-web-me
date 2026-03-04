@@ -280,13 +280,19 @@ async function getTaskMessageList(type: boolean = false) {
       <!-- <a-image class="h-[24px] inline" :src="imgUrl" :preview="false" /> -->
       <!-- <a-image class="h-[24px] ml-[13px] inline" :src="titleLogo" :preview="false" /> -->
       <span class="font-bold text-[22px] leading-[22px] w-min-[125px]" style="color: #ffffff">{{ $t('机械设备快速设计系统') }}</span>
-      <!-- <span class="text-lg font-semibold text-white">前端基础框架</span> -->
     </div>
+    <div><EpcIcon type="icon-icon-xuqiu-yanshouguanli" style="font-size: 16px; color: #ffffff;" />&nbsp;&nbsp;陈颖琴（86291）&nbsp;&nbsp;|&nbsp;&nbsp;信息化
+      <span style="margin-left: 50px;">
+         <img class="h-[50px]" src="@/assets/images/miji.png" />
+      </span>
+      
+    </div>
+
 
     <div class="flex items-center space-x-1">
       <div v-if="layoutStore.systemType === 'system'" class="header-menu-container" @click="switchSystem(true)">
-        <EpcIcon type="icon-home1" style="font-size: 20px; margin-top: -4px; margin-left: 5px; color: #ffffff" />
-        <span class="header-menu-text" style="color: #ffffff">{{ $t('主页') }}</span>
+        <!-- <EpcIcon type="icon-home1" style="font-size: 20px; margin-top: -4px; margin-left: 5px; color: #ffffff" /> -->
+        <span class="header-menu-text" style="color: #ffffff">12{{ $t('人在线') }}</span>
       </div>
       <div>
         <div class="online-user">
@@ -294,7 +300,7 @@ async function getTaskMessageList(type: boolean = false) {
         </div>
         <!-- <div style="cursor: pointer; float: left; color: #ffffff" @click="getOnlineUserList">当前在线{{ userNum }}人</div> -->
         <a-badge :count="badgeNum" :overflow-count="99" style="margin-left: 10px">
-          <EpcIcon type="icon-lingdang1" style="font-size: 20px; margin-top: 22px; margin-left: 5px; color: #ffffff" @click="getTaskMessageList(true)" />
+          <EpcIcon type="icon-lingdang1" title="消息提醒" style="font-size: 20px; margin-top: 22px;  margin-left: 5px; color: #ffffff" @click="getTaskMessageList(true)" />
         </a-badge>
       </div>
       <!-- 功能模块 -->
@@ -329,12 +335,15 @@ async function getTaskMessageList(type: boolean = false) {
             </template>
           </a-dropdown>
         </div> 代码合并 -->
+        <span class="vertical-line"></span>
         <a-dropdown v-if="layoutStore.systemType === 'system'" @click.prevent>
+          <!-- 竖线分隔符 -->
+          
           <a-button type="text" style="height: 100%; margin-left: 5px !important; padding: 0 10px">
             <div class="flex items-center space-x-2 cursor-pointer">
               <a-badge :dot="messageFlag">
-                <a-avatar class="bg-primary">
-                  {{ userName.substring(0, 1) }}
+                <a-avatar  class="bg-img-avatar">
+                  <!-- {{ userName.substring(0, 1) }} -->
                 </a-avatar>
               </a-badge>
               <!-- class="text-secondary" -->
@@ -481,4 +490,24 @@ async function getTaskMessageList(type: boolean = false) {
   margin-right: 5px;
   margin-top: 4px;
 }
+
+.bg-img-avatar {
+  background-image: url('@/assets/images/peopel.png') !important;
+  background-size: cover;
+  background-position: center;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8); /* 增强文字可读性 */
+  width:20px;
+  height:20px;
+}
+
+/* 竖线样式 */
+.vertical-line {
+  width: 1px;
+  height: 30px; /* 竖线高度，和头像匹配 */
+  background-color: #0E44AE; /* 浅灰色，可改 */
+  margin-left: 10px;
+}
+
+
 </style>
