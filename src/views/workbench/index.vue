@@ -7,8 +7,13 @@ import { message, Modal } from 'ant-design-vue';
 import { sortermethod } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { ReloadOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
+import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
 import { encryptValue } from '@/utils';
 import Empty from '@/components/Empty/index.vue';
+import NoticeDetail from './components/notice-detail.vue';
+/** 列表请求参数 */
+const requestNoticeParams = reactive(new NoticePageRequestDTOModel());
 const router = useRouter();
 const userStore = useUserStore();
 const locale = ref({
@@ -21,7 +26,7 @@ const locale = ref({
   }),
 });
 const viewTypeName = ref('任务卡片');
-const isShowRigth = ref('展开');
+const isShowRigth = ref('收起');
 const userInfoObj = ref<any>({
   name: '',
   departName: '',
@@ -41,6 +46,21 @@ const tabList = reactive([
     list: [],
   },
 ]);
+
+/** 列表请求参数 */
+const requestParams = reactive(new NoticePageRequestDTOModel());
+requestParams.releaseFlag = 0;
+requestParams.userid = userStore.getUser.id;
+/** 初始化绑定分页请求参数 */
+const { pagination } = usePagination(requestParams, getNoticePage);
+pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
+pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
+pagination.showQuickJumper = false;
+const powerModel = ref<any>(null);
+const powVisible = ref<boolean>(false);
+function handleClosePowModal() {
+  powVisible.value = false;
+}
 
 function showRightContent() {
   if (isShowRigth.value == '展开') {
@@ -67,8 +87,38 @@ function getGreeting (){
   }
 };
 
+async function getNoticePage() {
+  // requestNoticeParams.currentPage = 1;
+  // requestNoticeParams.numberPage = 10;
+  // requestNoticeParams.title = '';
+  // requestNoticeParams.type = '';
+  // requestNoticeParams.releaseFlag = 1;
+  // requestNoticeParams.userid = userStore.getUser.id;
+  requestParams.currentPage = requestParams.pageNo;
+  requestParams.numberPage = requestParams.pageSize;
+  const res = await AdminApiSystemNotice.getNoticePageList({ ...requestParams });
+  if (res.data.code == 0 || res.data.code == 200) {
+    tabList[0].list = res.data.data.list;
+  }
+}
+/**
+ * 详情查看页面
+ */
+async function seeDetailFun(id: string) {
+  requestParams.id = id;
+  const res = await AdminApiSystemNotice.getNoticeInfoById({ ...requestParams });
+  let data = res.data.data.systemNoticeInfoBaseDTO;
+  let filedata = res.data.data;
+  powVisible.value = true;
+  nextTick(() => {
+    powerModel.value.getDetailFromMain(data, filedata);
+  });
+}
+
+
 // 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
 onMounted(() => {
+  getNoticePage();
   getGreeting();
   // 每分钟更新一次，确保时间准确
   timer = setInterval(getGreeting, 60 * 1000);
@@ -223,11 +273,12 @@ onUnmounted(() => {
         <div class="rt-cont-list announcement">
           <div class="rt-cont-title">通知公告</div>
           <div class="cont-list">
-            <div class="news-list"  >
-              <img src="../../assets/workbench/news.png" />
+            <div class="news-list" v-for="(i, idx) in tabList[0].list" :key="idx">
+              <img v-if="idx > 2" src="../../assets/workbench/news.png" />
+              <img v-else src="../../assets/workbench/act-news.png" />
               <div class="news-cont">
-                <div class="title" >1</div>
-                <div class="detalis">平台公告 ｜2222</div>
+                <div class="title" @click="seeDetailFun(i.id)">{{ i.title }}</div>
+                <div class="detalis">平台公告 ｜{{ i.createTime.substring(0, 10) }}</div>
               </div>
             </div>
           </div>
@@ -236,6 +287,10 @@ onUnmounted(() => {
     </div>
   </div>
   <div class="show-right-content-btn" @click="showRightContent">{{ isShowRigth }}</div>
+
+   <a-card class="mt-[10px] b-body2">
+    <NoticeDetail ref="powerModel" :modal-visible="powVisible" @close="handleClosePowModal" />
+  </a-card>
 </template>
 
 <style lang="less" scoped>
@@ -514,7 +569,7 @@ onUnmounted(() => {
   color: #fff;
   font-size: 12px;
   cursor: pointer;
-  background: rgb(13, 83, 226, 0.2);
+  background: #124DD6;
   z-index: 10;
 }
 :deep(.ant-tabs-nav::before) {
