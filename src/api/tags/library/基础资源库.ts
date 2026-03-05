@@ -119,4 +119,67 @@ export class businessApiLibrary {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 保存属性配置
+   *
+   * @tags 保存属性配置
+   * @name keepLibraryProperty
+   * @summary 保存属性配置
+   * @request POST:/business-service/business/library-property/keepLibraryProperty;
+   * @secure
+   */
+  static keepLibraryProperty = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-property/keepLibraryProperty`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 删除属性配置
+   *
+   * @tags 删除属性配置
+   * @name deleteLibraryProperty
+   * @summary 删除属性配置
+   * @request POST:/business-service/business/library-property/delete
+   * @secure
+   */
+  static deleteLibraryProperty = <Req extends { id: string | number } = { id: string | number }>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-property/delete`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 获得属性配置
+   *
+   * @tags 获得属性配置
+   * @name getPropertyList
+   * @summary 获得属性配置
+   * @request /business-service/business/library-property/list
+   * @secure
+   */
+  static getPropertyList = <Req extends LibraryPageRequestDTOModel = LibraryPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-property/list`,
+        method: 'GET',
+        query: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

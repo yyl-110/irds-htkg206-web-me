@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { nextTick, reactive, ref } from 'vue';
 import { TableColumnType } from 'ant-design-vue';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 import { LibraryPageRequestDTOModel } from '@/api/models/library/LibraryPageRequestDTOModel';
 import { businessApiLibrary } from '@/api/tags/library/基础资源库';
 import { EpcIcon } from '@/components/icon/EpcIcon';
@@ -15,6 +15,82 @@ const addOrUpdateModel = ref<any>(null);
 const userStore = useUserStore();
 const loading = ref<boolean>(false);
 const powVisible = ref<boolean>(false);
+/** 属性配置：当前操作的行记录 */
+const propertyConfigRecord = ref<any>(null);
+/** 属性配置：属性列表数据（表格行） */
+interface PropertyRow {
+  _rowKey?: string; // 前端唯一标识，用于空 id 时区分行，不提交后端
+  id: string;
+  propertyName: string;
+  dataProp: string;
+  parameterNum: string;
+  showFlag: number;
+  colWidth: string;
+  searchFlag: number;
+  unit: string;
+  propertyType: number;
+  selectStr: string;
+  parameterType: number;
+  creator: number;
+  menuId: number;
+  sort: number;
+}
+const propertyList = ref<PropertyRow[]>([]);
+function genRowKey() {
+  return `__row_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+function createEmptyPropertyRow(sort = 1): PropertyRow {
+  return {
+    _rowKey: genRowKey(),
+    id: '',
+    propertyName: '',
+    dataProp: '',
+    parameterNum: '',
+    showFlag: 1,
+    colWidth: '100',
+    searchFlag: 1,
+    unit: '',
+    propertyType: 1,
+    selectStr: '',
+    parameterType: 1,
+    creator: Number(userStore.getUser.id),
+    menuId: Number(propertyConfigRecord.value.id),
+    sort,
+  };
+}
+/** 属性配置表格列 */
+const propertyColumns = [
+  { title: WeiI18n.$t('属性名称'), dataIndex: 'propertyName', key: 'propertyName', width: 140, align: 'center' },
+  { title: WeiI18n.$t('属性内部值'), dataIndex: 'dataProp', key: 'dataProp', width: 140, align: 'center' },
+  { title: WeiI18n.$t('关联参数字典'), dataIndex: 'parameterNum', key: 'parameterNum', width: 120, align: 'center' },
+  { title: WeiI18n.$t('显示状态'), dataIndex: 'showFlag', key: 'showFlag', width: 100, align: 'center' },
+  { title: WeiI18n.$t('列宽'), dataIndex: 'colWidth', key: 'colWidth', width: 100, align: 'center' },
+  { title: WeiI18n.$t('默认查询'), dataIndex: 'searchFlag', key: 'searchFlag', width: 100, align: 'center' },
+  { title: WeiI18n.$t('单位'), dataIndex: 'unit', key: 'unit', width: 100, align: 'center' },
+  { title: WeiI18n.$t('文本类型'), dataIndex: 'propertyType', key: 'propertyType', width: 100, align: 'center' },
+  { title: WeiI18n.$t('下拉属性信息'), dataIndex: 'selectStr', key: 'selectStr', width: 160, align: 'center' },
+  { title: WeiI18n.$t('数值类型'), dataIndex: 'parameterType', key: 'parameterType', width: 100, align: 'center' },
+  { title: WeiI18n.$t('操作'), dataIndex: 'operation', key: 'operation', width: 180, align: 'center', fixed: 'right' },
+];
+const displayStatusOptions = [
+  { label: WeiI18n.$t('隐藏'), value: 1 },
+  { label: WeiI18n.$t('显示'), value: 0 },
+];
+const defaultQueryOptions = [
+  { label: WeiI18n.$t('是'), value: 0 },
+  { label: WeiI18n.$t('否'), value: 1 },
+];
+const textTypeOptions = [
+  { label: WeiI18n.$t('文本框'), value: 1 },
+  { label: WeiI18n.$t('下拉值'), value: 2 },
+  { label: WeiI18n.$t('附件'), value: 3 },
+  { label: WeiI18n.$t('文本域'), value: 4 },
+];
+const numericTypeOptions = [
+  { label: WeiI18n.$t('数值'), value: 0 },
+  { label: WeiI18n.$t('字符串'), value: 1 },
+  { label: WeiI18n.$t('boolean'), value: 2 },
+];
 const visibleNoticeEditor = ref<boolean>(false);
 const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
   {
@@ -101,8 +177,24 @@ function handleResizeColumn(w, col) {
   col.width = w;
 }
 
+function customGetContainer() {
+  // 返回自定义挂载节点
+  return document.querySelector('.admIndex');
+}
+
 function handleClosePowModal() {
   powVisible.value = false;
+}
+
+/** 属性配置弹窗请求关闭时：先询问是否保存，确定则保存后关闭，取消则仅关闭 */
+function handleRequestClosePowModal() {
+  Modal.confirm({
+    title: WeiI18n.$t('是否保存当前配置？'),
+    okText: WeiI18n.$t('确定'),
+    cancelText: WeiI18n.$t('取消'),
+    onOk: () => savePropertyConfig(),
+    onCancel: () => handleClosePowModal(),
+  });
 }
 
 function handleCloseAddModal() {
@@ -126,10 +218,82 @@ async function getResources() {
   }
 }
 /**
- * 详情查看页面
+ * 属性配置页面
  */
 async function seeDetailFun(record: any) {
+  propertyConfigRecord.value = record;
+  const data: any = {
+    menuId: Number(propertyConfigRecord.value.id),
+  };
+  const res = await businessApiLibrary.getPropertyList(data);
+  console.log(res);
+  if (res.data.data.length > 0) {
+    propertyList.value = (res.data.data as PropertyRow[]).map(r => ({
+      ...r,
+      _rowKey: r._rowKey ?? (r.id ? String(r.id) : genRowKey()),
+    }));
+  } else {
+    propertyList.value = [createEmptyPropertyRow()];
+  }
   powVisible.value = true;
+}
+
+function addPropertyRow() {
+  const list = propertyList.value;
+  const nextSort = list.length > 0 ? Math.max(...list.map(r => r.sort ?? 1)) + 1 : 1;
+  propertyList.value = [...list, createEmptyPropertyRow(nextSort)];
+}
+
+async function removePropertyRow(row: PropertyRow) {
+  const rowKey = row._rowKey ?? row.id;
+  if (row.id != null && String(row.id).trim() !== '') {
+    await businessApiLibrary.deleteLibraryProperty({ id: row.id });
+    message.success(WeiI18n.$t('删除成功'));
+  }
+  propertyList.value = propertyList.value.filter(r => (r._rowKey ?? r.id) !== rowKey);
+}
+
+function movePropertyUp(index: number) {
+  if (index <= 0) return;
+  const list = [...propertyList.value];
+  [list[index - 1], list[index]] = [list[index], list[index - 1]];
+  list.forEach((row, i) => (row.sort = i + 1));
+  propertyList.value = list;
+}
+
+function movePropertyDown(index: number) {
+  if (index >= propertyList.value.length - 1) return;
+  const list = [...propertyList.value];
+  [list[index], list[index + 1]] = [list[index + 1], list[index]];
+  list.forEach((row, i) => (row.sort = i + 1));
+  propertyList.value = list;
+}
+
+async function savePropertyConfig() {
+  const list = propertyList.value;
+  // 校验 dataProp 为空
+  const emptyIndex = list.findIndex(row => !row.dataProp || String(row.dataProp).trim() === '');
+  if (emptyIndex !== -1) {
+    message.error(WeiI18n.$t('属性内部值不能为空，请检查第') + (emptyIndex + 1) + WeiI18n.$t('行'));
+    return;
+  }
+  // 校验 dataProp 重复（忽略大小写，trim 后比较）
+  const dataProps = list.map(row => String(row.dataProp).trim().toLowerCase());
+  const seen = new Set<string>();
+  for (let i = 0; i < dataProps.length; i++) {
+    const prop = dataProps[i];
+    if (seen.has(prop)) {
+      message.error(WeiI18n.$t('属性内部值不能重复，请检查第') + (i + 1) + WeiI18n.$t('行'));
+      return;
+    }
+    seen.add(prop);
+  }
+  console.log(propertyList.value);
+  const data: any = {};
+  data.propertyDto = propertyList.value.map(({ _rowKey, ...rest }) => rest);
+  const res = await businessApiLibrary.keepLibraryProperty(data);
+  message.success(WeiI18n.$t('保存成功'));
+  handleClosePowModal();
 }
 /**
  * 删除公告
@@ -256,10 +420,114 @@ function handleFinish() {
       </a-table>
       <LibraryAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
     </a-card>
+
+    <!-- 属性配置弹窗 -->
+    <div class="admIndex" v-dragModal>
+      <a-modal
+        :getContainer="customGetContainer"
+        :visible="powVisible"
+        @update:visible="(v: boolean) => { if (v) powVisible = true; else handleRequestClosePowModal(); }"
+        :title="$t('属性配置')"
+        width="1200px"
+        :mask-closable="false"
+        :body-style="{ maxHeight: '80vh', overflowY: 'auto', overflowX: 'hidden' }"
+        :footer="null"
+        destroy-on-close
+        @cancel="handleRequestClosePowModal">
+        <div class="property-config-wrap">
+          <div class="property-config-toolbar">
+            <a-button type="primary" @click="addPropertyRow">
+              <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+              {{ $t('添加属性') }}
+            </a-button>
+          </div>
+          <a-table
+            :columns="propertyColumns"
+            :data-source="propertyList"
+            :row-key="(row: PropertyRow) => row._rowKey ?? row.id"
+            :pagination="false"
+            :scroll="{ x: 1240, y: 380 }"
+            size="small"
+            class="property-config-table">
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'propertyName'">
+                <a-input v-model:value="record.propertyName" placeholder="请输入..." allow-clear />
+              </template>
+              <template v-else-if="column.dataIndex === 'dataProp'">
+                <a-input v-model:value="record.dataProp" placeholder="请输入..." allow-clear />
+              </template>
+              <template v-else-if="column.dataIndex === 'parameterNum'">
+                <a-button type="primary" size="small">{{ $t('浏览') }}</a-button>
+              </template>
+              <template v-else-if="column.dataIndex === 'showFlag'">
+                <a-select v-model:value="record.showFlag" placeholder="请选择" size="small" style="width: 100%">
+                  <a-select-option v-for="opt in displayStatusOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </a-select-option>
+                </a-select>
+              </template>
+              <template v-else-if="column.dataIndex === 'colWidth'">
+                <a-input v-model:value="record.colWidth" placeholder="请输入..." allow-clear size="small" />
+              </template>
+              <template v-else-if="column.dataIndex === 'searchFlag'">
+                <a-select v-model:value="record.searchFlag" placeholder="请选择" size="small" style="width: 100%">
+                  <a-select-option v-for="opt in defaultQueryOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </a-select-option>
+                </a-select>
+              </template>
+              <template v-else-if="column.dataIndex === 'unit'">
+                <a-input v-model:value="record.unit" placeholder="请输入..." allow-clear size="small" />
+              </template>
+              <template v-else-if="column.dataIndex === 'propertyType'">
+                <a-select v-model:value="record.propertyType" placeholder="请选择" size="small" style="width: 100%">
+                  <a-select-option v-for="opt in textTypeOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </a-select-option>
+                </a-select>
+              </template>
+              <template v-else-if="column.dataIndex === 'selectStr'">
+                <a-input v-model:value="record.selectStr" placeholder="请输入..." allow-clear size="small" />
+              </template>
+              <template v-else-if="column.dataIndex === 'parameterType'">
+                <a-select v-model:value="record.parameterType" placeholder="请选择" size="small" style="width: 100%">
+                  <a-select-option v-for="opt in numericTypeOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </a-select-option>
+                </a-select>
+              </template>
+              <template v-else-if="column.dataIndex === 'operation'">
+                <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="removePropertyRow(record)">
+                  <a-button type="link" danger size="small" class="p-0">
+                    {{ $t('删除') }}
+                  </a-button>
+                </a-popconfirm>
+                <a-divider type="vertical" />
+                <a-button type="link" size="small" class="p-0" @click="movePropertyUp(index)">
+                  {{ $t('上移') }}
+                </a-button>
+                <a-divider type="vertical" />
+                <a-button type="link" size="small" class="p-0" @click="movePropertyDown(index)">
+                  {{ $t('下移') }}
+                </a-button>
+              </template>
+            </template>
+          </a-table>
+          <div class="property-config-footer">
+            <a-button type="primary" @click="savePropertyConfig">{{ $t('保存') }}</a-button>
+            <a-button @click="handleRequestClosePowModal">{{ $t('关闭') }}</a-button>
+          </div>
+        </div>
+      </a-modal>
+    </div>
   </div>
 </template>
 
 <style lang="less" scoped>
+.admIndex {
+  position: relative;
+}
+
 .drawerContent {
   position: sticky;
   bottom: 20px !important;
@@ -298,5 +566,26 @@ function handleFinish() {
 
 :deep(.ant-table-column-title) {
   flex: none;
+}
+
+.property-config-wrap {
+  .property-config-toolbar {
+    margin-bottom: 16px;
+  }
+  .property-config-table {
+    margin-bottom: 16px;
+  }
+  /* 保证操作列固定右侧时表头与内容对齐 */
+  .property-config-table :deep(.ant-table-cell-fix-right) {
+    z-index: 2;
+  }
+  .property-config-footer {
+    text-align: right;
+    padding-top: 12px;
+    border-top: 1px solid var(--ant-color-border-secondary);
+    .ant-btn + .ant-btn {
+      margin-left: 8px;
+    }
+  }
 }
 </style>
