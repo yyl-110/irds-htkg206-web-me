@@ -141,7 +141,8 @@ const updateMenu = async (type?: any) => {
   };
   try {
     const res = await AdminApiSystemProduct.browseProductModuleTree(params);
-    if (res && res.data.code == 0) {
+    console.log(res);
+    if (res && res.data.code == 200) {
       let data: any = res.data.data;
       treeData.value = [data];
       loading.value = false;
@@ -163,14 +164,14 @@ const nodeName = ref('');
 // 树添加
 function addTreedata() {
   if (selectedNode.value.id) {
-    parentNodeTitle.value = selectedNode.value.title;
+    parentNodeTitle.value = selectedNode.value.categoryName;
     AddDialogVisible.value = true;
     DataTitle.value = '添加数据';
     nodeName.value = '';
   } else {
     message.warning('请先选择节点！');
   }
-  if (selectedNode.value.level === '3') {
+  if (selectedNode.value.categoryType == '2') {
     AddDialogVisible.value = false;
     message.warning('请先选择上一级节点添加！');
   } else {
@@ -186,16 +187,16 @@ function editTree() {
     if (coptData.value.children && coptData.value.children.length > 0) {
       coptData.value.children.map((v: any) => {
         if (v.id === selectedNode.value.id) {
-          parentNodeTitle.value = coptData.value.title;
-          nodeName.value = v.title;
+          parentNodeTitle.value = coptData.value.categoryName;
+          nodeName.value = v.categoryName;
         }
       });
       coptData.value.children.map((v: any) => {
         if (v.children && v.children.length > 0) {
           v.children.map((k: any) => {
             if (k.id === selectedNode.value.id) {
-              parentNodeTitle.value = v.title;
-              nodeName.value = k.title;
+              parentNodeTitle.value = v.categoryName;
+              nodeName.value = k.categoryName;
             }
           });
         }
@@ -204,7 +205,7 @@ function editTree() {
   } else {
     message.warning('请先选择节点！');
   }
-  if (selectedNode.value.level === '1') {
+  if (selectedNode.value.parentId == 0) {
     AddDialogVisible.value = false;
     message.warning('该节点不能被编辑！');
   } else {
@@ -214,18 +215,16 @@ function editTree() {
 // 上下移动
 function toUpTreeNode() {
   console.log(selectedNode.value, ' selectedNode.value');
-  if (selectedNode.value.title === '模块库') {
+  if (selectedNode.value.categoryName === '模块库') {
     return message.warning('此节点不可移动！');
   }
   if (selectedNode.value.id) {
     // 做操作
     const params = {
       id: selectedNode.value.id,
-      organizationID: '',
-      type: 0,
     };
-    AdminApiSystemProduct.upDownSaveTreeKey(params).then(res => {
-      if (res && res.data.code == 0) {
+    AdminApiSystemProduct.sortUp(params).then(res => {
+      if (res && res.data.code == 200) {
         updateMenu();
       }
     });
@@ -235,18 +234,16 @@ function toUpTreeNode() {
 }
 // 上下移动
 function toDownTreeNode() {
-  if (selectedNode.value.title === '模块库') {
+  if (selectedNode.value.categoryName === '模块库') {
     return message.warning('此节点不可移动！');
   }
   if (selectedNode.value.id) {
     // 做操作
     const params = {
       id: selectedNode.value.id,
-      organizationID: '',
-      type: 1,
     };
-    AdminApiSystemProduct.upDownSaveTreeKey(params).then(res => {
-      if (res && res.data.code == 0) {
+    AdminApiSystemProduct.sortDown(params).then(res => {
+      if (res && res.data.code == 200) {
         updateMenu();
       }
     });
@@ -265,12 +262,10 @@ function delTreedata() {
       onOk: async () => {
         const params = {
           userid: userStore.getUser.id,
-          rootNodeid: selectedNode.value.rootNodeid,
           id: selectedNode.value.id,
-          addTreeType: '7',
         };
         AdminApiSystemProduct.delTreeNodetoManagement(params).then(res => {
-          if (res && res.data.code == 0) {
+          if (res && res.data.code == 200) {
             updateMenu();
             message.success('删除成功!');
           }
@@ -281,23 +276,33 @@ function delTreedata() {
 }
 // 增加编辑弹窗
 function confirm() {
+  console.log(selectedNode.value);
   const params = {
     id: DataTitle.value == '添加数据' ? '' : selectedNode.value.id,
-    parentid: selectedNode.value.level !== '3' ? selectedNode.value?.rootNodeid : selectedNode.value.parentID, // 父节点
-    addTreeType: 7, //页签如结构模板等
-    userid: userStore.getUser.id,
-    organizationID: '',
-    rootNodeid: selectedNode.value?.rootNodeid == '16' ? '' : selectedNode.value?.rootNodeid, //当前节点的根节点id  根节点id
-    nodeType: 2, // 0 模块库    否则2
-    // productType: 1, // 1：普通产品 ，  0：通用库
     categoryName: nodeName.value,
+    categoryType: selectedNode.value?.parentId == 0 ? '1' : '2',
+    menuId: selectedNode.value.menuId,
+    parentId: DataTitle.value == '添加数据' ? selectedNode.value.id : selectedNode.value.parentId, // 父节点
+    allowAuth: 0,
+    allowDelete: 0,
+    creator: userStore.getUser.id,
   };
-  AdminApiSystemProduct.addEmptyNodetoManagement(params).then(res => {
-    if (res && res.data.code == 0) {
-      updateMenu();
-      AddDialogVisible.value = false;
-    }
-  });
+  if (DataTitle.value == '添加数据') {
+    AdminApiSystemProduct.addEmptyNodetoManagement(params).then(res => {
+      if (res && res.data.code == 200) {
+        updateMenu();
+        AddDialogVisible.value = false;
+      }
+    });
+  } else {
+    params.categoryType = selectedNode.value.categoryType;
+    AdminApiSystemProduct.updateTreeNodetoManagement(params).then(res => {
+      if (res && res.data.code == 200) {
+        updateMenu();
+        AddDialogVisible.value = false;
+      }
+    });
+  }
 }
 watch(
   () => TreeselectedKeys.value || TreeexpandedKeys.value,
@@ -354,11 +359,11 @@ defineExpose({ updateMenu });
             @select="onSelect"
             :field-names="{
               key: 'id',
-              title: 'title',
+              title: 'categoryName',
               children: 'children',
             }">
-            <template #title="{ title }">
-              <span>{{ title }}</span>
+            <template #title="{ categoryName }">
+              <span>{{ categoryName }}</span>
             </template>
           </a-directory-tree>
         </div>

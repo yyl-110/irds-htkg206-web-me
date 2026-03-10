@@ -30,7 +30,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -51,7 +51,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -72,7 +72,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -93,7 +93,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -114,7 +114,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -135,7 +135,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -156,7 +156,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -178,7 +178,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -200,7 +200,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -221,7 +221,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -242,7 +242,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -263,7 +263,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -284,7 +284,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -305,7 +305,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -326,7 +326,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -347,7 +347,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -368,7 +368,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -389,7 +389,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -410,7 +410,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -431,7 +431,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -452,7 +452,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -466,7 +466,7 @@ export class AdminApiSystemProduct {
    */
   static getPlatformParameterList = <Req extends ProductPlatformParameterInfoRequestDTOModel = ProductPlatformParameterInfoRequestDTOModel>(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -476,7 +476,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -490,7 +490,7 @@ export class AdminApiSystemProduct {
    */
   static exportDataPlatParameterList = <Req extends ProductPlatformParameterInfoRequestDTOModel = ProductPlatformParameterInfoRequestDTOModel>(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -501,7 +501,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -523,7 +523,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -545,7 +545,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -566,7 +566,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -587,7 +587,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -608,7 +608,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -629,7 +629,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -650,7 +650,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -671,7 +671,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -692,7 +692,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -713,7 +713,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -734,7 +734,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -755,7 +755,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -776,7 +776,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -798,7 +798,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -819,7 +819,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -840,7 +840,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 参数定义三级节点添加初始化功能
@@ -860,7 +860,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 参数定义三级节点添加功能
@@ -880,7 +880,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -901,7 +901,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 参数定义三级节点下移
@@ -921,7 +921,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -942,7 +942,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -963,7 +963,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -984,7 +984,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1005,7 +1005,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1026,7 +1026,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1047,7 +1047,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1068,7 +1068,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1089,7 +1089,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1110,7 +1110,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1131,7 +1131,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1152,7 +1152,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1173,7 +1173,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1194,7 +1194,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1215,7 +1215,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1236,7 +1236,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1257,7 +1257,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1278,7 +1278,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1292,7 +1292,7 @@ export class AdminApiSystemProduct {
    */
   static seriesGBOMUpdateParameterInfo = <Req extends ProductPlatformParameterInfoUpdateDTOModel = ProductPlatformParameterInfoUpdateDTOModel>(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -1302,7 +1302,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1316,7 +1316,7 @@ export class AdminApiSystemProduct {
    */
   static seriesParameterGetParameterData = <Req extends ProductSeriesParameterInfoRequestDTOModel = ProductSeriesParameterInfoRequestDTOModel>(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -1326,7 +1326,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1347,7 +1347,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1368,7 +1368,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1382,7 +1382,7 @@ export class AdminApiSystemProduct {
    */
   static getProductListByParentProId = <Req extends ProductPlatformParameterInfoRequestDTOModel = ProductPlatformParameterInfoRequestDTOModel>(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -1392,7 +1392,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1406,7 +1406,7 @@ export class AdminApiSystemProduct {
    */
   static exportProjectInfoByProId = <Req extends ProductPlatformParameterInfoRequestDTOModel = ProductPlatformParameterInfoRequestDTOModel>(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -1417,7 +1417,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1431,7 +1431,7 @@ export class AdminApiSystemProduct {
    */
   static exportProjectInfoByProIdAll = <Req extends ProductPlatformParameterInfoRequestDTOModel = ProductPlatformParameterInfoRequestDTOModel>(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -1442,7 +1442,7 @@ export class AdminApiSystemProduct {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1463,7 +1463,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1484,7 +1484,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1505,7 +1505,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1525,7 +1525,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   static getModuleBack = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
@@ -1537,7 +1537,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   static updateApplicationType = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
@@ -1549,7 +1549,7 @@ export class AdminApiSystemProduct {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -1558,59 +1558,101 @@ export class AdminApiSystemProduct {
    * @tags 管理后台 - 产品模块管理树结构添加编辑删除
    * @name addEmptyNodetoManagement
    * @summary 产品模块管理树结构添加编辑删除
-   * @request POST:/cirpoint-base-api/syscate/addEmptyNodetoManagement.json
+   * @request POST:/cirpoint-base-api/syscate/addEmptyNodetoManagement
    * @secure
    */
   static addEmptyNodetoManagement = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/addEmptyNodetoManagement.json`,
+        path: `/business-service/business/library-category/create`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 产品模块管理树结构添加编辑删除
+   *
+   * @tags 管理后台 - 产品模块管理树结构添加编辑删除
+   * @name updateTreeNodetoManagement
+   * @summary 产品模块管理树结构添加编辑删除
+   * @request POST:/cirpoint-base-api/syscate/updateTreeNodetoManagement
+   * @secure
+   */
+  static updateTreeNodetoManagement = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-category/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 产品模块管理树结构删除
    *
    * @tags 管理后台 - 产品模块管理树结构删除
-   * @name addEmptyNodetoManagement
+   * @name delete
    * @summary 产品模块管理树结构删除
-   * @request POST:/cirpoint-base-api/syscate/delTreeNodetoManagement.json
+   * @request POST:/cirpoint-base-api/syscate/delete
    * @secure
    */
   static delTreeNodetoManagement = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/delTreeNodetoManagement.json`,
+        path: `/business-service/business/library-category/delete`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 产品模块管理树结构移动
    *
    * @tags 管理后台 - 产品模块管理树结构移动
-   * @name upDownSaveTreeKey
+   * @name sortUp
    * @summary 产品模块管理树结构移动
-   * @request POST:/cirpoint-base-api/syscate/updTreeKey.json
+   * @request POST:/business-service/business/library-category/sort/up
    * @secure
    */
-  static upDownSaveTreeKey = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+  static sortUp = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/updTreeKey.json`,
+        path: `/business-service/business/library-category/sort/up`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 产品模块管理树结构移动
+   *
+   * @tags 管理后台 - 产品模块管理树结构移动
+   * @name sortUp
+   * @summary 产品模块管理树结构移动
+   * @request POST:/business-service/business/library-category/sort/down
+   * @secure
+   */
+  static sortDown = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-category/sort/down`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 产品模块管理树结构列表
@@ -1618,18 +1660,18 @@ export class AdminApiSystemProduct {
    * @tags 管理后台 - 产品模块管理树结构列表
    * @name upDownSaveTreeKey
    * @summary 产品模块管理树结构列表
-   * @request POST:/cirpoint-base-api/powerAuth/browseProductModuleTree
+   * @request POST:/business-service/business/library-category/browseProductModuleTree
    * @secure
    */
   static browseProductModuleTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/powerAuth/browseProductModuleTree`,
+        path: `/business-service/business/library-category/browseProductModuleTree`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 }
