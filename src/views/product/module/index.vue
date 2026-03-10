@@ -886,11 +886,11 @@ watch(
     <div v-for="(item, index) in titleList" :key="index">
       <p style="margin-left: 15px; margin-top: 10px">
         <EpcIcon type="icon-caidan" style="font-size: 12px" />
-        <b style="margin-left: 10px">{{ item.title }}</b>
+        <b style="margin-left: 10px">{{ item.categoryName }}</b>
       </p>
       <div style="width: 400px; display: flex; flex-wrap: wrap; margin-left: 30px">
         <div v-for="(item2, index2) in item.children" :key="index2" style="width: 130px; padding: 0 0 20px 0; cursor: pointer" @click="changeTitleModule(item2)">
-          <EpcIcon type="icon-chilun--" style="font-size: 14px; color: #0d65ff" /><a class="menuLi">{{ item2.title }}</a>
+          <EpcIcon type="icon-chilun--" style="font-size: 14px; color: #0d65ff" /><a class="menuLi">{{ item2.categoryName }}</a>
         </div>
       </div>
     </div>

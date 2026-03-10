@@ -1,14 +1,11 @@
 // import { OpenApiActions, type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
-import { httpClient, type RequestParams } from "../http-client";
-import { ModuleMenuPageRequestDTOModel } from "@/api/models/module/ModuleMenuPageRequestDTOModel";
-import { CommonResultListDeptResponseDTOModel } from "../../models/CommonResultListDeptResponseDTOModel";
-import { DesignInfoRequestDTOModel } from "@/api/models/designcheck/DesignInfoRequestDTOModel";
-import { ModuleTypeRequestDTOModel } from "@/api/models/module/ModuleTypeRequestDTOModel";
-import {
-  ModuleMenuAddRequestDTOModel,
-  ModuleimgdeleteRequestDTOModel,
-} from "@/api/models/module/ModuleMenuAddRequestDTOModel";
-import { parameterDictionaryRequestDTOModel } from "@/api/models/module/ModuleTypeRequestDTOModel";
+import { httpClient, type RequestParams } from '../http-client';
+import { ModuleMenuPageRequestDTOModel } from '@/api/models/module/ModuleMenuPageRequestDTOModel';
+import { CommonResultListDeptResponseDTOModel } from '../../models/CommonResultListDeptResponseDTOModel';
+import { DesignInfoRequestDTOModel } from '@/api/models/designcheck/DesignInfoRequestDTOModel';
+import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequestDTOModel';
+import { ModuleMenuAddRequestDTOModel, ModuleimgdeleteRequestDTOModel } from '@/api/models/module/ModuleMenuAddRequestDTOModel';
+import { parameterDictionaryRequestDTOModel } from '@/api/models/module/ModuleTypeRequestDTOModel';
 /**
  * 系统模块库
  */
@@ -19,24 +16,19 @@ export class AdminApiSystemModule {
    * @tags 模块库分类查询
    * @name getModuleMenuList
    * @summary 模块库分类查询
-   * @request cirpoint-base-api/powerAuth/browseTopModuleTree
+   * @request /business-service/business/library-category/browseTopModuleTree
    * @secure
    */
-  static getModuleMenuList = <
-    Req extends ModuleMenuPageRequestDTOModel = ModuleMenuPageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getModuleMenuList = <Req extends ModuleMenuPageRequestDTOModel = ModuleMenuPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `cirpoint-base-api/powerAuth/browseTopModuleTree`,
-        method: "POST",
+        path: `/business-service/business/library-category/browseTopModuleTree`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -48,22 +40,16 @@ export class AdminApiSystemModule {
    * @request cirpoint-base-api/powerAuth/browseTopModuleTree
    * @secure
    */
-  static getTempalteParaInfoList = <
-    Req extends
-      parameterDictionaryRequestDTOModel = parameterDictionaryRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getTempalteParaInfoList = <Req extends parameterDictionaryRequestDTOModel = parameterDictionaryRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `cirpoint-base-api/tempalteinfo/getTempalteParaInfoList.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -75,21 +61,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-base-api/syscate/queryClassificationNode.json
    * @secure
    */
-  static getCategpryImgListById = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getCategpryImgListById = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-base-api/syscate/queryClassificationNode.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 模块库表头列表查询
@@ -100,21 +81,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/preciseQueryModuleLibrary.json
    * @secure
    */
-  static preciseQueryModuleLibrary = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static preciseQueryModuleLibrary = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/preciseQueryModuleLibrary.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -126,21 +102,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/moduleDataScreening
    * @secure
    */
-  static moduleDataScreening = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static moduleDataScreening = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/moduleDataScreening`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 模块库列表查询
@@ -151,21 +122,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/findCurrentModuleInfoByCategoryId.json
    * @secure
    */
-  static findCurrentModuleInfoByCategoryId = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static findCurrentModuleInfoByCategoryId = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/findCurrentModuleInfoByCategoryId.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -176,21 +142,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-base-api/syscate/queryClassificationNode.json
    * @secure
    */
-  static queryClassificationNode = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static queryClassificationNode = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-base-api/syscate/queryClassificationNode.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -202,21 +163,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/getModuleColumnData
    * @secure
    */
-  static getModuleColumnData = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getModuleColumnData = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/getModuleColumnData`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -227,21 +183,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/findModuleInfoDetailedById.json
    * @secure
    */
-  static findModuleInfoDetailedById = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static findModuleInfoDetailedById = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/findModuleInfoDetailedById.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -252,21 +203,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/productLibrary/getChildrenLists
    * @secure
    */
-  static getChildrenLists = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getChildrenLists = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/productLibrary/getChildrenLists`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -277,21 +223,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/productLibrary/getChildrenLists
    * @secure
    */
-  static syncProject = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static syncProject = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/pdmSystem/syncProject`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -303,21 +244,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/productLibrary/getPlatform
    * @secure
    */
-  static getPlatform = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getPlatform = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/productLibrary/getPlatform`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -329,21 +265,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/pdm/getTreeList
    * @secure
    */
-  static getTreeList = <
-    Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getTreeList = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/pdm/getTreeList`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -354,19 +285,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/saveSinglePicture.json
    * @secure
    */
-  static saveSinglePicture = <Req extends any = any>(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static saveSinglePicture = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/saveSinglePicture.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -377,21 +305,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/deleteSinglePicture.json
    * @secure
    */
-  static deleteSinglePicture = <
-    Req extends { pictureIdList: any } = { pictureIdList: any },
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static deleteSinglePicture = <Req extends { pictureIdList: any } = { pictureIdList: any }>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/deleteSinglePicture.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -402,21 +325,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/deleteModuleAttachmentByModuleId.json
    * @secure
    */
-  static deleteModuleAttachmentByModuleId = <
-    Req extends ModuleimgdeleteRequestDTOModel = ModuleimgdeleteRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static deleteModuleAttachmentByModuleId = <Req extends ModuleimgdeleteRequestDTOModel = ModuleimgdeleteRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/deleteModuleAttachmentByModuleId.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -427,21 +345,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/moduleInfoSave.json
    * @secure
    */
-  static moduleInfoSave = <
-    Req extends ModuleMenuAddRequestDTOModel = ModuleMenuAddRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static moduleInfoSave = <Req extends ModuleMenuAddRequestDTOModel = ModuleMenuAddRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/moduleInfoSave.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -452,21 +365,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/moduleInfoUpdate.json
    * @secure
    */
-  static moduleInfoUpdate = <
-    Req extends ModuleMenuAddRequestDTOModel = ModuleMenuAddRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static moduleInfoUpdate = <Req extends ModuleMenuAddRequestDTOModel = ModuleMenuAddRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/moduleInfoUpdate.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -478,21 +386,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/moduleInfoUpdate.json
    * @secure
    */
-  static batchDeleteModuleInfo = <
-    Req extends ModuleimgdeleteRequestDTOModel = ModuleimgdeleteRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static batchDeleteModuleInfo = <Req extends ModuleimgdeleteRequestDTOModel = ModuleimgdeleteRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/batchDeleteModuleInfo.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -510,17 +413,17 @@ export class AdminApiSystemModule {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/pdmAssociatedDoc`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -539,17 +442,17 @@ export class AdminApiSystemModule {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/getCategoryPdmType`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   // ----------------------属性管理--------------------------
 
@@ -566,12 +469,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/findModuleProperty.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -587,12 +490,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/updateModuleProperty.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -608,12 +511,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/batchDeleteModuleProperty.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -625,19 +528,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/ImportingConfigurationColumnsNew.json
    * @secure
    */
-  static ImportingConfigurationColumnsNew = (
-    query: any,
-    params: RequestParams = {}
-  ) =>
+  static ImportingConfigurationColumnsNew = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/ImportingConfigurationColumnsNew.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -653,12 +553,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/moduleLibraryExportData`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -674,12 +574,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/columnWidthSave.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -695,12 +595,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/moduleDataComparison.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -716,12 +616,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/moduleRadarDataMap`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -733,19 +633,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/createModuleLibraryTemplate
    * @secure
    */
-  static createModuleLibraryTemplateApi = (
-    query: any,
-    params: RequestParams = {}
-  ) =>
+  static createModuleLibraryTemplateApi = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/createModuleLibraryTemplate`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -756,19 +653,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/importingModelInformationNew.json
    * @secure
    */
-  static importingModelInformationNew = (
-    query: any,
-    params: RequestParams = {}
-  ) =>
+  static importingModelInformationNew = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/importingModelInformationNew.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -783,12 +677,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/getPdmModuleNumDetailed.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -799,19 +693,16 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/getModuleUserUploadDocument
    * @secure
    */
-  static getModuleUserUploadDocument = (
-    query: any,
-    params: RequestParams = {}
-  ) =>
+  static getModuleUserUploadDocument = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/getModuleUserUploadDocument`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -826,12 +717,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/getPdmDocument`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -846,12 +737,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/krAttribute.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -866,12 +757,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/findParametricDesign.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -886,12 +777,12 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/pdmSystem/syncBOM`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    *
@@ -906,11 +797,11 @@ export class AdminApiSystemModule {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/pdmSystem/getURL`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 }
