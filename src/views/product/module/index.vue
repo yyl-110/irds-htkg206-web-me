@@ -4,7 +4,6 @@ import { Pane, Splitpanes } from 'splitpanes';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
-import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequestDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { PermissionAssignUsersRoleRequestDTOmenuModel } from '@/api/models/menu/PermissionAssignUsersRoleRequestDTOmenuModel';
 import { EpcIcon } from '@/components/icon/EpcIcon';
@@ -16,7 +15,7 @@ import { ModuleMenuPageRequestDTOModel } from '@/api/models/module/ModuleMenuPag
 import ModuleImgList from './components/form/ModuleImgList.vue';
 import ModuleInfoList from './components/form/ModuleInfoListAdm.vue';
 import TreeModule from './components/modal/TreeModule.vue';
-import { decryptValue, encryptValue } from '@/utils';
+import { decryptValue } from '@/utils';
 import { useLayoutStore } from '@/store/modules/layout/layout';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
@@ -24,11 +23,9 @@ const layoutStore = useLayoutStore();
 const router = useRoute();
 // 树结构相关属性
 const treeData = ref<any[]>([]);
-const treeData1 = ref<any[]>([]);
 const selectedKeys = ref<string>('');
 const expandedKeys = ref<any>();
 const treePage = ref<any>(null);
-const showLeft = ref<boolean>(true);
 const loadingTree = ref<boolean>(false);
 const treeNodeColmoun = ref<any[]>([]);
 const userStore = useUserStore();
@@ -36,7 +33,7 @@ const titleVisible = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const titleList = ref<any>([]);
 const categoryid = ref<string>('');
-const nodeType = ref<string>('');
+const categoryType = ref<string>('');
 const drawerStyle = ref<any>({
   marginLeft: '201px',
   marginTop: '65px',
@@ -53,7 +50,7 @@ const treeRequestParams = reactive(new ProductModuleTreeInfoRequestDTOModel());
 const ModuleImgListRef = ref<InstanceType<typeof ModuleImgList>>();
 const ModuleInfoListRef = ref<InstanceType<typeof ModuleInfoList>>();
 
-treeRequestParams.userid = userStore.getUser.id;
+treeRequestParams.creator = userStore.getUser.id;
 
 /** 初始化绑定分页请求参数 */
 const { pagination } = usePagination(requestParams, getListData);
@@ -67,12 +64,16 @@ const dataSource = ref<Array<any>>([]);
 async function getListData(type?: string) {
   loadingTree.value = true;
   try {
-    const res = await AdminApiSystemProduct.getProductModuleTree(treeRequestParams);
-    if (res.data.code == 0 && res.data.data) {
+    let data: any = {};
+    data.id = treeRequestParams.categoryId;
+    const res = await AdminApiSystemProduct.getProductModuleTree(data);
+    console.log(res);
+    if (res.data.code == 200 && res.data.data) {
       loadingTree.value = false;
       const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
-      dataSource.value = rawData[0].result[0];
-      const treeNodes = convertToTreeNodes(rawData[0].result[0]);
+      dataSource.value = rawData[0];
+      const treeNodes = convertToTreeNodes(rawData);
+      debugger;
       treeData.value = treeNodes;
       // 默认选中第一个节点
       if (treeNodes.length > 0) {
@@ -101,10 +102,9 @@ function convertToTreeNodes(data: any[]): any[] {
   return data.map(item => {
     // 判断是否为根节点：使用moduleLevel和nodeRootType字段
     // 根节点通常是moduleLevel为1或nodeRootType有特定值的节点
-    const isRootNode = item.moduleLevel === 1 || (item.nodeRootType && item.nodeRootType.toString() === '1');
+    const isRootNode = item.categoryType === 1 || item.categoryType === 2;
     // 判断是否有子节点
     const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
-
     // 根据规则设置level值
     let level = 3; // 默认值为3（没有子节点的情况）
     if (isRootNode) {
@@ -112,18 +112,12 @@ function convertToTreeNodes(data: any[]): any[] {
     } else if (hasChildren) {
       level = 2; // 有子节点的非根节点level为2
     }
-
     return {
-      addTreeType: item.addTreeType,
       key: item.id?.toString() || item.tid?.toString() || '',
-      partName: item.name || item.title || '',
-      // 添加type字段，用于在Tree组件中区分节点类型
+      partName: item.categoryName || '',
       type: 'category', // 对于产品平台管理，所有节点都视为分类节点
-      nodeRootType: item.nodeRootType,
-      nodeType: item.nodeType,
-      nodeRootId: item.nodeRootId,
-      moduleLevel: item.moduleLevel,
-      expand: item.expand,
+      categoryType: item.categoryType,
+      parentId: item.parentId,
       level: level, // 设置level值
       children: hasChildren ? convertToTreeNodes(item.children) : [],
     };
@@ -131,7 +125,7 @@ function convertToTreeNodes(data: any[]): any[] {
 }
 
 /** 处理搜索功能 */
-async function handleChangeSelectKey(searchValue: string, languageSel: string) {
+async function handleChangeSelectKey(searchValue: string) {
   // 当搜索值为空时，显示完整树结构
   if (!searchValue) {
     // 重新获取数据
@@ -139,7 +133,7 @@ async function handleChangeSelectKey(searchValue: string, languageSel: string) {
     return;
   }
   // 根据搜索值过滤树节点
-  const filteredData = filterTreeNodes(dataSource.value, searchValue);
+  const filteredData = filterTreeNodes([dataSource.value], searchValue);
   const treeNodes = convertToTreeNodes(filteredData);
   treeData.value = treeNodes;
 }
@@ -149,14 +143,12 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
   return nodes
     .map(node => {
       // 检查当前节点是否匹配搜索值
-      const isMatch = node.title && node.title.toLowerCase().includes(searchValue.toLowerCase());
-
+      const isMatch = node.categoryName && node.categoryName.toLowerCase().includes(searchValue.toLowerCase());
       // 递归检查子节点
       let matchingChildren = [];
       if (node.children && node.children.length > 0) {
         matchingChildren = filterTreeNodes(node.children, searchValue);
       }
-
       // 如果当前节点匹配或有匹配的子节点，则保留该节点
       if (isMatch || matchingChildren.length > 0) {
         return {
@@ -172,6 +164,7 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
 /** 获取节点添加数据 */
 async function getNodeAddData(selectedKeys: any) {
   if (currentNode.value) {
+    treeRequestParams.id = 0;
     // 这里可以根据需要实现添加节点的逻辑
     treeNodeColmoun.value = [
       {
@@ -197,7 +190,7 @@ async function getNodeAddData(selectedKeys: any) {
       },
       {
         title: WeiI18n.t('节点类别').value,
-        key: 'nodeType',
+        key: 'categoryType',
         value: '',
         type: 'select',
         hidden: false,
@@ -208,17 +201,9 @@ async function getNodeAddData(selectedKeys: any) {
           },
         ],
         selectStr: [
-          { label: '数据节点', value: '2' },
-          { label: '分类节点', value: '1' },
+          { label: '数据节点', value: 4 },
+          { label: '分类节点', value: 3 },
         ],
-      },
-      {
-        title: WeiI18n.t('构型编码').value,
-        key: 'gxbm',
-        value: '',
-        type: 'input',
-        hidden: false,
-        disabled: true,
       },
       {
         title: WeiI18n.t('示意图').value,
@@ -293,7 +278,7 @@ async function getNodeAddData(selectedKeys: any) {
       },
       {
         title: WeiI18n.t('节点类别').value,
-        key: 'nodeType',
+        key: 'categoryType',
         value: '',
         type: 'select',
         hidden: false,
@@ -304,17 +289,9 @@ async function getNodeAddData(selectedKeys: any) {
           },
         ],
         selectStr: [
-          { label: '数据节点', value: '2' },
-          { label: '分类节点', value: '1' },
+          { label: '数据节点', value: 4 },
+          { label: '分类节点', value: 3 },
         ],
-      },
-      {
-        title: WeiI18n.t('构型编码').value,
-        key: 'gxbm',
-        value: '',
-        type: 'input',
-        hidden: false,
-        disabled: true,
       },
       {
         title: WeiI18n.t('示意图').value,
@@ -369,20 +346,32 @@ async function getNodeAddData(selectedKeys: any) {
 }
 
 async function downNode(node: any) {
+  if (node == undefined) {
+    node = treeData.value[0];
+  }
+  if (node.categoryType == 2) {
+    message.warning('该节点不能被下移！');
+    return;
+  }
   let data = { ...treeRequestParams };
   data.id = (node && node.key) || selectedKeys.value;
-  data.type = 1;
-  await AdminApiSystemProduct.updTreeKey(data);
+  await AdminApiSystemProduct.sortDown(data);
   await getListData('change');
   Selectafterchanges();
 }
 const currentNode = ref();
 
 async function upNode(node: any) {
+  if (node == undefined) {
+    node = treeData.value[0];
+  }
+  if (node.categoryType == 2) {
+    message.warning('该节点不能被上移！');
+    return;
+  }
   let data = { ...treeRequestParams };
   data.id = (node && node.key) || selectedKeys.value;
-  data.type = 0;
-  await AdminApiSystemProduct.updTreeKey(data);
+  await AdminApiSystemProduct.sortUp(data);
   await getListData('change');
   Selectafterchanges();
 }
@@ -392,13 +381,9 @@ function Selectafterchanges() {
 
 async function selectNode(node: any) {
   currentNode.value = node;
-  let data = { ...treeRequestParams };
-  data.categoryid = node.key ? node.key : node.id;
-  data.rootNodeid = node.key ? node.key : node.id;
-  const res = await AdminApiSystemProduct.getCategpryInfoById(data);
-  categoryid.value = res.data.data.result[0].id;
-  nodeType.value = res.data.data.result[0].nodeType;
-  if (nodeType.value == '1') {
+  categoryid.value = node.key ? node.key : node.id;
+  categoryType.value = node.categoryType;
+  if (categoryType.value == 2 || categoryType.value == 3) {
     nextTick(() => {
       ModuleImgListRef.value?.infoReload(categoryid.value);
     });
@@ -411,17 +396,19 @@ async function selectNode(node: any) {
 
 /** 获取节点编辑数据 */
 async function getNodeUpdateData(node: any) {
+  if (node == undefined) {
+    node = treeData.value[0];
+  }
+  if (node.categoryType == 2) {
+    message.warning('该节点不能被编辑！');
+    return;
+  }
   let nodeData = node ? node : currentNode.value;
   categoryid.value = nodeData.key;
   let data = { ...treeRequestParams };
-  data.categoryid = nodeData.key;
-  data.rootNodeid = nodeData.key;
+  data.id = nodeData.key;
   const res = await AdminApiSystemProduct.getCategpryInfoById(data);
-  const categoryStrs = res.data.data.result[0];
-  // debug: 打印接口返回的分类信息，便于定位 gxbm 字段位置
-  // eslint-disable-next-line no-console
-  console.log('getNodeUpdateData categoryStrs:', categoryStrs);
-  // 这里可以根据需要实现添加节点的逻辑
+  const categoryStrs = res.data.data;
   treeNodeColmoun.value = [
     {
       title: WeiI18n.t('父节点名称').value,
@@ -446,8 +433,8 @@ async function getNodeUpdateData(node: any) {
     },
     {
       title: WeiI18n.t('节点类别').value,
-      key: 'nodeType',
-      value: categoryStrs.nodeType,
+      key: 'categoryType',
+      value: categoryStrs.categoryType,
       type: 'select',
       hidden: false,
       rules: [
@@ -457,17 +444,9 @@ async function getNodeUpdateData(node: any) {
         },
       ],
       selectStr: [
-        { label: '数据节点', value: '2' },
-        { label: '分类节点', value: '1' },
+        { label: '数据节点', value: 4 },
+        { label: '分类节点', value: 3 },
       ],
-    },
-    {
-      title: WeiI18n.t('构型编码').value,
-      key: 'gxbm',
-      value: categoryStrs.gxbm || categoryStrs.techid || categoryStrs.pdmName || '',
-      type: 'input',
-      hidden: false,
-      disabled: true,
     },
     {
       title: WeiI18n.t('示意图').value,
@@ -487,7 +466,6 @@ async function getNodeUpdateData(node: any) {
     {
       title: WeiI18n.t('文件ID').value,
       key: 'fileId',
-      // 有些接口会返回 imgUrl 作为附件 id 字段，优先使用 fileId，其次 imgUrl
       value: categoryStrs.fileId || categoryStrs.imgUrl || '',
       type: 'input',
       disabled: true,
@@ -523,10 +501,16 @@ async function getNodeUpdateData(node: any) {
 
 /** 删除树节点 */
 async function deleteTreeNode(selectedKeys: any) {
+  if (selectedKeys == undefined) {
+    selectedKeys = treeData.value[0];
+  }
+  if (selectedKeys.categoryType == 2) {
+    message.warning('该节点不能被删除！');
+    return;
+  }
   let data = { ...treeRequestParams };
-  data.categoryid = treeRequestParams.rootNodeid;
   data.id = selectedKeys.key;
-  const res = await AdminApiSystemProduct.delTreeNode(data);
+  const res = await AdminApiSystemProduct.delTreeNodetoManagement(data);
   await getListData();
   message.success(WeiI18n.t('删除成功').value);
 }
@@ -586,32 +570,27 @@ async function selectBoomTree1(field: any) {
 }
 
 /** 提交树节点数据 */
-async function submitTreeData(nodeList: any, selectedKeys: any) {
+async function submitTreeData(nodeList: any) {
   let data = { ...treeRequestParams };
   data.categoryName = nodeList.categoryName;
-  data.nodeType = nodeList.nodeType;
-  data.parentid = nodeList.pid;
-  // 将构型编码传入接口，优先取实际techid字段
-  data.gxbm = nodeList.gxbm || nodeList.gxbm_techid || nodeList.gxbm_display || '';
-  data.sketchMapId = nodeList.fileId;
-  // 这里可以根据需要实现提交树节点数据的逻辑
-  const res = await AdminApiSystemProduct.addProductModuleTree(data);
+  data.categoryType = nodeList.categoryType;
+  data.parentId = nodeList.pid;
+  data.fileId = nodeList.fileId;
+  const res = await AdminApiSystemProduct.addEmptyNodetoManagement(data);
   await getListData();
   message.success(WeiI18n.t('保存成功').value);
 }
 
 /** 编辑树节点数据 */
-async function editTreeData(nodeList: any, selectedKeys: any) {
+async function editTreeData(nodeList: any) {
   let data = { ...treeRequestParams };
   data.categoryName = nodeList.categoryName;
   data.id = nodeList.id;
-  data.nodeType = nodeList.nodeType;
-  data.parentid = nodeList.pid;
-  // 将构型编码传入接口，优先取实际techid字段
-  data.gxbm = nodeList.gxbm || nodeList.gxbm_techid || nodeList.gxbm_display || '';
-  data.sketchMapId = nodeList.fileId;
+  data.categoryType = nodeList.categoryType;
+  data.parentId = nodeList.pid;
+  data.fileId = nodeList.fileId;
   // 这里可以根据需要实现提交树节点数据的逻辑
-  const res = await AdminApiSystemProduct.updateCategoryNode(data);
+  const res = await AdminApiSystemProduct.updateTreeNodetoManagement(data);
   await getListData('change');
   message.success(WeiI18n.t('修改成功').value);
   Selectafterchanges();
@@ -652,10 +631,10 @@ function onClose() {
   titleVisible.value = false;
 }
 function changeTitleModule(item: any) {
-  treeRequestParams.categoryid = item.id;
-  treeRequestParams.rootNodeid = item.id;
+  treeRequestParams.id = item.id;
+  treeRequestParams.categoryId = item.id;
   categoryid.value = item.id;
-  nodeType.value = item.nodeType;
+  categoryType.value = item.categoryType;
   getListData();
   drawerStyle.value = ref({});
   loading.value = false;
@@ -663,6 +642,7 @@ function changeTitleModule(item: any) {
 }
 
 function actionNode(item: any) {
+  console.log('changeTitleModule', item);
   nextTick(() => {
     selectNode(item);
     selectedKeys.value = `${item.id}`;
@@ -681,17 +661,13 @@ const updateMenu = async () => {
 function close() {
   dialogVisible.value = false;
 }
-const selectBoomTreeRef = ref<any>(null);
-const selectBoomTreeRef1 = ref<any>(null);
 // 树选择器模态框相关状态
 const selectTreeVisible = ref<boolean>(false);
 const selectTreeSelectedKeys = ref<string>('');
-const selectTreeExpandedKeys = ref<string>('');
 
 // 树选择器模态框相关状态
 const selectTreeVisible1 = ref<boolean>(false);
 const selectTreeSelectedKeys1 = ref<string>('');
-const selectTreeExpandedKeys1 = ref<string>('');
 
 /**
  * 确认选择树节点，将选中的节点名称传回tree组件
@@ -861,12 +837,9 @@ watch(
       <!-- 右侧内容区域 -->
       <Pane class="splitpane-cls">
         <div v-if="!loading">
-          <ModuleImgList v-if="nodeType == '1'" ref="ModuleImgListRef" @actionNode="actionNode" />
-          <ModuleInfoList v-if="nodeType != '1'" ref="ModuleInfoListRef" :categoryid="categoryid" />
+          <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" />
+          <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" />
         </div>
-        <!-- <div v-else class="example">
-          <a-spin tip="加载中..." />
-        </div> -->
       </Pane>
     </Splitpanes>
   </div>

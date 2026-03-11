@@ -141,17 +141,17 @@ function selectModelListCheck2(selection: any) {
   }
 }
 const pdmType = ref<string>('');
-async function getCategoryPdm(id: string) {
-  const data: any = {};
-  data.categoryId = id;
-  const res = await AdminApiSystemModule.getCategoryPdmType(data);
-  if (res.data.code == 0) {
-    pdmType.value = res.data.pdmType;
-  }
-}
+// async function getCategoryPdm(id: string) {
+//   const data: any = {};
+//   data.categoryId = id;
+//   const res = await AdminApiSystemModule.getCategoryPdmType(data);
+//   if (res.data.code == 0) {
+//     pdmType.value = res.data.pdmType;
+//   }
+// }
 async function initData(categoryidStr: string) {
   categoryid.value = categoryidStr;
-  getCategoryPdm(categoryidStr);
+  // getCategoryPdm(categoryidStr);
   columnsData4.value = [];
   compactData.value = [];
   checkList.value = [];

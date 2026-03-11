@@ -16,12 +16,10 @@ async function infoReload(categoryidStr: string) {
   try {
     loading.value = true;
     categoryid.value = categoryidStr;
-    requestParams.userId = userStore.getUser.id + '';
-    requestParams.categoryid = categoryidStr;
-    requestParams.categoryType = '1';
-    requestParams.rootType = '0';
-    const res = await AdminApiSystemModule.getCategpryImgListById(requestParams);
-    nodeList.value = res.data.data.list;
+    const data: any = {};
+    data.id = categoryidStr;
+    const res = await AdminApiSystemModule.getCategpryImgListById(data);
+    nodeList.value = res.data.data;
     loading.value = false;
   } catch (error) {
     loading.value = false;
@@ -44,15 +42,6 @@ defineExpose({ infoReload });
       <a-spin tip="加载中..." />
     </div>
   </div>
-
-  <!-- <div class="imgList" ref="bodyStyle" v-if="nodeList && nodeList.length">
-    <div class="imgBox" v-for="item in nodeList" :key="item.id">
-      <div class="itemBox1">
-        <img :src="item.imgUrl != '' && item.imgUrl != null ? item.path : imgurl2" style="width: 100%; height: 100%" @click="actionDepartment(item)" />
-      </div>
-      <div class="itemBoxTitle">{{ item.categoryName }}</div>
-    </div>
-  </div> -->
 </template>
 
 <style scoped lang="less">

@@ -2,7 +2,7 @@
   <div style="margin-left: 20px">
     <div class="calculateItem" v-for="item in nodeData" :key="item.id">
       <div class="Img-box">
-        <img :src="item.imgUrl != null && item.imgUrl != '' ? item.path : imgSrc()" style="width: 256px; height: 185px" @click="actionNode(item)" />
+        <img :src="item.filePath != null && item.filePath != '' ? item.path : imgSrc()" style="width: 256px; height: 185px" @click="actionNode(item)" />
       </div>
 
       <div class="calclation-content">

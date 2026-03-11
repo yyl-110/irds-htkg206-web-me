@@ -58,13 +58,13 @@ export class AdminApiSystemModule {
    * @tags 模块库分类图片列表查询
    * @name getCategpryImgListById
    * @summary 模块库分类图片列表查询
-   * @request /cirpoint-base-api/syscate/queryClassificationNode.json
+   * @request /business-service/business/library-category/getCategoryImgListById
    * @secure
    */
   static getCategpryImgListById = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/queryClassificationNode.json`,
+        path: `/business-service/business/library-category/getCategoryImgListById`,
         method: 'POST',
         body: query,
         secure: true,

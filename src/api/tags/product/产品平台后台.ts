@@ -144,13 +144,13 @@ export class AdminApiSystemProduct {
    * @tags 管理后台 - 产品模块库树结构查询功能
    * @name getProductModuleTree
    * @summary 产品模块库树结构查询功能
-   * @request POST:/cirpoint-base-api/syscate/getCategoryBomTree.json
+   * @request POST:/business-service/business/library-category/getModuleCategoryTreeById
    * @secure
    */
   static getProductModuleTree = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/getCategoryBomTree.json`,
+        path: `/business-service/business/library-category/getModuleCategoryTreeById`,
         method: 'POST',
         body: query,
         secure: true,
@@ -251,13 +251,13 @@ export class AdminApiSystemProduct {
    * @tags 管理后台 - 产品模块库树结构获取节点详情功能
    * @name getProductModuleTree
    * @summary 产品模块库树结构获取节点详情功能
-   * @request POST:/cirpoint-base-api/syscate/getCategoryBomTree.json
+   * @request POST:/business-service/business/library-category/getCategoryInfoById
    * @secure
    */
   static getCategpryInfoById = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/getCategoryInfoById.json`,
+        path: `/business-service/business/library-category/getCategoryInfoById`,
         method: 'POST',
         body: query,
         secure: true,

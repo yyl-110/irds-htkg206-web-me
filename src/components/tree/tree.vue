@@ -171,10 +171,6 @@ const skipParentOnEdit = ref<boolean>(false);
  * @description 树节点进行添加
  */
 function addTree() {
-  // if(selectedNode.value.level===3){
-  //   message.error('此层不允许添加节点');
-  //   return;
-  // }
   pretreatment.value = [];
   if (checkedNode()) {
     title.value = '新增节点';
@@ -458,6 +454,7 @@ async function customRequest(options: any) {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
+      securityLevel: 1,
     });
     if (res.data.code === 0) {
       const file: any = { ...res.data, name: res.data?.oldFileName };
@@ -567,7 +564,7 @@ defineExpose({
           </a-dropdown>
         </template>
         <template #icon="item">
-          <EpcIcon v-if="(item.type === 'category' && item.level == '1') || item.nodeType == 1" type="icon-wenjianjia" />
+          <EpcIcon v-if="(item.type === 'category' && item.level == '1') || item.categoryType == 1" type="icon-wenjianjia" />
           <EpcIcon v-else-if="item.type === 'category' && item.level == '2'" type="icon-wenjianjia" />
           <EpcIcon v-else-if="item.type === 'category' && item.level == '3'" type="icon-a-xiangmu1" />
         </template>
