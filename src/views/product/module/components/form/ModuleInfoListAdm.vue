@@ -11,12 +11,14 @@ const modulePropertyInfoRef = ref<any>(null);
 const userStore = useUserStore();
 const activeKey = ref('1');
 const categoryid = ref<string>('');
+const menuId = ref<any>('');
 const emit = defineEmits([]);
 //初始化数据
-async function infoReload(categoryidStr: string) {
+async function infoReload(categoryidStr: string, menuid: any) {
   categoryid.value = categoryidStr;
+  menuId.value = menuid;
   if (activeKey.value == '1') {
-    moduleInfoListRef.value.initData(categoryid.value);
+    moduleInfoListRef.value.initData(categoryid.value, menuid);
   } else {
     nextTick(() => {
       modulePropertyInfoRef.value.initColumnData(categoryid.value);

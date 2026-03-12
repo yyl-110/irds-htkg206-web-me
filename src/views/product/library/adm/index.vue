@@ -27,7 +27,6 @@ interface PropertyRow {
   showFlag: number;
   colWidth: string;
   searchFlag: number;
-  unit: string;
   propertyType: number;
   selectStr: string;
   parameterType: number;
@@ -49,7 +48,6 @@ function createEmptyPropertyRow(sort = 1): PropertyRow {
     showFlag: 1,
     colWidth: '100',
     searchFlag: 1,
-    unit: '',
     propertyType: 1,
     selectStr: '',
     parameterType: 1,
@@ -66,7 +64,6 @@ const propertyColumns = [
   { title: WeiI18n.$t('显示状态'), dataIndex: 'showFlag', key: 'showFlag', width: 100, align: 'center' },
   { title: WeiI18n.$t('列宽'), dataIndex: 'colWidth', key: 'colWidth', width: 100, align: 'center' },
   { title: WeiI18n.$t('默认查询'), dataIndex: 'searchFlag', key: 'searchFlag', width: 100, align: 'center' },
-  { title: WeiI18n.$t('单位'), dataIndex: 'unit', key: 'unit', width: 100, align: 'center' },
   { title: WeiI18n.$t('文本类型'), dataIndex: 'propertyType', key: 'propertyType', width: 100, align: 'center' },
   { title: WeiI18n.$t('下拉属性信息'), dataIndex: 'selectStr', key: 'selectStr', width: 160, align: 'center' },
   { title: WeiI18n.$t('数值类型'), dataIndex: 'parameterType', key: 'parameterType', width: 100, align: 'center' },
@@ -224,6 +221,7 @@ async function seeDetailFun(record: any) {
   propertyConfigRecord.value = record;
   const data: any = {
     menuId: Number(propertyConfigRecord.value.id),
+    paraType: 0,
   };
   const res = await businessApiLibrary.getPropertyList(data);
   console.log(res);
@@ -426,7 +424,12 @@ function handleFinish() {
       <a-modal
         :getContainer="customGetContainer"
         :visible="powVisible"
-        @update:visible="(v: boolean) => { if (v) powVisible = true; else handleRequestClosePowModal(); }"
+        @update:visible="
+          (v: boolean) => {
+            if (v) powVisible = true;
+            else handleRequestClosePowModal();
+          }
+        "
         :title="$t('属性配置')"
         width="1200px"
         :mask-closable="false"
@@ -476,9 +479,7 @@ function handleFinish() {
                   </a-select-option>
                 </a-select>
               </template>
-              <template v-else-if="column.dataIndex === 'unit'">
-                <a-input v-model:value="record.unit" placeholder="请输入..." allow-clear size="small" />
-              </template>
+
               <template v-else-if="column.dataIndex === 'propertyType'">
                 <a-select v-model:value="record.propertyType" placeholder="请选择" size="small" style="width: 100%">
                   <a-select-option v-for="opt in textTypeOptions" :key="opt.value" :value="opt.value">

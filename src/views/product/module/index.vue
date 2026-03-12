@@ -33,6 +33,7 @@ const titleVisible = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const titleList = ref<any>([]);
 const categoryid = ref<string>('');
+const menuId = ref<string>('');
 const categoryType = ref<string>('');
 const drawerStyle = ref<any>({
   marginLeft: '201px',
@@ -120,6 +121,7 @@ function convertToTreeNodes(data: any[]): any[] {
       parentId: item.parentId,
       level: level, // 设置level值
       children: hasChildren ? convertToTreeNodes(item.children) : [],
+      menuId: item.menuId,
     };
   });
 }
@@ -382,6 +384,7 @@ function Selectafterchanges() {
 async function selectNode(node: any) {
   currentNode.value = node;
   categoryid.value = node.key ? node.key : node.id;
+  menuId.value = node.menuId;
   categoryType.value = node.categoryType;
   if (categoryType.value == 2 || categoryType.value == 3) {
     nextTick(() => {
@@ -389,7 +392,7 @@ async function selectNode(node: any) {
     });
   } else {
     nextTick(() => {
-      ModuleInfoListRef.value?.infoReload(categoryid.value);
+      ModuleInfoListRef.value?.infoReload(categoryid.value, menuId.value);
     });
   }
 }
@@ -838,7 +841,7 @@ watch(
       <Pane class="splitpane-cls">
         <div v-if="!loading">
           <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" />
-          <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" />
+          <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" :menuId="menuId" />
         </div>
       </Pane>
     </Splitpanes>

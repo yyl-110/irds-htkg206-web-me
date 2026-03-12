@@ -78,13 +78,13 @@ export class AdminApiSystemModule {
    * @tags 模块库表头列表查询
    * @name preciseQueryModuleLibrary
    * @summary 模块库表头列表查询
-   * @request /cirpoint-module-api/moduleinfos/preciseQueryModuleLibrary.json
+   * @request /business-service/business/library-property/getLibraryDataPageByMenuAndCategory
    * @secure
    */
   static preciseQueryModuleLibrary = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/preciseQueryModuleLibrary.json`,
+        path: `/business-service/business/library-data/getLibraryDataPageByMenuAndCategory`,
         method: 'POST',
         body: query,
         secure: true,
@@ -119,13 +119,13 @@ export class AdminApiSystemModule {
    * @tags 模块库列表查询
    * @name findCurrentModuleInfoByCategoryId
    * @summary 模块库列表查询
-   * @request /cirpoint-module-api/moduleinfos/findCurrentModuleInfoByCategoryId.json
+   * @request /business-service/business/library-property/getLibraryPropertyByIds
    * @secure
    */
   static findCurrentModuleInfoByCategoryId = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/findCurrentModuleInfoByCategoryId.json`,
+        path: `/business-service/business/library-property/getLibraryPropertyByIds`,
         method: 'POST',
         body: query,
         secure: true,
@@ -483,13 +483,13 @@ export class AdminApiSystemModule {
    * @tags 属性管理保存列
    * @name moduleInfoSave
    * @summary 属性管理保存列
-   * @request /cirpoint-module-api/moduleinfos/updateModuleProperty.json
+   * @request /business-service/business/library-property/keepModuleProperty
    * @secure
    */
   static updateModuleProperty = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/updateModuleProperty.json`,
+        path: `/business-service/business/library-property/keepModuleProperty`,
         method: 'POST',
         body: query,
         secure: true,

@@ -6,6 +6,7 @@ import moduleAttribute from '../table/moduleAttribute.vue';
 import { useUserStore } from '@/store/modules/user';
 import { TableProps, Modal, Button, Popconfirm, message } from 'ant-design-vue';
 import { uxTabTop, uxTabToUp, uxTabToDown, uxTabDown, getUmyIndex } from '@/utils/tools';
+import { businessApiLibrary } from '@/api/tags/library/基础资源库';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { EpcIcon } from '@/components/icon/EpcIcon';
@@ -51,14 +52,6 @@ const columns = ref([
   //   align: "center",
   //   width: 80,
   // },
-  {
-    id: '5',
-    title: '列状态',
-    key: 'columnProperties',
-    align: 'center',
-    width: 80,
-    slot: 'columnProperties',
-  },
   {
     id: '6',
     title: '显示状态',
@@ -180,14 +173,13 @@ async function initColumnData(categoryidStr: any) {
   loading.value = true;
   try {
     let params: any = {};
-    params.userId = userStore.getUser.id;
     params.categoryId = categoryidStr;
-    const res = await AdminApiSystemModule.findModuleProperty(params);
-    if (res.data.code == 0) {
-      let data: any = res.data.data;
+    params.paraType = 1;
+    const res = await businessApiLibrary.getPropertyList(params);
+    if (res.data.code == 200) {
       loading.value = false;
-      moduleParaList.value = data.moduleParaList;
-      dataSource.value = data.moduleParaList;
+      moduleParaList.value = res.data.data;
+      dataSource.value = res.data.data;
       nextTick(() => {
         vxeTable.value.tableRef.remove();
         let { row: newRow } = vxeTable.value.tableRef.insertAt(moduleParaList.value, -1);
@@ -284,12 +276,15 @@ function showSelectParameter(index: any) {
 }
 function addColumn() {
   let str = {
-    status: 0,
-    inputBoxLength: 100,
+    id: '',
+    showFlag: 0,
+    colWidth: 100,
     delIndex: vxeTable.value.tableRef.getInsertRecords().length,
-    ifSelectForm: 0,
-    defaultQuery: 0,
+    propertyType: 1,
+    parameterType: 1,
+    searchFlag: 1,
     propertyName: '',
+    creator: userStore.getUser.id,
   };
 
   let { row: newRow } = vxeTable.value.tableRef.insertAt(str, -1);
@@ -374,7 +369,7 @@ async function saveColumns() {
   data.userId = userStore.getUser.id;
   data.userName = userStore.getUser.userName;
   data.categoryId = categoryid.value;
-  data.moduleParaList = vxeTable.value.tableRef.getTableData().tableData;
+  data.propertyDto = vxeTable.value.tableRef.getTableData().tableData;
   let columnList = vxeTable.value.tableRef.getTableData().tableData;
   let falg = 0;
   columnList.forEach((item: any) => {

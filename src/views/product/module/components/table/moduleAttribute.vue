@@ -30,15 +30,22 @@ defineProps({
 });
 const tableRef = ref(null);
 const myEmit = defineEmits(['onChange', 'pageChange', 'selectModelListCheck', 'clickEvent', 'tabToSort', 'showSelectParameter', 'delParm']);
-const pageSizeOpts = ref([10, 30, 50, 100]);
 const ifShowList = ref([
   { label: '显示', value: 0 },
   { label: '隐藏', value: 1 },
 ]);
 const dfqList = ref([
-  { id: 0, name: '否' },
-  { id: 1, name: '是' },
+  { id: 1, name: '否' },
+  { id: 0, name: '是' },
 ]);
+
+const textTypeOptions = [
+  { name: WeiI18n.$t('文本框'), id: 1 },
+  { name: WeiI18n.$t('下拉值'), id: 2 },
+  { name: WeiI18n.$t('附件'), id: 3 },
+  { name: WeiI18n.$t('文本域'), id: 4 },
+];
+
 const parmTypeList = ref([
   { id: 0, name: '数值' },
   { id: 1, name: '字符串' },
@@ -47,10 +54,8 @@ const parmTypeList = ref([
 const sortList = ref([
   { id: 1, name: '一级正序' },
   { id: 2, name: '二级正序' },
-  { id: 3, name: '三级正序' },
-  { id: 4, name: '一级倒序' },
-  { id: 5, name: '二级倒序' },
-  { id: 6, name: '三级倒序' },
+  { id: 3, name: '一级倒序' },
+  { id: 4, name: '二级倒序' },
 ]);
 
 const checkboxChange = e => {
@@ -98,110 +103,83 @@ defineExpose({ tableRef });
           </div>
         </template>
         <vxe-column type="checkbox" width="60" align="center" />
-        <vxe-column field="propertyName" title="列名称" sortable width="140" align="center">
+        <vxe-column field="propertyName" title="属性名称" sortable width="140" align="center">
           <template v-slot="scope">
-            <a-input v-model:value="scope.row.propertyName" style="width: 100px" v-if="scope.row.columnProperties != 1" />
-            <span v-else class="my-input-text">{{ scope.row.propertyName }}</span>
+            <a-input v-model:value="scope.row.propertyName" style="width: 100px" />
           </template>
         </vxe-column>
 
-        <vxe-column field="paraDictionaryName" title="关联参数字典" sortable width="260" align="center">
+        <vxe-column field="parameterNum" title="关联参数字典" sortable width="260" align="center">
           <template v-slot="scope">
             <a-input
-              v-model:value="scope.row.paraDictionaryName"
+              v-model:value="scope.row.parameterNum"
               @on-change="delParm(scope.seq, scope)"
               style="width: 67%; float: left"
               allowClear
               readonly
-              v-if="scope.row.paraDictionaryName != '' && scope.row.paraDictionaryName != undefined" />
-            <span class="my-input-left" v-else>{{ scope.row.paraDictionaryName }}</span>
+              v-if="scope.row.parameterNum != '' && scope.row.parameterNum != undefined" />
+            <span class="my-input-left" v-else>{{ scope.row.parameterNum }}</span>
             <a-button type="primary" size="small" @click="showSelectParameter(scope.seq, scope)" style="float: right; margin-top: 2px">
               <EpcIcon type="icon-liulan" style="font-size: 18px" />浏览
             </a-button>
           </template>
         </vxe-column>
 
-        <vxe-column field="columnProperties" title="列状态" width="140" sortable align="center">
+        <vxe-column field="showFlag" title="显示状态" width="140" sortable align="center">
           <template v-slot="scope">
-            <span>{{ scope.row.columnProperties === 1 ? '固定列' : '专用列' }}</span>
-          </template>
-        </vxe-column>
-
-        <vxe-column field="status" title="显示状态" width="140" sortable align="center">
-          <template v-slot="scope">
-            <a-select v-model:value="scope.row.status" style="width: 100px" allowClear>
+            <a-select v-model:value="scope.row.showFlag" style="width: 100px" allowClear>
               <a-select-option v-for="item in ifShowList" :value="item.value" :key="item.value">{{ item.label }}</a-select-option>
             </a-select>
           </template>
         </vxe-column>
 
-        <vxe-column field="inputBoxLength" title="列宽" width="140" sortable align="center">
+        <vxe-column field="colWidth" title="列宽" width="140" sortable align="center">
           <template v-slot="scope">
-            <a-input v-model:value="scope.row.inputBoxLength" style="width: 100px" />
+            <a-input v-model:value="scope.row.colWidth" style="width: 100px" />
           </template>
         </vxe-column>
 
-        <vxe-column field="defaultQuery" title="默认查询" width="140" sortable align="center">
+        <vxe-column field="searchFlag" title="默认查询" width="140" sortable align="center">
           <template v-slot="scope">
-            <a-select v-model:value="scope.row.defaultQuery" style="width: 100px" allowClear>
+            <a-select v-model:value="scope.row.searchFlag" style="width: 100px" allowClear>
               <a-select-option v-for="item in dfqList" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
             </a-select>
           </template>
         </vxe-column>
 
-        <vxe-column field="keyword" title="是否关键项" width="140" sortable align="center">
+        <vxe-column field="propertyType" title="文本类型" width="140" sortable align="center">
           <template v-slot="scope">
-            <a-select v-model:value="scope.row.keyword" style="width: 100px" allowClear>
-              <a-select-option v-for="item in dfqList" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
+            <a-select v-model:value="scope.row.propertyType" style="width: 100px" allowClear>
+              <a-select-option v-for="item in textTypeOptions" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
             </a-select>
           </template>
         </vxe-column>
 
-        <vxe-column field="isMatching" title="是否*匹配项" width="140" sortable align="center">
+        <vxe-column field="selectStr" title="下拉属性信息" width="140" sortable align="center">
           <template v-slot="scope">
-            <a-select v-model:value="scope.row.isMatching" style="width: 100px" allowClear>
-              <a-select-option v-for="item in dfqList" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
-            </a-select>
+            <a-input v-model:value="scope.row.selectStr" style="width: 100px" :disabled="scope.row.propertyType !== 2" />
           </template>
         </vxe-column>
 
-        <vxe-column field="pdmValue" title="PDM内部值" width="140" sortable align="center">
+        <vxe-column field="parameterType" title="数值类型" width="140" :resizable="true" sortable align="center">
           <template v-slot="scope">
-            <a-input v-model:value="scope.row.pdmValue" style="width: 100px" />
-          </template>
-        </vxe-column>
-
-        <vxe-column field="unit" title="单位" width="140" :resizable="true" sortable align="center">
-          <template v-slot="scope">
-            <a-input v-model:value="scope.row.unit" style="width: 100px" />
-          </template>
-        </vxe-column>
-
-        <vxe-column field="remark" title="提示信息" width="140" :resizable="true" sortable align="center">
-          <template v-slot="scope">
-            <a-input v-model:value="scope.row.remark" style="width: 100px" />
-          </template>
-        </vxe-column>
-
-        <vxe-column field="ifSelectForm" title="下拉属性" width="140" sortable align="center">
-          <template v-slot="scope">
-            <a-select v-model:value="scope.row.ifSelectForm" style="width: 100px" allowClear>
-              <a-select-option v-for="item in dfqList" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
-            </a-select>
-          </template>
-        </vxe-column>
-
-        <vxe-column field="selectMultipleValues" title="下拉属性信息" width="140" sortable align="center">
-          <template v-slot="scope">
-            <a-input v-model:value="scope.row.selectMultipleValues" style="width: 100px" :disabled="scope.row.ifSelectForm == '0'" />
-          </template>
-        </vxe-column>
-
-        <vxe-column field="modelParaType" title="数值类型" width="140" :resizable="true" sortable align="center">
-          <template v-slot="scope">
-            <a-select v-model:value="scope.row.modelParaType" style="width: 100px" allowClear>
+            <a-select v-model:value="scope.row.parameterType" style="width: 100px" allowClear>
               <a-select-option v-for="item in parmTypeList" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
             </a-select>
+          </template>
+        </vxe-column>
+
+        <vxe-column field="keyFlag" title="是否关键项" width="140" sortable align="center">
+          <template v-slot="scope">
+            <a-select v-model:value="scope.row.keyFlag" style="width: 100px" allowClear>
+              <a-select-option v-for="item in dfqList" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
+            </a-select>
+          </template>
+        </vxe-column>
+
+        <vxe-column field="pdmProp" title="PDM内部值" width="140" sortable align="center">
+          <template v-slot="scope">
+            <a-input v-model:value="scope.row.pdmProp" style="width: 100px" />
           </template>
         </vxe-column>
 

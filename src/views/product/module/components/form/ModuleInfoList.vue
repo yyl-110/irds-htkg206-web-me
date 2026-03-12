@@ -42,6 +42,7 @@ const instance = getCurrentInstance();
 const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
 const categoryid = ref('');
+const menuId = ref<any>(null);
 const tabHeight = ref<any>(`${(window.innerHeight - 300) / 16}rem`);
 const initSelect = ref(false);
 const isArgs = ref<boolean>(false);
@@ -52,15 +53,11 @@ const modalInfo = ref<any>([]);
 const btnType = ref(true);
 const delBtnType = ref(true);
 const compareBtnType = ref(true);
-const checkList = ref<any>([]);
-const nodeList = ref([]);
 const page = reactive({
   pageSize: 10,
   pageCount: 0,
   currentPage: 1,
 });
-
-const compactData = ref<any>([]); // 数组用ref
 const columns = ref<any>([]);
 const dropdownList = ref<any>([
   // { id: 0, name: '另存' },
@@ -88,8 +85,6 @@ onMounted(() => {
 });
 
 const dataSource = ref<any>([]);
-const dynamicParm = ref<any>([]);
-const columnsData4 = ref<any>([]);
 function handleAddOrUpdate() {
   AddVisible.value = true;
   nextTick(() => {
@@ -149,36 +144,11 @@ const pdmType = ref<string>('');
 //     pdmType.value = res.data.pdmType;
 //   }
 // }
-async function initData(categoryidStr: string) {
+async function initData(categoryidStr: string, menuid: any) {
   categoryid.value = categoryidStr;
-  // getCategoryPdm(categoryidStr);
-  columnsData4.value = [];
-  compactData.value = [];
-  checkList.value = [];
+  menuId.value = menuid;
   selectModelList.value = [];
-  const data: any = {};
-  data.categoryId = categoryidStr;
-  data.userName = userStore.getUser.userName;
-  data.userId = userStore.getUser.id;
   modalInit();
-  initData2(categoryid.value, 1);
-  const res = await AdminApiSystemModule.findCurrentModuleInfoByCategoryId(data);
-  columnsData4.value = res.data.data.moduleParaList;
-  for (let i = 0; i < columnsData4.value.length; i++) {
-    if (columnsData4.value[i].defaultQuery == 1) {
-      if (compactData.value.length < 5) {
-        compactData.value.push({
-          id: columnsData4.value[i].id,
-          name: 'rxLabel',
-          labelName: `${columnsData4.value[i].propertyName}：`,
-          type: columnsData4.value[i].ifSelectForm == undefined ? '0' : `${columnsData4.value[i].ifSelectForm}`,
-          modeTypeList: characterToList(columnsData4.value[i].selectMultipleValues),
-          typeKey: columnsData4.value[i].modelInfoProp,
-        });
-        checkList.value.push(columnsData4.value[i]);
-      }
-    }
-  }
 }
 // 列表初始化
 async function modalInit() {
@@ -194,76 +164,40 @@ async function modalInit() {
   data.categoryId = categoryid.value;
   data.currentPage = page.currentPage;
   data.numberPage = page.pageSize;
+  data.menuId = menuId.value;
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
-  if (res.data.code == 0) {
-    const resData: any = res.data.data;
-    page.currentPage = resData.currentPage;
-    page.pageCount = resData.pageCount;
+  const param: any = {};
+  param.categoryId = categoryid.value;
+  param.menuId = menuId.value;
+  const libRes = await AdminApiSystemModule.findCurrentModuleInfoByCategoryId(param);
+  if (libRes.data.code == 200) {
+    const resData: any = libRes.data.data;
     const parm: any = [];
-    for (let i = 0; i < resData.moduleParaList.length; i++) {
-      if (resData.moduleParaList[i].status == 0 || resData.moduleParaList[i].status == undefined) {
+    for (let i = 0; i < resData.length; i++) {
+      if (resData[i].showFlag == 0) {
         parm.push({
-          id: resData.moduleParaList[i].id,
-          title: resData.moduleParaList[i].propertyName,
-          key: resData.moduleParaList[i].modelInfoProp,
+          id: resData[i].id,
+          title: resData[i].propertyName,
+          key: resData[i].dataProp,
           align: 'center',
           resizable: true,
           filters: [],
-          width: resData.moduleParaList[i].inputBoxLength == undefined ? 70 : resData.moduleParaList[i].inputBoxLength,
+          width: resData[i].colWidth == undefined ? 70 : resData[i].colWidth,
           sortable: true,
-          render:
-            resData.moduleParaList[i].modelInfoProp == 'para2' ? renderFunTiele(resData.moduleParaList[i].modelInfoProp) : renderFunTiele3(resData.moduleParaList[i].modelInfoProp),
+          render: resData[i].dataProp == 'para2' ? renderFunTiele(resData[i].dataProp) : renderFunTiele3(resData[i].dataProp),
         });
       }
     }
-
-    const moduleListData = resData.moduleList || [];
-    const requestPromises = parm.map(async (item: any) => {
-      const data: any = {};
-      data.categoryId = `${categoryid.value}`;
-      data.userId = userStore.getUser.id;
-      data.propName = item.key;
-      const res = await AdminApiSystemModule.getModuleColumnData(data);
-      if (res.data.code == 0) {
-        const { valueList = [] } = res.data.data;
-        const filters = valueList.map((fositem: any) => ({
-          label: fositem[item.key],
-          value: fositem[item.key],
-        }));
-        item.filters = _.uniqWith(filters, _.isEqual);
-      } else {
-        message.error(res.data.msg);
-      }
-    });
-    // 使用 Promise.all 来等待所有接口请求完成
-    Promise.all(requestPromises).then(() => {
-      loading.value = false;
-      parm.unshift({
-        fixed: 'left',
-        type: 'checkbox',
-        align: 'left',
-        width: '60',
-      });
-      columns.value = parm;
-      dataSource.value = moduleListData;
-    });
-
-    dynamicParm.value = [];
-    const moduleParaList = resData.moduleParaList;
-    for (let i = 0; i < moduleParaList.length; i++) {
-      if (moduleParaList[i].columnProperties == 0) {
-        dynamicParm.value.push({
-          id: moduleParaList[i].id,
-          name: 'dynamicForm',
-          labelName: `${moduleParaList[i].propertyName}：`,
-          type: moduleParaList[i].ifSelectForm == undefined ? '0' : `${moduleParaList[i].ifSelectForm}`,
-          modeTypeList: characterToList(moduleParaList[i].selectMultipleValues),
-          typeKey: moduleParaList[i].modelInfoProp,
-          modeTypeVal: '',
-        });
-      }
-    }
+    columns.value = parm;
   }
+  if (res.data.code == 200) {
+    const resData: any = res.data.data;
+    // page.currentPage = resData.currentPage;
+    // page.pageCount = resData.pageCount;
+    const moduleListData = resData.list || [];
+    dataSource.value = moduleListData;
+  }
+  loading.value = false;
 }
 // 删除列表数据
 function delModule() {
@@ -373,17 +307,6 @@ function renderFunTiele3(key: any) {
     ]);
   };
   return render;
-}
-async function initData2(id: string, type: number) {
-  const data: any = {};
-  data.userId = userStore.getUser.id;
-  data.categoryid = id;
-  data.categoryType = type;
-  data.organizationID = '';
-  data.rootType = 0;
-  const res = await AdminApiSystemModule.queryClassificationNode(data);
-  nodeList.value = res.data.list;
-  emit('nodeListInfo', res.data.list);
 }
 function onShowSizeChange(current: number, pageSize: number) {
   page.currentPage = current;
