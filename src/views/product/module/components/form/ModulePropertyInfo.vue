@@ -233,31 +233,78 @@ function delParm(index: any) {
   vxeTable.value.tableRef.loadData(list1);
 }
 function tabToSort(dataType: any, type: any) {
-  var strList = vxeTable.value.tableRef.getTableData().tableData;
-  //1 :置顶 2：向上 3：向下
-  let index = '';
-  let indexID = '';
+  const tableRef = vxeTable.value.tableRef;
+  const originData = tableRef.getTableData().tableData as any[];
+  const arr = originData.slice();
+  //1 :置顶 2：向上 3：向下 4:置底
+  let index: number | null = null;
   if (indexList.value.length != 1) {
     message.warning('请选择一条数据进行排序！');
     return;
   } else {
     index = indexList.value[0].index;
-    indexID = indexList.value[0].id;
     indexList.value = [];
   }
-  var arr = [];
-  if (type == 1) {
-    arr = uxTabTop(index, strList);
-  } else if (type == 2) {
-    arr = uxTabToUp(index, strList);
-  } else if (type == 3) {
-    arr = uxTabToDown(index, strList);
-  } else if (type == 4) {
-    arr = uxTabDown(index, strList);
+  if (index === null) return;
+
+  // 根据 type 计算与谁交换位置（子组件传入的是字符串 '1'/'2'/'3'/'4'）
+  const sortType = Number(type);
+  let targetIndex = index;
+  if (sortType === 1) {
+    // 置顶：与第一条交换
+    if (index === 0) {
+      message.warning('已经是列表中第一条数据！');
+      return;
+    }
+    targetIndex = 0;
+  } else if (sortType === 2) {
+    // 向上：与上一条交换
+    if (index === 0) {
+      message.warning('已经是列表中第一条数据！');
+      return;
+    }
+    targetIndex = index - 1;
+  } else if (sortType === 3) {
+    // 向下：与下一条交换
+    if (index === arr.length - 1) {
+      message.warning('已经是列表中最后一条数据！');
+      return;
+    }
+    targetIndex = index + 1;
+  } else if (sortType === 4) {
+    // 置底：与最后一条交换
+    if (index === arr.length - 1) {
+      message.warning('已经是列表中最后一条数据！');
+      return;
+    }
+    targetIndex = arr.length - 1;
   }
-  vxeTable.value.tableRef.remove(strList);
-  let { row: newRow } = vxeTable.value.tableRef.insertAt(arr, -1);
-  checkUxSelection(getUmyIndex(strList, indexID));
+
+  const currentRow = arr[index];
+  const targetRow = arr[targetIndex];
+  // 如果 sort 字段不存在或为空，先按当前顺序补全 sort
+  const hasValidSort = arr.every((row: any) => row.sort !== undefined && row.sort !== null && row.sort !== '');
+  if (!hasValidSort) {
+    arr.forEach((row: any, i: number) => {
+      row.sort = i + 1;
+    });
+  }
+  // 与目标行互换 sort 字段
+  const tempSort = currentRow.sort;
+  currentRow.sort = targetRow.sort;
+  targetRow.sort = tempSort;
+  // 同时在数组中交换两行位置，保证界面顺序与 sort 一致
+  arr[index] = targetRow;
+  arr[targetIndex] = currentRow;
+
+  // 刷新表格并同步 dataSource
+  tableRef.remove();
+  dataSource.value = arr;
+  tableRef.loadData(arr);
+
+  // 排序后保持当前行选中
+  const newIndex = targetIndex;
+  checkUxSelection(newIndex);
 }
 //排序后继续选中
 function checkUxSelection(index: any) {
@@ -275,19 +322,32 @@ function showSelectParameter(index: any) {
   });
 }
 function addColumn() {
-  let str = {
+  const tableRef = vxeTable.value.tableRef;
+  const tableData = (tableRef.getTableData().tableData as any[]) || [];
+  // 新添加的列 sort = 当前表格最大 sort + 1
+  let maxSort = 0;
+  tableData.forEach((row: any) => {
+    const s = row.sort;
+    if (s !== undefined && s !== null && s !== '' && !Number.isNaN(Number(s))) {
+      maxSort = Math.max(maxSort, Number(s));
+    }
+  });
+  const nextSort = maxSort + 1;
+
+  let str: any = {
     id: '',
     showFlag: 0,
     colWidth: 100,
-    delIndex: vxeTable.value.tableRef.getInsertRecords().length,
+    delIndex: tableRef.getInsertRecords().length,
     propertyType: 1,
     parameterType: 1,
     searchFlag: 1,
     propertyName: '',
     creator: userStore.getUser.id,
+    sort: nextSort,
   };
 
-  let { row: newRow } = vxeTable.value.tableRef.insertAt(str, -1);
+  let { row: newRow } = tableRef.insertAt(str, -1);
 
   // 获取行索引
   const rowIndex = vxeTable.value.tableRef.getRowIndex(newRow);
@@ -409,13 +469,10 @@ function delColumn() {
         let params: any = {};
         params.userId = userStore.getUser.id;
         params.categoryId = categoryid.value;
-        // 只把已保存（有 id）的数据传给后端
         params.propertyDto = delcheckdata;
         if (delcheckdata.length > 0) {
           const res = await AdminApiSystemModule.batchDeleteModuleProperty(params);
-          // 仅删除当前勾选的行（包括新增未保存和已保存）
           vxeTable.value.tableRef.removeCheckboxRow();
-          // 同步最新表格数据到 dataSource，避免未选中的新增行被一起清空
           const tableData = vxeTable.value.tableRef.getTableData().tableData;
           dataSource.value = tableData;
           message.info('删除成功');
