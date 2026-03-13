@@ -391,13 +391,6 @@ function delColumn() {
   let delFalg: boolean = true;
   let delcheckList: any = [];
   let delcheckdata: any = [];
-  let data: any = checkList.value;
-  data.forEach(function (val: any) {
-    if (val.id != undefined && val.columnProperties == 1) {
-      message.error('数据中包含固定列，不可以删除请重新选择');
-      delFalg = false;
-    }
-  });
   if (delFalg) {
     Modal.confirm({
       title: '确认删除此数据？',
@@ -408,40 +401,24 @@ function delColumn() {
           if (val.delIndex != undefined) {
             delcheckList.push(val);
           }
-          if (val.id != undefined) {
+
+          if (val.id != undefined && val.id != '') {
             delcheckdata.push(val);
           }
         });
         let params: any = {};
         params.userId = userStore.getUser.id;
         params.categoryId = categoryid.value;
-        params.moduleParaList = checkList.value;
+        // 只把已保存（有 id）的数据传给后端
+        params.propertyDto = delcheckdata;
         if (delcheckdata.length > 0) {
           const res = await AdminApiSystemModule.batchDeleteModuleProperty(params);
-          let resData: any = res.data.data;
-          if (resData.result) {
-            let tableData = dataSource.value;
-            let checkColumnList = delcheckList;
-            for (let i = 0; i < checkColumnList.length; i++) {
-              for (let j = 0; j < tableData.length; j++) {
-                if (checkColumnList[i].delIndex == tableData[j].delIndex) {
-                  tableData.splice(j, 1);
-                }
-              }
-            }
-            for (let i = 0; i < delcheckdata.length; i++) {
-              for (let j = 0; j < tableData.length; j++) {
-                if (delcheckdata[i].id != undefined) {
-                  if (delcheckdata[i].id == tableData[j].id) {
-                    tableData.splice(j, 1);
-                  }
-                }
-              }
-            }
-            dataSource.value = tableData;
-            vxeTable.value.tableRef.removeCheckboxRow();
-            message.info('删除成功');
-          }
+          // 仅删除当前勾选的行（包括新增未保存和已保存）
+          vxeTable.value.tableRef.removeCheckboxRow();
+          // 同步最新表格数据到 dataSource，避免未选中的新增行被一起清空
+          const tableData = vxeTable.value.tableRef.getTableData().tableData;
+          dataSource.value = tableData;
+          message.info('删除成功');
         } else if (delcheckList.length > 0) {
           vxeTable.value.tableRef.removeCheckboxRow();
         }

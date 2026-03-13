@@ -504,13 +504,13 @@ export class AdminApiSystemModule {
    * @tags 属性管理删除列
    * @name moduleInfoSave
    * @summary 属性管理删除列
-   * @request /cirpoint-module-api/moduleinfos/batchDeleteModuleProperty.json
+   * @request /cirpoint-module-api/moduleinfos/batchDeleteModuleProperty
    * @secure
    */
   static batchDeleteModuleProperty = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/batchDeleteModuleProperty.json`,
+        path: `/business-service/business/library-property/batchDeleteModuleProperty`,
         method: 'POST',
         body: query,
         secure: true,
