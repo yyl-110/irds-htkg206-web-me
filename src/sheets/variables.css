@@ -4,8 +4,8 @@
   /** 页面中 layout 元素的阴影色 */
   --wei-page-layout-box-shadow-color: rgba(78, 89, 105, 0.1);
   /** 页面中 layout-header 的阴影样式 */
-  --wei-page-layout-header-box-shadow: 0px 3px 6px 0px
-    var(--wei-page-layout-box-shadow-color);
+  /* --wei-page-layout-header-box-shadow: 0px 3px 6px 0px var(--wei-page-layout-box-shadow-color); */
+  --wei-page-layout-header-box-shadow: 0 4px 16px 0 rgba(46, 105, 255, 0.24);
   /** 页面中 layout-footer 的阴影样式 */
   --wei-page-layout-footer-box-shadow: 0px -3px 6px 0px var(--wei-page-layout-box-shadow-color);
 }
