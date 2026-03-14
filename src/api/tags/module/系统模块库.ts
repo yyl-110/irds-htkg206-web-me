@@ -133,6 +133,28 @@ export class AdminApiSystemModule {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 获取模型库文档信息
+   *
+   * @tags 获取模型库文档信息
+   * @name getLibraryFileInfoList
+   * @summary 获取模型库文档信息
+   * @request /business-service/business/library-file/getLibraryFileInfoList
+   * @secure
+   */
+  static getLibraryFileInfoList = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-file/getLibraryFileInfoList`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
   /**
    *
    *
@@ -342,13 +364,13 @@ export class AdminApiSystemModule {
    * @tags 模块库添加数据
    * @name moduleInfoSave
    * @summary 模块库添加数据
-   * @request /cirpoint-module-api/moduleinfos/moduleInfoSave.json
+   * @request /business-service/business/library-data/keepLibraryData
    * @secure
    */
-  static moduleInfoSave = <Req extends ModuleMenuAddRequestDTOModel = ModuleMenuAddRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static moduleInfoKeep = <Req extends ModuleMenuAddRequestDTOModel = ModuleMenuAddRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/moduleInfoSave.json`,
+        path: `/business-service/business/library-data/keepLibraryData`,
         method: 'POST',
         body: query,
         secure: true,
@@ -356,40 +378,19 @@ export class AdminApiSystemModule {
       },
       CommonResultListDeptResponseDTOModel,
     );
-  /**
-   *
-   *
-   * @tags 模块库编辑数据
-   * @name moduleInfoSave
-   * @summary 模块库编辑数据
-   * @request /cirpoint-module-api/moduleinfos/moduleInfoUpdate.json
-   * @secure
-   */
-  static moduleInfoUpdate = <Req extends ModuleMenuAddRequestDTOModel = ModuleMenuAddRequestDTOModel>(query: Req, params: RequestParams = {}) =>
-    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
-      {
-        path: `/cirpoint-module-api/moduleinfos/moduleInfoUpdate.json`,
-        method: 'POST',
-        body: query,
-        secure: true,
-        ...params,
-      },
-      CommonResultListDeptResponseDTOModel,
-    );
-
   /**
    *
    *
    * @tags 模块库删除数据
    * @name moduleInfoSave
    * @summary 模块库删除数据
-   * @request /cirpoint-module-api/moduleinfos/moduleInfoUpdate.json
+   * @request /business-service/business/library-data/batchDeleteModuleInfo
    * @secure
    */
   static batchDeleteModuleInfo = <Req extends ModuleimgdeleteRequestDTOModel = ModuleimgdeleteRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/batchDeleteModuleInfo.json`,
+        path: `/business-service/business/library-data/batchDeleteModuleInfo`,
         method: 'POST',
         body: query,
         secure: true,

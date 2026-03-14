@@ -83,9 +83,7 @@ interface PaginationProps {
   pageCount: number;
 }
 const pageSizeOptions = ref<string[]>(['10', '20', '30', '40', '50']);
-const tabHeight = ref(540);
 const vxeTable1 = ref(null);
-const filterskey = ref([]); //筛选条件
 const myEmit = defineEmits([
   'onShowSizeChange',
   'selectModelListCheck',

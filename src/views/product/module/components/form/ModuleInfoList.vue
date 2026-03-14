@@ -88,7 +88,7 @@ const dataSource = ref<any>([]);
 function handleAddOrUpdate() {
   AddVisible.value = true;
   nextTick(() => {
-    addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value);
+    addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value, menuId.value);
   });
 }
 function updModule() {
@@ -110,7 +110,7 @@ function updModule() {
   }
   AddVisible.value = true;
   nextTick(() => {
-    addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0]);
+    addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0], menuId.value);
   });
 }
 function selectModelListCheck2(selection: any) {
@@ -136,14 +136,6 @@ function selectModelListCheck2(selection: any) {
   }
 }
 const pdmType = ref<string>('');
-// async function getCategoryPdm(id: string) {
-//   const data: any = {};
-//   data.categoryId = id;
-//   const res = await AdminApiSystemModule.getCategoryPdmType(data);
-//   if (res.data.code == 0) {
-//     pdmType.value = res.data.pdmType;
-//   }
-// }
 async function initData(categoryidStr: string, menuid: any) {
   categoryid.value = categoryidStr;
   menuId.value = menuid;
@@ -188,12 +180,16 @@ async function modalInit() {
         });
       }
     }
+    parm.unshift({
+      fixed: 'left',
+      type: 'checkbox',
+      align: 'left',
+      width: '60',
+    });
     columns.value = parm;
   }
   if (res.data.code == 200) {
     const resData: any = res.data.data;
-    // page.currentPage = resData.currentPage;
-    // page.pageCount = resData.pageCount;
     const moduleListData = resData.list || [];
     dataSource.value = moduleListData;
   }
@@ -214,21 +210,14 @@ function delModule() {
     okText: WeiI18n.t('确定').value,
     cancelText: WeiI18n.t('取消').value,
     onOk: async () => {
-      const list: any = [];
-      selectModelList.value.forEach(val => {
-        list.push({ id: `${val.id}` });
-      });
-      const data: any = {};
-      data.categoryId = categoryid.value;
-      data.userId = userStore.getUser.id;
-      data.moduleInfoList = list;
-      const res = await AdminApiSystemModule.batchDeleteModuleInfo(data);
-      if (res.data.data.result) {
-        message.info('删除成功');
-        modalInit();
-        btnType.value = true;
-        delBtnType.value = true;
-      }
+      // 直接从 selectModelList 提取 id 数组
+      const moduleIds = selectModelList.value.map(val => `${val.id}`);
+      // 直接传递数组
+      const res = await AdminApiSystemModule.batchDeleteModuleInfo(moduleIds);
+      message.info('删除成功');
+      modalInit();
+      btnType.value = true;
+      delBtnType.value = true;
     },
   });
 }

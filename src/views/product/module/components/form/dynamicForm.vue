@@ -63,7 +63,7 @@ export default defineComponent({
       newVal => {
         newModeTypeVal.value = newVal;
       },
-      { immediate: true, deep: true } // 立即执行 + 深度监听
+      { immediate: true, deep: true }, // 立即执行 + 深度监听
     );
 
     // 监听newModeTypeVal变化（触发inputChange事件）
@@ -92,7 +92,7 @@ export default defineComponent({
   <div>
     <a-form ref="formRef" layout="vertical" style="display: flex; flex-wrap: wrap" :label-col="labelCol">
       <a-form-item :label="label" :label-width="`${labelWidth}px`" :name="prop" style="word-break: break-all">
-        <template v-if="type === 1">
+        <template v-if="type === 2">
           <a-select v-model:value="newModeTypeVal" :disabled="redFlag" :style="{ width: '200px' }" placeholder="请选择" allowClear>
             <a-select-option v-for="item in modeTypeList" :key="item.id" :value="item.id">
               {{ item.name }}

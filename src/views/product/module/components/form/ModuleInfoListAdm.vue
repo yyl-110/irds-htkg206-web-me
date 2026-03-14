@@ -28,7 +28,7 @@ async function infoReload(categoryidStr: string, menuid: any) {
 
 function handleTabChange(item: any) {
   if (activeKey.value == '1') {
-    moduleInfoListRef.value.initData(categoryid.value);
+    moduleInfoListRef.value.initData(categoryid.value, menuId.value);
   } else {
     nextTick(() => {
       modulePropertyInfoRef.value.initColumnData(categoryid.value);
