@@ -14,8 +14,8 @@ export default class UploadAdapter {
         new Promise((resolve, reject) => {
           AdminApiSystemUploadFile.uploadFile({ file, userId, securityLevel: 1 })
             .then((res: any) => {
-              if (res.data.code === 200) {
-                const url = res.data.data.fileUrl;
+              if (res.data.code === 0) {
+                const url = res.data.fileUrl;
                 console.log(`--------------------${url}`);
                 resolve({
                   default: url,

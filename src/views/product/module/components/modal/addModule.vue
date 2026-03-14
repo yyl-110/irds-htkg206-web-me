@@ -1,14 +1,12 @@
 <script lang="ts" setup>
 import type { FormInstance } from 'ant-design-vue';
-import { ref, computed, nextTick } from 'vue';
-import { TableProps, Modal, Button, Popconfirm, message } from 'ant-design-vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, nextTick, reactive, watch, h } from 'vue';
+import { TableProps, Modal, message } from 'ant-design-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import { ModuleMenuAddRequestDTOModel } from '@/api/models/module/ModuleMenuAddRequestDTOModel';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { useUserStore } from '@/store/modules/user';
-import UploadImg from '@/components/UploadImg/index.vue';
 import { UploadFile } from '@/components/UploadFile';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { characterToList } from '@/utils/tools';
@@ -58,37 +56,19 @@ const modelStateList = ref<any>([
   { label: '审核中', value: '审核中' },
 ]);
 
-const seriviesLevel = ref<any>([
+const servicesLevel = ref<any>([
   { label: '公开', value: 1 },
   { label: '内部', value: 2 },
   { label: '秘密', value: 3 },
   { label: '机密', value: 4 },
 ]);
 const childrenList = ref<any>([]);
-const projectList = ref<any>([]);
-const Generalapplicability = ref<any>([
-  { label: '通用模块', value: '通用模块' },
-  { label: '专用模块', value: '专用模块' },
-]);
-const modeltypeList = ref<any>([
-  { label: '标准模块', value: '标准模块' },
-  { label: '基型模块', value: '基型模块' },
-]);
-const rankList = ref<any>([
-  { label: '1级', value: '1级' },
-  { label: '2级', value: '2级' },
-  { label: '3级', value: '3级' },
-  { label: '4级', value: '4级' },
-  { label: '5级', value: '5级' },
-]);
-const rootList = ref<any>([]);
 
-/** 表单样式 label对象 */
+/** 表单样式 label 对象 */
 const variableComp = ref<any>(null);
-const labelCol = ref({ style: { width: '120px' } });
+const labelCol = { style: { width: '120px' } };
 const dynamicParm = ref<any[]>([]);
 const uploadFileList = ref<any[]>([]);
-const keywords = ref<any>('');
 const categoryid = ref<any>('');
 const menuId = ref<any>('');
 const loading = ref<boolean>(false);
@@ -273,7 +253,6 @@ async function handleModalUpdate(id: string, row: any, menu_id: any) {
   }
 }
 
-const selectedRowList = ref<any[]>([]);
 const filedataSource = ref<any[]>([]);
 const FileColumns = ref([
   {
@@ -301,32 +280,17 @@ const FileColumns = ref([
 
 // 声明表格类型
 interface DataType {
-  // id: Key
   objType: string;
   objId: string;
   amount: number;
   buyFlag: boolean;
 }
 
-/** 表格勾选事件 */
-const rowSelection: TableProps['rowSelection'] = {
-  /**
-   * @param selectedRowKeys 选中的行数量
-   * @param selectedRows  选中的行数据
-   */
-  onChange: (selectedRowKeys: string[], selectedRows: DataType[]) => {
-    selectedRowList.value = selectedRows;
-  },
-};
-
-// 图片上传-----------------
-const fileList = ref<any>([]);
-
 const previewImage = ref<string>('');
 const previewVisible = ref<boolean>(false);
 const previewTitle = ref<string>('');
 
-// 文件上传---------------------
+// 文件上传
 const selectedRowfileList = ref<any[]>([]);
 const openfileUploadModal = ref<boolean>(false);
 
@@ -390,13 +354,9 @@ function handlefileSave() {
   }
 }
 
-function FileDownload(row: any) {
-  window.open(row.fileUrl);
-}
-
 // 删除文件
 function removeFile() {
-  if (selectedRowfileList.value.length == 0) {
+  if (selectedRowfileList.value.length === 0) {
     message.error('请选择要删除的文件');
     return;
   }
@@ -404,120 +364,83 @@ function removeFile() {
     title: '确认删除此数据？',
     okText: WeiI18n.t('确定').value,
     cancelText: WeiI18n.t('取消').value,
-    onOk: async () => {
-      filedataSource.value = filedataSource.value.filter(item => !selectedRowfileList.value.find(t => t.id === item.id));
+    onOk: () => {
+      filedataSource.value = filedataSource.value.filter(item => !selectedRowfileList.value.some(t => t.id === item.id));
       selectedRowfileList.value = [];
-      // let data: any = {};
-      // data.userId = userStore.getUser.id;
-      // data.categoryId = categoryid.value;
-      // data.moduleAttachmentIdList = selectedRowfileList.value;
-      // const res = await AdminApiSystemModule.deleteModuleAttachmentByModuleId(data);
-      // if (res.data.code == 0) {
-
-      //   message.success(res.data.msg);
-      // } else {
-      //   message.error(res.data.msg);
-      // }
     },
   });
 }
 
-function getDynamicComponentVal() {
-  //获取动态组件内的查询条件
-  let prmList: any = variableComp.value;
-  debugger;
-  let moduleParaList: any = [];
-  if (prmList != undefined) {
-    prmList.forEach(function (item: any) {
-      debugger;
-      let val = '';
-      let newModeTypeVal = item.newModeTypeVal;
-      if (newModeTypeVal != undefined && newModeTypeVal != '' && item.typeKey == 'para4') {
-        val = newModeTypeVal.toLowerCase() == 'prt' ? 'prt' : newModeTypeVal.toLowerCase() == 'asm' ? 'asm' : newModeTypeVal.toLowerCase() == 'gph' ? 'gph' : '';
-      } else {
-        val = item.newModeTypeVal;
-      }
-      moduleParaList.push({
-        modelInfoProp: item.typeKey,
-        modelInfoPropValue: val,
-      });
-    });
-  }
-  return moduleParaList;
+/** para4 模型类型允许的值 */
+const PARA4_ALLOWED = ['prt', 'asm', 'gph'] as const;
+
+/** 从动态表单项收集专有属性值（ref 在 v-for 下为数组，typeKey 从 dynamicParm 按索引取） */
+function getDynamicComponentVal(): { modelInfoProp: string; modelInfoPropValue: string }[] {
+  const comps = variableComp.value;
+  if (!comps) return [];
+  const list = Array.isArray(comps) ? comps : [comps];
+  const params = dynamicParm.value;
+  return list.map((comp: any, index: number) => {
+    const typeKey = params[index]?.typeKey ?? comp?.typeKey ?? '';
+    const raw = comp?.newModeTypeVal != null ? (typeof comp.newModeTypeVal === 'object' && 'value' in comp.newModeTypeVal ? comp.newModeTypeVal.value : comp.newModeTypeVal) : '';
+    const val =
+      typeKey === 'para4' && raw !== ''
+        ? (PARA4_ALLOWED.includes(raw.toLowerCase() as any) ? raw.toLowerCase() : '')
+        : String(raw ?? '');
+    return { modelInfoProp: typeKey, modelInfoPropValue: val };
+  });
 }
 
 /**
  * @description 点击确认
  */
 async function handleSave() {
-  formRef.value?.validate().then(async () => {
-    let libraryDataBaseDTO = {
-      id: '',
+  await formRef.value?.validate().then(async () => {
+    const isAdd = !modelData.id;
+    const libraryDataBaseDTO = {
+      id: isAdd ? '' : modelData.id,
       categoryId: categoryid.value,
       menuId: menuId.value,
       creator: userStore.getUser.id,
-      para1: modelData.para1, //物料编码
-      para2: modelData.para2, //模块编码
-      para3: modelData.para3, //模块名称(一般对应中文名称)
-      para4: modelData.para4, //模型类型
-      para5: modelData.para5, //模型坐标系,未知参数
-      para6: modelData.para6, //英文名称
-      para7: modelData.para7, //贡献者
-      para8: modelData.para8, //所属分类
-      para9: modelData.para9, //CAD计算重量
-      para10: modelData.para10, //状态
-      para11: ckeditorRef.value.getData(), //备注
-      confidentialLevel: modelData.confidentialLevel, //密级
+      para1: modelData.para1,
+      para2: modelData.para2,
+      para3: modelData.para3,
+      para4: modelData.para4,
+      para5: modelData.para5,
+      para6: modelData.para6,
+      para7: modelData.para7,
+      para8: modelData.para8,
+      para9: modelData.para9,
+      para10: modelData.para10,
+      para11: ckeditorRef.value?.getData() ?? '',
+      confidentialLevel: modelData.confidentialLevel,
     };
-    const moduleObj2: any = getDynamicComponentVal();
-    const moduleObj2Map: any = Object.fromEntries((moduleObj2 || []).map((item: any) => [item.modelInfoProp, item.modelInfoPropValue]));
-    const fileData: any = [];
-    filedataSource.value.forEach((item: any) => {
-      fileData.push({
-        id: '',
-        type: 3,
-        fileId: item.fileId,
-        categoryId: categoryid.value,
-        dataId: '',
-        versionFlag: 0,
-        effectiveVersionFlag: 0,
-        lastVersionFlag: 0,
-      });
-    });
-    let data: any = {};
-    if (modelData.id == '' || modelData.id == undefined) {
-      data.libraryDataBaseDTO = libraryDataBaseDTO;
-      data.libraryCustomizeDataBaseDTO = moduleObj2Map;
-      data.libraryFileUpdateRequestDTO = fileData;
-      const res = await AdminApiSystemModule.moduleInfoKeep(data);
-      if (res.data.code == -1) {
-        message.warning({
-          content: res.data.msg,
-          duration: 3,
-          closable: true,
-        });
-      } else {
-        message.info('添加成功');
-        emit('modalInit');
-        emit('onClose', false);
-      }
+    const moduleList = getDynamicComponentVal();
+    const libraryCustomizeDataBaseDTO = Object.fromEntries(
+      moduleList.map(item => [item.modelInfoProp, item.modelInfoPropValue]),
+    );
+    const libraryFileUpdateRequestDTO = filedataSource.value.map(item => ({
+      id: '',
+      type: 3,
+      fileId: item.fileId,
+      categoryId: categoryid.value,
+      dataId: '',
+      versionFlag: 0,
+      effectiveVersionFlag: 0,
+      lastVersionFlag: 0,
+    }));
+    const data = {
+      libraryDataBaseDTO,
+      libraryCustomizeDataBaseDTO,
+      libraryFileUpdateRequestDTO,
+    };
+    const res = await AdminApiSystemModule.moduleInfoKeep(data);
+    if (res.data.code === -1) {
+      message.warning({ content: res.data.msg, duration: 3, closable: true });
     } else {
-      libraryDataBaseDTO.id = modelData.id;
-      data.libraryDataBaseDTO = libraryDataBaseDTO;
-      data.libraryCustomizeDataBaseDTO = moduleObj2Map;
-      data.libraryFileUpdateRequestDTO = fileData;
-      const res = await AdminApiSystemModule.moduleInfoKeep(data);
-      if (res.data.code == -1) {
-        message.warning({
-          content: res.data.msg,
-          duration: 3,
-          closable: true,
-        });
-      } else {
-        message.info('修改成功');
-        emit('modalInit');
-        emit('onClose', false);
-      }
+      message.info(isAdd ? '添加成功' : '修改成功');
+      emit('modalInit');
+      emit('onClose', false);
     }
   });
 }
@@ -576,7 +499,7 @@ defineExpose({ handleModalAdd, handleModalUpdate });
 
           <a-form-item label="密级：" name="confidentialLevel" :rules="[{ required: true, message: WeiI18n.t('请选择密级').value }]">
             <a-select v-model:value="modelData.confidentialLevel" show-search placeholder="请选择状态">
-              <a-select-option v-for="item in seriviesLevel" :key="item.value" :value="item.value">{{ $t(item.label) }}</a-select-option>
+              <a-select-option v-for="item in servicesLevel" :key="item.value" :value="item.value">{{ $t(item.label) }}</a-select-option>
             </a-select>
           </a-form-item>
 

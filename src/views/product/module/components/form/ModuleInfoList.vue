@@ -812,8 +812,6 @@ async function compareData() {
       });
     }
   }
-  // list.push(str);
-
   for (let i = 0; i < parmList.length; i++) {
     // 循环左侧标题key
     const parmKey = Object.keys(parmList[i])[0];
@@ -830,7 +828,6 @@ async function compareData() {
   }
   tabularColumn.value = parm;
   tabularData.value = list;
-
   const arr: any = [];
   for (let i = 0; i < tabularColumn.value.length; i++) {
     arr.push(i);
