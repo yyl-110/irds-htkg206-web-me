@@ -784,7 +784,9 @@ async function compareData() {
   data.userId = userStore.getUser.id;
   data.moduleInfoList = selectModelList.value;
   data.compareType = compareParm.value;
+  data.menuId = menuId.value;
   const res = await AdminApiSystemModule.moduleDataComparison(data);
+  console.log(res);
   let parmList = [];
   const parm = [];
   const list = [];
@@ -813,6 +815,7 @@ async function compareData() {
     }
   }
   for (let i = 0; i < parmList.length; i++) {
+    debugger;
     // 循环左侧标题key
     const parmKey = Object.keys(parmList[i])[0];
     // 循环左侧标题Val
@@ -828,6 +831,7 @@ async function compareData() {
   }
   tabularColumn.value = parm;
   tabularData.value = list;
+  console.log(tabularData);
   const arr: any = [];
   for (let i = 0; i < tabularColumn.value.length; i++) {
     arr.push(i);
@@ -1054,7 +1058,7 @@ defineExpose({ initData });
               <EpcIcon class="act-btns" style="margin-right: 5px" type="icon-tandem" />
               比较数据
             </div>
-            <div
+            <!-- <div
               :class="{
                 'btn-item-select': delBtnType,
                 'btn-item': !delBtnType,
@@ -1062,7 +1066,7 @@ defineExpose({ initData });
               @click="openRadarInfo">
               <EpcIcon class="act-btns" style="margin-right: 5px" type="icon-leidatu1" />
               雷达图
-            </div>
+            </div> -->
             <div class="btn-item">
               <a-dropdown>
                 <a class="ant-dropdown-link" @click.prevent>

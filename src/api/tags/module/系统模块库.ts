@@ -589,13 +589,13 @@ export class AdminApiSystemModule {
    * @tags 比较数据
    * @name moduleDataComparison
    * @summary 比较数据
-   * @request /cirpoint-module-api/moduleinfos/moduleDataComparison.json
+   * @request /business-service/business/library-data/moduleDataComparison
    * @secure
    */
   static moduleDataComparison = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/moduleDataComparison.json`,
+        path: `/business-service/business/library-data/moduleDataComparison`,
         method: 'POST',
         body: query,
         secure: true,

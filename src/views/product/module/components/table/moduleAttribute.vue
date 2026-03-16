@@ -169,9 +169,9 @@ defineExpose({ tableRef });
           </template>
         </vxe-column>
 
-        <vxe-column field="keyFlag" title="是否关键项" width="140" sortable align="center">
+        <vxe-column field="keyItemsFlag" title="是否关键项" width="140" sortable align="center">
           <template v-slot="scope">
-            <a-select v-model:value="scope.row.keyFlag" style="width: 100px" allowClear>
+            <a-select v-model:value="scope.row.keyItemsFlag" style="width: 100px" allowClear>
               <a-select-option v-for="item in dfqList" :value="item.id" :key="item.id">{{ item.name }}</a-select-option>
             </a-select>
           </template>
