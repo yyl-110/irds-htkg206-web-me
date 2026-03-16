@@ -80,7 +80,7 @@ watch(
         </svg>
         <!-- iconify 图标 -->
         <span v-else ref="elRef" :class="$attrs.class" :style="getIconifyStyle">
-          <EpcIcon v-if="icon.indexOf('icon-') !== -1" :type="icon" style="font-size: 16px" />
+          <EpcIcon v-if="icon.indexOf('icon-') !== -1" :type="icon" :style="getIconifyStyle" />
           <span v-else :class="getSvgClass" :data-icon="symbolId" />
         </span>
       </template>

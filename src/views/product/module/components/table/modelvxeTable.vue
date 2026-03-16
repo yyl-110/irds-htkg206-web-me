@@ -3,7 +3,7 @@ import { ref, defineProps, defineExpose, watch, PropType } from 'vue';
 import { EpcIcon } from '@/components/icon/EpcIcon.js';
 import { VxeUI } from 'vxe-pc-ui';
 import zhCN from 'vxe-pc-ui/lib/language/zh-CN'; // 简体中文
-import _ from 'lodash';
+import _ from 'lodash-es';
 defineProps({
   initSelect: {
     type: Boolean,
