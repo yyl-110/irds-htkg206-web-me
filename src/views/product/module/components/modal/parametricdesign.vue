@@ -142,7 +142,7 @@ async function applyPieceNumber() {
   data.userId = userStore.getUser.id;
   data.moduleNum = props.paramsObject.templateModuleNum;
   const res = await AdminApiwebSocketAuth.getModuleNumber(data);
-  if (res.data.code == 0) {
+  if (res.data.code == 200) {
     emit('changeData', res.data.data.moduleNewNum);
   }
 }

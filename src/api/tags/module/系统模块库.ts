@@ -545,15 +545,15 @@ export class AdminApiSystemModule {
    *
    *
    * @tags 数据管理导出
-   * @name moduleInfoSave
+   * @name exportModuleLibraryApi
    * @summary 数据管理导出
-   * @request /cirpoint-module-api/moduleinfos/moduleLibraryExportData
+   * @request /business-service/business/library-data/moduleLibraryExportData
    * @secure
    */
   static exportModuleLibraryApi = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/moduleLibraryExportData`,
+        path: `/business-service/business/library-data/moduleLibraryExportData`,
         method: 'POST',
         body: query,
         secure: true,
@@ -568,13 +568,13 @@ export class AdminApiSystemModule {
    * @tags 列宽保存
    * @name columnWidthSave
    * @summary 列宽保存
-   * @request /cirpoint-module-api/moduleinfos/columnWidthSave.json
+   * @request /business-service/business/library-property/columnWidthSave
    * @secure
    */
   static columnWidthSave = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/columnWidthSave.json`,
+        path: `/business-service/business/library-property/columnWidthSave`,
         method: 'POST',
         body: query,
         secure: true,
@@ -631,13 +631,13 @@ export class AdminApiSystemModule {
    * @tags 导出模块库数据管理模版
    * @name createModuleLibraryTemplateApi
    * @summary 导出模块库数据管理模版
-   * @request /cirpoint-module-api/moduleinfos/createModuleLibraryTemplate
+   * @request /business-service/business/library-data/getFileManageInfoParamDTO
    * @secure
    */
   static createModuleLibraryTemplateApi = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/createModuleLibraryTemplate`,
+        path: `/business-service/business/library-data/getFileManageInfoParamDTO`,
         method: 'POST',
         body: query,
         secure: true,
@@ -648,16 +648,16 @@ export class AdminApiSystemModule {
   /**
    *
    *
-   * @tags 导出模块库模版
+   * @tags 导入模块库数据
    * @name importingModelInformationNew
-   * @summary 导出模块库模版
-   * @request /cirpoint-module-api/moduleinfos/importingModelInformationNew.json
+   * @summary 导入模块库数据
+   * @request /business-service/business/library-data/importingModelInformationNew
    * @secure
    */
   static importingModelInformationNew = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/importingModelInformationNew.json`,
+        path: `/business-service/business/library-data/importingModelInformationNew`,
         method: 'POST',
         body: query,
         secure: true,

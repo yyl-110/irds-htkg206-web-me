@@ -342,7 +342,7 @@ async function addModelLog(moduleInfo: any, logUpdateType: any) {
   data.moduleId = moduleInfo.id;
   data.moduleNum = moduleInfo.para1 == undefined ? '' : moduleInfo.para1;
   data.logUpdateType = logUpdateType;
-  const res = await AdminApiwebSocketAuth.setOperationalModel(data);
+  // const res = await AdminApiwebSocketAuth.setOperationalModel(data);
 }
 // 装配模型
 function fitoutMx(data: any) {
@@ -475,8 +475,9 @@ async function argsMx(row: any) {
   paramsObject.value.templateModuleType = '';
   paramsObject.value.inputVal = '';
   if (row.length > 0) {
-    params.id = row[0].id;
+    params.moduleId = row[0].id;
     const res = await AdminApiwebSocketAuth.modelDesignParametric(params);
+    console.log(res);
     const data: any = res.data.data;
     if (data.moduleNum != null && data.moduleNum != '') {
       paramsObject.value.templateModuleNum = data.moduleNum;
@@ -486,16 +487,18 @@ async function argsMx(row: any) {
     }
 
     moduleId.value = data.moduleId;
-    for (let i = 0; i < data.moduleParaList.length; i++) {
-      let modelInfoProp = data.moduleParaList[i].modelInfoProp;
-      if (modelInfoProp.length > 4) {
-        modelInfoProp = modelInfoProp.substring(4);
-        if (modelInfoProp > 9) {
-          parmDesignData1.push(data.moduleParaList[i]);
+    if (data.moduleParaList) {
+      for (let i = 0; i < data.moduleParaList.length; i++) {
+        let modelInfoProp = data.moduleParaList[i].modelInfoProp;
+        if (modelInfoProp.length > 4) {
+          modelInfoProp = modelInfoProp.substring(4);
+          if (modelInfoProp > 9) {
+            parmDesignData1.push(data.moduleParaList[i]);
+          }
         }
       }
+      parmDesignData.value = parmDesignData1;
     }
-    parmDesignData.value = parmDesignData1;
     parmDesign.value = true;
     addModelLog(row[0], 10);
   } else {
@@ -556,7 +559,8 @@ async function templateDownload() {
   data.categoryId = categoryid.value;
   data.userid = userStore.getUser.id;
   const res = await AdminApiSystemModule.createModuleLibraryTemplateApi(data);
-  if (res.data.code == 0) {
+  console.log(res);
+  if (res.data.code == 200) {
     downloadFile(res.data.data.fileUrl);
     message.success(res.data.msg == '' || res.data.msg == null ? '导出模版成功' : res.data.msg);
   } else {
@@ -570,21 +574,22 @@ async function importSuccessfulFun() {
   exceldata.userId = userStore.getUser.id;
   exceldata.userName = userStore.getUser.userName;
   exceldata.moduleName = fileList.value[0].newFileName;
+  exceldata.menuId = menuId.value;
   const res = await AdminApiSystemModule.importingModelInformationNew(exceldata);
-  if (res.data.code == 0) {
-    const data: any = res.data.data;
+  if (res.data.code == 200) {
     message.info({
       top: 80,
       duration: 10,
-      content: data.impMsg,
+      content: res.data.data,
       closable: true,
     });
+    batchflag.value = false;
     modalInit();
   } else {
     message.error({
       top: 80,
       duration: 10,
-      content: res.data.msg,
+      content: res.data.data,
       closable: true,
     });
   }
@@ -596,8 +601,8 @@ function cWidth() {
   for (let i = 0; i < list.length; i++) {
     if (list[i].params) {
       columnList.push({
-        propertyId: list[i].params,
-        width: list[i].renderWidth,
+        id: list[i].params,
+        colWidth: list[i].renderWidth,
       });
     }
   }
@@ -613,10 +618,11 @@ function cWidth() {
 async function upDerive() {
   const data: any = {};
   data.categoryId = categoryid.value;
+  data.menuId = menuId.value;
   data.userName = userStore.getUser.userName;
   data.userId = userStore.getUser.id;
   const res = await AdminApiSystemModule.exportModuleLibraryApi(data);
-  if (res.data.code == 0) {
+  if (res.data.code == 200) {
     downloadFile(res.data.data.fileUrl);
     message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg);
   } else {
@@ -786,7 +792,6 @@ async function compareData() {
   data.compareType = compareParm.value;
   data.menuId = menuId.value;
   const res = await AdminApiSystemModule.moduleDataComparison(data);
-  console.log(res);
   let parmList = [];
   const parm = [];
   const list = [];
@@ -831,7 +836,6 @@ async function compareData() {
   }
   tabularColumn.value = parm;
   tabularData.value = list;
-  console.log(tabularData);
   const arr: any = [];
   for (let i = 0; i < tabularColumn.value.length; i++) {
     arr.push(i);

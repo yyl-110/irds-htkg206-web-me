@@ -1,18 +1,15 @@
 // import { type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
-import { ContentType, httpClient, type RequestParams } from "./http-client";
+import { ContentType, httpClient, type RequestParams } from './http-client';
 
-import {
-  AuthLoginRequestDTOModel,
-  AuthLoginSMSRequestDTOModel,
-} from "../models/AuthLoginRequestDTOModel";
-import { AuthLoginResponseDTOModel } from "../models/AuthLoginResponseDTOModel";
-import { AuthMenuResponseDTOModel } from "../models/AuthMenuResponseDTOModel";
-import { AuthPermissionInfoResponseDTOModel } from "../models/AuthPermissionInfoResponseDTOModel";
-import { CommonResultAuthLoginResponseDTOModel } from "../models/CommonResultAuthLoginResponseDTOModel";
-import { CommonResultAuthPermissionInfoResponseDTOModel } from "../models/CommonResultAuthPermissionInfoResponseDTOModel";
-import { CommonResultBooleanModel } from "../models/CommonResultBooleanModel";
-import { CommonResultListAuthMenuResponseDTOModel } from "../models/CommonResultListAuthMenuResponseDTOModel";
-import { CommonResultStringModel } from "../models/CommonResultStringModel";
+import { AuthLoginRequestDTOModel, AuthLoginSMSRequestDTOModel } from '../models/AuthLoginRequestDTOModel';
+import { AuthLoginResponseDTOModel } from '../models/AuthLoginResponseDTOModel';
+import { AuthMenuResponseDTOModel } from '../models/AuthMenuResponseDTOModel';
+import { AuthPermissionInfoResponseDTOModel } from '../models/AuthPermissionInfoResponseDTOModel';
+import { CommonResultAuthLoginResponseDTOModel } from '../models/CommonResultAuthLoginResponseDTOModel';
+import { CommonResultAuthPermissionInfoResponseDTOModel } from '../models/CommonResultAuthPermissionInfoResponseDTOModel';
+import { CommonResultBooleanModel } from '../models/CommonResultBooleanModel';
+import { CommonResultListAuthMenuResponseDTOModel } from '../models/CommonResultListAuthMenuResponseDTOModel';
+import { CommonResultStringModel } from '../models/CommonResultStringModel';
 
 /**
  * 管理后台认证
@@ -32,12 +29,12 @@ export class AdminApiwebSocketAuth {
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
         path: `/cirpoint-base-api/folderManagerController/compressedFile`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultAuthLoginResponseDTOModel
+      CommonResultAuthLoginResponseDTOModel,
     );
 
   /**
@@ -53,12 +50,12 @@ export class AdminApiwebSocketAuth {
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/setOperationalModel.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultAuthLoginResponseDTOModel
+      CommonResultAuthLoginResponseDTOModel,
     );
 
   /**
@@ -74,12 +71,12 @@ export class AdminApiwebSocketAuth {
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/getBomNewNumber`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultAuthLoginResponseDTOModel
+      CommonResultAuthLoginResponseDTOModel,
     );
   /**
    *
@@ -94,12 +91,12 @@ export class AdminApiwebSocketAuth {
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/getBomInfo`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultAuthLoginResponseDTOModel
+      CommonResultAuthLoginResponseDTOModel,
     );
 
   /**
@@ -108,19 +105,19 @@ export class AdminApiwebSocketAuth {
    * @tags 管理后台 webSocket - 参数化设计
    * @name checkJumpParams
    * @summary
-   * @request GET:/mod/cirpoint-module-api/moduleinfos/modelDesignParametric.json
+   * @request GET:/business-service/business/library-module-number/getLibraryModuleNumberInfo
    * @secure
    */
   static modelDesignParametric = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/modelDesignParametric.json`,
-        method: "POST",
+        path: `/business-service/business/library-module-number/getLibraryModuleNumberInfo`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultAuthLoginResponseDTOModel
+      CommonResultAuthLoginResponseDTOModel,
     );
 
   /**
@@ -129,41 +126,20 @@ export class AdminApiwebSocketAuth {
    * @tags 管理后台 webSocket - 申请件号
    * @name checkJumpParams
    * @summary
-   * @request GET:/cirpoint-module-api/moduleinfos/getModuleNumber.json
+   * @request /business-service/business/library-module-number/getModuleNumber
    * @secure
    */
   static getModuleNumber = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/getModuleNumber.json`,
-        method: "POST",
+        path: `/business-service/business/library-module-number/getModuleNumber`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultAuthLoginResponseDTOModel
+      CommonResultAuthLoginResponseDTOModel,
     );
-  /**
-   *
-   *
-   * @tags 管理后台 webSocket - 申请件号
-   * @name checkJumpParams
-   * @summary
-   * @request GET:/cirpoint-module-api/moduleinfos/modelDesignParametric.json
-   * @secure
-   */
-  static modelDesignParametric = (query: any, params: RequestParams = {}) =>
-    httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
-      {
-        path: `/cirpoint-module-api/moduleinfos/modelDesignParametric.json`,
-        method: "POST",
-        body: query,
-        secure: true,
-        ...params,
-      },
-      CommonResultAuthLoginResponseDTOModel
-    );
-
   /**
    *
    *
@@ -177,11 +153,11 @@ export class AdminApiwebSocketAuth {
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
         path: `/cirpoint-module-api/moduleinfos/parametricDesignSave.json`,
-        method: "POST",
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultAuthLoginResponseDTOModel
+      CommonResultAuthLoginResponseDTOModel,
     );
 }

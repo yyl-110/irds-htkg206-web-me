@@ -254,9 +254,9 @@ defineExpose({
               <a-tooltip title="装配模型" placement="topLeft">
                 <EpcIcon class="act-btns" style="font-size: 17px" type="icon-element-plus" @click="fitoutMx(row)" />
               </a-tooltip>
-              <a-tooltip title="编辑应用" placement="topLeft">
+              <!-- <a-tooltip title="编辑应用" placement="topLeft">
                 <EpcIcon class="act-btns" type="icon-jichugongju" @click="editMx(row)" />
-              </a-tooltip>
+              </a-tooltip> -->
               <a-tooltip title="打开二维图" placement="topLeft">
                 <EpcIcon class="act-btns" type="icon-picture" @click="openEwt(row)" />
               </a-tooltip>
