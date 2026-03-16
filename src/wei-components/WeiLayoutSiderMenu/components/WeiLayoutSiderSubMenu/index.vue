@@ -21,7 +21,7 @@ const label = WeiI18n.getRouteTitle(props.route.meta);
   <a-sub-menu :key="route.path">
     <template #icon>
       <div class="inline-block w-[16px]">
-        <WeiIcon :size="16" :icon="route.meta?.icon" />
+        <WeiIcon :size="20" :icon="route.meta?.icon" />
       </div>
     </template>
     <template #title>

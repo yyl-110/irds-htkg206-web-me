@@ -16,8 +16,8 @@ const label = WeiI18n.getRouteTitle(props.route.meta);
 <template>
   <a-menu-item :key="route.path">
     <template #icon>
-      <div class="inline-block w-[16px]" style="margin-top: -4px">
-        <WeiIcon :size="16" :icon="route.meta?.icon" />
+      <div class="inline-block w-[16px]">
+        <WeiIcon :size="20" :icon="route.meta?.icon" />
         <!-- <a-icon :size="16" :icon="assets / icon / clo.png" /> -->
       </div>
     </template>

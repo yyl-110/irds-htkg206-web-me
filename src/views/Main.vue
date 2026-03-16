@@ -171,7 +171,7 @@ onBeforeMount(() => {
       </a-layout-header>
       <a-layout class="mt-[57px]" style="height: calc(100vh - 64px)">
         <a-layout-sider ref="asideRef" v-model:collapsed="collapsed" :trigger="null" class="sider-wrapper p-0 overflow-y-auto" :data-resizing="asideResizing" collapsible>
-          <aside style="height: calc(100% - 40px);background-color: #1A3677" class="overflow-y-auto overflow-x-hidden wei-scrollbar wei-scrollbar-hover">
+          <aside style="height: calc(100% - 40px);background-color: #1A3677" class="overflow-y-auto overflow-x-hidden wei-scrollbar wei-scrollbar-hover pt-4">
             <WeiLayoutMenuSider :collapsed="true" />
           </aside>
           <footer class="h-[50px] flex justify-center items-center" style="background-color: #1A3677">
@@ -284,7 +284,34 @@ onBeforeMount(() => {
 :deep(.ant-menu) {
  background-color: #1A3677 !important;
  //background: linear-gradient(1deg, #1a3b7a, #1A3677);
-  color: #ffffff;
+  color: #E2EBFF;
+  padding: 0 16px;
+  .ant-menu {
+    padding-right: 0;
+  }
+  .ant-menu-submenu-arrow {
+    color: #E2EBFF;
+  }
+  .ant-menu-item-selected {
+    background: #2963EA;
+    color: #fff;
+    border-radius: 2px;
+    
+    .ant-menu-submenu-arrow {
+      color: #fff;
+    }
+  }
+  .ant-menu-inline {
+    border: none;
+  }
+  .ant-menu-submenu-title {
+    padding-left: 24px !important;
+  }
+  .ant-menu-submenu {
+    .ant-menu-item {
+      padding-left: 24px!important;
+    }
+  }
 }
 
 
