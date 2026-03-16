@@ -296,7 +296,9 @@ onBeforeMount(() => {
     background: #2963EA;
     color: #fff;
     border-radius: 2px;
-    
+    &::after {
+      display: none;
+    }
     .ant-menu-submenu-arrow {
       color: #fff;
     }
