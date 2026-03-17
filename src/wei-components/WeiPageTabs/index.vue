@@ -10,6 +10,7 @@ import Sortable, { type SortableEvent } from 'sortablejs';
 import WeiPageTabsMenu from './components/WeiPageTabsMenu.vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { useWeiTab } from '@/hooks/useWeiTab';
+import { WeiIcon } from '@/wei-components'
 
 const props = defineProps({
   // 【根据项目修改】tab页面在路由的第几层，或者说第几层的 router-view 组件（当前项目为第二层）
@@ -32,6 +33,7 @@ const props = defineProps({
 });
 
 const route = useRoute();
+const router = useRouter()
 
 const {
   tabs,
@@ -80,10 +82,14 @@ onMounted(() => {
 watch(() => route.path, changeCurTab, {
   immediate: true,
 });
+
+const goHome = () => {
+  router.push({ path: '/' })
+}
 </script>
 
 <template>
-  <div class="wei-page-tabs-component mx-1">
+  <div class="wei-page-tabs-component bg-white">
     <a-tabs
       ref="tabsRef"
       v-model:active-key="curTabKey"
@@ -108,6 +114,11 @@ watch(() => route.path, changeCurTab, {
         </template>
       </a-tab-pane>
 
+      <template #leftExtra>
+        <div class="px-[7px] bg-white h-full homeBtn" @click="goHome">
+          <WeiIcon :size="14" icon="svg-icon:tag" />
+        </div>
+      </template>
       <template #rightExtra>
         <div class="extra-button-group">
           <a-button class="w-[30px] h-[30px] p-0" @click="refreshCurrentTab">
@@ -128,23 +139,41 @@ watch(() => route.path, changeCurTab, {
 </template>
 
 <style lang="less" scoped>
+.wei-page-tabs-component {
+  border-top: 1px solid #E7EAEE;
+}
 :deep(.ant-tabs-content-holder) {
   display: none;
 }
 
 :deep(.ant-tabs-nav) {
-  top: 2px;
+  // top: 2px;
   margin-bottom: 0 !important;
 }
 
-:deep(.ant-tabs-nav-list) {
-  margin-top: 8px;
-  margin-bottom: 5px;
-}
+// :deep(.ant-tabs-nav-list) {
+//   margin-top: 8px;
+//   margin-bottom: 5px;
+// }
 
 :deep(.ant-tabs-tab) {
-  padding: 3px 10px !important;
+  padding: 4px 8px !important;
   font-size: 12px;
+  border: none;
+  border-right: 1px solid #E7EAEE;
+  background: #fff;
+  margin: 0!important;
+  border-radius: 0!important;
+}
+:deep(.ant-tabs-tab-active) {
+  background: #F3F2F7!important;
+  border-bottom: none!important;
+  .ant-tabs-tab-remove {
+    color: var(--ant-primary-color)
+  }
+}
+.homeBtn {
+  cursor: pointer;
 }
 
 .layout-tabs {

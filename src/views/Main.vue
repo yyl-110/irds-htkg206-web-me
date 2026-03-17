@@ -169,7 +169,7 @@ onBeforeMount(() => {
           <WeiLayoutMenuSider v-if="menuPosition === 'top'" mode="horizontal" :collapsed="true" style="background-color: blue" />
         </MainHeader>
       </a-layout-header>
-      <a-layout class="mt-[57px]" style="height: calc(100vh - 64px)">
+      <a-layout class="layout-container">
         <a-layout-sider ref="asideRef" v-model:collapsed="collapsed" :trigger="null" class="sider-wrapper p-0 overflow-y-auto" :data-resizing="asideResizing" collapsible>
           <aside style="height: calc(100% - 40px);background-color: #1A3677" class="overflow-y-auto overflow-x-hidden wei-scrollbar wei-scrollbar-hover pt-4">
             <WeiLayoutMenuSider :collapsed="true" />
@@ -188,7 +188,7 @@ onBeforeMount(() => {
           <!-- 页面标签栏 -->
           <WeiPageTabs v-if="!layoutStore.homepage" />
           <!-- 页面容器 -->
-          <a-layout-content v-overlay-scrollbar :class="!layoutStore.homepage ? 'p-[5px] pt-[1px] overflow-y-hidden' : ''">
+          <a-layout-content v-overlay-scrollbar :class="!layoutStore.homepage ? 'p-[16px] pt-[16px] overflow-y-hidden' : ''">
             <pre style="display: none">{{ caches }}</pre>
             <router-view v-slot="{ Component, route }">
               <keep-alive :include="caches">
@@ -234,7 +234,7 @@ onBeforeMount(() => {
     width: v-bind('asideWidthStyle') !important;
     max-width: v-bind('asideWidthStyle') !important;
     min-width: v-bind('asideWidthStyle') !important;
-    margin-top: 5px;
+    // margin-top: 5px;
   }
   &.ant-layout-sider-collapsed .resizable-bar {
     width: 0;
@@ -280,6 +280,15 @@ onBeforeMount(() => {
 :deep(.ant-layout-header) {
   background-color: #1A3677 !important;
 }
+
+.layout-container {
+  height: calc(100vh - 64px);
+  margin-top: 64px;
+}
+
+.ant-layout{
+  background: #F3F2F7;
+ }
 
 :deep(.ant-menu) {
  background-color: #1A3677 !important;
