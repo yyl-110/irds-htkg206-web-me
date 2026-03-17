@@ -694,10 +694,10 @@ export class AdminApiSystemModule {
    * @request /cirpoint-module-api/moduleinfos/getModuleUserUploadDocument
    * @secure
    */
-  static getModuleUserUploadDocument = (query: any, params: RequestParams = {}) =>
+  static findAllModuleAttachment = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/getModuleUserUploadDocument`,
+        path: `/business-service/business/library-pdm-attribute/findAllModuleAttachment`,
         method: 'POST',
         body: query,
         secure: true,
@@ -737,7 +737,7 @@ export class AdminApiSystemModule {
   static krAttribute = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/krAttribute.json`,
+        path: `/business-service/business/library-pdm-attribute/krAttribute`,
         method: 'POST',
         body: query,
         secure: true,
@@ -751,13 +751,13 @@ export class AdminApiSystemModule {
    * @tags
    * @name findParametricDesign
    * @summary
-   * @request /cirpoint-module-api/moduleinfos/findParametricDesign.json
+   * @request /business-service/business/library-data/findParametricDesign
    * @secure
    */
   static findParametricDesign = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/findParametricDesign.json`,
+        path: `/business-service/business/library-data/findParametricDesign`,
         method: 'POST',
         body: query,
         secure: true,
@@ -765,26 +765,7 @@ export class AdminApiSystemModule {
       },
       CommonResultListDeptResponseDTOModel,
     );
-  /**
-   *
-   *
-   * @tags 模块库物料码gbom
-   * @name findParametricDesign
-   * @summary 模块库物料码gbom
-   * @request /cirpoint-module-api/pdmSystem/syncBOM
-   * @secure
-   */
-  static syncBOMApi = (query: any, params: RequestParams = {}) =>
-    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
-      {
-        path: `/cirpoint-module-api/pdmSystem/syncBOM`,
-        method: 'POST',
-        body: query,
-        secure: true,
-        ...params,
-      },
-      CommonResultListDeptResponseDTOModel,
-    );
+
   /**
    *
    *

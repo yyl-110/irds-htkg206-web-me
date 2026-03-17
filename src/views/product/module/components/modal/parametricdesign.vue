@@ -1,239 +1,177 @@
 <script lang="ts" setup>
-import type { FormInstance } from 'ant-design-vue';
-import { ref } from 'vue';
-import { TableProps, Modal, Button, Popconfirm, message } from 'ant-design-vue';
-import { getCurrentInstance } from 'vue';
+import { ref, computed, getCurrentInstance } from 'vue';
+import type { TableProps } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
 import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
 import { useUserStore } from '@/store/modules/user';
+import { openModule, parameterInFirstCsys, GetLocParametersInFirstCsys } from '@/libs/webSocket';
+
 const userStore = useUserStore();
-import {
-  openModule,
-  assembleModule,
-  openDrawing,
-  parameterInFirstCsys,
-  GetLocParametersInFirstCsys,
-  DownloadModuleFile,
-  openTopAsmTemplateInterfaceModel,
-  apiRenameModel,
-} from '@/libs/webSocket';
-const props = defineProps({
-  /** 弹窗状态 */
-  modalVisible: {
-    require: false,
-    type: Boolean,
-    default: false,
-  },
-  parmDesignData: {
-    require: false,
-    type: Array,
-    default: () => [],
-  },
-  paramsObject: {
-    require: false,
-    type: Object,
-    default: () => {},
-  },
-  selectModelList: {
-    require: false,
-    type: Object,
-    default: () => [],
-  },
-  categoryid: {
-    require: false,
-    type: String,
-    default: '',
-  },
-  moduleId: {
-    require: false,
-    type: String,
-    default: '',
-  },
-});
-const emit = defineEmits<{
-  /** 点击取消按钮 */
-  onClose: [visible: boolean];
-  /** 点击确定按钮 */
-  handleSave: [resource: any];
-  changeData: any;
-}>();
-/** 弹窗状态 */
-const visible = computed(() => {
-  return props.modalVisible;
-});
 const instance = getCurrentInstance();
+
+const props = withDefaults(
+  defineProps<{
+    /** 弹窗状态 */
+    modalVisible?: boolean;
+    parmDesignData?: any[];
+    paramsObject?: { templateModuleNum?: string; templateModuleType?: string; inputVal?: string };
+    selectModelList?: any[];
+    categoryid?: string;
+    moduleId?: string;
+  }>(),
+  {
+    modalVisible: false,
+    parmDesignData: () => [],
+    paramsObject: () => ({}),
+    selectModelList: () => [],
+    categoryid: '',
+    moduleId: '',
+  },
+);
+
+const emit = defineEmits<{
+  onClose: [visible: boolean];
+  handleSave: [resource: any];
+  changeData: [moduleNewNum: string];
+  /** 重置参数后同步列表数据，父组件需 v-model:parmDesignData 或 @update:parmDesignData */
+  updateParmDesignData: [data: any[]];
+}>();
+const visible = computed(() => props.modalVisible);
+
 const parmDesignColumn = ref([
   {
-    title: '模型结构树',
-    key: 'equnr',
-    dataIndex: 'equnr',
+    title: '列名',
+    key: 'propertyName',
+    dataIndex: 'propertyName',
     align: 'left',
     resizable: true,
     width: 100,
   },
 
   {
-    title: '新文件名称',
-    key: 'moduleNewNum',
-    dataIndex: 'moduleNewNum',
+    title: '模型参数名',
+    key: 'parameterNum',
+    dataIndex: 'parameterNum',
     align: 'center',
     resizable: true,
-    width: 100,
+    width: 170,
   },
   {
-    title: '公用名称',
-    key: 'descript',
-    dataIndex: 'descript',
-    align: 'center',
-    resizable: true,
-    width: 100,
-  },
-  {
-    title: '操作',
-    key: 'action',
-    dataIndex: 'action',
+    title: '参数值',
+    key: 'parameterValue',
+    dataIndex: 'parameterValue',
     align: 'center',
     resizable: true,
     width: 100,
   },
 ]);
 const selectedRowList = ref<any[]>([]);
-const imgurl = ref<string>('');
-const actionList = ref([
-  { label: '重新使用', value: '重新使用' },
-  { label: '手动命名', value: '手动命名' },
-  { label: '自动命名', value: '自动命名' },
-]);
-/** 表格勾选事件 */
+
+/** 表格勾选 */
 const rowSelection: TableProps['rowSelection'] = {
   /**
    * @param selectedRowKeys 选中的行数量
    * @param selectedRows  选中的行数据
    */
-  onChange: (selectedRowKeys: string[], selectedRows: any[]) => {
+  onChange: (_selectedRowKeys: string[], selectedRows: any[]) => {
     selectedRowList.value = selectedRows;
   },
 };
 
-function setModuleParameter() {
-  if (props.paramsObject.inputVal == null || props.paramsObject.inputVal == '') {
-    message.warning({
-      content: '请先申请件号！',
-      duration: 3,
-      closable: true,
-    });
-    return;
+const needPieceNumberTip = () => {
+  const inputVal = props.paramsObject?.inputVal;
+  if (inputVal == null || inputVal === '') {
+    message.warning({ content: '请先申请件号！', duration: 3, closable: true });
+    return true;
   }
-  var parametersStr = '';
-  for (var i = 0; i < props.parmDesignData.length; i++) {
-    if (props.parmDesignData[i].paraDictionaryName != null && props.parmDesignData[i].paraDictionaryName != undefined) {
-      parametersStr += '{"Name": "' + props.parmDesignData[i].paraDictionaryName + '","Type": "double","Value": "' + props.parmDesignData[i].paraValue + '","Description": ""},';
-    }
-  }
-  if (parametersStr.length > 1) {
-    parametersStr = parametersStr.substring(0, parametersStr.length - 1);
-  }
-  parameterInFirstCsys(props.paramsObject.inputVal, props.paramsObject.templateModuleType, parametersStr);
+  return false;
+};
+
+/** 拼接参数 JSON 字符串（使用当前表格中的 parameterValue，无则用 paraValue） */
+function buildParametersStr(): string {
+  const list = props.parmDesignData ?? [];
+  const parts = list
+    .filter((item: any) => item.paraDictionaryName != null && item.paraDictionaryName !== undefined)
+    .map((item: any) => `{"Name": "${item.paraDictionaryName}","Type": "double","Value": "${item.parameterValue ?? item.paraValue ?? ''}","Description": ""}`);
+  return parts.join(',');
 }
 
-// 申请件号
+function setModuleParameter() {
+  if (needPieceNumberTip()) return;
+  const parametersStr = buildParametersStr();
+  parameterInFirstCsys(props.paramsObject!.inputVal!, props.paramsObject!.templateModuleType!, parametersStr);
+}
+
 async function applyPieceNumber() {
-  let data: any = {};
-  data.categoryId = props.categoryid;
-  data.userId = userStore.getUser.id;
-  data.moduleNum = props.paramsObject.templateModuleNum;
+  const data = {
+    categoryId: props.categoryid,
+    userId: userStore.getUser.id,
+    moduleNum: props.paramsObject?.templateModuleNum,
+  };
   const res = await AdminApiwebSocketAuth.getModuleNumber(data);
-  if (res.data.code == 200) {
+  if (res.data.code === 200) {
     emit('changeData', res.data.data.moduleNewNum);
   }
 }
 
 function makeModule() {
-  if (props.paramsObject.inputVal == null || props.paramsObject.inputVal == '') {
-    message.warning({
-      content: '请先申请件号！',
-      duration: 3,
-      closable: true,
-    });
-    return;
-  }
-  var parametersStr = '';
-  for (var i = 0; i < props.parmDesignData.length; i++) {
-    if (props.parmDesignData[i].paraDictionaryName != null && props.parmDesignData[i].paraDictionaryName != undefined) {
-      parametersStr += '{"Name": "' + props.parmDesignData[i].paraDictionaryName + '","Type": "double","Value": "' + props.parmDesignData[i].paraValue + '","Description": ""},';
-    }
-  }
-  if (parametersStr.length > 1) {
-    parametersStr = parametersStr.substring(0, parametersStr.length - 1);
-  }
-  openModule(instance, props.paramsObject.templateModuleNum, props.paramsObject.templateModuleType, props.paramsObject.inputVal, '', parametersStr);
+  if (needPieceNumberTip()) return;
+  const parametersStr = buildParametersStr();
+  openModule(instance, props.paramsObject!.templateModuleNum!, props.paramsObject!.templateModuleType!, props.paramsObject!.inputVal!, '', parametersStr);
 }
+
 function getModuleParameter() {
-  if (props.paramsObject.inputVal == null || props.paramsObject.inputVal == '') {
-    message.warning({
-      content: '请先申请件号！',
-      duration: 3,
-      closable: true,
-    });
-    return;
-  }
-  GetLocParametersInFirstCsys(instance, props.paramsObject.inputVal, props.paramsObject.templateModuleType);
+  if (needPieceNumberTip()) return;
+  GetLocParametersInFirstCsys(instance, props.paramsObject!.inputVal!, props.paramsObject!.templateModuleType!);
 }
 
 async function resetParm() {
-  let data: any = {};
-  data.categoryId = props.categoryid;
-  data.userId = userStore.getUser.id;
-  let parmDesignData1: any = [];
-  if (props.selectModelList.length > 0) {
-    data.id = props.selectModelList[0].id;
-    const res = await AdminApiwebSocketAuth.modelDesignParametric(data);
-    for (var i = 0; i < res.data.data.moduleParaList.length; i++) {
-      var modelInfoProp = res.data.data.moduleParaList[i].modelInfoProp;
-      if (modelInfoProp.length > 4) {
-        modelInfoProp = modelInfoProp.substring(4);
-        if (modelInfoProp > 9) {
-          parmDesignData1.push(res.data.data.moduleParaList[i]);
-        }
-      }
-    }
-    props.parmDesignData = parmDesignData1;
-  } else {
-    message.warning({
-      content: '请选择数据，进行设计',
-      duration: 3,
-      closable: true,
-    });
+  const list = props.selectModelList ?? [];
+  if (list.length === 0) {
+    message.warning({ content: '请选择数据，进行设计', duration: 3, closable: true });
+    return;
   }
-}
-async function saveParm() {
-  let data: any = {};
-  data.categoryId = props.categoryid;
-  data.userId = userStore.getUser.id;
-  data.moduleId = props.moduleId;
-  data.designData = queryParmList();
-  const res = await AdminApiwebSocketAuth.parametricDesignSave(data);
-  if (res.data.code == 0) {
-    message.info({
-      content: '保存成功',
-      duration: 3,
-      closable: true,
-    });
-  }
-}
-function queryParmList() {
-  let list: any = [];
-  props.parmDesignData.forEach(item => {
-    let str: any = {};
-    str.moduleNewNum = that.inputVal;
-    str.moduleType = that.templateModuleType;
-    if (list.length > 0) {
-      list[0][item.modelInfoProp] = item.paraValue;
-    } else {
-      str[item.modelInfoProp] = item.paraValue;
-      list.push(str);
-    }
+  const res = await AdminApiwebSocketAuth.modelDesignParametric({
+    categoryId: props.categoryid,
+    userId: userStore.getUser.id,
+    id: list[0].id,
   });
-  return list;
+  const moduleParaList = res.data.data?.moduleParaList ?? [];
+  const parmDesignData1 = moduleParaList.filter((item: any) => {
+    const modelInfoProp = item.modelInfoProp;
+    if (!modelInfoProp || modelInfoProp.length <= 4) return false;
+    const numPart = modelInfoProp.substring(4);
+    return Number(numPart) > 9;
+  });
+  emit('updateParmDesignData', parmDesignData1);
+}
+
+async function saveParm() {
+  const designData = queryParmList();
+  const res = await AdminApiwebSocketAuth.parametricDesignSave({
+    categoryId: props.categoryid,
+    userId: userStore.getUser.id,
+    moduleId: props.moduleId,
+    designData,
+  });
+  if (res.data.code === 200) {
+    message.info({ content: '保存成功', duration: 3, closable: true });
+  }
+}
+
+/** 汇总为保存接口需要的 designData 格式（使用当前 parameterValue） */
+function queryParmList(): any[] {
+  const po = props.paramsObject ?? {};
+  const list = props.parmDesignData ?? [];
+  if (list.length === 0) return [];
+  const first: any = {
+    moduleNewNum: po.inputVal,
+    moduleType: po.templateModuleType,
+  };
+  list.forEach((item: any) => {
+    first[item.dataProp] = item.parameterValue ?? item.paraValue;
+  });
+  return [first];
 }
 /**
  * @description 点击取消事件
@@ -274,13 +212,8 @@ function cancel() {
             :row-selection="rowSelection"
             :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
             <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'action'">
-                <a-select v-model:value="record.status" style="width: 150px" allowClear>
-                  <a-select-option v-for="item in actionList" :value="item.value" :key="item.value">{{ item.label }}</a-select-option>
-                </a-select>
-              </template>
-              <template v-if="column.dataIndex === 'moduleNewNum'">
-                <a-input v-model:value="record.moduleNewNum" style="width: 150px" :disabled="record.moduleNewNum !== '手动命名'" />
+              <template v-if="column.dataIndex === 'parameterValue'">
+                <a-input v-model:value="record.parameterValue" style="width: 100px" />
               </template>
             </template>
           </a-table>
@@ -296,8 +229,8 @@ function cancel() {
         </td> -->
       </tr>
     </table>
-    <template v-slot:footer>
-      <a-button type="primary" @click="emit('onClose', false)">关闭</a-button>
+    <template #footer>
+      <a-button type="primary" @click="cancel">关闭</a-button>
     </template>
   </a-modal>
 </template>
