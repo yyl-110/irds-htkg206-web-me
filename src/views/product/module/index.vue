@@ -384,7 +384,7 @@ function Selectafterchanges() {
 async function selectNode(node: any) {
   currentNode.value = node;
   categoryid.value = node.key ? node.key : node.id;
-  menuId.value = node.menuId;
+  menuId.value = node.menuId || 9;
   categoryType.value = node.categoryType;
   if (categoryType.value == 2 || categoryType.value == 3) {
     nextTick(() => {

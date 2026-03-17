@@ -237,10 +237,10 @@ defineExpose({
               <div v-else-if="scope.row[item.key] === 2" style="color: #a2a1a6">已停用</div>
               <div v-else-if="scope.row[item.key] === 3" style="color: rgb(240, 231, 73)">审核中</div>
             </div>
-            <div v-if="item.key != 'para1' && item.key != 'status'">
+            <div v-if="item.key != 'para2' && item.key != 'status'">
               <span class="table-text">{{ scope.row[item.key] }}</span>
             </div>
-            <span v-if="item.key === 'para1'" style="text-decoration: underline; cursor: pointer; color: #1979e0" @click.stop="editEvent(scope.row, item.key)">
+            <span v-if="item.key === 'para2'" style="text-decoration: underline; cursor: pointer; color: #1979e0" @click.stop="editEvent(scope.row, item.key)">
               {{ scope.row[item.key] }}</span
             >
           </template>
@@ -248,19 +248,23 @@ defineExpose({
         <vxe-table-column title="操作" align="left" width="155" fixed="right" v-if="isAction">
           <template #default="{ row }">
             <div class="cells">
+              <!-- <a @click="openMx(row)">{{ $t('打开模型') }}</a>
+              <a-divider type="vertical" />
+              <a @click="fitoutMx(row)">{{ $t('装配模型') }}</a>
+              <a-divider type="vertical" />
+              <a @click="openEwt(row)">{{ $t('打开二维图') }}</a>
+              <a-divider type="vertical" />
+              <a @click="argsMx(row)">{{ $t('参数化设计') }}</a> -->
               <a-tooltip title="打开模型" placement="topLeft">
                 <EpcIcon class="act-btns" type="icon-folder-opened" @click="openMx(row)" />
               </a-tooltip>
               <a-tooltip title="装配模型" placement="topLeft">
                 <EpcIcon class="act-btns" style="font-size: 17px" type="icon-element-plus" @click="fitoutMx(row)" />
               </a-tooltip>
-              <!-- <a-tooltip title="编辑应用" placement="topLeft">
-                <EpcIcon class="act-btns" type="icon-jichugongju" @click="editMx(row)" />
-              </a-tooltip> -->
               <a-tooltip title="打开二维图" placement="topLeft">
                 <EpcIcon class="act-btns" type="icon-picture" @click="openEwt(row)" />
               </a-tooltip>
-              <a-tooltip title="参数设计化" placement="topLeft">
+              <a-tooltip title="参数化设计" placement="topLeft">
                 <EpcIcon class="act-btns" type="icon-a-3Dbeifen" @click="argsMx(row)" />
               </a-tooltip>
             </div>

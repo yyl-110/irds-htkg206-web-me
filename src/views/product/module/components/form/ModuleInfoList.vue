@@ -17,6 +17,7 @@ import { EpcIcon } from '@/components/icon/EpcIcon.js';
 import Empty from '@/components/Empty/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { handleEpcDownload } from '@/utils/file';
 import {
   DownloadModuleFile,
   GetLocParametersInFirstCsys,
@@ -47,6 +48,7 @@ const tabHeight = ref<any>(`${(window.innerHeight - 300) / 16}rem`);
 const initSelect = ref(false);
 const isArgs = ref<boolean>(false);
 const pageFlagDrawer = ref<boolean>(false);
+const modulePropertyInfo = ref<any>([]);
 const AddVisible = ref<boolean>(false);
 const addOrUpdate = ref<any>(null);
 const modalInfo = ref<any>([]);
@@ -163,6 +165,7 @@ async function modalInit() {
   param.menuId = menuId.value;
   const libRes = await AdminApiSystemModule.findCurrentModuleInfoByCategoryId(param);
   if (libRes.data.code == 200) {
+    modulePropertyInfo.value = libRes.data.data;
     const resData: any = libRes.data.data;
     const parm: any = [];
     for (let i = 0; i < resData.length; i++) {
@@ -239,7 +242,6 @@ function renderFunTiele(key: any) {
           click: () => {
             pdmModuleCode.value = params.row[key];
             PDMid.value = params.row.id;
-            moduleDetails(params.row.id);
           },
         },
       },
@@ -248,32 +250,15 @@ function renderFunTiele(key: any) {
   };
   return render;
 }
-async function moduleDetails(id: string) {
-  const data: any = {};
-  modalInfo.value = [];
-  data.userId = userStore.getUser.id;
-  data.categoryId = categoryid.value;
-  data.id = id;
-  const res = await AdminApiSystemModule.findModuleInfoDetailedById(data);
-
+async function moduleDetails(rowRecord: any) {
   pageFlagDrawer.value = true;
   parmType.value == 0;
-  const moduleParaList = res.data.data.moduleParaList;
-  for (let i = 0; i < moduleParaList.length; i++) {
-    if (moduleParaList[i].propertyName == '模型类型') {
-      modalInfo.value.push({
-        name: moduleParaList[i].propertyName,
-        str: moduleParaList[i].modelInfoProp,
-        val: moduleParaList[i].paraValue == '0' ? 'prt' : moduleParaList[i].paraValue == '1' ? 'asm' : '',
-      });
-    } else {
-      modalInfo.value.push({
-        name: moduleParaList[i].propertyName,
-        str: moduleParaList[i].modelInfoProp,
-        val: moduleParaList[i].paraValue,
-      });
-    }
-  }
+  const moduleParaList = modulePropertyInfo.value;
+  modalInfo.value = moduleParaList.map((item: any) => ({
+    name: item.propertyName,
+    str: item.dataProp,
+    val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
+  }));
 }
 
 // 超出宽度隐藏字符串 。。。代替
@@ -485,19 +470,15 @@ async function argsMx(row: any) {
     if (data.moduleType != null && data.moduleType != '') {
       paramsObject.value.templateModuleType = data.moduleType;
     }
-
     moduleId.value = data.moduleId;
-    if (data.moduleParaList) {
-      for (let i = 0; i < data.moduleParaList.length; i++) {
-        let modelInfoProp = data.moduleParaList[i].modelInfoProp;
-        if (modelInfoProp.length > 4) {
-          modelInfoProp = modelInfoProp.substring(4);
-          if (modelInfoProp > 9) {
-            parmDesignData1.push(data.moduleParaList[i]);
-          }
-        }
-      }
-      parmDesignData.value = parmDesignData1;
+    if (data.moduleParaList && data.moduleParaList.length > 0) {
+      const rowRecord = row[0];
+      parmDesignData.value = data.moduleParaList.map((item: any) => ({
+        ...item,
+        parameterValue: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
+      }));
+    } else {
+      parmDesignData.value = [];
     }
     parmDesign.value = true;
     addModelLog(row[0], 10);
@@ -511,6 +492,9 @@ async function argsMx(row: any) {
 }
 function changeData(moduleNewNum: string) {
   paramsObject.value.inputVal = moduleNewNum;
+}
+function updateParmDesignData(data: any[]) {
+  parmDesignData.value = data;
 }
 function handleSave() {
   AddVisible.value = false;
@@ -743,16 +727,7 @@ function clickEvent(row: any, key: any) {
   pdmModuleCode.value = row[key];
   PDMid.value = row.id;
   pdmModelType.value = row.para4;
-  moduleDetails(row.id);
-  queryPdmModuleNumDetailed(row.para2);
-}
-function queryPdmModuleNumDetailed(id: string) {
-  const data: any = {};
-  data.pdmModuleNum = id;
-  // data.pdmModuleNum =  'mxbmtest001'
-  AdminApiSystemModule.getPdmModuleNumDetailed(data).then(res => {
-    // $emit('treeType', 1, res.data.data.pdmResult, id);
-  });
+  moduleDetails(row);
 }
 
 const compareParm = ref<number>(0);
@@ -881,29 +856,32 @@ function toParm(type: any) {
     moduleType: pdmModelType.value,
   };
   if (type == 3) {
-    AdminApiSystemModule.getModuleUserUploadDocument(params).then(res => {
-      if (res.data.code == 0) {
+    AdminApiSystemModule.findAllModuleAttachment(params).then(res => {
+      console.log(res);
+      if (res.data.code == 200) {
         const data: any = res.data.data;
         if (data.attachmentList.length > 0) {
-          fileData1.value = data.attachmentList;
+          fileData1.value = data.attachmentList || [];
+          fileData2.value = data.pdmsResults || [];
         }
       }
     });
 
-    AdminApiSystemModule.getPdmDocument(params).then(res => {
-      if (res.data.code == 0) {
-        const data: any = res.data.data;
-        if (data.pdmResult && data.pdmResult.length > 0) {
-          fileData2.value = data.pdmResult;
-        }
-      }
-    });
+    // AdminApiSystemModule.getPdmDocument(params).then(res => {
+    //   if (res.data.code == 0) {
+    //     const data: any = res.data.data;
+    //     if (data.pdmResult && data.pdmResult.length > 0) {
+    //
+    //     }
+    //   }
+    // });
   } else if (type == 1) {
     AdminApiSystemModule.krAttribute(params).then(res => {
-      if (res.data.code == 0) {
+      console.log(res);
+      if (res.data.code == 200) {
         const data: any = res.data.data;
-        if (data.pdmResult) {
-          pdmData.value = data.pdmResult;
+        if (data.pdmsResults) {
+          pdmData.value = data.pdmsResults;
           pdmDataFlag.value = true;
           const str = Object.keys(pdmData.value.parameter);
           str.forEach(item => {
@@ -916,10 +894,32 @@ function toParm(type: any) {
       }
     });
   } else if (type == 5) {
-    AdminApiSystemModule.syncBOMApi({ number: pdmModuleCode.value }).then(res => {
-      if (res.data.code == 0) {
-        const data = res.data.data || [];
-        doudata.value = data;
+    supGbomcolumns.value = [];
+    let data: any = {};
+    data.categoryId = categoryid.value;
+    data.menuId = menuId.value;
+    data.moduleId = PDMid.value;
+    AdminApiSystemModule.findParametricDesign(data).then(res => {
+      console.log(res);
+      if (res.data.code == 200) {
+        doudata.value = res.data.data.modulesList || [];
+        const resData = res.data.data.moduleParaList || [];
+        for (let i = 0; i < resData.length; i++) {
+          if (resData[i].propertyName == '模型件号') {
+            resData[i].dataProp = 'moduleNewNum';
+          } else if (resData[i].propertyName == '模型类型') {
+            resData[i].dataProp = 'moduleType';
+          }
+          supGbomcolumns.value.push({
+            title: resData[i].propertyName,
+            dataIndex: resData[i].dataProp,
+            key: resData[i].dataProp,
+            align: 'center',
+            resizable: true,
+            minWidth: resData[i].colWidth == undefined ? 70 : resData[i].colWidth,
+            sortable: true,
+          });
+        }
       } else {
         message.error(res.data.msg);
       }
@@ -1023,13 +1023,11 @@ function setFixedRowClass(record, index) {
   // 为前三行分别添加类名：fixed-row-0、fixed-row-1、fixed-row-2
   return index < 3 ? `fixed-row-${index}` : '';
 }
-function downloadPDF(id: number) {
-  const baseUrl = import.meta.env.VITE_BASE_HTMLPREVIEW_URL;
-  if (id) {
-    window.location.href = `${baseUrl}/cirpoint-base-api/fileManagerController/download?fileId=${id}`;
-  } else {
-    window.location.href = `${baseUrl}/fileManagerController/download?fileId=${id}`;
-  }
+async function downloadPDF(id: number, documentName: any) {
+  const downLoadItem: any = {
+    fileId: id,
+  };
+  handleEpcDownload(downLoadItem, documentName);
 }
 function handleNameClick(row: any) {
   const data: any = {};
@@ -1089,18 +1087,7 @@ defineExpose({ initData });
               </a-dropdown>
             </div>
           </div>
-          <!-- <div class="btn-box-left">
-            <div class="btn-item" @click="batchExport">导入</div>
-            <div class="btn-item" @click="cWidth">列宽保存</div>
-          </div> -->
           <div class="btn-box-right">
-            <!-- <div>
-              <div class="btn-item">
-                <label for="uploads">文件夹上传 </label>
-                <input type="file" id="uploads" name="files" webkitdirectory @change="uploadModel()" ref="filesInput" style="display: none" />
-              </div>
-            </div> -->
-
             <div class="btn-item" @click="handleAddOrUpdate">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
               添加数据
@@ -1158,6 +1145,7 @@ defineExpose({ initData });
     :modal-visible="parmDesign"
     :params-object="paramsObject"
     @change-data="changeData"
+    @update-parm-design-data="updateParmDesignData"
     @on-close="parmDesign = false" />
   <a-modal v-model:visible="radarflag" style="width: 50%" title="雷达图" @on-cancel="radarflag = false">
     <div class="text-Box">
@@ -1231,7 +1219,7 @@ defineExpose({ initData });
       </div>
       <div :class="{ seDalIcon: parmType == 5, dalIcon: parmType != 5 }" @click="toParm(5)">
         <EpcIcon type="icon-a-xiangmu1" />
-        <span>GBOM</span>
+        <span>历史文档</span>
       </div>
     </div>
     <!--  -->
@@ -1289,7 +1277,7 @@ defineExpose({ initData });
             :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'oldFileName'">
-                <a class="action-btn" @click.stop="downloadPDF(record.id)">下载</a>
+                <a class="action-btn" @click.stop="downloadPDF(record.fileId, record.documentName)">下载</a>
               </template>
             </template>
           </a-table>
@@ -1315,9 +1303,9 @@ defineExpose({ initData });
           </a-table>
         </div>
       </div>
-      <div v-show="parmType == 5" style="width: 100%; margin-top: 20px">
+      <div v-show="parmType == 5" class="history-doc-table-wrap">
         <a-table
-          :scroll="{ x: 400, y: 400 }"
+          :scroll="{ x: 1200, y: 400 }"
           row-key="id"
           :loading="loading"
           :locale="locale"
@@ -1335,6 +1323,23 @@ defineExpose({ initData });
 .module-body {
   padding-right: 20px;
 }
+
+/* 历史文档表格：限制宽度，超出显示横向滚动条 */
+.history-doc-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 20px;
+  min-width: 0;
+  overflow-x: auto;
+
+  :deep(.ant-table-wrapper) {
+    min-width: 0;
+  }
+  :deep(.ant-table-body) {
+    overflow-x: auto !important;
+  }
+}
+
 .example {
   position: absolute;
   top: 50%;

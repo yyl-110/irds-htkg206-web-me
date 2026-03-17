@@ -153,7 +153,7 @@ export class AdminApiSystemUploadFile {
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
-        path: `/system-service/fileManagerController/download`,
+        path: `/system-service/fileManagerController/download.json`,
         method: 'GET',
         query: data,
         secure: true,
