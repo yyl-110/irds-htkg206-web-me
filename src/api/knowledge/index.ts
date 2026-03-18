@@ -112,9 +112,9 @@ export function getNodeByLevel(data: any) {
  */
 export function getEchartsDataByTypel(data: any) {
   return httpRequest({
-    url: `${proxyApi}/knowledge-server/knowledgeFileMapData/getEchartsDataByTypel`,
+    url: `${proxyApi}/knowledge-server/knowledgeFileMapData/getEchartsDataByType`,
     data,
-    method: "POST",
+    method: 'POST',
   });
 }
 
