@@ -115,6 +115,27 @@ export class AdminApiSystemModule {
     );
 
   /**
+   * 获取默认查询字段的去重值集合
+   *
+   * @tags 获取默认查询字段的去重值集合
+   * @name preciseQueryModuleLibrary
+   * @summary 获取默认查询字段的去重值集合
+   * @request /business-service/business/library-property/getDistinctValuesByDefaultQueryFields
+   * @secure
+   */
+  static getDistinctValuesByDefaultQueryFields = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-data/getDistinctValuesByDefaultQueryFields`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 模块库列表查询
    *
    * @tags 模块库列表查询

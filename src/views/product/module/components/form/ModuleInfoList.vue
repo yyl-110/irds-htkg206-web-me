@@ -44,7 +44,7 @@ const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
 const categoryid = ref('');
 const menuId = ref<any>(null);
-const tabHeight = ref<any>(`${(window.innerHeight - 360) / 16}rem`);
+const tabHeight = ref<any>(`${(window.innerHeight - 380) / 16}rem`);
 const initSelect = ref(false);
 const isArgs = ref<boolean>(false);
 const pageFlagDrawer = ref<boolean>(false);
@@ -163,6 +163,11 @@ async function modalInit() {
   data.numberPage = page.pageSize;
   data.menuId = menuId.value;
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
+
+  const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data);
+  const distinctValues: Record<string, any[]> =
+    (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
+
   const param: any = {};
   param.categoryId = categoryid.value;
   param.menuId = menuId.value;
@@ -175,19 +180,20 @@ async function modalInit() {
       // 动态查询条件：searchFlag == 0（默认查询）
       if (resData[i].searchFlag == 0) {
         const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
-        const selectStr = resData[i].selectStr ?? resData[i].selectValue ?? '';
-        const options =
-          typeof selectStr === 'string' && selectStr.trim()
-            ? selectStr
-                .split(/[;,，]/)
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-            : [];
+        // 查询字段全部以下拉形式展示；下拉值来源于 clumnsRes 返回的 distinctValues
+        const valueKeyCandidates = [
+          String(resData[i].dataProp ?? ''),
+          String(key ?? ''),
+          String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
+        ].filter(Boolean);
+        const rawOptions =
+          valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
+        const options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
         queryColumns.value.push({
           id: resData[i].id,
           title: resData[i].propertyName,
           key,
-          inputType: options.length > 0 || resData[i].propertyType == 2 ? 'select' : 'input',
+          inputType: 'select',
           options,
         });
         if (!(key in queryForm)) queryForm[key] = '';
@@ -1125,7 +1131,15 @@ defineExpose({ initData });
             <a-row :gutter="[12, 6]">
               <a-col v-for="item in queryColumns" :key="item.key" :span="8">
                 <a-form-item :label="item.title" class="query-item">
-                  <a-select v-if="item.inputType === 'select'" v-model:value="queryForm[item.key]" allowClear size="middle" style="width: 100%" placeholder="请选择">
+                  <a-select
+                    v-if="item.inputType === 'select'"
+                    v-model:value="queryForm[item.key]"
+                    allowClear
+                    show-search
+                    :filter-option="(input, option) => String(option?.value ?? '').toLowerCase().includes(String(input ?? '').toLowerCase())"
+                    size="middle"
+                    style="width: 100%"
+                    placeholder="请选择">
                     <a-select-option v-for="opt in item.options" :key="opt" :value="opt">
                       {{ opt }}
                     </a-select-option>
