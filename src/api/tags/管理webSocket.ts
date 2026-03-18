@@ -146,13 +146,13 @@ export class AdminApiwebSocketAuth {
    * @tags 管理后台 webSocket - 参数化设计保存
    * @name checkJumpParams
    * @summary
-   * @request GET:/cirpoint-module-api/moduleinfos/parametricDesignSave.json
+   * @request /business-service/business/library-module-histroy/parametricDesignSave
    * @secure
    */
   static parametricDesignSave = (query: any, params: RequestParams = {}) =>
     httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
       {
-        path: `/cirpoint-module-api/moduleinfos/parametricDesignSave.json`,
+        path: `/business-service/business/library-module-histroy/parametricDesignSave`,
         method: 'POST',
         body: query,
         secure: true,
