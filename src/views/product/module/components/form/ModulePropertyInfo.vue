@@ -318,7 +318,7 @@ function showSelectParameter(index: any) {
   selectParmIndex.value = index;
   ParameterGeneralVisible.value = true;
   nextTick(() => {
-    ParameterGeneralRef.value.handlegetData('147');
+    ParameterGeneralRef.value.handlegetData('');
   });
 }
 function addColumn() {
@@ -545,14 +545,14 @@ async function importSuccessfulFun() {
 }
 function handleSave(e: any) {
   console.log(e, 'e');
-
+  debugger;
   var list = [];
   var list1 = vxeTable.value.tableRef.getTableData().tableData;
   columns.value = [];
   for (let i = 0; i < list1.length; i++) {
     if (i == selectParmIndex.value) {
-      list1[i]['paraDictionaryName'] = e.parameterNum;
-      list1[i]['paraDictionary'] = e.id;
+      list1[i]['parameterNum'] = e.parameterNum;
+      list1[i]['parentId'] = e.id;
     }
     list.push(list1[i]);
   }
