@@ -78,6 +78,30 @@ const ckeditorRef = ref();
 const pendingRemarkContent = ref('');
 const visible = computed(() => props.modalVisible);
 
+/** 贡献者选取用户列表弹框 */
+const userListModalVisible = ref(false);
+const condition = ref('');
+const userList = ref<any[]>([]);
+const userTotal = ref(0);
+const pageNo = ref(1);
+const pageSize = ref(20);
+const userListLoading = ref(false);
+const selectedUserKeys = ref<(string | number)[]>([]);
+const selectedUserRows = ref<any[]>([]);
+const userListRowSelection = computed(() => ({
+  type: 'checkbox',
+  selectedRowKeys: selectedUserKeys.value,
+  onChange: (keys: (string | number)[], rows: any[]) => {
+    selectedUserKeys.value = keys;
+    selectedUserRows.value = rows;
+  },
+}));
+const userListColumns: TableProps['columns'] = [
+  { title: '用户名', dataIndex: 'username', key: 'username', width: 120 },
+  { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 120 },
+  { title: '部门', dataIndex: 'deptName', key: 'deptName', ellipsis: true },
+];
+
 /** 编辑器就绪后写入待写入的备注（解决编辑时 v-if="!loading" 导致 Ckeditor 晚挂载） */
 watch(
   [ckeditorRef, pendingRemarkContent],
@@ -177,6 +201,7 @@ async function handleModalAdd(id: string, pdmType: string, menu_id: string) {
     modelData.para5 = '';
     modelData.para6 = '';
     modelData.para7 = '';
+    modelData.para7Name = '';
     modelData.para8 = undefined;
     modelData.para9 = '';
     modelData.para10 = undefined;
@@ -210,6 +235,7 @@ async function handleModalUpdate(id: string, row: any, menu_id: any) {
     modelData.para5 = row.para5;
     modelData.para6 = row.para6;
     modelData.para7 = row.para7;
+    modelData.para7Name = row.para7Name;
     modelData.para8 = row.para8;
     modelData.para9 = row.para9;
     modelData.para10 = row.para10;
@@ -371,6 +397,84 @@ function removeFile() {
   });
 }
 
+/** 贡献者选取用户列表：请求参数 condition, pageNo, pageSize(最大100) */
+async function fetchUserList() {
+  userListLoading.value = true;
+  try {
+    const size = Math.min(Number(pageSize.value) || 20, 100);
+    const res = await AdminApiSystemModule.findUserInfo({
+      condition: condition.value,
+      pageNo: pageNo.value,
+      pageSize: size,
+    });
+    const data = res?.data;
+    if (data?.code === 200 && data?.data) {
+      userList.value = data.data.list || [];
+      userTotal.value = Number(data.data.total) || 0;
+    } else {
+      userList.value = [];
+      userTotal.value = 0;
+    }
+  } catch (e) {
+    userList.value = [];
+    userTotal.value = 0;
+    message.error('获取用户列表失败');
+  } finally {
+    userListLoading.value = false;
+  }
+}
+
+/** 贡献者浏览：打开选取用户弹框 */
+async function handleBrowseContributor() {
+  condition.value = '';
+  pageNo.value = 1;
+  pageSize.value = 10;
+  selectedUserKeys.value = [];
+  selectedUserRows.value = [];
+  userListModalVisible.value = true;
+  await fetchUserList();
+}
+
+/** 用户列表分页变更 */
+function onUserListPageChange(page: number, size: number) {
+  pageNo.value = page;
+  pageSize.value = Math.min(size, 100);
+  fetchUserList();
+}
+
+/** 用户列表关键字查询（搜索） */
+function onUserListSearch() {
+  pageNo.value = 1;
+  fetchUserList();
+}
+
+/** 用户列表行点击：切换该行选中状态（点击复选框列由 table 自身处理，不重复切换） */
+function onUserRowClick(record: any, e: MouseEvent) {
+  const target = (e?.target as HTMLElement) || null;
+  if (target?.closest?.('.ant-table-selection-column')) return;
+  const key = record.id;
+  const keys = selectedUserKeys.value;
+  if (keys.includes(key)) {
+    selectedUserKeys.value = keys.filter(k => k !== key);
+    selectedUserRows.value = selectedUserRows.value.filter((r: any) => r.id !== key);
+  } else {
+    selectedUserKeys.value = [...keys, key];
+    selectedUserRows.value = [...selectedUserRows.value, record];
+  }
+}
+
+/** 确认选取贡献者（仅允许选择唯一一名用户） */
+function confirmSelectContributor() {
+  if (selectedUserRows.value.length !== 1) {
+    message.warning('请选择且仅选择一名用户');
+    return;
+  }
+  const u = selectedUserRows.value[0];
+  modelData.para7 = u.id;
+  modelData.para7Name = u.nickname;
+  userListModalVisible.value = false;
+}
+
 /** para4 模型类型允许的值 */
 const PARA4_ALLOWED = ['prt', 'asm', 'gph'] as const;
 
@@ -383,10 +487,7 @@ function getDynamicComponentVal(): { modelInfoProp: string; modelInfoPropValue: 
   return list.map((comp: any, index: number) => {
     const typeKey = params[index]?.typeKey ?? comp?.typeKey ?? '';
     const raw = comp?.newModeTypeVal != null ? (typeof comp.newModeTypeVal === 'object' && 'value' in comp.newModeTypeVal ? comp.newModeTypeVal.value : comp.newModeTypeVal) : '';
-    const val =
-      typeKey === 'para4' && raw !== ''
-        ? (PARA4_ALLOWED.includes(raw.toLowerCase() as any) ? raw.toLowerCase() : '')
-        : String(raw ?? '');
+    const val = typeKey === 'para4' && raw !== '' ? (PARA4_ALLOWED.includes(raw.toLowerCase() as any) ? raw.toLowerCase() : '') : String(raw ?? '');
     return { modelInfoProp: typeKey, modelInfoPropValue: val };
   });
 }
@@ -416,9 +517,7 @@ async function handleSave() {
       confidentialLevel: modelData.confidentialLevel,
     };
     const moduleList = getDynamicComponentVal();
-    const libraryCustomizeDataBaseDTO = Object.fromEntries(
-      moduleList.map(item => [item.modelInfoProp, item.modelInfoPropValue]),
-    );
+    const libraryCustomizeDataBaseDTO = Object.fromEntries(moduleList.map(item => [item.modelInfoProp, item.modelInfoPropValue]));
     const libraryFileUpdateRequestDTO = filedataSource.value.map(item => ({
       id: '',
       type: 3,
@@ -459,7 +558,6 @@ defineExpose({ handleModalAdd, handleModalUpdate });
     @ok="handleSave"
     @cancel="cancel">
     <div v-if="!loading" class="modal-body">
-      <!-- 基本属性 -->
       <section class="module-section">
         <h3 class="module-section-title">基本属性</h3>
         <a-form ref="formRef" layout="vertical" :model="modelData" :label-col="labelCol" class="form-grid">
@@ -516,7 +614,10 @@ defineExpose({ handleModalAdd, handleModalUpdate });
           </a-form-item>
 
           <a-form-item label="贡献者：" name="para7">
-            <a-input v-model:value="modelData.para7" disabled />
+            <a-input-group compact class="contributor-input-group">
+              <a-input v-model:value="modelData.para7Name" placeholder="请输入" disabled />
+              <a-button type="primary" @click="handleBrowseContributor">浏览</a-button>
+            </a-input-group>
           </a-form-item>
         </a-form>
       </section>
@@ -593,6 +694,49 @@ defineExpose({ handleModalAdd, handleModalUpdate });
       <a-button @click="openfileUploadModal = false">
         {{ $t('取消') }}
       </a-button>
+    </template>
+  </a-modal>
+
+  <!-- 贡献值浏览 / 选取用户列表 -->
+  <a-modal v-model:visible="userListModalVisible" title="选取贡献者" width="880px" @cancel="userListModalVisible = false">
+    <div class="user-list-modal">
+      <div class="user-list-search">
+        <a-input-search v-model:value="condition" placeholder="关键字查询（用户名/名称）" allow-clear style="width: 440px; margin-right: 8px" @search="onUserListSearch" />
+        <a-button type="primary" @click="onUserListSearch">查询</a-button>
+      </div>
+      <a-table
+        :columns="userListColumns"
+        :data-source="userList"
+        :loading="userListLoading"
+        :pagination="false"
+        row-key="id"
+        size="small"
+        :scroll="{ y: 480 }"
+        :locale="locale"
+        :row-selection="userListRowSelection"
+        :custom-row="(record: any) => ({ onClick: (e: MouseEvent) => onUserRowClick(record, e) })">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column?.dataIndex === 'deptName'">
+            {{ record.deptName ?? '-' }}
+          </template>
+        </template>
+      </a-table>
+      <div class="user-list-pagination">
+        <a-pagination
+          v-model:current="pageNo"
+          v-model:page-size="pageSize"
+          :total="userTotal"
+          :page-size-options="['10', '20', '50', '100']"
+          :build-option-text="(prop: { value: number }) => `${prop.value} 条/页`"
+          show-size-changer
+          show-quick-jumper
+          :show-total="(t: number) => `共 ${t} 条`"
+          @change="(p: number, s: number) => onUserListPageChange(p, s)" />
+      </div>
+    </div>
+    <template #footer>
+      <a-button type="primary" @click="confirmSelectContributor">确定</a-button>
+      <a-button @click="userListModalVisible = false">取消</a-button>
     </template>
   </a-modal>
 
@@ -673,8 +817,40 @@ defineExpose({ handleModalAdd, handleModalUpdate });
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px 24px;
+}
+
+/* 贡献者：输入框与浏览按钮不重叠，保留间距 */
+.contributor-input-group {
+  display: flex;
+  width: 100%;
+}
+.contributor-input-group :deep(.ant-input) {
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
+}
+.contributor-input-group :deep(.ant-btn) {
+  flex: 0 0 auto;
+}
+
+/* 选取贡献者弹框 */
+.user-list-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.user-list-search {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.user-list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
 
 .attachments-row {

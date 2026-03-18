@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { FormInstance } from 'ant-design-vue';
-import { ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { TableProps, Modal, Button, Popconfirm, message } from 'ant-design-vue';
 import { getCurrentInstance } from 'vue';
 import { useUserStore } from '@/store/modules/user';
@@ -33,14 +33,13 @@ const visible = computed(() => {
   return props.modalVisible;
 });
 const loading = ref<boolean>(false);
-const instance = getCurrentInstance();
 const userStore = useUserStore();
 const columns = ref([
   {
     title: '参数名称',
     key: 'parameterName',
     dataIndex: 'parameterName',
-    align: 'center',
+    align: 'left',
     resizable: true,
     width: 100,
   },
@@ -48,46 +47,46 @@ const columns = ref([
     title: '参数代号',
     key: 'parameterNum',
     dataIndex: 'parameterNum',
-    align: 'center',
+    align: 'left',
     resizable: true,
     width: 100,
   },
   {
     title: '参数类型',
-    key: 'parameterTypeStr',
-    dataIndex: 'parameterTypeStr',
+    key: 'parameterType',
+    dataIndex: 'parameterType',
     align: 'center',
     resizable: true,
     width: 100,
   },
   {
     title: '单位',
-    key: 'cmpany',
-    dataIndex: 'cmpany',
+    key: 'unitName',
+    dataIndex: 'unitName',
     align: 'center',
     resizable: true,
     width: 100,
   },
   {
     title: '所属分类',
-    key: 'categoryName',
-    dataIndex: 'categoryName',
+    key: 'treeName',
+    dataIndex: 'treeName',
     align: 'center',
     resizable: true,
     width: 100,
   },
   {
     title: '创建人',
-    key: 'username',
-    dataIndex: 'username',
+    key: 'createUserName',
+    dataIndex: 'createUserName',
     align: 'center',
     resizable: true,
     width: 100,
   },
   {
     title: '创建时间',
-    key: 'addTime',
-    dataIndex: 'addTime',
+    key: 'createTime',
+    dataIndex: 'createTime',
     align: 'center',
     resizable: true,
     width: 100,
@@ -102,6 +101,34 @@ pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')
 pagination.showQuickJumper = false;
 const selectedRowList = ref<any>([]);
 const selectedRowkeys = ref<any>([]);
+
+type BackendTreeNode = {
+  id?: string | number;
+  name?: string;
+  children?: BackendTreeNode[];
+  [k: string]: any;
+};
+type UiTreeNode = {
+  title: string;
+  key: string;
+  children?: UiTreeNode[];
+  dataRef?: BackendTreeNode;
+};
+
+const treeModalVisible = ref(false);
+const treeLoading = ref(false);
+const treeData = ref<UiTreeNode[]>([]);
+const selectedTreeKeys = ref<string[]>([]);
+const selectedTreeNode = ref<BackendTreeNode | null>(null);
+
+function toUiTree(nodes: BackendTreeNode[] = []): UiTreeNode[] {
+  return nodes.map((n: BackendTreeNode) => ({
+    title: n?.name ?? '',
+    key: String(n?.id ?? ''),
+    dataRef: n,
+    children: n?.children?.length ? toUiTree(n.children) : undefined,
+  }));
+}
 /** 表格勾选事件 */
 const rowSelection = computed(() => {
   /**
@@ -137,6 +164,27 @@ function customRow(record: any) {
 function selectParameterb() {
   getListData();
 }
+async function selectParamById() {
+  try {
+    treeLoading.value = true;
+    const data: any = {};
+    const res = await AdminApiSystemModule.parameterTreeList(data);
+    if (res?.data?.code === 200) {
+      const raw: BackendTreeNode[] = Array.isArray(res.data.data) ? res.data.data : [];
+      treeData.value = toUiTree(raw);
+      selectedTreeKeys.value = typeid.value ? [String(typeid.value)] : [];
+      selectedTreeNode.value = null;
+      treeModalVisible.value = true;
+    } else {
+      message.warning(res?.data?.msg || '获取树节点失败');
+    }
+  } catch (e) {
+    console.log(e);
+    message.error('获取树节点失败');
+  } finally {
+    treeLoading.value = false;
+  }
+}
 const typeid = ref('');
 function handlegetData(categoryid: string) {
   typeid.value = categoryid;
@@ -145,15 +193,13 @@ function handlegetData(categoryid: string) {
 async function getListData() {
   try {
     loading.value = true;
-    requestParams.userid = userStore.getUser.id;
-    requestParams.categoryid = typeid.value;
-    requestParams.organizationID = '';
-    requestParams.currentPage = requestParams.pageNo;
-    // requestParams.pageid = pageid;
-    const res = await AdminApiSystemModule.getTempalteParaInfoList({ ...requestParams });
-    if (res.data.code == 0) {
-      dataSource.value = res.data.data.data || [];
-      pagination.total = res.data.data.pageCount || 0;
+    requestParams.treeId = typeid.value || '';
+    requestParams.pageNo = requestParams.pageNo;
+    const res = await AdminApiSystemModule.getParameterInfoPage({ ...requestParams });
+    console.log(res);
+    if (res.data.code == 200) {
+      dataSource.value = res.data.data.list || [];
+      pagination.total = res.data.data.total || 0;
     }
   } catch (error) {
     console.log(error);
@@ -182,6 +228,22 @@ function handleClear() {
   requestParams.parameterNum = '';
   getListData();
 }
+
+function onTreeSelect(keys: any, info: any) {
+  selectedTreeKeys.value = (keys || []).map((k: any) => String(k));
+  selectedTreeNode.value = info?.node?.dataRef ?? null;
+}
+
+function confirmTreeSelect() {
+  const nextId = selectedTreeKeys.value?.[0];
+  if (!nextId) {
+    message.warning('请选择一个节点');
+    return;
+  }
+  typeid.value = nextId;
+  treeModalVisible.value = false;
+  getListData();
+}
 defineExpose({
   handlegetData,
 });
@@ -199,7 +261,28 @@ defineExpose({
         <EpcIcon type="icon-zhongzhi" style="font-size: 12px" />
         {{ $t('重置') }}
       </a-button>
+      <a-button type="primary" style="margin-left: 10px" @click="selectParamById"><EpcIcon type="icon-liulan" style="font-size: 12px" /> 选取节点 </a-button>
     </div>
+
+    <a-modal
+      v-model:visible="treeModalVisible"
+      :mask-closable="false"
+      :confirm-loading="treeLoading"
+      title="选择节点"
+      width="520px"
+      @ok="confirmTreeSelect"
+      @cancel="treeModalVisible = false">
+      <a-spin :spinning="treeLoading">
+        <div style="max-height: 420px; overflow: auto; padding: 8px 0">
+          <a-tree :tree-data="treeData" :selectedKeys="selectedTreeKeys" block-node defaultExpandAll @select="onTreeSelect" />
+        </div>
+      </a-spin>
+      <template #footer>
+        <a-button type="primary" @click="confirmTreeSelect">确定</a-button>
+        <a-button @click="treeModalVisible = false">取消</a-button>
+      </template>
+    </a-modal>
+
     <a-table
       bordered
       :loading="loading"
@@ -212,7 +295,11 @@ defineExpose({
       :row-selection="rowSelection"
       :customRow="customRow"
       :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-      <template #bodyCell="{ column, record }"> </template>
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'parameterType'">
+          <span v-if="record.parameterType == 0"> 实数 </span> <span v-else-if="record.parameterType == 1"> 字符串 </span>
+        </template>
+      </template>
     </a-table>
     <template #footer>
       <a-button type="primary" @click="handleSave">确定</a-button>
