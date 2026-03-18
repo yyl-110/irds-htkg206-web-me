@@ -1224,7 +1224,7 @@ defineExpose({ initData });
     @template-download="templateDownload"
     @import-successful-fun="importSuccessfulFun"
     @close="batchflag = false" />
-  <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="500">
+  <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="800">
     <!--    详情页面 -->
     <div class="dalIconList2" style="margin-top: 0">
       <div :class="{ seDalIcon: parmType == 0, dalIcon: parmType != 0 }" @click="toParm(0)">
@@ -1246,14 +1246,14 @@ defineExpose({ initData });
     </div>
     <!--  -->
     <div ref="udfBoxRef" :style="udfBoxStyle()" class="udfPage_style">
-      <div v-show="parmType == 0">
+      <div v-if="parmType == 0">
         <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-top: 20px" size="small" bordered>
           <a-descriptions-item :label="item.name">
             {{ item.val }}
           </a-descriptions-item>
         </a-descriptions>
       </div>
-      <div v-show="parmType == 1">
+      <div v-if="parmType == 1">
         <div v-if="pdmDataFlag">
           <a-descriptions style="margin-top: 20px" size="small" bordered>
             <a-descriptions-item label="名称：">
@@ -1325,7 +1325,7 @@ defineExpose({ initData });
           </a-table>
         </div>
       </div>
-      <div v-show="parmType == 5" class="history-doc-table-wrap">
+      <div v-if="parmType == 5" class="history-doc-table-wrap">
         <a-table
           :scroll="{ x: 1200, y: 400 }"
           row-key="id"
