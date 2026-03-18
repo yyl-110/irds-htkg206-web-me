@@ -427,4 +427,25 @@ export class AdminApiSystemModule {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 属性导入
+   *
+   * @tags
+   * @name findUserInfo
+   * @summary
+   * @request /business-service/business/library-property/ImportingConfigurationColumnsNew
+   * @secure
+   */
+  static ImportingConfigurationColumnsNew = (query: any, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-property/ImportingConfigurationColumnsNew`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

@@ -524,7 +524,8 @@ async function importSuccessfulFun() {
   exceldata.userName = userStore.getUser.userName;
   exceldata.moduleName = fileList.value[0].newFileName;
   const res = await AdminApiSystemModule.ImportingConfigurationColumnsNew(exceldata);
-  if (res.data.code == 0) {
+  console.log(res);
+  if (res.data.code == 200) {
     let data: any = res.data.data;
     message.info({
       top: 80,
