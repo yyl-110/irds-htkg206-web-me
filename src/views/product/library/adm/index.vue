@@ -10,11 +10,14 @@ import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import Empty from '@/components/Empty/index.vue';
 import LibraryAddOrUpdate from './libraryAddOrUpdate.vue';
 import { sortermethod } from '@/utils/tools';
+import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue';
 const powerModel = ref<any>(null);
 const addOrUpdateModel = ref<any>(null);
 const userStore = useUserStore();
 const loading = ref<boolean>(false);
 const powVisible = ref<boolean>(false);
+const ParameterGeneralVisible = ref<boolean>(false);
+const ParameterGeneralRef = ref<any>(null);
 /** 属性配置：当前操作的行记录 */
 const propertyConfigRecord = ref<any>(null);
 /** 属性配置：属性列表数据（表格行） */
@@ -24,6 +27,8 @@ interface PropertyRow {
   propertyName: string;
   dataProp: string;
   parameterNum: string;
+  /** 关联参数字典 id（后端字段名沿用旧逻辑） */
+  parameterId?: string;
   showFlag: number;
   colWidth: string;
   searchFlag: number;
@@ -35,6 +40,8 @@ interface PropertyRow {
   sort: number;
 }
 const propertyList = ref<PropertyRow[]>([]);
+/** 属性配置：当前点击“浏览”的行 index（用于回填） */
+const selectParmIndex = ref<number>(-1);
 function genRowKey() {
   return `__row_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
@@ -60,7 +67,7 @@ function createEmptyPropertyRow(sort = 1): PropertyRow {
 const propertyColumns = [
   { title: WeiI18n.$t('属性名称'), dataIndex: 'propertyName', key: 'propertyName', width: 140, align: 'center' },
   { title: WeiI18n.$t('属性内部值'), dataIndex: 'dataProp', key: 'dataProp', width: 140, align: 'center' },
-  { title: WeiI18n.$t('关联参数字典'), dataIndex: 'parameterNum', key: 'parameterNum', width: 120, align: 'center' },
+  { title: WeiI18n.$t('关联参数字典'), dataIndex: 'parameterNum', key: 'parameterNum', width: 230, align: 'center' },
   { title: WeiI18n.$t('显示状态'), dataIndex: 'showFlag', key: 'showFlag', width: 100, align: 'center' },
   { title: WeiI18n.$t('列宽'), dataIndex: 'colWidth', key: 'colWidth', width: 100, align: 'center' },
   { title: WeiI18n.$t('默认查询'), dataIndex: 'searchFlag', key: 'searchFlag', width: 100, align: 'center' },
@@ -249,6 +256,30 @@ async function removePropertyRow(row: PropertyRow) {
     message.success(WeiI18n.$t('删除成功'));
   }
   propertyList.value = propertyList.value.filter(r => (r._rowKey ?? r.id) !== rowKey);
+}
+
+function showSelectParameter(record: any, index: number) {
+  selectParmIndex.value = index;
+  ParameterGeneralVisible.value = true;
+  nextTick(() => {
+    ParameterGeneralRef.value.handlegetData('');
+  });
+}
+
+function handleSave(e: any) {
+  const idx = selectParmIndex.value;
+  if (idx < 0 || idx >= propertyList.value.length) {
+    message.warning(WeiI18n.$t('未找到要替换的行，请重新选择'));
+    ParameterGeneralVisible.value = false;
+    return;
+  }
+  // 回填到当前点击的行
+  propertyList.value[idx] = {
+    ...propertyList.value[idx],
+    parameterNum: e?.parameterNum ?? '',
+    parameterId: e?.id != null ? String(e.id) : '',
+  };
+  ParameterGeneralVisible.value = false;
 }
 
 function movePropertyUp(index: number) {
@@ -460,7 +491,10 @@ function handleFinish() {
                 <a-input v-model:value="record.dataProp" placeholder="请输入..." allow-clear />
               </template>
               <template v-else-if="column.dataIndex === 'parameterNum'">
-                <a-button type="primary" size="small">{{ $t('浏览') }}</a-button>
+                <a-input v-model:value="record.parameterNum" placeholder="请选择" disabled style="width: 63%; float: left" />
+                <a-button @click="showSelectParameter(record, index)" style="float: right; margin-top: 2px" type="primary" size="small">
+                  <EpcIcon type="icon-liulan" style="font-size: 15px" />{{ $t('浏览') }}</a-button
+                >
               </template>
               <template v-else-if="column.dataIndex === 'showFlag'">
                 <a-select v-model:value="record.showFlag" placeholder="请选择" size="small" style="width: 100%">
@@ -522,6 +556,7 @@ function handleFinish() {
       </a-modal>
     </div>
   </div>
+  <ParameterGeneral ref="ParameterGeneralRef" :modalVisible="ParameterGeneralVisible" @onClose="ParameterGeneralVisible = false" @handleSave="handleSave"></ParameterGeneral>
 </template>
 
 <style lang="less" scoped>
