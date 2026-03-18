@@ -8,7 +8,7 @@
         <a-radio-button value="4">图片</a-radio-button>
       </a-radio-group>
       <div class="flex items-center">
-        <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="w-[300px]">
+        <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="max-w-[300px]">
           <template #enterButton>
             <div class="flex items-center">
               <SearchOutlined />

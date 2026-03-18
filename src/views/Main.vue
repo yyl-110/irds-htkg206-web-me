@@ -176,8 +176,8 @@ onBeforeMount(() => {
           </aside>
           <footer class="h-[50px] flex justify-center items-center" style="background-color: #1A3677">
             <a-button type="text" size="small" @click="collapsed = !collapsed">
-              <MenuFoldOutlined v-if="collapsed" class="text-base" />
-              <MenuUnfoldOutlined v-else class="text-base" />
+              <MenuFoldOutlined v-if="collapsed" class="text-base text-white" />
+              <MenuUnfoldOutlined v-else class="text-base text-white" />
             </a-button>
           </footer>
         </a-layout-sider>
@@ -315,8 +315,10 @@ onBeforeMount(() => {
   .ant-menu-inline {
     border: none;
   }
-  .ant-menu-submenu-title {
-    padding-left: 24px !important;
+  .ant-menu-inline {
+    .ant-menu-submenu-title {
+      padding-left: 24px !important;
+    }
   }
   .ant-menu-submenu {
     .ant-menu-item {

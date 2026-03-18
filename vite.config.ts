@@ -150,6 +150,12 @@ export default defineConfig({
          */
         // rewrite: path => path.replace(/^\/iconify/, ''),
       },
+      '/Know': {
+        target: 'http://39.106.130.85:8082',
+        ws: false,
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/Know/, ''),
+      },
     },
   },
 
