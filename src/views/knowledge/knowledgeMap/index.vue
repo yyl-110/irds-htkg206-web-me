@@ -50,6 +50,10 @@ const tabIndex = ref(1);
 const currentTreeId = ref();
 const drawer = ref(false);
 
+const graphRef = ref('');
+const graphRefOne = ref('');
+const graphRefTwo = ref('');
+
 const colorss = ref(['#326FFE', '#F4BD3F', '#43AAE4', '#1ECFB9', '#F95669']);
 
 // 文档id
