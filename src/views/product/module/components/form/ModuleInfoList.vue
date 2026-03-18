@@ -44,7 +44,7 @@ const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
 const categoryid = ref('');
 const menuId = ref<any>(null);
-const tabHeight = ref<any>(`${(window.innerHeight - 300) / 16}rem`);
+const tabHeight = ref<any>(`${(window.innerHeight - 360) / 16}rem`);
 const initSelect = ref(false);
 const isArgs = ref<boolean>(false);
 const pageFlagDrawer = ref<boolean>(false);
@@ -61,6 +61,7 @@ const page = reactive({
   currentPage: 1,
 });
 const columns = ref<any>([]);
+const queryColumns = ref<any>([]);
 const dropdownList = ref<any>([
   // { id: 0, name: '另存' },
   { id: 1, name: '导入' },
@@ -79,6 +80,7 @@ const dropdownList2 = ref([
 const parmDesignData = ref<any>([]);
 const loading = ref(false);
 const selectModelList = ref([]);
+const queryForm = reactive<Record<string, any>>({});
 
 // 处理需要计算的属性，比如modelHeight
 const modelHeight = ref(0);
@@ -151,6 +153,7 @@ async function modalInit() {
   btnType.value = true;
   compareBtnType.value = true;
   columns.value = [];
+  queryColumns.value = [];
   dataSource.value = [];
   const data: any = {};
   data.userId = userStore.getUser.id;
@@ -169,6 +172,27 @@ async function modalInit() {
     const resData: any = libRes.data.data;
     const parm: any = [];
     for (let i = 0; i < resData.length; i++) {
+      // 动态查询条件：searchFlag == 0（默认查询）
+      if (resData[i].searchFlag == 0) {
+        const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
+        const selectStr = resData[i].selectStr ?? resData[i].selectValue ?? '';
+        const options =
+          typeof selectStr === 'string' && selectStr.trim()
+            ? selectStr
+                .split(/[;,，]/)
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : [];
+        queryColumns.value.push({
+          id: resData[i].id,
+          title: resData[i].propertyName,
+          key,
+          inputType: options.length > 0 || resData[i].propertyType == 2 ? 'select' : 'input',
+          options,
+        });
+        if (!(key in queryForm)) queryForm[key] = '';
+      }
+
       if (resData[i].showFlag == 0) {
         parm.push({
           id: resData[i].id,
@@ -200,7 +224,6 @@ async function modalInit() {
   }
   loading.value = false;
 }
-// 仅拉取列表数据（分页/每页条数变更时复用，与初始加载同一接口）
 async function fetchModuleList(filterArr?: any) {
   loading.value = true;
   const data: any = {
@@ -218,6 +241,10 @@ async function fetchModuleList(filterArr?: any) {
     page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
   }
   loading.value = false;
+}
+
+async function queryModuleLibrary(filterArr?: any) {
+  await fetchModuleList(filterArr);
 }
 // 删除列表数据
 function delModule() {
@@ -306,24 +333,48 @@ function renderFunTiele3(key: any) {
 function onShowSizeChange(current: number, pageSize: number) {
   page.currentPage = current;
   page.pageSize = pageSize;
-  fetchModuleList();
-}
-// 模块库模糊查询（带筛选条件时使用）
-async function queryModuleLibrary(filterArr?: any) {
-  const data: any = {};
-  data.userId = userStore.getUser.id;
-  data.categoryId = categoryid.value;
-  data.userName = userStore.getUser.userName;
-  data.currentPage = page.currentPage;
-  data.numberPage = page.pageSize;
-  data.moduleParaList = filterArr || [];
-  const res = await AdminApiSystemModule.moduleDataScreening(data);
-  const resData: any = res.data.data;
-  if (resData.moduleList) {
-    dataSource.value = resData.moduleList;
-    page.pageCount = resData.pageCount;
-    page.currentPage = resData.currentPage;
+  // 分页变化：若当前存在筛选条件，走筛选接口；否则走普通列表接口
+  const hasFilter = queryColumns.value.some((c: any) => {
+    const v = queryForm[c.key];
+    return v !== undefined && v !== null && String(v).trim() !== '';
+  });
+  if (hasFilter) {
+    handleQuery(false);
+  } else {
+    fetchModuleList();
   }
+}
+
+function buildFilterArr() {
+  const moduleParaList: any[] = [];
+  queryColumns.value.forEach((c: any) => {
+    const v = queryForm[c.key];
+    if (v !== undefined && v !== null && String(v).trim() !== '') {
+      moduleParaList.push({
+        modelInfoProp: c.key,
+        modelInfoPropValue: String(v).trim(),
+      });
+    }
+  });
+  return moduleParaList;
+}
+
+function handleQuery(resetPage = true) {
+  if (resetPage) page.currentPage = 1;
+  const filterArr = buildFilterArr();
+  if (filterArr.length > 0) {
+    queryModuleLibrary(filterArr);
+  } else {
+    fetchModuleList();
+  }
+}
+
+function handleQueryReset() {
+  queryColumns.value.forEach((c: any) => {
+    queryForm[c.key] = '';
+  });
+  page.currentPage = 1;
+  fetchModuleList();
 }
 function filterChange() {}
 // 打开模型
@@ -1069,9 +1120,28 @@ defineExpose({ initData });
   <div class="module-body">
     <div class="selectLeft">
       <div class="btn-box">
-        <div style="background-color: #e5efff; width: 100%; height: 100%">
+        <div class="btn-box-middle" v-if="queryColumns.length">
+          <div class="query-scroll">
+            <a-row :gutter="[12, 6]">
+              <a-col v-for="item in queryColumns" :key="item.key" :span="8">
+                <a-form-item :label="item.title" class="query-item">
+                  <a-select v-if="item.inputType === 'select'" v-model:value="queryForm[item.key]" allowClear size="middle" style="width: 100%" placeholder="请选择">
+                    <a-select-option v-for="opt in item.options" :key="opt" :value="opt">
+                      {{ opt }}
+                    </a-select-option>
+                  </a-select>
+                  <a-input v-else v-model:value="queryForm[item.key]" allowClear size="middle" placeholder="请输入" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+          </div>
+          <div class="query-actions">
+            <a-button type="primary" size="middle" @click="handleQuery()">查询</a-button>
+            <a-button size="middle" @click="handleQueryReset">重置</a-button>
+          </div>
+        </div>
+        <div class="btn-box-container">
           <div class="btn-box-left">
-            <!-- <div :class="{ 'btn-item-select': btnType, 'btn-item': !btnType }" style="margin-left: 20px" @click="downloadModuleFile">下载模型</div> -->
             <div
               :class="{
                 'btn-item-select': compareBtnType,
@@ -1108,6 +1178,7 @@ defineExpose({ initData });
               </a-dropdown>
             </div>
           </div>
+
           <div class="btn-box-right">
             <div class="btn-item" @click="handleAddOrUpdate">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
@@ -1377,19 +1448,99 @@ defineExpose({ initData });
 }
 .btn-box {
   width: 100%;
-  height: 35px;
+  min-height: 35px;
   background-color: #ffffff;
   text-align: left;
   font-size: 14px;
 }
+.btn-box-container {
+  background-color: #e5efff;
+  width: 100%;
+  min-height: 35px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
 .btn-box-left {
-  float: left;
   display: flex;
 }
 
 .btn-box-right {
-  float: right;
   display: flex;
+}
+.btn-box-middle {
+  flex: 1;
+  padding: 4px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.query-scroll {
+  flex: 1;
+  min-width: 0;
+  max-height: 78px; /* 默认最多两行，超出滚动 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 6px; /* 抵消 a-row gutter 的负 margin，避免横向滚动条 */
+}
+.query-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+:deep(.query-item) {
+  margin-bottom: 0 !important;
+  display: flex;
+  align-items: center;
+}
+:deep(.query-item .ant-form-item-label) {
+  flex: 0 0 96px; /* 固定 label 宽度，保证对齐 */
+  text-align: right;
+  padding-right: 8px;
+  padding-top: 0 !important;
+  display: flex;
+  align-items: center;
+}
+:deep(.query-item .ant-form-item-label > label) {
+  font-size: 14px;
+  color: #333;
+  display: inline-block;
+  width: 100%;
+  line-height: 26px;
+  transform: translateY(1px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:deep(.query-item .ant-form-item-control) {
+  min-width: 0;
+  flex: 1;
+}
+
+/* 输入框/下拉框整体更大一些 */
+:deep(.query-item .ant-input-affix-wrapper),
+:deep(.query-item .ant-input),
+:deep(.query-item .ant-select-selector) {
+  height: 35px !important;
+}
+:deep(.query-item .ant-input-affix-wrapper) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  display: flex;
+  align-items: center;
+}
+:deep(.query-item .ant-input-affix-wrapper > input.ant-input) {
+  height: 28px !important;
+  line-height: 28px !important;
+}
+:deep(.query-item .ant-select-selection-search-input) {
+  height: 28px !important;
+}
+:deep(.query-item .ant-select-selection-item),
+:deep(.query-item .ant-select-selection-placeholder) {
+  line-height: 28px !important;
 }
 .btn-item-select {
   min-width: 28px;
