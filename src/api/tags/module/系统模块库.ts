@@ -769,6 +769,27 @@ export class AdminApiSystemModule {
   /**
    *
    *
+   * @tags
+   * @name findUserInfo
+   * @summary
+   * @request /business-service/business/library-data/findParametricDesign
+   * @secure
+   */
+  static findUserInfo = (query: any, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-data/findUserInfo`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   *
+   *
    * @tags 跳转链接
    * @name getURLApi
    * @summary 跳转链接

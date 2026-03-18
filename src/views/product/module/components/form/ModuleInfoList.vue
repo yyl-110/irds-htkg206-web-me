@@ -173,7 +173,7 @@ async function modalInit() {
         parm.push({
           id: resData[i].id,
           title: resData[i].propertyName,
-          key: resData[i].dataProp,
+          key: resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp,
           align: 'center',
           resizable: true,
           filters: [],
@@ -195,6 +195,27 @@ async function modalInit() {
     const resData: any = res.data.data;
     const moduleListData = resData.list || [];
     dataSource.value = moduleListData;
+    // 总条数：优先使用 total（总记录数），其次 pageCount / totalPage
+    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
+  }
+  loading.value = false;
+}
+// 仅拉取列表数据（分页/每页条数变更时复用，与初始加载同一接口）
+async function fetchModuleList(filterArr?: any) {
+  loading.value = true;
+  const data: any = {
+    userId: userStore.getUser.id,
+    moduleParaList: filterArr || [],
+    categoryId: categoryid.value,
+    pageNo: page.currentPage,
+    pageSize: page.pageSize,
+    menuId: menuId.value,
+  };
+  const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
+  if (res.data.code == 200) {
+    const resData: any = res.data.data;
+    dataSource.value = resData.list || [];
+    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
   }
   loading.value = false;
 }
@@ -285,9 +306,9 @@ function renderFunTiele3(key: any) {
 function onShowSizeChange(current: number, pageSize: number) {
   page.currentPage = current;
   page.pageSize = pageSize;
-  queryModuleLibrary();
+  fetchModuleList();
 }
-// 模块库模糊查询
+// 模块库模糊查询（带筛选条件时使用）
 async function queryModuleLibrary(filterArr?: any) {
   const data: any = {};
   data.userId = userStore.getUser.id;
@@ -1119,6 +1140,7 @@ defineExpose({ initData });
         :data="dataSource"
         :height="tabHeight"
         :page="page"
+        :page-flag="true"
         :model-type="0"
         :categoryid="categoryid"
         @select-model-list-check="selectModelListCheck2"

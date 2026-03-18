@@ -40,9 +40,9 @@ defineProps({
   page: {
     type: Object as PropType<PaginationProps>,
     default: () => ({
-      current: 1,
+      currentPage: 1,
       pageSize: 10,
-      total: 0,
+      pageCount: 0,
     }),
   },
   indexFlag: {
@@ -216,7 +216,6 @@ defineExpose({
             <div>数据为空</div>
           </div>
         </template>
-        <!-- <vxe-table-column fixed="left" type="seq" width="100" title="序号" align="left" v-if="indexFlag" /> -->
         <vxe-table-column
           v-for="item in columns"
           :key="item"
