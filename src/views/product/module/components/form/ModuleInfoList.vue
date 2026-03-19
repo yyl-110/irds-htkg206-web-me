@@ -63,24 +63,64 @@ const page = reactive({
 const columns = ref<any>([]);
 const queryColumns = ref<any>([]);
 const dropdownList = ref<any>([
-  // { id: 0, name: '另存' },
   { id: 1, name: '导入' },
   { id: 8, name: '导出' },
-  // { id: 2, name: '列管理' },
   { id: 3, name: '列宽保存' },
-  // {id:4,name:'图片上传'},
-  // { id: 5, name: '上传模型' },
-  // { id: 6, name: '提交审核' },
-  // { id: 7, name: '参数化设计' },
-]);
-const dropdownList2 = ref([
-  { id: 0, name: '另存' },
-  { id: 1, name: '导入' },
 ]);
 const parmDesignData = ref<any>([]);
 const loading = ref(false);
 const selectModelList = ref([]);
 const queryForm = reactive<Record<string, any>>({});
+
+// 全局查询弹框：展示 getLibraryDataFixedColumnsPage 的分页列表
+const globalQueryModalVisible = ref(false);
+const globalQueryLoading = ref(false);
+const globalQueryKeyword = ref<string>('');
+const globalQueryList = ref<any[]>([]);
+const globalQueryTableScrollY = 420;
+const globalQueryTablePagination = reactive({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showSizeChanger: true,
+  showQuickJumper: false,
+  showTotal: (total: number) => `共 ${total} 条`,
+  locale: {
+    items_per_page: '条/页',
+    jump_to: '跳至',
+    page: '页',
+  },
+});
+
+const globalQueryColumns = ref<any[]>([
+  { title: '节点名称', dataIndex: 'categoryName', key: 'categoryName', align: 'center', width: 120, resizable: true },
+  { title: '模型件号', dataIndex: 'para1', key: 'para1', align: 'center', width: 120, resizable: true },
+  { title: '模型编码', dataIndex: 'para2', key: 'para2', align: 'center', width: 120, resizable: true },
+  { title: '模型名称', dataIndex: 'para3', key: 'para3', align: 'center', width: 120, resizable: true },
+  { title: '模型类型', dataIndex: 'para4', key: 'para4', align: 'center', width: 120, resizable: true },
+  { title: '模型坐标系', dataIndex: 'para5', key: 'para5', align: 'center', width: 120, resizable: true },
+  { title: '英文名称', dataIndex: 'para6', key: 'para6', align: 'center', width: 120, resizable: true },
+  { title: '所属分类', dataIndex: 'para8', key: 'para8', align: 'center', width: 120, resizable: true },
+  { title: 'CAD计算重量', dataIndex: 'para9', key: 'para9', align: 'center', width: 120, resizable: true },
+  {
+    title: '状态',
+    dataIndex: 'para10',
+    key: 'para10',
+    customRender: ({ text }: any) => {
+      const v = Number(text);
+      if (v === 0) return '已发布';
+      if (v === 1) return '设计中';
+      if (v === 2) return '已停用';
+      if (v === 3) return '审核中';
+      return text ?? '';
+    },
+    align: 'center',
+    width: 120,
+    resizable: true,
+  },
+  { title: '创建用户', dataIndex: 'creatorName', key: 'creatorName', align: 'center', width: 120, resizable: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, resizable: true },
+]);
 
 // 处理需要计算的属性，比如modelHeight
 const modelHeight = ref(0);
@@ -94,6 +134,50 @@ function handleAddOrUpdate() {
   nextTick(() => {
     addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value, menuId.value);
   });
+}
+async function selectAllModuleInfo() {
+  let data: any = {};
+  data.menuId = menuId.value;
+  globalQueryModalVisible.value = true;
+  await fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
+}
+
+async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
+  globalQueryLoading.value = true;
+  try {
+    const data: any = {};
+    data.menuId = menuId.value;
+    data.pageNo = pageNo;
+    data.pageSize = pageSize;
+    // 后端字段约定：keyword
+    data.keyword = globalQueryKeyword.value || '';
+
+    const res = await AdminApiSystemModule.getLibraryDataFixedColumnsPage(data);
+    const resData: any = res?.data?.data ?? {};
+
+    // 列表字段名兜底
+    const list: any[] = resData.list || resData.moduleList || resData.records || [];
+    globalQueryList.value = list.map((item: any, idx: number) => ({
+      ...item,
+      _rowKey: String(item?.id ?? item?.ROW_ID ?? item?.para2 ?? item?.para1 ?? `global_${idx}`),
+    }));
+
+    // 分页总数兜底
+    globalQueryTablePagination.current = resData.currentPage ?? pageNo;
+    globalQueryTablePagination.pageSize = resData.pageSize ?? pageSize;
+    globalQueryTablePagination.total = resData.total ?? resData.totalCount ?? resData.totalPage ?? list.length ?? 0;
+  } catch (e) {
+    console.log(e);
+    message.error('全局查询失败');
+  } finally {
+    globalQueryLoading.value = false;
+  }
+}
+
+function handleGlobalTableChange(pagination: any) {
+  const current = pagination?.current ?? globalQueryTablePagination.current;
+  const pageSize = pagination?.pageSize ?? globalQueryTablePagination.pageSize;
+  fetchGlobalQueryData(current, pageSize);
 }
 function updModule() {
   if (selectModelList.value.length == 0) {
@@ -165,8 +249,7 @@ async function modalInit() {
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
 
   const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data);
-  const distinctValues: Record<string, any[]> =
-    (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
+  const distinctValues: Record<string, any[]> = (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
 
   const param: any = {};
   param.categoryId = categoryid.value;
@@ -181,13 +264,8 @@ async function modalInit() {
       if (resData[i].searchFlag == 0) {
         const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
         // 查询字段全部以下拉形式展示；下拉值来源于 clumnsRes 返回的 distinctValues
-        const valueKeyCandidates = [
-          String(resData[i].dataProp ?? ''),
-          String(key ?? ''),
-          String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
-        ].filter(Boolean);
-        const rawOptions =
-          valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
+        const valueKeyCandidates = [String(resData[i].dataProp ?? ''), String(key ?? ''), String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : ''].filter(Boolean);
+        const rawOptions = valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
         const options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
         queryColumns.value.push({
           id: resData[i].id,
@@ -1136,7 +1214,12 @@ defineExpose({ initData });
                     v-model:value="queryForm[item.key]"
                     allowClear
                     show-search
-                    :filter-option="(input, option) => String(option?.value ?? '').toLowerCase().includes(String(input ?? '').toLowerCase())"
+                    :filter-option="
+                      (input, option) =>
+                        String(option?.value ?? '')
+                          .toLowerCase()
+                          .includes(String(input ?? '').toLowerCase())
+                    "
                     size="middle"
                     style="width: 100%"
                     placeholder="请选择">
@@ -1150,8 +1233,8 @@ defineExpose({ initData });
             </a-row>
           </div>
           <div class="query-actions">
-            <a-button type="primary" size="middle" @click="handleQuery()">查询</a-button>
-            <a-button size="middle" @click="handleQueryReset">重置</a-button>
+            <a-button type="primary" size="middle" @click="handleQuery()"><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button>
+            <a-button size="middle" @click="handleQueryReset"><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button>
           </div>
         </div>
         <div class="btn-box-container">
@@ -1165,15 +1248,6 @@ defineExpose({ initData });
               <EpcIcon class="act-btns" style="margin-right: 5px" type="icon-tandem" />
               比较数据
             </div>
-            <!-- <div
-              :class="{
-                'btn-item-select': delBtnType,
-                'btn-item': !delBtnType,
-              }"
-              @click="openRadarInfo">
-              <EpcIcon class="act-btns" style="margin-right: 5px" type="icon-leidatu1" />
-              雷达图
-            </div> -->
             <div class="btn-item">
               <a-dropdown>
                 <a class="ant-dropdown-link" @click.prevent>
@@ -1194,6 +1268,10 @@ defineExpose({ initData });
           </div>
 
           <div class="btn-box-right">
+            <div class="btn-item" @click="selectAllModuleInfo">
+              <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+              全局查询
+            </div>
             <div class="btn-item" @click="handleAddOrUpdate">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
               添加数据
@@ -1269,6 +1347,40 @@ defineExpose({ initData });
       <a-button type="primary" @click="radarflag = false"> 取消 </a-button>
     </template>
   </a-modal>
+
+  <a-modal
+    v-model:visible="globalQueryModalVisible"
+    style="width: 80%"
+    :title="$t('全局查询')"
+    :confirm-loading="globalQueryLoading"
+    :mask-closable="false"
+    @on-cancel="globalQueryModalVisible = false">
+    <div style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+      <span style="min-width: 70px">关键字：</span>
+      <a-input v-model:value="globalQueryKeyword" allowClear placeholder="请输入关键字" style="width: 260px" />
+      <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)"> 查询 </a-button>
+      <a-button
+        @click="
+          globalQueryKeyword = '';
+          fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
+        "
+        >重置</a-button
+      >
+    </div>
+
+    <a-table
+      row-key="_rowKey"
+      :columns="globalQueryColumns"
+      :data-source="globalQueryList"
+      :scroll="{ y: globalQueryTableScrollY }"
+      :pagination="globalQueryTablePagination"
+      :loading="globalQueryLoading"
+      @change="handleGlobalTableChange" />
+    <template #footer>
+      <a-button type="primary" @click="globalQueryModalVisible = false"> 关闭 </a-button>
+    </template>
+  </a-modal>
+
   <a-modal
     v-model:visible="tabularflag"
     style="width: 60%"
