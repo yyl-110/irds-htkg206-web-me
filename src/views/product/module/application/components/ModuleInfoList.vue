@@ -29,6 +29,7 @@ import {
   parameterInFirstCsys,
 } from '@/libs/webSocket';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
+import { useGlobalQuery } from '../../composables/useGlobalQuery';
 
 defineProps({
   /** 反馈详情 id */
@@ -72,69 +73,23 @@ const loading = ref(false);
 const selectModelList = ref([]);
 const queryForm = reactive<Record<string, any>>({});
 
-// 全局查询弹框：展示 getLibraryDataFixedColumnsPage 的分页列表
-const globalQueryModalVisible = ref(false);
-const globalQueryLoading = ref(false);
-const globalQueryList = ref<any[]>([]);
-const globalQueryTableScrollY = 420;
-const globalQueryTablePagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showQuickJumper: false,
-  showTotal: (total: number) => `共 ${total} 条`,
-  locale: {
-    items_per_page: '条/页',
-    jump_to: '跳至',
-    page: '页',
-  },
-});
-
-const globalQueryColumns = ref<any[]>([
-  { title: '模型件号', dataIndex: 'para1', key: 'para1', align: 'center', width: 120, resizable: true },
-  { title: '模型编码', dataIndex: 'para2', key: 'para2', align: 'center', width: 120, resizable: true },
-  { title: '模型名称', dataIndex: 'para3', key: 'para3', align: 'center', width: 120, resizable: true },
-  { title: '模型类型', dataIndex: 'para4', key: 'para4', align: 'center', width: 120, resizable: true },
-  { title: '节点名称', dataIndex: 'categoryName', key: 'categoryName', align: 'center', width: 120, resizable: true },
-  { title: '模型坐标系', dataIndex: 'para5', key: 'para5', align: 'center', width: 120, resizable: true },
-  { title: '英文名称', dataIndex: 'para6', key: 'para6', align: 'center', width: 120, resizable: true },
-  { title: '所属分类', dataIndex: 'para8', key: 'para8', align: 'center', width: 120, resizable: true },
-  { title: 'CAD计算重量', dataIndex: 'para9', key: 'para9', align: 'center', width: 120, resizable: true },
-  {
-    title: '状态',
-    dataIndex: 'para10',
-    key: 'para10',
-    customRender: ({ text }: any) => {
-      const v = Number(text);
-      if (v === 0) return '已发布';
-      if (v === 1) return '设计中';
-      if (v === 2) return '已停用';
-      if (v === 3) return '审核中';
-      return text ?? '';
-    },
-    align: 'center',
-    width: 120,
-    resizable: true,
-  },
-  { title: '创建用户', dataIndex: 'creatorName', key: 'creatorName', align: 'center', width: 120, resizable: true },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, resizable: true },
-]);
-const globalQueryTypeOptions = [
-  { label: '模糊查询', value: 'fuzzy' },
-  { label: '精确查询', value: 'exact' },
-];
-const globalQueryFieldOptions = ref<any[]>([
-  { label: '全部字段', value: '' },
-  ...globalQueryColumns.value.filter((c: any) => !['categoryName', 'creatorName'].includes(c.dataIndex)).map((c: any) => ({ label: c.title, value: c.dataIndex })),
-]);
-const maxGlobalQueryGroups = 3;
-const createGlobalQueryGroup = (field = '', queryType = 'fuzzy', keyword = '') => ({
-  field,
-  queryType,
-  keyword,
-});
-const globalQueryGroups = ref<any[]>([createGlobalQueryGroup('', 'fuzzy', '')]);
+const {
+  globalQueryModalVisible,
+  globalQueryLoading,
+  globalQueryList,
+  globalQueryTableScrollY,
+  globalQueryTablePagination,
+  globalQueryColumns,
+  globalQueryTypeOptions,
+  globalQueryFieldOptions,
+  globalQueryGroups,
+  selectAllModuleInfo,
+  fetchGlobalQueryData,
+  handleGlobalTableChange,
+  addGlobalQueryGroup,
+  removeGlobalQueryGroup,
+  resetGlobalQueryGroups,
+} = useGlobalQuery(menuId);
 
 // 处理需要计算的属性，比如modelHeight
 const modelHeight = ref(0);
@@ -148,75 +103,6 @@ function handleAddOrUpdate() {
   nextTick(() => {
     addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value, menuId.value);
   });
-}
-async function selectAllModuleInfo() {
-  let data: any = {};
-  data.menuId = menuId.value;
-  globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
-  globalQueryModalVisible.value = true;
-  await fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
-}
-
-async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
-  globalQueryLoading.value = true;
-  try {
-    const data: any = {};
-    data.menuId = menuId.value;
-    data.pageNo = pageNo;
-    data.pageSize = pageSize;
-    const activeConditions = globalQueryGroups.value
-      .map((g: any) => ({
-        field: g.field ?? '',
-        queryType: g.queryType ?? 'fuzzy',
-        keyword: String(g.keyword ?? '').trim(),
-      }))
-      .filter((g: any) => g.keyword);
-    // 兼容旧接口：keyword 仍保留（取第一组有值条件）
-    data.keyword = activeConditions[0]?.keyword || '';
-    // 新查询结构（后端若支持可直接使用）
-    data.queryConditionList = activeConditions;
-
-    const res = await AdminApiSystemModule.getLibraryDataFixedColumnsPage(data);
-    const resData: any = res?.data?.data ?? {};
-
-    // 列表字段名兜底
-    const list: any[] = resData.list || resData.moduleList || resData.records || [];
-    globalQueryList.value = list.map((item: any, idx: number) => ({
-      ...item,
-      _rowKey: String(item?.id ?? item?.ROW_ID ?? item?.para2 ?? item?.para1 ?? `global_${idx}`),
-    }));
-
-    // 分页总数兜底
-    globalQueryTablePagination.current = resData.currentPage ?? pageNo;
-    globalQueryTablePagination.pageSize = resData.pageSize ?? pageSize;
-    globalQueryTablePagination.total = resData.total ?? resData.totalCount ?? resData.totalPage ?? list.length ?? 0;
-  } catch (e) {
-    console.log(e);
-    message.error('全局查询失败');
-  } finally {
-    globalQueryLoading.value = false;
-  }
-}
-
-function handleGlobalTableChange(pagination: any) {
-  const current = pagination?.current ?? globalQueryTablePagination.current;
-  const pageSize = pagination?.pageSize ?? globalQueryTablePagination.pageSize;
-  fetchGlobalQueryData(current, pageSize);
-}
-
-function addGlobalQueryGroup() {
-  if (globalQueryGroups.value.length >= maxGlobalQueryGroups) return;
-  globalQueryGroups.value.push(createGlobalQueryGroup('', 'fuzzy', ''));
-}
-
-function removeGlobalQueryGroup(index: number) {
-  if (globalQueryGroups.value.length <= 1) return;
-  globalQueryGroups.value.splice(index, 1);
-}
-
-function resetGlobalQueryGroups() {
-  globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
-  fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
 }
 function updModule() {
   if (selectModelList.value.length == 0) {
@@ -990,7 +876,6 @@ async function compareData() {
     }
   }
   for (let i = 0; i < parmList.length; i++) {
-    debugger;
     // 循环左侧标题key
     const parmKey = Object.keys(parmList[i])[0];
     // 循环左侧标题Val
@@ -1061,15 +946,6 @@ function toParm(type: any) {
         }
       }
     });
-
-    // AdminApiSystemModule.getPdmDocument(params).then(res => {
-    //   if (res.data.code == 0) {
-    //     const data: any = res.data.data;
-    //     if (data.pdmResult && data.pdmResult.length > 0) {
-    //
-    //     }
-    //   }
-    // });
   } else if (type == 1) {
     AdminApiSystemModule.krAttribute(params).then(res => {
       console.log(res);
@@ -1485,7 +1361,7 @@ defineExpose({ initData, selectAllModuleInfo });
     <div ref="udfBoxRef" :style="udfBoxStyle()" class="udfPage_style">
       <div v-if="parmType == 0">
         <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-top: 20px" size="small" bordered>
-          <a-descriptions-item :label="item.name">
+          <a-descriptions-item :label="item.name" style="width: 200px">
             {{ item.val }}
           </a-descriptions-item>
         </a-descriptions>
@@ -1493,28 +1369,28 @@ defineExpose({ initData, selectAllModuleInfo });
       <div v-if="parmType == 1">
         <div v-if="pdmDataFlag">
           <a-descriptions style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item label="名称：">
+            <a-descriptions-item label="名称：" style="width: 200px">
               {{ pdmData.name }}
             </a-descriptions-item>
           </a-descriptions>
         </div>
         <div v-if="pdmDataFlag">
           <a-descriptions style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item label="编码：">
+            <a-descriptions-item label="编码：" style="width: 200px">
               {{ pdmData.number }}
             </a-descriptions-item>
           </a-descriptions>
         </div>
         <div v-if="pdmDataFlag">
           <a-descriptions style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item label="版本：">
+            <a-descriptions-item label="版本：" style="width: 200px">
               {{ pdmData.version }}
             </a-descriptions-item>
           </a-descriptions>
         </div>
         <div>
           <a-descriptions v-for="item in attributeParmList" :key="item.id" style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item :label="item.name">
+            <a-descriptions-item :label="item.name" style="width: 200px">
               {{ item.val }}
             </a-descriptions-item>
           </a-descriptions>
@@ -1641,7 +1517,8 @@ defineExpose({ initData, selectAllModuleInfo });
   align-items: flex-start;
   gap: 10px;
   min-width: 0;
-  margin-top: 25px;
+  height: 78px;
+  overflow: hidden;
 }
 .query-scroll {
   flex: 1;
@@ -1654,7 +1531,7 @@ defineExpose({ initData, selectAllModuleInfo });
 .query-actions {
   display: flex;
   gap: 8px;
-  padding-top: 2px;
+  padding-top: 35px;
   white-space: nowrap;
 }
 :deep(.query-item) {
@@ -1686,11 +1563,10 @@ defineExpose({ initData, selectAllModuleInfo });
   flex: 1;
 }
 
-/* 输入框/下拉框整体更大一些 */
 :deep(.query-item .ant-input-affix-wrapper),
 :deep(.query-item .ant-input),
 :deep(.query-item .ant-select-selector) {
-  height: 35px !important;
+  height: 32px !important;
 }
 :deep(.query-item .ant-input-affix-wrapper) {
   padding-top: 0 !important;
