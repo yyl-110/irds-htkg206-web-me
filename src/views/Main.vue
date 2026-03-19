@@ -83,9 +83,9 @@ function wrap(component: VNode, route: RouteLocationNormalizedLoaded) {
 }
 
 /** 左侧 aside 默认宽度 */
-const ASIDE_DEFAULT_WIDTH = 168
+const ASIDE_DEFAULT_WIDTH = 240
 /** 左侧 aside 最小宽度 */
-const ASIDE_MIN_WIDTH = 168
+const ASIDE_MIN_WIDTH = 240
 /** 左侧 aside 最大宽度 */
 const ASIDE_MAX_WIDTH = 800
 /** localStorage 存储的 Key */
@@ -177,9 +177,7 @@ onBeforeMount(() => {
           class="sider-wrapper p-0"
           :data-resizing="asideResizing"
           collapsible>
-          <aside
-            class="sider-menu-scroll overflow-x-hidden pt-4"
-            style="background-color: #1a3677">
+          <aside class="sider-menu-scroll overflow-x-hidden pt-4" style="background-color: #1a3677">
             <div class="sider-header" style="cursor: pointer" v-if="!collapsed">
               <img class="sider-header-img" src="@/assets/zg_yt.png" />
               <div class="sider-header-text">{{ $t('机械设备快速设计系统') }}</div>
@@ -297,17 +295,20 @@ onBeforeMount(() => {
   }
 
   .sider-header {
-    width: 168px;
+    // width: 215px;
     height: 64px;
     background: #1a3678;
     display: flex;
+    justify-content: center;
     .sider-header-img {
-      width: 55px;
+      // width: 55px;
+      margin-left: 10px;
       height: 34px;
       aspect-ratio: 55/34;
     }
     .sider-header-text {
-      width: 78px;
+      // width: 78px;
+      margin-top: 7px;
       height: 38px;
       color: #fff;
       text-align: center;
@@ -404,7 +405,7 @@ onBeforeMount(() => {
   background-color: #1a3677 !important;
   //background: linear-gradient(1deg, #1a3b7a, #1A3677);
   color: #e2ebff;
-  // padding: 0 16px;
+  padding: 0 16px;
   .ant-menu {
     padding-right: 0;
   }
@@ -413,8 +414,21 @@ onBeforeMount(() => {
   }
   .ant-menu-item-selected {
     background: #2963ea;
+    color: #fff !important;
     &::after {
       display: none;
+    }
+    /* 选中项：文字与图标统一为白色，避免主色深蓝在浅蓝底上不清晰 */
+    a,
+    span:not(.ant-menu-submenu-arrow) {
+      color: #fff !important;
+    }
+    .ant-menu-item-icon,
+    .anticon {
+      color: #fff !important;
+    }
+    .anticon svg {
+      fill: currentColor;
     }
     .ant-menu-submenu-arrow {
       color: #fff;
