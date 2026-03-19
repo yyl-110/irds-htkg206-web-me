@@ -75,7 +75,6 @@ const queryForm = reactive<Record<string, any>>({});
 // 全局查询弹框：展示 getLibraryDataFixedColumnsPage 的分页列表
 const globalQueryModalVisible = ref(false);
 const globalQueryLoading = ref(false);
-const globalQueryKeyword = ref<string>('');
 const globalQueryList = ref<any[]>([]);
 const globalQueryTableScrollY = 420;
 const globalQueryTablePagination = reactive({
@@ -93,11 +92,11 @@ const globalQueryTablePagination = reactive({
 });
 
 const globalQueryColumns = ref<any[]>([
-  { title: '节点名称', dataIndex: 'categoryName', key: 'categoryName', align: 'center', width: 120, resizable: true },
   { title: '模型件号', dataIndex: 'para1', key: 'para1', align: 'center', width: 120, resizable: true },
   { title: '模型编码', dataIndex: 'para2', key: 'para2', align: 'center', width: 120, resizable: true },
   { title: '模型名称', dataIndex: 'para3', key: 'para3', align: 'center', width: 120, resizable: true },
   { title: '模型类型', dataIndex: 'para4', key: 'para4', align: 'center', width: 120, resizable: true },
+  { title: '节点名称', dataIndex: 'categoryName', key: 'categoryName', align: 'center', width: 120, resizable: true },
   { title: '模型坐标系', dataIndex: 'para5', key: 'para5', align: 'center', width: 120, resizable: true },
   { title: '英文名称', dataIndex: 'para6', key: 'para6', align: 'center', width: 120, resizable: true },
   { title: '所属分类', dataIndex: 'para8', key: 'para8', align: 'center', width: 120, resizable: true },
@@ -121,6 +120,21 @@ const globalQueryColumns = ref<any[]>([
   { title: '创建用户', dataIndex: 'creatorName', key: 'creatorName', align: 'center', width: 120, resizable: true },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, resizable: true },
 ]);
+const globalQueryTypeOptions = [
+  { label: '模糊查询', value: 'fuzzy' },
+  { label: '精确查询', value: 'exact' },
+];
+const globalQueryFieldOptions = ref<any[]>([
+  { label: '全部字段', value: '' },
+  ...globalQueryColumns.value.filter((c: any) => !['categoryName', 'creatorName'].includes(c.dataIndex)).map((c: any) => ({ label: c.title, value: c.dataIndex })),
+]);
+const maxGlobalQueryGroups = 3;
+const createGlobalQueryGroup = (field = '', queryType = 'fuzzy', keyword = '') => ({
+  field,
+  queryType,
+  keyword,
+});
+const globalQueryGroups = ref<any[]>([createGlobalQueryGroup('', 'fuzzy', '')]);
 
 // 处理需要计算的属性，比如modelHeight
 const modelHeight = ref(0);
@@ -138,6 +152,7 @@ function handleAddOrUpdate() {
 async function selectAllModuleInfo() {
   let data: any = {};
   data.menuId = menuId.value;
+  globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
   globalQueryModalVisible.value = true;
   await fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
 }
@@ -149,8 +164,17 @@ async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
     data.menuId = menuId.value;
     data.pageNo = pageNo;
     data.pageSize = pageSize;
-    // 后端字段约定：keyword
-    data.keyword = globalQueryKeyword.value || '';
+    const activeConditions = globalQueryGroups.value
+      .map((g: any) => ({
+        field: g.field ?? '',
+        queryType: g.queryType ?? 'fuzzy',
+        keyword: String(g.keyword ?? '').trim(),
+      }))
+      .filter((g: any) => g.keyword);
+    // 兼容旧接口：keyword 仍保留（取第一组有值条件）
+    data.keyword = activeConditions[0]?.keyword || '';
+    // 新查询结构（后端若支持可直接使用）
+    data.queryConditionList = activeConditions;
 
     const res = await AdminApiSystemModule.getLibraryDataFixedColumnsPage(data);
     const resData: any = res?.data?.data ?? {};
@@ -178,6 +202,21 @@ function handleGlobalTableChange(pagination: any) {
   const current = pagination?.current ?? globalQueryTablePagination.current;
   const pageSize = pagination?.pageSize ?? globalQueryTablePagination.pageSize;
   fetchGlobalQueryData(current, pageSize);
+}
+
+function addGlobalQueryGroup() {
+  if (globalQueryGroups.value.length >= maxGlobalQueryGroups) return;
+  globalQueryGroups.value.push(createGlobalQueryGroup('', 'fuzzy', ''));
+}
+
+function removeGlobalQueryGroup(index: number) {
+  if (globalQueryGroups.value.length <= 1) return;
+  globalQueryGroups.value.splice(index, 1);
+}
+
+function resetGlobalQueryGroups() {
+  globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
+  fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
 }
 function updModule() {
   if (selectModelList.value.length == 0) {
@@ -1355,17 +1394,19 @@ defineExpose({ initData });
     :confirm-loading="globalQueryLoading"
     :mask-closable="false"
     @on-cancel="globalQueryModalVisible = false">
-    <div style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
-      <span style="min-width: 70px">关键字：</span>
-      <a-input v-model:value="globalQueryKeyword" allowClear placeholder="请输入关键字" style="width: 260px" />
-      <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)"> 查询 </a-button>
-      <a-button
-        @click="
-          globalQueryKeyword = '';
-          fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
-        "
-        >重置</a-button
-      >
+    <div style="margin-bottom: 12px">
+      <div v-for="(group, idx) in globalQueryGroups" :key="idx" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
+        <a-select v-model:value="group.field" style="width: 180px" :options="globalQueryFieldOptions" />
+        <a-select v-model:value="group.queryType" style="width: 140px" :options="globalQueryTypeOptions" />
+        <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 260px" />
+        <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
+        <EpcIcon v-if="globalQueryGroups.length > 1" type="icon-shanchu2" style="color: #ff4d4f; font-size: 16px; cursor: pointer" @click="removeGlobalQueryGroup(idx)" />
+        <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center">
+        <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)">查询</a-button>
+        <a-button @click="resetGlobalQueryGroups">重置</a-button>
+      </div>
     </div>
 
     <a-table

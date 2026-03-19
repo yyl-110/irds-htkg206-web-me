@@ -847,7 +847,7 @@ watch(
     </Splitpanes>
   </div>
   <a-drawer
-    :title="`产品模块管理`"
+    :title="`模型库管理`"
     placement="left"
     :style="drawerStyle"
     :closable="false"
