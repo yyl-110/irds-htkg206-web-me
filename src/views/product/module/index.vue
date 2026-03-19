@@ -652,6 +652,37 @@ function actionNode(item: any) {
   });
 }
 
+function findNodePathById(nodes: any[], targetId: string, path: any[] = []): any[] | null {
+  for (const node of nodes || []) {
+    const nextPath = [...path, node];
+    if (String(node?.key ?? node?.id ?? '') === targetId) {
+      return nextPath;
+    }
+    if (node?.children?.length) {
+      const childPath = findNodePathById(node.children, targetId, nextPath);
+      if (childPath) return childPath;
+    }
+  }
+  return null;
+}
+
+function getCategory(categoryId: any) {
+  const targetId = String(categoryId ?? '');
+  if (!targetId) return;
+  const path = findNodePathById(treeData.value, targetId);
+  if (!path || path.length === 0) {
+    message.warning('未找到对应树节点');
+    return;
+  }
+  const targetNode = path[path.length - 1];
+  selectedKeys.value = targetId;
+  // Tree 组件当前按逗号分割 expandedKeys，传字符串可稳定触发展开父链
+  expandedKeys.value = path.map((n: any) => n.key).join(',');
+  nextTick(() => {
+    selectNode(targetNode);
+  });
+}
+
 // 响应式数据
 const dialogVisible = ref(false);
 const TreeModuleRef = ref<any>(null);
@@ -840,8 +871,8 @@ watch(
       <!-- 右侧内容区域 -->
       <Pane class="splitpane-cls">
         <div v-if="!loading">
-          <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" />
-          <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" :menuId="menuId" />
+          <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
+          <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
         </div>
       </Pane>
     </Splitpanes>

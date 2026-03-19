@@ -39,7 +39,7 @@ defineProps({
     default: '',
   },
 });
-const emit = defineEmits(['nodeListInfo']);
+const emit = defineEmits(['nodeListInfo', 'getCategory']);
 const instance = getCurrentInstance();
 const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
@@ -103,6 +103,16 @@ function handleAddOrUpdate() {
   nextTick(() => {
     addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value, menuId.value);
   });
+}
+
+function handleGlobalModelNumClick(record: any) {
+  globalQueryModalVisible.value = false;
+  emit('getCategory', record.categoryId);
+}
+
+function customGetContainer() {
+  // 返回自定义挂载节点
+  return document.querySelector('.moduleInfoListApplication');
 }
 function updModule() {
   if (selectModelList.value.length == 0) {
@@ -1262,41 +1272,49 @@ defineExpose({ initData, selectAllModuleInfo });
     </template>
   </a-modal>
 
-  <a-modal
-    v-model:visible="globalQueryModalVisible"
-    style="width: 80%"
-    :title="$t('全局查询')"
-    :confirm-loading="globalQueryLoading"
-    :mask-closable="false"
-    @on-cancel="globalQueryModalVisible = false">
-    <div style="margin-bottom: 12px">
-      <div v-for="(group, idx) in globalQueryGroups" :key="idx" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
-        <a-select v-model:value="group.field" style="width: 180px" :options="globalQueryFieldOptions" />
-        <a-select v-model:value="group.queryType" style="width: 140px" :options="globalQueryTypeOptions" />
-        <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 260px" />
-        <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
-        <EpcIcon v-if="globalQueryGroups.length > 1" type="icon-shanchu2" style="color: #ff4d4f; font-size: 16px; cursor: pointer" @click="removeGlobalQueryGroup(idx)" />
-        <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
+  <div class="moduleInfoListApplication" v-dragModal>
+    <a-modal
+      v-model:visible="globalQueryModalVisible"
+      :getContainer="customGetContainer"
+      style="width: 80%"
+      :title="$t('全局查询')"
+      :confirm-loading="globalQueryLoading"
+      :mask-closable="false"
+      @on-cancel="globalQueryModalVisible = false">
+      <div style="margin-bottom: 12px">
+        <div v-for="(group, idx) in globalQueryGroups" :key="idx" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
+          <a-select v-model:value="group.field" style="width: 180px" :options="globalQueryFieldOptions" />
+          <a-select v-model:value="group.queryType" style="width: 140px" :options="globalQueryTypeOptions" />
+          <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 260px" />
+          <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
+          <EpcIcon v-if="globalQueryGroups.length > 1" type="icon-shanchu2" style="color: #ff4d4f; font-size: 16px; cursor: pointer" @click="removeGlobalQueryGroup(idx)" />
+          <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)">查询</a-button>
+          <a-button @click="resetGlobalQueryGroups">重置</a-button>
+        </div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center">
-        <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)">查询</a-button>
-        <a-button @click="resetGlobalQueryGroups">重置</a-button>
-      </div>
-    </div>
 
-    <a-table
-      row-key="_rowKey"
-      :columns="globalQueryColumns"
-      :data-source="globalQueryList"
-      :scroll="{ y: globalQueryTableScrollY }"
-      :pagination="globalQueryTablePagination"
-      :loading="globalQueryLoading"
-      @change="handleGlobalTableChange" />
-    <template #footer>
-      <a-button type="primary" @click="globalQueryModalVisible = false"> 关闭 </a-button>
-    </template>
-  </a-modal>
-
+      <a-table
+        row-key="_rowKey"
+        :columns="globalQueryColumns"
+        :data-source="globalQueryList"
+        :scroll="{ y: globalQueryTableScrollY }"
+        :pagination="globalQueryTablePagination"
+        :loading="globalQueryLoading"
+        @change="handleGlobalTableChange">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'para1'">
+            <a @click.stop="handleGlobalModelNumClick(record)">{{ record.para1 }}</a>
+          </template>
+        </template>
+      </a-table>
+      <template #footer>
+        <a-button type="primary" @click="globalQueryModalVisible = false"> 关闭 </a-button>
+      </template>
+    </a-modal>
+  </div>
   <a-modal
     v-model:visible="tabularflag"
     style="width: 60%"

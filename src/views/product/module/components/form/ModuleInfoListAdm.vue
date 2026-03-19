@@ -12,7 +12,7 @@ const userStore = useUserStore();
 const activeKey = ref('1');
 const categoryid = ref<string>('');
 const menuId = ref<any>('');
-const emit = defineEmits([]);
+const emit = defineEmits(['getCategory']);
 //初始化数据
 async function infoReload(categoryidStr: string, menuid: any) {
   categoryid.value = categoryidStr;
@@ -24,6 +24,10 @@ async function infoReload(categoryidStr: string, menuid: any) {
       modulePropertyInfoRef.value.initColumnData(categoryid.value);
     });
   }
+}
+
+function getCategory(categoryId: any) {
+  emit('getCategory', categoryId);
 }
 
 function handleTabChange(item: any) {
@@ -48,7 +52,7 @@ defineExpose({ infoReload });
     </div>
     <a-tabs v-model:activeKey="activeKey" @change="handleTabChange" style="margin-left: 20px">
       <a-tab-pane key="1" tab="数据管理">
-        <ModuleInfoList :categoryid="categoryid" ref="moduleInfoListRef" />
+        <ModuleInfoList :categoryid="categoryid" ref="moduleInfoListRef" @getCategory="getCategory" />
       </a-tab-pane>
       <a-tab-pane key="2" tab="属性管理">
         <ModulePropertyInfo ref="modulePropertyInfoRef" />
