@@ -302,7 +302,7 @@ onBeforeMount(() => {
     justify-content: center;
     .sider-header-img {
       // width: 55px;
-      margin-left: 10px;
+      margin-left: -15px;
       height: 34px;
       aspect-ratio: 55/34;
     }
@@ -405,9 +405,16 @@ onBeforeMount(() => {
   background-color: #1a3677 !important;
   //background: linear-gradient(1deg, #1a3b7a, #1A3677);
   color: #e2ebff;
-  padding: 0 16px;
+  padding: 0 6px;
+
   .ant-menu {
     padding-right: 0;
+  }
+  .ant-menu-item {
+    padding-left: 16px !important;
+  }
+  .ant-menu-submenu-title {
+    padding-left: 16px !important;
   }
   .ant-menu-submenu-arrow {
     color: #e2ebff;
