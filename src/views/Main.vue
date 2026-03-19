@@ -313,7 +313,7 @@ onBeforeMount(() => {
       color: #fff;
       text-align: center;
       font-family: 'Source Sans 3';
-      font-size: 13px;
+      font-size: 16px;
       font-style: normal;
       font-weight: 600;
       line-height: normal;
