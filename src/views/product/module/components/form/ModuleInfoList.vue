@@ -1236,7 +1236,7 @@ function handleNameClick(row: any) {
   });
 }
 
-defineExpose({ initData });
+defineExpose({ initData, selectAllModuleInfo });
 </script>
 
 <template>
@@ -1307,10 +1307,6 @@ defineExpose({ initData });
           </div>
 
           <div class="btn-box-right">
-            <div class="btn-item" @click="selectAllModuleInfo">
-              <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-              全局查询
-            </div>
             <div class="btn-item" @click="handleAddOrUpdate">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
               添加数据

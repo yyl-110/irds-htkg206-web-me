@@ -388,7 +388,7 @@ async function selectNode(node: any) {
   categoryType.value = node.categoryType;
   if (categoryType.value == 2 || categoryType.value == 3) {
     nextTick(() => {
-      ModuleImgListRef.value?.infoReload(categoryid.value);
+      ModuleImgListRef.value?.infoReload(categoryid.value, menuId.value);
     });
   } else {
     nextTick(() => {

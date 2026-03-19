@@ -14,8 +14,10 @@ import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
 import { useUserStore } from '@/store/modules/user';
 import { characterToList } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon.js';
-
+import Empty from '@/components/Empty/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { handleEpcDownload } from '@/utils/file';
 import {
   DownloadModuleFile,
   GetLocParametersInFirstCsys,
@@ -37,60 +39,102 @@ defineProps({
   },
 });
 const emit = defineEmits(['nodeListInfo']);
-const modelType = ref([
-  {
-    label: '通用',
-    value: '通用',
-  },
-  {
-    label: '专用',
-    value: '专用',
-  },
-]);
-const formInline = reactive<any>({
-  mdName: '',
-  mdDegree: undefined,
-  mdNum: '',
-});
 const instance = getCurrentInstance();
 const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
 const categoryid = ref('');
-const tabHeight = ref<any>(`${(window.innerHeight - 300) / 16}rem`);
+const menuId = ref<any>(null);
+const tabHeight = ref<any>(`${(window.innerHeight - 380) / 16}rem`);
 const initSelect = ref(false);
 const isArgs = ref<boolean>(false);
 const pageFlagDrawer = ref<boolean>(false);
+const modulePropertyInfo = ref<any>([]);
 const AddVisible = ref<boolean>(false);
 const addOrUpdate = ref<any>(null);
 const modalInfo = ref<any>([]);
 const btnType = ref(true);
 const delBtnType = ref(true);
 const compareBtnType = ref(true);
-const checkList = ref<any>([]);
-const nodeList = ref([]);
 const page = reactive({
   pageSize: 10,
   pageCount: 0,
   currentPage: 1,
 });
-
-const compactData = ref<any>([]); // 数组用ref
 const columns = ref<any>([]);
+const queryColumns = ref<any>([]);
 const dropdownList = ref<any>([
-  // { id: 0, name: '另存' },
   { id: 1, name: '导入' },
   { id: 8, name: '导出' },
-  // { id: 2, name: '列管理' },
   { id: 3, name: '列宽保存' },
-  // {id:4,name:'图片上传'},
-  // { id: 5, name: '上传模型' },
-  // { id: 6, name: '提交审核' },
-  // { id: 7, name: '参数化设计' },
 ]);
-
 const parmDesignData = ref<any>([]);
 const loading = ref(false);
 const selectModelList = ref([]);
+const queryForm = reactive<Record<string, any>>({});
+
+// 全局查询弹框：展示 getLibraryDataFixedColumnsPage 的分页列表
+const globalQueryModalVisible = ref(false);
+const globalQueryLoading = ref(false);
+const globalQueryList = ref<any[]>([]);
+const globalQueryTableScrollY = 420;
+const globalQueryTablePagination = reactive({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showSizeChanger: true,
+  showQuickJumper: false,
+  showTotal: (total: number) => `共 ${total} 条`,
+  locale: {
+    items_per_page: '条/页',
+    jump_to: '跳至',
+    page: '页',
+  },
+});
+
+const globalQueryColumns = ref<any[]>([
+  { title: '模型件号', dataIndex: 'para1', key: 'para1', align: 'center', width: 120, resizable: true },
+  { title: '模型编码', dataIndex: 'para2', key: 'para2', align: 'center', width: 120, resizable: true },
+  { title: '模型名称', dataIndex: 'para3', key: 'para3', align: 'center', width: 120, resizable: true },
+  { title: '模型类型', dataIndex: 'para4', key: 'para4', align: 'center', width: 120, resizable: true },
+  { title: '节点名称', dataIndex: 'categoryName', key: 'categoryName', align: 'center', width: 120, resizable: true },
+  { title: '模型坐标系', dataIndex: 'para5', key: 'para5', align: 'center', width: 120, resizable: true },
+  { title: '英文名称', dataIndex: 'para6', key: 'para6', align: 'center', width: 120, resizable: true },
+  { title: '所属分类', dataIndex: 'para8', key: 'para8', align: 'center', width: 120, resizable: true },
+  { title: 'CAD计算重量', dataIndex: 'para9', key: 'para9', align: 'center', width: 120, resizable: true },
+  {
+    title: '状态',
+    dataIndex: 'para10',
+    key: 'para10',
+    customRender: ({ text }: any) => {
+      const v = Number(text);
+      if (v === 0) return '已发布';
+      if (v === 1) return '设计中';
+      if (v === 2) return '已停用';
+      if (v === 3) return '审核中';
+      return text ?? '';
+    },
+    align: 'center',
+    width: 120,
+    resizable: true,
+  },
+  { title: '创建用户', dataIndex: 'creatorName', key: 'creatorName', align: 'center', width: 120, resizable: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, resizable: true },
+]);
+const globalQueryTypeOptions = [
+  { label: '模糊查询', value: 'fuzzy' },
+  { label: '精确查询', value: 'exact' },
+];
+const globalQueryFieldOptions = ref<any[]>([
+  { label: '全部字段', value: '' },
+  ...globalQueryColumns.value.filter((c: any) => !['categoryName', 'creatorName'].includes(c.dataIndex)).map((c: any) => ({ label: c.title, value: c.dataIndex })),
+]);
+const maxGlobalQueryGroups = 3;
+const createGlobalQueryGroup = (field = '', queryType = 'fuzzy', keyword = '') => ({
+  field,
+  queryType,
+  keyword,
+});
+const globalQueryGroups = ref<any[]>([createGlobalQueryGroup('', 'fuzzy', '')]);
 
 // 处理需要计算的属性，比如modelHeight
 const modelHeight = ref(0);
@@ -99,15 +143,81 @@ onMounted(() => {
 });
 
 const dataSource = ref<any>([]);
-const dynamicParm = ref<any>([]);
-const columnsData4 = ref<any>([]);
 function handleAddOrUpdate() {
   AddVisible.value = true;
   nextTick(() => {
-    addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value);
+    addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value, menuId.value);
   });
 }
+async function selectAllModuleInfo() {
+  let data: any = {};
+  data.menuId = menuId.value;
+  globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
+  globalQueryModalVisible.value = true;
+  await fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
+}
 
+async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
+  globalQueryLoading.value = true;
+  try {
+    const data: any = {};
+    data.menuId = menuId.value;
+    data.pageNo = pageNo;
+    data.pageSize = pageSize;
+    const activeConditions = globalQueryGroups.value
+      .map((g: any) => ({
+        field: g.field ?? '',
+        queryType: g.queryType ?? 'fuzzy',
+        keyword: String(g.keyword ?? '').trim(),
+      }))
+      .filter((g: any) => g.keyword);
+    // 兼容旧接口：keyword 仍保留（取第一组有值条件）
+    data.keyword = activeConditions[0]?.keyword || '';
+    // 新查询结构（后端若支持可直接使用）
+    data.queryConditionList = activeConditions;
+
+    const res = await AdminApiSystemModule.getLibraryDataFixedColumnsPage(data);
+    const resData: any = res?.data?.data ?? {};
+
+    // 列表字段名兜底
+    const list: any[] = resData.list || resData.moduleList || resData.records || [];
+    globalQueryList.value = list.map((item: any, idx: number) => ({
+      ...item,
+      _rowKey: String(item?.id ?? item?.ROW_ID ?? item?.para2 ?? item?.para1 ?? `global_${idx}`),
+    }));
+
+    // 分页总数兜底
+    globalQueryTablePagination.current = resData.currentPage ?? pageNo;
+    globalQueryTablePagination.pageSize = resData.pageSize ?? pageSize;
+    globalQueryTablePagination.total = resData.total ?? resData.totalCount ?? resData.totalPage ?? list.length ?? 0;
+  } catch (e) {
+    console.log(e);
+    message.error('全局查询失败');
+  } finally {
+    globalQueryLoading.value = false;
+  }
+}
+
+function handleGlobalTableChange(pagination: any) {
+  const current = pagination?.current ?? globalQueryTablePagination.current;
+  const pageSize = pagination?.pageSize ?? globalQueryTablePagination.pageSize;
+  fetchGlobalQueryData(current, pageSize);
+}
+
+function addGlobalQueryGroup() {
+  if (globalQueryGroups.value.length >= maxGlobalQueryGroups) return;
+  globalQueryGroups.value.push(createGlobalQueryGroup('', 'fuzzy', ''));
+}
+
+function removeGlobalQueryGroup(index: number) {
+  if (globalQueryGroups.value.length <= 1) return;
+  globalQueryGroups.value.splice(index, 1);
+}
+
+function resetGlobalQueryGroups() {
+  globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
+  fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
+}
 function updModule() {
   if (selectModelList.value.length == 0) {
     message.warning({
@@ -127,7 +237,7 @@ function updModule() {
   }
   AddVisible.value = true;
   nextTick(() => {
-    addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0]);
+    addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0], menuId.value);
   });
 }
 function selectModelListCheck2(selection: any) {
@@ -153,44 +263,11 @@ function selectModelListCheck2(selection: any) {
   }
 }
 const pdmType = ref<string>('');
-async function getCategoryPdm(id: string) {
-  const data: any = {};
-  data.categoryId = id;
-  const res = await AdminApiSystemModule.getCategoryPdmType(data);
-  if (res.data.code == 0) {
-    pdmType.value = res.data.pdmType;
-  }
-}
-async function initData(categoryidStr: string) {
+async function initData(categoryidStr: string, menuid: any) {
   categoryid.value = categoryidStr;
-  getCategoryPdm(categoryidStr);
-  columnsData4.value = [];
-  compactData.value = [];
-  checkList.value = [];
+  menuId.value = menuid;
   selectModelList.value = [];
-  const data: any = {};
-  data.categoryId = categoryidStr;
-  data.userName = userStore.getUser.userName;
-  data.userId = userStore.getUser.id;
   modalInit();
-  initData2(categoryid.value, 1);
-  const res = await AdminApiSystemModule.findCurrentModuleInfoByCategoryId(data);
-  columnsData4.value = res.data.data.moduleParaList;
-  for (let i = 0; i < columnsData4.value.length; i++) {
-    if (columnsData4.value[i].defaultQuery == 1) {
-      if (compactData.value.length < 5) {
-        compactData.value.push({
-          id: columnsData4.value[i].id,
-          name: 'rxLabel',
-          labelName: `${columnsData4.value[i].propertyName}：`,
-          type: columnsData4.value[i].ifSelectForm == undefined ? '0' : `${columnsData4.value[i].ifSelectForm}`,
-          modeTypeList: characterToList(columnsData4.value[i].selectMultipleValues),
-          typeKey: columnsData4.value[i].modelInfoProp,
-        });
-        checkList.value.push(columnsData4.value[i]);
-      }
-    }
-  }
 }
 // 列表初始化
 async function modalInit() {
@@ -199,6 +276,7 @@ async function modalInit() {
   btnType.value = true;
   compareBtnType.value = true;
   columns.value = [];
+  queryColumns.value = [];
   dataSource.value = [];
   const data: any = {};
   data.userId = userStore.getUser.id;
@@ -206,127 +284,90 @@ async function modalInit() {
   data.categoryId = categoryid.value;
   data.currentPage = page.currentPage;
   data.numberPage = page.pageSize;
-  for (const i in formInline) {
-    if (formInline[i]) {
-      data.moduleParaList.push({
-        modelInfoProp: i == 'mdName' ? 'para3' : i == 'mdNum' ? 'para2' : 'para10',
-        modelInfoPropValue: formInline[i],
-      });
-    }
-  }
+  data.menuId = menuId.value;
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
-  if (res.data.code == 0) {
-    const resData: any = res.data.data;
-    page.currentPage = resData.currentPage;
-    page.pageCount = resData.pageCount;
+
+  const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data);
+  const distinctValues: Record<string, any[]> = (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
+
+  const param: any = {};
+  param.categoryId = categoryid.value;
+  param.menuId = menuId.value;
+  const libRes = await AdminApiSystemModule.findCurrentModuleInfoByCategoryId(param);
+  if (libRes.data.code == 200) {
+    modulePropertyInfo.value = libRes.data.data;
+    const resData: any = libRes.data.data;
     const parm: any = [];
-    for (let i = 0; i < resData.moduleParaList.length; i++) {
-      if (resData.moduleParaList[i].status == 0 || resData.moduleParaList[i].status == undefined) {
+    for (let i = 0; i < resData.length; i++) {
+      // 动态查询条件：searchFlag == 0（默认查询）
+      if (resData[i].searchFlag == 0) {
+        const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
+        // 查询字段全部以下拉形式展示；下拉值来源于 clumnsRes 返回的 distinctValues
+        const valueKeyCandidates = [String(resData[i].dataProp ?? ''), String(key ?? ''), String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : ''].filter(Boolean);
+        const rawOptions = valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
+        const options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
+        queryColumns.value.push({
+          id: resData[i].id,
+          title: resData[i].propertyName,
+          key,
+          inputType: 'select',
+          options,
+        });
+        if (!(key in queryForm)) queryForm[key] = '';
+      }
+
+      if (resData[i].showFlag == 0) {
         parm.push({
-          id: resData.moduleParaList[i].id,
-          title: resData.moduleParaList[i].propertyName,
-          key: resData.moduleParaList[i].modelInfoProp,
+          id: resData[i].id,
+          title: resData[i].propertyName,
+          key: resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp,
           align: 'center',
           resizable: true,
           filters: [],
-          width: resData.moduleParaList[i].inputBoxLength == undefined ? 70 : resData.moduleParaList[i].inputBoxLength,
+          width: resData[i].colWidth == undefined ? 70 : resData[i].colWidth,
           sortable: true,
-          render:
-            resData.moduleParaList[i].modelInfoProp == 'para2' ? renderFunTiele(resData.moduleParaList[i].modelInfoProp) : renderFunTiele3(resData.moduleParaList[i].modelInfoProp),
+          render: resData[i].dataProp == 'para2' ? renderFunTiele(resData[i].dataProp) : renderFunTiele3(resData[i].dataProp),
         });
       }
     }
-
-    const moduleListData = resData.moduleList || [];
-    const requestPromises = parm.map(async (item: any) => {
-      const data: any = {};
-      data.categoryId = `${categoryid.value}`;
-      data.userId = userStore.getUser.id;
-      data.propName = item.key;
-      const res = await AdminApiSystemModule.getModuleColumnData(data);
-      if (res.data.code == 0) {
-        const { valueList = [] } = res.data.data;
-        const filters = valueList.map((fositem: any) => ({
-          label: fositem[item.key],
-          value: fositem[item.key],
-        }));
-        item.filters = _.uniqWith(filters, _.isEqual);
-      } else {
-        message.error(res.data.msg);
-      }
+    parm.unshift({
+      fixed: 'left',
+      type: 'checkbox',
+      align: 'left',
+      width: '60',
     });
-    // 使用 Promise.all 来等待所有接口请求完成
-    Promise.all(requestPromises).then(() => {
-      loading.value = false;
-      parm.unshift({
-        fixed: 'left',
-        type: 'checkbox',
-        align: 'left',
-        width: '60',
-      });
-      columns.value = parm;
-      dataSource.value = moduleListData;
-    });
+    columns.value = parm;
+  }
+  if (res.data.code == 200) {
+    const resData: any = res.data.data;
+    const moduleListData = resData.list || [];
+    dataSource.value = moduleListData;
+    // 总条数：优先使用 total（总记录数），其次 pageCount / totalPage
+    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
+  }
+  loading.value = false;
+}
+async function fetchModuleList(filterArr?: any) {
+  loading.value = true;
+  const data: any = {
+    userId: userStore.getUser.id,
+    moduleParaList: filterArr || [],
+    categoryId: categoryid.value,
+    pageNo: page.currentPage,
+    pageSize: page.pageSize,
+    menuId: menuId.value,
+  };
+  const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
+  if (res.data.code == 200) {
+    const resData: any = res.data.data;
+    dataSource.value = resData.list || [];
+    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
+  }
+  loading.value = false;
+}
 
-    dynamicParm.value = [];
-    const moduleParaList = resData.moduleParaList;
-    for (let i = 0; i < moduleParaList.length; i++) {
-      if (moduleParaList[i].columnProperties == 0) {
-        dynamicParm.value.push({
-          id: moduleParaList[i].id,
-          name: 'dynamicForm',
-          labelName: `${moduleParaList[i].propertyName}：`,
-          type: moduleParaList[i].ifSelectForm == undefined ? '0' : `${moduleParaList[i].ifSelectForm}`,
-          modeTypeList: characterToList(moduleParaList[i].selectMultipleValues),
-          typeKey: moduleParaList[i].modelInfoProp,
-          modeTypeVal: '',
-        });
-      }
-    }
-  }
-}
-function onSeachSubmit() {
-  searchmodalInit();
-}
-function onSeachReset() {
-  formInline.mdName = '';
-  formInline.mdDegree = undefined;
-  formInline.mdNum = '';
-  searchmodalInit();
-}
-async function searchmodalInit() {
-  try {
-    loading.value = true;
-    delBtnType.value = true;
-    btnType.value = true;
-    compareBtnType.value = true;
-    dataSource.value = [];
-    const data: any = {};
-    data.userId = userStore.getUser.id;
-    data.moduleParaList = [];
-    data.categoryId = categoryid.value;
-    data.currentPage = page.currentPage;
-    data.numberPage = page.pageSize;
-    for (const i in formInline) {
-      if (formInline[i]) {
-        data.moduleParaList.push({
-          modelInfoProp: i == 'mdName' ? 'para3' : i == 'mdNum' ? 'para2' : 'para10',
-          modelInfoPropValue: formInline[i],
-        });
-      }
-    }
-    const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
-    if (res.data.code == 0) {
-      loading.value = false;
-      const resData: any = res.data.data;
-      page.currentPage = resData.currentPage;
-      page.pageCount = resData.pageCount;
-      dataSource.value = resData.moduleList || [];
-    }
-  } catch (error) {
-    loading.value = false;
-    console.log(error);
-  }
+async function queryModuleLibrary(filterArr?: any) {
+  await fetchModuleList(filterArr);
 }
 // 删除列表数据
 function delModule() {
@@ -343,21 +384,14 @@ function delModule() {
     okText: WeiI18n.t('确定').value,
     cancelText: WeiI18n.t('取消').value,
     onOk: async () => {
-      const list: any = [];
-      selectModelList.value.forEach(val => {
-        list.push({ id: `${val.id}` });
-      });
-      const data: any = {};
-      data.categoryId = categoryid.value;
-      data.userId = userStore.getUser.id;
-      data.moduleInfoList = list;
-      const res = await AdminApiSystemModule.batchDeleteModuleInfo(data);
-      if (res.data.data.result) {
-        message.info('删除成功');
-        modalInit();
-        btnType.value = true;
-        delBtnType.value = true;
-      }
+      // 直接从 selectModelList 提取 id 数组
+      const moduleIds = selectModelList.value.map(val => `${val.id}`);
+      // 直接传递数组
+      const res = await AdminApiSystemModule.batchDeleteModuleInfo(moduleIds);
+      message.info('删除成功');
+      modalInit();
+      btnType.value = true;
+      delBtnType.value = true;
     },
   });
 }
@@ -379,7 +413,6 @@ function renderFunTiele(key: any) {
           click: () => {
             pdmModuleCode.value = params.row[key];
             PDMid.value = params.row.id;
-            moduleDetails(params.row.id);
           },
         },
       },
@@ -388,32 +421,15 @@ function renderFunTiele(key: any) {
   };
   return render;
 }
-async function moduleDetails(id: string) {
-  const data: any = {};
-  modalInfo.value = [];
-  data.userId = userStore.getUser.id;
-  data.categoryId = categoryid.value;
-  data.id = id;
-  const res = await AdminApiSystemModule.findModuleInfoDetailedById(data);
-
+async function moduleDetails(rowRecord: any) {
   pageFlagDrawer.value = true;
   parmType.value == 0;
-  const moduleParaList = res.data.data.moduleParaList;
-  for (let i = 0; i < moduleParaList.length; i++) {
-    if (moduleParaList[i].propertyName == '模型类型') {
-      modalInfo.value.push({
-        name: moduleParaList[i].propertyName,
-        str: moduleParaList[i].modelInfoProp,
-        val: moduleParaList[i].paraValue == '0' ? 'prt' : moduleParaList[i].paraValue == '1' ? 'asm' : '',
-      });
-    } else {
-      modalInfo.value.push({
-        name: moduleParaList[i].propertyName,
-        str: moduleParaList[i].modelInfoProp,
-        val: moduleParaList[i].paraValue,
-      });
-    }
-  }
+  const moduleParaList = modulePropertyInfo.value;
+  modalInfo.value = moduleParaList.map((item: any) => ({
+    name: item.propertyName,
+    str: item.dataProp,
+    val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
+  }));
 }
 
 // 超出宽度隐藏字符串 。。。代替
@@ -437,44 +453,51 @@ function renderFunTiele3(key: any) {
   };
   return render;
 }
-async function initData2(id: string, type: number) {
-  const data: any = {};
-  data.userId = userStore.getUser.id;
-  data.categoryid = id;
-  data.categoryType = type;
-  data.organizationID = '';
-  data.rootType = 0;
-  const res = await AdminApiSystemModule.queryClassificationNode(data);
-  nodeList.value = res.data.list;
-  emit('nodeListInfo', res.data.list);
-}
 function onShowSizeChange(current: number, pageSize: number) {
   page.currentPage = current;
   page.pageSize = pageSize;
-  queryModuleLibrary();
-}
-// 模块库模糊查询
-async function queryModuleLibrary(filterArr?: any) {
-  try {
-    const data: any = {};
-    data.userId = userStore.getUser.id;
-    data.categoryId = categoryid.value;
-    data.userName = userStore.getUser.userName;
-    data.currentPage = page.currentPage;
-    data.numberPage = page.pageSize;
-    data.moduleParaList = filterArr || [];
-    const res = await AdminApiSystemModule.moduleDataScreening(data);
-    if (res.data.code == 0) {
-      const resData: any = res.data.data;
-      if (resData.moduleList) {
-        dataSource.value = resData.moduleList;
-        page.pageCount = resData.pageCount;
-        page.currentPage = resData.currentPage;
-      }
-    }
-  } catch (error) {
-    console.log(error);
+  // 分页变化：若当前存在筛选条件，走筛选接口；否则走普通列表接口
+  const hasFilter = queryColumns.value.some((c: any) => {
+    const v = queryForm[c.key];
+    return v !== undefined && v !== null && String(v).trim() !== '';
+  });
+  if (hasFilter) {
+    handleQuery(false);
+  } else {
+    fetchModuleList();
   }
+}
+
+function buildFilterArr() {
+  const moduleParaList: any[] = [];
+  queryColumns.value.forEach((c: any) => {
+    const v = queryForm[c.key];
+    if (v !== undefined && v !== null && String(v).trim() !== '') {
+      moduleParaList.push({
+        modelInfoProp: c.key,
+        modelInfoPropValue: String(v).trim(),
+      });
+    }
+  });
+  return moduleParaList;
+}
+
+function handleQuery(resetPage = true) {
+  if (resetPage) page.currentPage = 1;
+  const filterArr = buildFilterArr();
+  if (filterArr.length > 0) {
+    queryModuleLibrary(filterArr);
+  } else {
+    fetchModuleList();
+  }
+}
+
+function handleQueryReset() {
+  queryColumns.value.forEach((c: any) => {
+    queryForm[c.key] = '';
+  });
+  page.currentPage = 1;
+  fetchModuleList();
 }
 function filterChange() {}
 // 打开模型
@@ -499,7 +522,7 @@ async function addModelLog(moduleInfo: any, logUpdateType: any) {
   data.moduleId = moduleInfo.id;
   data.moduleNum = moduleInfo.para1 == undefined ? '' : moduleInfo.para1;
   data.logUpdateType = logUpdateType;
-  const res = await AdminApiwebSocketAuth.setOperationalModel(data);
+  // const res = await AdminApiwebSocketAuth.setOperationalModel(data);
 }
 // 装配模型
 function fitoutMx(data: any) {
@@ -632,8 +655,9 @@ async function argsMx(row: any) {
   paramsObject.value.templateModuleType = '';
   paramsObject.value.inputVal = '';
   if (row.length > 0) {
-    params.id = row[0].id;
+    params.moduleId = row[0].id;
     const res = await AdminApiwebSocketAuth.modelDesignParametric(params);
+    console.log(res);
     const data: any = res.data.data;
     if (data.moduleNum != null && data.moduleNum != '') {
       paramsObject.value.templateModuleNum = data.moduleNum;
@@ -641,18 +665,16 @@ async function argsMx(row: any) {
     if (data.moduleType != null && data.moduleType != '') {
       paramsObject.value.templateModuleType = data.moduleType;
     }
-
     moduleId.value = data.moduleId;
-    for (let i = 0; i < data.moduleParaList.length; i++) {
-      let modelInfoProp = data.moduleParaList[i].modelInfoProp;
-      if (modelInfoProp.length > 4) {
-        modelInfoProp = modelInfoProp.substring(4);
-        if (modelInfoProp > 9) {
-          parmDesignData1.push(data.moduleParaList[i]);
-        }
-      }
+    if (data.moduleParaList && data.moduleParaList.length > 0) {
+      const rowRecord = row[0];
+      parmDesignData.value = data.moduleParaList.map((item: any) => ({
+        ...item,
+        parameterValue: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
+      }));
+    } else {
+      parmDesignData.value = [];
     }
-    parmDesignData.value = parmDesignData1;
     parmDesign.value = true;
     addModelLog(row[0], 10);
   } else {
@@ -665,6 +687,9 @@ async function argsMx(row: any) {
 }
 function changeData(moduleNewNum: string) {
   paramsObject.value.inputVal = moduleNewNum;
+}
+function updateParmDesignData(data: any[]) {
+  parmDesignData.value = data;
 }
 function handleSave() {
   AddVisible.value = false;
@@ -679,7 +704,6 @@ function dropdownAction(type: number) {
     upDerive();
   }
 }
-
 /** 文件列表 */
 const fileList = ref<any>([]);
 const batchflag = ref<boolean>(false);
@@ -710,12 +734,12 @@ async function customRequest(options: any) {
 }
 // 下载附件
 async function templateDownload() {
-  debugger;
   const data: any = {};
   data.categoryId = categoryid.value;
   data.userid = userStore.getUser.id;
   const res = await AdminApiSystemModule.createModuleLibraryTemplateApi(data);
-  if (res.data.code == 0) {
+  console.log(res);
+  if (res.data.code == 200) {
     downloadFile(res.data.data.fileUrl);
     message.success(res.data.msg == '' || res.data.msg == null ? '导出模版成功' : res.data.msg);
   } else {
@@ -726,24 +750,25 @@ async function templateDownload() {
 async function importSuccessfulFun() {
   const exceldata: any = {};
   exceldata.categoryId = categoryid.value;
-  exceldata.userid = userStore.getUser.id;
+  exceldata.userId = userStore.getUser.id;
   exceldata.userName = userStore.getUser.userName;
   exceldata.moduleName = fileList.value[0].newFileName;
+  exceldata.menuId = menuId.value;
   const res = await AdminApiSystemModule.importingModelInformationNew(exceldata);
-  if (res.data.code == 0) {
-    const data: any = res.data.data;
+  if (res.data.code == 200) {
     message.info({
       top: 80,
       duration: 10,
-      content: data.importMsg,
+      content: res.data.data,
       closable: true,
     });
+    batchflag.value = false;
     modalInit();
   } else {
     message.error({
       top: 80,
       duration: 10,
-      content: res.data.msg,
+      content: res.data.data,
       closable: true,
     });
   }
@@ -755,8 +780,8 @@ function cWidth() {
   for (let i = 0; i < list.length; i++) {
     if (list[i].params) {
       columnList.push({
-        propertyId: list[i].params,
-        width: list[i].renderWidth,
+        id: list[i].params,
+        colWidth: list[i].renderWidth,
       });
     }
   }
@@ -772,10 +797,11 @@ function cWidth() {
 async function upDerive() {
   const data: any = {};
   data.categoryId = categoryid.value;
+  data.menuId = menuId.value;
   data.userName = userStore.getUser.userName;
   data.userId = userStore.getUser.id;
   const res = await AdminApiSystemModule.exportModuleLibraryApi(data);
-  if (res.data.code == 0) {
+  if (res.data.code == 200) {
     downloadFile(res.data.data.fileUrl);
     message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg);
   } else {
@@ -816,6 +842,15 @@ const radioModal = ref<any>({});
 const radioList = ref<any>([]);
 const radarflag = ref(false);
 const myRadar = ref<any>(null);
+const locale = ref({
+  cancelSort: WeiI18n.t('点击取消排序').value,
+  triggerAsc: WeiI18n.t('点击升序').value,
+  triggerDesc: WeiI18n.t('点击降序').value,
+  emptyText: h(Empty, {
+    description: '数据为空',
+    style: { paddingBottom: '50px' },
+  }),
+});
 const option = ref({
   isArgs: false,
   width: '100%',
@@ -887,16 +922,7 @@ function clickEvent(row: any, key: any) {
   pdmModuleCode.value = row[key];
   PDMid.value = row.id;
   pdmModelType.value = row.para4;
-  moduleDetails(row.id);
-  queryPdmModuleNumDetailed(row.para2);
-}
-function queryPdmModuleNumDetailed(id: string) {
-  const data: any = {};
-  data.pdmModuleNum = id;
-  // data.pdmModuleNum =  'mxbmtest001'
-  AdminApiSystemModule.getPdmModuleNumDetailed(data).then(res => {
-    // $emit('treeType', 1, res.data.data.pdmResult, id);
-  });
+  moduleDetails(row);
 }
 
 const compareParm = ref<number>(0);
@@ -934,6 +960,7 @@ async function compareData() {
   data.userId = userStore.getUser.id;
   data.moduleInfoList = selectModelList.value;
   data.compareType = compareParm.value;
+  data.menuId = menuId.value;
   const res = await AdminApiSystemModule.moduleDataComparison(data);
   let parmList = [];
   const parm = [];
@@ -962,9 +989,8 @@ async function compareData() {
       });
     }
   }
-  // list.push(str);
-
   for (let i = 0; i < parmList.length; i++) {
+    debugger;
     // 循环左侧标题key
     const parmKey = Object.keys(parmList[i])[0];
     // 循环左侧标题Val
@@ -980,7 +1006,6 @@ async function compareData() {
   }
   tabularColumn.value = parm;
   tabularData.value = list;
-
   const arr: any = [];
   for (let i = 0; i < tabularColumn.value.length; i++) {
     arr.push(i);
@@ -1026,29 +1051,32 @@ function toParm(type: any) {
     moduleType: pdmModelType.value,
   };
   if (type == 3) {
-    AdminApiSystemModule.getModuleUserUploadDocument(params).then(res => {
-      if (res.data.code == 0) {
+    AdminApiSystemModule.findAllModuleAttachment(params).then(res => {
+      console.log(res);
+      if (res.data.code == 200) {
         const data: any = res.data.data;
         if (data.attachmentList.length > 0) {
-          fileData1.value = data.attachmentList;
+          fileData1.value = data.attachmentList || [];
+          fileData2.value = data.pdmsResults || [];
         }
       }
     });
 
-    AdminApiSystemModule.getPdmDocument(params).then(res => {
-      if (res.data.code == 0) {
-        const data: any = res.data.data;
-        if (data.pdmResult && data.pdmResult.length > 0) {
-          fileData2.value = data.pdmResult;
-        }
-      }
-    });
+    // AdminApiSystemModule.getPdmDocument(params).then(res => {
+    //   if (res.data.code == 0) {
+    //     const data: any = res.data.data;
+    //     if (data.pdmResult && data.pdmResult.length > 0) {
+    //
+    //     }
+    //   }
+    // });
   } else if (type == 1) {
     AdminApiSystemModule.krAttribute(params).then(res => {
-      if (res.data.code == 0) {
+      console.log(res);
+      if (res.data.code == 200) {
         const data: any = res.data.data;
-        if (data.pdmResult) {
-          pdmData.value = data.pdmResult;
+        if (data.pdmsResults) {
+          pdmData.value = data.pdmsResults;
           pdmDataFlag.value = true;
           const str = Object.keys(pdmData.value.parameter);
           str.forEach(item => {
@@ -1061,10 +1089,32 @@ function toParm(type: any) {
       }
     });
   } else if (type == 5) {
-    AdminApiSystemModule.syncBOMApi({ number: pdmModuleCode.value }).then(res => {
-      if (res.data.code == 0) {
-        const data = res.data.data || [];
-        doudata.value = data;
+    supGbomcolumns.value = [];
+    let data: any = {};
+    data.categoryId = categoryid.value;
+    data.menuId = menuId.value;
+    data.moduleId = PDMid.value;
+    AdminApiSystemModule.findParametricDesign(data).then(res => {
+      console.log(res);
+      if (res.data.code == 200) {
+        doudata.value = res.data.data.modulesList || [];
+        const resData = res.data.data.moduleParaList || [];
+        for (let i = 0; i < resData.length; i++) {
+          if (resData[i].propertyName == '模型件号') {
+            resData[i].dataProp = 'moduleNewNum';
+          } else if (resData[i].propertyName == '模型类型') {
+            resData[i].dataProp = 'moduleType';
+          }
+          supGbomcolumns.value.push({
+            title: resData[i].propertyName,
+            dataIndex: resData[i].dataProp,
+            key: resData[i].dataProp,
+            align: 'center',
+            resizable: true,
+            minWidth: resData[i].colWidth == undefined ? 70 : resData[i].colWidth,
+            sortable: true,
+          });
+        }
       } else {
         message.error(res.data.msg);
       }
@@ -1164,13 +1214,15 @@ const fileColumns2 = ref<any>([
     resizable: true,
   },
 ]);
-function downloadPDF(id: number) {
-  const baseUrl = import.meta.env.VITE_BASE_HTMLPREVIEW_URL;
-  if (id) {
-    window.location.href = `${baseUrl}/cirpoint-base-api/fileManagerController/download?fileId=${id}`;
-  } else {
-    window.location.href = `${baseUrl}/fileManagerController/download?fileId=${id}`;
-  }
+function setFixedRowClass(record, index) {
+  // 为前三行分别添加类名：fixed-row-0、fixed-row-1、fixed-row-2
+  return index < 3 ? `fixed-row-${index}` : '';
+}
+async function downloadPDF(id: number, documentName: any) {
+  const downLoadItem: any = {
+    fileId: id,
+  };
+  handleEpcDownload(downLoadItem, documentName);
 }
 function handleNameClick(row: any) {
   const data: any = {};
@@ -1183,47 +1235,51 @@ function handleNameClick(row: any) {
     }
   });
 }
-function setFixedRowClass(record, index) {
-  // 为前三行分别添加类名：fixed-row-0、fixed-row-1、fixed-row-2
-  return index < 3 ? `fixed-row-${index}` : '';
-}
-defineExpose({ initData });
+
+defineExpose({ initData, selectAllModuleInfo });
 </script>
 
 <template>
-  <div>
-    <div class="seach-wrap">
-      <a-form layout="inline" :model="formInline" class="form-inline">
-        <a-form-item class="mgrt10">
-          <a-input v-model:value="formInline.mdName" style="width: 220px" placeholder="请输入模块名称" />
-        </a-form-item>
-        <a-form-item class="mgrt10">
-          <a-select v-model:value="formInline.mdDegree" placeholder="请选择模型类型" style="width: 220px">
-            <a-select-option v-for="item in modelType" :key="item.value" :value="item.value" placeholder="请选择模型类型">
-              {{ $t(item.label) }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item class="mgrt10">
-          <a-input v-model:value="formInline.mdNum" style="width: 220px" placeholder="请输入模块编码" />
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="onSeachSubmit">
-            <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-            查询
-          </a-button>
-          <a-button style="margin-left: 10px" @click="onSeachReset">
-            <EpcIcon type="icon-zhongzhi" style="font-size: 12px" />
-            重置
-          </a-button>
-        </a-form-item>
-      </a-form>
-    </div>
-  </div>
   <div class="module-body">
     <div class="selectLeft">
       <div class="btn-box">
-        <div style="background-color: #e5efff; width: 100%; height: 100%">
+        <div class="top-right-actions">
+          <a-button type="link" @click="selectAllModuleInfo">全局查询</a-button>
+        </div>
+        <div class="btn-box-middle" v-if="queryColumns.length">
+          <div class="query-scroll">
+            <a-row :gutter="[12, 6]">
+              <a-col v-for="item in queryColumns" :key="item.key" :span="8">
+                <a-form-item :label="item.title" class="query-item">
+                  <a-select
+                    v-if="item.inputType === 'select'"
+                    v-model:value="queryForm[item.key]"
+                    allowClear
+                    show-search
+                    :filter-option="
+                      (input, option) =>
+                        String(option?.value ?? '')
+                          .toLowerCase()
+                          .includes(String(input ?? '').toLowerCase())
+                    "
+                    size="middle"
+                    style="width: 100%"
+                    placeholder="请选择">
+                    <a-select-option v-for="opt in item.options" :key="opt" :value="opt">
+                      {{ opt }}
+                    </a-select-option>
+                  </a-select>
+                  <a-input v-else v-model:value="queryForm[item.key]" allowClear size="middle" placeholder="请输入" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+          </div>
+          <div class="query-actions">
+            <a-button type="primary" size="middle" @click="handleQuery()"><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button>
+            <a-button size="middle" @click="handleQueryReset"><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button>
+          </div>
+        </div>
+        <div class="btn-box-container">
           <div class="btn-box-left">
             <div
               :class="{
@@ -1234,16 +1290,7 @@ defineExpose({ initData });
               <EpcIcon class="act-btns" style="margin-right: 5px" type="icon-tandem" />
               比较数据
             </div>
-            <div
-              :class="{
-                'btn-item-select': delBtnType,
-                'btn-item': !delBtnType,
-              }"
-              @click="openRadarInfo">
-              <EpcIcon class="act-btns" style="margin-right: 5px" type="icon-leidatu1" />
-              雷达图
-            </div>
-            <!-- <div class="btn-item">
+            <div class="btn-item">
               <a-dropdown>
                 <a class="ant-dropdown-link" @click.prevent>
                   更多
@@ -1252,14 +1299,17 @@ defineExpose({ initData });
                 <template #overlay>
                   <a-menu>
                     <div v-for="(item, index) in dropdownList" :key="index" style="text-align: left">
-                      <a-menu-item @click.native="dropdownAction(item.id)">{{ item.name }}</a-menu-item>
+                      <a-menu-item @click.native="dropdownAction(item.id)">
+                        {{ item.name }}
+                      </a-menu-item>
                     </div>
                   </a-menu>
                 </template>
               </a-dropdown>
-            </div> -->
+            </div>
           </div>
-          <!-- <div class="btn-box-right">
+
+          <div class="btn-box-right">
             <div class="btn-item" @click="handleAddOrUpdate">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
               添加数据
@@ -1268,11 +1318,16 @@ defineExpose({ initData });
               <EpcIcon type="icon-edit" style="font-size: 15px" />
               编辑
             </div>
-            <div :class="{ 'btn-item-select': delBtnType, 'btn-item': !delBtnType }" @click="delModule">
+            <div
+              :class="{
+                'btn-item-select': delBtnType,
+                'btn-red': !delBtnType,
+              }"
+              @click="delModule">
               <EpcIcon type="icon-shanchu2" style="font-size: 15px" />
               删除
             </div>
-          </div> -->
+          </div>
         </div>
       </div>
     </div>
@@ -1286,6 +1341,7 @@ defineExpose({ initData });
         :data="dataSource"
         :height="tabHeight"
         :page="page"
+        :page-flag="true"
         :model-type="0"
         :categoryid="categoryid"
         @select-model-list-check="selectModelListCheck2"
@@ -1312,6 +1368,7 @@ defineExpose({ initData });
     :modal-visible="parmDesign"
     :params-object="paramsObject"
     @change-data="changeData"
+    @update-parm-design-data="updateParmDesignData"
     @on-close="parmDesign = false" />
   <a-modal v-model:visible="radarflag" style="width: 50%" title="雷达图" @on-cancel="radarflag = false">
     <div class="text-Box">
@@ -1328,6 +1385,42 @@ defineExpose({ initData });
       <a-button type="primary" @click="radarflag = false"> 取消 </a-button>
     </template>
   </a-modal>
+
+  <a-modal
+    v-model:visible="globalQueryModalVisible"
+    style="width: 80%"
+    :title="$t('全局查询')"
+    :confirm-loading="globalQueryLoading"
+    :mask-closable="false"
+    @on-cancel="globalQueryModalVisible = false">
+    <div style="margin-bottom: 12px">
+      <div v-for="(group, idx) in globalQueryGroups" :key="idx" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
+        <a-select v-model:value="group.field" style="width: 180px" :options="globalQueryFieldOptions" />
+        <a-select v-model:value="group.queryType" style="width: 140px" :options="globalQueryTypeOptions" />
+        <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 260px" />
+        <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
+        <EpcIcon v-if="globalQueryGroups.length > 1" type="icon-shanchu2" style="color: #ff4d4f; font-size: 16px; cursor: pointer" @click="removeGlobalQueryGroup(idx)" />
+        <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center">
+        <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)">查询</a-button>
+        <a-button @click="resetGlobalQueryGroups">重置</a-button>
+      </div>
+    </div>
+
+    <a-table
+      row-key="_rowKey"
+      :columns="globalQueryColumns"
+      :data-source="globalQueryList"
+      :scroll="{ y: globalQueryTableScrollY }"
+      :pagination="globalQueryTablePagination"
+      :loading="globalQueryLoading"
+      @change="handleGlobalTableChange" />
+    <template #footer>
+      <a-button type="primary" @click="globalQueryModalVisible = false"> 关闭 </a-button>
+    </template>
+  </a-modal>
+
   <a-modal
     v-model:visible="tabularflag"
     style="width: 60%"
@@ -1368,7 +1461,7 @@ defineExpose({ initData });
     @template-download="templateDownload"
     @import-successful-fun="importSuccessfulFun"
     @close="batchflag = false" />
-  <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="500">
+  <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="800">
     <!--    详情页面 -->
     <div class="dalIconList2" style="margin-top: 0">
       <div :class="{ seDalIcon: parmType == 0, dalIcon: parmType != 0 }" @click="toParm(0)">
@@ -1385,19 +1478,19 @@ defineExpose({ initData });
       </div>
       <div :class="{ seDalIcon: parmType == 5, dalIcon: parmType != 5 }" @click="toParm(5)">
         <EpcIcon type="icon-a-xiangmu1" />
-        <span>GBOM</span>
+        <span>历史文档</span>
       </div>
     </div>
     <!--  -->
     <div ref="udfBoxRef" :style="udfBoxStyle()" class="udfPage_style">
-      <div v-show="parmType == 0">
+      <div v-if="parmType == 0">
         <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-top: 20px" size="small" bordered>
           <a-descriptions-item :label="item.name">
             {{ item.val }}
           </a-descriptions-item>
         </a-descriptions>
       </div>
-      <div v-show="parmType == 1">
+      <div v-if="parmType == 1">
         <div v-if="pdmDataFlag">
           <a-descriptions style="margin-top: 20px" size="small" bordered>
             <a-descriptions-item label="名称：">
@@ -1435,6 +1528,7 @@ defineExpose({ initData });
             :scroll="{ x: 400, y: 400 }"
             row-key="id"
             :loading="loading"
+            :locale="locale"
             :pagination="false"
             default-expand-all
             :data-source="fileData1"
@@ -1442,7 +1536,7 @@ defineExpose({ initData });
             :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'oldFileName'">
-                <a class="action-btn" @click.stop="downloadPDF(record.id)">下载</a>
+                <a class="action-btn" @click.stop="downloadPDF(record.fileId, record.documentName)">下载</a>
               </template>
             </template>
           </a-table>
@@ -1453,6 +1547,7 @@ defineExpose({ initData });
           <a-table
             :scroll="{ x: 400, y: 400 }"
             row-key="id"
+            :locale="locale"
             :loading="loading"
             :pagination="false"
             default-expand-all
@@ -1467,11 +1562,12 @@ defineExpose({ initData });
           </a-table>
         </div>
       </div>
-      <div v-show="parmType == 5" style="width: 100%; margin-top: 20px">
+      <div v-if="parmType == 5" class="history-doc-table-wrap">
         <a-table
-          :scroll="{ x: 400, y: 400 }"
+          :scroll="{ x: 1200, y: 400 }"
           row-key="id"
           :loading="loading"
+          :locale="locale"
           :pagination="false"
           default-expand-all
           :data-source="doudata"
@@ -1484,9 +1580,25 @@ defineExpose({ initData });
 
 <style lang="less" scoped>
 .module-body {
-  margin-top: 10px;
   padding-right: 20px;
 }
+
+/* 历史文档表格：限制宽度，超出显示横向滚动条 */
+.history-doc-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 20px;
+  min-width: 0;
+  overflow-x: auto;
+
+  :deep(.ant-table-wrapper) {
+    min-width: 0;
+  }
+  :deep(.ant-table-body) {
+    overflow-x: auto !important;
+  }
+}
+
 .example {
   position: absolute;
   top: 50%;
@@ -1502,19 +1614,100 @@ defineExpose({ initData });
 }
 .btn-box {
   width: 100%;
-  height: 35px;
+  min-height: 35px;
   background-color: #ffffff;
   text-align: left;
   font-size: 14px;
 }
+.btn-box-container {
+  background-color: #e5efff;
+  width: 100%;
+  min-height: 35px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
 .btn-box-left {
-  float: left;
   display: flex;
 }
 
 .btn-box-right {
-  float: right;
   display: flex;
+}
+.btn-box-middle {
+  flex: 1;
+  padding: 4px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 25px;
+}
+.query-scroll {
+  flex: 1;
+  min-width: 0;
+  max-height: 78px; /* 默认最多两行，超出滚动 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 6px; /* 抵消 a-row gutter 的负 margin，避免横向滚动条 */
+}
+.query-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+:deep(.query-item) {
+  margin-bottom: 0 !important;
+  display: flex;
+  align-items: center;
+}
+:deep(.query-item .ant-form-item-label) {
+  flex: 0 0 96px; /* 固定 label 宽度，保证对齐 */
+  text-align: right;
+  padding-right: 8px;
+  padding-top: 0 !important;
+  display: flex;
+  align-items: center;
+}
+:deep(.query-item .ant-form-item-label > label) {
+  font-size: 14px;
+  color: #333;
+  display: inline-block;
+  width: 100%;
+  line-height: 26px;
+  transform: translateY(1px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:deep(.query-item .ant-form-item-control) {
+  min-width: 0;
+  flex: 1;
+}
+
+/* 输入框/下拉框整体更大一些 */
+:deep(.query-item .ant-input-affix-wrapper),
+:deep(.query-item .ant-input),
+:deep(.query-item .ant-select-selector) {
+  height: 35px !important;
+}
+:deep(.query-item .ant-input-affix-wrapper) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  display: flex;
+  align-items: center;
+}
+:deep(.query-item .ant-input-affix-wrapper > input.ant-input) {
+  height: 28px !important;
+  line-height: 28px !important;
+}
+:deep(.query-item .ant-select-selection-search-input) {
+  height: 28px !important;
+}
+:deep(.query-item .ant-select-selection-item),
+:deep(.query-item .ant-select-selection-placeholder) {
+  line-height: 28px !important;
 }
 .btn-item-select {
   min-width: 28px;
@@ -1533,6 +1726,16 @@ defineExpose({ initData });
   text-align: center;
   line-height: 35px;
   color: #1a71ff;
+  cursor: pointer;
+}
+
+.btn-red {
+  min-width: 28px;
+  height: 35px;
+  margin: 0 10px;
+  text-align: center;
+  line-height: 35px;
+  color: #ff4d4f;
   cursor: pointer;
 }
 
@@ -1568,9 +1771,6 @@ defineExpose({ initData });
 :deep(.ant-descriptions-item-label) {
   width: 105px;
 }
-.form-inline {
-  margin-top: 10px;
-}
 
 /* 固定行样式：脱离文档流，固定在表格顶部 */
 :deep(.ant-table-body .fixed-row-0) {
@@ -1599,5 +1799,12 @@ defineExpose({ initData });
   position: sticky !important;
   top: 0;
   z-index: 4 !important;
+}
+
+.top-right-actions {
+  position: absolute;
+  top: 1px;
+  right: 12px;
+  z-index: 10;
 }
 </style>

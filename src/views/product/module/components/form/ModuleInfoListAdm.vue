@@ -35,11 +35,17 @@ function handleTabChange(item: any) {
     });
   }
 }
+function handleGlobalQuery() {
+  moduleInfoListRef.value?.selectAllModuleInfo?.();
+}
 defineExpose({ infoReload });
 </script>
 
 <template>
   <div class="imgList">
+    <div class="top-right-actions">
+      <a-button type="link" @click="handleGlobalQuery">全局查询</a-button>
+    </div>
     <a-tabs v-model:activeKey="activeKey" @change="handleTabChange" style="margin-left: 20px">
       <a-tab-pane key="1" tab="数据管理">
         <ModuleInfoList :categoryid="categoryid" ref="moduleInfoListRef" />
@@ -56,5 +62,13 @@ defineExpose({ infoReload });
   background-color: #ffffff;
   width: auto;
   height: 100%;
+  position: relative;
+}
+
+.top-right-actions {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 10;
 }
 </style>
