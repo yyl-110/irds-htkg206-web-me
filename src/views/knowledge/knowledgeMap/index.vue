@@ -31,11 +31,6 @@ const colorss = ref(["#326FFE", "#F4BD3F", "#43AAE4", "#1ECFB9", "#F95669"]);
 
 // 文档id
 const docId = ref("");
-const page = ref({
-  pageSize: 10000,
-  pageCount: 100,
-  currentPage: 1,
-});
 
 // 所有选中子节点的id
 const childsNode = ref([]);
@@ -46,7 +41,6 @@ const onSearch = (value: string) => {
 
 const mapLocationFun = (item: INodeByLevel) => {
   graphInit(item);
-  initData();
   mapLocationTabs.value.forEach((v) => {
     if (v.id === item.id) {
       v.isCurrent = true;
@@ -70,7 +64,6 @@ const cureionNode = (data) => {
 // 点击关系图节点
 const onNodeClick = (nodeObject, $even) => {
   currentTreeId.value = nodeObject.id;
-  drawerRef.value.openDrawer()
   const { lot } = nodeObject;
   childsNode.value = [];
   if (lot.childs && lot.childs.length > 0) {
@@ -83,7 +76,17 @@ const onNodeClick = (nodeObject, $even) => {
       }
     });
   }
-  initData();
+  if (currentTreeId.value) {
+    childsNode.value.push(currentTreeId.value);
+  }
+  childsNode.value = [...new Set(childsNode.value)];
+
+  const params = {
+    kldTreeId: childsNode.value.toString() || "", //机构id和子机构id
+    userId: "582" || userStore.getUser.id, //
+  };
+  // 打开抽屉
+  drawerRef.value.openDrawer(params);
 };
 
 const initData = () => {
@@ -92,17 +95,11 @@ const initData = () => {
   }
   childsNode.value = [...new Set(childsNode.value)];
   const params = {
-    currentPage: page.value.currentPage,
-    pageSize: page.value.pageSize,
-    type: 1, //1.文档2.视频3.图片4.问答
     kldTreeId: childsNode.value.toString() || "", //机构id和子机构id
     userId: userStore.getUser.id, //
-    //搜索条件
-    titleOrUserName: searchKey.value || "",
   };
   fileList(params).then((res) => {
     if (res.data && res.data.code === "0") {
-      console.log(res.data, "111");
       documentList.value = [];
       documentList.value = res.data.data.result;
       page.value.pageCount = res.data.data.total;
@@ -131,7 +128,6 @@ const initTree = () => {
       // initialize.value = mapLocationTabs.value[0].id;
       console.log("mapLocationTabs:", mapLocationTabs.value);
       graphInit(mapLocationTabs.value[0]);
-      initData();
       mapLocationTabs.value[0].isCurrent = true;
     }
   });
@@ -185,7 +181,7 @@ onMounted(() => {
 <template>
   <div class="knowledgeMap h-full">
     <a-row>
-      <a-col :span="6" class="max-w-[264px]">
+      <a-col :span="6">
         <div class="searchAll mb-[16px]">
           <a-input-search
             v-model:value="searchData"
