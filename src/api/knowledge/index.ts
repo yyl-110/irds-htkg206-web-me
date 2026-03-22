@@ -32,6 +32,18 @@ export function querySecondTagNode(data: SecondTagNodeQuery) {
     method: 'POST',
   })
 }
+/**
+ * 知识中心三级级筛选tag
+ * @param params
+ */
+
+export function queryThreeTagNode(data: SecondTagNodeQuery) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeTag/queryThreeTagNode`,
+    data,
+    method: 'POST',
+  })
+}
 
 /**
  * 获取热门文件列表
@@ -68,6 +80,17 @@ export function knowledgeQueryPage(data: IQueryPage) {
   });
 }
 /**
+ * 搜索中心问答列表
+ * @param data
+ */
+export function queryPageQuestion(data: IQueryPage) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/es_kld_que/queryPage`,
+    data,
+    method: "POST",
+  });
+}
+/**
  * 获取浏览记录
  * @param data {"currentPage":1,"pageSize":10000,"userId":"582","type":"1","fileType":1}
  */
@@ -75,6 +98,18 @@ export function knowledgeQueryPage(data: IQueryPage) {
 export function lookFileLogList(data: any) {
   return httpRequest({
     url: `${proxyApi}/knowledge-server/knowledgePersonal/lookFileLogList`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 学习完成
+ * @param data
+ */
+
+export function LearningCompleted(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeTMNode/LearningCompleted`,
     data,
     method: "POST",
   });
@@ -163,12 +198,56 @@ export function commentFavour(data: any) {
   });
 }
 /**
+ * 知识地图-喜欢评论
+ * @param data 
+ */
+export function doInterestQuestion(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeQuestion/doInterestQuestion`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识地图-根据登录用户和 知识主键查询分享数据，如果存在，不能再重复分享
+ * @param data 
+ */
+export function shareDetail(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeShare/detail`,
+    data,
+    method: 'POST',
+  });
+}
+/**
  * 知识地图-收藏文档
  * @param data {"kldId":256,"userId":"582"}
  */
 export function doCollectFile(data: any) {
   return httpRequest({
     url: `${proxyApi}/knowledge-server/knowledgePersonal/doCollectFile`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识地图-浏览记录保存
+ * @param data 
+ */
+export function saveLookFileLog(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgePersonal/saveLookFileLog`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识地图-预览接口
+ * @param data 
+ */
+export function updateKldCounting(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeFile/updateKldCounting`,
     data,
     method: "POST",
   });
@@ -181,7 +260,7 @@ export function knowledgeShare(data: any) {
   return httpRequest({
     url: `${proxyApi}/knowledge-server/knowledgeShare/save`,
     data,
-    method: "POST",
+    method: 'POST',
   });
 }
 
@@ -274,7 +353,7 @@ export function getTreeNodeByNodeLevel(data: any) {
   });
 }
 /**
- * 知识问答-指定回复人员列表
+ * 知识问答-查询用户列表
  * @param data {"type":2,"kldFileId":"","kldType":"2","userId":"582"}
  */
 export function userList(data: any) {

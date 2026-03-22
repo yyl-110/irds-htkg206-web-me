@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { fileList } from "@/api/knowledge";
+import {
+  doCollectFile,
+  doInterestQuestion,
+  fileList,
+  saveLookFileLog,
+  updateKldCounting,
+} from "@/api/knowledge";
 import { getTimes, getAllTimes } from "@/utils/dateUtils";
 import {
   ExportOutlined,
@@ -7,7 +13,15 @@ import {
   HeartOutlined,
   MessageOutlined,
   DownloadOutlined,
+  HeartFilled,
+  ShareAltOutlined,
+  StarFilled,
 } from "@ant-design/icons-vue";
+import { Empty, message } from "ant-design-vue";
+import shareCell from "./share.vue";
+import comment from "@/components/Comment/index.vue";
+import Video from "./videoImg.vue";
+import { useUserStore } from "@/store/modules/user";
 
 interface IOpenParams {
   kldTreeId: string;
@@ -28,8 +42,31 @@ const page = ref({
 });
 const hideFlag = ref(false);
 const documentList = ref<any[]>([]);
+const docId = ref("");
+const questFlag = ref(1);
+const shareDialogVisible = ref(false);
+
+// 点击评论获得当前条数据
+const commonDeail = ref({});
+
+const videoHide = ref(false);
+
+const fileUrlPlay = ref();
+
+const titleType = ref();
+
+const dialogType = ref("");
+
+const commentDialogVisible = ref(false);
+
+const commentDialogVisibleQuest = ref(false);
+
+const numberFlag = ref();
+
+const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE);
+
+const spinning = ref(false);
 function onSearch() {
-  console.log(searchText.value);
   page.value.currentPage = 1;
   fetchFileList();
 }
@@ -41,6 +78,7 @@ const openDrawer = (params: IOpenParams) => {
 
 const changeType = (e: any) => {
   page.value.currentPage = 1;
+  documentList.value = [];
   fetchFileList();
 };
 
@@ -63,6 +101,7 @@ const changeHideFlag = (item) => {
 const fetchFileList = async () => {
   try {
     const { currentPage, pageSize } = page.value;
+    spinning.value = true;
     const payload = {
       pageSize,
       currentPage,
@@ -72,10 +111,153 @@ const fetchFileList = async () => {
     };
     const res = await fileList(payload);
     if (res.data && res.data.code === "0") {
-      console.log(res.data, "111");
       documentList.value = res.data.data?.result || [];
     }
-  } catch (error) {}
+  } catch (error) {
+    console.log("error", error);
+  } finally {
+    spinning.value = false;
+  }
+};
+
+// star星星数
+const starFun = async (item) => {
+  // console.log(item, 'itemitem');
+  const { userId } = nodeParams.value;
+  const params = {
+    questionId: item.id,
+    userId,
+  };
+  try {
+    const res = await doInterestQuestion(params);
+    if (res.data && res.data.code === "0") {
+      if (item.interestLight) {
+        message.success("取消关注成功！");
+      } else {
+        message.success("关注成功！");
+      }
+      fetchFileList();
+    }
+  } catch (error) {
+    console.log("error", error);
+  }
+};
+
+// 评论
+const commentFun = (item) => {
+  // console.log(item, 'sdfhsdgjkdshfbgsdf');
+  commonDeail.value = item;
+  commentDialogVisible.value = true;
+};
+
+// 问答评论
+const commentQuestFun = (item) => {
+  commonDeail.value = item;
+  numberFlag.value = 2;
+  commentDialogVisibleQuest.value = true;
+};
+
+// 分享
+const shareFun = (item) => {
+  docId.value = item.kldFileId;
+  if (tabValue.value === 4) {
+    questFlag.value = 2;
+  }
+  shareDialogVisible.value = true;
+};
+//关闭分享
+const closeShare = () => {
+  shareDialogVisible.value = false;
+  fetchFileList();
+};
+
+const closeCommentDialogNotification = () => {
+  commentDialogVisible.value = false;
+  commentDialogVisibleQuest.value = false;
+};
+
+// 关注
+const followFun = (item) => {
+  const params = {
+    kldId: item.kldFileId,
+    userId: useUserStore().getUser.id,
+  };
+  doCollectFile(params).then((res) => {
+    if (res && res.data.code === "0") {
+      message.success("关注成功！");
+      fetchFileList();
+    }
+  });
+};
+
+// 下载
+const downFun = (item) => {
+  window.location.href = `${
+    import.meta.env.VITE_BASE_PREVIEW_URL
+  }/base-server/fileManagerController/download.json?fileId=${item.fileId}`;
+};
+
+const getVideoHide = (val) => {
+  videoHide.value = val;
+  fetchFileList();
+};
+
+// 查看pdf
+const viewPdf = (id) => {
+  const params = {
+    id: id,
+  };
+  getPdfPreviewPath(params).then((res) => {
+    if (res && res.code === 200) {
+      filePath.value = res.data.fileUrl;
+      router.push({
+        path: "/knowledgeData/pdfView_index",
+        query: { docId: filePath.value },
+      });
+    }
+  });
+};
+
+//查看pdf
+const viewPdfFun = (item) => {
+  const paramss = {
+    name: useUserStore().getUser.userName, //userName
+    userId: useUserStore().getUser.id,
+    kldId: item.kldFileId, //fileId
+    type: "1", //1,浏览  2，下载
+  };
+  saveLookFileLog(paramss).then((res) => {
+    if (res && res.data.code === "0") {
+      // 浏览记录数据
+      console.log(res, "dfgsdfdfhfd");
+    }
+  });
+
+  // store.commit("SET_OBJECTITEM", item);
+  if (tabValue.value === 1) {
+    viewPdf(item.fileId);
+  }
+  if (tabValue.value === 2) {
+    fileUrlPlay.value = item.fileUrl;
+    videoHide.value = true;
+    titleType.value = "视频播放";
+    dialogType.value = "2";
+  }
+  if (tabValue.value === 3) {
+    fileUrlPlay.value = item.fileUrl;
+    videoHide.value = true;
+    titleType.value = "图片查看";
+    dialogType.value = "3";
+  }
+  const params = {
+    kldFileId: item.kldFileId,
+    countingType: 1,
+  };
+  updateKldCounting(params).then((res) => {
+    if (res && res.data.code === "0") {
+    }
+  });
+  fetchFileList();
 };
 
 defineExpose({
@@ -105,238 +287,359 @@ defineExpose({
         </a-radio-group>
       </div>
       <div class="drawerMain overflow-y-auto">
-        <div class="doc-wrap" v-if="tabValue === 1">
-          <div class="doc-list" v-for="(item, index) in documentList">
-            <div style="display: flex; margin-top: 16px">
+        <a-spin :spinning="spinning">
+          <div v-if="tabValue === 1" class="doc-wrap">
+            <div class="doc-list" v-for="(item, index) in documentList">
+              <div style="display: flex; margin-top: 16px">
+                <div
+                  style="
+                    min-width: 44px;
+                    height: 44px;
+                    background: #fbd5d5;
+                    border-radius: 4px;
+                    margin-right: 10px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                  "
+                >
+                  <span
+                    style="
+                      text-align: center;
+                      font-weight: bold;
+                      font-size: 24px;
+                      color: #d71515;
+                      line-height: 24px;
+                      font-style: normal;
+                      text-transform: none;
+                    "
+                    >{{ item.fileType[0] }}</span
+                  >
+                </div>
+                <div style="width: 100%">
+                  <a-tooltip class="box-item" placement="top">
+                    <template #title>{{
+                      item.fileName + "." + item.fileType
+                    }}</template>
+                    <div class="highlightName" @click="viewPdfFun(item)">
+                      {{ item.fileName }}.{{ item.fileType }}
+                    </div>
+                  </a-tooltip>
+                  <div style="height: 26px; margin-top: 4px">
+                    <a-breadcrumb separator="|">
+                      <a-breadcrumb-item>{{
+                        item.version || ""
+                      }}</a-breadcrumb-item>
+                      <a-breadcrumb-item>{{
+                        getTimes(Date.parse(item.addTime)) || ""
+                      }}</a-breadcrumb-item>
+                    </a-breadcrumb>
+                  </div>
+                </div>
+              </div>
+              <div v-if="item.summary" class="desc">{{ item.summary }}</div>
               <div
                 style="
-                  min-width: 44px;
-                  height: 44px;
-                  background: #fbd5d5;
-                  border-radius: 4px;
-                  margin-right: 10px;
                   display: flex;
-                  justify-content: center;
-                  align-items: center;
+                  margin-top: 10px;
+                  justify-content: space-between;
+                  margin: 5px 0;
                 "
               >
-                <span
-                  style="
-                    text-align: center;
-                    font-weight: bold;
-                    font-size: 24px;
-                    color: #d71515;
-                    line-height: 24px;
-                    font-style: normal;
-                    text-transform: none;
-                  "
-                  >{{ item.fileType[0] }}</span
-                >
-              </div>
-              <div style="width: 100%">
-                <a-tooltip class="box-item" placement="top" :show-after="500">
-                  <template #title>{{
-                    item.fileName + "." + item.fileType
-                  }}</template>
-                  <div class="highlightName" @click="viewPdfFun(item)">
-                    {{ item.fileName }}.{{ item.fileType }}
+                <div style="display: flex; align-items: center">
+                  <el-avatar class="elAvatar" :size="24" />
+                  <div class="name">{{ item.userName }}</div>
+                </div>
+                <div class="action-wrap">
+                  <div class="act-list">
+                    <eye-outlined />
+                    <span>{{ JSON.parse(item.counting).previewed }}</span>
                   </div>
-                </a-tooltip>
-                <div style="height: 26px; margin-top: 4px">
-                  <a-breadcrumb separator="|">
-                    <a-breadcrumb-item>{{
-                      item.version || ""
-                    }}</a-breadcrumb-item>
-                    <a-breadcrumb-item>{{
-                      getTimes(Date.parse(item.addTime)) || ""
-                    }}</a-breadcrumb-item>
-                  </a-breadcrumb>
-                </div>
-              </div>
-            </div>
-            <div v-if="item.summary" class="desc">{{ item.summary }}</div>
-            <div
-              style="
-                display: flex;
-                margin-top: 10px;
-                justify-content: space-between;
-                margin: 5px 0;
-              "
-            >
-              <div style="display: flex; align-items: center">
-                <el-avatar class="elAvatar" :size="24" />
-                <div class="name">{{ item.userName }}</div>
-              </div>
-              <div class="action-wrap">
-                <div class="act-list">
-                  <eye-outlined />
-                  <span>{{ JSON.parse(item.counting).previewed }}</span>
-                </div>
-                <div class="act-list elChatDotSquare" @click="commentFun(item)">
-                  <message-outlined /><span>{{
-                    JSON.parse(item.counting).commented
-                  }}</span>
-                </div>
-                <div
-                  v-if="!item.collectedLight"
-                  class="act-list elStarFilled icon-hanhan"
-                  @click="followFun(item)"
-                >
-                  <heart-outlined /><span>{{
-                    JSON.parse(item.counting).collectd
-                  }}</span>
-                </div>
-                <div
-                  v-else
-                  class="act-list elStarFilled1 icon-hanhan1"
-                  @click="followFun(item)"
-                >
-                  <export-outlined /><span>{{
-                    JSON.parse(item.counting).collectd
-                  }}</span>
-                </div>
-                <div class="act-list elShare" @click="shareFun(item)">
-                  <export-outlined /><span>{{
-                    JSON.parse(item.counting).shared
-                  }}</span>
-                </div>
-                <div
-                  v-if="item.allowDownload !== 1"
-                  class="act-list elShare"
-                  @click="downFun(item)"
-                >
-                  <download-outlined /><span>{{
-                    JSON.parse(item.counting).downloaded
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="quest-wrap" v-if="tabValue === 4">
-          <div
-            class="doc-list ask-list"
-            v-for="(allQues, index) in documentList"
-            :key="allQues.id"
-          >
-            <div class="ask-list-top">
-              <div class="ask-list-left">
-                <el-avatar class="elAvatar" :size="24" />
-                <span class="name">{{ allQues.userName }}</span>
-                <span class="time">{{
-                  getAllTimes(Date.parse(allQues.addTime))
-                }}</span>
-                <span v-if="allQues.urgency === '紧急'" class="exigency">{{
-                  allQues.urgency
-                }}</span>
-                <span v-if="allQues.urgency === '严重'" class="importance">{{
-                  allQues.urgency
-                }}</span>
-                <!-- <span v-if="allQues.urgency === '一般'" class="normal">{{ allQues.urgency }}</span> -->
-              </div>
-            </div>
-
-            <div class="ask-list-title">
-              <span
-                class="ask-list-title-name"
-                @click="changeHideFlag(allQues)"
-                >{{ allQues.description }}</span
-              >
-              <span
-                class="ask-list-title-answerNum"
-                v-if="allQues.answer && allQues?.answer.length > 0"
-              >
-                已回复<span>{{ allQues.answer.length }}</span
-                >条
-              </span>
-              <!-- <span class="ask-list-title-answerUp" v-if="allQues.answer.length > 0" @click="changeHideFlag(allQues)">展开/收起</span> -->
-            </div>
-            <div class="author">
-              <div
-                style="font-size: 14px; color: #6a696e; cursor: pointer"
-                class="flex justify-start items-center mt-[10px] text-[14px]"
-                v-if="allQues.answer && allQues.answer.length > 0"
-                @click="changeHideFlag(allQues)"
-              >
-                <div style="margin-right: 4px">展开全部</div>
-                <img
-                  src="@/assets/images/down11.png"
-                  alt=""
-                  style="margin-right: 20px"
-                />
-              </div>
-              <div class="commont" v-if="hideAnswer && allQues.replay === true">
-                <a-input v-model:value="answer" type="textarea" />
-                <a-button
-                  class="commont-btn"
-                  type="primary"
-                  @click="confirmAnswer"
-                  >确定</a-button
-                >
-              </div>
-              <div
-                v-if="
-                  hideFlag &&
-                  allQues.hidden === true &&
-                  allQues.answer &&
-                  allQues.answer.length > 0
-                "
-              >
-                <div
-                  class="bottomAnswer"
-                  v-for="(myAnser, index) in allQues.answer"
-                  :key="myAnser.id"
-                >
-                  <div class="titleTop">
-                    <div class="contents">
-                      <span class="content-answer">答</span
-                      ><span class="name">{{ myAnser.userName }}：</span>
-                      {{ myAnser.content }}
-                    </div>
+                  <div
+                    class="act-list elChatDotSquare"
+                    @click="commentFun(item)"
+                  >
+                    <message-outlined /><span>{{
+                      JSON.parse(item.counting).commented
+                    }}</span>
                   </div>
-                  <div class="starComment">
-                    <div
-                      class="elChatDotSquare"
-                      @click="commentQuestFun(myAnser)"
-                    >
-                      <message-outlined class="mr-[5px]" /><span>{{
-                        myAnser.discussNum
-                      }}</span>
-                    </div>
-                    <div
-                      v-if="!allQues.interestLight"
-                      class="icon-hanhan elChatDotSquare"
-                      @click="starFun(allQues)"
-                    >
-                      <heart-outlined class="mr-[5px]" /><span>{{
-                        myAnser.discussNum
-                      }}</span>
-                    </div>
-                    <div
+                  <div
+                    class="act-list elStarFilled icon-hanhan"
+                    @click="followFun(item)"
+                  >
+                    <heart-outlined v-if="!item.collectedLight" />
+                    <heart-filled
                       v-else
-                      class="elChatDotSquare"
-                      @click="starFun(allQues)"
-                    >
-                      <export-outlined class="mr-[5px]" /><span>{{ myAnser.discussNum }}</span>
-                    </div>
-                    <div class="elChatDotSquare" @click="shareFun(allQues)">
-                      <i
-                        class="iconfont icon-fenxiang"
-                        :style="{ fontfamily: 'iconfont' }"
-                      /><span>{{ myAnser.discussNum }}</span>
-                    </div>
+                      class="text-red"
+                      :style="{ color: 'red' }"
+                    />
+                    <span>{{ JSON.parse(item.counting).collectd }}</span>
+                  </div>
+                  <div class="act-list elShare" @click="shareFun(item)">
+                    <share-alt-outlined /><span>{{
+                      JSON.parse(item.counting).shared
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="item.allowDownload !== 1"
+                    class="act-list elShare"
+                    @click="downFun(item)"
+                  >
+                    <download-outlined /><span>{{
+                      JSON.parse(item.counting).downloaded
+                    }}</span>
                   </div>
                 </div>
-                <span class="up" @click="upData">
-                  <div style="margin-right: 4px">收起回答</div>
-                  <img src="@/assets/images/up11.png" alt="" />
-                </span>
               </div>
             </div>
           </div>
-        </div>
+          <div v-if="tabValue === 4" class="quest-wrap">
+            <div
+              class="doc-list ask-list"
+              v-for="(allQues, index) in documentList"
+              :key="allQues.id"
+            >
+              <div class="ask-list-top">
+                <div class="ask-list-left">
+                  <el-avatar class="elAvatar" :size="24" />
+                  <span class="name">{{ allQues.userName }}</span>
+                  <span class="time">{{
+                    getAllTimes(Date.parse(allQues.addTime))
+                  }}</span>
+                  <span v-if="allQues.urgency === '紧急'" class="exigency">{{
+                    allQues.urgency
+                  }}</span>
+                  <span v-if="allQues.urgency === '严重'" class="importance">{{
+                    allQues.urgency
+                  }}</span>
+                  <!-- <span v-if="allQues.urgency === '一般'" class="normal">{{ allQues.urgency }}</span> -->
+                </div>
+              </div>
+
+              <div class="ask-list-title">
+                <span
+                  class="ask-list-title-name"
+                  @click="changeHideFlag(allQues)"
+                  >{{ allQues.description }}</span
+                >
+                <span
+                  class="ask-list-title-answerNum"
+                  v-if="allQues.answer && allQues?.answer.length > 0"
+                >
+                  已回复<span>{{ allQues.answer.length }}</span
+                  >条
+                </span>
+                <!-- <span class="ask-list-title-answerUp" v-if="allQues.answer.length > 0" @click="changeHideFlag(allQues)">展开/收起</span> -->
+              </div>
+              <div class="author">
+                <div
+                  style="font-size: 14px; color: #6a696e; cursor: pointer"
+                  class="flex justify-start items-center mt-[10px] text-[14px]"
+                  v-if="allQues.answer && allQues.answer.length > 0"
+                  @click="changeHideFlag(allQues)"
+                >
+                  <div style="margin-right: 4px">展开全部</div>
+                  <img
+                    src="@/assets/images/down11.png"
+                    alt=""
+                    style="margin-right: 20px"
+                  />
+                </div>
+                <div
+                  class="commont"
+                  v-if="hideAnswer && allQues.replay === true"
+                >
+                  <a-input v-model:value="answer" type="textarea" />
+                  <a-button
+                    class="commont-btn"
+                    type="primary"
+                    @click="confirmAnswer"
+                    >确定</a-button
+                  >
+                </div>
+                <div
+                  v-if="
+                    hideFlag &&
+                    allQues.hidden === true &&
+                    allQues.answer &&
+                    allQues.answer.length > 0
+                  "
+                >
+                  <div
+                    class="bottomAnswer"
+                    v-for="(myAnser, index) in allQues.answer"
+                    :key="myAnser.id"
+                  >
+                    <div class="titleTop">
+                      <div class="contents">
+                        <span class="content-answer">答</span
+                        ><span class="name">{{ myAnser.userName }}：</span>
+                        {{ myAnser.content }}
+                      </div>
+                    </div>
+                    <div class="starComment">
+                      <div
+                        class="elChatDotSquare"
+                        @click="commentQuestFun(myAnser)"
+                      >
+                        <message-outlined class="mr-[5px]" /><span>{{
+                          myAnser.discussNum
+                        }}</span>
+                      </div>
+                      <div
+                        v-if="!allQues.interestLight"
+                        class="icon-hanhan elChatDotSquare"
+                        @click="starFun(allQues)"
+                      >
+                        <heart-outlined class="mr-[5px]" /><span>{{
+                          myAnser.discussNum
+                        }}</span>
+                      </div>
+                      <div
+                        v-else
+                        class="elChatDotSquare"
+                        @click="starFun(allQues)"
+                      >
+                        <heart-filled
+                          class="mr-[5px] text-red"
+                          :style="{ color: 'red' }"
+                        /><span>{{ myAnser.discussNum }}</span>
+                      </div>
+                      <div class="elChatDotSquare" @click="shareFun(allQues)">
+                        <share-alt-outlined /><span>{{
+                          myAnser.discussNum
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="up" @click="upData">
+                    <div style="margin-right: 4px">收起回答</div>
+                    <img src="@/assets/images/up11.png" alt="" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-if="tabValue === 2" class="video-wrap">
+            <div class="doc-list" v-for="(item, index) in documentList">
+              <video
+                class="img-list"
+                :src="item.fileUrl"
+                width="199"
+                height="142"
+                controls
+              />
+              <div class="video-wrap-title">
+                <a-tooltip class="box-item" effect="light" placement="top">
+                  <template #title
+                    >{{ item.fileName }}.{{ item.fileType }}</template
+                  >
+                  <h3 class="fontHide" @click="viewPdfFun(item)">
+                    {{ item.fileName }}.{{ item.fileType }}
+                  </h3>
+                </a-tooltip>
+                <div class="video-wrap-title-right">
+                  <span>{{ JSON.parse(item.counting).previewed }}次播放</span>
+                  <div class="act-list elStarFilled" @click="followFun(item)">
+                    <StarFilled
+                      :style="{ color: !item.collectedLight ? '' : '#87d068' }"
+                    />
+                    <span>{{ JSON.parse(item.counting).collectd }}</span>
+                  </div>
+                  <div class="act-list elShare" @click="shareFun(item)">
+                    <ShareAltOutlined />
+                    <span>{{ JSON.parse(item.counting).shared }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="author" style="display: flex">
+                <div>
+                  <span class="name">{{ item.userName }}</span>
+                  <span class="time">{{
+                    getTimes(Date.parse(item.addTime)) || ""
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-if="tabValue === 3" class="img-wrap">
+            <div class="doc-list" v-for="(item, index) in documentList">
+              <img
+                class="img-list"
+                style="width: 199px; height: 142px"
+                :src="item.fileUrl"
+              />
+              <div class="img-wrap-title">
+                <a-tooltip class="box-item" placement="top" :show-after="500">
+                  <template #title
+                    >{{ item.fileName }}.{{ item.fileType }}</template
+                  >
+                  <h3 class="fontHide" @click="viewPdfFun(item)">
+                    {{ item.fileName }}.{{ item.fileType }}
+                  </h3>
+                </a-tooltip>
+                <div class="img-wrap-title-right">
+                  <span>{{ JSON.parse(item.counting).previewed }}次预览</span>
+                  <div
+                    v-if="!item.collectedLight"
+                    class="act-list elStarFilled"
+                    @click="followFun(item)"
+                  >
+                    <StarFilled
+                      :style="{ color: !item.collectedLight ? '' : '#87d068' }"
+                    /><span>{{ JSON.parse(item.counting).collectd }}</span>
+                  </div>
+                  <div class="act-list elShare" @click="shareFun(item)">
+                    <el-icon><Share /></el-icon
+                    ><span>{{ JSON.parse(item.counting).shared }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="author" style="display: flex">
+                <div>
+                  <span class="name">{{ item.userName }}</span>
+                  <span class="time">{{
+                    getTimes(Date.parse(item.addTime)) || ""
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <a-empty
+            v-if="documentList.length === 0 && !spinning"
+            :image="simpleImage"
+          />
+        </a-spin>
       </div>
     </div>
+    <shareCell
+      :share-dialog-visible="shareDialogVisible"
+      :doc-id="docId"
+      :quest-flag="questFlag"
+      :tab-flag="tabValue"
+      @close-share="closeShare"
+    />
+
+    <comment
+      :comment-dialog-visible="commentDialogVisible"
+      :common-deail="commonDeail"
+      @close-comment-dialog-notification="closeCommentDialogNotification"
+      @get-flag-list="fetchFileList"
+    />
+    <comment
+      :comment-dialog-visible="commentDialogVisibleQuest"
+      :common-deail="commonDeail"
+      @close-comment-dialog-notification="closeCommentDialogNotification"
+      @get-flag-list="fetchFileList"
+    />
+    <Video
+      :video-hide="videoHide"
+      :file-url-play="fileUrlPlay"
+      :dialog-type="dialogType"
+      :title-type="titleType"
+      @get-video-hide="getVideoHide"
+    />
+
     <template #footer>
       <div class="flex justify-end">
         <a-button type="primary" @click="open = false">关闭</a-button>
@@ -356,7 +659,6 @@ defineExpose({
 }
 .drawerMain {
   .doc-wrap {
-    min-height: 554px;
     background: #ffffff;
     border-radius: 4px;
     padding: 20px;
@@ -500,7 +802,6 @@ defineExpose({
     }
   }
   .video-wrap {
-    min-height: 554px;
     background: #ffffff;
     border-radius: 4px;
     padding: 20px;
@@ -546,9 +847,10 @@ defineExpose({
     .doc-list {
       margin-bottom: 16px;
       width: 240px;
-      height: 240px;
+      min-height: 240px;
       margin-right: 16px;
       border: 1px solid #eaeaf1;
+      padding-bottom: 16px;
       h3 {
         height: 22px;
         font-size: 14px;
@@ -671,7 +973,6 @@ defineExpose({
     }
   }
   .img-wrap {
-    min-height: 554px;
     background: #ffffff;
     border-radius: 4px;
     padding: 20px;
@@ -852,7 +1153,6 @@ defineExpose({
     }
   }
   .quest-wrap {
-    min-height: 554px;
     overflow-y: auto;
     background: #ffffff;
     border-radius: 4px;
@@ -1028,13 +1328,6 @@ defineExpose({
             margin-right: 8px;
           }
         }
-        span {
-          height: 22px;
-          font-size: 14px;
-          font-family: PingFang-SC, PingFang-SC;
-          font-weight: 500;
-          line-height: 22px;
-        }
         span.time {
           margin-left: 13px;
           margin-right: 13px;
@@ -1043,6 +1336,13 @@ defineExpose({
           margin: 5px 20px 0 30px;
           height: 24px;
           line-height: 24px;
+          span {
+            height: 22px;
+            font-size: 14px;
+            font-family: PingFang-SC, PingFang-SC;
+            font-weight: 500;
+            line-height: 22px;
+          }
           .content-answer {
             position: absolute;
             left: -10px;
@@ -1211,6 +1511,14 @@ defineExpose({
         }
       }
     }
+  }
+
+  .fontHide {
+    width: 200px;
+    color: #155bd4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 </style>

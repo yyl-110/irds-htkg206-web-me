@@ -177,7 +177,7 @@ onBeforeMount(() => {
           class="sider-wrapper p-0"
           :data-resizing="asideResizing"
           collapsible>
-          <aside class="sider-menu-scroll overflow-x-hidden pt-4" style="background-color: #1a3677">
+          <aside class="sider-menu-scroll overflow-x-hidden pt-4">
             <div class="sider-header" style="cursor: pointer" v-if="!collapsed">
               <img class="sider-header-img" src="@/assets/zg_yt.png" />
               <div class="sider-header-text">{{ $t('机械设备快速设计系统') }}</div>
@@ -189,7 +189,7 @@ onBeforeMount(() => {
           </aside>
           <footer
             class="sider-footer-bar h-[50px] flex justify-center items-center shrink-0"
-            style="background-color: #1a3677">
+            >
             <a-button type="text" size="small" @click="collapsed = !collapsed">
               <MenuFoldOutlined v-if="collapsed" class="text-base text-white" />
               <MenuUnfoldOutlined v-else class="text-base text-white" />
@@ -401,6 +401,9 @@ onBeforeMount(() => {
   background: #f3f2f7;
 }
 
+.ant-menu-inline, .ant-menu-vertical, .ant-menu-vertical-left {
+  border: none!important;
+}
 :deep(.ant-menu) {
   background-color: #1a3677 !important;
   //background: linear-gradient(1deg, #1a3b7a, #1A3677);
@@ -440,9 +443,6 @@ onBeforeMount(() => {
     .ant-menu-submenu-arrow {
       color: #fff;
     }
-  }
-  .ant-menu-inline {
-    border: none;
   }
   .ant-menu-inline {
     .ant-menu-submenu-title {

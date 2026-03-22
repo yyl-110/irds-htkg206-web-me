@@ -82,7 +82,7 @@ const onNodeClick = (nodeObject, $even) => {
   childsNode.value = [...new Set(childsNode.value)];
 
   const params = {
-    kldTreeId: childsNode.value.toString() || "", //机构id和子机构id
+    kldTreeId: childsNode.value.toString() || "", // 机构id和子机构id
     userId: "582" || userStore.getUser.id, //
   };
   // 打开抽屉
