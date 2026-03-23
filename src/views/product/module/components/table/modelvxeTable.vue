@@ -194,7 +194,7 @@ defineExpose({
         @cell-dblclick="dblclick"
         :column-config="{ resizable: true }"
         :cell-config="{ height: 45 }"
-        :header-cell-config="{ height: 20 }"
+        :header-cell-config="{ height: 36 }"
         :edit-config="{ trigger: dblclick }"
         :checkbox-config="{
           labelField: '',
@@ -317,6 +317,16 @@ defineExpose({
   position: relative;
   :deep(.vxe-table--filter-wrapper.is--active) {
     text-align: left !important;
+  }
+  :deep(.vxe-header--column) {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  :deep(.vxe-header--column .vxe-cell) {
+    height: 36px !important;
+    line-height: 36px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
   }
 }
 .cells {

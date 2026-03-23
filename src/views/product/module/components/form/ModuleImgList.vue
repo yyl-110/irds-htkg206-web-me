@@ -199,9 +199,9 @@ defineExpose({ infoReload });
       @on-cancel="globalQueryModalVisible = false">
       <div style="margin-bottom: 12px">
         <div v-for="(group, idx) in globalQueryGroups" :key="idx" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
-          <a-select v-model:value="group.field" style="width: 180px" :options="globalQueryFieldOptions" />
+          <a-select v-model:value="group.field" style="width: 140px" :options="globalQueryFieldOptions" />
           <a-select v-model:value="group.queryType" style="width: 140px" :options="globalQueryTypeOptions" />
-          <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 260px" />
+          <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 180px" />
           <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
           <EpcIcon v-if="globalQueryGroups.length > 1" type="icon-shanchu2" style="color: #ff4d4f; font-size: 16px; cursor: pointer" @click="removeGlobalQueryGroup(idx)" />
           <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
