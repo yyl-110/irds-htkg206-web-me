@@ -62,7 +62,7 @@ const tag2 = computed(() =>
     <div v-if="elTagcheckedOneData.length > 0" class="cla-list">
       <div class="total">
         <div class="second">
-          <span class="secondSpan">所属类目1：</span>
+          <span class="secondSpan flex-shrink-0">所属类目1：</span>
           <div class="el-check-tag-wrap1">
             <a-checkbox
               v-for="(item, index) in elTagcheckedOneData"
@@ -93,7 +93,7 @@ const tag2 = computed(() =>
     >
       <div class="total">
         <div class="second">
-          <span class="secondSpan">所属类目2：</span>
+          <span class="secondSpan flex-shrink-0">所属类目2：</span>
           <div class="el-check-tag-wrap1">
             <a-checkbox-group
               v-model:value="type2"
@@ -133,9 +133,9 @@ const tag2 = computed(() =>
       justify-content: space-between;
       .second {
         display: flex;
-        align-items: center;
+        // align-items: center;
         .secondSpan {
-          line-height: 28px;
+          line-height: 36px;
           width: 80px;
           // margin-top: 7px;
           color: #333;
@@ -173,6 +173,11 @@ const tag2 = computed(() =>
           display: flex;
           flex-wrap: wrap;
           line-height: 33px;
+          .ant-checkbox-group {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+          }
           // align-items: center;
           .elCheckTag {
             // margin-right: 60px;

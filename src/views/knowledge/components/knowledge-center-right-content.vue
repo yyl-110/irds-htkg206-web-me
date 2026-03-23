@@ -173,40 +173,29 @@ const closeFun = () => {
       </div>
       <div class="desc">个人简介：{{ userInfoList.remarks }}</div>
       <div class="flex justify-between px-[16px]">
-        <div
-          v-for="(item, index) in myData"
-          :key="index"
-          class="text item"
-          @click="getInfo(item)"
-        >
-          <div
-            style="
+        <div v-for="(item, index) in myData" :key="index" class="text item" @click="getInfo(item)">
+          <div style="
               width: 63px;
               height: 65px;
               text-align: center;
               background-color: #fff;
               padding-top: 10px;
-            "
-          >
-            <div
-              style="
+            ">
+            <div style="
                 height: 20px;
                 font-weight: bold;
                 font-size: 18px;
                 color: #000;
                 margin-bottom: 4px;
-              "
-            >
+              ">
               {{ item.value }}
             </div>
-            <div
-              style="
+            <div style="
                 height: 20px;
                 font-weight: 400;
                 font-size: 14px;
                 color: #6a696e;
-              "
-            >
+              ">
               {{ item.title }}
             </div>
           </div>
@@ -220,12 +209,7 @@ const closeFun = () => {
           <div class="more" @click="viewMoreFun('records')">更多</div>
         </div>
       </template>
-      <div
-        v-for="(item, index) in viewHistoryData"
-        :key="item.id"
-        class="text item"
-        @click="viewPdfFun(item)"
-      >
+      <div v-for="(item, index) in viewHistoryData" :key="item.id" class="text item" @click="viewPdfFun(item)">
         <div v-if="!item.attachmentType" class="box-item">
           <div class="fontHide" v-if="!item.attachmentType">
             {{ item.description }}
@@ -238,83 +222,47 @@ const closeFun = () => {
         </div>
       </div>
     </a-card>
-    <a-card
-      class="box-card hot-card flex-1 overflow-hidden flex flex-col"
-      :bordered="false"
-    >
+    <a-card class="box-card hot-card flex-1 overflow-hidden flex flex-col" :bordered="false">
       <template #title>
         <div class="card-header">
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 1"
-            >热点文档</span
-          >
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 2"
-            >热点视频</span
-          >
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 3"
-            >热点图片</span
-          >
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 4"
-            >热点问答</span
-          >
+          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 1">热点文档</span>
+          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 2">热点视频</span>
+          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 3">热点图片</span>
+          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 4">热点问答</span>
           <div class="more" @click="viewMoreFun('hot')">更多</div>
         </div>
       </template>
-      <div
-        v-for="(val, index) in hotArticleData"
-        :key="val.id"
-        class="text item"
-        @click="viewPdfFun(val)"
-      >
+      <div v-for="(val, index) in hotArticleData" :key="val.id" class="text item" @click="viewPdfFun(val)">
         <div v-if="val.fileName" class="box-item">
           <div class="space">
-            <span
-              style="margin-right: 0.625rem"
-              :style="{
-                color:
-                  index === 0
-                    ? '#ff0000'
-                    : index == 1 || index == 2
+            <span style="margin-right: 0.625rem" :style="{
+              color:
+                index === 0
+                  ? '#ff0000'
+                  : index == 1 || index == 2
                     ? '#FF8A00'
                     : '',
-              }"
-              >{{ index + 1 }}</span
-            >{{ val.fileName }}
+            }">{{ index + 1 }}</span>{{ val.fileName }}
           </div>
         </div>
-        <div
-          v-if="val.fileName"
-          style="
+        <div v-if="val.fileName" style="
             margin-left: 10px;
             margin-top: -40px;
             display: flex;
             align-items: center;
-          "
-        >
+          ">
           <eye-outlined class="mr-[2px]" />
           {{ val.lookUpNum || val.num }}次
         </div>
       </div>
     </a-card>
     <div class="rightDialog">
-      <a-modal
-        v-model:visible="dialogVisible"
-        :title="dialogTit"
-        width="50%"
-        cancel-text="关闭"
-        @cancel="closeFun"
-      >
-        <a-card
-          v-if="dialogTit === '浏览记录'"
-          class="box-card2"
-          style="height: 18.75rem; overflow-y: auto"
-          :bordered="false"
-        >
-          <div
-            v-for="(item, index) in viewHistoryData"
-            :key="item.id"
-            class="text item text-list"
-            @click="viewPdfFun(item)"
-          >
+      <a-modal v-model:visible="dialogVisible" :title="dialogTit" width="50%" cancel-text="关闭" @cancel="closeFun"
+        class="record-modal">
+        <a-card v-if="dialogTit === '浏览记录'" class="box-card2" style="height: 18.75rem; overflow-y: auto"
+          :bordered="false">
+          <div v-for="(item, index) in viewHistoryData" :key="item.id" class="text item text-list"
+            @click="viewPdfFun(item)">
             <div class="box-item">
               <div class="tit">{{ item.fileName }}</div>
             </div>
@@ -324,18 +272,9 @@ const closeFun = () => {
             </div>
           </div>
         </a-card>
-        <a-card
-          v-else
-          class="box-card1"
-          :bordered="false"
-          style="height: 18.75rem; overflow-y: auto"
-        >
-          <div
-            v-for="(item, index) in hotArticleData"
-            :key="item.id"
-            @click="viewPdfFun(item)"
-            style="border-bottom: 1px solid #ccc"
-          >
+        <a-card v-else class="box-card1" :bordered="false" style="height: 18.75rem; overflow-y: auto">
+          <div v-for="(item, index) in hotArticleData" :key="item.id" @click="viewPdfFun(item)"
+            style="border-bottom: 1px solid #ccc">
             <div class="text item text-list">
               <div class="box-item">
                 <div class="tit">{{ item.fileName }}</div>
@@ -366,17 +305,18 @@ const closeFun = () => {
 </template>
 
 <style lang="less" scoped>
-:deep(.ant-modal-body) {
-  padding: 0;
-}
+/* modal 通过 teleport 渲染到 body，scoped 无法穿透，样式移到下方全局块 */
+
 .rt-layout {
   height: 100%;
   // margin-top: 10px;
   // margin-right: 10px;
   overflow: hidden;
+
   :deep(.ant-card-head-title) {
     padding: 8px 0;
   }
+
   .home-intro {
     // height: 367px;
     background: #ffffff;
@@ -388,6 +328,7 @@ const closeFun = () => {
     height: 200px;
     background: linear-gradient(181deg, #fae2ab 0%, #ffffff 100%);
     border-radius: 4px 4px 4px 4px;
+
     .user {
       display: flex;
       border-bottom: 1px solid #ebedf0;
@@ -396,6 +337,7 @@ const closeFun = () => {
       display: flex;
       align-items: center;
       padding: 16px;
+
       .elAvatar {
         width: 60px;
         height: 60px;
@@ -405,8 +347,10 @@ const closeFun = () => {
         // margin-top: 24px;
         // margin-left: 16px;
       }
+
       .intro {
         padding-left: 16px;
+
         .name {
           height: 26px;
           margin-bottom: 6px;
@@ -416,6 +360,7 @@ const closeFun = () => {
           font-size: 16px;
           color: #000000;
         }
+
         .tags {
           width: 90px;
           line-height: 24px;
@@ -440,6 +385,7 @@ const closeFun = () => {
         }
       }
     }
+
     .desc {
       margin: 16px 18px 20px 16px;
       font-size: 14px;
@@ -448,12 +394,15 @@ const closeFun = () => {
       color: #333;
       line-height: 20px;
     }
+
     .elCard {
       padding-top: 23px;
       border: none;
+
       :deep(.el-card__body) {
         padding: 0;
       }
+
       .item {
         display: flex;
         align-items: center;
@@ -465,20 +414,25 @@ const closeFun = () => {
         line-height: 20px;
         margin-bottom: 15px;
         cursor: pointer;
+
         .elIcon {
           margin-right: 10px;
           margin-left: 8px;
           font-size: 14px;
           cursor: pointer;
+
           .TrophyBase-ico {
             color: #2da641;
           }
+
           .StarFilled-ico {
             color: #fad20c;
           }
+
           .Opportunity-ico {
             color: #d40000;
           }
+
           .Document-ico {
             color: #155bd4;
           }
@@ -486,6 +440,7 @@ const closeFun = () => {
       }
     }
   }
+
   .box-cards {
     width: 100%;
     height: 140px;
@@ -494,15 +449,18 @@ const closeFun = () => {
     margin-bottom: 16px;
     border: none;
     overflow: hidden;
+
     :deep(.el-card__header) {
       padding: 0 20px;
       border-bottom: none;
     }
+
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       color: #333;
+
       // padding: 18px 0 0px 0;
       .more {
         cursor: pointer;
@@ -513,8 +471,10 @@ const closeFun = () => {
         color: #0d53e2;
       }
     }
+
     :deep(.el-card__body) {
       padding: 20px;
+
       .item {
         display: flex;
         align-items: center;
@@ -526,29 +486,35 @@ const closeFun = () => {
         font-family: PingFang-SC, PingFang-SC;
         font-weight: 500;
         color: #646566;
+
         &:hover {
           cursor: pointer;
           color: #155bd4;
         }
+
         .elTag {
           margin-right: 8px;
           color: #155bd4 !important;
           background: #edf4ff !important;
         }
+
         .el-tag--light {
           margin-right: 8px;
         }
       }
     }
   }
+
   .hot-card {
     margin-bottom: 0;
     width: 100%;
+
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       color: #333;
+
       // padding: 18px 0 0 0;
       .more {
         cursor: pointer;
@@ -559,11 +525,13 @@ const closeFun = () => {
         color: #0d53e2;
       }
     }
+
     :deep(.ant-card-body) {
       padding: 0 20px 20px 20px;
       flex: 1;
       height: 0;
       overflow-y: auto;
+
       .item {
         display: flex;
         align-items: center;
@@ -575,15 +543,18 @@ const closeFun = () => {
         color: #646566;
         flex-wrap: wrap;
         border-bottom: 1px solid #ccc;
+
         &:hover {
           cursor: pointer;
           color: #155bd4;
         }
+
         .elTag {
           margin-right: 8px;
           color: #155bd4 !important;
           background: #edf4ff !important;
         }
+
         .el-tag--light {
           margin-right: 8px;
         }
@@ -598,6 +569,7 @@ const closeFun = () => {
     text-overflow: ellipsis;
     color: #333;
     margin-top: -10px;
+
     &:hover {
       color: #0d53e2;
     }
@@ -631,10 +603,12 @@ const closeFun = () => {
     // padding: 6px 0 6px 8px;
     border-radius: 4px;
     margin-bottom: 12px;
+
     &:hover {
       color: #0d53e2;
     }
   }
+
   // .fontHide:hover {
   //   white-space: normal;
   //   overflow: visible;
@@ -644,10 +618,12 @@ const closeFun = () => {
     width: 20px;
     margin-top: 10px;
   }
+
   .rightDialog {
     :deep(.el-dialog > .el-dialog__body) {
       padding: 0;
     }
+
     .view-more-dialog {
       .box-card1 {
         overflow: auto;
@@ -656,18 +632,22 @@ const closeFun = () => {
         border-radius: 4px;
         margin-bottom: 10px;
         border: none;
+
         .card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           color: #333;
+
           .more {
             cursor: pointer;
             color: #155bd4;
           }
         }
+
         :deep(.el-card__body) {
           padding: 0 !important;
+
           .item {
             display: flex;
             align-items: center;
@@ -675,21 +655,25 @@ const closeFun = () => {
             font-family: PingFang-SC, PingFang-SC;
             font-weight: 500;
             color: #646566;
+
             &:hover {
               cursor: pointer;
               color: #155bd4;
             }
+
             .elTag {
               margin-right: 8px;
               color: #155bd4 !important;
               background: #edf4ff !important;
             }
+
             .el-tag--light {
               margin-right: 8px;
             }
           }
         }
       }
+
       .box-card2 {
         overflow: auto;
         padding: 0 10px;
@@ -697,18 +681,22 @@ const closeFun = () => {
         border-radius: 4px;
         margin-bottom: 10px;
         border: none;
+
         .card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           color: #333;
+
           .more {
             cursor: pointer;
             color: #155bd4;
           }
         }
+
         :deep(.el-card__body) {
           padding: 0 !important;
+
           .item {
             display: flex;
             align-items: center;
@@ -725,20 +713,24 @@ const closeFun = () => {
               cursor: pointer;
               color: #155bd4;
             }
+
             .elTag {
               margin-right: 8px;
               color: #155bd4 !important;
               background: #edf4ff !important;
             }
+
             .el-tag--light {
               margin-right: 8px;
             }
           }
         }
       }
+
       .el-dialog__body {
         margin: 0;
       }
+
       .text-list {
         display: flex;
         align-items: center;
@@ -746,6 +738,7 @@ const closeFun = () => {
         flex-wrap: nowrap;
         height: 32px;
         line-height: 32px;
+
         .tit {
           width: 32.5rem;
           white-space: nowrap;
@@ -759,10 +752,12 @@ const closeFun = () => {
           line-height: 32px;
           justify-content: start;
           cursor: pointer;
+
           &:hover {
             color: #409eff;
           }
         }
+
         .name {
           height: 22px;
           font-size: 12px;
@@ -774,6 +769,7 @@ const closeFun = () => {
           cursor: default;
           margin-right: 10px;
         }
+
         .time {
           height: 22px;
           font-size: 12px;
@@ -785,6 +781,7 @@ const closeFun = () => {
           cursor: default;
         }
       }
+
       .box-card .el-card__body {
         padding: 5px 0 0 0;
       }
@@ -795,5 +792,13 @@ const closeFun = () => {
 :deep(.box-card > .el-card__header) {
   padding: 0 20px 0 20px !important;
   border-bottom: none;
+}
+</style>
+
+<style lang="less">
+.record-modal {
+  .ant-modal-body {
+    padding: 0 !important;
+  }
 }
 </style>

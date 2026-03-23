@@ -1,6 +1,6 @@
-
 <script setup lang="ts">
 import {
+  fileList,
   getNodeByLevel,
   knowledgeQueryPage,
   queryPageQuestion,
@@ -8,6 +8,7 @@ import {
   queryThreeTagNode,
 } from "@/api/knowledge";
 import textCard from "../components/textCard.vue";
+import askCard from "../components/askCard.vue";
 import { SearchOutlined } from "@ant-design/icons-vue";
 import { useUserStore } from "@/store/modules/user";
 import searchTag from "../components/search-tag.vue";
@@ -59,7 +60,7 @@ const searchOptions = [
     value: "2",
   },
 ];
-const onSearch = () => {};
+const onSearch = () => { };
 
 // 公共函数
 const publicFun = () => {
@@ -89,7 +90,7 @@ const searchData = () => {
     if (res && res.data.code === "0") {
       changeTabFlag.value = 3;
       documentList.value = [];
-      documentList.value = res.data.data;
+      documentList.value = res.data.data.data;
       page.value.pageCount = res.data.data.total;
       // viewHistory();
       // hotArticle();
@@ -111,8 +112,9 @@ const getQuestList = () => {
     if (res && res.data.code === "0") {
       changeTabFlag.value = 3;
       documentList.value = [];
-      documentList.value = res.data.data;
+      documentList.value = res.data.data.data;
       page.value.pageCount = res.data.data.total;
+      console.log('documentList.value :', documentList.value)
       documentList.value.map((v) => {
         v.content.replay = false;
         v.content.hidden = false;
@@ -125,6 +127,7 @@ const getQuestList = () => {
 
 // 切换标识
 const changeType = () => {
+  documentList.value = [];
   if (tabValue.value === 4) {
     getQuestList();
   } else {
@@ -248,7 +251,7 @@ onMounted(() => {
 
 
 <template>
-  <div class="knowledge-container flex flex-col">
+  <div class="knowledge-container flex flex-col h-full">
     <div class="w-full flex items-center justify-between header">
       <a-radio-group v-model:value="tabValue" @change="changeType">
         <a-radio-button :value="1">文档</a-radio-button>
@@ -257,12 +260,7 @@ onMounted(() => {
         <a-radio-button :value="3">图片</a-radio-button>
       </a-radio-group>
       <div class="flex items-center">
-        <a-input-search
-          v-model:value="searchValue"
-          placeholder="输入关键字进行搜索"
-          @search="onSearch"
-          class="max-w-[300px]"
-        >
+        <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="max-w-[300px]">
           <template #enterButton>
             <div class="flex items-center">
               <SearchOutlined />
@@ -270,27 +268,26 @@ onMounted(() => {
             </div>
           </template>
         </a-input-search>
-        <a-checkbox-group
-          v-model:value="searchType"
-          :options="searchOptions"
-          class="ml-[8px] flex-shrink-0"
-        />
+        <a-checkbox-group v-model:value="searchType" :options="searchOptions" class="ml-[8px] flex-shrink-0" />
       </div>
     </div>
-    <searchTag
-      :elTagcheckedOneData="elTagcheckedOneData"
-      :hiddenStatus="hiddenStatus"
-      :elTagcheckedOneStatus="elTagcheckedOneStatus"
-      :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
-      :elTagcheckedTwoData="elTagcheckedTwoData"
-      @onChangeElCheckTagOne="onChangeElCheckTagOne"
-      @onChangeElCheckTagTwo="onChangeElCheckTagTwo"
-      @onOffFun="onOffFun"
-      class="mt-[16px]"
-    />
+    <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
+      :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
+      :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
+      @onChangeElCheckTagTwo="onChangeElCheckTagTwo" @onOffFun="onOffFun" class="mt-[16px]" />
     <main class="flex-1 h-0">
-      <div class="list h-full">
-        <text-card />
+      <div class="list h-full overflow-y-auto pt-[16px]">
+        <a-row class="h-full w-full" v-if="tabValue === 1" :gutter="[16, 16]">
+          <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
+            <text-card :text-data="item" @handleFetchList="searchData" />
+          </a-col>
+        </a-row>
+
+        <div class="innerNoWrap w-full h-full" v-if="tabValue === 4">
+          <div class="item" v-for="item in documentList" :key="item.id">
+            <ask-card :ask-data="item" @handleFetchList="getQuestList" />
+          </div>
+        </div>
       </div>
     </main>
   </div>

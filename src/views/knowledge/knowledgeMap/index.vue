@@ -83,7 +83,7 @@ const onNodeClick = (nodeObject, $even) => {
 
   const params = {
     kldTreeId: childsNode.value.toString() || "", // 机构id和子机构id
-    userId: "582" || userStore.getUser.id, //
+    userId: userStore.getUser.id, //
   };
   // 打开抽屉
   drawerRef.value.openDrawer(params);
@@ -183,34 +183,15 @@ onMounted(() => {
     <a-row>
       <a-col :span="6">
         <div class="searchAll mb-[16px]">
-          <a-input-search
-            v-model:value="searchData"
-            placeholder="请输入标题或作者搜索"
-            enter-button
-            @search="onSearch"
-          />
+          <a-input-search v-model:value="searchData" placeholder="请输入标题或作者搜索" enter-button @search="onSearch" />
         </div>
-        <div
-          class="pic-list"
-          :class="item.isCurrent ? 'current-pic-list' : ''"
-          v-for="(item, index) in mapLocationTabs"
-          :key="index"
-          @click="mapLocationFun(item)"
-        >
-          <a-avatar
-            class="elava"
-            :style="{
-              backgroundColor:
-                colorss[Math.floor(Math.random() * colorss.length)],
-            }"
-            :size="36"
-            >{{ item.nodeName[0] }}</a-avatar
-          >
-          <a-tooltip
-            v-if="item.nodeName && item.nodeName.length >= 9"
-            class="box-item"
-            placement="right"
-          >
+        <div class="pic-list" :class="item.isCurrent ? 'current-pic-list' : ''" v-for="(item, index) in mapLocationTabs"
+          :key="index" @click="mapLocationFun(item)">
+          <a-avatar class="elava" :style="{
+            backgroundColor:
+              colorss[Math.floor(Math.random() * colorss.length)],
+          }" :size="36">{{ item.nodeName[0] }}</a-avatar>
+          <a-tooltip v-if="item.nodeName && item.nodeName.length >= 9" class="box-item" placement="right">
             <template #title>{{ item.nodeName }}</template>
             <div class="uname">{{ item.nodeName }}</div>
           </a-tooltip>
@@ -220,27 +201,12 @@ onMounted(() => {
       <a-col :span="18">
         <div class="content">
           <div class="map-wrap">
-            <relation-graph
-              class="rac"
-              ref="graphRef"
-              :options="options"
-              v-show="tabIndex === 1"
-              :on-node-click="onNodeClick"
-            />
-            <relation-graph
-              class="avitive"
-              ref="graphRefOne"
-              :options="optionsOne"
-              v-show="tabIndex === 2"
-              :on-node-click="onNodeClick"
-            />
-            <RelationGraph
-              class="avitive"
-              ref="graphRefTwo"
-              :options="optionsTwo"
-              v-show="tabIndex === 3"
-              :on-node-click="onNodeClick"
-            />
+            <relation-graph class="rac" ref="graphRef" :options="options" v-show="tabIndex === 1"
+              :on-node-click="onNodeClick" />
+            <relation-graph class="avitive" ref="graphRefOne" :options="optionsOne" v-show="tabIndex === 2"
+              :on-node-click="onNodeClick" />
+            <RelationGraph class="avitive" ref="graphRefTwo" :options="optionsTwo" v-show="tabIndex === 3"
+              :on-node-click="onNodeClick" />
           </div>
         </div>
       </a-col>
@@ -317,17 +283,22 @@ onMounted(() => {
     }
   }
 }
+
 :deep(.avitive .rel-node-peel-checked) {
   // width: 150px !important;
-  overflow: hidden; /* 隐藏超出部分 */
+  overflow: hidden;
+  /* 隐藏超出部分 */
   min-height: 40px;
   height: auto !important;
 }
+
 :deep(.avitive .c-node-text) {
   width: 150px !important;
-  overflow: hidden; /* 隐藏超出部分 */
+  overflow: hidden;
+  /* 隐藏超出部分 */
   // justify-content: flex-start;
 }
+
 :deep(.avitive .rel-node) {
   min-height: 40px;
   height: auto !important;

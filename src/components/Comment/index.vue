@@ -220,6 +220,7 @@ const handleClose = () => {
       title="评论"
       :width="1000"
       @cancel="handleClose"
+      :footer="null"
     >
       <div class="comment-wrap">
         <a-textarea

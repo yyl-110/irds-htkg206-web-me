@@ -48,7 +48,7 @@ const handleTabchange = (key: number) => {
 // 获取右侧的用户列表
 const getRightUserList = () => {
   const params = {
-    userId: "582" || userStore.getUser.id,
+    userId: userStore.getUser.id,
   };
   knowledgePersonal(params).then((res) => {
     if (res && res.data.code === "0") {
@@ -62,7 +62,7 @@ const viewHistory = () => {
   const params = {
     currentPage: 1,
     pageSize: 10000,
-    userId: "582" || userStore.getUser.id,
+    userId: userStore.getUser.id,
     type: "1", //1,浏览  2，下载
     fileType: activeKey.value,
   };
@@ -117,6 +117,7 @@ watch(
           v-model:active-key="activeKey"
           @change="handleTabchange"
           size="small"
+          class="h-full"
         >
           <a-tab-pane
             :key="index + 1"
@@ -150,5 +151,8 @@ watch(
 <style lang="less" scoped>
 .knowledgeCenter {
   padding: 16px;
+}
+:deep(.ant-tabs-content) {
+  height: 100%;
 }
 </style>
