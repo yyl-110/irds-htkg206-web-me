@@ -263,6 +263,13 @@ export function knowledgeShare(data: any) {
     method: 'POST',
   });
 }
+export function modifyInit(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeFile/modifyInit`,
+    data,
+    method: 'POST',
+  });
+}
 
 /**
  * 知识学习-获取任务列表

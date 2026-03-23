@@ -1,32 +1,157 @@
+<script setup lang="ts">
+import { doCollectFile, modifyInit } from "@/api/knowledge";
+import comment from "@/components/Comment/index.vue";
+import { useUserStore } from "@/store/modules/user";
+import { getTimes } from "@/utils/dateUtils";
+import {
+  EyeOutlined,
+  MessageOutlined,
+  StarOutlined,
+  StarFilled,
+  ShareAltOutlined,
+  DownloadOutlined,
+  InfoCircleFilled,
+  UserOutlined,
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
+import shareCell from "./share.vue";
+
+const props = defineProps({
+  textData: {
+    type: Object,
+    default: () => {
+      return {};
+    },
+  },
+});
+
+const emits = defineEmits(["handleFetchList"]);
+
+const commentDialogVisible = ref(false);
+const shareDialogVisible = ref(false);
+const commentDetail = ref({});
+const docId = ref("");
+const showDetail = ref(false);
+const formInline = ref({});
+
+const viewPdfFun = () => {};
+
+const commentFun = (answer: any) => {
+  commentDetail.value = answer.content;
+  // numberFlag.value = 2;
+  commentDialogVisible.value = true;
+};
+const getList = () => {
+  emits("handleFetchList");
+};
+
+// 关闭评论弹框
+const closeCommentDialogNotification = () => {
+  commentDialogVisible.value = false;
+  emits("handleFetchList");
+};
+
+//关注
+const followFun = () => {
+  const params = {
+    kldId: props.textData.content.id,
+    userId: useUserStore().getUser.id,
+  };
+  doCollectFile(params).then((res) => {
+    if (res && res.data.code === "0") {
+      message.success(res.data.msg);
+      setTimeout(() => {
+        emits("handleFetchList");
+      }, 1000);
+    }
+  });
+};
+//分享
+const shareFun = () => {
+  docId.value = props.textData.content.id;
+  shareDialogVisible.value = true;
+};
+//关闭分享
+const closeShare = () => {
+  shareDialogVisible.value = false;
+  setTimeout(() => {
+    emits("handleFetchList");
+  }, 1000);
+};
+
+const downFun = () => {};
+
+const getDes = () => {
+  showDetail.value = true;
+  modifyInit({ kldFileId: props.textData.content.id }).then((res) => {
+    if (res && res.data.code === "0") {
+      const names = [
+        res.data.data.ou1Name,
+        res.data.data.ou2Name,
+        res.data.data.ou3Name,
+      ];
+      formInline.value = {
+        fileName: res.data.data.fileName,
+        keywords: res.data.data.keywords,
+        ouName: names.join(","),
+        kldTageNames: res.data.data.kldTageNames.replace(/^\[|\]$/g, ""),
+      };
+      console.log(res.data.data, formInline.value);
+    }
+  });
+};
+</script>
+
+
 <template>
   <div class="doc-list">
     <div style="display: flex; margin-top: 16px">
       <div class="header">
-        <span>{{
-          textData.content.fileType[0]
-        }}</span>
+        <span>{{ textData.content.fileType[0] }}</span>
       </div>
       <div style="width: 100%">
-        <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0"
-          class="box-item">
-          <div v-html="textData.highlightFields?.fileName[0] + '.' + textData.content.fileType" class="highlightName"
-            @click="viewPdfFun"></div>
+        <div
+          v-if="
+            textData.highlightFields?.fileName &&
+            textData.highlightFields?.fileName.length > 0
+          "
+          class="box-item"
+        >
+          <div
+            v-html="
+              textData.highlightFields?.fileName[0] +
+              '.' +
+              textData.content.fileType
+            "
+            class="highlightName"
+            @click="viewPdfFun"
+          ></div>
         </div>
         <div v-else class="box-item">
-          <div class="highlightName" @click="viewPdfFun">{{ textData.content.fileName }}.{{
-            textData.content.fileType }}
+          <div class="highlightName" @click="viewPdfFun">
+            {{ textData.content.fileName }}.{{ textData.content.fileType }}
           </div>
         </div>
         <div style="height: 26px; margin-top: 4px">
           <a-breadcrumb separator="|">
-            <a-breadcrumb-item>{{ textData.content.version || '' }}</a-breadcrumb-item>
-            <a-breadcrumb-item>{{ getTimes(Date.parse(textData.content.addTime)) || '' }}</a-breadcrumb-item>
+            <a-breadcrumb-item>{{
+              textData.content.version || ""
+            }}</a-breadcrumb-item>
+            <a-breadcrumb-item>{{
+              getTimes(Date.parse(textData.content.addTime)) || ""
+            }}</a-breadcrumb-item>
           </a-breadcrumb>
         </div>
       </div>
     </div>
-    <div v-if="textData.highlightFields?.summary && textData.highlightFields?.summary.length > 0"
-      v-html="textData.highlightFields?.summary[0]" class="desc descColor"></div>
+    <div
+      v-if="
+        textData.highlightFields?.summary &&
+        textData.highlightFields?.summary.length > 0
+      "
+      v-html="textData.highlightFields?.summary[0]"
+      class="desc descColor"
+    ></div>
     <div v-else class="desc">{{ textData.content.summary }}</div>
     <div class="doc-list-bottom">
       <div class="author">
@@ -38,32 +163,56 @@
         <span class="name">{{ textData.content.userName }}</span>
       </div>
       <div class="action-wrap">
-        <a-tooltip :mouse-enter-delay="0.5" title="查看次数" placement="topLeft">
+        <a-tooltip
+          :mouse-enter-delay="0.5"
+          title="查看次数"
+          placement="topLeft"
+        >
           <div class="act-list">
-            <eye-outlined /><span>{{ JSON.parse(textData.content.counting).previewed }}</span>
+            <eye-outlined /><span>{{
+              JSON.parse(textData.content.counting).previewed
+            }}</span>
           </div>
         </a-tooltip>
         <a-tooltip :mouse-enter-delay="0.5" title="评论" placement="topLeft">
           <div class="act-list elChatDotSquare" @click="commentFun(textData)">
-            <message-outlined /><span>{{ JSON.parse(textData.content.counting).commented }}</span>
+            <message-outlined /><span>{{
+              JSON.parse(textData.content.counting).commented
+            }}</span>
           </div>
         </a-tooltip>
         <a-tooltip :mouse-enter-delay="0.5" title="收藏" placement="topLeft">
-          <div v-if="!textData.content.collectedLight" class="act-list elStarFilled" @click="followFun">
-            <star-outlined /><span>{{ JSON.parse(textData.content.counting).collectd }}</span>
+          <div
+            v-if="!textData.content.collectedLight"
+            class="act-list elStarFilled"
+            @click="followFun"
+          >
+            <star-outlined /><span>{{
+              JSON.parse(textData.content.counting).collectd
+            }}</span>
           </div>
           <div v-else class="act-list elStarFilled1" @click="followFun">
-            <star-filled /><span>{{ JSON.parse(textData.content.counting).collectd }}</span>
+            <star-filled /><span>{{
+              JSON.parse(textData.content.counting).collectd
+            }}</span>
           </div>
         </a-tooltip>
         <a-tooltip :mouse-enter-delay="0.5" title="分享" placement="topLeft">
           <div class="act-list elShare" @click="shareFun">
-            <share-alt-outlined /><span>{{ JSON.parse(textData.content.counting).shared }}</span>
+            <share-alt-outlined /><span>{{
+              JSON.parse(textData.content.counting).shared
+            }}</span>
           </div>
         </a-tooltip>
         <a-tooltip :mouse-enter-delay="0.5" title="下载" placement="topLeft">
-          <div v-if="textData.content.allowDownload !== '1'" class="act-list elShare" @click="downFun">
-            <download-outlined /><span>{{ JSON.parse(textData.content.counting).downloaded }}</span>
+          <div
+            v-if="textData.content.allowDownload !== '1'"
+            class="act-list elShare"
+            @click="downFun"
+          >
+            <download-outlined /><span>{{
+              JSON.parse(textData.content.counting).downloaded
+            }}</span>
           </div>
         </a-tooltip>
         <a-tooltip :mouse-enter-delay="0.5" title="详情" placement="topLeft">
@@ -73,57 +222,49 @@
         </a-tooltip>
       </div>
     </div>
-    <comment :comment-dialog-visible="commentDialogVisible" :common-deail="commentDetail"
-      @close-comment-dialog-notification="closeCommentDialogNotification" @get-flag-list="getList" />
+    <comment
+      :comment-dialog-visible="commentDialogVisible"
+      :common-deail="commentDetail"
+      @close-comment-dialog-notification="closeCommentDialogNotification"
+      @get-flag-list="getList"
+    />
+
+    <shareCell
+      :share-dialog-visible="shareDialogVisible"
+      :doc-id="docId"
+      :quest-flag="1"
+      :tab-flag="1"
+      @close-share="closeShare"
+    />
+
+    <a-modal
+      :closable="false"
+      v-model:visible="showDetail"
+      title="查看详情"
+      width="40%"
+      centered
+    >
+      <a-form-item label="附件名称：" label-width="100">
+        <a-input v-model:value="formInline.fileName" disabled />
+      </a-form-item>
+      <a-form-item label="标签属性：" label-width="100">
+        <a-input v-model:value="formInline.kldTageNames" disabled />
+      </a-form-item>
+      <a-form-item label="OU属性：" label-width="100">
+        <a-input v-model:value="formInline.ouName" disabled />
+      </a-form-item>
+      <a-form-item label="关键字：" label-width="100">
+        <a-input v-model:value="formInline.keywords" disabled />
+      </a-form-item>
+      <template #footer>
+        <div class="dialog-footer">
+          <a-button @click="showDetail = false">关闭</a-button>
+        </div>
+      </template>
+    </a-modal>
   </div>
 </template>
 
-<script setup lang="ts">
-import comment from '@/components/Comment/index.vue'
-import { getTimes } from '@/utils/dateUtils';
-import { EyeOutlined, MessageOutlined, StarOutlined, StarFilled, ShareAltOutlined, DownloadOutlined, InfoCircleFilled, UserOutlined } from '@ant-design/icons-vue';
-const props = defineProps({
-  textData: {
-    type: Object,
-    default: () => {
-      return {};
-    }
-  }
-})
-
-const emits = defineEmits(['handleFetchList']);
-
-const commentDialogVisible = ref(false)
-const commentDetail = ref({})
-
-const viewPdfFun = () => { }
-
-const commentFun = (answer: any) => {
-  commentDetail.value = answer.content;
-  // numberFlag.value = 2;
-  commentDialogVisible.value = true;
-}
-const getList = () => {
-  emits('handleFetchList');
-}
-
-// 关闭评论弹框
-const closeCommentDialogNotification = () => {
-  commentDialogVisible.value = false;
-  emits('handleFetchList');
-}
-
-const followFun = () => { }
-
-const downFun = () => { }
-
-const shareFun = () => { }
-
-const getDes = () => { }
-
-
-
-</script>
 
 <style lang="less" scoped>
 .doc-list {
@@ -150,7 +291,7 @@ const getDes = () => { }
       color: #d71515;
       line-height: 24px;
       font-style: normal;
-      text-transform: none
+      text-transform: none;
     }
   }
 

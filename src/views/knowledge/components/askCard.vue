@@ -5,44 +5,98 @@
         <a-avatar class="elAvatar" :size="24">
           <template #icon>
             <UserOutlined />
-          </template>
-        </a-avatar><span class="name">{{ askData.content.userName }}</span>
-        <span class="time">{{ getAllTimes(Date.parse(askData.content.addTime)) }}</span>
-        <span v-if="askData.content.urgency === '紧急'" class="status exigency">{{ askData.content.urgency }}</span>
-        <span v-if="askData.content.urgency === '严重'" class="status importance">{{ askData.content.urgency }}</span>
+          </template> </a-avatar
+        ><span class="name">{{ askData.content.userName }}</span>
+        <span class="time">{{
+          getAllTimes(Date.parse(askData.content.addTime))
+        }}</span>
+        <span
+          v-if="askData.content.urgency === '紧急'"
+          class="status exigency"
+          >{{ askData.content.urgency }}</span
+        >
+        <span
+          v-if="askData.content.urgency === '严重'"
+          class="status importance"
+          >{{ askData.content.urgency }}</span
+        >
       </div>
-      <span class="ask-list-right" v-if="!askData.content.hideAnswerButton" @click="myAnswerFun(askData.content)">
-        <img src="@/assets/images/group1.png" alt="" /><span class="author-myAnser-text">写回答</span>
+      <span
+        class="ask-list-right"
+        v-if="!askData.content.hideAnswerButton"
+        @click="myAnswerFun(askData.content)"
+      >
+        <img src="@/assets/images/group1.png" alt="" /><span
+          class="author-myAnser-text"
+          >写回答</span
+        >
       </span>
     </div>
     <div class="ask-list-title">
-      <span v-if="askData.highlightFields?.description && askData.highlightFields?.description.length > 0"
-        v-html="askData.highlightFields?.description[0]" class="highlightName"
-        @click="changeHideFlag(askData.content)"></span>
-      <span v-else class="highlightName" @click="changeHideFlag(askData.content)">
+      <span
+        v-if="
+          askData.highlightFields?.description &&
+          askData.highlightFields?.description.length > 0
+        "
+        v-html="askData.highlightFields?.description[0]"
+        class="highlightName"
+        @click="changeHideFlag(askData.content)"
+      ></span>
+      <span
+        v-else
+        class="highlightName"
+        @click="changeHideFlag(askData.content)"
+      >
         {{ askData.content.description }}
       </span>
-      <span class="ask-list-title-answerNum" v-if="askData.content?.answer && askData.content?.answer?.length > 0">
-        已回复<span style="margin-left: 2px">{{ askData.content?.answer?.length }}</span>条
+      <span
+        class="ask-list-title-answerNum"
+        v-if="askData.content?.answer && askData.content?.answer?.length > 0"
+      >
+        已回复<span style="margin-left: 2px">{{
+          askData.content?.answer?.length
+        }}</span
+        >条
       </span>
     </div>
     <div class="author">
       <div class="authorOption">
-        <div style="margin-right: 4px" v-if="askData.content?.answer && askData.content?.answer?.length > 0"
-          @click="hidenFun(askData)">展开全部</div>
-        <img src="@/assets/images/down11.png" v-if="askData.content?.answer && askData.content?.answer?.length > 0"
-          @click="hidenFun(askData)" alt="" style="margin-right: 20px" />
+        <div
+          style="margin-right: 4px"
+          v-if="askData.content?.answer && askData.content?.answer?.length > 0"
+          @click="hidenFun(askData)"
+        >
+          展开全部
+        </div>
+        <img
+          src="@/assets/images/down11.png"
+          v-if="askData.content?.answer && askData.content?.answer?.length > 0"
+          @click="hidenFun(askData)"
+          alt=""
+          style="margin-right: 20px"
+        />
       </div>
     </div>
     <div class="commont mt-[16px]" v-if="hideAnswer">
       <a-textarea v-model:value="answer" />
-      <a-button class="commont-btn ml-auto flex mt-[8px]" type="primary" @click="confirmAnswer">确定</a-button>
+      <a-button
+        class="commont-btn ml-auto flex mt-[8px]"
+        type="primary"
+        @click="confirmAnswer"
+        >确定</a-button
+      >
     </div>
     <div v-if="hideFlag && askData.content.answer.length > 0">
-      <div class="bottomAnswer" v-for="(myAnser, index) in askData.content.answer" :key="myAnser.id">
+      <div
+        class="bottomAnswer"
+        v-for="(myAnser, index) in askData.content.answer"
+        :key="myAnser.id"
+      >
         <div class="titleTop">
           <div class="content">
-            <span class="content-answer">答</span><span class="name">{{ myAnser.userName }}：</span> {{ myAnser.content }}
+            <span class="content-answer">答</span
+            ><span class="name">{{ myAnser.userName }}：</span>
+            {{ myAnser.content }}
           </div>
         </div>
         <div class="starComment">
@@ -50,14 +104,16 @@
             <message-outlined />
             <span>{{ myAnser.discussNum }}</span>
           </div>
-          <div class="icon-hanhan elChatDotSquare" @click="starFun(askData.content)">
+          <div
+            class="icon-hanhan elChatDotSquare"
+            @click="starFun(askData.content)"
+          >
             <HeartOutlined v-if="!askData.content.interestLight" />
             <HeartFilled v-else class="text-red" :style="{ color: 'red' }" />
             <span>{{ myAnser.discussNum }}</span>
           </div>
           <div class="elChatDotSquare fenxiang" @click="shareFun(askData)">
-            <ShareAltOutlined /><span>{{ myAnser.discussNum
-              }}</span>
+            <ShareAltOutlined /><span>{{ myAnser.discussNum }}</span>
           </div>
         </div>
       </div>
@@ -65,65 +121,91 @@
         <div style="margin-right: 4px">收起回答</div>
         <img src="@/assets/images/up11.png" alt="" />
       </span>
-      <div style="height: 1px; width: 100%; margin-top: 16px; border: 1px solid #eee"></div>
+      <div
+        style="
+          height: 1px;
+          width: 100%;
+          margin-top: 16px;
+          border: 1px solid #eee;
+        "
+      ></div>
     </div>
 
-    <comment :comment-dialog-visible="commentDialogVisibleQuest" :common-deail="commonDeail"
-      @close-comment-dialog-notification="closeCommentDialogNotification" @get-flag-list="getList" />
+    <comment
+      :comment-dialog-visible="commentDialogVisibleQuest"
+      :common-deail="commonDeail"
+      @close-comment-dialog-notification="closeCommentDialogNotification"
+      @get-flag-list="getList"
+    />
 
-    <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="2" :tab-flag="4"
-      @close-share="closeShare" />
+    <shareCell
+      :share-dialog-visible="shareDialogVisible"
+      :doc-id="docId"
+      :quest-flag="2"
+      :tab-flag="4"
+      @close-share="closeShare"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { HeartFilled, HeartOutlined, MessageOutlined, ShareAltOutlined, UserOutlined } from '@ant-design/icons-vue';
-import { getAllTimes } from '@/utils/dateUtils';
-import { useUserStore } from '@/store/modules/user';
-import { answerQuestion, doInterestQuestion, saveLookFileLog } from '@/api/knowledge';
-import comment from '@/components/Comment/index.vue';
-import shareCell from './share.vue'
-import { message } from 'ant-design-vue';
+import { ref } from "vue";
+import {
+  HeartFilled,
+  HeartOutlined,
+  MessageOutlined,
+  ShareAltOutlined,
+  UserOutlined,
+} from "@ant-design/icons-vue";
+import { getAllTimes } from "@/utils/dateUtils";
+import { useUserStore } from "@/store/modules/user";
+import {
+  answerQuestion,
+  doInterestQuestion,
+  saveLookFileLog,
+} from "@/api/knowledge";
+import comment from "@/components/Comment/index.vue";
+import shareCell from "./share.vue";
+import { message } from "ant-design-vue";
 
-const userStore = useUserStore()
+const userStore = useUserStore();
 const props = defineProps({
   askData: {
     type: Object,
-    default: () => { }
-  }
-})
+    default: () => {},
+  },
+});
 
-const emits = defineEmits(['handleFetchList']);
+const emits = defineEmits(["handleFetchList"]);
 
 const hideAnswer = ref(false);
 const hideFlag = ref(false);
-const answer = ref('');
-const flagId = ref('')
-const commonDeail = ref({})
+const answer = ref("");
+const flagId = ref("");
+const commonDeail = ref({});
 const commentDialogVisibleQuest = ref(false);
-const docId = ref('');
+const docId = ref("");
 const shareDialogVisible = ref(false);
 
 // 我来回答
-const myAnswerFun = item => {
+const myAnswerFun = (item) => {
   flagId.value = item.id;
-  hideAnswer.value = !hideAnswer.value
+  hideAnswer.value = !hideAnswer.value;
 };
 
 // 显示隐藏评论数据
-const changeHideFlag = item => {
+const changeHideFlag = (item) => {
   hideFlag.value = !hideFlag.value;
   const paramss = {
     name: userStore.getUser.userName, //userName
     userId: userStore.getUser.id,
     kldId: item.id, //fileId
-    type: '1', //1,浏览  2，下载
+    type: "1", //1,浏览  2，下载
   };
-  saveLookFileLog(paramss).then(res => {
-    if (res && res.data.code === '0') {
+  saveLookFileLog(paramss).then((res) => {
+    if (res && res.data.code === "0") {
       // 浏览问题数据
-      console.log(res, '显示隐藏评论数据');
+      console.log(res, "显示隐藏评论数据");
       // getQuestList();
       // viewHistory();
     }
@@ -132,11 +214,11 @@ const changeHideFlag = item => {
 
 const hidenFun = (data: any) => {
   hideFlag.value = !hideFlag.value;
-}
+};
 
 const upData = () => {
   hideFlag.value = false;
-}
+};
 
 // 回答接口
 const confirmAnswer = () => {
@@ -145,57 +227,62 @@ const confirmAnswer = () => {
     userId: userStore.getUser.id,
     content: answer.value,
   };
-  answerQuestion(params).then(res => {
-    if (res && res.data.code === '0') {
+  answerQuestion(params).then((res) => {
+    if (res && res.data.code === "0") {
       hideAnswer.value = false;
-      answer.value = '';
-      emits('handleFetchList');
+      answer.value = "";
+      emits("handleFetchList");
     }
   });
 };
 
 const getList = () => {
-  emits('handleFetchList');
-}
+  emits("handleFetchList");
+};
 
 // 关闭评论弹框
 const closeCommentDialogNotification = () => {
   commentDialogVisibleQuest.value = false;
-  emits('handleFetchList');
-}
+  emits("handleFetchList");
+};
 
 const commentQuestFun = (answer: any) => {
   commonDeail.value = answer;
   // numberFlag.value = 2;
   commentDialogVisibleQuest.value = true;
-}
+};
 
 //star星星数
-const starFun = item => {
+const starFun = (item) => {
   const params = {
     questionId: item.id,
     userId: userStore.getUser.id,
   };
-  doInterestQuestion(params).then(res => {
-    if (res && res.data.code === '0') {
+  doInterestQuestion(params).then((res) => {
+    if (res && res.data.code === "0") {
       if (item.interestLight === true) {
-        message.success('取消关注成功！');
+        message.success("取消关注成功！");
       } else {
-        message.success('关注成功！');
+        message.success("关注成功！");
       }
-      emits('handleFetchList');
+      setTimeout(() => {
+        emits("handleFetchList");
+      }, 1000);
     }
   });
 };
 
 //分享
-const shareFun = item => {
+const shareFun = (item) => {
   docId.value = item.content.id;
   shareDialogVisible.value = true;
 };
 //关闭分享
 const closeShare = () => {
   shareDialogVisible.value = false;
+  setTimeout(() => {
+    emits("handleFetchList");
+  }, 1000);
   // getRightUserList();
   // setTimeout(() => {
   //   if (tabFlag.value === 4) {
@@ -521,7 +608,6 @@ const closeShare = () => {
   }
 
   .commont {
-
     // display: flex;
     &-btn {
       margin-top: 5px;
