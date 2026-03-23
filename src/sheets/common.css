@@ -111,7 +111,7 @@
 }
 /** 弹窗标题背景色 **/
 .ant-modal-header {
-  background-color: #ededed;
+  /* background-color: #ededed; */
 }
 /**  tree 组件选中颜色 **/
 .ant-tree-treenode-selected:before {
