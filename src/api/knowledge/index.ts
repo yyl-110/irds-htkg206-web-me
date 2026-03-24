@@ -349,6 +349,17 @@ export function removeAnswer(data: any) {
   });
 }
 /**
+ * 知识问答-删除问题
+ * @param data {"questionId":42}
+ */
+export function removeQuestion(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeQuestion/remove`,
+    data,
+    method: "POST",
+  });
+}
+/**
  * 知识问答-标签列表
  * @param data {"nodeLevel":"2","tagType":"1"}
  */
