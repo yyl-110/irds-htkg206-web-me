@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import type { TableColumnType } from 'ant-design-vue';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { getModuleRoleMenuList } from '@/api/system/role/index';
-/** 模块分类接口节点（与 browseTopModuleTree 返回一致） */
 interface ModuleCategoryNode {
   id?: string | number;
   categoryName?: string;

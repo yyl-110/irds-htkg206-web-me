@@ -125,6 +125,18 @@ export function getModuleRoleMenuList(data: any) {
 }
 
 /**
+ * 查看用户是否有编辑模型分类权限
+ * @param data
+ */
+export function ifUpdateTreePermission(data: any) {
+  return httpRequest({
+    url: '/system-service/system/permission/ifUpdateTreePermission',
+    method: 'POST',
+    data,
+  });
+}
+
+/**
  * 数据权限
  * @param params
  */

@@ -32,6 +32,27 @@ export class AdminApiSystemModule {
     );
 
   /**
+   * 应用端模块库分类查询
+   *
+   * @tags 应用端模块库分类查询
+   * @name browseTopModuleTreeApp
+   * @summary 应用端模块库分类查询
+   * @request /business-service/business/library-category/browseTopModuleTreeApp
+   * @secure
+   */
+  static browseTopModuleTreeApp = <Req extends ModuleMenuPageRequestDTOModel = ModuleMenuPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-category/browseTopModuleTreeApp`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 参数字典查询
    *
    * @tags 参数字典查询
