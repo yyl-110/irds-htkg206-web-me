@@ -54,6 +54,9 @@ const deleteFlag = computed(() => {
 const requestParams = reactive(new ParameterPageRequestDTOModel());
 
 const treeRequestParams = reactive(new ProductModuleTreeInfoRequestDTOModel());
+const treeParameterParams = reactive(new ParameterPageRequestDTOModel());
+
+
 
 /** 列表数据 */
 const datasource = ref<Array<ParameterInfoRequestDTOModel>>([]);
@@ -324,17 +327,14 @@ async function getListData(type?: string) {
   loadingTree.value = true;
   try {
     // 使用正确的API获取产品树数据
-    treeRequestParams.categoryid = '147';
-    treeRequestParams.titleid = '2';
-    const res = await AdminApiSystemProduct.getProductModuleTree(treeRequestParams);
+    treeParameterParams.categoryid = '147';
+    const res = await AdminApiSystemParameter.getParameterTree(treeParameterParams);
     loadingTree.value = false;
     // 处理返回的数据格式
-    if (res.data.code == 0 && res.data.data) {
+    if ((res.data.code == 0 || res.data.code == 200) && res.data.data) {
       const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
-
       // 保存原始数据
-      rawTreeData.value = rawData[0].result[0];
-
+      rawTreeData.value = rawData;
       const treeNodes = convertToTreeNodes(rawTreeData.value);
       treeData.value = treeNodes;
       // 默认选中第一个节点
@@ -372,21 +372,16 @@ function convertToTreeNodes(data: any[]): any[] {
   if (!data || !Array.isArray(data)) return [];
 
   return data.map(item => {
-    // 判断是否为根节点
-    const isRootNode = item.moduleLevel === 1 || (item.nodeRootType && item.nodeRootType.toString() === '1');
     // 判断是否有子节点
     const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
-
+    alert(hasChildren);
     // 设置level值：根节点level为1，有子节点的节点level为2，没有子节点的节点level为3
     let level = 3; // 默认level为3（无子节点）
-    if (isRootNode) {
-      level = 1;
-    } else if (hasChildren) {
+    if (hasChildren) {
       level = 2;
     }
 
     return {
-      addTreeType: item.addTreeType,
       key: item.id?.toString() || item.tid?.toString() || '',
       partName: item.name || item.title || '',
       // 添加type字段，用于在Tree组件中区分节点类型
