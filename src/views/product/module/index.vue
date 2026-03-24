@@ -11,6 +11,7 @@ import Tree from '@/components/tree/tree.vue';
 import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/ProductModuleTreeInfoRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
+import { ifUpdateTreePermission } from '@/api/system/role/index';
 import { ModuleMenuPageRequestDTOModel } from '@/api/models/module/ModuleMenuPageRequestDTOModel';
 import ModuleImgList from './components/form/ModuleImgList.vue';
 import ModuleInfoList from './components/form/ModuleInfoListAdm.vue';
@@ -604,7 +605,7 @@ async function reloadTree() {
   // 重新获取树数据
   await getListData();
 }
-
+const flagUpdate = ref(false);
 /** 获取分类数据 */
 async function getMenuListData() {
   titleVisible.value = true;
@@ -621,6 +622,11 @@ async function getMenuListData() {
     const res = await AdminApiSystemModule.getModuleMenuList({
       ...requestModuleParams,
     });
+    const data = {
+      roleId: userStore.getUser.id,
+    };
+    const resBolean = await ifUpdateTreePermission(data);
+    flagUpdate.value = resBolean.data.data;
     titleList.value = res.data.data;
     // 处理返回的数据格式
   } catch (error) {
@@ -887,7 +893,7 @@ watch(
     :wrap-style="{ position: 'absolute' }"
     @blur="onClose"
     @close="onClose">
-    <template #extra>
+    <template #extra v-if="flagUpdate">
       <EpcIcon style="margin-right: 310px; font-size: 16px; color: #0d65ff" type="icon-edit" @click="updateMenu" />
     </template>
     <div v-for="(item, index) in titleList" :key="index">

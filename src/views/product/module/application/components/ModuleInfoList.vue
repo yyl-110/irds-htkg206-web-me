@@ -44,6 +44,7 @@ const instance = getCurrentInstance();
 const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
 const categoryid = ref('');
+const permissionTypes = ref<any>();
 const menuId = ref<any>(null);
 const tabHeight = ref<any>(`${(window.innerHeight - 380) / 16}rem`);
 const initSelect = ref(false);
@@ -159,7 +160,8 @@ function selectModelListCheck2(selection: any) {
   }
 }
 const pdmType = ref<string>('');
-async function initData(categoryidStr: string, menuid: any) {
+async function initData(categoryidStr: string, menuid: any, permissionType: any) {
+  permissionTypes.value = permissionType;
   categoryid.value = categoryidStr;
   menuId.value = menuid;
   selectModelList.value = [];
@@ -1176,7 +1178,7 @@ defineExpose({ initData, selectAllModuleInfo });
               <EpcIcon class="act-btns" style="margin-right: 5px" type="icon-tandem" />
               比较数据
             </div>
-            <div class="btn-item">
+            <div class="btn-item" v-if="permissionTypes == 3">
               <a-dropdown>
                 <a class="ant-dropdown-link" @click.prevent>
                   更多
@@ -1196,11 +1198,11 @@ defineExpose({ initData, selectAllModuleInfo });
           </div>
 
           <div class="btn-box-right">
-            <div class="btn-item" @click="handleAddOrUpdate">
+            <div class="btn-item" @click="handleAddOrUpdate" v-if="permissionTypes == 3">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
               添加数据
             </div>
-            <div :class="{ 'btn-item-select': btnType, 'btn-item': !btnType }" @click="updModule">
+            <div :class="{ 'btn-item-select': btnType, 'btn-item': !btnType }" @click="updModule" v-if="permissionTypes == 3">
               <EpcIcon type="icon-edit" style="font-size: 15px" />
               编辑
             </div>
@@ -1209,7 +1211,8 @@ defineExpose({ initData, selectAllModuleInfo });
                 'btn-item-select': delBtnType,
                 'btn-red': !delBtnType,
               }"
-              @click="delModule">
+              @click="delModule"
+              v-if="permissionTypes == 3">
               <EpcIcon type="icon-shanchu2" style="font-size: 15px" />
               删除
             </div>

@@ -63,9 +63,9 @@ async function onOk() {
   await formRef.value!.validate();
   let id = props.resource ? props.resource.id : undefined;
   if (props.resource) {
-    await AdminApiSystemRole.updateRole({ ...modelData.value, id: props.resource.id });
+    await AdminApiSystemRole.updateRole({ ...modelData.value, id: props.resource.id, roleType: 6 });
   } else {
-    const res = await AdminApiSystemRole.createRole(modelData.value);
+    const res = await AdminApiSystemRole.createRole({ ...modelData.value, roleType: 6 });
     id = res.data.data;
   }
 

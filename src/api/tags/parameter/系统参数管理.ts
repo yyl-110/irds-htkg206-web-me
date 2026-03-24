@@ -10,6 +10,26 @@ import { ParameterCheckRequestDTOModel } from '@/api/models/parameter/ParameterC
  * 系统参数管理
  */
 export class AdminApiSystemParameter {
+
+  /**
+   * 参数管理结构树查询
+   *
+   * @tags 管理后台 - 参数管理结构树查询
+   * @name getParameterTree
+   * @summary 参数管理结构树查询
+   * @request POST:/system-service/system/parameter-category-tree/parameter-tree-list
+   * @secure
+   */
+  static getParameterTree = <Req extends ParameterPageRequestDTOModel = ParameterPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-category-tree/parameter-tree-list`,
+        method: 'GET',
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
   /**
    * 获得参数列表信息
    *

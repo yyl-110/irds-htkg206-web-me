@@ -33,6 +33,7 @@ const loading = ref<boolean>(false);
 const titleList = ref<any>([]);
 const categoryid = ref<string>('');
 const menuId = ref<string>('');
+const permissionTypes = ref<string>('');
 const categoryType = ref<string>('');
 const drawerStyle = ref<any>({
   marginLeft: '201px',
@@ -391,7 +392,7 @@ async function selectNode(node: any) {
     });
   } else {
     nextTick(() => {
-      ModuleInfoListRef.value?.initData(categoryid.value, menuId.value);
+      ModuleInfoListRef.value?.initData(categoryid.value, menuId.value, permissionTypes.value);
     });
   }
 }
@@ -617,7 +618,7 @@ async function getMenuListData() {
   loading.value = true;
   try {
     requestModuleParams.userId = userStore.getUser.id + '';
-    const res = await AdminApiSystemModule.getModuleMenuList({
+    const res = await AdminApiSystemModule.browseTopModuleTreeApp({
       ...requestModuleParams,
     });
     titleList.value = res.data.data;
@@ -633,6 +634,7 @@ function onClose() {
   titleVisible.value = false;
 }
 function changeTitleModule(item: any) {
+  permissionTypes.value = item.permissionTypes;
   treeRequestParams.id = item.id;
   treeRequestParams.categoryId = item.id;
   categoryid.value = item.id;
