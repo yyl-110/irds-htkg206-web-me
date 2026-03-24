@@ -106,7 +106,7 @@ watch(
       modelData.value.deptId = props.resource.deptId;
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 function customGetContainer() {
   // 返回自定义挂载节点
@@ -116,44 +116,44 @@ function customGetContainer() {
 
 <template>
   <div class="roleAddAndUpdate" v-dragModal>
-  <a-modal
-    v-model:visible="modalVisible"
-    style="width: 40%"
-    :title="operationType === '新增' ? $t('新增用户组') : $t('编辑用户组')"
-    :rules="rules"
-    :getContainer="customGetContainer"
-    :confirm-loading="$isPending()"
-    :mask-closable="false"
-    @ok="onOk"
-    @cancel="modalVisible = false">
-    <a-form ref="formRef" :model="modelData" :label-col="{ style: { width: '100px' } }">
-      <a-form-item :label="$t('角色名称')" name="name" :rules="[{ required: true, message: `${$t('请输入角色名称')}` }]">
-        <a-input v-model:value="modelData.name" :placeholder="$t('请输入用户组名称')" />
-      </a-form-item>
-      <a-form-item :label="$t('角色标识')" name="code" :rules="[{ required: true, message: `${$t('请输入角色标识')}` }]">
-        <a-input v-model:value="modelData.code" :placeholder="$t('请输入用户组标识')" />
-      </a-form-item>
-      <!-- <a-form-item :label="$t('显示顺序')" name="sort">
+    <a-modal
+      v-model:visible="modalVisible"
+      style="width: 40%"
+      :title="operationType === '新增' ? $t('新增用户组') : $t('编辑用户组')"
+      :rules="rules"
+      :getContainer="customGetContainer"
+      :confirm-loading="$isPending()"
+      :mask-closable="false"
+      @ok="onOk"
+      @cancel="modalVisible = false">
+      <a-form ref="formRef" :model="modelData" :label-col="{ style: { width: '100px' } }">
+        <a-form-item :label="$t('角色名称')" name="name" :rules="[{ required: true, message: `${$t('请输入角色名称')}` }]">
+          <a-input v-model:value="modelData.name" :placeholder="$t('请输入角色名称')" />
+        </a-form-item>
+        <a-form-item :label="$t('角色标识')" name="code" :rules="[{ required: true, message: `${$t('请输入角色标识')}` }]">
+          <a-input v-model:value="modelData.code" :placeholder="$t('请输入角色标识')" />
+        </a-form-item>
+        <!-- <a-form-item :label="$t('显示顺序')" name="sort">
         <a-input-number v-model:value="modelData.sort" placeholder="请输入显示顺序" style="width: 200px"></a-input-number>
       </a-form-item> -->
-      <a-form-item :label="$t('所属部门')" name="deptId" :rules="[{ required: true, message: `${$t('请选择部门')}` }]" class="f-item">
-        <a-tree-select
-          v-model:value="modelData.deptId"
-          show-search
-          :placeholder="$t('请选择所属部门')"
-          style="width: 100%"
-          :dropdown-style="{ maxHeight: '400px', overflow: 'auto' }"
-          allow-clear
-          :treeDefaultExpandedKeys="[treeDefaultExpandedKeys]"
-          :tree-data="deptIdList"
-          tree-node-filter-prop="label">
-        </a-tree-select>
-      </a-form-item>
-      <a-form-item :label="$t('备注')" name="remark">
-        <a-textarea v-model:value="modelData.remark" :placeholder="$t('请输入备注内容')" />
-      </a-form-item>
-    </a-form>
-    <template #footer>
+        <a-form-item :label="$t('所属部门')" name="deptId" :rules="[{ required: true, message: `${$t('请选择部门')}` }]" class="f-item">
+          <a-tree-select
+            v-model:value="modelData.deptId"
+            show-search
+            :placeholder="$t('请选择所属部门')"
+            style="width: 100%"
+            :dropdown-style="{ maxHeight: '400px', overflow: 'auto' }"
+            allow-clear
+            :treeDefaultExpandedKeys="[treeDefaultExpandedKeys]"
+            :tree-data="deptIdList"
+            tree-node-filter-prop="label">
+          </a-tree-select>
+        </a-form-item>
+        <a-form-item :label="$t('备注')" name="remark">
+          <a-textarea v-model:value="modelData.remark" :placeholder="$t('请输入备注内容')" />
+        </a-form-item>
+      </a-form>
+      <template #footer>
         <a-button type="primary" @click="onOk">
           {{ $t('确定') }}
         </a-button>
@@ -161,7 +161,7 @@ function customGetContainer() {
           {{ $t('取消') }}
         </a-button>
       </template>
-  </a-modal>
+    </a-modal>
   </div>
 </template>
 

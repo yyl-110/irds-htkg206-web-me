@@ -1,20 +1,20 @@
 // import { OpenApiActions, type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
-import { ContentType, httpClient, type RequestParams } from "./http-client";
-import { CommonResultBooleanModel } from "../models/CommonResultBooleanModel";
-import { CommonResultListRoleSimpleResponseDTOModel } from "../models/CommonResultListRoleSimpleResponseDTOModel";
-import { CommonResultListRoleUserPoModel } from "../models/CommonResultListRoleUserPoModel";
-import { CommonResultLongModel } from "../models/CommonResultLongModel";
-import { CommonResultPageResultRolePOModel } from "../models/CommonResultPageResultRolePOModel";
-import { CommonResultRoleResponseDTOModel } from "../models/CommonResultRoleResponseDTOModel";
-import { RoleBaseDTOModel } from "../models/RoleBaseDTOModel";
-import { RolePOModel } from "../models/RolePOModel";
-import { RolePageRequestDTOModel } from "../models/RolePageRequestDTOModel";
-import { RoleResponseDTOModel } from "../models/RoleResponseDTOModel";
-import { RoleSimpleResponseDTOModel } from "../models/RoleSimpleResponseDTOModel";
-import { RoleUpdateRequestDTOModel } from "../models/RoleUpdateRequestDTOModel";
-import { RoleUpdateStatusRequestDTOModel } from "../models/RoleUpdateStatusRequestDTOModel";
-import { RoleUserPoModel } from "../models/RoleUserPoModel";
-import { RoleUserRequestDTOModel } from "../models/RoleUserRequestDTOModel";
+import { ContentType, httpClient, type RequestParams } from './http-client';
+import { CommonResultBooleanModel } from '../models/CommonResultBooleanModel';
+import { CommonResultListRoleSimpleResponseDTOModel } from '../models/CommonResultListRoleSimpleResponseDTOModel';
+import { CommonResultListRoleUserPoModel } from '../models/CommonResultListRoleUserPoModel';
+import { CommonResultLongModel } from '../models/CommonResultLongModel';
+import { CommonResultPageResultRolePOModel } from '../models/CommonResultPageResultRolePOModel';
+import { CommonResultRoleResponseDTOModel } from '../models/CommonResultRoleResponseDTOModel';
+import { RoleBaseDTOModel } from '../models/RoleBaseDTOModel';
+import { RolePOModel } from '../models/RolePOModel';
+import { RolePageRequestDTOModel } from '../models/RolePageRequestDTOModel';
+import { RoleResponseDTOModel } from '../models/RoleResponseDTOModel';
+import { RoleSimpleResponseDTOModel } from '../models/RoleSimpleResponseDTOModel';
+import { RoleUpdateRequestDTOModel } from '../models/RoleUpdateRequestDTOModel';
+import { RoleUpdateStatusRequestDTOModel } from '../models/RoleUpdateStatusRequestDTOModel';
+import { RoleUserPoModel } from '../models/RoleUserPoModel';
+import { RoleUserRequestDTOModel } from '../models/RoleUserRequestDTOModel';
 /**
  * 管理后台角色
  */
@@ -31,22 +31,17 @@ export class AdminApiSystemRole {
    * @request POST:/system/role/update
    * @secure
    */
-  static updateRole = <
-    Req extends RoleUpdateRequestDTOModel = RoleUpdateRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static updateRole = <Req extends RoleUpdateRequestDTOModel = RoleUpdateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
         path: `/system-service/system/role/update`,
-        method: "POST",
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
   /**
    * 修改角色状态
@@ -57,23 +52,17 @@ export class AdminApiSystemRole {
    * @request POST:/admin-api/system/role/update-status
    * @secure
    */
-  static updateRoleStatus = <
-    Req extends
-      RoleUpdateStatusRequestDTOModel = RoleUpdateStatusRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static updateRoleStatus = <Req extends RoleUpdateStatusRequestDTOModel = RoleUpdateStatusRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
         path: `/system-service/system/role/update-status`,
-        method: "POST",
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
   /**
    * 创建角色
@@ -84,20 +73,17 @@ export class AdminApiSystemRole {
    * @request POST:/system/role/create
    * @secure
    */
-  static createRole = <Req extends RoleBaseDTOModel = RoleBaseDTOModel>(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static createRole = <Req extends RoleBaseDTOModel = RoleBaseDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultLongModel, any>(
       {
         path: `/system-service/system/role/create`,
-        method: "POST",
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultLongModel
+      CommonResultLongModel,
     );
   /**
    * 获得角色分页
@@ -108,22 +94,39 @@ export class AdminApiSystemRole {
    * @request GET:/system/role/page
    * @secure
    */
-  static getRolePage = <
-    Req extends RolePageRequestDTOModel = RolePageRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getRolePage = <Req extends RolePageRequestDTOModel = RolePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultPageResultRolePOModel, any>(
       {
         path: `/system-service/system/role/page`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultPageResultRolePOModel
+      CommonResultPageResultRolePOModel,
     );
+
+  /**
+   * 获得模型库角色分页
+   *
+   * @tags 管理后台 - 模型库角色
+   * @name GetRolePage
+   * @summary 获得模型库角色分页
+   * @request GET:/system/role/moduleRolePage
+   * @secure
+   */
+  static getModuleRolePage = <Req extends RolePageRequestDTOModel = RolePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultPageResultRolePOModel, any>(
+      {
+        path: `/system-service/system/role/moduleRolePage`,
+        method: 'GET',
+        query: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultPageResultRolePOModel,
+    );
+
   /**
    * @description 只包含被开启的角色，主要用于前端的下拉选项
    *
@@ -137,11 +140,11 @@ export class AdminApiSystemRole {
     httpClient.request<CommonResultListRoleSimpleResponseDTOModel, any>(
       {
         path: `/system-service/system/role/list-all-simple`,
-        method: "GET",
+        method: 'GET',
         secure: true,
         ...params,
       },
-      CommonResultListRoleSimpleResponseDTOModel
+      CommonResultListRoleSimpleResponseDTOModel,
     );
   /**
    * 获得角色信息
@@ -162,17 +165,17 @@ export class AdminApiSystemRole {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultRoleResponseDTOModel, any>(
       {
         path: `/admin-api/system/role/get`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultRoleResponseDTOModel
+      CommonResultRoleResponseDTOModel,
     );
   /**
    * 获得用户角色信息
@@ -183,21 +186,16 @@ export class AdminApiSystemRole {
    * @request GET:/admin-api/system/role/getUserRole
    * @secure
    */
-  static getUserRole = <
-    Req extends RoleUserRequestDTOModel = RoleUserRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getUserRole = <Req extends RoleUserRequestDTOModel = RoleUserRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListRoleUserPoModel, any>(
       {
         path: `/admin-api/system/role/getUserRole`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultListRoleUserPoModel
+      CommonResultListRoleUserPoModel,
     );
   /**
    * 删除角色
@@ -226,17 +224,17 @@ export class AdminApiSystemRole {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
         path: `/system-service/system/role/delete`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
 }
 

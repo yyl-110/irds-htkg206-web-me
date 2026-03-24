@@ -2,9 +2,7 @@
 import { ref } from 'vue';
 import { message } from 'ant-design-vue';
 import RoleMenuData from './role-menu-data.vue';
-import RoleModularData from './role-modular-data.vue';
-import RoleServiceData from './role-service-data.vue';
-import { getRoleUpdateMenuData } from '@/api/system/role/index';
+import { getModuleRoleUpdateMenuData } from '@/api/system/role/index';
 import type { RolePOModel } from '@/api/models/RolePOModel';
 import { AdminApiSystemPermission } from '@/api/tags/管理后台权限';
 
@@ -17,11 +15,7 @@ const emit = defineEmits<{
 const visible = ref(false);
 const record = ref<RolePOModel>();
 const MenuModel = ref<InstanceType<typeof RoleMenuData>>();
-const ModularModel = ref<InstanceType<typeof RoleModularData>>();
-const ServiceModel = ref<InstanceType<typeof RoleServiceData>>();
 const menuVisible = ref<boolean>(true);
-const ModularVisible = ref<boolean>(false);
-const ServiceVisible = ref<boolean>(false);
 const current = ref<number>(0);
 
 /** 数据 定义 */
@@ -31,6 +25,15 @@ const formData = ref<any>({
   code: '',
   checkedKeys: [],
 });
+interface RoleMenuPermissionSubmitData {
+  menuIds: number[];
+  manageMenuIds: number[];
+  appMenuIds: number[];
+  permissionItems: Array<{
+    menuId: number;
+    permissionTypes: 1 | 2 | 3;
+  }>;
+}
 
 /**
  * handleMenuListData
@@ -57,62 +60,18 @@ function handleClose() {
 /** 表单提交 */
 function onSubmitFormData() {
   if (current.value == 0) {
+    const selected = findTreeNodeAuth() as RoleMenuPermissionSubmitData | number[] | undefined;
+    const parsed = Array.isArray(selected)
+      ? { menuIds: selected as number[], manageMenuIds: [], appMenuIds: [], permissionItems: [] }
+      : selected || { menuIds: [], manageMenuIds: [], appMenuIds: [], permissionItems: [] };
     const data = {
       roleId: formData.value.id,
-      menuIds: findTreeNodeAuth(),
+      permissionItems: parsed.permissionItems,
     };
-    getRoleUpdateMenuData(data).then(() => {
+    console.log(data);
+    getModuleRoleUpdateMenuData(data).then(() => {
       visible.value = false;
       message.success(WeiI18n.$t('操作成功'));
-      // emit('refreshTableData', false)
-      // handleModularData();
-    });
-  } else if (current.value == 1) {
-    const data = {
-      type: 1,
-      roleId: formData.value.id,
-      funcIds: findModularAuth(),
-    };
-    AdminApiSystemPermission.savepermissionLogin(data).then(() => {
-      visible.value = false;
-      message.success(WeiI18n.$t('操作成功'));
-      // handleServiceData();
-      // emit('refreshTableData', false)
-    });
-  } else if (current.value == 2) {
-    const data = {
-      type: '1',
-      roleId: formData.value.id,
-      dirIds: findServiceAuth(),
-    };
-    AdminApiSystemPermission.saveservicedoc(data).then(() => {
-      visible.value = false;
-      message.success(WeiI18n.$t('操作成功'));
-      // handleServiceData()
-      // emit('refreshTableData', false)
-    });
-
-    const data2 = {
-      type: '2',
-      roleId: formData.value.id,
-      dirIds: findServiceAdmAuth(),
-    };
-    AdminApiSystemPermission.saveservicedoc(data2).then(() => {
-      visible.value = false;
-      message.success(WeiI18n.$t('操作成功'));
-      // handleServiceData()
-      // emit('refreshTableData', false)
-    });
-    const data3 = {
-      type: '3',
-      roleId: formData.value.id,
-      dirIds: findServiceDlAuth(),
-    };
-    AdminApiSystemPermission.saveservicedoc(data3).then(() => {
-      visible.value = false;
-      message.success(WeiI18n.$t('操作成功'));
-      // handleServiceData()
-      // emit('refreshTableData', false)
     });
   }
 }
@@ -120,21 +79,11 @@ function onSubmitFormData() {
 function findTreeNodeAuth() {
   return MenuModel.value?.findTreeNodeAuth();
 }
-
-function findModularAuth() {
-  return ModularModel.value?.findModularAuth();
+function handleExpandAllMenu() {
+  MenuModel.value?.handleExpandAll();
 }
-
-function findServiceAuth() {
-  return ServiceModel.value?.findServiceAuth();
-}
-
-function findServiceAdmAuth() {
-  return ServiceModel.value?.findServiceAdmAuth();
-}
-
-function findServiceDlAuth() {
-  return ServiceModel.value?.findServiceDlAuth();
+function handleCollapseAllMenu() {
+  MenuModel.value?.handleCollapseAll();
 }
 
 /**
@@ -143,37 +92,9 @@ function findServiceDlAuth() {
  */
 function handleMenuData() {
   menuVisible.value = true;
-  ModularVisible.value = false;
-  ServiceVisible.value = false;
   current.value = 0;
   nextTick(() => {
     MenuModel.value?.handleMenuListData(record.value);
-  });
-}
-/**
- * handle menu data
- * @param resource resource
- */
-function handleModularData() {
-  ModularVisible.value = true;
-  menuVisible.value = false;
-  ServiceVisible.value = false;
-  current.value = 1;
-  nextTick(() => {
-    ModularModel.value?.handleMenuListData(record.value);
-  });
-}
-/**
- * handle menu data
- * @param resource resource
- */
-function handleServiceData() {
-  ModularVisible.value = false;
-  menuVisible.value = false;
-  ServiceVisible.value = true;
-  current.value = 2;
-  nextTick(() => {
-    ServiceModel.value?.handleMenuListData(record.value);
   });
 }
 
@@ -186,42 +107,57 @@ defineExpose({ handleMenuListData });
 
 <template>
   <div class="authManagementData" v-dragModal>
-  <a-modal
-    v-model:visible="visible"
-    :getContainer="customGetContainer"
-    width="1000px"
-    height="400px"
-    :title="`${$t('授权管理')}-${formData.name}`"
-    :confirm-loading="$isPending()"
-    :mask-closable="false"
-    @ok="onSubmitFormData()"
-    @cancel="handleClose">
-    <a-steps :current="current" size="small">
-      <a-step title="菜单权限" @click="handleMenuData" />
-      <!-- <a-step title="模块权限" @click="handleModularData" /> -->
-      <!-- <a-step title="资料权限" @click="handleServiceData" /> -->
-    </a-steps>
-
-    <RoleMenuData v-if="menuVisible" ref="MenuModel" />
-
-    <RoleModularData v-if="ModularVisible" ref="ModularModel" />
-    <RoleServiceData v-if="ServiceVisible" ref="ServiceModel" />
-    <template #footer>
+    <a-modal
+      v-model:visible="visible"
+      :getContainer="customGetContainer"
+      width="1000px"
+      height="400px"
+      :title="`${$t('授权管理')}-${formData.name}`"
+      :confirm-loading="$isPending()"
+      :mask-closable="false"
+      @ok="onSubmitFormData()"
+      @cancel="handleClose">
+      <div class="menu-permission-row">
+        <a-steps :current="current" size="small">
+          <a-step title="菜单权限" @click="handleMenuData" />
+        </a-steps>
+        <div class="menu-permission-actions">
+          <a-button type="link" size="small" @click="handleExpandAllMenu">
+            {{ $t('全部展开') }}
+          </a-button>
+          <a-button type="link" size="small" @click="handleCollapseAllMenu">
+            {{ $t('全部收起') }}
+          </a-button>
+        </div>
+      </div>
+      <RoleMenuData v-if="menuVisible" ref="MenuModel" />
+      <template #footer>
         <a-button type="primary" @click="onSubmitFormData">
           {{ $t('确定') }}
         </a-button>
         <a-button @click="handleClose">
           {{ $t('取消') }}
         </a-button>
-    </template>
-  </a-modal>
+      </template>
+    </a-modal>
   </div>
 </template>
 
 <style scoped>
-
 .authManagementData {
   position: relative;
+}
+
+.menu-permission-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menu-permission-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .form_css .ant-form-item {

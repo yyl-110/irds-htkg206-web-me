@@ -1,4 +1,4 @@
-import httpRequest from "../../../httpRequest/index";
+import httpRequest from '../../../httpRequest/index';
 
 /**
  * 获取角色表格信息
@@ -6,8 +6,8 @@ import httpRequest from "../../../httpRequest/index";
  */
 export function getRoleTableData(params: any) {
   return httpRequest({
-    url: "/system-service/system/role/page",
-    method: "GET",
+    url: '/system-service/system/role/page',
+    method: 'GET',
     params,
   });
 }
@@ -17,8 +17,8 @@ export function getRoleTableData(params: any) {
  */
 export function getRoleDeleteTableData(params: any) {
   return httpRequest({
-    url: "/system-service/system/role/delete",
-    method: "GET",
+    url: '/system-service/system/role/delete',
+    method: 'GET',
     params,
   });
 }
@@ -28,8 +28,8 @@ export function getRoleDeleteTableData(params: any) {
  */
 export function getMenuData(params: any) {
   return httpRequest({
-    url: "/admin-api/powerApi/sys/menu/list",
-    method: "GET",
+    url: '/admin-api/powerApi/sys/menu/list',
+    method: 'GET',
     params,
   });
 }
@@ -39,8 +39,8 @@ export function getMenuData(params: any) {
  */
 export function getRoleUpdateData(params: any) {
   return httpRequest({
-    url: "/admin-api/system/role/get",
-    method: "GET",
+    url: '/admin-api/system/role/get',
+    method: 'GET',
     params,
   });
 }
@@ -50,8 +50,8 @@ export function getRoleUpdateData(params: any) {
  */
 export function getRoleAddSaveData(data: any) {
   return httpRequest({
-    url: "/admin-api/system/role/create",
-    method: "POST",
+    url: '/admin-api/system/role/create',
+    method: 'POST',
     data,
   });
 }
@@ -61,8 +61,8 @@ export function getRoleAddSaveData(data: any) {
  */
 export function getRoleUpdateSaveData(data: any) {
   return httpRequest({
-    url: "/admin-api/system/role/update",
-    method: "POST",
+    url: '/admin-api/system/role/update',
+    method: 'POST',
     data,
   });
 }
@@ -72,8 +72,8 @@ export function getRoleUpdateSaveData(data: any) {
  */
 export function getRoleMenuListData(params: any) {
   return httpRequest({
-    url: "/system-service/system/menu/list-all-simple",
-    method: "GET",
+    url: '/system-service/system/menu/list-all-simple',
+    method: 'GET',
     params,
   });
 }
@@ -83,8 +83,8 @@ export function getRoleMenuListData(params: any) {
  */
 export function getRoleMenuData(params: any) {
   return httpRequest({
-    url: "/system-service/system/permission/list-role-resources",
-    method: "GET",
+    url: '/system-service/system/permission/list-role-resources',
+    method: 'GET',
     params,
   });
 }
@@ -94,19 +94,44 @@ export function getRoleMenuData(params: any) {
  */
 export function getRoleUpdateMenuData(data: any) {
   return httpRequest({
-    url: "/system-service/system/permission/assign-role-menu",
-    method: "POST",
+    url: '/system-service/system/permission/assign-role-menu',
+    method: 'POST',
     data,
   });
 }
+
+/**
+ * 模型库菜单权限--保存--修改
+ * @param data
+ */
+export function getModuleRoleUpdateMenuData(data: any) {
+  return httpRequest({
+    url: '/system-service/system/permission/assign-role-module-menu',
+    method: 'POST',
+    data,
+  });
+}
+
+/**
+ * 获取已授权模型库角色菜单
+ * @param data
+ */
+export function getModuleRoleMenuList(data: any) {
+  return httpRequest({
+    url: '/system-service/system/permission/getModuleRoleMenuList',
+    method: 'POST',
+    data,
+  });
+}
+
 /**
  * 数据权限
  * @param params
  */
 export function getRolePowerData(params: any) {
   return httpRequest({
-    url: "/system-service/system/dept/list-all-simple",
-    method: "GET",
+    url: '/system-service/system/dept/list-all-simple',
+    method: 'GET',
     params,
   });
 }
@@ -116,8 +141,8 @@ export function getRolePowerData(params: any) {
  */
 export function getRoleUpdatePowerData(data: any) {
   return httpRequest({
-    url: "/admin-api/system/permission/assign-role-data-scope",
-    method: "POST",
+    url: '/admin-api/system/permission/assign-role-data-scope',
+    method: 'POST',
     data,
   });
 }

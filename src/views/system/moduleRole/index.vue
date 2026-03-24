@@ -147,7 +147,7 @@ const resources = ref<Array<RolePOModel>>([]);
 async function getResources() {
   loading.value = true;
   try {
-    const res = await AdminApiSystemRole.getRolePage({
+    const res = await AdminApiSystemRole.getModuleRolePage({
       ...requestParams,
       createTime: dateRangeParams.value,
     });
@@ -377,12 +377,10 @@ function customGetContainer() {
           <a-range-picker v-model:value="dateRange" style="width: 300px" :placeholder="[$t('选择开始日期'), $t('选择结束日期')]" />
         </a-form-item>
         <a-form-item>
-          <!-- v-hasPermi="['system:role:query']" -->
           <a-button type="primary" html-type="submit">
             <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
             {{ $t('查询') }}
           </a-button>
-          <!-- v-hasPermi="['system:role:create']" -->
           <a-button type="primary" style="margin-left: 15px" @click="handleAddOrUpdate(undefined)" v-if="userStore.getUser.userType != '3'">
             <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
             {{ $t('添加') }}
@@ -413,24 +411,13 @@ function customGetContainer() {
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'operation' && userStore.getUser.userType != '3'">
-            <!-- v-hasPermi="['system:role:update']" -->
-            <!-- <a-button type="link" :disabled="record.type === 1" @click="handleAddOrUpdate(record)">
-            {{ $t('编辑') }}
-          </a-button> -->
             <a v-if="record.type !== 1" @click="handleAddOrUpdate(record)">{{ $t('编辑') }}</a>
-            <!-- v-hasPermi="['system:role:update']" -->
             <a-divider type="vertical" />
-            <!-- v-hasPermi="['system:permission:assign-role-menu']" -->
             <a @click="authManagement(record)">{{ $t('授权管理') }}</a>
-            <!-- v-hasPermi="['system:permission:assign-role-menu']" -->
             <a-divider type="vertical" />
-            <!-- v-hasPermi="['system:permission:assign-user-role']" -->
             <a v-if="record.type !== 1" @click="handleAddUsers(record)">{{ $t('成员管理') }}</a>
-            <!-- <a-button type="link" :loading="record.loading_Management" @click.stop="handleAddUsers(record)">{{ $t('成员管理') }}</a-button> -->
-            <!-- v-hasPermi="['system:permission:assign-user-role']" -->
             <a-divider type="vertical" />
             <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="record.type === 1" @confirm="handleDelete(record.id)">
-              <!-- v-hasPermi="['system:role:delete']" -->
               <a-button type="link" danger :disabled="record.type === 1" class="p-0">
                 {{ $t('删除') }}
               </a-button>
