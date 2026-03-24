@@ -3,7 +3,6 @@ import { doCollectFile, modifyInit, saveLookFileLog, updateKldCounting } from "@
 import { useUserStore } from "@/store/modules/user";
 import { getTimes } from "@/utils/dateUtils";
 import {
-  CaretRightFilled,
   StarOutlined,
   StarFilled,
   ShareAltOutlined,
@@ -11,10 +10,10 @@ import {
 } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
 import shareCell from "./share.vue";
-import Video from "./videoImg.vue";
+import VideoImg from "./videoImg.vue";
 
 const props = defineProps({
-  videoData: {
+  imgData: {
     type: Object,
     default: () => ({}),
   },
@@ -26,11 +25,11 @@ const shareDialogVisible = ref(false);
 const docId = ref("");
 const showDetail = ref(false);
 const formInline = ref<Record<string, any>>({});
-const videoHide = ref(false);
+const imgHide = ref(false);
 const fileUrlPlay = ref<string>();
 
 const viewPdfFun = () => {
-  const item = props.videoData.content;
+  const item = props.imgData.content;
   const logParams = {
     name: useUserStore().getUser.userName,
     userId: useUserStore().getUser.id,
@@ -39,17 +38,17 @@ const viewPdfFun = () => {
   };
   saveLookFileLog(logParams);
   fileUrlPlay.value = item.fileUrl;
-  videoHide.value = true;
+  imgHide.value = true;
   updateKldCounting({ kldFileId: item.kldFileId, countingType: 1 });
 };
 
-const getVideoHide = (val: boolean) => {
-  videoHide.value = val;
+const getImgHide = (val: boolean) => {
+  imgHide.value = val;
 };
 
 const followFun = () => {
   const params = {
-    kldId: props.videoData.content.id,
+    kldId: props.imgData.content.id,
     userId: useUserStore().getUser.id,
   };
   doCollectFile(params).then((res) => {
@@ -63,7 +62,7 @@ const followFun = () => {
 };
 
 const shareFun = () => {
-  docId.value = props.videoData.content.id;
+  docId.value = props.imgData.content.id;
   shareDialogVisible.value = true;
 };
 
@@ -76,7 +75,7 @@ const closeShare = () => {
 
 const getDes = () => {
   showDetail.value = true;
-  modifyInit({ kldFileId: props.videoData.content.id }).then((res) => {
+  modifyInit({ kldFileId: props.imgData.content.id }).then((res) => {
     if (res && res.data.code === "0") {
       const names = [
         res.data.data.ou1Name,
@@ -96,30 +95,41 @@ const getDes = () => {
 
 <template>
   <div class="doc-list">
-    <div class="playBtn" @click="viewPdfFun">
-      <caret-right-filled style="font-size: 40px; color: #fff; margin: 55px 80px; cursor: pointer" />
-    </div>
-    <video class="video-list" :src="videoData.content.fileUrl" width="199" height="142"></video>
-    <div class="video-wrap-title">
-      <a-tooltip :title="videoData.content.fileName + '.' + videoData.content.fileType" placement="top">
+    <img
+      class="img-list"
+      style="width: 199px; height: 142px"
+      :src="imgData.content.fileUrl"
+      alt=""
+      @click="viewPdfFun"
+    />
+    <div class="img-wrap-title">
+      <a-tooltip
+        :mouse-enter-delay="0.5"
+        :title="imgData.content.fileName + '.' + imgData.content.fileType"
+        placement="top"
+      >
         <h3 class="fontHide" @click="viewPdfFun">
-          {{ videoData.content.fileName }}.{{ videoData.content.fileType }}
+          {{ imgData.content.fileName }}.{{ imgData.content.fileType }}
         </h3>
       </a-tooltip>
     </div>
-    <div class="video-wrap-title-right">
-      <span>{{ JSON.parse(videoData.content.counting).previewed }}次播放</span>
+    <div class="img-wrap-title-right">
+      <span>{{ JSON.parse(imgData.content.counting).previewed }}次预览</span>
       <a-tooltip :mouse-enter-delay="0.5" title="收藏" placement="top-start">
-        <div v-if="!videoData.content.collectedLight" class="act-list elStarFilled ml-auto" @click="followFun">
-          <star-outlined /><span>{{ JSON.parse(videoData.content.counting).collectd }}</span>
+        <div
+          v-if="!imgData.content.collectedLight"
+          class="act-list elStarFilled ml-auto"
+          @click="followFun"
+        >
+          <star-outlined /><span>{{ JSON.parse(imgData.content.counting).collectd }}</span>
         </div>
         <div v-else class="act-list elStarFilled1 ml-auto" @click="followFun">
-          <star-filled /><span>{{ JSON.parse(videoData.content.counting).collectd }}</span>
+          <star-filled /><span>{{ JSON.parse(imgData.content.counting).collectd }}</span>
         </div>
       </a-tooltip>
       <a-tooltip :mouse-enter-delay="0.5" title="分享" placement="top-start">
         <div class="act-list elShare" @click="shareFun">
-          <share-alt-outlined /><span>{{ JSON.parse(videoData.content.counting).shared }}</span>
+          <share-alt-outlined /><span>{{ JSON.parse(imgData.content.counting).shared }}</span>
         </div>
       </a-tooltip>
       <a-tooltip :mouse-enter-delay="0.5" title="详情" placement="top-start">
@@ -129,12 +139,17 @@ const getDes = () => {
       </a-tooltip>
     </div>
     <div class="author" style="display: flex">
-      <span class="name">{{ videoData.content.userName }}</span>
-      <span class="time">{{ getTimes(Date.parse(videoData.content.addTime)) || '' }}</span>
+      <span class="name">{{ imgData.content.userName }}</span>
+      <span class="time">{{ getTimes(Date.parse(imgData.content.addTime)) || '' }}</span>
     </div>
 
-    <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="1" :tab-flag="1"
-      @close-share="closeShare" />
+    <shareCell
+      :share-dialog-visible="shareDialogVisible"
+      :doc-id="docId"
+      :quest-flag="1"
+      :tab-flag="1"
+      @close-share="closeShare"
+    />
 
     <a-modal :closable="false" v-model:visible="showDetail" title="查看详情" width="40%" centered>
       <a-form-item label="附件名称：" label-width="100">
@@ -155,16 +170,18 @@ const getDes = () => {
         </div>
       </template>
     </a-modal>
-    <Video :video-hide="videoHide" :file-url-play="fileUrlPlay" dialog-type="2" title-type="视频播放"
-      @get-video-hide="getVideoHide" />
+
+    <VideoImg
+      :video-hide="imgHide"
+      :file-url-play="fileUrlPlay"
+      dialog-type="3"
+      title-type="图片预览"
+      @get-video-hide="getImgHide"
+    />
   </div>
 </template>
 
 <style scoped lang="less">
-.video-wrap-title {
-  display: flex;
-}
-
 .fontHide {
   width: 285px;
   white-space: nowrap;
@@ -172,7 +189,7 @@ const getDes = () => {
   text-overflow: ellipsis;
 }
 
-.video-wrap-title-right {
+.img-wrap-title-right {
   display: flex;
   line-height: 22px;
   padding: 0 16px;
@@ -218,7 +235,6 @@ const getDes = () => {
   height: 245px;
   border-radius: 6px 6px 6px 6px;
   border: 1px solid #eaeaf1;
-  position: relative;
 
   &:hover {
     border-color: #155bd4;
@@ -226,35 +242,21 @@ const getDes = () => {
     h3 {
       color: #155bd4;
     }
-
-    .playBtn {
-      display: block;
-    }
   }
 
-  .playBtn {
-    width: 199px;
-    height: 142px;
-    background: rgba(0, 0, 0, 0.6);
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    display: none;
-    cursor: pointer;
-    z-index: 1000;
-  }
-
-  .video-list {
+  .img-list {
     margin: 16px 16px 0 16px;
     border-radius: 5px;
     overflow: hidden;
+    background: #ccc;
+    cursor: pointer;
   }
 
-  .video-wrap-title {
+  .img-wrap-title {
     padding: 0;
   }
 
-  .video-wrap-title-right {
+  .img-wrap-title-right {
     font-size: 12px;
   }
 

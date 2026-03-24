@@ -2,7 +2,9 @@
 import { ref, computed } from "vue";
 import knowledgeCenter from "./knowledgeCenter/index.vue";
 import knowledgeMap from "./knowledgeMap/index.vue";
+import knowledgeQuestionAnswer from "./knowledgeQuestionAnswer/index.vue";
 import RightContent from "./components/knowledge-center-right-content.vue";
+import QuestionRightContent from "./components/knowledge-question-right-content.vue";
 import {
   hotFileList,
   knowledgePersonal,
@@ -14,6 +16,7 @@ const userStore = useUserStore();
 const componentsMap = {
   0: knowledgeCenter,
   1: knowledgeMap,
+  3: knowledgeQuestionAnswer
 };
 type ComponentKey = keyof typeof componentsMap; // 推导出 0 | 1
 const tabList = [
@@ -36,6 +39,10 @@ const hotArticleData = ref([]);
 const viewTotal = ref();
 
 const hotFileTotal = ref();
+
+// 专家标识
+const expertFlag = ref(0);
+const exposeAskDesId = ref('');
 const handleTabchange = (key: number) => {
   activeKey.value = key;
   if (key in componentsMap) {
@@ -91,6 +98,10 @@ const hotArticle = () => {
   });
 };
 
+const exposeAskDes = item => {
+  exposeAskDesId.value = item;
+};
+
 onMounted(() => {
   getRightUserList();
   viewHistory();
@@ -113,36 +124,19 @@ watch(
   <div class="knowledgeCenter h-full">
     <a-row :gutter="[16, 0]" class="h-full">
       <a-col :span="hasRightPanel ? 19 : 24" class="h-full">
-        <a-tabs
-          v-model:active-key="activeKey"
-          @change="handleTabchange"
-          size="small"
-          class="h-full"
-        >
-          <a-tab-pane
-            :key="index + 1"
-            :tab="value"
-            v-for="(value, index) in tabList"
-          >
+        <a-tabs v-model:active-key="activeKey" @change="handleTabchange" size="small" class="h-full">
+          <a-tab-pane :key="index + 1" :tab="value" v-for="(value, index) in tabList">
             <keep-alive>
-              <component
-                v-if="index in componentsMap"
-                :is="componentsMap[index]"
-              />
+              <component v-if="index in componentsMap" :is="componentsMap[index]" />
             </keep-alive>
           </a-tab-pane>
         </a-tabs>
       </a-col>
       <a-col v-if="hasRightPanel" :span="5" class="h-full">
-        <RightContent
-          v-if="activeKey === 1"
-          :user-info-list="userInfoList"
-          :view-history-data="viewHistoryData"
-          :hot-article-data="hotArticleData"
-          :view-total="viewTotal"
-          :hot-file-total="hotFileTotal"
-          :tab-flag="activeKey"
-        />
+        <RightContent v-if="activeKey === 1" :user-info-list="userInfoList" :view-history-data="viewHistoryData"
+          :hot-article-data="hotArticleData" :view-total="viewTotal" :hot-file-total="hotFileTotal"
+          :tab-flag="activeKey" />
+          <QuestionRightContent :expertFlag="expertFlag" :getCurrentTab="activeKey" @exposeAskDes="exposeAskDes" />
       </a-col>
     </a-row>
   </div>
@@ -152,6 +146,7 @@ watch(
 .knowledgeCenter {
   padding: 16px;
 }
+
 :deep(.ant-tabs-content) {
   height: 100%;
 }

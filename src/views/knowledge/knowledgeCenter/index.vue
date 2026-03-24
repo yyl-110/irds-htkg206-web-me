@@ -9,6 +9,8 @@ import {
 } from "@/api/knowledge";
 import textCard from "../components/textCard.vue";
 import askCard from "../components/askCard.vue";
+import videoCard from "../components/videoCard.vue";
+import imgCard from "../components/imgCard.vue";
 import { SearchOutlined } from "@ant-design/icons-vue";
 import { useUserStore } from "@/store/modules/user";
 import searchTag from "../components/search-tag.vue";
@@ -132,6 +134,7 @@ const getQuestList = () => {
 // 切换标识
 const changeType = () => {
   initPage();
+  initSearch()
   documentList.value = [];
   if (tabValue.value === 4) {
     getQuestList();
@@ -253,6 +256,10 @@ const initPage = () => {
   page.value.pageSize = 10;
   page.value.currentPage = 1;
 };
+const initSearch = () => {
+  arrayData.value = []
+  thirdData.value = []
+}
 
 // 分页
 const handleSizeChange = (val) => {
@@ -290,12 +297,7 @@ onMounted(() => {
         <a-radio-button :value="3">图片</a-radio-button>
       </a-radio-group>
       <div class="flex items-center">
-        <a-input-search
-          v-model:value="searchValue"
-          placeholder="输入关键字进行搜索"
-          @search="onSearch"
-          class="max-w-[300px]"
-        >
+        <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="max-w-[300px]">
           <template #enterButton>
             <div class="flex items-center">
               <SearchOutlined />
@@ -303,56 +305,42 @@ onMounted(() => {
             </div>
           </template>
         </a-input-search>
-        <a-checkbox-group
-          v-model:value="searchType"
-          :options="searchOptions"
-          class="ml-[8px] flex-shrink-0"
-        />
+        <a-checkbox-group v-model:value="searchType" :options="searchOptions" class="ml-[8px] flex-shrink-0" />
       </div>
     </div>
-    <searchTag
-      :elTagcheckedOneData="elTagcheckedOneData"
-      :hiddenStatus="hiddenStatus"
-      :elTagcheckedOneStatus="elTagcheckedOneStatus"
-      :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
-      :elTagcheckedTwoData="elTagcheckedTwoData"
-      @onChangeElCheckTagOne="onChangeElCheckTagOne"
-      @onChangeElCheckTagTwo="onChangeElCheckTagTwo"
-      @onOffFun="onOffFun"
-      class="mt-[16px]"
-    />
+    <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
+      :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
+      :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
+      @onChangeElCheckTagTwo="onChangeElCheckTagTwo" @onOffFun="onOffFun" class="mt-[16px]" />
     <main class="flex-1 h-0">
       <div class="list h-full overflow-y-auto pt-[16px]">
         <a-row class="w-full items-start" v-if="tabValue === 1" :gutter="[16, 16]">
-          <a-col
-            :span="12"
-            class="item"
-            v-for="item in documentList"
-            :key="item.id"
-          >
+          <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
             <text-card :text-data="item" @handleFetchList="searchData" />
           </a-col>
         </a-row>
 
-        <div class="innerNoWrap w-full h-full" v-if="tabValue === 4">
+        <div class="w-full h-full" v-if="tabValue === 4">
           <div class="item" v-for="item in documentList" :key="item.id">
             <ask-card :ask-data="item" @handleFetchList="getQuestList" />
+          </div>
+        </div>
+        <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 2">
+          <div class="item" v-for="item in documentList" :key="item.id">
+            <video-card :video-data="item" @handleFetchList="searchData" />
+          </div>
+        </div>
+        <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 3">
+          <div class="item" v-for="item in documentList" :key="item.id">
+            <img-card :img-data="item" @handleFetchList="searchData" />
           </div>
         </div>
       </div>
     </main>
     <footer class="flex justify-end pt-[16px]">
-      <a-pagination
-        v-model:current="page.currentPage"
-        :total="page.pageCount"
-        :default-page-size="page.pageSize"
-        show-less-items
-        show-size-changer
-        show-quick-jumper
-        :show-total="(total) => `共${total}条`"
-        @change="handleCurrentChange"
-        @showSizeChange="handleSizeChange"
-      />
+      <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
+        show-less-items show-size-changer show-quick-jumper :show-total="(total) => `共${total}条`"
+        @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
     </footer>
   </div>
 </template>
