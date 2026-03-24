@@ -1,120 +1,16 @@
-<template>
-  <div class="rt-layout">
-    <a-card class="box-card" :bordered="false">
-      <template #title>
-        <div class="card-header">
-          <span style="font-weight: 600; font-size: 18px">专家板块</span>
-          <div class="more" @click="viewMoreFun('records')">更多</div>
-        </div>
-      </template>
-      <div class="pic-list">
-        <div class="user-block" v-for="(item, index) in userListData" :key="index">
-          <div class="user-info">
-            <a-avatar class="elAvatar" :size="44">
-              <span style="color: #1366d1; font-size: 30px">{{ item.name[0] }}</span></a-avatar>
-            <div>
-              <div class="uname">{{ item.name }}</div>
-              <div class="udesc">{{ item?.expertRole }}{{ item?.expertRole ? '·' : '' }}{{ item?.ifExpert }}</div>
-              <div class="btn-wrap">
-                <div class="btnlis" @click="viewExpertDes(item)">查看详情</div>
-                <div class="btnlis1" @click="expertFun(item)">提问TA</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </a-card>
-    <a-card class="box-card height240" :bordered="false">
-      <template #title>
-        <div class="card-header">
-          <span style="font-weight: 600; font-size: 18px">热评问题</span>
-          <div class="more" @click="viewMoreFun('hot')">更多</div>
-        </div>
-      </template>
-      <div v-for="(artTitle, index) in articList" :key="artTitle.id" class="text item" @click="previewArt">
-        <div v-if="artTitle.fileName && index < 5" class="box-item">
-          <div class="space">
-            <span style="margin-right: 0.625rem"
-              :style="{ color: index == 0 ? '#ff0000' : index == 1 || index == 2 ? '#FF8A00' : '' }">{{ index + 1
-              }}</span>{{ artTitle.fileName }}
-          </div>
-        </div>
-        <div v-if="artTitle.fileName && index < 5"
-          style="margin-left: 10px; margin-top: -40px; display: flex; align-items: center">
-          <EyeOutlined style="margin-right: 2px" />
-          {{ artTitle.num }}次
-        </div>
-      </div>
-    </a-card>
-    <a-modal :maskClosable="false" class="view-more-dialog" :visible="dialogVisible" :title="dialogTit" width="60%"
-      @cancel="closeFun">
-      <a-card v-if="userList.length > 0 && dialogTit === '专家板块'" class="box-card1" :bordered="false">
-        <a-form :model="formInline" layout="inline" class="demo-form-inline">
-          <a-form-item style="margin-right: 20px">
-            <a-input v-model:value="formInline.userName" placeholder="请输入专家名称搜索" style="width: 212px" />
-          </a-form-item>
-          <a-form-item>
-            <a-button type="primary" @click="onSubmit">
-              <SearchOutlined />&nbsp;查询
-            </a-button>
-            <a-button @click="resetFun">
-              <UndoOutlined />&nbsp;重置
-            </a-button>
-          </a-form-item>
-        </a-form>
-        <div style="width: 100%; display: flex; flex-wrap: wrap; justify-content: flex-start">
-          <div v-for="item in userList" :key="item.id" class="pic-list" style="margin-left: 0; margin-bottom: 20px">
-            <a-avatar class="elAvatar" :size="44" :src="callBackUserAvatar(item.roleName)"><span
-                style="color: #1366d1; font-size: 30px">{{ item.name[0] }}</span></a-avatar>
-            <div style="margin-top: 12px">
-              <div class="uname">{{ item.name }}</div>
-              <div class="udesc">{{ item.expertRole }}</div>
-              <div class="btn-wrap">
-                <div class="btnlis" @click="viewExpertDes(item)">查看详情</div>
-                <div class="btnlis1" @click="expertFun(item)">提问TA</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </a-card>
-      <a-card v-if="userList.length > 0 && dialogTit === '热评问题'" class="box-card" :bordered="false">
-        <div v-for="art in articList" :key="art.id" style="border-bottom: 1px solid #ccc">
-          <div class="text item text-list">
-            <span class="tit">{{ art.fileName }}</span>
-            <div>
-              <span class="name">{{ art.userName }}</span>
-              <span class="time">{{ getTimes(Date.parse(art.addTime)) }}</span>
-            </div>
-          </div>
-          <div style="line-height: 22px; display: flex; align-items: center">
-            <EyeOutlined style="margin-right: 2px" />{{ art.num }}次
-          </div>
-        </div>
-      </a-card>
-      <template #footer>
-        <div class="footer">
-          <a-pagination class="elPage" v-model:current="page.currentPage" :total="page.pageCount"
-            :default-page-size="page.pageSize" show-less-items show-size-changer show-quick-jumper
-            :show-total="(total) => `共${total}条`" @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
-          <span class="dialog-footer">
-            <a-button type="primary" @click="closeFun">关闭</a-button>
-          </span>
-        </div>
-      </template>
-    </a-modal>
-    <PoseQuestion :poseDialogVisible="poseDialogVisible" :expertData="expertData" @closeDialogs="closeDialog" />
-  </div>
-</template>
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { queryExpertInformationList, hotQuestion } from '@/api/knowledge';
-import { getTimes } from '@/utils/dateUtils.js';
-import PoseQuestion from './PoseQuestion.vue';
-import { EyeOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons-vue';
-
+import { ref, watch, computed } from "vue";
+import { queryExpertInformationList, hotQuestion } from "@/api/knowledge";
+import { getTimes } from "@/utils/dateUtils.js";
+import PoseQuestion from "./PoseQuestion.vue";
+import {
+  EyeOutlined,
+  SearchOutlined,
+  UndoOutlined,
+} from "@ant-design/icons-vue";
 
 const dialogVisible = ref(false);
-const dialogTit = ref('');
+const dialogTit = ref("");
 const page = ref({
   pageSize: 10,
   pageCount: 100,
@@ -124,7 +20,7 @@ const page = ref({
 const userListData = ref([]);
 const userList = ref([]);
 const formInline = ref({
-  userName: '',
+  userName: "",
 });
 
 const articList = ref([]);
@@ -140,13 +36,12 @@ const props = defineProps({
   getCurrentTab: String,
 });
 
-const emit = defineEmits(['closeDialogs', 'exposeId', 'exposeAskDes']);
-
+const emit = defineEmits(["closeDialogs", "exposeId", "exposeAskDes"]);
 
 watch(
   () => props.getCurrentTab,
-  val => {
-    if (val && val === 'knowledgeAsk') {
+  (val) => {
+    if (val && val === "knowledgeAsk") {
       getUserList();
       getHotArtic();
     }
@@ -156,11 +51,11 @@ watch(
 onMounted(() => {
   getUserList();
   getHotArtic();
-})
+});
 
 const closeFun = () => {
   formInline.value = {
-    userName: '',
+    userName: "",
   };
   page.value = {
     pageSize: 10,
@@ -179,7 +74,7 @@ const onSubmit = () => {
 
 const resetFun = () => {
   formInline.value = {
-    userName: '',
+    userName: "",
   };
   page.value = {
     pageSize: 10,
@@ -195,8 +90,8 @@ const getUserList = () => {
     userNameOrExpertRole: formInline.value.userName, //筛选条件，用户名字或职位
   };
 
-  queryExpertInformationList(params).then(res => {
-    if (res && res.data.code === '0') {
+  queryExpertInformationList(params).then((res) => {
+    if (res && res.data.code === "0") {
       userList.value = [];
       userList.value = res.data.data.result || [];
       if (!userListData.value.length) {
@@ -211,10 +106,10 @@ const getHotArtic = () => {
   const params = {
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
-    userNameOrDes: '', //筛选条件：用户名字或问题描述
+    userNameOrDes: "", //筛选条件：用户名字或问题描述
   };
-  hotQuestion(params).then(res => {
-    if (res && res.data.code === '0') {
+  hotQuestion(params).then((res) => {
+    if (res && res.data.code === "0") {
       articList.value = [];
       articList.value = res.data.data.result;
       page.value.pageCount = res.data.data.total;
@@ -222,31 +117,31 @@ const getHotArtic = () => {
   });
 };
 
-const viewExpertDes = item => {
+const viewExpertDes = (item) => {
   dialogVisible.value = false;
-  emit('exposeAskDes', item.id);
+  emit("exposeAskDes", item.id);
 };
 
 // 直接点击头像向专家提问
-const expertFun = val => {
+const expertFun = (val) => {
   poseDialogVisible.value = true;
   expertData.value = val;
 };
 
 // 提问
-const viewExpose = item => {
-  emit('exposeId', item.id);
+const viewExpose = (item) => {
+  emit("exposeId", item.id);
   dialogVisible.value = false;
 };
 
-const viewMoreFun = type => {
+const viewMoreFun = (type) => {
   typeData.value = type;
   dialogVisible.value = true;
-  if (type == 'hot') {
-    dialogTit.value = '热评问题';
+  if (type == "hot") {
+    dialogTit.value = "热评问题";
     getHotArtic();
   } else {
-    dialogTit.value = '专家板块';
+    dialogTit.value = "专家板块";
     getUserList();
   }
 };
@@ -254,16 +149,16 @@ const viewMoreFun = type => {
 //分页
 const handleSizeChange = (current, size) => {
   page.value.pageSize = size;
-  if (typeData.value == 'hot') {
+  if (typeData.value == "hot") {
     getHotArtic();
   } else {
     getUserList();
   }
 };
 //分页
-const handleCurrentChange = val => {
+const handleCurrentChange = (val) => {
   page.value.currentPage = val;
-  if (typeData.value == 'hot') {
+  if (typeData.value == "hot") {
     getHotArtic();
   } else {
     getUserList();
@@ -272,9 +167,194 @@ const handleCurrentChange = val => {
 
 const closeDialog = () => {
   poseDialogVisible.value = false;
-  emit('closeDialogs');
+  emit("closeDialogs");
 };
 </script>
+
+
+<template>
+  <div class="rt-layout h-full">
+    <a-card class="box-card expert" :bordered="false">
+      <template #title>
+        <div class="card-header">
+          <span style="font-weight: 600; font-size: 18px">专家板块</span>
+          <div class="more" @click="viewMoreFun('records')">更多</div>
+        </div>
+      </template>
+      <div class="pic-list">
+        <div
+          class="user-block"
+          v-for="(item, index) in userListData"
+          :key="index"
+        >
+          <div class="user-info">
+            <a-avatar class="elAvatar" :size="44">
+              <span style="color: #1366d1; font-size: 30px">{{
+                item.name[0]
+              }}</span></a-avatar
+            >
+            <div>
+              <div class="uname">{{ item.name }}</div>
+              <div class="udesc">
+                {{ item?.expertRole }}{{ item?.expertRole ? "·" : ""
+                }}{{ item?.ifExpert }}
+              </div>
+              <div class="btn-wrap">
+                <div class="btnlis" @click="viewExpertDes(item)">查看详情</div>
+                <div class="btnlis1" @click="expertFun(item)">提问TA</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a-card>
+    <a-card class="box-card hotList" :bordered="false">
+      <template #title>
+        <div class="card-header">
+          <span style="font-weight: 600; font-size: 18px">热评问题</span>
+          <div class="more" @click="viewMoreFun('hot')">更多</div>
+        </div>
+      </template>
+      <div
+        v-for="(artTitle, index) in articList"
+        :key="artTitle.id"
+        class="text item"
+        @click="previewArt"
+      >
+        <div v-if="artTitle.fileName && index < 5" class="box-item">
+          <div class="space">
+            <span
+              style="margin-right: 0.625rem"
+              :style="{
+                color:
+                  index == 0
+                    ? '#ff0000'
+                    : index == 1 || index == 2
+                    ? '#FF8A00'
+                    : '',
+              }"
+              >{{ index + 1 }}</span
+            >{{ artTitle.fileName }}
+          </div>
+        </div>
+        <div
+          v-if="artTitle.fileName && index < 5"
+          style="
+            margin-left: 10px;
+            margin-top: -40px;
+            display: flex;
+            align-items: center;
+          "
+        >
+          <EyeOutlined style="margin-right: 2px" />
+          {{ artTitle.num }}次
+        </div>
+      </div>
+    </a-card>
+    <a-modal
+      :mask-closable="false"
+      class="view-more-dialog"
+      :visible="dialogVisible"
+      :title="dialogTit"
+      width="60%"
+      @cancel="closeFun"
+    >
+      <a-card
+        v-if="dialogTit === '专家板块'"
+        class="box-card1"
+        :bordered="false"
+      >
+        <a-form :model="formInline" layout="inline" class="demo-form-inline">
+          <a-form-item style="margin-right: 20px">
+            <a-input
+              v-model:value="formInline.userName"
+              placeholder="请输入专家名称搜索"
+              style="width: 212px"
+            />
+          </a-form-item>
+          <a-form-item>
+            <a-button type="primary" class="mr-[8px]" @click="onSubmit">
+              <SearchOutlined />&nbsp;查询
+            </a-button>
+            <a-button @click="resetFun"> <UndoOutlined />&nbsp;重置 </a-button>
+          </a-form-item>
+        </a-form>
+        <div class="listWrap w-full flex flex-wrap justify-start gap-[16px] mt-[16px]">
+          <div v-for="item in userList" :key="item.id" class="pic-list">
+            <a-avatar class="elAvatar" :size="44"
+              ><span style="color: #1366d1; font-size: 30px">{{
+                item.name[0]
+              }}</span></a-avatar
+            >
+            <div style="margin-top: 12px">
+              <div class="uname">{{ item.name }}</div>
+              <div class="udesc">{{ item.expertRole }}</div>
+              <div class="btn-wrap">
+                <div class="btnlis" @click="viewExpertDes(item)">查看详情</div>
+                <div class="btnlis1" @click="expertFun(item)">提问TA</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </a-card>
+      <a-card
+        v-if="dialogTit === '热评问题'"
+        class="box-card"
+        :bordered="false"
+      >
+        <div
+          v-for="art in articList"
+          :key="art.id"
+          style="border-bottom: 1px solid #ccc"
+        >
+          <div class="text item text-list">
+            <span class="tit">{{ art.fileName }}</span>
+            <div>
+              <span class="name">{{ art.userName }}</span>
+              <span class="time">{{ getTimes(Date.parse(art.addTime)) }}</span>
+            </div>
+          </div>
+          <div style="line-height: 22px; display: flex; align-items: center">
+            <EyeOutlined style="margin-right: 2px" />{{ art.num }}次
+          </div>
+        </div>
+      </a-card>
+      <template #footer>
+        <div class="footer flex justify-between items-center">
+          <a-pagination
+            v-model:current="page.currentPage"
+            class="elPage"
+            :total="page.pageCount"
+            :default-page-size="page.pageSize"
+            show-less-items
+            show-size-changer
+            show-quick-jumper
+            :show-total="(total) => `共${total}条`"
+            @change="handleCurrentChange"
+            @showSizeChange="handleSizeChange"
+          />
+          <span class="dialog-footer">
+            <a-button type="primary" @click="closeFun">关闭</a-button>
+          </span>
+        </div>
+      </template>
+    </a-modal>
+    <PoseQuestion
+      :poseDialogVisible="poseDialogVisible"
+      :expertData="expertData"
+      @closeDialogs="closeDialog"
+    />
+  </div>
+</template>
+
+<style lang="less">
+.view-more-dialog {
+  .ant-modal-body {
+    padding: 0;
+  }
+}
+</style>
+
 <style lang="less" scoped>
 .rt-layout {
   margin-top: 10px;
@@ -335,12 +415,13 @@ const closeDialog = () => {
     }
   }
 }
+.expert {
+  height: 40%;
+}
 
 .box-card {
-  height: 496px;
   background: #ffffff;
   border-radius: 4px;
-  margin-bottom: 16px;
   border: none;
 
   :deep(.ant-card-head) {
@@ -366,8 +447,6 @@ const closeDialog = () => {
   }
 
   :deep(.ant-card-body) {
-    padding: 0 10px 10px;
-    height: 430px;
     overflow: hidden;
 
     .pic-list {
@@ -464,16 +543,19 @@ const closeDialog = () => {
   }
 }
 
-.height240 {
-  height: ~'calc(100vh - 585px)';
-  overflow-y: auto;
-  width: 244px;
+.hotList {
+  height: 60%;
+  width: 100%;
   background: #ffffff;
   border-radius: 4px 4px 4px 4px;
   margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
 
   :deep(.ant-card-body) {
     padding: 0 20px 20px 20px;
+    flex: 1;
+    overflow-y: auto;
 
     .item {
       display: flex;
@@ -576,105 +658,84 @@ const closeDialog = () => {
     line-height: 40px;
   }
 
-  .box-card1 {
-    height: 520px;
-    width: 100%;
-    border: none !important;
-    overflow: auto;
+}
 
-    .pic-list {
-      width: 212px;
-      height: 98px;
-      margin-right: 20px;
-      background: #f2f5f7;
-      border-radius: 4px 4px 4px 4px;
+.box-card1 {
+  height: 520px;
+  width: 100%;
+  border: none !important;
+  overflow: auto;
+
+  :deep(.ant-card-body) {
+    width: 850px;
+  }
+}
+.listWrap {
+  .pic-list {
+    width: 212px;
+    height: 98px;
+    margin-right: 20px;
+    background: #f2f5f7;
+    border-radius: 4px 4px 4px 4px;
+    display: flex;
+  
+    .elAvatar {
+      height: 44px;
+      width: 44px;
+      margin-right: 7px;
+      margin: 12px 7px 0 12px;
+    }
+  
+    .uname {
+      height: 26px;
+      font-family: PingFang-SC, PingFang-SC;
+      line-height: 26px;
+      margin-bottom: 2px;
+      font-weight: 500;
+      font-size: 16px;
+      color: #000;
+    }
+  
+    .udesc {
+      height: 12px;
+      font-size: 14px;
+      font-family: PingFang-SC, PingFang-SC;
+      font-weight: 500;
+      color: #969799;
+      line-height: 12px;
+    }
+  
+    .btn-wrap {
       display: flex;
-
-      .elAvatar {
-        height: 44px;
-        width: 44px;
-        margin-right: 7px;
-        margin: 12px 7px 0 12px;
+      justify-content: center;
+      margin-top: 8px;
+  
+      .btnlis {
+        width: 64px;
+        height: 24px;
+        line-height: 24px;
+        background: #ffffff;
+        border-radius: 4px 4px 4px 4px;
+        font-size: 12px;
+        color: #6a696e;
+        cursor: pointer;
+        margin-right: 8px;
+        text-align: center;
       }
-
-      .uname {
-        height: 26px;
-        font-family: PingFang-SC, PingFang-SC;
-        line-height: 26px;
-        margin-bottom: 2px;
-        font-weight: 500;
-        font-size: 16px;
-        color: #000;
-      }
-
-      .udesc {
-        height: 12px;
-        font-size: 14px;
-        font-family: PingFang-SC, PingFang-SC;
-        font-weight: 500;
-        color: #969799;
-        line-height: 12px;
-      }
-
-      .btn-wrap {
-        display: flex;
-        justify-content: center;
-        margin-top: 8px;
-
-        .btnlis {
-          width: 64px;
-          height: 24px;
-          line-height: 24px;
-          background: #ffffff;
-          border-radius: 4px 4px 4px 4px;
-          font-size: 12px;
-          color: #6a696e;
-          cursor: pointer;
-          margin-right: 8px;
-          text-align: center;
-        }
-
-        .btnlis1 {
-          width: 64px;
-          height: 24px;
-          line-height: 24px;
-          background: #ffffff;
-          border-radius: 4px 4px 4px 4px;
-          font-size: 12px;
-          color: #1366d1;
-          cursor: pointer;
-          margin-right: 8px;
-          text-align: center;
-        }
+  
+      .btnlis1 {
+        width: 64px;
+        height: 24px;
+        line-height: 24px;
+        background: #ffffff;
+        border-radius: 4px 4px 4px 4px;
+        font-size: 12px;
+        color: #1366d1;
+        cursor: pointer;
+        margin-right: 8px;
+        text-align: center;
       }
     }
-
-    :deep(.ant-card-body) {
-      width: 850px;
-      padding: 0 !important;
-    }
-  }
-
-  .fontStyle {
-    font-family: DIN Alternate, DIN Alternate;
-    font-weight: bold;
-    font-size: 16px;
-    color: #ff0000;
-    margin-right: 10px;
-  }
-
-  .fontStyle1 {
-    font-family: DIN Alternate, DIN Alternate;
-    font-weight: bold;
-    font-size: 16px;
-    color: #ff8a00;
-  }
-
-  .fontStyle2 {
-    font-family: DIN Alternate, DIN Alternate;
-    font-weight: bold;
-    font-size: 16px;
-    color: #ecaa00;
   }
 }
 </style>
