@@ -2,6 +2,7 @@
 import { defineEmits, reactive, ref } from 'vue';
 import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequestDTOModel';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
+import { GlobalQueryPara10Cell } from '../../composables/useGlobalQuery';
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon.js';
 const requestParams = reactive(new ModuleTypeRequestDTOModel());
@@ -17,6 +18,8 @@ const emit = defineEmits(['actionNode', 'getCategory']);
 const globalQueryModalVisible = ref(false);
 const globalQueryLoading = ref(false);
 const globalQueryList = ref<any[]>([]);
+/** 用户是否已执行过查询；未查询前分页 change 不请求 */
+const globalQueryHasSearched = ref(false);
 const globalQueryTableScrollY = 420;
 const globalQueryTablePagination = reactive({
   current: 1,
@@ -45,14 +48,6 @@ const globalQueryColumns = ref<any[]>([
     title: '状态',
     dataIndex: 'para10',
     key: 'para10',
-    customRender: ({ text }: any) => {
-      const v = Number(text);
-      if (v === 0) return '已发布';
-      if (v === 1) return '设计中';
-      if (v === 2) return '已停用';
-      if (v === 3) return '审核中';
-      return text ?? '';
-    },
     align: 'center',
     width: 120,
     resizable: true,
@@ -76,9 +71,11 @@ const createGlobalQueryGroup = (field = '', queryType = 'fuzzy', keyword = '') =
 });
 const globalQueryGroups = ref<any[]>([createGlobalQueryGroup('', 'fuzzy', '')]);
 
+const queryType = ref<any>('');
 //初始化数据
-async function infoReload(categoryidStr: string, menuid?: any) {
+async function infoReload(categoryidStr: string, menuid: any, query: string) {
   try {
+    queryType.value = query;
     loading.value = true;
     categoryid.value = categoryidStr;
     menuId.value = menuid ?? menuId.value;
@@ -102,11 +99,14 @@ async function selectAllModuleInfo() {
     return;
   }
   globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
+  globalQueryHasSearched.value = false;
+  globalQueryList.value = [];
+  globalQueryTablePagination.current = 1;
+  globalQueryTablePagination.total = 0;
   globalQueryModalVisible.value = true;
-  await fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
 }
 
-async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
+async function fetchGlobalQueryData(pageNo: number, pageSize: number, query: any) {
   globalQueryLoading.value = true;
   try {
     const data: any = {};
@@ -122,7 +122,8 @@ async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
       .filter((g: any) => g.keyword);
     data.keyword = activeConditions[0]?.keyword || '';
     data.queryConditionList = activeConditions;
-
+    data.queryType = query;
+    data.creator = userStore.getUser.id;
     const res = await AdminApiSystemModule.getLibraryDataFixedColumnsPage(data);
     const resData: any = res?.data?.data ?? {};
     const list: any[] = resData.list || resData.moduleList || resData.records || [];
@@ -133,6 +134,7 @@ async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
     globalQueryTablePagination.current = resData.currentPage ?? pageNo;
     globalQueryTablePagination.pageSize = resData.pageSize ?? pageSize;
     globalQueryTablePagination.total = resData.total ?? resData.totalCount ?? resData.totalPage ?? list.length ?? 0;
+    globalQueryHasSearched.value = true;
   } catch (error) {
     console.log(error);
     message.error('全局查询失败');
@@ -142,9 +144,10 @@ async function fetchGlobalQueryData(pageNo: number, pageSize: number) {
 }
 
 function handleGlobalTableChange(pagination: any) {
+  if (!globalQueryHasSearched.value) return;
   const current = pagination?.current ?? globalQueryTablePagination.current;
   const pageSize = pagination?.pageSize ?? globalQueryTablePagination.pageSize;
-  fetchGlobalQueryData(current, pageSize);
+  fetchGlobalQueryData(current, pageSize, queryType.value);
 }
 
 function handleGlobalModelNumClick(record: any) {
@@ -169,7 +172,10 @@ function removeGlobalQueryGroup(index: number) {
 
 function resetGlobalQueryGroups() {
   globalQueryGroups.value = [createGlobalQueryGroup('', 'fuzzy', '')];
-  fetchGlobalQueryData(1, globalQueryTablePagination.pageSize);
+  globalQueryHasSearched.value = false;
+  globalQueryList.value = [];
+  globalQueryTablePagination.current = 1;
+  globalQueryTablePagination.total = 0;
 }
 
 defineExpose({ infoReload });
@@ -207,7 +213,7 @@ defineExpose({ infoReload });
           <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center">
-          <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)">查询</a-button>
+          <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize, queryType)">查询</a-button>
           <a-button @click="resetGlobalQueryGroups">重置</a-button>
         </div>
       </div>
@@ -220,10 +226,12 @@ defineExpose({ infoReload });
         :pagination="globalQueryTablePagination"
         :loading="globalQueryLoading"
         @change="handleGlobalTableChange">
-        <template #bodyCell="{ column, record }">
+        <template #bodyCell="{ column, record, text }">
           <template v-if="column.dataIndex === 'para1'">
             <a @click.stop="handleGlobalModelNumClick(record)">{{ record.para1 }}</a>
           </template>
+          <GlobalQueryPara10Cell v-else-if="column.dataIndex === 'para10'" :text="text" />
+          <template v-else>{{ text }}</template>
         </template>
       </a-table>
       <template #footer>

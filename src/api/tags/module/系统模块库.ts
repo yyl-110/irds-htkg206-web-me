@@ -114,6 +114,28 @@ export class AdminApiSystemModule {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 根据子ID获取二级分类节点ID
+   *
+   * @tags 根据子ID获取二级分类节点ID
+   * @name getCategoryInfoByChirdrenId
+   * @summary 根据子ID获取二级分类节点ID
+   * @request /business-service/business/library-category/getCategoryInfoByChirdrenId
+   * @secure
+   */
+  static getCategoryInfoByChirdrenId = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-category/getCategoryInfoByChirdrenId`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
   /**
    * 模块库表头列表查询
    *

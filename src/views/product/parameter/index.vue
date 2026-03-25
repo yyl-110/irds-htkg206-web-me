@@ -56,8 +56,6 @@ const requestParams = reactive(new ParameterPageRequestDTOModel());
 const treeRequestParams = reactive(new ProductModuleTreeInfoRequestDTOModel());
 const treeParameterParams = reactive(new ParameterPageRequestDTOModel());
 
-
-
 /** 列表数据 */
 const datasource = ref<Array<ParameterInfoRequestDTOModel>>([]);
 const rawTreeData = ref<Array<any>>([]); // 保存完整的原始树数据
@@ -374,7 +372,7 @@ function convertToTreeNodes(data: any[]): any[] {
   return data.map(item => {
     // 判断是否有子节点
     const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
-    alert(hasChildren);
+    // alert(hasChildren);
     // 设置level值：根节点level为1，有子节点的节点level为2，没有子节点的节点level为3
     let level = 3; // 默认level为3（无子节点）
     if (hasChildren) {

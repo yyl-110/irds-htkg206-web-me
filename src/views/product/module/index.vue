@@ -389,7 +389,7 @@ async function selectNode(node: any) {
   categoryType.value = node.categoryType;
   if (categoryType.value == 2 || categoryType.value == 3) {
     nextTick(() => {
-      ModuleImgListRef.value?.infoReload(categoryid.value, menuId.value);
+      ModuleImgListRef.value?.infoReload(categoryid.value, menuId.value, 'manager');
     });
   } else {
     nextTick(() => {
@@ -623,7 +623,7 @@ async function getMenuListData() {
       ...requestModuleParams,
     });
     const data = {
-      roleId: userStore.getUser.id,
+      creator: userStore.getUser.id,
     };
     const resBolean = await ifUpdateTreePermission(data);
     flagUpdate.value = resBolean.data.data;
@@ -672,11 +672,64 @@ function findNodePathById(nodes: any[], targetId: string, path: any[] = []): any
   return null;
 }
 
-function getCategory(categoryId: any) {
+async function getListData2(categoryId: any) {
+  loadingTree.value = true;
+  try {
+    let data: any = {};
+    const targetId = String(categoryId ?? '');
+    // 这里必须请求“完整的标题对应树”，否则会只拿到目标节点的子树，导致其它节点丢失
+    data.id = treeRequestParams.categoryId;
+    const res = await AdminApiSystemProduct.getProductModuleTree(data);
+    if (res.data.code == 200 && res.data.data) {
+      loadingTree.value = false;
+      const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+      dataSource.value = rawData[0];
+      const treeNodes = convertToTreeNodes(rawData);
+      treeData.value = treeNodes;
+
+      // 根据传入的 categoryId 在树中找到对应节点并触发右侧联动
+      const targetNode = findNodeById(treeNodes, targetId);
+      if (targetNode) {
+        selectedKeys.value = targetId;
+        const path = findNodePathById(treeNodes, targetId);
+        if (path && path.length) {
+          expandedKeys.value = path.map((n: any) => n.key).join(',');
+        }
+        nextTick(() => {
+          selectNode(targetNode);
+        });
+      }
+    }
+  } catch (error) {
+    message.error('获取数据失败!');
+  } finally {
+    loadingTree.value = false;
+  }
+}
+
+function changeTitleModule2(item: any, categoryId: any) {
+  treeRequestParams.id = item.id;
+  treeRequestParams.categoryId = item.id;
+  categoryid.value = item.id;
+  categoryType.value = item.categoryType;
+  getListData2(categoryId);
+  drawerStyle.value = ref({});
+  loading.value = false;
+  titleVisible.value = false;
+}
+
+async function getCategory(categoryId: any) {
   const targetId = String(categoryId ?? '');
   if (!targetId) return;
   const path = findNodePathById(treeData.value, targetId);
   if (!path || path.length === 0) {
+    const res = await AdminApiSystemModule.getCategoryInfoByChirdrenId({ id: categoryId });
+    const fallbackId = String(res?.data?.data?.id ?? '');
+    const matchedTitleItem = findTitleItemById(titleList.value, fallbackId);
+    if (matchedTitleItem) {
+      changeTitleModule2(matchedTitleItem, categoryId);
+      return;
+    }
     message.warning('未找到对应树节点');
     return;
   }
@@ -687,6 +740,16 @@ function getCategory(categoryId: any) {
   nextTick(() => {
     selectNode(targetNode);
   });
+}
+
+function findTitleItemById(nodes: any[], targetId: string): any | null {
+  if (!targetId) return null;
+  for (const node of nodes || []) {
+    if (String(node?.id ?? '') === targetId) return node;
+    const childMatched = findTitleItemById(node?.children || [], targetId);
+    if (childMatched) return childMatched;
+  }
+  return null;
 }
 
 // 响应式数据
