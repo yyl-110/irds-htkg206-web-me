@@ -192,9 +192,8 @@ const followFun = (item) => {
 
 // 下载
 const downFun = (item) => {
-  window.location.href = `${
-    import.meta.env.VITE_BASE_PREVIEW_URL
-  }/base-server/fileManagerController/download.json?fileId=${item.fileId}`;
+  window.location.href = `${import.meta.env.VITE_BASE_PREVIEW_URL
+    }/base-server/fileManagerController/download.json?fileId=${item.fileId}`;
 };
 
 const getVideoHide = (val) => {
@@ -269,17 +268,8 @@ defineExpose({
   <a-drawer v-model:visible="open" :closable="false" :width="800">
     <div class="h-full flex flex-col">
       <div class="header">
-        <a-input-search
-          v-model:value="searchText"
-          placeholder="请输入标题或作者搜索"
-          enter-button
-          @search="onSearch"
-        />
-        <a-radio-group
-          v-model:value="tabValue"
-          class="mt-[16px]"
-          @change="changeType"
-        >
+        <a-input-search v-model:value="searchText" placeholder="请输入标题或作者搜索" enter-button @search="onSearch" />
+        <a-radio-group v-model:value="tabValue" class="mt-[16px]" @change="changeType">
           <a-radio-button :value="1">文档</a-radio-button>
           <a-radio-button :value="4">问答</a-radio-button>
           <a-radio-button :value="2">视频</a-radio-button>
@@ -291,8 +281,7 @@ defineExpose({
           <div v-if="tabValue === 1" class="doc-wrap">
             <div class="doc-list" v-for="(item, index) in documentList">
               <div style="display: flex; margin-top: 16px">
-                <div
-                  style="
+                <div style="
                     min-width: 44px;
                     height: 44px;
                     background: #fbd5d5;
@@ -301,10 +290,8 @@ defineExpose({
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                  "
-                >
-                  <span
-                    style="
+                  ">
+                  <span style="
                       text-align: center;
                       font-weight: bold;
                       font-size: 24px;
@@ -312,15 +299,13 @@ defineExpose({
                       line-height: 24px;
                       font-style: normal;
                       text-transform: none;
-                    "
-                    >{{ item.fileType[0] }}</span
-                  >
+                    ">{{ item.fileType[0] }}</span>
                 </div>
                 <div style="width: 100%">
                   <a-tooltip class="box-item" placement="top">
                     <template #title>{{
                       item.fileName + "." + item.fileType
-                    }}</template>
+                      }}</template>
                     <div class="highlightName" @click="viewPdfFun(item)">
                       {{ item.fileName }}.{{ item.fileType }}
                     </div>
@@ -329,23 +314,21 @@ defineExpose({
                     <a-breadcrumb separator="|">
                       <a-breadcrumb-item>{{
                         item.version || ""
-                      }}</a-breadcrumb-item>
+                        }}</a-breadcrumb-item>
                       <a-breadcrumb-item>{{
                         getTimes(Date.parse(item.addTime)) || ""
-                      }}</a-breadcrumb-item>
+                        }}</a-breadcrumb-item>
                     </a-breadcrumb>
                   </div>
                 </div>
               </div>
               <div v-if="item.summary" class="desc">{{ item.summary }}</div>
-              <div
-                style="
+              <div style="
                   display: flex;
                   margin-top: 10px;
                   justify-content: space-between;
                   margin: 5px 0;
-                "
-              >
+                ">
                 <div style="display: flex; align-items: center">
                   <el-avatar class="elAvatar" :size="24" />
                   <div class="name">{{ item.userName }}</div>
@@ -355,160 +338,99 @@ defineExpose({
                     <eye-outlined />
                     <span>{{ JSON.parse(item.counting).previewed }}</span>
                   </div>
-                  <div
-                    class="act-list elChatDotSquare"
-                    @click="commentFun(item)"
-                  >
+                  <div class="act-list elChatDotSquare" @click="commentFun(item)">
                     <message-outlined /><span>{{
                       JSON.parse(item.counting).commented
-                    }}</span>
+                      }}</span>
                   </div>
-                  <div
-                    class="act-list elStarFilled icon-hanhan"
-                    @click="followFun(item)"
-                  >
+                  <div class="act-list elStarFilled icon-hanhan" @click="followFun(item)">
                     <heart-outlined v-if="!item.collectedLight" />
-                    <heart-filled
-                      v-else
-                      class="text-red"
-                      :style="{ color: 'red' }"
-                    />
+                    <heart-filled v-else class="text-red" :style="{ color: 'red' }" />
                     <span>{{ JSON.parse(item.counting).collectd }}</span>
                   </div>
                   <div class="act-list elShare" @click="shareFun(item)">
                     <share-alt-outlined /><span>{{
                       JSON.parse(item.counting).shared
-                    }}</span>
+                      }}</span>
                   </div>
-                  <div
-                    v-if="item.allowDownload !== 1"
-                    class="act-list elShare"
-                    @click="downFun(item)"
-                  >
+                  <div v-if="item.allowDownload !== 1" class="act-list elShare" @click="downFun(item)">
                     <download-outlined /><span>{{
                       JSON.parse(item.counting).downloaded
-                    }}</span>
+                      }}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           <div v-if="tabValue === 4" class="quest-wrap">
-            <div
-              class="doc-list ask-list"
-              v-for="(allQues, index) in documentList"
-              :key="allQues.id"
-            >
+            <div class="doc-list ask-list" v-for="(allQues, index) in documentList" :key="allQues.id">
               <div class="ask-list-top">
                 <div class="ask-list-left">
                   <el-avatar class="elAvatar" :size="24" />
                   <span class="name">{{ allQues.userName }}</span>
                   <span class="time">{{
                     getAllTimes(Date.parse(allQues.addTime))
-                  }}</span>
+                    }}</span>
                   <span v-if="allQues.urgency === '紧急'" class="exigency">{{
                     allQues.urgency
-                  }}</span>
+                    }}</span>
                   <span v-if="allQues.urgency === '严重'" class="importance">{{
                     allQues.urgency
-                  }}</span>
+                    }}</span>
                   <!-- <span v-if="allQues.urgency === '一般'" class="normal">{{ allQues.urgency }}</span> -->
                 </div>
               </div>
 
               <div class="ask-list-title">
-                <span
-                  class="ask-list-title-name"
-                  @click="changeHideFlag(allQues)"
-                  >{{ allQues.description }}</span
-                >
-                <span
-                  class="ask-list-title-answerNum"
-                  v-if="allQues.answer && allQues?.answer.length > 0"
-                >
-                  已回复<span>{{ allQues.answer.length }}</span
-                  >条
+                <span class="ask-list-title-name" @click="changeHideFlag(allQues)">{{ allQues.description }}</span>
+                <span class="ask-list-title-answerNum" v-if="allQues.answer && allQues?.answer.length > 0">
+                  已回复<span>{{ allQues.answer.length }}</span>条
                 </span>
                 <!-- <span class="ask-list-title-answerUp" v-if="allQues.answer.length > 0" @click="changeHideFlag(allQues)">展开/收起</span> -->
               </div>
               <div class="author">
-                <div
-                  style="font-size: 14px; color: #6a696e; cursor: pointer"
+                <div style="font-size: 14px; color: #6a696e; cursor: pointer"
                   class="flex justify-start items-center mt-[10px] text-[14px]"
-                  v-if="allQues.answer && allQues.answer.length > 0"
-                  @click="changeHideFlag(allQues)"
-                >
+                  v-if="allQues.answer && allQues.answer.length > 0" @click="changeHideFlag(allQues)">
                   <div style="margin-right: 4px">展开全部</div>
-                  <img
-                    src="@/assets/images/down11.png"
-                    alt=""
-                    style="margin-right: 20px"
-                  />
+                  <img src="@/assets/images/down11.png" alt="" style="margin-right: 20px" />
                 </div>
-                <div
-                  class="commont"
-                  v-if="hideAnswer && allQues.replay === true"
-                >
+                <div class="commont" v-if="hideAnswer && allQues.replay === true">
                   <a-input v-model:value="answer" type="textarea" />
-                  <a-button
-                    class="commont-btn"
-                    type="primary"
-                    @click="confirmAnswer"
-                    >确定</a-button
-                  >
+                  <a-button class="commont-btn" type="primary" @click="confirmAnswer">确定</a-button>
                 </div>
-                <div
-                  v-if="
-                    hideFlag &&
-                    allQues.hidden === true &&
-                    allQues.answer &&
-                    allQues.answer.length > 0
-                  "
-                >
-                  <div
-                    class="bottomAnswer"
-                    v-for="(myAnser, index) in allQues.answer"
-                    :key="myAnser.id"
-                  >
+                <div v-if="
+                  hideFlag &&
+                  allQues.hidden === true &&
+                  allQues.answer &&
+                  allQues.answer.length > 0
+                ">
+                  <div class="bottomAnswer" v-for="(myAnser, index) in allQues.answer" :key="myAnser.id">
                     <div class="titleTop">
                       <div class="contents">
-                        <span class="content-answer">答</span
-                        ><span class="name">{{ myAnser.userName }}：</span>
+                        <span class="content-answer">答</span><span class="name">{{ myAnser.userName }}：</span>
                         {{ myAnser.content }}
                       </div>
                     </div>
                     <div class="starComment">
-                      <div
-                        class="elChatDotSquare"
-                        @click="commentQuestFun(myAnser)"
-                      >
+                      <div class="elChatDotSquare" @click="commentQuestFun(myAnser)">
                         <message-outlined class="mr-[5px]" /><span>{{
                           myAnser.discussNum
-                        }}</span>
+                          }}</span>
                       </div>
-                      <div
-                        v-if="!allQues.interestLight"
-                        class="icon-hanhan elChatDotSquare"
-                        @click="starFun(allQues)"
-                      >
+                      <div v-if="!allQues.interestLight" class="icon-hanhan elChatDotSquare" @click="starFun(allQues)">
                         <heart-outlined class="mr-[5px]" /><span>{{
                           myAnser.discussNum
-                        }}</span>
+                          }}</span>
                       </div>
-                      <div
-                        v-else
-                        class="elChatDotSquare"
-                        @click="starFun(allQues)"
-                      >
-                        <heart-filled
-                          class="mr-[5px] text-red"
-                          :style="{ color: 'red' }"
-                        /><span>{{ myAnser.discussNum }}</span>
+                      <div v-else class="elChatDotSquare" @click="starFun(allQues)">
+                        <heart-filled class="mr-[5px] text-red" :style="{ color: 'red' }" /><span>{{ myAnser.discussNum
+                          }}</span>
                       </div>
                       <div class="elChatDotSquare" @click="shareFun(allQues)">
                         <share-alt-outlined /><span>{{
                           myAnser.discussNum
-                        }}</span>
+                          }}</span>
                       </div>
                     </div>
                   </div>
@@ -522,18 +444,10 @@ defineExpose({
           </div>
           <div v-if="tabValue === 2" class="video-wrap">
             <div class="doc-list" v-for="(item, index) in documentList">
-              <video
-                class="img-list"
-                :src="item.fileUrl"
-                width="199"
-                height="142"
-                controls
-              />
+              <video class="img-list" :src="item.fileUrl" width="199" height="142" controls />
               <div class="video-wrap-title">
                 <a-tooltip class="box-item" effect="light" placement="top">
-                  <template #title
-                    >{{ item.fileName }}.{{ item.fileType }}</template
-                  >
+                  <template #title>{{ item.fileName }}.{{ item.fileType }}</template>
                   <h3 class="fontHide" @click="viewPdfFun(item)">
                     {{ item.fileName }}.{{ item.fileType }}
                   </h3>
@@ -541,9 +455,7 @@ defineExpose({
                 <div class="video-wrap-title-right">
                   <span>{{ JSON.parse(item.counting).previewed }}次播放</span>
                   <div class="act-list elStarFilled" @click="followFun(item)">
-                    <StarFilled
-                      :style="{ color: !item.collectedLight ? '' : '#87d068' }"
-                    />
+                    <StarFilled :style="{ color: !item.collectedLight ? '' : '#87d068' }" />
                     <span>{{ JSON.parse(item.counting).collectd }}</span>
                   </div>
                   <div class="act-list elShare" @click="shareFun(item)">
@@ -557,41 +469,31 @@ defineExpose({
                   <span class="name">{{ item.userName }}</span>
                   <span class="time">{{
                     getTimes(Date.parse(item.addTime)) || ""
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
             </div>
           </div>
           <div v-if="tabValue === 3" class="img-wrap">
             <div class="doc-list" v-for="(item, index) in documentList">
-              <img
-                class="img-list"
-                style="width: 199px; height: 142px"
-                :src="item.fileUrl"
-              />
+              <img class="img-list" style="width: 199px; height: 142px" :src="item.fileUrl" />
               <div class="img-wrap-title">
                 <a-tooltip class="box-item" placement="top" :show-after="500">
-                  <template #title
-                    >{{ item.fileName }}.{{ item.fileType }}</template
-                  >
+                  <template #title>{{ item.fileName }}.{{ item.fileType }}</template>
                   <h3 class="fontHide" @click="viewPdfFun(item)">
                     {{ item.fileName }}.{{ item.fileType }}
                   </h3>
                 </a-tooltip>
                 <div class="img-wrap-title-right">
                   <span>{{ JSON.parse(item.counting).previewed }}次预览</span>
-                  <div
-                    v-if="!item.collectedLight"
-                    class="act-list elStarFilled"
-                    @click="followFun(item)"
-                  >
-                    <StarFilled
-                      :style="{ color: !item.collectedLight ? '' : '#87d068' }"
-                    /><span>{{ JSON.parse(item.counting).collectd }}</span>
+                  <div v-if="!item.collectedLight" class="act-list elStarFilled" @click="followFun(item)">
+                    <StarFilled :style="{ color: !item.collectedLight ? '' : '#87d068' }" /><span>{{
+                      JSON.parse(item.counting).collectd }}</span>
                   </div>
                   <div class="act-list elShare" @click="shareFun(item)">
-                    <el-icon><Share /></el-icon
-                    ><span>{{ JSON.parse(item.counting).shared }}</span>
+                    <el-icon>
+                      <Share />
+                    </el-icon><span>{{ JSON.parse(item.counting).shared }}</span>
                   </div>
                 </div>
               </div>
@@ -600,45 +502,24 @@ defineExpose({
                   <span class="name">{{ item.userName }}</span>
                   <span class="time">{{
                     getTimes(Date.parse(item.addTime)) || ""
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
             </div>
           </div>
-          <a-empty
-            v-if="documentList.length === 0 && !spinning"
-            :image="simpleImage"
-          />
+          <a-empty v-if="documentList.length === 0 && !spinning" :image="simpleImage" />
         </a-spin>
       </div>
     </div>
-    <shareCell
-      :share-dialog-visible="shareDialogVisible"
-      :doc-id="docId"
-      :quest-flag="questFlag"
-      :tab-flag="tabValue"
-      @close-share="closeShare"
-    />
+    <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="questFlag" :tab-flag="tabValue"
+      @close-share="closeShare" />
 
-    <comment
-      :comment-dialog-visible="commentDialogVisible"
-      :common-deail="commonDeail"
-      @close-comment-dialog-notification="closeCommentDialogNotification"
-      @get-flag-list="fetchFileList"
-    />
-    <comment
-      :comment-dialog-visible="commentDialogVisibleQuest"
-      :common-deail="commonDeail"
-      @close-comment-dialog-notification="closeCommentDialogNotification"
-      @get-flag-list="fetchFileList"
-    />
-    <Video
-      :video-hide="videoHide"
-      :file-url-play="fileUrlPlay"
-      :dialog-type="dialogType"
-      :title-type="titleType"
-      @get-video-hide="getVideoHide"
-    />
+    <comment :comment-dialog-visible="commentDialogVisible" :common-deail="commonDeail"
+      @close-comment-dialog-notification="closeCommentDialogNotification" @get-flag-list="fetchFileList" />
+    <comment :comment-dialog-visible="commentDialogVisibleQuest" :common-deail="commonDeail"
+      @close-comment-dialog-notification="closeCommentDialogNotification" @get-flag-list="fetchFileList" />
+    <Video :video-hide="videoHide" :file-url-play="fileUrlPlay" :dialog-type="dialogType" :title-type="titleType"
+      @get-video-hide="getVideoHide" />
 
     <template #footer>
       <div class="flex justify-end">
@@ -657,15 +538,18 @@ defineExpose({
     border-radius: 0 !important;
   }
 }
+
 .drawerMain {
   .doc-wrap {
     background: #ffffff;
     border-radius: 4px;
     padding: 20px;
+
     .doc-list {
       margin-bottom: 10px;
       border: 1px solid #eee;
       padding: 0 16px;
+
       .desc {
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
@@ -676,13 +560,17 @@ defineExpose({
         overflow: hidden;
         display: -webkit-box;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2; /* 定义文本的行数 */
+        -webkit-line-clamp: 2;
+        /* 定义文本的行数 */
       }
+
       .elAvatar {
         margin-right: 5px;
       }
+
       .author {
         margin-top: 8px;
+
         span {
           height: 22px;
           font-size: 14px;
@@ -691,28 +579,34 @@ defineExpose({
           color: rgba(51, 51, 51, 0.8);
           line-height: 22px;
         }
+
         span.time {
           margin-left: 13px;
         }
       }
+
       .action-wrap {
         display: flex;
         margin-right: 10px;
         justify-content: center;
         align-items: center;
+
         .act-list {
           display: flex;
           align-items: center;
           border-right: 1px solid #dcdee0;
           margin-right: 10px;
           height: 16px;
+
           &:last-child {
             border: none;
           }
+
           span {
             margin: 0 9px;
           }
         }
+
         .elChatDotSquare,
         .elConnection,
         .elEdit,
@@ -720,18 +614,22 @@ defineExpose({
         .elStarFilled,
         .elShare {
           cursor: pointer;
+
           &:hover {
             color: #155bd4;
           }
+
           &:last-child {
             margin-right: 0;
           }
         }
+
         .elStarFilled1 {
           cursor: pointer;
           color: red;
         }
       }
+
       .highlightName {
         height: 26px !important;
         font-family: PingFang SC, PingFang SC;
@@ -744,35 +642,42 @@ defineExpose({
         overflow: hidden;
         text-overflow: ellipsis;
         cursor: pointer;
+
         :deep(em) {
           color: red !important;
         }
       }
+
       .descColor {
         :deep(em) {
           color: red !important;
         }
       }
     }
+
     .ask-list {
       .author {
         display: flex;
         align-items: center;
         height: 24px;
         margin-bottom: 8px;
+
         .elAvatar {
           min-height: 24px;
           min-width: 24px;
         }
+
         .name {
           margin-left: 8px;
           font-weight: 500;
           color: #323233;
         }
       }
+
       .desc {
         height: 22px;
         overflow: hidden;
+
         span {
           height: 22px;
           font-size: 14px;
@@ -783,15 +688,19 @@ defineExpose({
           margin-right: 11px;
         }
       }
+
       .action-wrap {
         position: relative;
+
         .right-action {
           position: absolute;
           right: 0;
           top: 0;
           display: flex;
+
           .act-list {
             color: #155bd4;
+
             .delete-wrap {
               display: flex;
               align-items: center;
@@ -801,6 +710,7 @@ defineExpose({
       }
     }
   }
+
   .video-wrap {
     background: #ffffff;
     border-radius: 4px;
@@ -808,25 +718,31 @@ defineExpose({
     display: flex;
     flex-wrap: wrap;
     place-content: flex-start;
+
     .img-list {
       margin: 16px 16px 0 16px;
       border-radius: 4px;
       overflow: hidden;
       background: #ccc;
     }
+
     &-title {
       padding-left: 16px;
+
       &-right {
         display: flex;
         line-height: 22px;
+
         .act-list {
           display: flex;
           align-items: center;
           margin-left: 10px;
+
           span {
             margin: 0 5px;
           }
         }
+
         .elChatDotSquare,
         .elConnection,
         .elEdit,
@@ -834,16 +750,19 @@ defineExpose({
         .elStarFilled,
         .elShare {
           cursor: pointer;
+
           &:hover {
             color: #155bd4;
           }
         }
+
         .elStarFilled1 {
           cursor: pointer;
           color: red;
         }
       }
     }
+
     .doc-list {
       margin-bottom: 16px;
       width: 240px;
@@ -851,6 +770,7 @@ defineExpose({
       margin-right: 16px;
       border: 1px solid #eaeaf1;
       padding-bottom: 16px;
+
       h3 {
         height: 22px;
         font-size: 14px;
@@ -861,6 +781,7 @@ defineExpose({
         display: inline-block;
         cursor: pointer;
       }
+
       .desc {
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
@@ -868,8 +789,10 @@ defineExpose({
         color: #646566;
         line-height: 22px;
       }
+
       .author {
         padding-left: 16px;
+
         span {
           height: 22px;
           font-size: 14px;
@@ -878,26 +801,32 @@ defineExpose({
           color: #969799;
           line-height: 22px;
         }
+
         span.time {
           margin-left: 13px;
         }
       }
+
       .action-wrap {
         display: flex;
         margin: 5px 0 20px 0;
+
         .act-list {
           display: flex;
           align-items: center;
           border-right: 1px solid #dcdee0;
           margin-right: 10px;
           height: 16px;
+
           &:last-child {
             border: none;
           }
+
           span {
             margin: 0 9px;
           }
         }
+
         .elChatDotSquare,
         .elConnection,
         .elEdit,
@@ -905,45 +834,54 @@ defineExpose({
         .elStarFilled,
         .elShare {
           cursor: pointer;
+
           &:hover {
             color: #155bd4;
           }
         }
+
         .elStarFilled1 {
           cursor: pointer;
           color: red;
         }
       }
+
       .highlightName {
         :deep(em) {
           color: red !important;
         }
       }
+
       .descColor {
         :deep(em) {
           color: red !important;
         }
       }
     }
+
     .ask-list {
       .author {
         display: flex;
         align-items: center;
         height: 24px;
         margin-bottom: 8px;
+
         .elAvatar {
           min-height: 24px;
           min-width: 24px;
         }
+
         .name {
           margin-left: 8px;
           font-weight: 500;
           color: #323233;
         }
       }
+
       .desc {
         height: 22px;
         overflow: hidden;
+
         span {
           height: 22px;
           font-size: 14px;
@@ -954,15 +892,19 @@ defineExpose({
           margin-right: 11px;
         }
       }
+
       .action-wrap {
         position: relative;
+
         .right-action {
           position: absolute;
           right: 0;
           top: 0;
           display: flex;
+
           .act-list {
             color: #155bd4;
+
             .delete-wrap {
               display: flex;
               align-items: center;
@@ -972,6 +914,7 @@ defineExpose({
       }
     }
   }
+
   .img-wrap {
     background: #ffffff;
     border-radius: 4px;
@@ -979,23 +922,28 @@ defineExpose({
     display: flex;
     flex-wrap: wrap;
     place-content: flex-start;
+
     .img-list {
       margin: 16px 16px 0 16px;
       border-radius: 4px;
       overflow: hidden;
       background: #ccc;
     }
+
     &-title {
       // display: flex;
       margin-left: 16px;
+
       &-right {
         display: flex;
         // margin-left: 20px;
         line-height: 22px;
+
         .act-list {
           display: flex;
           align-items: center;
           margin-left: 10px;
+
           // &:last-child {
           //   border: none;
           // }
@@ -1003,6 +951,7 @@ defineExpose({
             margin: 0 5px;
           }
         }
+
         .elChatDotSquare,
         .elConnection,
         .elEdit,
@@ -1010,16 +959,19 @@ defineExpose({
         .elStarFilled,
         .elShare {
           cursor: pointer;
+
           &:hover {
             color: #155bd4;
           }
         }
+
         .elStarFilled1 {
           cursor: pointer;
           color: red;
         }
       }
     }
+
     .doc-list {
       margin-bottom: 16px;
       margin-right: 10px;
@@ -1027,6 +979,7 @@ defineExpose({
       height: 245px;
       border-radius: 6px;
       border: 1px solid #eaeaf1;
+
       h3 {
         height: 22px;
         font-size: 14px;
@@ -1037,6 +990,7 @@ defineExpose({
         display: inline-block;
         cursor: pointer;
       }
+
       .desc {
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
@@ -1044,9 +998,11 @@ defineExpose({
         color: #646566;
         line-height: 22px;
       }
+
       .author {
         // margin-top: 8px;
         margin-left: 16px;
+
         span {
           height: 22px;
           font-size: 14px;
@@ -1055,29 +1011,35 @@ defineExpose({
           color: #969799;
           line-height: 22px;
         }
+
         span.time {
           margin-left: 13px;
         }
       }
+
       // &:last-child {
       //   border: none;
       // }
       .action-wrap {
         display: flex;
         margin: 5px 0 20px 0;
+
         .act-list {
           display: flex;
           align-items: center;
           border-right: 1px solid #dcdee0;
           margin-right: 10px;
           height: 16px;
+
           &:last-child {
             border: none;
           }
+
           span {
             margin: 0 9px;
           }
         }
+
         .elChatDotSquare,
         .elConnection,
         .elEdit,
@@ -1085,45 +1047,54 @@ defineExpose({
         .elStarFilled,
         .elShare {
           cursor: pointer;
+
           &:hover {
             color: #155bd4;
           }
         }
+
         .elStarFilled1 {
           cursor: pointer;
           color: red;
         }
       }
+
       .highlightName {
         :deep(em) {
           color: red !important;
         }
       }
+
       .descColor {
         :deep(em) {
           color: red !important;
         }
       }
     }
+
     .ask-list {
       .author {
         display: flex;
         align-items: center;
         height: 24px;
         margin-bottom: 8px;
+
         .elAvatar {
           min-height: 24px;
           min-width: 24px;
         }
+
         .name {
           margin-left: 8px;
           font-weight: 500;
           color: #323233;
         }
       }
+
       .desc {
         height: 22px;
         overflow: hidden;
+
         span {
           height: 22px;
           font-size: 14px;
@@ -1134,15 +1105,19 @@ defineExpose({
           margin-right: 11px;
         }
       }
+
       .action-wrap {
         position: relative;
+
         .right-action {
           position: absolute;
           right: 0;
           top: 0;
           display: flex;
+
           .act-list {
             color: #155bd4;
+
             .delete-wrap {
               display: flex;
               align-items: center;
@@ -1152,34 +1127,42 @@ defineExpose({
       }
     }
   }
+
   .quest-wrap {
     overflow-y: auto;
     background: #ffffff;
     border-radius: 4px;
     padding: 20px;
+
     .doc-list {
       margin-bottom: 20px;
+
       .ask-list-top {
         display: flex;
         justify-content: space-between;
         line-height: 32px;
+
         .ask-list-left {
           // line-height: 32px;
           display: flex;
           justify-content: center;
           align-items: center;
+
           .elAvatar {
             width: 32px;
             height: 32px;
             border-radius: 50%;
             border: 1px solid #d3d2d9;
           }
+
           .name {
             margin: 0 12px 0 8px;
           }
+
           .time {
             margin-right: 8px;
           }
+
           .exigency {
             width: 36px;
             line-height: 20px;
@@ -1189,6 +1172,7 @@ defineExpose({
             border-radius: 2px 2px 2px 2px;
             border: 1px solid #f56c6c;
           }
+
           .importance {
             width: 36px;
             line-height: 20px;
@@ -1198,6 +1182,7 @@ defineExpose({
             border-radius: 2px 2px 2px 2px;
             border: 1px solid #e6a23c;
           }
+
           .normal {
             width: 36px;
             line-height: 20px;
@@ -1208,15 +1193,18 @@ defineExpose({
             border: 1px solid #909399;
           }
         }
+
         .ask-list-right {
           display: flex;
           align-items: center;
+
           .imgColor {
             width: 14px;
             height: 14px;
             margin-right: 2px;
             color: #1366d1;
           }
+
           .author-myAnser-text {
             font-weight: 400;
             font-size: 16px;
@@ -1225,15 +1213,18 @@ defineExpose({
           }
         }
       }
+
       .ask-list-title {
         cursor: pointer;
         line-height: 26px;
+
         .ask-list-title-name {
           font-family: PingFang SC, PingFang SC;
           font-weight: 600;
           font-size: 16px;
           color: #000;
         }
+
         .ask-list-title-answerNum {
           font-size: 14px;
           height: 24px;
@@ -1243,6 +1234,7 @@ defineExpose({
           margin-left: 10px;
           color: #155bd4;
         }
+
         .ask-list-title-answerUp {
           font-size: 14px;
           font-weight: 500;
@@ -1250,8 +1242,10 @@ defineExpose({
           color: #155bd4;
         }
       }
+
       .author {
         border-bottom: 2px solid #efefef;
+
         .isRelated {
           height: 22px;
           font-size: 12px;
@@ -1259,48 +1253,59 @@ defineExpose({
           font-weight: 500;
           line-height: 22px;
         }
+
         span.time {
           margin-left: 13px;
           margin-right: 13px;
         }
+
         &-myAnser {
           margin-left: 13px;
           display: flex;
           align-items: center;
+
           &-text {
             color: #155bd4;
             cursor: pointer;
           }
         }
+
         &-elEdit {
           margin: 0 13px;
           display: flex;
           align-items: center;
+
           &-text {
             color: #155bd4;
             cursor: pointer;
           }
         }
+
         &-elDelete {
           display: flex;
           align-items: center;
+
           &-text {
             color: #155bd4;
             cursor: pointer;
           }
         }
+
         .imgColor {
           color: #155bd4;
         }
+
         .elStarFilled {
           cursor: pointer;
           display: flex;
           align-items: center;
           margin-left: 10px;
+
           &:hover {
             color: #155bd4;
           }
         }
+
         .elStarFilled1 {
           display: flex;
           align-items: center;
@@ -1308,6 +1313,7 @@ defineExpose({
           color: red;
           margin-left: 10px;
         }
+
         .elShare {
           margin-left: 10px;
           cursor: pointer;
@@ -1315,27 +1321,33 @@ defineExpose({
           align-items: center;
         }
       }
+
       .bottomAnswer {
         margin-top: 8px;
         // border-bottom: 1px dashed #c3c3c3;
         padding-bottom: 10px;
         margin-left: 10px;
         position: relative;
+
         .titleTop {
           display: flex;
           align-items: center;
+
           .elAvatar {
             margin-right: 8px;
           }
         }
+
         span.time {
           margin-left: 13px;
           margin-right: 13px;
         }
+
         .contents {
           margin: 5px 20px 0 30px;
           height: 24px;
           line-height: 24px;
+
           span {
             height: 22px;
             font-size: 14px;
@@ -1343,6 +1355,7 @@ defineExpose({
             font-weight: 500;
             line-height: 22px;
           }
+
           .content-answer {
             position: absolute;
             left: -10px;
@@ -1362,6 +1375,7 @@ defineExpose({
           }
         }
       }
+
       .up {
         // color: #155bd4;
         position: relative;
@@ -1376,25 +1390,30 @@ defineExpose({
         justify-content: center;
         align-items: center;
       }
+
       .starComment {
         display: flex;
         margin: 15px 0 0 30px;
         padding-bottom: 15px;
         border-bottom: 2px dotted #c3c3c3;
+
         .elStarFilled {
           cursor: pointer;
           display: flex;
           align-items: center;
+
           &:hover {
             color: #155bd4;
           }
         }
+
         .elStarFilled1 {
           display: flex;
           align-items: center;
           cursor: pointer;
           color: red;
         }
+
         .elChatDotSquare {
           display: flex;
           align-items: center;
@@ -1403,11 +1422,13 @@ defineExpose({
           margin-right: 17px;
         }
       }
+
       .commont {
         &-btn {
           margin-top: 5px;
         }
       }
+
       h3 {
         height: 22px;
         font-size: 16px;
@@ -1419,9 +1440,11 @@ defineExpose({
         display: inline-block;
         cursor: pointer;
       }
+
       h3:hover {
         color: #155bd4;
       }
+
       .desc {
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
@@ -1429,22 +1452,27 @@ defineExpose({
         color: #646566;
         line-height: 22px;
       }
+
       .action-wrap {
         display: flex;
         margin: 21px 0 20px 0;
+
         .act-list {
           display: flex;
           align-items: center;
           border-right: 1px solid #dcdee0;
           margin-right: 10px;
           height: 16px;
+
           &:last-child {
             border: none;
           }
+
           span {
             margin: 0 9px;
           }
         }
+
         .elChatDotSquare,
         .elConnection,
         .elEdit,
@@ -1454,36 +1482,44 @@ defineExpose({
           cursor: pointer;
           display: flex;
           align-items: center;
+
           &:hover {
             color: #155bd4;
           }
         }
+
         .elStarFilled1 {
           cursor: pointer;
           color: red;
+
           &:hover {
             color: #155bd4;
           }
         }
       }
     }
+
     .ask-list {
       .author {
         // height: 24px;
         padding-bottom: 15px;
+
         .elAvatar {
           min-height: 24px;
           min-width: 24px;
         }
+
         .name {
           margin-left: 30px;
           font-weight: 500;
           color: #323233;
         }
       }
+
       .desc {
         height: 22px;
         overflow: hidden;
+
         span {
           height: 22px;
           font-size: 14px;
@@ -1494,15 +1530,19 @@ defineExpose({
           margin-right: 11px;
         }
       }
+
       .action-wrap {
         position: relative;
+
         .right-action {
           position: absolute;
           right: 0;
           top: 0;
           display: flex;
+
           .act-list {
             color: #155bd4;
+
             .delete-wrap {
               display: flex;
               align-items: center;

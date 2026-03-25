@@ -338,7 +338,7 @@ onMounted(() => {
       </div>
     </main>
     <footer class="flex justify-end pt-[16px]">
-      <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
+      <a-pagination v-model:current="page.currentPage" size="small" :total="page.pageCount" :default-page-size="page.pageSize"
         show-less-items show-size-changer show-quick-jumper :show-total="(total) => `共${total}条`"
         @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
     </footer>

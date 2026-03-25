@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import knowledgeCenter from "./knowledgeCenter/index.vue";
 import knowledgeMap from "./knowledgeMap/index.vue";
 import knowledgeQuestionAnswer from "./knowledgeQuestionAnswer/index.vue";
 import RightContent from "./components/knowledge-center-right-content.vue";
 import QuestionRightContent from "./components/knowledge-question-right-content.vue";
+import homeRightPage from "./components/knowledge-home-right-page.vue";
+import knowledgeStandard from "./knowledgeStandard/index.vue";
+import flowTaskMap from "./flowTaskMap/index.vue";
+import personal from "./personal/index.vue";
 import {
   hotFileList,
   knowledgePersonal,
@@ -15,8 +19,11 @@ const userStore = useUserStore();
 
 const componentsMap = {
   0: knowledgeCenter,
+  2: flowTaskMap,
   1: knowledgeMap,
-  3: knowledgeQuestionAnswer
+  3: knowledgeQuestionAnswer,
+  4: knowledgeStandard,
+  5: personal
 };
 type ComponentKey = keyof typeof componentsMap; // 推导出 0 | 1
 const tabList = [
@@ -28,7 +35,7 @@ const tabList = [
   "个人主页",
 ];
 const activeKey = ref(1);
-const hasRightPanel = computed(() => [1, 4, 5].includes(activeKey.value));
+const hasRightPanel = computed(() => [1, 4, 6].includes(activeKey.value));
 const userInfoList = ref([]);
 //浏览数据
 const viewHistoryData = ref([]);
@@ -43,12 +50,17 @@ const hotFileTotal = ref();
 // 专家标识
 const expertFlag = ref(0);
 const exposeAskDesId = ref('');
+
+const personalInfo = ref({});
+const knowledgeStandardRef = ref<any>(null);
+const setStandardRef = (el: any, index: number) => {
+  if (index === 4) knowledgeStandardRef.value = el;
+};
+
 const handleTabchange = (key: number) => {
-  activeKey.value = key;
-  if (key in componentsMap) {
-    activeKey.value = key as ComponentKey;
-  } else {
-    activeKey.value = key as ComponentKey; // 若允许非组件 tab，可保留 number，但需调整类型策略
+  activeKey.value = key as ComponentKey;
+  if (key === 5) {
+    knowledgeStandardRef.value?.reload();
   }
 };
 
@@ -102,6 +114,10 @@ const exposeAskDes = item => {
   exposeAskDesId.value = item;
 };
 
+const getInfo = data => {
+  personalInfo.value = data;
+};
+
 onMounted(() => {
   getRightUserList();
   viewHistory();
@@ -127,7 +143,8 @@ watch(
         <a-tabs v-model:active-key="activeKey" @change="handleTabchange" size="small" class="h-full">
           <a-tab-pane :key="index + 1" :tab="value" v-for="(value, index) in tabList">
             <keep-alive>
-              <component v-if="index in componentsMap" :is="componentsMap[index]" />
+              <component v-if="index in componentsMap" :is="componentsMap[index]" :exposeAskDesId="exposeAskDesId"
+                :personalInfo="personalInfo" :ref="(el) => setStandardRef(el, index)" />
             </keep-alive>
           </a-tab-pane>
         </a-tabs>
@@ -136,7 +153,8 @@ watch(
         <RightContent v-if="activeKey === 1" :user-info-list="userInfoList" :view-history-data="viewHistoryData"
           :hot-article-data="hotArticleData" :view-total="viewTotal" :hot-file-total="hotFileTotal"
           :tab-flag="activeKey" />
-          <QuestionRightContent :expertFlag="expertFlag" :getCurrentTab="activeKey" @exposeAskDes="exposeAskDes" />
+        <QuestionRightContent v-if="activeKey === 4" :expertFlag="expertFlag" @exposeAskDes="exposeAskDes" />
+        <homeRightPage @getInfo="getInfo" v-if="activeKey === 6" />
       </a-col>
     </a-row>
   </div>

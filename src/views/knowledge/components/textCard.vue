@@ -109,7 +109,7 @@ const getDes = () => {
       <div class="header">
         <span>{{ textData.content.fileType[0] }}</span>
       </div>
-      <div style="width: 100%">
+      <div style="width: 85%">
         <div
           v-if="
             textData.highlightFields?.fileName &&
@@ -204,7 +204,7 @@ const getDes = () => {
             }}</span>
           </div>
         </a-tooltip>
-        <a-tooltip :mouse-enter-delay="0.5" title="下载" placement="topLeft">
+        <!-- <a-tooltip :mouse-enter-delay="0.5" title="下载" placement="topLeft">
           <div
             v-if="textData.content.allowDownload !== '1'"
             class="act-list elShare"
@@ -214,7 +214,7 @@ const getDes = () => {
               JSON.parse(textData.content.counting).downloaded
             }}</span>
           </div>
-        </a-tooltip>
+        </a-tooltip> -->
         <a-tooltip :mouse-enter-delay="0.5" title="详情" placement="topLeft">
           <div class="act-list elStarFilled" @click="getDes">
             <info-circle-filled />

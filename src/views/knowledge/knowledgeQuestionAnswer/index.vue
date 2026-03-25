@@ -352,7 +352,7 @@ const handleCurrentChange = val => {
           <a-empty v-if="totalList.length === 0 && !spinning" :image="simpleImage" />
         </div>
         <footer class="pagination-footer flex justify-end">
-          <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
+          <a-pagination v-model:current="page.currentPage" size="small" :total="page.pageCount" :default-page-size="page.pageSize"
             show-less-items show-size-changer show-quick-jumper :show-total="(total) => `共${total}条`"
             @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
         </footer>
@@ -424,6 +424,7 @@ const handleCurrentChange = val => {
         border: 1px solid #ffffff;
         margin-right: 2px;
         justify-content: center;
+        padding: 0 !important;
       }
 
       :deep(.ant-tabs-tab-active) {
@@ -749,7 +750,7 @@ const handleCurrentChange = val => {
     border-radius: 4px;
     overflow: hidden;
     display: flex;
-    justify-content: end;
+    justify-content: flex-end;
 
     .search-wrap {
       width: 360px;

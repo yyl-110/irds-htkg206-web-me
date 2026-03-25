@@ -414,4 +414,136 @@ export function collectFileList(data: any) {
     method: "POST",
   });
 }
+/**
+ * 个人主页-关注列表
+ * @param data 
+ */
+export function interestList(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgePersonal/interestList`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 个人主页-分享问题列表
+ * @param data
+ */
+export function shareQuestionList(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgePersonal/shareQuestionList`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 个人主页-分享文档列表
+ * @param data
+ */
+export function shareFileList(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgePersonal/shareFileList`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 技术标准-检索标准分类
+ * @param data
+ */
+export function findAllBzfl(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/tbea/bzw/findAllBzfl`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 技术标准-检索标准信息
+ * @param data
+ */
+export function findBzwj(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/tbea/bzw/findBzwj`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 技术标准
+ * @param data
+ */
+export function getFileInfo(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/tbea/bzw/getFileInfo`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 开始学习
+ * @param data
+ */
+export function startLearning(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeTMNode/startLearning`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 开始学习
+ * @param data
+ */
+export function learningCompleted(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeTMNode/LearningCompleted`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 任务地图 数据树列表
+ * @param data
+ */
+export function taskMapList(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeTMNode/list`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 任务地图 查询所有二级节点
+ * @param data
+ */
+export function queryMapNodeList(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeTMNode/queryNodeList`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 任务地图获取任务详情
+ * @param data
+ */
+export function queryMapTaskDetail(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/knowledge-server/knowledgeTM/queryMapTaskDetail`,
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 任务地图-浏览文件
+ * @param data
+ */
+export function getPdfPreviewPath(data: any) {
+  return httpRequest({
+    url: `${proxyApi}/base-server/fileManagerController/getPdfPreviewPath.json`,
+    data,
+    method: "POST",
+  });
+}
 

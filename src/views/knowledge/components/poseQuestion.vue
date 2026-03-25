@@ -30,9 +30,9 @@ const hidePerson = ref(true);
 
 const questDesc = ref();
 const knoeledgeLabel = ref();
-const level = ref();
+const level = ref(null);
 
-const appoint = ref();
+const appoint = ref('');
 
 const radioVal = ref(1);
 
