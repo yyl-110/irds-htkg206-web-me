@@ -75,6 +75,7 @@
     "qs": "^6.11.2",
     "reflect-metadata": "^0.1.13",
     "relation-graph": "^2.2.11",
+    "relation-graph-vue3": "^2.2.11",
     "sass": "^1.77.8",
     "sortablejs": "^1.15.2",
     "splitpanes": "^3.1.5",

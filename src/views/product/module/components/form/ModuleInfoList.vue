@@ -29,7 +29,7 @@ import {
   parameterInFirstCsys,
 } from '@/libs/webSocket';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
-import { useGlobalQuery } from '../../composables/useGlobalQuery';
+import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
 
 defineProps({
   /** 反馈详情 id */
@@ -1289,7 +1289,7 @@ defineExpose({ initData, selectAllModuleInfo });
           <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center">
-          <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize)">查询</a-button>
+          <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize, 'manager')">查询</a-button>
           <a-button @click="resetGlobalQueryGroups">重置</a-button>
         </div>
       </div>
@@ -1302,10 +1302,12 @@ defineExpose({ initData, selectAllModuleInfo });
         :pagination="globalQueryTablePagination"
         :loading="globalQueryLoading"
         @change="handleGlobalTableChange">
-        <template #bodyCell="{ column, record }">
+        <template #bodyCell="{ column, record, text }">
           <template v-if="column.dataIndex === 'para1'">
             <a @click.stop="handleGlobalModelNumClick(record)">{{ record.para1 }}</a>
           </template>
+          <GlobalQueryPara10Cell v-else-if="column.dataIndex === 'para10'" :text="text" />
+          <template v-else>{{ text }}</template>
         </template>
       </a-table>
       <template #footer>
