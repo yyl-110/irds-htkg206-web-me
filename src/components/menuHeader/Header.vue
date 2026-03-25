@@ -49,6 +49,9 @@ const route = useRoute()
 const taskMessage = ref<any[]>(['Racing car sprays burning fuel into crowd.'])
 const langtype = localStorage.getItem('wei-language') || navigator.language
 const LoginMethod = localStorage.getItem('Login-method') || ''
+const onLineNum = ref<number>();
+const onLineUserList = ref<any>(null)
+const isOnLineUser = ref<boolean>(false)
 interface NoticeMenuItem {
   label: string
   icon: FunctionalComponent<AntdIconProps>
@@ -112,6 +115,35 @@ const layoutStore = useLayoutStore()
 
 /** 皮带-列表请求参数 */
 const requestParams = reactive(new RequestDTOModel())
+
+const columns = [
+  {
+    dataIndex: 'username',
+    key: 'username',
+    title: '用户名称',
+    width: 150,
+    align: 'left',
+  },
+  {
+    dataIndex: 'name',
+    key: 'name',
+    title: '姓名',
+    width: 150,
+    align: 'left',
+  },
+  {
+    dataIndex: 'onLineNum',
+    key: 'onLineNum',
+    title: '在线时长',
+    width: 150,
+  },
+  {
+    dataIndex: 'ip',
+    key: 'ip',
+    title: '访问IP',
+    width: 150,
+  }
+]
 
 function initLanguage() {
   // const language = localStorage.getItem('language');
@@ -255,6 +287,7 @@ onMounted(() => {
   // 设置定时器，每分钟(15000毫秒)执行一次
   // timer.value = setInterval(() => {}, 15000);
   getTaskMessageList()
+  getOnLineNum();
 })
 
 // onBeforeUnmount(() => {
@@ -272,6 +305,22 @@ async function getTaskMessageList(type: boolean = false) {
     badgeNum.value = data.size
   }
 }
+async function getOnLineNum() {
+  const res = await AdminApiSystemUser.getAllOnlineUser();
+  if (res.data.code == 0 || res.data.code == 200) {
+    onLineNum.value = res.data.data?.length;
+    onLineUserList.value = res.data.data;
+  }
+}
+function showOnLineUser() {
+  getOnLineNum();
+  isOnLineUser.value = true;
+}
+
+
+
+
+
 </script>
 
 <template>
@@ -285,8 +334,8 @@ async function getTaskMessageList(type: boolean = false) {
       </span>
     </div>
     <div class="flex items-center space-x-1">
-      <div v-if="layoutStore.systemType === 'system'" class="header-menu-container" @click="switchSystem(true)">
-        <span class="header-menu-text">12{{ $t('人在线') }}</span>
+      <div v-if="layoutStore.systemType === 'system'" class="header-menu-container" @click="showOnLineUser()">
+        <span class="header-menu-text">当前&nbsp;<span style="color: #124DD6;" ><b>{{onLineNum}}</b></span>&nbsp;{{ $t('人在线') }}</span>
       </div>
       <div>
         <div class="online-user" />
@@ -351,6 +400,24 @@ async function getTaskMessageList(type: boolean = false) {
       </div>
     </a-drawer>
   </div>
+  <!-- 弹窗显示在线用户列表-->
+  <a-drawer
+    title="当前在线用户"
+    placement="right"
+    :width="700"
+    :closable="false"
+    :visible="isOnLineUser"
+    @close="isOnLineUser = false">
+    <div class="message-wrap">
+      <!-- 表格显示在线用户列表-->
+       <a-table
+        :columns="columns"
+        :data-source="onLineUserList"
+        :pagination="false"
+        :scroll="{ y: 300 }"
+       />
+    </div>
+    </a-drawer>
 </template>
 
 <style lang="less" scoped>
