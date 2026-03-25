@@ -38,15 +38,6 @@ const props = defineProps({
 
 const emit = defineEmits(["closeDialogs", "exposeId", "exposeAskDes"]);
 
-watch(
-  () => props.getCurrentTab,
-  (val) => {
-    if (val && val === "knowledgeAsk") {
-      getUserList();
-      getHotArtic();
-    }
-  }
-);
 
 onMounted(() => {
   getUserList();
@@ -182,17 +173,12 @@ const closeDialog = () => {
         </div>
       </template>
       <div class="pic-list">
-        <div
-          class="user-block"
-          v-for="(item, index) in userListData"
-          :key="index"
-        >
+        <div class="user-block" v-for="(item, index) in userListData" :key="index">
           <div class="user-info">
             <a-avatar class="elAvatar" :size="44">
               <span style="color: #1366d1; font-size: 30px">{{
                 item.name[0]
-              }}</span></a-avatar
-            >
+                }}</span></a-avatar>
             <div>
               <div class="uname">{{ item.name }}</div>
               <div class="udesc">
@@ -215,77 +201,51 @@ const closeDialog = () => {
           <div class="more" @click="viewMoreFun('hot')">更多</div>
         </div>
       </template>
-      <div
-        v-for="(artTitle, index) in articList"
-        :key="artTitle.id"
-        class="text item"
-        @click="previewArt"
-      >
-        <div v-if="artTitle.fileName && index < 5" class="box-item">
+      <div v-for="(artTitle, index) in articList" :key="artTitle.id" class="text item" @click="previewArt">
+        <div class="box-item">
           <div class="space">
-            <span
-              style="margin-right: 0.625rem"
-              :style="{
-                color:
-                  index == 0
-                    ? '#ff0000'
-                    : index == 1 || index == 2
+            <span style="margin-right: 0.625rem" :style="{
+              color:
+                index == 0
+                  ? '#ff0000'
+                  : index == 1 || index == 2
                     ? '#FF8A00'
                     : '',
-              }"
-              >{{ index + 1 }}</span
-            >{{ artTitle.fileName }}
+            }">{{ index + 1 }}</span>{{ artTitle.fileName }}
           </div>
         </div>
-        <div
-          v-if="artTitle.fileName && index < 5"
-          style="
+        <div style="
             margin-left: 10px;
             margin-top: -40px;
             display: flex;
             align-items: center;
-          "
-        >
+          ">
           <EyeOutlined style="margin-right: 2px" />
           {{ artTitle.num }}次
         </div>
       </div>
     </a-card>
-    <a-modal
-      :mask-closable="false"
-      class="view-more-dialog"
-      :visible="dialogVisible"
-      :title="dialogTit"
-      width="60%"
-      @cancel="closeFun"
-    >
-      <a-card
-        v-if="dialogTit === '专家板块'"
-        class="box-card1"
-        :bordered="false"
-      >
+    <a-modal :mask-closable="false" class="view-more-dialog" :visible="dialogVisible" :title="dialogTit" width="60%"
+      @cancel="closeFun">
+      <a-card v-if="dialogTit === '专家板块'" class="box-card1" :bordered="false">
         <a-form :model="formInline" layout="inline" class="demo-form-inline">
           <a-form-item style="margin-right: 20px">
-            <a-input
-              v-model:value="formInline.userName"
-              placeholder="请输入专家名称搜索"
-              style="width: 212px"
-            />
+            <a-input v-model:value="formInline.userName" placeholder="请输入专家名称搜索" style="width: 212px" />
           </a-form-item>
           <a-form-item>
             <a-button type="primary" class="mr-[8px]" @click="onSubmit">
               <SearchOutlined />&nbsp;查询
             </a-button>
-            <a-button @click="resetFun"> <UndoOutlined />&nbsp;重置 </a-button>
+            <a-button @click="resetFun">
+              <UndoOutlined />&nbsp;重置
+            </a-button>
           </a-form-item>
         </a-form>
         <div class="listWrap w-full flex flex-wrap justify-start gap-[16px] mt-[16px]">
           <div v-for="item in userList" :key="item.id" class="pic-list">
-            <a-avatar class="elAvatar" :size="44"
-              ><span style="color: #1366d1; font-size: 30px">{{
-                item.name[0]
-              }}</span></a-avatar
-            >
+            <a-avatar class="elAvatar" :size="44"><span style="color: #1366d1; font-size: 30px">{{
+              item.name[0]
+                }}</span></a-avatar>
             <div style="margin-top: 12px">
               <div class="uname">{{ item.name }}</div>
               <div class="udesc">{{ item.expertRole }}</div>
@@ -297,17 +257,9 @@ const closeDialog = () => {
           </div>
         </div>
       </a-card>
-      <a-card
-        v-if="dialogTit === '热评问题'"
-        class="box-card"
-        :bordered="false"
-      >
-        <div
-          v-for="art in articList"
-          :key="art.id"
-          style="border-bottom: 1px solid #ccc"
-        >
-          <div class="text item text-list">
+      <a-card v-if="dialogTit === '热评问题'" class="box-card" :bordered="false">
+        <div v-for="art in articList" :key="art.id" style="border-bottom: 1px solid #ccc" class="p-[8px]">
+          <div class="text item text-list flex justify-between">
             <span class="tit">{{ art.fileName }}</span>
             <div>
               <span class="name">{{ art.userName }}</span>
@@ -321,29 +273,16 @@ const closeDialog = () => {
       </a-card>
       <template #footer>
         <div class="footer flex justify-between items-center">
-          <a-pagination
-            v-model:current="page.currentPage"
-            class="elPage"
-            :total="page.pageCount"
-            :default-page-size="page.pageSize"
-            show-less-items
-            show-size-changer
-            show-quick-jumper
-            :show-total="(total) => `共${total}条`"
-            @change="handleCurrentChange"
-            @showSizeChange="handleSizeChange"
-          />
+          <a-pagination v-model:current="page.currentPage" class="elPage" :total="page.pageCount"
+            :default-page-size="page.pageSize" show-less-items show-size-changer show-quick-jumper
+            :show-total="(total) => `共${total}条`" @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
           <span class="dialog-footer">
             <a-button type="primary" @click="closeFun">关闭</a-button>
           </span>
         </div>
       </template>
     </a-modal>
-    <PoseQuestion
-      :poseDialogVisible="poseDialogVisible"
-      :expertData="expertData"
-      @closeDialogs="closeDialog"
-    />
+    <PoseQuestion :poseDialogVisible="poseDialogVisible" :expertData="expertData" @closeDialogs="closeDialog" />
   </div>
 </template>
 
@@ -415,6 +354,7 @@ const closeDialog = () => {
     }
   }
 }
+
 .expert {
   height: 40%;
 }
@@ -427,6 +367,10 @@ const closeDialog = () => {
   :deep(.ant-card-head) {
     padding: 18px 16px;
     border-bottom: none;
+
+    .ant-card-head-title {
+      padding: 0;
+    }
   }
 
   .card-header {
@@ -592,53 +536,7 @@ const closeDialog = () => {
     margin-bottom: 0 !important;
   }
 
-  .text-list {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
 
-    .tit {
-      display: inline-block;
-      width: 32.5rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      height: 22px;
-      font-size: 14px;
-      font-family: PingFang-SC, PingFang-SC;
-      font-weight: 500;
-      color: #646566;
-      line-height: 22px;
-      justify-content: start;
-      cursor: pointer;
-
-      &:hover {
-        color: #155bd4;
-      }
-    }
-
-    .name {
-      height: 22px;
-      font-size: 12px;
-      font-family: PingFang-SC, PingFang-SC;
-      font-weight: 500;
-      color: #969799;
-      line-height: 22px;
-      text-align: right;
-      cursor: default;
-    }
-
-    .time {
-      height: 22px;
-      font-size: 12px;
-      font-family: PingFang-SC, PingFang-SC;
-      font-weight: 500;
-      color: #969799;
-      line-height: 22px;
-      margin-left: 8px;
-      cursor: default;
-    }
-  }
 
   .box-card .ant-card-body {
     padding: 5px 0 0 0;
@@ -660,6 +558,54 @@ const closeDialog = () => {
 
 }
 
+.text-list {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .tit {
+    display: inline-block;
+    width: 32.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 22px;
+    font-size: 14px;
+    font-family: PingFang-SC, PingFang-SC;
+    font-weight: 500;
+    color: #646566;
+    line-height: 22px;
+    justify-content: start;
+    cursor: pointer;
+
+    &:hover {
+      color: #155bd4;
+    }
+  }
+
+  .name {
+    height: 22px;
+    font-size: 12px;
+    font-family: PingFang-SC, PingFang-SC;
+    font-weight: 500;
+    color: #969799;
+    line-height: 22px;
+    text-align: right;
+    cursor: default;
+  }
+
+  .time {
+    height: 22px;
+    font-size: 12px;
+    font-family: PingFang-SC, PingFang-SC;
+    font-weight: 500;
+    color: #969799;
+    line-height: 22px;
+    margin-left: 8px;
+    cursor: default;
+  }
+}
+
 .box-card1 {
   height: 520px;
   width: 100%;
@@ -670,6 +616,7 @@ const closeDialog = () => {
     width: 850px;
   }
 }
+
 .listWrap {
   .pic-list {
     width: 212px;
@@ -678,14 +625,14 @@ const closeDialog = () => {
     background: #f2f5f7;
     border-radius: 4px 4px 4px 4px;
     display: flex;
-  
+
     .elAvatar {
       height: 44px;
       width: 44px;
       margin-right: 7px;
       margin: 12px 7px 0 12px;
     }
-  
+
     .uname {
       height: 26px;
       font-family: PingFang-SC, PingFang-SC;
@@ -695,7 +642,7 @@ const closeDialog = () => {
       font-size: 16px;
       color: #000;
     }
-  
+
     .udesc {
       height: 12px;
       font-size: 14px;
@@ -704,12 +651,12 @@ const closeDialog = () => {
       color: #969799;
       line-height: 12px;
     }
-  
+
     .btn-wrap {
       display: flex;
       justify-content: center;
       margin-top: 8px;
-  
+
       .btnlis {
         width: 64px;
         height: 24px;
@@ -722,7 +669,7 @@ const closeDialog = () => {
         margin-right: 8px;
         text-align: center;
       }
-  
+
       .btnlis1 {
         width: 64px;
         height: 24px;
