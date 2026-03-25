@@ -394,6 +394,9 @@ function onTreeNodeSelected(nodeData: any) {
       } else {
         formData.value[fieldKey] = nodeData.title;
       }
+      if (nodeData.categoryType !== undefined && nodeData.categoryType !== '') {
+        formData.value['categoryType'] = nodeData.categoryType;
+      }
       formData.value['pid'] = nodeData.key;
       // 如果该 fieldKey 对应的表单项标题为 '构型编码'，标记在更新时跳过 parentId/pid 字段
       try {
@@ -564,9 +567,12 @@ defineExpose({
           </a-dropdown>
         </template>
         <template #icon="item">
-          <EpcIcon v-if="(item.type === 'category' && item.level == '1') || item.categoryType == 1" type="icon-wenjianjia" />
+          <EpcIcon v-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" type="icon-wenjianjia" />
           <EpcIcon v-else-if="item.type === 'category' && item.level == '2'" type="icon-wenjianjia" />
           <EpcIcon v-else-if="item.type === 'category' && item.level == '3'" type="icon-a-xiangmu1" />
+          <EpcIcon v-else-if="item.type === 'param' && item.categoryType == 0" type="icon-wenjianjia" />
+          <EpcIcon v-else-if="item.type === 'param' && item.level == '2'" type="icon-wenjianjia" />
+          <EpcIcon v-else-if="item.type === 'param' && item.level == '3'" type="icon-a-xiangmu1" />
         </template>
       </a-directory-tree>
     </div>
@@ -597,14 +603,6 @@ defineExpose({
             <div v-else-if="item.type === 'input'" style="display: flex; align-items: center; gap: 8px">
               <a-input v-model:value="formData[item.key]" :placeholder="$t('请输入...')" :disabled="item.disabled" style="flex: 1" />
               <a-button v-if="['父节点名称'].includes(item.title)" type="primary" style="font-size: 12px" @click="browseItem(item)">
-                <EpcIcon type="icon-liulan" style="font-size: 14px" />
-                浏览
-              </a-button>
-              <a-button v-if="['平台经理'].includes(item.title)" type="primary" style="font-size: 12px" @click="Browsemembers(item)">
-                <EpcIcon type="icon-liulan" style="font-size: 14px" />
-                浏览
-              </a-button>
-              <a-button v-if="['构型编码'].includes(item.title)" type="primary" style="font-size: 12px" @click="browseItem1(item)">
                 <EpcIcon type="icon-liulan" style="font-size: 14px" />
                 浏览
               </a-button>
