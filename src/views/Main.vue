@@ -296,7 +296,7 @@ onBeforeMount(() => {
 
   .sider-header {
     // width: 215px;
-    height: 64px;
+    height: 45px;
     background: #1a3678;
     display: flex;
     justify-content: center;
@@ -455,4 +455,22 @@ onBeforeMount(() => {
     }
   }
 }
+
+:deep(.ant-menu-submenu-selected) {
+  color:#409EFF !important;
+}
+:deep(.ant-menu-item:hover) {
+  color:#409EFF !important;
+}
+:deep(.ant-menu-submenu-title:hover) {
+  color:#409EFF !important;
+}
+
+:deep(.ant-menu-submenu-active) {
+  color:#409EFF !important;
+}
+
+
+
+
 </style>

@@ -28,7 +28,7 @@ tests/e2e/.auth/*
 *.njsproj
 *.sln
 *.sw?
-
+*.vite
 .eslintcache
 yarn.lock
 package-lock.json
