@@ -204,18 +204,18 @@ export class AdminApiSystemProduct {
     );
 
   /**
-   * 产品模块库树结构添加节点功能
+   * 参数字典添加节点功能
    *
-   * @tags 管理后台 - 产品模块库树结构添加节点功能
+   * @tags 管理后台 - 参数字典添加节点功能
    * @name getProductModuleTree
-   * @summary 产品模块库树结构添加节点功能
-   * @request POST:/cirpoint-base-api/syscate/getCategoryBomTree.json
+   * @summary 参数字典添加节点功能
+   * @request POST:/system-service/system/parameter-category-tree/create
    * @secure
    */
   static addProductModuleTree = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/addEmptyNode.json`,
+        path: `/system-service/system/parameter-category-tree/create`,
         method: 'POST',
         body: query,
         secure: true,
@@ -225,18 +225,18 @@ export class AdminApiSystemProduct {
     );
 
   /**
-   * 产品模块库树结构修改节点功能
+   * 参数字典树节点修改功能
    *
-   * @tags 管理后台 - 产品模块库树结构修改节点功能
-   * @name getProductModuleTree
-   * @summary 产品模块库树结构修改节点功能
-   * @request POST:/cirpoint-base-api/syscate/updateCategoryNode.json
+   * @tags 管理后台 - 参数字典树节点修改功能
+   * @name updateCategoryNode
+   * @summary 参数字典树节点修改功能
+   * @request POST:/system-service/system/parameter-category-tree/update
    * @secure
    */
   static updateCategoryNode = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/updateCategoryNode.json`,
+        path: `/system-service/system/parameter-category-tree/update`,
         method: 'POST',
         body: query,
         secure: true,
@@ -267,18 +267,18 @@ export class AdminApiSystemProduct {
     );
 
   /**
-   * 产品模块库树结构排序功能
+   * 上移
    *
-   * @tags 管理后台 - 产品模块库树结构排序功能
-   * @name getProductModuleTree
-   * @summary 产品模块库树结构排序功能
-   * @request POST:/cirpoint-base-api/syscate/updTreeKey.json
+   * @tags 管理后台 - 上移
+   * @name upTreeKey
+   * @summary 上移
+   * @request POST:/system-service/system/parameter-category-tree/sort/up
    * @secure
    */
-  static updTreeKey = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static upTreeKey = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/updTreeKey.json`,
+        path: `/system-service/system/parameter-category-tree/sort/up`,
         method: 'POST',
         body: query,
         secure: true,
@@ -288,18 +288,39 @@ export class AdminApiSystemProduct {
     );
 
   /**
-   * 产品模块库树结构删除功能
+   * 下移
    *
-   * @tags 管理后台 - 产品模块库树结构删除功能
-   * @name getProductModuleTree
-   * @summary 产品模块库树结构删除功能
-   * @request POST:/cirpoint-base-api/syscate/delTreeNode.json
+   * @tags 管理后台 - 下移
+   * @name downTreeKey
+   * @summary 下移
+   * @request POST:/system-service/system/parameter-category-tree/sort/down
+   * @secure
+   */
+  static downTreeKey = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-category-tree/sort/down`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 参数字典删除节点功能
+   *
+   * @tags 管理后台 - 参数字典删除节点功能
+   * @name delTreeNode
+   * @summary 参数字典删除节点功能
+   * @request POST:/system-service/system/parameter-category-tree/delete
    * @secure
    */
   static delTreeNode = <Req extends ProductModuleTreeInfoRequestDTOModel = ProductModuleTreeInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/syscate/delTreeNode.json`,
+        path: `/system-service/system/parameter-category-tree/delete`,
         method: 'POST',
         body: query,
         secure: true,

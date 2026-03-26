@@ -617,4 +617,26 @@ export class AdminApiSystemUser {
       },
       CommonResultLongModel
     );
+  
+  /**
+   * 获取在线用户清单
+   *
+   * @tags 管理后台 - 获取在线用户清单
+   * @name syncWTUser
+   * @summary 获取在线用户清单
+   * @request GET:/system-service/system/auth/getAllOnlineUser
+   * @secure
+   */
+  static getAllOnlineUser = <Req extends {} = {}>(params: RequestParams = {}) =>
+    httpClient.request<CommonResultLongModel, any>(
+      {
+        path: `/system-service/system/auth/getAllOnlineUser`,
+        method: 'GET',
+        secure: true,
+        ...params,
+      },
+      CommonResultLongModel
+    );
+  
+    
 }
