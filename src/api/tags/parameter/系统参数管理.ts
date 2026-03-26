@@ -10,7 +10,6 @@ import { ParameterCheckRequestDTOModel } from '@/api/models/parameter/ParameterC
  * 系统参数管理
  */
 export class AdminApiSystemParameter {
-
   /**
    * 参数管理结构树查询
    *
@@ -36,40 +35,40 @@ export class AdminApiSystemParameter {
    * @tags 管理后台 - 参数
    * @name getParameterPageList
    * @summary 获得参数信息
-   * @request /cirpoint-base-api/tempalteinfo/getTempalteParaInfoList.json
+   * @request /system-service/system/parameter-info/query-parameter-page
    * @secure
    */
   static getParameterPageList = <Req extends ParameterPageRequestDTOModel = ParameterPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/tempalteinfo/getTempalteParaInfoList.json`,
+        path: `/system-service/system/parameter-info/query-parameter-page`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
-   * 获得参数单位根节点
+   * 获得参数单位信息
    *
    * @tags 管理后台 - 参数单位
    * @name getUnitParentApi
    * @summary 获得参数单位信息
-   * @request /cirpoint-base-api/tempalteinfo/getUnitParent
+   * @request /system-service/system/parameter-unit/list
    * @secure
    */
   static getUnitParentApi = <Req extends ParameterUnitRequestDTOModel = ParameterUnitRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/tempalteinfo/getUnitParent`,
+        path: `/system-service/system/parameter-unit/list`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -78,19 +77,19 @@ export class AdminApiSystemParameter {
    * @tags 管理后台 - 大小量纲
    * @name getUnitChildrenApi
    * @summary 获得大小量纲信息
-   * @request /cirpoint-base-api/tempalteinfo/getUnitChildren
+   * @request /system-service/system/parameter-unit/getUnitChirdren
    * @secure
    */
   static getUnitChildrenApi = <Req extends ParameterUnitRequestDTOModel = ParameterUnitRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/tempalteinfo/getUnitChildren`,
+        path: `/system-service/system/parameter-unit/getUnitChirdren`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -99,19 +98,40 @@ export class AdminApiSystemParameter {
    * @tags 管理后台 - 参数
    * @name parameterInfoSaveOrUpdate
    * @summary 获得参数信息
-   * @request /cirpoint-base-api/tempalteinfo/getTempalteSaveOrUpdate.json
+   * @request /system-service/system/parameter-info/create
    * @secure
    */
   static parameterInfoSaveOrUpdate = <Req extends ParameterInfoRequestDTOModel = ParameterInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/tempalteinfo/getTempalteSaveOrUpdate.json`,
+        path: `/system-service/system/parameter-info/create`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 参数修改
+   *
+   * @tags 参数修改
+   * @name parameterInfoUpdate
+   * @summary 参数修改
+   * @request /system-service/system/parameter-info/update
+   * @secure
+   */
+  static parameterInfoUpdate = <Req extends ParameterInfoRequestDTOModel = ParameterInfoRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-info/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -120,19 +140,19 @@ export class AdminApiSystemParameter {
    * @tags 删除参数信息
    * @name deleteParameterInfo
    * @summary 删除参数信息
-   * @request POST:/cirpoint-base-api/reportinfo/deleteReportInfo.json
+   * @request POST:/system-service/system/parameter-info/delete
    * @secure
    */
   static deleteParameterInfo = <Req extends ParameterCheckRequestDTOModel = ParameterCheckRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/tempalteinfo/deleteTempalteInfoById.json`,
+        path: `/system-service/system/parameter-info/delete`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -153,7 +173,7 @@ export class AdminApiSystemParameter {
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -162,19 +182,19 @@ export class AdminApiSystemParameter {
    * @tags 保存参数知识
    * @name deleteParameterInfo
    * @summary 保存参数知识
-   * @request POST:/cirpoint-base-api/tempalteinfo/propKnowledgeUpdate.json
+   * @request POST:/system-service/system/parameter-info/updateParameterKnowledgeInfo
    * @secure
    */
   static saveKnowledgeUpdagte = <Req extends ParameterCheckRequestDTOModel = ParameterCheckRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api//tempalteinfo/propKnowledgeUpdate.json`,
+        path: `/system-service/system/parameter-info/updateParameterKnowledgeInfo`,
         method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -189,14 +209,14 @@ export class AdminApiSystemParameter {
   static exportDatatempalteinfo = <Req extends { categoryid: string } = { categoryid: string }>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/tempalteinfo/export`,
+        path: `/system-service/system/parameter-info/export`,
         method: 'POST',
         body: query,
         secure: true,
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -205,20 +225,20 @@ export class AdminApiSystemParameter {
    * @tags 管理后台 - 系统参数管理右侧表格Excel导出功能
    * @name exportDataPlatParameterList
    * @summary 系统参数管理右侧表格Excel下载功能
-   * @request POST:/cirpoint-base-api/tempalteinfo/download
+   * @request POST:/system-service/system/parameter-info/exportParameterInfoExcelTemplate
    * @secure
    */
   static downloadExcel = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-base-api/tempalteinfo/download`,
-        method: 'POST',
+        path: `/system-service/system/parameter-info/exportParameterInfoExcelTemplate`,
+        method: 'GET',
         body: query,
         secure: true,
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -240,7 +260,7 @@ export class AdminApiSystemParameter {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -262,7 +282,7 @@ export class AdminApiSystemParameter {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 
   /**
@@ -284,6 +304,6 @@ export class AdminApiSystemParameter {
         format: 'blob',
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
 }

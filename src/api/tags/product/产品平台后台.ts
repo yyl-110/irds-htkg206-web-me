@@ -1695,4 +1695,32 @@ export class AdminApiSystemProduct {
       },
       CommonResultListDeptResponseDTOModel,
     );
+  
+  
+  
+  
+  
+  /**
+   * 获取产品平台分类列表
+   *
+   * @tags 管理后台 - 获取产品平台分类列表
+   * @name upDownSaveTreeKey
+   * @summary 获取产品平台分类列表
+   * @request GET:/business-service/business/project-tree/list
+   * @secure
+   */
+  static getProjectTreeList = <Req extends any = any>(params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-tree/list`,
+        method: 'GET',
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  
+
+
+
 }

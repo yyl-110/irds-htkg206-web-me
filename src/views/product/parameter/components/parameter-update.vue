@@ -25,8 +25,8 @@ export default defineComponent({
     const parameterName = ref('');
     const parameterNum = ref('');
     const parameterType = ref('1');
-    const remarks = ref('');
-    const dimension = ref('');
+    const remark = ref('');
+    const dimenSion = ref('');
     const categoryid = ref('');
     const unitId = ref('');
     const dimensionList = ref([]); //大小量纲
@@ -46,7 +46,7 @@ export default defineComponent({
         label: '布尔型',
       },
       {
-        value: '9',
+        value: '3',
         label: '整数',
       },
     ]);
@@ -60,19 +60,17 @@ export default defineComponent({
 
     /** handle close */
     async function savePageInfo() {
-      requestParams.id = id.value;
-      requestParams.parameterName = parameterName.value;
-      requestParams.parameterNum = parameterNum.value;
-      requestParams.remarks = remarks.value;
-      requestParams.unitId = unitId.value;
-      requestParams.dimension = dimension.value;
-      requestParams.parameterType = parameterType.value;
-      requestParams.categoryid = categoryid.value;
-      requestParams.userid = userStore.getUser.id + '';
+      const data: any = {};
+      data.id = id.value;
+      data.parameterName = parameterName.value;
+      data.parameterNum = parameterNum.value;
+      data.parameterType = parameterType.value;
+      data.remark = remark.value;
+      data.treeId = categoryid.value;
+      data.unitId = unitId.value;
+      data.dimenSion = dimenSion.value;
       // 保存页面信息
-      const res = await AdminApiSystemParameter.parameterInfoSaveOrUpdate({
-        ...requestParams,
-      });
+      const res = await AdminApiSystemParameter.parameterInfoUpdate(data);
       //刷新父页面列表数据
       context.emit('refresh-table-data');
       //关闭当前窗口
@@ -86,18 +84,18 @@ export default defineComponent({
         parameterName.value = data.parameterName;
         parameterNum.value = data.parameterNum;
         parameterType.value = data.parameterType;
-        remarks.value = data.remarks;
+        remark.value = data.remark;
         unitId.value = data.unitId;
-        dimension.value = data.dimension;
+        dimenSion.value = data.dimenSion;
         categoryid.value = categoryidStr;
       } else {
         id.value = 0;
         parameterName.value = '';
         parameterNum.value = '';
         parameterType.value = '';
-        remarks.value = '';
+        remark.value = '';
         unitId.value = '';
-        dimension.value = '';
+        dimenSion.value = '';
         categoryid.value = categoryidStr;
       }
       //获取量纲
@@ -133,7 +131,7 @@ export default defineComponent({
     async function onChangeFun() {
       if (parameterType.value == '1' || parameterType.value == '2') {
         unitId.value = '';
-        dimension.value = '';
+        dimenSion.value = '';
       }
     }
 
@@ -153,9 +151,9 @@ export default defineComponent({
       propTypeList,
       unitNameList,
       dimensionList,
-      remarks,
+      remark,
       unitId,
-      dimension,
+      dimenSion,
       categoryid,
     };
   },
@@ -179,7 +177,7 @@ export default defineComponent({
           <a-input v-model:value="parameterName" placeholder="请输入参数名称" name="parameterName" />
         </a-form-item>
         <a-form-item :label="$t('参数代号')">
-          <a-input v-model:value="parameterNum" placeholder="请输入参数代号" name="parameterNum" />
+          <a-input v-model:value="parameterNum" placeholder="请输入参数代号" name="parameterNum" :disabled="true" />
         </a-form-item>
         <a-form-item :label="$t('参数类型')">
           <a-select placeholder="请选择参数类型" v-model:value="parameterType" show-search name="parameterType" @change="onChangeFun()">
@@ -192,15 +190,15 @@ export default defineComponent({
           </a-select>
         </a-form-item>
         <a-form-item :label="$t('大小量纲')" v-if="parameterType != '1' && parameterType != '2'">
-          <a-select placeholder="请选择参数类型" v-model:value="dimension" show-search name="dimension">
+          <a-select placeholder="请选择参数类型" v-model:value="dimenSion" show-search name="dimenSion">
             <a-select-option v-for="item in dimensionList" :value="item.name" :key="item.name">{{ item.name }}</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item :label="$t('备注')">
-          <a-textarea type="textarea" style="height: 100px" v-model:value="remarks" placeholder="请输入备注" name="remarks" />
+          <a-textarea type="textarea" style="height: 100px" v-model:value="remark" placeholder="请输入备注" name="remark" />
         </a-form-item>
       </a-form>
-       <template #footer>
+      <template #footer>
         <a-button type="primary" @click="savePageInfo">
           {{ $t('确定') }}
         </a-button>

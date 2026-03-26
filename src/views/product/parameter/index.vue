@@ -165,11 +165,11 @@ const columns = ref<TableColumnType<Menus>[]>([
   },
   {
     title: WeiI18n.$t('参数类型'),
-    dataIndex: 'parameterTypeStr',
-    key: 'parameterTypeStr',
+    dataIndex: 'parameterTypeName',
+    key: 'parameterTypeName',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.parameterTypeStr, b.parameterTypeStr),
+    sorter: (a: any, b: any) => sortermethod(a.parameterTypeName, b.parameterTypeName),
     width: 100,
   },
   {
@@ -183,47 +183,47 @@ const columns = ref<TableColumnType<Menus>[]>([
   },
   {
     title: WeiI18n.$t('大小量纲'),
-    dataIndex: 'dimension',
-    key: 'dimension',
+    dataIndex: 'dimenSion',
+    key: 'dimenSion',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.dimension, b.dimension),
+    sorter: (a: any, b: any) => sortermethod(a.dimenSion, b.dimenSion),
     width: 100,
   },
   {
     title: WeiI18n.$t('所属分类'),
-    dataIndex: 'categoryName',
-    key: 'categoryName',
+    dataIndex: 'treeName',
+    key: 'treeName',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.categoryName, b.categoryName),
+    sorter: (a: any, b: any) => sortermethod(a.treeName, b.treeName),
     width: 150,
   },
   {
     title: WeiI18n.$t('创建人'),
-    dataIndex: 'username',
-    key: 'username',
+    dataIndex: 'createUserName',
+    key: 'createUserName',
     align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.username, b.username),
+    sorter: (a: any, b: any) => sortermethod(a.createUserName, b.createUserName),
     width: 150,
   },
   {
     title: WeiI18n.$t('创建时间'),
-    dataIndex: 'addTime',
-    key: 'addTime',
+    dataIndex: 'createTime',
+    key: 'createTime',
     align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.addTime, b.addTime),
-    width: 130,
+    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
+    width: 230,
   },
   {
     title: WeiI18n.$t('备注'),
-    dataIndex: 'remarks',
-    key: 'remarks',
+    dataIndex: 'remark',
+    key: 'remark',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.remarks, b.remarks),
+    sorter: (a: any, b: any) => sortermethod(a.remark, b.remark),
     width: 180,
     customRender: ({ text }: { text: string }) => {
       const display = text ?? '';
@@ -247,34 +247,34 @@ const columns = ref<TableColumnType<Menus>[]>([
       );
     },
   },
-  {
-    title: WeiI18n.$t('版本'),
-    dataIndex: 'version',
-    key: 'version',
-    align: 'center',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.version, b.version),
-    width: 130,
-    customRender: ({ record }: any) =>
-      h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '6px' } }, [
-        String('V' + (record.version ?? '-') + '.0'),
-        h(
-          'a',
-          {
-            style: { cursor: 'pointer' },
-            onClick: (e: Event) => {
-              e && (e as Event).stopPropagation();
-              showVersionHistory(record);
-            },
-            title: '查看版本历史',
-          },
-          h(EpcIcon, {
-            type: 'icon-banbenlishi',
-            style: { fontSize: '14px', color: '#1890ff' },
-          }),
-        ),
-      ]),
-  },
+  // {
+  //   title: WeiI18n.$t('版本'),
+  //   dataIndex: 'version',
+  //   key: 'version',
+  //   align: 'center',
+  //   resizable: true,
+  //   sorter: (a: any, b: any) => sortermethod(a.version, b.version),
+  //   width: 130,
+  //   customRender: ({ record }: any) =>
+  //     h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '6px' } }, [
+  //       String('V' + (record.version ?? '-') + '.0'),
+  //       h(
+  //         'a',
+  //         {
+  //           style: { cursor: 'pointer' },
+  //           onClick: (e: Event) => {
+  //             e && (e as Event).stopPropagation();
+  //             showVersionHistory(record);
+  //           },
+  //           title: '查看版本历史',
+  //         },
+  //         h(EpcIcon, {
+  //           type: 'icon-banbenlishi',
+  //           style: { fontSize: '14px', color: '#1890ff' },
+  //         }),
+  //       ),
+  //     ]),
+  // },
   // 新增：分享知识列（点击弹窗显示富文本）
   {
     title: WeiI18n.$t('参数知识'),
@@ -500,25 +500,27 @@ async function selectNode(node: any) {
   parameterName.value = '';
   parameterNum.value = '';
   selectNodeKeys.value = node.key;
-  currentNodeLevel.value = node.level;
+  if (node.parentId == 0 || node.parentId == 1) {
+    currentNodeLevel.value = 2;
+  } else {
+    currentNodeLevel.value = 3;
+  }
   loadParameterListData();
 }
 
 async function loadParameterListData() {
   loading.value = true;
   try {
-    requestParams.categoryid = selectNodeKeys.value || selectedKeys.value;
-    requestParams.parameterName = parameterName.value;
-    requestParams.parameterNum = parameterNum.value;
-    requestParams.userId = userStore.getUser.id;
-    requestParams.currentPage = requestParams.pageNo;
-    requestParams.numberPage = requestParams.pageSize;
-
-    const res = await AdminApiSystemParameter.getParameterPageList({
-      ...requestParams,
-    });
-    datasource.value = res.data.data.data || [];
-    pagination.total = res.data.data.pageCount;
+    const data: any = {};
+    data.treeId = selectNodeKeys.value || selectedKeys.value;
+    data.parameterName = parameterName.value;
+    data.parameterNum = parameterNum.value;
+    data.userId = userStore.getUser.id;
+    data.pageNo = requestParams.pageNo;
+    data.pageSize = requestParams.pageSize;
+    const res = await AdminApiSystemParameter.getParameterPageList(data);
+    datasource.value = res.data.data.list || [];
+    pagination.total = res.data.data.total;
   } finally {
     loading.value = false;
   }
@@ -855,7 +857,7 @@ async function importSuccessfulFun() {
     categoryid: selectNodeKeys.value,
   });
   batchflag.value = false;
-  message.success(WeiI18n.t('导入成功').value);
+  message.success(res.data.data);
   loadParameterListData();
 }
 
@@ -1019,18 +1021,26 @@ function closeShareModal() {
                 <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
                 {{ $t('添加') }}
               </a-button>
-              <!--删除按钮-->
-              <a-button v-if="currentNodeLevel != 2" type="primary" danger :disabled="deleteFlag" @click="handleParameterDelete(undefined)" style="margin-left: 15px">
-                <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
-                {{ $t('删除') }}
-              </a-button>
+              <!--删除按钮（批量删除需二次确认）-->
+              <a-popconfirm
+                v-if="currentNodeLevel != 2"
+                placement="topLeft"
+                :title="`${$t('确定要删除吗')}?`"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="handleParameterDelete(undefined)">
+                <a-button type="primary" danger :disabled="deleteFlag" style="margin-left: 15px">
+                  <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+                  {{ $t('删除') }}
+                </a-button>
+              </a-popconfirm>
               <!--导入数据按钮-->
               <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleUploadFile()" style="margin-left: 15px">
                 <EpcIcon type="icon-daoru1" style="font-size: 12px" />
                 {{ $t('导入') }}
               </a-button>
               <!--导出数据按钮-->
-              <a-button v-if="currentNodeLevel != 2" type="primary" :loading="exportLoading" @click="exportParameData()" style="margin-left: 15px">
+              <a-button type="primary" :loading="exportLoading" @click="exportParameData()" style="margin-left: 15px">
                 <EpcIcon type="icon-daochu" style="font-size: 12px" />
                 {{ $t('导出') }}
               </a-button>
