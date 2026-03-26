@@ -70,9 +70,9 @@ function showRightContent() {
   }
 }
 
-function getGreeting (){
+function getGreeting() {
   const hour = new Date().getHours(); // 获取当前小时数（0-23）
-  
+
   if (hour >= 0 && hour < 6) {
     greetingText.value = '凌晨好';
   } else if (hour >= 12 && hour < 18) {
@@ -85,7 +85,7 @@ function getGreeting (){
     // 6-12点 上午（兜底也显示上午好）
     greetingText.value = '上午好';
   }
-};
+}
 
 async function getNoticePage() {
   // requestNoticeParams.currentPage = 1;
@@ -96,7 +96,7 @@ async function getNoticePage() {
   // requestNoticeParams.userid = userStore.getUser.id;
   requestParams.currentPage = requestParams.pageNo;
   requestParams.numberPage = requestParams.pageSize;
-  const res = await AdminApiSystemNotice.getNoticePageList({ ...requestParams });
+  const res = await AdminApiSystemNotice.getNoticePageListToWork({ ...requestParams });
   if (res.data.code == 0 || res.data.code == 200) {
     tabList[0].list = res.data.data.list;
   }
@@ -115,7 +115,6 @@ async function seeDetailFun(id: string) {
   });
 }
 
-
 // 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
 onMounted(() => {
   getNoticePage();
@@ -128,7 +127,6 @@ onMounted(() => {
 onUnmounted(() => {
   //clearInterval(timer);
 });
-
 </script>
 
 <template>
@@ -138,13 +136,12 @@ onUnmounted(() => {
         <div class="top-wrap">
           <a-row style="height: 100%; width: 100%">
             <a-col :span="7">
-              <a-card :hoverable="true" style="height: 108px;">
+              <a-card :hoverable="true" style="height: 108px">
                 <div class="user-info">
                   <!-- <i :class="userInfoObj.sex == '男' ? 'man' : 'women'"></i> -->
                   <div class="pic"><img src="../../assets/workbench/people.png" alt="" /></div>
                   <div class="info">
-                    <div class="name">
-                      {{ greetingText }}，{{ userInfoObj.name }}</div>
+                    <div class="name">{{ greetingText }}，{{ userInfoObj.name }}</div>
                     <div class="job">
                       部门：<span>{{ userInfoObj.departName }}</span>
                     </div>
@@ -154,58 +151,50 @@ onUnmounted(() => {
             </a-col>
             <a-col :span="17">
               <div class="statistics-info">
-                <a-card :hoverable="true" style="height: 108px;">
-                  <a-card-grid style="width: 20%;height: 108px;">
+                <a-card :hoverable="true" style="height: 108px">
+                  <a-card-grid style="width: 20%; height: 108px">
                     <!-- @click="getActOnSbTo(1)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
                     <div class="sta-list">
-                      
                       <div class="num">
-                        <span class="num-num" style="color:#124DD6">{{ projectStatistics.totalNum }}5</span
-                        >
+                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.totalNum }}5</span>
                       </div>
-                      <div class="type" style="margin-top: 20px;color: #6A696E;">待办任务</div>
+                      <div class="type" style="margin-top: 20px; color: #6a696e">待办任务</div>
                     </div>
                   </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
                     <div class="sta-list">
                       <div class="num">
-                        <span class="num-num" style="color:#124DD6">{{ projectStatistics.participatedPlanProjectCount }}6</span
-                        >
+                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.participatedPlanProjectCount }}6</span>
                       </div>
-                      <div class="type" style="margin-top: 20px;color: #6A696E;">审批待办</div>
+                      <div class="type" style="margin-top: 20px; color: #6a696e">审批待办</div>
                     </div>
                   </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
                     <!-- @click="getActOnSbTo(4)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
                     <div class="sta-list">
                       <div class="num" :style="{ color: projectStatistics.deferredNum > 0 ? 'red' : '' }">
-                        <span class="num-num">{{ projectStatistics.deferredNum }}2</span
-                        >
+                        <span class="num-num">{{ projectStatistics.deferredNum }}2</span>
                       </div>
-                      <div class="type" style="margin-top: 20px;color: #6A696E;">延期任务</div>
+                      <div class="type" style="margin-top: 20px; color: #6a696e">延期任务</div>
                     </div>
                   </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
                     <!-- @click="getActOnSbTo(3)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
                     <div class="sta-list">
                       <div class="num">
-                        <span class="num-num" style="color:#124DD6">{{ projectStatistics.forwardNum }}6</span
-                        >
+                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.forwardNum }}6</span>
                       </div>
-                      <div class="type" style="margin-top: 20px;color: #6A696E;">转办任务</div>
+                      <div class="type" style="margin-top: 20px; color: #6a696e">转办任务</div>
                     </div>
                   </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center;height: 108px;">
+                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
                     <div class="sta-list">
                       <div class="num">
-                        <span class="num-num">{{ projectStatistics.inNum }}9</span
-                        >
+                        <span class="num-num">{{ projectStatistics.inNum }}9</span>
                       </div>
-                      <div class="type" style="margin-top: 20px;color: #6A696E;">参与项目</div>
-                      
+                      <div class="type" style="margin-top: 20px; color: #6a696e">参与项目</div>
                     </div>
                   </a-card-grid>
-                  
                 </a-card>
               </div>
             </a-col>
@@ -213,7 +202,7 @@ onUnmounted(() => {
         </div>
         <div class="work-wrap">
           <div class="onoff-btn" v-if="activeName != 'processtask'">{{ viewTypeName }}</div>
-          <a-tabs v-model="activeName" class="work_nav_top" >
+          <a-tabs v-model="activeName" class="work_nav_top">
             <a-tab-pane key="myWork">
               <template #tab>
                 产品设计任务<span v-if="projectStatistics.todoNum > 0">&nbsp;&nbsp;&nbsp;</span>
@@ -224,9 +213,7 @@ onUnmounted(() => {
                   :overflow-count="99">
                 </a-badge>
               </template>
-              <a-tabs v-model="taskIndex"  class="body_box">
-
-              </a-tabs>
+              <a-tabs v-model="taskIndex" class="body_box"> </a-tabs>
             </a-tab-pane>
             <a-tab-pane key="processtask">
               <template #tab>
@@ -246,19 +233,19 @@ onUnmounted(() => {
         <div class="rt-cont-list quick-entry">
           <div class="rt-cont-title">系统快速入口</div>
           <div class="cont-list">
-            <div class="lis" >
+            <div class="lis">
               <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
-            <div class="lis" >
+            <div class="lis">
               <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
-            <div class="lis" >
+            <div class="lis">
               <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
-            <div class="lis" >
+            <div class="lis">
               <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
@@ -288,7 +275,7 @@ onUnmounted(() => {
   </div>
   <div class="show-right-content-btn" @click="showRightContent">{{ isShowRigth }}</div>
 
-   <a-card class="mt-[10px] b-body2">
+  <a-card class="mt-[10px] b-body2">
     <NoticeDetail ref="powerModel" :modal-visible="powVisible" @close="handleClosePowModal" />
   </a-card>
 </template>
@@ -569,7 +556,7 @@ onUnmounted(() => {
   color: #fff;
   font-size: 12px;
   cursor: pointer;
-  background: #124DD6;
+  background: #124dd6;
   z-index: 10;
 }
 :deep(.ant-tabs-nav::before) {

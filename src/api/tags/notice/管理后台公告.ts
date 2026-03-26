@@ -29,6 +29,27 @@ export class AdminApiSystemNotice {
     );
 
   /**
+   * 获得公告列表信息
+   *
+   * @tags 管理后台 - 公告
+   * @name GetNoticeList
+   * @summary 获得公告信息
+   * @request /system-service/notice/getNoticePageList.json
+   * @secure
+   */
+  static getNoticePageListToWork = <Req extends NoticePageRequestDTOModel = NoticePageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/notice/pageWork`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 获得公告信息
    *
    * @tags 管理后台 - 公告
