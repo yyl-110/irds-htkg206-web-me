@@ -339,7 +339,7 @@ export class AdminApiSystemUploadFile {
   ) =>
     httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
       {
-        path: `system-service/tempalteinfo/import`,
+        path: `system-service/system/parameter-info/import`,
         method: 'POST',
         body: data,
         secure: true,

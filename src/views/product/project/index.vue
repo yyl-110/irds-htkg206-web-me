@@ -52,7 +52,6 @@ async function getListData(type?: string) {
       loadingTree.value = false;
       const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
       dataSource.value = rawData[0];
-
     }
   } catch (error) {
     message.error('获取数据失败!');
@@ -60,8 +59,6 @@ async function getListData(type?: string) {
     loadingTree.value = false;
   }
 }
-
-
 
 /** 新功能----------------------------------------------------- */
 const updateMenu = async (item: any) => {
@@ -72,7 +69,6 @@ const updateMenu = async (item: any) => {
 
 /** 获取分类数据 */
 async function getMenuListData() {
-
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
     titleList.value = res.data.data;
@@ -80,14 +76,6 @@ async function getMenuListData() {
       drawerStyle.value = ref({});
       menuId.value = res.data.data[0].id;
       getListData();
-    } else {
-      titleVisible.value = true;
-      drawerStyle.value = {
-        marginLeft: layoutStore.asideWidthStyle,
-        marginTop: '65px',
-        width: 'calc(100% - 241px)',
-        height: 'calc(100vh - 65px)',
-      };
     }
   } catch (error) {
     console.error('获取平台分类失败:', error);
@@ -98,23 +86,16 @@ function onClose() {
   titleVisible.value = false;
 }
 
-
-
-
-watch(
-  () => router.query.parms,
-  () => {
-    let paramStr = '';
-    if (router.query.parms) {
-      // 对界面上的参数进行解密处理
-      paramStr = decryptValue(router.query.parms);
-    }
-    if (paramStr) {
-      getMenuListData();
-    }
-  },
-  { immediate: true },
-);
+onMounted(() => {
+  titleVisible.value = true;
+  drawerStyle.value = {
+    marginLeft: layoutStore.asideWidthStyle,
+    marginTop: '65px',
+    width: 'calc(100% - 241px)',
+    height: 'calc(100vh - 65px)',
+  };
+  getMenuListData();
+});
 </script>
 
 <template>
@@ -133,13 +114,13 @@ watch(
     @close="onClose">
     <div v-for="(item, index) in titleList" :key="index">
       <div style="display: flex; background-color: #ecf5ff; margin: 15px 10px 0 10px; border-radius: 10px; height: 60px; cursor: pointer" @click="updateMenu(item)">
-          <img src="@/assets/images/jc.png" v-if="index == 0" alt="menu" style="width: 50px; height: 50px; margin: 5px"/>
-          <img src="@/assets/images/ct.png" v-else-if="index == 1" alt="menu" style="width: 50px; height: 50px; margin: 5px"/>
-          <img src="@/assets/images/hj.png" v-else alt="menu" style="width: 50px; height: 50px; margin: 5px"/>
-          <a-badge>
-            <div class="menuLi">{{ item.categoryName}}</div>
-          </a-badge>
-        </div>
+        <img src="@/assets/images/jc.png" v-if="index == 0" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <img src="@/assets/images/ct.png" v-else-if="index == 1" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <img src="@/assets/images/hj.png" v-else alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <a-badge>
+          <div class="menuLi">{{ item.categoryName }}</div>
+        </a-badge>
+      </div>
     </div>
   </a-drawer>
 </template>

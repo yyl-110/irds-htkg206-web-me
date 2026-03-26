@@ -203,7 +203,6 @@ function handleFinish() {
 }
 
 function getResourcesByParent(categoryids: any) {
-  alert(categoryids);
   categoryid.value = categoryids;
   getResources();
 }

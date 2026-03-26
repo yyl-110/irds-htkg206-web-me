@@ -25,19 +25,15 @@ export default defineComponent({
     const userStore = useUserStore();
     const id = ref(0);
     const remarks = ref('');
-    const dimension = ref('');
+    const dimenSion = ref('');
     const categoryid = ref('');
-    const unitId = ref('');
+    const unitId = ref<any>();
     const dimensionList = ref([]); //大小量纲
     const unitNameList = ref([]); //参数单位
     const formData = ref({
       parameterName: '',
       parameterNum: '',
       parameterType: '1',
-      // remarks: '',
-      // unitId: '',
-      // dimension: '',
-      // categoryid: '',
     });
     const propTypeList = ref([
       {
@@ -53,7 +49,7 @@ export default defineComponent({
         label: '布尔型',
       },
       {
-        value: '9',
+        value: '3',
         label: '整数',
       },
     ]);
@@ -69,19 +65,16 @@ export default defineComponent({
     async function savePageInfo() {
       // 调用保存接口
       await formRef.value?.validate();
-      requestParams.id = id.value;
-      requestParams.parameterName = formData.value.parameterName;
-      requestParams.parameterNum = formData.value.parameterNum;
-      requestParams.remarks = remarks.value;
-      requestParams.unitId = unitId.value;
-      requestParams.dimension = dimension.value;
-      requestParams.parameterType = formData.value.parameterType;
-      requestParams.categoryid = categoryid.value;
-      requestParams.userid = userStore.getUser.id + '';
       // 保存页面信息
-      const res = await AdminApiSystemParameter.parameterInfoSaveOrUpdate({
-        ...requestParams,
-      });
+      const data: any = {};
+      data.parameterName = formData.value.parameterName;
+      data.parameterNum = formData.value.parameterNum;
+      data.parameterType = formData.value.parameterType;
+      data.remark = remarks.value;
+      data.treeId = categoryid.value;
+      data.unitId = unitId.value;
+      data.dimenSion = dimenSion.value;
+      const res = await AdminApiSystemParameter.parameterInfoSaveOrUpdate(data);
       //刷新父页面列表数据
       context.emit('refresh-table-data');
       //关闭当前窗口
@@ -96,7 +89,7 @@ export default defineComponent({
       formData.value.parameterType = '1';
       remarks.value = '';
       unitId.value = '';
-      dimension.value = '';
+      dimenSion.value = '';
       categoryid.value = categoryidStr;
       nextTick(() => {
         formRef.value?.resetFields();
@@ -122,10 +115,9 @@ export default defineComponent({
     // 请求量纲
     async function getUnitChildren() {
       if (unitId.value != null && unitId.value != 0) {
-        requestDimension.id = unitId.value;
         //获取量纲
         const res = await AdminApiSystemParameter.getUnitChildrenApi({
-          ...requestDimension,
+          id: unitId.value,
         });
         dimensionList.value = res.data.data || [];
       }
@@ -134,7 +126,7 @@ export default defineComponent({
     async function onChangeFun() {
       if (formData.value.parameterType == '1' || formData.value.parameterType == '2') {
         unitId.value = 0;
-        dimension.value = '';
+        dimenSion.value = '';
       }
     }
 
@@ -155,7 +147,7 @@ export default defineComponent({
       dimensionList,
       remarks,
       unitId,
-      dimension,
+      dimenSion,
       categoryid,
     };
   },
@@ -192,7 +184,7 @@ export default defineComponent({
           </a-select>
         </a-form-item>
         <a-form-item :label="$t('大小量纲')" v-if="formData.parameterType != '1' && formData.parameterType != '2'">
-          <a-select placeholder="请选择参数类型" v-model:value="dimension" show-search name="dimension">
+          <a-select placeholder="请选择参数类型" v-model:value="dimenSion" show-search name="dimenSion">
             <a-select-option v-for="item in dimensionList" :value="item.name" :key="item.name">{{ item.name }}</a-select-option>
           </a-select>
         </a-form-item>
