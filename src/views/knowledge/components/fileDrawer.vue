@@ -3,6 +3,7 @@ import {
   doCollectFile,
   doInterestQuestion,
   fileList,
+  getPdfPreviewPath,
   saveLookFileLog,
   updateKldCounting,
 } from "@/api/knowledge";
@@ -23,6 +24,7 @@ import comment from "@/components/Comment/index.vue";
 import Video from "./videoImg.vue";
 import { useUserStore } from "@/store/modules/user";
 
+const router = useRouter();
 interface IOpenParams {
   kldTreeId: string;
   userId: string;
@@ -207,11 +209,11 @@ const viewPdf = (id) => {
     id: id,
   };
   getPdfPreviewPath(params).then((res) => {
-    if (res && res.code === 200) {
-      filePath.value = res.data.fileUrl;
+    if (res && res.data.code === 200) {
+      open.value = false
       router.push({
-        path: "/knowledgeData/pdfView_index",
-        query: { docId: filePath.value },
+        path: "/knowledge/pdfView_index",
+        query: { docId: res.data.data.fileUrl },
       });
     }
   });

@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { useStore } from "vuex";
 import { getTimes } from "@/utils/dateUtils.js";
 import { message } from "ant-design-vue";
 import { LearningCompleted } from "@/api/knowledge";
 
-const store = useStore();
 
 const router = useRouter();
 const route = useRoute();
@@ -15,17 +13,13 @@ const docId = ref("");
 
 const hidden = ref(false);
 
-const objectItem = computed(() => {
-  return store.getters.objectItem;
-});
-
 const goback = () => {
   router.go(-1);
 };
 
 const completed = () => {
   const params = {
-    id: objectItem.value.learnNodeId,
+    id: route.query.learnNodeId,
   };
   LearningCompleted(params).then((res) => {
     if (res && res.data.code === "0") {
@@ -44,7 +38,7 @@ watch(
     if (newVal.query.docId) {
       nextTick(() => {
         docId.value = newVal.query.docId;
-        if (newVal.query.flag === "1" && objectItem.value.status === 0) {
+        if (newVal.query.flag === "1" && newVal.query.learnNodeId) {
           hidden.value = true;
         } else {
           hidden.value = false;
@@ -64,17 +58,12 @@ watch(
 <template>
   <div class="pdf-layout">
     <div class="content">
-      <iframe
-        v-if="fileDataUrl"
-        :src="`/cir/lib/pdfjs-2.12.313-legacy-dist/web/viewer.html?file=${encodeURIComponent(
-          fileDataUrl
-        )}`"
-      />
+      <iframe v-if="fileDataUrl" :src="`/cir/lib/pdfjs-2.12.313-legacy-dist/web/viewer.html?file=${encodeURIComponent(
+        fileDataUrl
+      )}`" />
     </div>
     <a-button type="primary" class="goback" @click="goback"> 返回 </a-button>
-    <a-button v-if="hidden" class="buttn" type="primary" @click="completed"
-      >学习完成</a-button
-    >
+    <a-button v-if="hidden" class="buttn" type="primary" @click="completed">学习完成</a-button>
   </div>
 </template>
 
@@ -87,12 +76,14 @@ watch(
   border: 1px solid #dcdee0;
   margin: 15px auto;
   overflow-y: auto;
+
   .top {
     margin: 20px;
     text-align: left;
     display: flex;
     border-bottom: 1px solid #ebedf0;
     position: relative;
+
     .title {
       height: 22px;
       font-size: 16px;
@@ -102,9 +93,11 @@ watch(
       line-height: 22px;
       margin-bottom: 13px;
     }
+
     .tags {
       margin-bottom: 20px;
       display: flex;
+
       span {
         height: 22px;
         background: #ffffff;
@@ -114,6 +107,7 @@ watch(
         text-align: center;
       }
     }
+
     .user {
       display: flex;
       align-items: center;
@@ -125,10 +119,12 @@ watch(
       line-height: 22px;
       margin-bottom: 4px;
       margin-left: 30px;
+
       .name {
         margin-right: 14px;
       }
     }
+
     .see {
       display: flex;
       align-items: center;
@@ -139,19 +135,23 @@ watch(
       color: #969799;
       line-height: 22px;
       margin-bottom: 20px;
+
       span {
         margin-left: 6px;
       }
     }
   }
+
   .content {
     width: 100%;
     height: 100%;
+
     iframe {
       width: 100%;
       height: 100%;
     }
   }
+
   .buttn {
     position: fixed;
     width: 60px;
@@ -162,6 +162,7 @@ watch(
     margin-left: 0;
     font-size: 12px;
   }
+
   .goback {
     position: fixed;
     left: 94%;

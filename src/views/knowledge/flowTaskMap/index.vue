@@ -135,7 +135,7 @@ const mapDetail = (item: any) => {
   localStorage.setItem('detail', JSON.stringify(item));
   objData.value = item;
   if (item.learned) {
-    router.push({ path: '/knowledgeData/createTaskMap_index' });
+    router.push({ path: '/knowledge/createTaskMap_index' });
   } else {
     dialogVisible1.value = true;
   }
@@ -148,9 +148,10 @@ const closeDiaDetail1 = () => {
 
 // 播放
 const player = async (item: any) => {
+  debugger;
   localStorage.setItem('detail', JSON.stringify(item));
   await startLearn(item.id);
-  router.push({ path: '/knowledgeData/createTaskMap_index' });
+  router.push({ path: '/knowledge/createTaskMap_index' });
 };
 
 // 开始学习

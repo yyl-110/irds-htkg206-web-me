@@ -3,6 +3,7 @@ import { ref, watch } from "vue";
 import { UserOutlined, EyeOutlined } from "@ant-design/icons-vue";
 import { useRouter } from "vue-router";
 import { getTimes } from "@/utils/dateUtils.js";
+import { getPdfPreviewPath } from "@/api/knowledge";
 // import { getPdfPreviewPath } from "@/api/knowledgeBaseManagment";
 
 const props = defineProps({
@@ -96,10 +97,10 @@ const viewPdf = (id) => {
     id: id,
   };
   getPdfPreviewPath(params).then((res) => {
-    if (res && res.code === 200) {
+    if (res && res.data.code === 200) {
       router.push({
-        path: "/knowledgeData/pdfView_index",
-        query: { docId: res.data.fileUrl },
+        path: "/knowledge/pdfView_index",
+        query: { docId: res.data.data.fileUrl },
       });
     }
   });
