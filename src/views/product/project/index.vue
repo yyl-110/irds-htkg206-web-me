@@ -17,7 +17,7 @@ const loadingTree = ref<boolean>(false);
 const userStore = useUserStore();
 const titleVisible = ref<boolean>(false);
 const titleList = ref<any>([]);
-
+const ProjectInfoListRef = ref();
 const menuId = ref<string>('');
 const drawerStyle = ref<any>({
   marginLeft: '201px',
@@ -64,7 +64,7 @@ async function getListData(type?: string) {
 const updateMenu = async (item: any) => {
   menuId.value = item.id;
   onClose();
-  getListData();
+  ProjectInfoListRef.value.getResourcesByParent(menuId.value);
 };
 
 /** 获取分类数据 */
@@ -75,7 +75,9 @@ async function getMenuListData() {
     if (res.data.data.length == 1) {
       drawerStyle.value = ref({});
       menuId.value = res.data.data[0].id;
-      getListData();
+      ProjectInfoListRef.value.getResourcesByParent(menuId.value);
+    } else {
+      titleVisible.value = true;
     }
   } catch (error) {
     console.error('获取平台分类失败:', error);
@@ -87,7 +89,7 @@ function onClose() {
 }
 
 onMounted(() => {
-  titleVisible.value = true;
+  
   drawerStyle.value = {
     marginLeft: layoutStore.asideWidthStyle,
     marginTop: '65px',
