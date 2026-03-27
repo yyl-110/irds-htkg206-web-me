@@ -560,7 +560,8 @@ defineExpose({
         @select="onSelect">
         <template #title="item">
           <a-dropdown v-if="bomType === 'unBom'">
-            <TreeNode :show-name="$t(item.partName)" :search-value="searchValue" :node="item" />
+            <TreeNode :show-name="`${item.partName} (${item.moduleCount})`" :search-value="searchValue" :node="item" v-if="item.moduleCount != undefined" />
+            <TreeNode :show-name="$t(item.partName)" :search-value="searchValue" :node="item" v-else />
           </a-dropdown>
           <a-dropdown v-else>
             <TreeNode :node="item" :show-name="$t(item.title)" :search-value="searchValue" />

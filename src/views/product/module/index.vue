@@ -123,6 +123,7 @@ function convertToTreeNodes(data: any[]): any[] {
       level: level, // 设置level值
       children: hasChildren ? convertToTreeNodes(item.children) : [],
       menuId: item.menuId,
+      moduleCount: item.moduleCount,
     };
   });
 }
