@@ -45,7 +45,7 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     align: 'center',
     resizable: true,
     ellipsis: true,
-    width: 180,
+    width: 80,
     sorter: (a: any, b: any) => sortermethod(a.status, b.status),
   },
   {
@@ -128,7 +128,6 @@ const resources = ref<Array<NoticeInfoRequestDTOModel>>([]);
 function handleResizeColumn(w, col) {
   col.width = w;
 }
-
 
 /** 获取公告列表数据 */
 async function getResources() {
