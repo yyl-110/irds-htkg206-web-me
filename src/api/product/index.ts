@@ -1,7 +1,6 @@
 
 import httpRequest from "@/httpRequest";
 
-const proxyApi = '/Know'
 
 /**
  * 协同设计产品列表
@@ -10,7 +9,7 @@ const proxyApi = '/Know'
 
 export function findProduct(data: any) {
   return httpRequest({
-    url: `${proxyApi}/bl-server/productDesignProject/findProduct`,
+    url: '/bl-server/productDesignProject/findProduct',
     data,
     method: 'POST',
   })
@@ -22,7 +21,7 @@ export function findProduct(data: any) {
 
 export function deleteData(data: any) {
   return httpRequest({
-    url: `${proxyApi}/bl-server/productDesignProject/delete`,
+    url: '/bl-server/productDesignProject/delete',
     data,
     method: 'DELETE',
   })

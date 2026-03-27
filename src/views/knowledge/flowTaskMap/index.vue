@@ -148,7 +148,6 @@ const closeDiaDetail1 = () => {
 
 // 播放
 const player = async (item: any) => {
-  debugger;
   localStorage.setItem('detail', JSON.stringify(item));
   await startLearn(item.id);
   router.push({ path: '/knowledge/createTaskMap_index' });

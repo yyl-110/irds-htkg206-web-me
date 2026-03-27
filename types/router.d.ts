@@ -40,6 +40,8 @@ declare module 'vue-router' {
      * @description 默认为 `true`; 值为 `false` 时, 当该菜单只有一个子菜单时, 不展示自己, 直接展示子菜单
      */
     alwaysShow?: boolean;
+    /** 指定当前路由激活时，侧边栏高亮的菜单路径（用于隐藏子路由时高亮父级） */
+    activeMenu?: string;
   }
 }
 

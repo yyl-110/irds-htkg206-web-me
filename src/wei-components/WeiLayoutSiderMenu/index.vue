@@ -112,7 +112,8 @@ const openKeys = ref<string[]>(['10']);
 /** init menu state */
 function initMenuState() {
   if (menuPosition === 'left') openKeys.value = route.matched.map(m => m.path);
-  selectedKeys.value = [route.matched[route.matched.length - 1].path];
+  const activeMenu = route.meta?.activeMenu as string | undefined;
+  selectedKeys.value = [activeMenu || route.matched[route.matched.length - 1].path];
 }
 
 initMenuState();
