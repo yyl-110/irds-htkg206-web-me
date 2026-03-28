@@ -9,7 +9,7 @@ import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/Produ
 import { useUserStore } from '@/store/modules/user';
 import { decryptValue } from '@/utils';
 import { useLayoutStore } from '@/store/modules/layout/layout';
-import ProjectInfoList from './components/form/ProjectInfoListAdm.vue';
+import ProjectInfoList from './components/ProjectInfoListAdm.vue';
 
 const layoutStore = useLayoutStore();
 const router = useRoute();
@@ -64,7 +64,7 @@ async function getListData(type?: string) {
 const updateMenu = async (item: any) => {
   menuId.value = item.id;
   onClose();
-  ProjectInfoListRef.value.getResourcesByParent(menuId.value);
+  ProjectInfoListRef.value.getResourcesByParent(menuId.value, item.categoryName);
 };
 
 /** 获取分类数据 */
@@ -75,7 +75,7 @@ async function getMenuListData() {
     if (res.data.data.length == 1) {
       drawerStyle.value = ref({});
       menuId.value = res.data.data[0].id;
-      ProjectInfoListRef.value.getResourcesByParent(menuId.value);
+      ProjectInfoListRef.value.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
     } else {
       titleVisible.value = true;
     }
@@ -89,7 +89,6 @@ function onClose() {
 }
 
 onMounted(() => {
-  
   drawerStyle.value = {
     marginLeft: layoutStore.asideWidthStyle,
     marginTop: '65px',

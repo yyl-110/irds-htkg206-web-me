@@ -217,7 +217,13 @@ onBeforeMount(() => {
         <a-layout-content
           class="layout-container"
           v-overlay-scrollbar
-          :class="!layoutStore.homepage ? 'p-[16px] pt-[16px] overflow-y-hidden' : ''">
+          :class="[
+            !layoutStore.homepage && route.name === 'ProductProjectEditor'
+              ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--scroll'
+              : !layoutStore.homepage
+                ? 'p-[16px] pt-[16px] overflow-y-hidden'
+                : '',
+          ]">
           <pre style="display: none">{{ caches }}</pre>
           <router-view v-slot="{ Component, route }">
             <keep-alive :include="caches">
@@ -395,6 +401,16 @@ onBeforeMount(() => {
 
 .layout-container {
   height: calc(100vh - 104px);
+}
+
+/** 项目信息创建页：主内容区铺满白底，避免透出外层 #f3f2f7 灰边 */
+.layout-container.layout-container--white {
+  background-color: #fff;
+}
+
+/** 该页表单较高，允许纵向滚动，避免底部「保存/返回」被 overflow:hidden 裁切 */
+.layout-container.layout-container--scroll {
+  overflow-y: auto;
 }
 
 .ant-layout {
