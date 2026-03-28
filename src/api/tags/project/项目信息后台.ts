@@ -26,4 +26,25 @@ export class AdminApiProductTemp {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 创建项目信息
+   *
+   * @tags 管理后台 - 创建项目信息
+   * @name createProject
+   * @summary 创建项目信息
+   * @request /business-service/business/product-temp/create
+   * @secure
+   */
+  static createProject = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-info/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

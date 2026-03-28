@@ -219,17 +219,23 @@ onBeforeMount(() => {
           v-overlay-scrollbar
           :class="[
             !layoutStore.homepage && route.name === 'ProductProjectEditor'
-              ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--scroll'
+              ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
                 ? 'p-[16px] pt-[16px] overflow-y-hidden'
                 : '',
           ]">
-          <pre style="display: none">{{ caches }}</pre>
-          <router-view v-slot="{ Component, route }">
-            <keep-alive :include="caches">
-              <component :is="wrap(Component, route)" />
-            </keep-alive>
-          </router-view>
+          <div
+            class="layout-router-host"
+            :class="{
+              'layout-router-host--fill': !layoutStore.homepage && route.name === 'ProductProjectEditor',
+            }">
+            <pre style="display: none">{{ caches }}</pre>
+            <router-view v-slot="{ Component, route }">
+              <keep-alive :include="caches">
+                <component :is="wrap(Component, route)" />
+              </keep-alive>
+            </router-view>
+          </div>
         </a-layout-content>
         <!-- 页脚栏, 一般用于显示操作按钮 -->
         <a-layout-footer
@@ -408,9 +414,28 @@ onBeforeMount(() => {
   background-color: #fff;
 }
 
-/** 该页表单较高，允许纵向滚动，避免底部「保存/返回」被 overflow:hidden 裁切 */
-.layout-container.layout-container--scroll {
-  overflow-y: auto;
+/** 项目信息编辑页：高度交给内部，由表单区滚动，标签与底部按钮固定 */
+.layout-container.layout-container--editor-fill {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.layout-router-host--fill {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.layout-router-host--fill :deep(.route-page-wrapper) {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .ant-layout {

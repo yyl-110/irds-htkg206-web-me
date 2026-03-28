@@ -195,6 +195,8 @@ function noticeAdd(record?: any) {
     query.id = String(record.id);
   } else {
     sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
+    query.categoryName = categoryName.value;
+    query.categoryId = categoryid.value;
   }
   router.push({ name: 'ProductProjectEditor', query });
 }

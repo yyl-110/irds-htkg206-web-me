@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import { InboxOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import localeA from 'ant-design-vue/es/date-picker/locale/zh_CN';
+import { AdminApiProductTemp } from '@/api/tags/project/项目信息后台';
 const PROJECT_EDITOR_DRAFT_KEY = 'project-info-editor-draft';
 /** 与列表页约定：返回/保存后回到列表时触发刷新 */
 const PROJECT_LIST_REFRESH_FLAG = 'project-info-list-refresh';
@@ -22,20 +23,23 @@ const projectFormSubmitting = ref(false);
 
 const projectForm = reactive({
   projectNum: '',
-  platform: '',
+  productPlatform: '',
+  productPlatformId: '',
   projectName: '',
-  planStartRange: undefined as string | undefined,
-  planEndRange: undefined as string | undefined,
-  confidentialLevel: '公开',
-  remark: '',
+  planStartTime: undefined as string | undefined,
+  planEndTime: undefined as string | undefined,
+  confidentialLevel: 1,
+  remarks: '',
   dataConfidentialLevel: '公开',
+  productTempName: '',
+  productTempId: '',
 });
 
 const confidentialOptions = [
-  { label: '公开', value: '公开' },
-  { label: '内部', value: '内部' },
-  { label: '秘密', value: '秘密' },
-  { label: '机密', value: '机密' },
+  { label: '公开', value: 1 },
+  { label: '内部', value: 2 },
+  { label: '秘密', value: 3 },
+  { label: '机密', value: 4 },
 ];
 
 const projectFormLabelCol = { style: { width: '120px' } };
@@ -51,7 +55,7 @@ function disabledPlanStartDate(current: Dayjs) {
 function disabledPlanEndDate(current: Dayjs) {
   if (!current) return false;
   if (current.isBefore(dayjs(), 'day')) return true;
-  const start = projectForm.planStartRange;
+  const start = projectForm.planStartTime;
   if (start) {
     return current.isBefore(dayjs(start), 'day');
   }
@@ -59,11 +63,11 @@ function disabledPlanEndDate(current: Dayjs) {
 }
 
 watch(
-  () => projectForm.planStartRange,
+  () => projectForm.planStartTime,
   start => {
-    const end = projectForm.planEndRange;
+    const end = projectForm.planEndTime;
     if (start && end && dayjs(end).isBefore(dayjs(start), 'day')) {
-      projectForm.planEndRange = undefined;
+      projectForm.planEndTime = undefined;
     }
   },
 );
@@ -71,12 +75,12 @@ watch(
 function resetProjectForm() {
   projectFormTab.value = 'basic';
   projectForm.projectNum = '';
-  projectForm.platform = '';
+  projectForm.productPlatform = '';
   projectForm.projectName = '';
-  projectForm.planStartRange = undefined;
-  projectForm.planEndRange = undefined;
-  projectForm.confidentialLevel = '公开';
-  projectForm.remark = '';
+  projectForm.planStartTime = undefined;
+  projectForm.planEndTime = undefined;
+  projectForm.confidentialLevel = 1;
+  projectForm.remarks = '';
   projectForm.dataConfidentialLevel = '公开';
   materialFileList.value = [];
 }
@@ -95,10 +99,6 @@ function goBack() {
   router.back();
 }
 
-function onBrowseProjectNum() {
-  message.info(WeiI18n.$t('请选择项目编号'));
-}
-
 const beforeMaterialUpload = () => false;
 
 async function submitProjectForm() {
@@ -109,9 +109,21 @@ async function submitProjectForm() {
   }
   projectFormSubmitting.value = true;
   try {
+    const data: any = {};
+    data.projectName = projectForm.projectName;
+    data.projectNum = projectForm.projectNum;
+    data.planStartTime = projectForm.planStartTime;
+    data.planEndTime = projectForm.planEndTime;
+    data.remarks = projectForm.remarks;
+    data.productTempId = projectForm.productTempId;
+    data.productPlatform = projectForm.productPlatform;
+    data.confidentialLevel = projectForm.confidentialLevel;
+    data.productPlatformId = projectForm.productPlatformId;
+    data.projectStatus = 1;
+    const res = await AdminApiProductTemp.createProject(data);
     // TODO: 对接项目创建/更新接口
     message.success(WeiI18n.$t('保存成功'));
-    goBack();
+    // goBack();
   } finally {
     projectFormSubmitting.value = false;
   }
@@ -120,15 +132,17 @@ async function submitProjectForm() {
 onMounted(() => {
   resetProjectForm();
   const id = route.query.id;
+  projectForm.productPlatform = route.query.categoryName;
+  projectForm.productPlatformId = route.query.categoryId;
   if (id) {
     const raw = sessionStorage.getItem(PROJECT_EDITOR_DRAFT_KEY);
     if (raw) {
       try {
         const record = JSON.parse(raw) as Record<string, unknown>;
         projectForm.projectNum = String(record.projectNum ?? '');
-        projectForm.platform = String(record.productPlatform ?? '');
+        projectForm.productPlatform = String(record.productPlatform ?? '');
         projectForm.projectName = String(record.projectName ?? '');
-        projectForm.confidentialLevel = String(record.confidentialLevel ?? '公开');
+        projectForm.confidentialLevel = String(record.confidentialLevel ?? 1);
       } catch {
         /* ignore */
       }
@@ -154,30 +168,34 @@ onMounted(() => {
             class="project-editor-form project-editor-form--uniform">
             <a-row :gutter="24">
               <a-col :span="12">
-                <a-form-item :label="$t('项目编号：')" name="projectNum" :rules="[{ required: true, message: $t('请输入') }]">
-                  <a-input v-model:value="projectForm.projectNum" :placeholder="$t('请输入')" allow-clear />
+                <a-form-item :label="$t('项目编号：')" name="projectNum" :rules="[{ required: true, message: $t('请输入项目编号') }]">
+                  <a-input v-model:value="projectForm.projectNum" :placeholder="$t('请输入项目编号')" allow-clear />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
                 <a-form-item :label="$t('平台：')">
-                  <a-input v-model:value="projectForm.platform" :placeholder="$t('请输入')" disabled />
+                  <a-input v-model:value="projectForm.productPlatform" :placeholder="$t('请输入')" disabled />
                 </a-form-item>
               </a-col>
             </a-row>
             <a-row :gutter="24">
               <a-col :span="12">
-                <a-form-item :label="$t('项目名称：')" name="projectName" :rules="[{ required: true, message: $t('请输入') }]">
-                  <a-input v-model:value="projectForm.projectName" :placeholder="$t('请输入')" allow-clear />
+                <a-form-item :label="$t('项目名称：')" name="projectName" :rules="[{ required: true, message: $t('请输入项目名称') }]">
+                  <a-input v-model:value="projectForm.projectName" :placeholder="$t('请输入项目名称')" allow-clear />
                 </a-form-item>
               </a-col>
-              <a-col :span="12" />
+              <a-col :span="12">
+                <a-form-item :label="$t('产品模板：')">
+                  <a-input v-model:value="projectForm.productTempName" :placeholder="$t('请选择')" disabled />
+                </a-form-item>
+              </a-col>
             </a-row>
             <a-row :gutter="24">
               <a-col :span="12">
                 <a-form-item :label="$t('计划开始时间：')">
                   <a-date-picker
                     :locale="localeA"
-                    v-model:value="projectForm.planStartRange"
+                    v-model:value="projectForm.planStartTime"
                     class="project-form-date"
                     style="width: 100%"
                     placeholder="计划开始时间"
@@ -190,7 +208,7 @@ onMounted(() => {
                 <a-form-item :label="$t('计划结束时间：')">
                   <a-date-picker
                     :locale="localeA"
-                    v-model:value="projectForm.planEndRange"
+                    v-model:value="projectForm.planEndTime"
                     class="project-form-date"
                     style="width: 100%"
                     placeholder="计划结束时间"
@@ -203,7 +221,7 @@ onMounted(() => {
             <a-row :gutter="24">
               <a-col :span="12">
                 <a-form-item :label="$t('密级：')">
-                  <a-select v-model:value="projectForm.confidentialLevel" :options="confidentialOptions" />
+                  <a-select v-model:value="projectForm.confidentialLevel" :options="confidentialOptions"> </a-select>
                 </a-form-item>
               </a-col>
               <a-col :span="12" />
@@ -211,7 +229,7 @@ onMounted(() => {
             <a-row :gutter="24">
               <a-col :span="20">
                 <a-form-item :label="$t('备注：')">
-                  <a-textarea v-model:value="projectForm.remark" :placeholder="$t('请输入')" :rows="4" allow-clear />
+                  <a-textarea v-model:value="projectForm.remarks" :placeholder="$t('请输入备注')" :rows="4" allow-clear />
                 </a-form-item>
               </a-col>
               <a-col :span="4" />
@@ -240,11 +258,11 @@ onMounted(() => {
             </a-row>
           </a-form>
         </a-tab-pane>
-        <a-tab-pane key="structure" :tab="$t('结构&团队')">
+        <!-- <a-tab-pane key="structure" :tab="$t('结构&团队')">
           <div class="project-editor-tab-placeholder">
             <a-empty :description="$t('暂无内容')" />
           </div>
-        </a-tab-pane>
+        </a-tab-pane> -->
       </a-tabs>
     </a-card>
 
@@ -259,16 +277,17 @@ onMounted(() => {
 .project-info-editor-page {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
   background: #fff;
-  /* 不再使用接近整屏的 min-height，避免与底部按钮区叠加后总高度超出主容器被裁切 */
-  padding-bottom: 8px;
 }
 
 .editor-main-card {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   :deep(.ant-card-body) {
     display: flex;
@@ -295,14 +314,26 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.project-editor-tabs :deep(.ant-tabs-content-holder) {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+.project-editor-tabs :deep(.ant-tabs-nav) {
+  flex-shrink: 0;
+  margin-bottom: 12px;
 }
 
-.project-editor-tabs :deep(.ant-tabs-nav) {
-  margin-bottom: 12px;
+.project-editor-tabs :deep(.ant-tabs-content-holder) {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.project-editor-tabs :deep(.ant-tabs-content) {
+  height: 100%;
+  min-height: 0;
+}
+
+.project-editor-tabs :deep(.ant-tabs-tabpane) {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .project-editor-form {
@@ -367,8 +398,8 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-top: 5px;
-  padding: 12px 16px 16px;
+  margin-top: 8px;
+  padding: 12px 16px 0;
   background: #fff;
   border-top: 1px solid #f0f0f0;
   border-radius: 2px;
