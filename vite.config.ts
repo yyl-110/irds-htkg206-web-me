@@ -109,6 +109,7 @@ export default defineConfig({
       '/Api': {
         // target: 'http://39.106.130.85:9328',
         // target: 'http://10.151.129.89:9328',
+        // target: 'http://39.106.130.85:8082', // 知识中心接口
         target: 'http://127.0.0.1:9327',
         ws: false,
         changeOrigin: true,
@@ -149,12 +150,6 @@ export default defineConfig({
          * @param path path
          */
         // rewrite: path => path.replace(/^\/iconify/, ''),
-      },
-      '/Know': {
-        target: 'http://39.106.130.85:8082',
-        ws: false,
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/Know/, ''),
       },
     },
   },

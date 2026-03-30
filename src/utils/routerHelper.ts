@@ -144,8 +144,8 @@ export function generateRoute(routes: AppCustomRouteRecordRaw[]): AppRouteRecord
       childrenData.component = getComponentByRoute(route);
       data.children = [childrenData];
     } else {
-      // 目录, 这里需要符合子菜单不能都隐藏的条件, 因为用户会在菜单下创建隐藏的子菜单, 如果当前路由的所有子路由都是隐藏的, 那么当前路由会被当做普通菜单
-      if (route.children && route.children.some(item => item.visible)) {
+      // 目录, 有子路由时当做目录处理（包括所有子路由都隐藏的情况）
+      if (route.children && route.children.length > 0) {
         // if (route.children && !route.component) {
         // data.component = Layout
         data.component = route.parentId == 0 ? Layout : null;
@@ -172,7 +172,15 @@ export function generateRoute(routes: AppCustomRouteRecordRaw[]): AppRouteRecord
         data.name = getRouteNameByRoute(route);
         // console.log(route, data)
       }
-      if (route.children) data.children = generateRoute(route.children);
+      if (route.children) {
+        data.children = generateRoute(route.children);
+        // 所有子路由都隐藏时, 给隐藏的子路由设置 activeMenu 以高亮父级菜单
+        if (route.children.every(item => !item.visible)) {
+          data.children.forEach(child => {
+            if (child.meta) child.meta.activeMenu = route.path;
+          });
+        }
+      }
     }
     res.push(data as AppRouteRecordRaw);
   }
@@ -189,6 +197,8 @@ export function getRedirect(parentPath: string, children: AppCustomRouteRecordRa
   const path = generateRoutePath(parentPath, children[0].path);
   // 递归子节点
   if (children[0].children) return getRedirect(path, children[0].children);
+
+  return path;
 }
 /**
  * generateRoutePath
