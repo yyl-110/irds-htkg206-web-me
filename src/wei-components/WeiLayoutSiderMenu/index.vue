@@ -109,18 +109,68 @@ const selectedKeys = ref<string[]>([route.path]);
 /** 菜单栏是否显示在顶部(默认显示在左侧) */
 const menuPosition: 'top' | 'left' = import.meta.env.VITE_APP_MENU_POSITION || 'left';
 const openKeys = ref<string[]>(['10']);
+
+/** 在菜单树中查找目标 path，返回需展开的父级 path（不含叶子自身） */
+function findMenuAncestorKeys(targetPath: string): string[] {
+  const tree = menuRoutes.value;
+  const result: string[] = [];
+
+  function dfs(nodes: MenuRoute[] | undefined, ancestorPaths: string[]): boolean {
+    if (!nodes?.length) return false;
+    for (const node of nodes) {
+      if (node.meta?.hidden) continue;
+      const p = node.path;
+      if (p === targetPath) {
+        result.push(...ancestorPaths);
+        return true;
+      }
+      const children = node.children?.filter(c => !c.meta?.hidden) as MenuRoute[] | undefined;
+      if (children?.length && dfs(children, [...ancestorPaths, p])) return true;
+    }
+    return false;
+  }
+
+  dfs(tree, []);
+  return result;
+}
+
 /** init menu state */
 function initMenuState() {
-  if (menuPosition === 'left') openKeys.value = route.matched.map(m => m.path);
-  const activeMenu = route.meta?.activeMenu as string | undefined;
-  selectedKeys.value = [activeMenu || route.matched[route.matched.length - 1].path];
+  const r = route;
+  let selectedPath = r.matched[r.matched.length - 1]?.path ?? r.path;
+
+  const metaActiveMenu = r.meta?.activeMenu as string | undefined;
+  if (metaActiveMenu) {
+    selectedPath = metaActiveMenu;
+  } else if (r.name === 'ProductProjectEditor') {
+    const q = r.query.activeMenu;
+    if (typeof q === 'string' && q.length) {
+      try {
+        selectedPath = decodeURIComponent(q);
+      } catch {
+        /* keep selectedPath */
+      }
+    }
+  }
+
+  if (menuPosition === 'left') {
+    const useMenuHighlight =
+      !!metaActiveMenu || (r.name === 'ProductProjectEditor' && typeof r.query.activeMenu === 'string' && r.query.activeMenu.length > 0);
+    if (useMenuHighlight) {
+      openKeys.value = findMenuAncestorKeys(selectedPath);
+    } else {
+      openKeys.value = r.matched.map(m => m.path);
+    }
+  }
+
+  selectedKeys.value = [selectedPath];
 }
 
 initMenuState();
 
 watch(
-  () => route.path,
-  () => initMenuState()
+  () => [route.path, route.fullPath, route.name, route.query.activeMenu, route.meta?.activeMenu] as const,
+  () => initMenuState(),
 );
 
 /**

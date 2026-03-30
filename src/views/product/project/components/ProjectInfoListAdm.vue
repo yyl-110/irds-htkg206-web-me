@@ -1,79 +1,99 @@
 <script lang="ts" setup>
-import { nextTick, reactive, ref } from 'vue';
+import { h, onActivated, onMounted, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
-import { useDateRangeParams } from '@/hooks/useDate';
 import { useRender } from '@/components/escape';
-import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
-import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
+import { ProjectPageRequestDTOModel } from '@/api/models/project/ProjectPageRequestDTOModel';
+import { AdminApiProductTemp } from '@/api/tags/project/项目信息后台';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import Empty from '@/components/Empty/index.vue';
 import { sortermethod } from '@/utils/tools';
 const addOrUpdateModel = ref<any>(null);
+const PROJECT_EDITOR_DRAFT_KEY = 'project-info-editor-draft';
+const PROJECT_LIST_REFRESH_FLAG = 'project-info-list-refresh';
+
+const router = useRouter();
+const route = useRoute();
 
 const userStore = useUserStore();
 const loading = ref<boolean>(false);
 const categoryid = ref<string>('');
-/** 是否显示 新增 / 编辑 弹窗 */
-const visibleNoticeEditor = ref<boolean>(false);
+const categoryName = ref<string>('');
 const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
   {
     title: WeiI18n.$t('项目编号'),
-    dataIndex: 'title',
-    key: 'title',
+    dataIndex: 'projectNum',
+    key: 'projectNum',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.title, b.title),
+    sorter: (a: any, b: any) => sortermethod(a.projectNum, b.projectNum),
     width: 200,
   },
   {
     title: WeiI18n.$t('项目名称'),
-    dataIndex: 'type',
-    key: 'type',
+    dataIndex: 'projectName',
+    key: 'projectName',
     align: 'center',
     resizable: true,
     width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.type, b.type),
+    sorter: (a: any, b: any) => sortermethod(a.projectName, b.projectName),
   },
-  
   {
-    title: WeiI18n.$t('状态'),
-    dataIndex: 'status',
-    key: 'status',
+    title: WeiI18n.$t('平台'),
+    dataIndex: 'productPlatform',
+    key: 'tproductPlatformype',
     align: 'center',
     resizable: true,
-    ellipsis: true,
-    width: 80,
-    sorter: (a: any, b: any) => sortermethod(a.status, b.status),
+    width: 150,
+    sorter: (a: any, b: any) => sortermethod(a.productPlatform, b.productPlatform),
+  },
+  {
+    title: WeiI18n.$t('密级'),
+    dataIndex: 'confidentialLevel',
+    key: 'confidentialLevel',
+    align: 'center',
+    resizable: true,
+    width: 150,
+    sorter: (a: any, b: any) => sortermethod(a.confidentialLevel, b.confidentialLevel),
+  },
+  {
+    title: WeiI18n.$t('项目状态'),
+    dataIndex: 'projectStatus',
+    key: 'projectStatus',
+    align: 'center',
+    resizable: true,
+    width: 150,
+    sorter: (a: any, b: any) => sortermethod(a.projectStatus, b.projectStatus),
+  },
+  {
+    title: WeiI18n.$t('关联模板'),
+    dataIndex: 'productTempName',
+    key: 'productTempName',
+    align: 'center',
+    resizable: true,
+    width: 150,
+    sorter: (a: any, b: any) => sortermethod(a.productTempName, b.productTempName),
   },
   {
     title: WeiI18n.$t('创建人'),
-    dataIndex: 'type',
-    key: 'type',
+    dataIndex: 'creatorName',
+    key: 'creatorName',
     align: 'center',
     resizable: true,
     width: 150,
-    sorter: (a: any, b: any) => sortermethod(a.type, b.type),
-  },
-  {
-    title: WeiI18n.$t('项目负责人'),
-    dataIndex: 'type',
-    key: 'type',
-    align: 'center',
-    resizable: true,
-    width: 150,
-    sorter: (a: any, b: any) => sortermethod(a.type, b.type),
+    sorter: (a: any, b: any) => sortermethod(a.creatorName, b.creatorName),
   },
   {
     title: WeiI18n.$t('计划开始时间'),
-    key: 'createTime',
-    dataIndex: 'createTime',
+    key: 'planStartTime',
+    dataIndex: 'planStartTime',
     align: 'center',
     resizable: true,
     width: 150,
-    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
+    sorter: (a: any, b: any) => sortermethod(a.planStartTime, b.planStartTime),
     /**
      * customRender
      * @param root0 params
@@ -85,12 +105,12 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
   },
   {
     title: WeiI18n.$t('计划完成时间'),
-    key: 'createTime',
-    dataIndex: 'createTime',
+    key: 'planEndTime',
+    dataIndex: 'planEndTime',
     align: 'center',
     resizable: true,
     width: 150,
-    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
+    sorter: (a: any, b: any) => sortermethod(a.planEndTime, b.planEndTime),
     /**
      * customRender
      * @param root0 params
@@ -101,16 +121,17 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     },
   },
   {
-    title: WeiI18n.$t('操作'),
+    title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
+    key: 'operation',
     align: 'left',
-    width: 220,
+    width: 120,
+    fixed: 'right',
   },
-  {},
+  { fixed: 'right', width: 1 },
 ]);
 /** 列表请求参数 */
-const requestParams = reactive(new NoticePageRequestDTOModel());
-requestParams.releaseFlag = 0;
+const requestParams = reactive(new ProjectPageRequestDTOModel());
 requestParams.userid = userStore.getUser.id;
 /** 初始化绑定分页请求参数 */
 const { pagination } = usePagination(requestParams, getResources);
@@ -120,11 +141,6 @@ pagination.showQuickJumper = false;
 
 /** 列表数据 */
 const resources = ref<Array<NoticeInfoRequestDTOModel>>([]);
-
-// onMounted(() => {
-//   getResources();
-// });
-
 function handleResizeColumn(w, col) {
   col.width = w;
 }
@@ -135,7 +151,7 @@ async function getResources() {
   try {
     requestParams.currentPage = requestParams.pageNo;
     requestParams.numberPage = requestParams.pageSize;
-    const res = await AdminApiSystemNotice.getNoticePageList({
+    const res = await AdminApiProductTemp.getProjectPageList({
       ...requestParams,
     });
     console.log(res);
@@ -146,24 +162,13 @@ async function getResources() {
   }
 }
 /**
- * 详情查看页面
- */
-async function seeDetailFun(id: string) {
-  
-}
-
-
-
-/**
  * 删除公告
  * @param id id
  */
 async function handleDelete(id: string) {
-  await AdminApiSystemNotice.deleteNotice({ id });
+  await AdminApiProductTemp.deleteNotice({ id });
   message.success(WeiI18n.$t('删除成功'));
   getResources();
-  //   },
-  // })
 }
 
 const locale = ref({
@@ -176,49 +181,57 @@ const locale = ref({
   }),
 });
 
-
 /**
- * 添加数据和编辑页面
+ * 跳转项目信息创建/编辑页（返回时回到当前列表）
  */
-async function noticeAdd(record?: any) {
-  visibleNoticeEditor.value = true;
-  if (record) {
-    requestParams.id = record.id;
-    const res = await AdminApiSystemNotice.getNoticeInfoById({ ...requestParams });
-    console.log(res);
-    let data = res.data.data.systemNoticeInfoBaseDTO;
-    let filedata = res.data.data;
-    nextTick(() => {
-      addOrUpdateModel.value?.noticeInfoAddOrUpdate(data, filedata);
-    });
+function noticeAdd(record?: any) {
+  const query: Record<string, string> = {
+    from: encodeURIComponent(route.fullPath),
+    /** 供侧栏保持「协同设计」等上级菜单选中 */
+    activeMenu: encodeURIComponent(route.path),
+  };
+  if (record?.id != null && record.id !== '') {
+    sessionStorage.setItem(PROJECT_EDITOR_DRAFT_KEY, JSON.stringify(record));
+    query.id = String(record.id);
   } else {
-    nextTick(() => {
-      addOrUpdateModel.value?.noticeInfoAddOrUpdate();
-    });
+    sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
+    query.categoryName = categoryName.value;
+    query.categoryId = categoryid.value;
   }
+  router.push({ name: 'ProductProjectEditor', query });
 }
 function handleFinish() {
   getResources();
 }
 
-function getResourcesByParent(categoryids: any) {
+function getResourcesByParent(categoryids: any, categoryNames: any) {
   categoryid.value = categoryids;
+  categoryName.value = categoryNames;
   getResources();
 }
 
+/** 从项目编辑页返回或保存后回到本页时刷新列表 */
+function refreshListIfReturnedFromEditor() {
+  if (sessionStorage.getItem(PROJECT_LIST_REFRESH_FLAG) === '1') {
+    sessionStorage.removeItem(PROJECT_LIST_REFRESH_FLAG);
+    getResources();
+  }
+}
 
+onMounted(refreshListIfReturnedFromEditor);
+onActivated(refreshListIfReturnedFromEditor);
 
 defineExpose({ getResourcesByParent });
-
 </script>
 
 <template>
   <div class="drawerContent">
     <a-card>
       <a-form layout="inline" :label-col="{ style: { width: '70px' } }" :model="requestParams">
-        <a-input v-model:value="requestParams.title" style="width: 220px" allow-clear :placeholder="$t('请输入项目编号')" />
-        <a-input v-model:value="requestParams.title" style="width: 220px;margin-left: 20px;" allow-clear :placeholder="$t('请输入项目名称')" />
-        <a-select allowClear style="width: 220px;margin-left: 20px;" :placeholder="$t('请选择项目类型')"> 
+        <a-input v-model:value="requestParams.projectNum" style="width: 220px" allow-clear :placeholder="$t('请输入项目编号')" />
+        <a-input v-model:value="requestParams.projectName" style="width: 220px; margin-left: 20px" allow-clear :placeholder="$t('请输入项目名称')" />
+        <a-select v-model:value="requestParams.projectstatus" allowClear style="width: 220px; margin-left: 20px" :placeholder="$t('请选择项目类型')">
+          <a-select-option value=""> {{ $t('全部') }} </a-select-option>
           <a-select-option value="1"> {{ $t('待启动') }} </a-select-option>
           <a-select-option value="2"> {{ $t('工作中') }} </a-select-option>
           <a-select-option value="3"> {{ $t('已完成') }} </a-select-option>
@@ -237,7 +250,7 @@ defineExpose({ getResourcesByParent });
 
     <a-card class="mt-[10px] b-body2">
       <a-table
-        :scroll="{ x: 1200 }"
+        :scroll="{ x: 1200, y: 500 }"
         :row-key="(record: any) => record.id"
         :columns="columns"
         :locale="locale"
@@ -250,7 +263,6 @@ defineExpose({ getResourcesByParent });
           <template v-if="column.dataIndex === 'name'">
             {{ record.name }}
           </template>
-
           <template v-else-if="column.dataIndex === 'status'">
             <span>
               <a-tag v-if="record.status === '0'">{{ $t('未发布') }}</a-tag>
@@ -258,21 +270,17 @@ defineExpose({ getResourcesByParent });
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'operation'">
-            <a @click="seeDetailFun(record.id)">{{ $t('查看') }}</a>
-            <a-divider type="vertical" />
             <a @click="noticeAdd(record)">{{ $t('编辑') }}</a>
-
             <a-divider type="vertical" />
             <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
               <a-button type="link" danger class="p-0">
                 {{ $t('删除') }}
               </a-button>
             </a-popconfirm>
-            <a-divider type="vertical" />
           </template>
         </template>
       </a-table>
-      </a-card>
+    </a-card>
   </div>
 </template>
 

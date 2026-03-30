@@ -118,6 +118,28 @@ export const routes: RouteRecordRaw[] = [
       // },
     ],
   },
+  /** 不在菜单中展示：项目信息创建/编辑全页 */
+  {
+    name: 'InternalApp',
+    path: '/internal',
+    component: () => import('@/views/Main.vue'),
+    meta: {
+      hidden: true,
+      title: '内部',
+    },
+    children: [
+      {
+        path: 'project-info-editor',
+        name: 'ProductProjectEditor',
+        component: () => import('@/views/product/project/components/form/ProjectInfoEditor.vue'),
+        meta: {
+          hidden: true,
+          title: '项目信息创建',
+          noCache: true,
+        },
+      },
+    ],
+  },
 ];
 
 // 当在开发环境或构建为 Demo 站点时加入 Demo 路由页面

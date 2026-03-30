@@ -217,13 +217,25 @@ onBeforeMount(() => {
         <a-layout-content
           class="layout-container"
           v-overlay-scrollbar
-          :class="!layoutStore.homepage ? 'p-[16px] pt-[16px] overflow-y-hidden' : ''">
-          <pre style="display: none">{{ caches }}</pre>
-          <router-view v-slot="{ Component, route }">
-            <keep-alive :include="caches">
-              <component :is="wrap(Component, route)" />
-            </keep-alive>
-          </router-view>
+          :class="[
+            !layoutStore.homepage && route.name === 'ProductProjectEditor'
+              ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--editor-fill'
+              : !layoutStore.homepage
+                ? 'p-[16px] pt-[16px] overflow-y-hidden'
+                : '',
+          ]">
+          <div
+            class="layout-router-host"
+            :class="{
+              'layout-router-host--fill': !layoutStore.homepage && route.name === 'ProductProjectEditor',
+            }">
+            <pre style="display: none">{{ caches }}</pre>
+            <router-view v-slot="{ Component, route }">
+              <keep-alive :include="caches">
+                <component :is="wrap(Component, route)" />
+              </keep-alive>
+            </router-view>
+          </div>
         </a-layout-content>
         <!-- 页脚栏, 一般用于显示操作按钮 -->
         <a-layout-footer
@@ -395,6 +407,35 @@ onBeforeMount(() => {
 
 .layout-container {
   height: calc(100vh - 104px);
+}
+
+/** 项目信息创建页：主内容区铺满白底，避免透出外层 #f3f2f7 灰边 */
+.layout-container.layout-container--white {
+  background-color: #fff;
+}
+
+/** 项目信息编辑页：高度交给内部，由表单区滚动，标签与底部按钮固定 */
+.layout-container.layout-container--editor-fill {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.layout-router-host--fill {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.layout-router-host--fill :deep(.route-page-wrapper) {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .ant-layout {
