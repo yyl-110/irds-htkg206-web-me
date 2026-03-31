@@ -513,6 +513,7 @@ function recursiveMapWithAction(tree: any) {
     return Promise.resolve(tree);
   }
 }
+//打开二维图
 function openEwt(data: any) {
   if (data.length == 1) {
     openDrawing(instance, data[0].para1);

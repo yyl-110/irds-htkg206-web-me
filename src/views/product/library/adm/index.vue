@@ -192,13 +192,14 @@ function handleClosePowModal() {
 
 /** 属性配置弹窗请求关闭时：先询问是否保存，确定则保存后关闭，取消则仅关闭 */
 function handleRequestClosePowModal() {
-  Modal.confirm({
-    title: WeiI18n.$t('是否保存当前配置？'),
-    okText: WeiI18n.$t('确定'),
-    cancelText: WeiI18n.$t('取消'),
-    onOk: () => savePropertyConfig(),
-    onCancel: () => handleClosePowModal(),
-  });
+  powVisible.value = false;
+  // Modal.confirm({
+  //   title: WeiI18n.$t('是否保存当前配置？'),
+  //   okText: WeiI18n.$t('确定'),
+  //   cancelText: WeiI18n.$t('取消'),
+  //   onOk: () => savePropertyConfig(),
+  //   onCancel: () => handleClosePowModal(),
+  // });
 }
 
 function handleCloseAddModal() {

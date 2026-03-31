@@ -4,7 +4,7 @@ var wsServer = 'ws://localhost:8080'; //服务器地址 "ws://IP:端口"
 var ws = new WebSocket(wsServer); //创建WebSocket对象
 import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
 //206项目 true 需要先去服务器下载,其它项目false
-var casicProject = false;
+var casicProject = true;
 import { message } from 'ant-design-vue';
 function ReceiveMessage() {
   return new Promise(resolve => {
@@ -47,7 +47,7 @@ async function openModuleInfo(modelNum, modelType, newModelName, commonName, par
       commonName +
       '","Parameters":[' +
       parametersStr +
-      ']}}'
+      ']}}',
   );
   ret = await ReceiveMessage();
   console.log('ret-------' + ret);
@@ -628,7 +628,7 @@ async function ApiOpenTopAsmTemplateInterface(modelNum, modelType, NewTopAsmName
       '","Parameters":[' +
       parametersStr +
       ']}}',
-    '打印结果'
+    '打印结果',
   );
   var ret;
   SendMessage(
@@ -640,7 +640,7 @@ async function ApiOpenTopAsmTemplateInterface(modelNum, modelType, NewTopAsmName
       PtcCommonName +
       '","Parameters":[' +
       parametersStr +
-      ']}}'
+      ']}}',
   );
   ret = await ReceiveMessage();
   console.log('ret-------+' + ret);
@@ -662,7 +662,7 @@ async function ApiRenameModel(modelNum, modelType, newModuleNum) {
   };
   var ret;
   SendMessage(
-    '{"ApiName":"ApiRenameModel","Arguments":{"OldModelName":"' + modelNum + '","ModelType":"' + modelType + '","NewModelName":"' + newModuleNum + '","PtcCommonName":""}}'
+    '{"ApiName":"ApiRenameModel","Arguments":{"OldModelName":"' + modelNum + '","ModelType":"' + modelType + '","NewModelName":"' + newModuleNum + '","PtcCommonName":""}}',
   );
   ret = await ReceiveMessage();
   return ret;
@@ -690,7 +690,7 @@ async function ApiExtHoleCheck(minDist1, minDist2, holeEdges) {
   var ret;
   SendMessage(
     //
-    '{"ApiName":"ApiExtHoleCheck","Arguments":{"minDist1":"' + minDist1 + '","minDist2":"' + minDist2 + '","holeEdges":"' + holeEdges + '"}}'
+    '{"ApiName":"ApiExtHoleCheck","Arguments":{"minDist1":"' + minDist1 + '","minDist2":"' + minDist2 + '","holeEdges":"' + holeEdges + '"}}',
   );
   ret = await ReceiveMessage();
   return ret;
@@ -747,7 +747,7 @@ async function ApiExtOpenModel(filename) {
   var ret;
   SendMessage(
     //
-    '{"ApiName":"ApiExtOpenModel","Arguments":{"filename":"' + filename + '"}}'
+    '{"ApiName":"ApiExtOpenModel","Arguments":{"filename":"' + filename + '"}}',
   );
   ret = await ReceiveMessage();
   return ret;
@@ -791,7 +791,7 @@ async function compressedFileAndAsm(that, compressedData, asmModuleData) {
           asmModuleData.parentAsmName,
           asmModuleData.newModelName,
           asmModuleData.commonName,
-          asmModuleData.parametersStr
+          asmModuleData.parametersStr,
         );
         var jsons = eval('(' + data + ')');
         resolve(jsons);
@@ -802,7 +802,7 @@ async function compressedFileAndAsm(that, compressedData, asmModuleData) {
           asmModuleData.parentAsmName,
           asmModuleData.newModelName,
           asmModuleData.commonName,
-          asmModuleData.parametersStr
+          asmModuleData.parametersStr,
         );
         var jsons = eval('(' + data + ')');
         resolve(jsons);
