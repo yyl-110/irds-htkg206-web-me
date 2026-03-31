@@ -158,7 +158,7 @@ const handlePreview = async (_index: number, row: any) => {
 const handleDownFile = async (_index: number, row: any) => {
   const res = await getFileInfo({ id: row.id });
   const name = res.data.data.realFileName;
-  window.location.href = baseUrl + '/knowledge-server/tbea/bzw/downloadFile?realFileName=' + name;
+  window.location.href = baseUrl + '/knowledge-service/tbea/bzw/downloadFile?realFileName=' + name;
 };
 
 // 分页/排序变更
