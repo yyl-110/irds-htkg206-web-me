@@ -15,9 +15,10 @@
   --main-operation5-width: 250; //   操作列宽度------(查看、编辑、删除、开关)------------    5个操作按钮
   --main-operation6-width: 380; //   操作列宽度------(查看、编辑、删除、开关、提交、驳回、变更)------------    6个操作按钮
 
-  --ant-primary-color: #124DD6!important; // ant主题色
-  --ant-primary-color-hover: #124DD6!important;
-  --ant-primary-color-active: #124DD6!important;
+  --ant-primary-color: #124dd6 !important; // ant主题色
+  --ant-primary-color-hover: #124dd6 !important;
+  --ant-primary-color-active: #124dd6 !important;
+  --ant-primary-5: #124dd6 !important;
 
   // --ant-primary-color: #1677FF!important; // ant主题色
   // --ant-primary-color-hover: #1677FF!important;
@@ -104,7 +105,7 @@
 /** ant 原生表格样修改 */
 /* 修改表头背景颜色 */
 .ant-table-thead > tr > th {
-  background-color: #F7F8FB;
+  background-color: #f7f8fb;
   color: #313133;
 }
 
@@ -157,22 +158,35 @@
 /**  tree 组件选中颜色 **/
 .ant-tree-treenode-selected:before {
   // background: #94BFFF !important;
-  background: #6aa1ff !important;
+  background: transparent !important;
 }
 
 // 解决树结构悬浮样式冲突问题
 .ant-tree-block-node {
   .ant-tree-treenode-selected:hover:before {
-    background: #6aa1ff !important;
+    background: transparent !important;
 
     &:hover:before {
-      background: #6aa1ff !important;
+      background: transparent !important;
     }
   }
 }
+.ant-tree {
+  color: #6a696e;
+  .ant-tree-switcher_close {
+    color: #d3d2d9 !important;
+  }
+  .ant-tree-switcher_open {
+    color: #d3d2d9 !important;
+  }
+}
 
+.ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background: #e3ecff !important;
+  color: #124dd6 !important;
+}
 .ant-tree-treenode:hover:before {
-  background: #e6f1ff !important;
+  background: transparent !important;
 }
 
 .ant-drawer-body {
@@ -241,4 +255,24 @@ body {
   text-align: center;
   font-style: normal;
   text-transform: none;
+}
+
+/* 表格 */
+.ant-table {
+  font-size: 12px;
+  color: #313133;
+}
+
+.ant-input-affix-wrapper {
+  height: 32px;
+}
+.ant-input {
+  border-color: #d5d8dd;
+
+  &::placeholder {
+    font-size: 12px;
+  }
+}
+.ant-select-selector {
+  height: 32px !important;
 }
