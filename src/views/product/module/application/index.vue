@@ -31,6 +31,7 @@ const userStore = useUserStore();
 const titleVisible = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const titleList = ref<any>([]);
+const titleListA = ref<any>([]);
 const categoryid = ref<string>('');
 const menuId = ref<string>('');
 const permissionTypes = ref<string>('');
@@ -634,6 +635,16 @@ async function editTreeData(nodeList: any) {
   message.success(WeiI18n.t('修改成功').value);
   Selectafterchanges();
 }
+function filterTitleListForDrawer(list: any[]): any[] {
+  if (!Array.isArray(list)) return [];
+  return list.map(item => {
+    const levelTwoChildren = Array.isArray(item?.children) ? item.children.filter((child: any) => child?.categoryType == 2) : [];
+    return {
+      ...item,
+      children: levelTwoChildren,
+    };
+  });
+}
 
 /** 重新加载树结构 */
 async function reloadTree() {
@@ -658,6 +669,8 @@ async function getMenuListData() {
       ...requestModuleParams,
     });
     titleList.value = res.data.data;
+    titleListA.value = res.data.data;
+    titleList.value = filterTitleListForDrawer(res.data.data);
     // 处理返回的数据格式
   } catch (error) {
     console.error('获取树数据失败:', error);
@@ -707,7 +720,7 @@ async function getCategory(categoryId: any) {
   if (!path || path.length === 0) {
     const res = await AdminApiSystemModule.getCategoryInfoByChirdrenId({ id: categoryId });
     const fallbackId = String(res?.data?.data?.id ?? '');
-    const matchedTitleItem = findTitleItemById(titleList.value, fallbackId);
+    const matchedTitleItem = findTitleItemById(titleListA.value, fallbackId);
     if (matchedTitleItem) {
       changeTitleModule2(matchedTitleItem, categoryId);
       return;
@@ -943,7 +956,8 @@ watch(
     <div v-for="(item, index) in titleList" :key="index">
       <p style="margin-left: 15px; margin-top: 10px">
         <EpcIcon type="icon-caidan" style="font-size: 12px" />
-        <b style="margin-left: 10px">{{ item.categoryName }}</b>
+        <a style="margin-left: 10px" class="menuLi2" v-if="item.children.length == 0" @click="changeTitleModule(item)">{{ item.categoryName }}</a>
+        <b style="margin-left: 10px" v-else>{{ item.categoryName }}</b>
       </p>
       <div style="width: 400px; display: flex; flex-wrap: wrap; margin-left: 30px">
         <div v-for="(item2, index2) in item.children" :key="index2" style="width: 130px; padding: 0 0 20px 0; cursor: pointer" @click="changeTitleModule(item2)">
@@ -1002,6 +1016,14 @@ watch(
   color: rgba(0, 0, 0, 0.85);
 }
 .menuLi:hover {
+  margin-left: 5px;
+  color: #165dff;
+}
+.menuLi2 {
+  margin-left: 5px;
+  color: rgba(0, 0, 0, 0.993);
+}
+.menuLi2:hover {
   margin-left: 5px;
   color: #165dff;
 }
