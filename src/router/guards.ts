@@ -18,7 +18,7 @@ export function initRouteGrauds(router: Router) {
     const isUpdatePassCheck = Cookies.get('IsUpdatePassCheck');
     // start()
     // loadStart()
-    if (getAccessToken() && isUpdatePassCheck !== '1' && (localStorage.getItem('isMobile') === '1' || localStorage.getItem('isMobile') === null)) {
+    if (getAccessToken() && isUpdatePassCheck !== '1') {
       // 如果是单点登录系统，没有其他页面权限 则直接跳转到首页或者404页面
       if (layoutStore.systemType === 'other' || layoutStore.systemType === 'outEpc') {
         const routerList = layoutStore.systemType === 'other' ? singleWhiteList1 : singleWhiteList2;

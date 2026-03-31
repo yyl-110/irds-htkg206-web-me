@@ -53,7 +53,7 @@ onMounted(() => {
 
 <style lang="less" scoped>
   .work_nav_top{
-    margin-left:20px;
+    padding: 16px;
   }
 
   :deep(.ant-tabs-nav) {

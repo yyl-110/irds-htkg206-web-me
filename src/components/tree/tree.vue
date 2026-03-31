@@ -544,7 +544,7 @@ defineExpose({
         </div>
       </div>
     </div>
-    <div>
+    <div class="mt-[10px]">
       <!-- {{ selectedKeys }}--选中节点 {{ newExpandedKeys }}--展开节点 -->
       <a-directory-tree
         v-model:selected-keys="selectedKeys"
@@ -649,7 +649,8 @@ defineExpose({
     align-items: center;
     justify-content: space-between;
     border-bottom: 0.0625rem solid #f1f1f1;
-    padding-bottom: 0.625rem;
+    padding: 0 10px;
+    padding-bottom: 10px;
 
     .icon {
       font-size: 1.125rem;

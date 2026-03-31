@@ -385,7 +385,7 @@ const goBack = () => {
             color: #fff;
             position: absolute;
             top: 159px;
-            left: 38px;
+            left: 150px;
             font-size: 16px;
             width: 100px;
             text-align: center;
@@ -399,7 +399,7 @@ const goBack = () => {
             color: #fff;
             position: absolute;
             top: 215px;
-            left: 27px;
+            left: 145px;
             cursor: pointer;
             width: 126px;
             text-align: center;

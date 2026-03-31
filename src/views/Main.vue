@@ -225,7 +225,7 @@ onBeforeMount(() => {
                 : '',
           ]">
           <div
-            class="layout-router-host"
+            class="layout-router-host h-full"
             :class="{
               'layout-router-host--fill': !layoutStore.homepage && route.name === 'ProductProjectEditor',
             }">

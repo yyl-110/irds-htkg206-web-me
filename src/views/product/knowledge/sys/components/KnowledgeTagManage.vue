@@ -1,348 +1,95 @@
 <script setup lang="ts">
-import { inject, nextTick, reactive, ref, h } from 'vue';
-import { computed } from 'vue';
-import { Pane, Splitpanes } from 'splitpanes';
-import type { TableColumnType, TableProps } from 'ant-design-vue';
-import { message, Tooltip } from 'ant-design-vue';
-import { useForm } from 'ant-design-vue/es/form';
-import { AdminApiSystemMenu } from '@/api/tags/管理后台菜单';
-import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
-import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
-import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
-import { WeiI18n } from '@/utils/WeiI18n';
-import { sortermethod, findNodeByIdFromKey } from '@/utils/tools';
-import { ParameterPageRequestDTOModel } from '@/api/models/parameter/ParameterPageRequestDTOModel';
-import { ParameterInfoRequestDTOModel } from '@/api/models/parameter/ParameterInfoRequestDTOModel';
-import Empty from '@/components/Empty/index.vue';
-import { EpcIcon } from '@/components/icon/EpcIcon';
-import Tree from '@/components/tree/tree.vue';
-import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/ProductModuleTreeInfoRequestDTOModel';
-import { useUserStore } from '@/store/modules/user';
-import { downloadFileFromStream } from '@/utils/file';
-import ImportFile from '@/components/ImportFile/index.vue';
-import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-import CkeditorPlugin from '@/components/Ckeditor/index.vue';
-import { ShareAltOutlined } from '@ant-design/icons-vue';
+import { inject, nextTick, reactive, ref, h } from "vue";
+import { computed } from "vue";
+import { Pane, Splitpanes } from "splitpanes";
+import type { TableColumnType, TableProps } from "ant-design-vue";
+import { message, Tooltip } from "ant-design-vue";
+import { useForm } from "ant-design-vue/es/form";
+import { AdminApiSystemMenu } from "@/api/tags/管理后台菜单";
+import { AdminApiSystemProduct } from "@/api/tags/product/产品平台后台";
+import { AdminApiSystemParameter } from "@/api/tags/parameter/系统参数管理";
+import type { MenuResponseDTOModel } from "@/api/models/MenuResponseDTOModel";
+import { WeiI18n } from "@/utils/WeiI18n";
+import { sortermethod, findNodeByIdFromKey } from "@/utils/tools";
+import { ParameterPageRequestDTOModel } from "@/api/models/parameter/ParameterPageRequestDTOModel";
+import { ParameterInfoRequestDTOModel } from "@/api/models/parameter/ParameterInfoRequestDTOModel";
+import Empty from "@/components/Empty/index.vue";
+import Tree from "@/components/tree/tree.vue";
+import { useUserStore } from "@/store/modules/user";
+import { knowledgeTagList, removeTag, sortTag } from "@/api/knowledge";
+import addAndEditTag from "./add-and-edit-tag.vue";
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
 };
 
+interface ITreeParams {
+  tagType: string;
+  parentId: string;
+}
+
 // 树结构相关属性
 const treeData = ref<any[]>([]);
-const selectedKeys = ref<string>('');
+const selectedKeys = ref<string>("");
 const expandedKeys = ref<any>();
 const treePage = ref<any>(null);
-const showLeft = ref<boolean>(true);
 const loadingTree = ref<boolean>(false);
-const selectTreeId = ref<string>('');
-const treeNodeColmoun = ref<any[]>([]);
-const selectBoomTreeRef = ref<any>(null);
 const userStore = useUserStore();
-const parameterName = ref<string>('');
-const parameterNum = ref<string>('');
-const selectNodeKeys = ref<string>('');
+const parameterName = ref<string>("");
+const parameterNum = ref<string>("");
+const selectNodeKeys = ref<string>("");
 const currentNode = ref<any>();
-/** 删除按钮状态 */
-const deleteFlag = computed(() => {
-  return selectedRowList.value?.length === 0;
+
+const addAndEditTagRef = ref(null);
+
+const treeRequestParams = reactive<ITreeParams>({
+  tagType: "1",
+  parentId: "0",
 });
-/** 列表请求参数 */
-const requestParams = reactive(new ParameterPageRequestDTOModel());
 
-const treeRequestParams = reactive(new ProductModuleTreeInfoRequestDTOModel());
-
-/** 列表数据 */
-const datasource = ref<Array<ParameterInfoRequestDTOModel>>([]);
 const rawTreeData = ref<Array<any>>([]); // 保存完整的原始树数据
 
-treeRequestParams.userid = userStore.getUser.id;
-
-/** 初始化绑定分页请求参数 */
-const { pagination } = usePagination(requestParams, loadParameterListData);
-pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
-pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
-pagination.showQuickJumper = false;
-
-// eslint-disable-next-line jsdoc/check-indentation
-/**  获取共同的 operation 操作属性  */
-const operationWidth = computed<number>(() => {
-  const root = document.querySelector(':root');
-  const width = getComputedStyle(root).getPropertyValue('--main-operation3-width');
-  return Number(width);
-});
 /** 升序降序提示  */
 const locale = ref({
-  cancelSort: WeiI18n.t('点击取消排序').value,
-  triggerAsc: WeiI18n.t('点击升序').value,
-  triggerDesc: WeiI18n.t('点击降序').value,
+  cancelSort: WeiI18n.t("点击取消排序").value,
+  triggerAsc: WeiI18n.t("点击升序").value,
+  triggerDesc: WeiI18n.t("点击降序").value,
   emptyText: h(Empty, {
-    description: '数据为空',
-    style: { paddingBottom: '50px' },
+    description: "数据为空",
+    style: { paddingBottom: "50px" },
   }),
 });
-// 声明表格类型
-interface DataType {
-  // id: Key
-  objType: string;
-  objId: string;
-  amount: number;
-  buyFlag?: boolean;
-}
-const { resetFields } = useForm(requestParams);
-/** 勾选表格数据源  */
-const selectedRowList = ref<any>([]);
 const selectedRowkeys = ref<any>([]);
-/** 表格勾选事件 */
-const rowSelection = computed(() => {
-  /**
-   * @param selectedRowKeys 选中的行数量
-   * @param selectedRows  选中的行数据
-   */
-  return {
-    selectedRowKeys: selectedRowkeys.value,
-    onChange: (selectedRowKeys: string[], selectedRows: DataType[]) => {
-      selectedRowList.value = selectedRows;
-      selectedRowkeys.value = selectedRowKeys;
-    },
-  };
-});
-function customRow(record: any) {
-  return {
-    onClick: () => {
-      const selectedRowKeys = [...selectedRowkeys.value];
-      const selectedRows = [...selectedRowList.value];
-      const key = record.id;
-      if (selectedRowKeys.includes(key)) {
-        // 如果已选中则取消选中
-        selectedRowkeys.value = selectedRowKeys.filter(k => k !== key);
-      } else {
-        // 如果未选中则选中
-        selectedRowkeys.value = [...selectedRowKeys, key];
-      }
-      const sameIdKeys = selectedRows.map((item: any) => item.id);
-      if (sameIdKeys.includes(key)) {
-        // 如果已选中则取消选中
-        selectedRowList.value = selectedRows.filter(item => item.id !== key);
-      } else {
-        // 如果未选中则选中
-        selectedRowList.value = [...selectedRows, record];
-      }
-    },
-  };
-}
-const visible = ref<boolean>(false);
-const updateVisible = ref<boolean>(false);
-const loading = ref<boolean>(false);
-const exportLoading = ref<boolean>(false);
-const addModel = ref<InstanceType<typeof ParameterInfoRequestDTOModel>>();
-const updateModel = ref<InstanceType<typeof ParameterInfoRequestDTOModel>>();
-const treeDataTranslate: any = inject('treeDataTranslate');
-const columns = ref<TableColumnType<Menus>[]>([
-  {
-    title: WeiI18n.$t('参数名称'),
-    dataIndex: 'parameterName',
-    key: 'parameterName',
-    align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.parameterName, b.parameterName),
-    width: 230,
-  },
-  {
-    title: WeiI18n.$t('参数代号'),
-    dataIndex: 'parameterNum',
-    key: 'parameterNum',
-    align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.parameterNum, b.parameterNum),
-    width: 260,
-  },
-  {
-    title: WeiI18n.$t('参数类型'),
-    dataIndex: 'parameterTypeStr',
-    key: 'parameterTypeStr',
-    align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.parameterTypeStr, b.parameterTypeStr),
-    width: 100,
-  },
-  {
-    title: WeiI18n.$t('参数单位'),
-    dataIndex: 'unitName',
-    key: 'unitName',
-    align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.unitName, b.unitName),
-    width: 130,
-  },
-  {
-    title: WeiI18n.$t('大小量纲'),
-    dataIndex: 'dimension',
-    key: 'dimension',
-    align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.dimension, b.dimension),
-    width: 100,
-  },
-  {
-    title: WeiI18n.$t('所属分类'),
-    dataIndex: 'categoryName',
-    key: 'categoryName',
-    align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.categoryName, b.categoryName),
-    width: 150,
-  },
-  {
-    title: WeiI18n.$t('创建人'),
-    dataIndex: 'username',
-    key: 'username',
-    align: 'center',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.username, b.username),
-    width: 150,
-  },
-  {
-    title: WeiI18n.$t('创建时间'),
-    dataIndex: 'addTime',
-    key: 'addTime',
-    align: 'center',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.addTime, b.addTime),
-    width: 130,
-  },
-  {
-    title: WeiI18n.$t('备注'),
-    dataIndex: 'remarks',
-    key: 'remarks',
-    align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.remarks, b.remarks),
-    width: 180,
-    customRender: ({ text }: { text: string }) => {
-      const display = text ?? '';
-      return h(Tooltip, { title: display, placement: 'topLeft' }, () =>
-        h(
-          'div',
-          {
-            style: {
-              maxHeight: '48px',
-              overflow: 'hidden',
-              whiteSpace: 'normal',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: '3',
-              WebkitBoxOrient: 'vertical',
-              wordBreak: 'break-word',
-            },
-          },
-          display,
-        ),
-      );
-    },
-  },
-  {
-    title: WeiI18n.$t('版本'),
-    dataIndex: 'version',
-    key: 'version',
-    align: 'center',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.version, b.version),
-    width: 130,
-    customRender: ({ record }: any) =>
-      h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '6px' } }, [
-        String('V' + (record.version ?? '-') + '.0'),
-        h(
-          'a',
-          {
-            style: { cursor: 'pointer' },
-            onClick: (e: Event) => {
-              e && (e as Event).stopPropagation();
-              showVersionHistory(record);
-            },
-            title: '查看版本历史',
-          },
-          h(EpcIcon, {
-            type: 'icon-banbenlishi',
-            style: { fontSize: '14px', color: '#1890ff' },
-          }),
-        ),
-      ]),
-  },
-  // 新增：分享知识列（点击弹窗显示富文本）
-  {
-    title: WeiI18n.$t('参数知识'),
-    dataIndex: 'knowledge',
-    key: 'knowledge_share',
-    align: 'center',
-    width: 80,
-    customRender: ({ record }: any) =>
-      h(
-        'a',
-        {
-          style: {
-            cursor: record?.knowledge ? 'pointer' : 'not-allowed',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          onClick: (e: Event) => {
-            e && (e as Event).stopPropagation();
-            if (record?.knowledge) showShareModal(record);
-          },
-          title: record?.knowledge ? '查看知识' : '暂无知识',
-        },
-        // 使用已有图标组件，若图标名不同可替换为其他 icon 类型或文案
-        h(EpcIcon, {
-          type: 'icon-fenxiang',
-          style: {
-            fontSize: '16px',
-            color: record?.knowledge ? '#1890ff' : '#bfbfbf',
-          },
-        }),
-      ),
-  },
-  {
-    title: WeiI18n.t('操作').value,
-    dataIndex: 'operation',
-    key: 'operation',
-    align: 'left',
-    width: 200,
-    fixed: 'right',
-  },
-  { fixed: 'right', width: 1 },
-]);
-
-/** 列表数据 */
-const dataSource = ref<Array<any>>([]);
-/** 获取分类数据 */
 /** 获取分类数据 */
 async function getListData(type?: string) {
   loadingTree.value = true;
   try {
     // 使用正确的API获取产品树数据
-    treeRequestParams.categoryid = '147';
-    treeRequestParams.titleid = '2';
-    const res = await AdminApiSystemProduct.getProductModuleTree(treeRequestParams);
-
+    const res = await knowledgeTagList(treeRequestParams);
     loadingTree.value = false;
     // 处理返回的数据格式
     if (res.data.code == 0 && res.data.data) {
-      const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+      const rawData = Array.isArray(res.data.data?.result)
+        ? res.data.data?.result
+        : [res.data.data?.result];
 
       // 保存原始数据
-      rawTreeData.value = rawData[0].result[0];
+      rawTreeData.value = rawData;
 
       const treeNodes = convertToTreeNodes(rawTreeData.value);
       treeData.value = treeNodes;
       // 默认选中第一个节点
       if (treeNodes.length > 0) {
         // 侦听器监听选中节点
-        selectedKeys.value = '';
+        selectedKeys.value = "";
         nextTick(() => {
           if (type) {
             if (currentNode.value.key) {
-              let rootNode = findNodeByIdFromKey(treeData.value, currentNode.value.key, 'key');
+              let rootNode = findNodeByIdFromKey(
+                treeData.value,
+                currentNode.value.key,
+                "key"
+              );
               selectNode(rootNode);
             }
           } else {
@@ -354,8 +101,8 @@ async function getListData(type?: string) {
       }
     }
   } catch (error) {
-    console.error('获取树数据失败:', error);
-    message.error('获取数据失败');
+    console.error("获取树数据失败:", error);
+    message.error("获取数据失败");
   } finally {
     loadingTree.value = false;
   }
@@ -369,11 +116,14 @@ onMounted(() => {
 function convertToTreeNodes(data: any[]): any[] {
   if (!data || !Array.isArray(data)) return [];
 
-  return data.map(item => {
+  return data.map((item) => {
     // 判断是否为根节点
-    const isRootNode = item.moduleLevel === 1 || (item.nodeRootType && item.nodeRootType.toString() === '1');
+    const isRootNode =
+      item.nodeLevel === "1" ||
+      (item.nodeRootType && item.nodeRootType.toString() === "1");
     // 判断是否有子节点
-    const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
+    const hasChildren =
+      item.children && Array.isArray(item.children) && item.children.length > 0;
 
     // 设置level值：根节点level为1，有子节点的节点level为2，没有子节点的节点level为3
     let level = 3; // 默认level为3（无子节点）
@@ -384,16 +134,17 @@ function convertToTreeNodes(data: any[]): any[] {
     }
 
     return {
-      addTreeType: item.addTreeType,
-      key: item.id?.toString() || item.tid?.toString() || '',
-      partName: item.name || item.title || '',
+      // addTreeType: item.addTreeType,
+      key: item.id?.toString() || item.tid?.toString() || "",
+      partName: item.nodeName || "",
       // 添加type字段，用于在Tree组件中区分节点类型
-      type: 'category', // 对于产品平台管理，所有节点都视为分类节点
-      nodeRootType: item.nodeRootType,
+      type: "category", // 对于产品平台管理，所有节点都视为分类节点
       nodeType: item.nodeType,
-      nodeRootId: item.nodeRootId,
-      moduleLevel: item.moduleLevel,
-      expand: item.expand,
+      nodeRootId: item.id,
+      moduleLevel: item.nodeLevel,
+      categoryId: item.categoryId,
+      categoryParentId: item.categoryParentId,
+      selectType: item.selectType,
       level: level,
       children: hasChildren ? convertToTreeNodes(item.children) : [],
     };
@@ -416,7 +167,7 @@ async function handleChangeSelectKey(searchValue: string, languageSel: string) {
 
   // 如果没有搜索结果，显示提示
   if (treeNodes.length === 0) {
-    message.info('未找到匹配的节点');
+    message.info("未找到匹配的节点");
   }
 }
 
@@ -425,13 +176,19 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
   if (!nodes || !Array.isArray(nodes)) return [];
 
   return nodes
-    .map(node => {
+    .map((node) => {
       // 检查当前节点是否匹配搜索值
-      const isMatch = (node.name && node.name.toLowerCase().includes(searchValue.toLowerCase())) || (node.title && node.title.toLowerCase().includes(searchValue.toLowerCase()));
+      const isMatch =
+        node.nodeName &&
+        node.nodeName.toLowerCase().includes(searchValue.toLowerCase());
 
       // 递归检查子节点
       let matchingChildren = [];
-      if (node.children && Array.isArray(node.children) && node.children.length > 0) {
+      if (
+        node.children &&
+        Array.isArray(node.children) &&
+        node.children.length > 0
+      ) {
         matchingChildren = filterTreeNodes(node.children, searchValue);
       }
 
@@ -449,112 +206,37 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
 
 /** 获取节点添加数据 */
 async function getNodeAddData(selectedKeys: any) {
+  if (selectedKeys?.level === 3) {
+    message.warn("请选择上层父节点添加！");
+    return;
+  }
+  if (selectedKeys?.level === 1 || !selectedKeys?.level) {
+    message.warn("顶层文件夹节点不能新建，请选择可以新建的节点！");
+    return;
+  }
+  const parentNode = getParentNode(selectedKeys.key); // ✅ 获取父节点
+  if (!parentNode) {
+    message.error("未找到父节点");
+    return;
+  }
   // 这里可以根据需要实现添加节点的逻辑
-  treeNodeColmoun.value = [
-    {
-      title: WeiI18n.t('父节点名称').value,
-      key: 'parentName',
-      value: selectedKeys.partName,
-      type: 'input',
-      hidden: false,
-      disabled: true,
-    },
-    {
-      title: WeiI18n.t('节点名称').value,
-      key: 'categoryName',
-      value: '',
-      type: 'input',
-      hidden: false,
-      rules: [
-        {
-          required: true,
-          message: WeiI18n.t('节点名称不能为空').value,
-        },
-      ],
-    },
-    {
-      title: WeiI18n.t('节点类别').value,
-      key: 'nodeType',
-      value: '',
-      type: 'select',
-      hidden: false,
-      rules: [
-        {
-          required: true,
-          message: WeiI18n.t('节点类别不能为空').value,
-        },
-      ],
-      selectStr: [
-        { label: '数据节点', value: '2' },
-        { label: '分类节点', value: '1' },
-      ],
-    },
-
-    {
-      title: WeiI18n.t('示意图').value,
-      key: 'uploadFile',
-      value: '',
-      type: 'upload',
-      hidden: false,
-    },
-    {
-      title: WeiI18n.t('父节点ID').value,
-      key: 'pid',
-      value: selectedKeys.key,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('文件ID').value,
-      key: 'fileId',
-      value: 0,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('文件URL').value,
-      key: 'fileUrl',
-      value: '',
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('层级').value,
-      key: 'level',
-      value: 0,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('用户ID').value,
-      key: 'userId',
-      value: 0,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-  ];
-  treePage.value?.reloadTableStyle(treeNodeColmoun.value);
+  addAndEditTagRef.value.show(selectedKeys, parentNode, 1);
 }
 
 async function downNode(selectedKeys: any) {
-  treeRequestParams.id = selectedKeys.key;
-  treeRequestParams.type = 1;
-  await AdminApiSystemProduct.updTreeKey(treeRequestParams);
-  await getListData('change');
-  Selectafterchanges();
+  const res = await sortTag({ id: selectedKeys.key, type: 1 });
+  if (res && res.data.code === "0") {
+    await getListData("change");
+    Selectafterchanges();
+  }
 }
 
 async function upNode(selectedKeys: any) {
-  treeRequestParams.id = selectedKeys.key;
-  treeRequestParams.type = 0;
-  await AdminApiSystemProduct.updTreeKey(treeRequestParams);
-  await getListData('change');
-  Selectafterchanges();
+  const res = await sortTag({ id: selectedKeys.key, type: 0 });
+  if (res && res.data.code === "0") {
+    await getListData("change");
+    Selectafterchanges();
+  }
 }
 function Selectafterchanges() {
   selectedKeys.value = currentNode.value.key;
@@ -562,248 +244,83 @@ function Selectafterchanges() {
 const currentNodeLevel = ref<number>(2);
 async function selectNode(node: any) {
   currentNode.value = node;
-  parameterName.value = '';
-  parameterNum.value = '';
+  parameterName.value = "";
+  parameterNum.value = "";
   selectNodeKeys.value = node.key;
   currentNodeLevel.value = node.level;
   loadParameterListData();
 }
 
 async function loadParameterListData() {
-  loading.value = true;
-  try {
-    requestParams.categoryid = selectNodeKeys.value || selectedKeys.value;
-    requestParams.parameterName = parameterName.value;
-    requestParams.parameterNum = parameterNum.value;
-    requestParams.userId = userStore.getUser.id;
-    requestParams.currentPage = requestParams.pageNo;
-    requestParams.numberPage = requestParams.pageSize;
-
-    const res = await AdminApiSystemParameter.getParameterPageList({
-      ...requestParams,
-    });
-    datasource.value = res.data.data.data || [];
-    pagination.total = res.data.data.pageCount;
-  } finally {
-    loading.value = false;
-  }
+  console.log(currentNode.value, 9999);
 }
+
+const getParentNode = (nodeId: string): any | null => {
+  // 辅助递归函数
+  function findParent(
+    nodes: any[],
+    targetId: string,
+    parent: any = null
+  ): any | null {
+    for (const node of nodes) {
+      if (node.id?.toString() === targetId || node.key === targetId) {
+        return parent; // 找到目标节点，返回其父节点
+      }
+      if (node.children && node.children.length > 0) {
+        const found = findParent(node.children, targetId, node);
+        if (found !== null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  // 从根节点开始查找，根节点的父节点为 null
+  return findParent(rawTreeData.value, nodeId);
+};
 
 /** 获取节点编辑数据 */
 async function getNodeUpdateData(selectedKeys: any) {
-  treeRequestParams.categoryid = selectedKeys.key;
-  const res = await AdminApiSystemProduct.getCategpryInfoById(treeRequestParams);
-  const categoryStrs = res.data.data.result[0];
-  // 这里可以根据需要实现添加节点的逻辑
-  treeNodeColmoun.value = [
-    {
-      title: WeiI18n.t('父节点名称').value,
-      key: 'parentName',
-      value: categoryStrs.parentName,
-      type: 'input',
-      hidden: false,
-      disabled: true,
-    },
-    {
-      title: WeiI18n.t('节点名称').value,
-      key: 'categoryName',
-      value: categoryStrs.categoryName,
-      type: 'input',
-      hidden: false,
-      rules: [
-        {
-          required: true,
-          message: WeiI18n.t('节点名称不能为空').value,
-        },
-      ],
-    },
-    {
-      title: WeiI18n.t('节点类别').value,
-      key: 'nodeType',
-      value: categoryStrs.nodeType,
-      type: 'select',
-      hidden: false,
-      rules: [
-        {
-          required: true,
-          message: WeiI18n.t('节点类别不能为空').value,
-        },
-      ],
-      selectStr: [
-        { label: '数据节点', value: '2' },
-        { label: '分类节点', value: '1' },
-      ],
-    },
-
-    {
-      title: WeiI18n.t('示意图').value,
-      key: 'uploadFile',
-      value: selectedKeys.uploadFile,
-      type: 'upload',
-      hidden: false,
-    },
-    {
-      title: WeiI18n.t('父节点ID').value,
-      key: 'pid',
-      value: categoryStrs.parentid,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('文件ID').value,
-      key: 'fileId',
-      value: selectedKeys.fileId,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('文件URL').value,
-      key: 'fileUrl',
-      value: selectedKeys.fileUrl,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('层级').value,
-      key: 'level',
-      value: selectedKeys.level,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-    {
-      title: WeiI18n.t('用户ID').value,
-      key: 'userId',
-      value: selectedKeys.userId,
-      type: 'input',
-      disabled: true,
-      hidden: true,
-    },
-  ];
-  treePage.value?.reloadTableStyle(treeNodeColmoun.value, categoryStrs.oldFileName);
+  if (selectedKeys?.level === 1 || currentNode.value.level === 1) {
+    message.warn("顶层节点不允许修改！");
+    return;
+  }
+  const parentNode = getParentNode(selectedKeys.key); // ✅ 获取父节点
+  if (!parentNode) {
+    message.error("未找到父节点");
+    return;
+  }
+  addAndEditTagRef.value.show(selectedKeys, parentNode, 2);
 }
 
 /** 删除树节点 */
 async function deleteTreeNode(selectedKeys: any) {
-  treeRequestParams.categoryid = treeRequestParams.rootNodeid;
-  treeRequestParams.id = selectedKeys.key;
-  const res = await AdminApiSystemProduct.delTreeNode(treeRequestParams);
-  await getListData();
-  message.success(WeiI18n.t('删除成功').value);
+  try {
+    const res = await removeTag({ id: Number(selectedKeys.key) });
+    if (res.data.code === "0") {
+      await getListData("change");
+      message.success(WeiI18n.t("删除成功").value);
+    }
+  } catch (error) {
+    console.log("error:", error);
+  }
 }
 
 // 树选择器模态框相关状态
 const selectTreeVisible = ref<boolean>(false);
 const currentSelectField = ref<any>(null);
 const selectTreeData = ref<any[]>([]);
-const selectTreeSelectedKeys = ref<string>('');
-const selectTreeExpandedKeys = ref<string>('');
 
 /**
  * 处理浏览按钮点击事件，显示树选择器模态框
  * @param field 当前点击的字段信息
  */
 async function selectBoomTree(field: any) {
-  debugger;
   currentSelectField.value = field;
   // 深拷贝当前树数据，避免影响主树结构
   selectTreeData.value = JSON.parse(JSON.stringify(treeData.value));
   selectTreeVisible.value = true;
-}
-
-/**
- * 处理树选择器中的节点选择
- * @param selectedKeys 选中的节点keys
- * @param info 节点信息
- */
-function handleSelectTreeNode(selectedKeys: any[], info: any) {
-  selectTreeSelectedKeys.value = selectedKeys[0];
-}
-
-/**
- * 确认选择树节点，将选中的节点名称传回tree组件
- */
-function confirmSelectTreeNode(item: any) {
-  if (selectTreeSelectedKeys.value && currentSelectField.value) {
-    // 查找选中的节点信息
-    const selectedNode = findNodeById(selectTreeData.value, selectTreeSelectedKeys.value);
-    if (selectedNode) {
-      // 构建选中的节点数据
-      const nodeData = {
-        key: selectedNode.key,
-        title: selectedNode.partName,
-        fieldKey: currentSelectField.value.key,
-      };
-      console.log(nodeData);
-      // 调用tree组件的方法，将选中的节点数据传递回去
-      treePage.value?.onTreeNodeSelected(nodeData);
-    }
-  }
-  selectTreeVisible.value = false;
-  // 重置选中状态
-  selectTreeSelectedKeys.value = '';
-}
-
-/**
- * 取消选择树节点
- */
-function cancelSelectTreeNode() {
-  selectTreeVisible.value = false;
-  // 重置选中状态
-  selectTreeSelectedKeys.value = '';
-}
-
-/**
- * 递归查找树中的节点
- * @param tree 树数据
- * @param targetId 目标节点ID
- * @returns 找到的节点或null
- */
-function findNodeById(tree: any[], targetId: string): any | null {
-  for (const node of tree) {
-    if (node.key === targetId) {
-      return node;
-    }
-    if (node.children && node.children.length > 0) {
-      const found = findNodeById(node.children, targetId);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-}
-/** 提交树节点数据 */
-async function submitTreeData(nodeList: any, selectedKeys: any) {
-  console.log(nodeList);
-  treeRequestParams.categoryName = nodeList.categoryName;
-  treeRequestParams.nodeType = nodeList.nodeType;
-  treeRequestParams.parentid = nodeList.pid;
-  treeRequestParams.sketchMapId = nodeList.fileId;
-  console.log(treeRequestParams);
-  // 这里可以根据需要实现提交树节点数据的逻辑
-  const res = await AdminApiSystemProduct.addProductModuleTree(treeRequestParams);
-  await getListData();
-  message.success(WeiI18n.t('保存成功').value);
-}
-
-/** 编辑树节点数据 */
-async function editTreeData(nodeList: any, selectedKeys: any) {
-  console.log(treeRequestParams);
-  console.log(nodeList);
-  treeRequestParams.categoryName = nodeList.categoryName;
-  treeRequestParams.id = nodeList.id;
-  treeRequestParams.nodeType = nodeList.nodeType;
-  treeRequestParams.parentid = nodeList.pid;
-  treeRequestParams.sketchMapId = nodeList.fileId;
-  // 这里可以根据需要实现提交树节点数据的逻辑
-  const res = await AdminApiSystemProduct.updateCategoryNode(treeRequestParams);
-  await getListData('change');
-  message.success(WeiI18n.t('修改成功').value);
-  Selectafterchanges();
 }
 
 /** 重新加载树结构 */
@@ -811,108 +328,9 @@ async function reloadTree() {
   // 重新获取树数据
   await getListData();
 }
-
-/** 允许新增子菜单的菜单类型 */
-const ALLOW_CREATE_TYPES: Array<number> = [1, 2];
-
-/**
- * 新增
- * @param id id
- * @param parentId parentId
- */
-function handleAddOrUpdate(data: any) {
-  visible.value = true;
-  // 根据menuId获取修改的记录
-  nextTick(() => {
-    addModel.value?.infoReload(selectNodeKeys.value);
-  });
-}
-
-/**
- * 修改
- * @param data data
- */
-function handleUpdate(data: any) {
-  updateVisible.value = true;
-  // 根据menuId获取修改的记录
-  nextTick(() => {
-    updateModel.value?.infoReload(data, selectNodeKeys.value);
-  });
-}
-
-/**
- * 查询表格数据
- */
-function handleFinish() {
-  requestParams.pageNo = 1;
-  pagination.current = 1;
-  getListData();
-}
-/**
- * 删除
- * @param id id
- */
-function handleDelete(id: Menus['id']) {
-  AdminApiSystemMenu.deleteMenu({ id }).then(() => {
-    message.success('删除成功!');
-    getListData();
-  });
-}
-
-function handleResizeColumn(w, col) {
-  col.width = w;
-}
-
-function handleCloseAddModal() {
-  visible.value = false;
-}
-
-function handleCloseUpdateModal() {
-  updateVisible.value = false;
-}
-
-/**
- * 删除数据
- * @param id id
- */
-async function handleParameterDelete(data: any) {
-  if (data == undefined) {
-    //批量删除
-    let infoDel: any = { checkList: [] };
-    selectedRowkeys.value.forEach(item => {
-      infoDel.checkList.push({ id: item });
-    });
-    infoDel.userid = userStore.getUser.id;
-    await AdminApiSystemParameter.deleteParameterInfo(infoDel);
-  } else {
-    let infoDel: any = { checkList: [] };
-    infoDel.checkList[0] = { id: data.id };
-    infoDel.userid = userStore.getUser.id;
-    await AdminApiSystemParameter.deleteParameterInfo(infoDel);
-  }
-  loadParameterListData();
-}
-// ---------------------------导入/导出------------------------------------
-// 导出附件
-async function exportParameData() {
-  exportLoading.value = true;
-  try {
-    let data: any = {};
-    data.categoryid = selectNodeKeys.value;
-    const res = await AdminApiSystemParameter.exportDatatempalteinfo(data);
-    const fileName = '系统参数.xlsx';
-    downloadFileFromStream(res, fileName);
-  } catch (err) {
-    message.error(WeiI18n.t('导出失败').value);
-    console.error('exportParameData error:', err);
-  } finally {
-    exportLoading.value = false;
-  }
-}
-const batchflag = ref<boolean>(false);
-/** 文件列表 */
-const fileList = ref<any>([]);
-
+const saveSuccess = () => {
+  reloadTree();
+};
 </script>
 
 <template>
@@ -934,27 +352,55 @@ const fileList = ref<any>([]);
             @get-node-update-data="getNodeUpdateData"
             @get-node-add-data="getNodeAddData"
             @delete-tree-node="deleteTreeNode"
-            @submit="submitTreeData"
             @select-Boom-Tree="selectBoomTree"
-            @edit="editTreeData"
             @reload-tree="reloadTree"
-            @change-select-key="handleChangeSelectKey" />
+            @change-select-key="handleChangeSelectKey"
+          />
         </a-spin>
       </Pane>
 
       <!-- 右侧内容区域 -->
       <Pane class="splitpane-cls">
-
+        <div class="form-layout">
+          <div class="form-list">
+            <div class="tabStatsTit">{{ currentNode?.partName }}</div>
+            <a-checkbox-group
+              class="checkGroup"
+              v-if="
+                currentNode?.children &&
+                currentNode.children.length > 0 &&
+                rawTreeData[0]?.selectType === '1'
+              "
+            >
+              <a-checkbox
+                class="checkBox"
+                v-for="(item, index) in currentNode.children"
+                :key="item.partName"
+                :value="item.partName"
+                disabled
+                >{{ item.partName }}</a-checkbox
+              >
+            </a-checkbox-group>
+            <a-radio-group
+              v-if="
+                currentNode?.children &&
+                currentNode.children.length > 0 &&
+                rawTreeData[0]?.selectType === '0'
+              "
+            >
+              <a-radio
+                v-for="(item, index) in currentNode.children"
+                :label="item.partName"
+                disabled
+                :value="item.key"
+                :key="item.key"
+              />
+            </a-radio-group>
+          </div>
+        </div>
       </Pane>
     </Splitpanes>
-
-
-
-\
-    <!-- 其他弹窗/组件 -->
-    <!-- <ParameterAdd ref="addModel" :modal-visible="visible" @refresh-table-data="loadParameterListData" @close="handleCloseAddModal" />
-    <ParameterUpdate ref="updateModel" :modal-visible="updateVisible" @refresh-table-data="loadParameterListData" @close="handleCloseUpdateModal" /> -->
-
+    <addAndEditTag ref="addAndEditTagRef" @saveSuccess="saveSuccess" />
   </div>
 </template>
 
@@ -1020,6 +466,21 @@ const fileList = ref<any>([]);
     .ant-table-tbody > tr > td {
       padding: 10px;
       border-bottom: 1px solid #e6e7e9;
+    }
+  }
+}
+
+.form-layout {
+  padding: 16px;
+  .form-list {
+    margin-bottom: 40px;
+    .tabStatsTit {
+      height: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #1890ff;
+      line-height: 20px;
+      margin-bottom: 16px;
     }
   }
 }
