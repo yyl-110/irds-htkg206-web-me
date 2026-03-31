@@ -751,7 +751,7 @@ const closeFun = () => {
           font-weight: 500;
           // color: #155bd4;
           line-height: 32px;
-          justify-content: start;
+          justify-content: flex-start;
           cursor: pointer;
 
           &:hover {

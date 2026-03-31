@@ -575,7 +575,7 @@ const closeDialog = () => {
     font-weight: 500;
     color: #646566;
     line-height: 22px;
-    justify-content: start;
+    justify-content: flex-start;
     cursor: pointer;
 
     &:hover {

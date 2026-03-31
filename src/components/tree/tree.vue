@@ -9,6 +9,7 @@ import TreeNode from '@/components/tree/TreeNode.vue';
 import { Uploado_draggerFile } from '@/components/UploadFile';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
+import { WeiIcon } from '@/wei-components';
 const props = defineProps({
   treeData: {
     require: false,
@@ -555,6 +556,7 @@ defineExpose({
         }"
         :show-icon="true"
         :tree-data="treeData"
+        show-line
         :expand-action="false"
         default-expand-all
         @select="onSelect">
@@ -568,12 +570,18 @@ defineExpose({
           </a-dropdown>
         </template>
         <template #icon="item">
-          <EpcIcon v-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" type="icon-wenjianjia" />
-          <EpcIcon v-else-if="item.type === 'category' && item.level == '2'" type="icon-wenjianjia" />
-          <EpcIcon v-else-if="item.type === 'category' && item.level == '3'" type="icon-a-xiangmu1" />
-          <EpcIcon v-else-if="item.type === 'param' && item.categoryType == 0" type="icon-wenjianjia" />
-          <EpcIcon v-else-if="item.type === 'param' && item.level == '2'" type="icon-wenjianjia" />
-          <EpcIcon v-else-if="item.type === 'param' && item.level == '3'" type="icon-a-xiangmu1" />
+          <WeiIcon icon="icon-project" :size="16" v-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" />
+          <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'category' && item.level == '2'" />
+          <WeiIcon icon="icon-wj" :size="16" v-else-if="item.type === 'category' && item.level == '3'" />
+          <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'param' && item.categoryType == 0" />
+          <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'param' && item.level == '2'" />
+          <WeiIcon icon="icon-wj" :size="16" v-else-if="item.type === 'param' && item.level == '3'"/>
+          <!-- <EpcIcon v-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" type="icon-wenjianjia" />
+           <EpcIcon v-else-if="item.type === 'category' && item.level == '2'" type="icon-wenjianjia" />
+           <EpcIcon v-else-if="item.type === 'category' && item.level == '3'" type="icon-a-xiangmu1" />
+           <EpcIcon v-else-if="item.type === 'param' && item.categoryType == 0" type="icon-wenjianjia" />
+           <EpcIcon v-else-if="item.type === 'param' && item.level == '2'" type="icon-wenjianjia" />
+          <EpcIcon v-else-if="item.type === 'param' && item.level == '3'" type="icon-a-xiangmu1" /> -->
         </template>
       </a-directory-tree>
     </div>
@@ -665,7 +673,8 @@ defineExpose({
 :deep(.ant-tree-iconEle) {
   margin-left: -4px !important; /* 进一步减小图标与倒三角之间的间距 */
   width: 14px; /* 设置固定宽度确保图标大小一致 */
-  display: inline-block;
+  display: inline-flex !important;
+  align-items: center;
 }
 
 // 调整节点内容的布局
@@ -682,6 +691,9 @@ defineExpose({
       margin-right: 0 !important; /* 完全移除开关与图标之间的右边距 */
       width: 16px; /* 控制开关宽度 */
       flex-shrink: 0;
+      color: unset;
+      display: flex;
+      align-items: center;
     }
 
     .ant-tree-iconEle {
@@ -703,6 +715,7 @@ defineExpose({
 :deep(.ant-tree-switcher-noop) {
   width: 16px; /* 控制空白开关的宽度 */
   margin-right: 0 !important;
+  display: none!important;
 }
 
 .operate-tree {
