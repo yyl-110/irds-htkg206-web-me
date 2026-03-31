@@ -28,6 +28,27 @@ export class AdminApiProductTemp {
     );
 
   /**
+   * 获得产品模板列表信息
+   *
+   * @tags 管理后台 - 获得产品模板列表信息
+   * @name getProductTempList
+   * @summary 获得产品模板列表信息
+   * @request /business-service/business/product-temp/list
+   * @secure
+   */
+  static getProductTempList = <Req extends ProductTempPageRequestDTOModel = ProductTempPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/product-temp/list`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 创建产品模板
    *
    * @tags 管理后台 - 创建产品模板

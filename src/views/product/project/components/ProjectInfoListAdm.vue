@@ -5,7 +5,7 @@ import { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { useRender } from '@/components/escape';
 import { ProjectPageRequestDTOModel } from '@/api/models/project/ProjectPageRequestDTOModel';
-import { AdminApiProductTemp } from '@/api/tags/project/项目信息后台';
+import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
@@ -133,6 +133,7 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
 /** 列表请求参数 */
 const requestParams = reactive(new ProjectPageRequestDTOModel());
 requestParams.userid = userStore.getUser.id;
+requestParams.productPlatformId = categoryid.value;
 /** 初始化绑定分页请求参数 */
 const { pagination } = usePagination(requestParams, getResources);
 pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
@@ -151,7 +152,7 @@ async function getResources() {
   try {
     requestParams.currentPage = requestParams.pageNo;
     requestParams.numberPage = requestParams.pageSize;
-    const res = await AdminApiProductTemp.getProjectPageList({
+    const res = await AdminApiProjectTemp.getProjectPageList({
       ...requestParams,
     });
     console.log(res);
@@ -166,7 +167,9 @@ async function getResources() {
  * @param id id
  */
 async function handleDelete(id: string) {
-  await AdminApiProductTemp.deleteNotice({ id });
+  const data: any = {};
+  data.id = id;
+  await AdminApiProjectTemp.deleteProject(data);
   message.success(WeiI18n.$t('删除成功'));
   getResources();
 }
@@ -207,6 +210,8 @@ function handleFinish() {
 function getResourcesByParent(categoryids: any, categoryNames: any) {
   categoryid.value = categoryids;
   categoryName.value = categoryNames;
+  // categoryid 是后续由父组件传入更新的，这里需要同步刷新分页请求参数
+  requestParams.productPlatformId = String(categoryid.value ?? '');
   getResources();
 }
 
@@ -230,7 +235,7 @@ defineExpose({ getResourcesByParent });
       <a-form layout="inline" :label-col="{ style: { width: '70px' } }" :model="requestParams">
         <a-input v-model:value="requestParams.projectNum" style="width: 220px" allow-clear :placeholder="$t('请输入项目编号')" />
         <a-input v-model:value="requestParams.projectName" style="width: 220px; margin-left: 20px" allow-clear :placeholder="$t('请输入项目名称')" />
-        <a-select v-model:value="requestParams.projectstatus" allowClear style="width: 220px; margin-left: 20px" :placeholder="$t('请选择项目类型')">
+        <a-select v-model:value="requestParams.projectStatus" allowClear style="width: 220px; margin-left: 20px" :placeholder="$t('请选择项目类型')">
           <a-select-option value=""> {{ $t('全部') }} </a-select-option>
           <a-select-option value="1"> {{ $t('待启动') }} </a-select-option>
           <a-select-option value="2"> {{ $t('工作中') }} </a-select-option>
@@ -263,20 +268,34 @@ defineExpose({ getResourcesByParent });
           <template v-if="column.dataIndex === 'name'">
             {{ record.name }}
           </template>
-          <template v-else-if="column.dataIndex === 'status'">
+          <template v-else-if="column.dataIndex === 'projectStatus'">
             <span>
-              <a-tag v-if="record.status === '0'">{{ $t('未发布') }}</a-tag>
-              <a-tag v-else-if="record.status === '1'" color="blue">{{ $t('已发布') }}</a-tag>
+              <a-tag v-if="record.projectStatus == '1'">{{ $t('未开始') }}</a-tag>
+              <a-tag v-else-if="record.projectStatus == '2'" color="gold">{{ $t('进行中') }}</a-tag>
+              <a-tag v-else-if="record.projectStatus == '3'" color="blue">{{ $t('已完成') }}</a-tag>
             </span>
           </template>
+          <template v-else-if="column.dataIndex === 'confidentialLevel'">
+            <span v-if="record.confidentialLevel == '1'">{{ $t('公开') }} </span>
+            <span v-if="record.confidentialLevel == '2'">{{ $t('内部') }} </span>
+            <span v-if="record.confidentialLevel == '3'">{{ $t('秘密') }} </span>
+            <span v-if="record.confidentialLevel == '4'">{{ $t('机密') }} </span>
+          </template>
           <template v-else-if="column.dataIndex === 'operation'">
-            <a @click="noticeAdd(record)">{{ $t('编辑') }}</a>
-            <a-divider type="vertical" />
-            <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
-              <a-button type="link" danger class="p-0">
-                {{ $t('删除') }}
-              </a-button>
-            </a-popconfirm>
+            <template v-if="record.projectStatus == '1'">
+              <a @click="noticeAdd(record)">{{ $t('编辑') }}</a>
+              <a-divider type="vertical" />
+              <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
+                <a-button type="link" danger class="p-0">
+                  {{ $t('删除') }}
+                </a-button>
+              </a-popconfirm>
+            </template>
+            <template v-else>
+              <span class="operation-disabled">{{ $t('编辑') }}</span>
+              <a-divider type="vertical" />
+              <span class="operation-disabled">{{ $t('删除') }}</span>
+            </template>
           </template>
         </template>
       </a-table>
@@ -295,6 +314,11 @@ defineExpose({ getResourcesByParent });
 
 .del-text {
   color: var(--ant-error-color);
+}
+
+.operation-disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
 }
 
 .card_css {
