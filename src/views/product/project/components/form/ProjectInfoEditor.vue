@@ -10,6 +10,7 @@ import { WeiI18n } from '@/utils/WeiI18n';
 import localeA from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue';
@@ -72,23 +73,6 @@ const currentTeamRoleRow = ref<ProjectTeamRow | null>(null);
 const memberAuthUsers = ref<MemberAuthUser[]>([]);
 const memberAuthDepts = ref<MemberAuthDept[]>([]);
 const memberAuthUserIds = ref<string[]>([]);
-
-const mockMemberAuthDepts: MemberAuthDept[] = [
-  { id: 'd001', name: '销售部' },
-  { id: 'd002', name: '综合管理部' },
-  { id: 'd003', name: '总经办' },
-  { id: 'd004', name: '研发部' },
-];
-
-const mockMemberAuthUsers: MemberAuthUser[] = [
-  { id: 'u001', name: '安娜娜', username: 'ann', deptId: 'd001' },
-  { id: 'u002', name: '段其涛', username: 'duanqt', deptId: 'd001' },
-  { id: 'u003', name: '陈德望', username: 'chenw', deptId: 'd002' },
-  { id: 'u004', name: '陈俊艳', username: 'chenjy', deptId: 'd002' },
-  { id: 'u005', name: '蔡小伟', username: 'cai', deptId: 'd003' },
-  { id: 'u006', name: '郭广旭', username: 'guogx', deptId: 'd004' },
-];
-
 const projectTeamColumns: TableColumnType<ProjectTeamRow>[] = [
   { title: WeiI18n.$t('序号'), key: 'index', align: 'center', width: 90 },
   { title: WeiI18n.$t('角色名称'), dataIndex: 'roleName', key: 'roleName', align: 'left', width: 220 },
@@ -230,14 +214,21 @@ async function handleTabchange(key: string) {
 }
 
 function getProjectTeamResponsibleUsers(record: ProjectTeamRow): string {
-  return (
-    record.userNames ??
-    record.userName ??
-    record.principalName ??
-    record.responsibleName ??
-    record.memberNames ??
-    '-'
-  );
+  return record.userName ?? '-';
+}
+
+const tempId = ref<any>();
+async function openMemberAuth(record: ProjectTeamRow) {
+  tempId.value = record.id;
+  currentTeamRoleRow.value = record;
+  const data: any = {};
+  const res = await AdminApiSystemDept.getDeptInfo(data);
+  if (res.data.code == 200) {
+    memberAuthDepts.value = res.data.data.adminDeptResponseDTO || [];
+    memberAuthUsers.value = res.data.data.adminUserResponseDTO || [];
+  }
+  memberAuthUserIds.value = getProjectTeamAuthorizedUserIds(record);
+  memberAuthVisible.value = true;
 }
 
 function getProjectTeamAuthorizedUserIds(record: ProjectTeamRow): string[] {
@@ -252,25 +243,15 @@ function getProjectTeamAuthorizedUserIds(record: ProjectTeamRow): string[] {
   return [];
 }
 
-function openMemberAuth(record: ProjectTeamRow) {
-  currentTeamRoleRow.value = record;
-  memberAuthDepts.value = [...mockMemberAuthDepts];
-  memberAuthUsers.value = [...mockMemberAuthUsers];
-  memberAuthUserIds.value = getProjectTeamAuthorizedUserIds(record);
-  memberAuthVisible.value = true;
-}
-
-function handleMemberAuthConfirm(userIds: string[]) {
-  memberAuthUserIds.value = [...userIds];
-  const selectedUsers = memberAuthUsers.value.filter(u => userIds.includes(u.id));
-  const selectedNames = selectedUsers.map(u => u.name);
-
-  if (currentTeamRoleRow.value) {
-    currentTeamRoleRow.value.userNames = selectedNames.join('，');
-    currentTeamRoleRow.value.userIds = [...userIds];
-  }
-
-  message.success(WeiI18n.$t('授权成功（本地模拟数据）'));
+async function handleMemberAuthConfirm(userIds: string[]) {
+  const res = await AdminApiProjectTemp.createProjectTeamUserAuth({
+    projectId: projectId.value,
+    userIds: userIds,
+    teamId: tempId.value,
+  });
+  message.success(WeiI18n.$t('授权成功!'));
+  memberAuthVisible.value = false;
+  handleTabchange('2');
 }
 
 function goBack() {
@@ -377,12 +358,10 @@ async function submitProjectForm() {
       data.actualStartTime = projectForm.actualStartTime;
       data.actualEndTime = projectForm.actualEndTime;
       data.projectStatus = projectForm.projectstatus || 1;
-      console.log(data);
       const res = await AdminApiProjectTemp.updateProject(data);
     } else {
       data.projectStatus = 1;
       const res = await AdminApiProjectTemp.createProject(data);
-      console.log(res);
       projectId.value = res.data.data;
     }
     // TODO: 对接项目创建/更新接口
@@ -504,8 +483,6 @@ async function getProjectInfo() {
     materialFileList.value = mapped;
     materialFileListPrevLen.value = mapped.length;
   }
-
-  console.log(res);
 }
 </script>
 

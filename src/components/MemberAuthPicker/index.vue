@@ -8,17 +8,20 @@
     @cancel="handleCancel">
     <div class="member-auth-picker">
       <div class="picker-panel">
-        <div class="panel-title">{{ leftTitleText }}</div>
+        <div class="panel-title">
+          <span>{{ leftTitleText }}</span>
+          <span class="panel-title-count">{{ leftTitleCount }}</span>
+        </div>
+        <a-input v-model:value="leftKeyword" :placeholder="$t('请输入搜索内容')" allow-clear />
         <a-tabs v-model:activeKey="leftType" size="small">
           <a-tab-pane key="user" :tab="$t('用户')" />
           <a-tab-pane key="dept" :tab="$t('部门')" />
         </a-tabs>
-        <a-input v-model:value="leftKeyword" :placeholder="$t('请输入搜索内容')" allow-clear />
         <div class="panel-list">
           <template v-if="leftType === 'user'">
             <a-checkbox-group v-model:value="leftSelectedUserIds" class="check-list">
               <div v-for="u in leftFilteredUsers" :key="u.id" class="check-item">
-                <a-checkbox :value="u.id">{{ u.name }}（{{ u.username }}）</a-checkbox>
+                <a-checkbox :value="u.id">{{ formatUserDisplay(u) }}</a-checkbox>
               </div>
             </a-checkbox-group>
           </template>
@@ -38,12 +41,15 @@
       </div>
 
       <div class="picker-panel">
-        <div class="panel-title">{{ rightTitleText }}</div>
+        <div class="panel-title">
+          <span>{{ rightTitleText }}</span>
+          <span class="panel-title-count">{{ rightTitleCount }}</span>
+        </div>
         <a-input v-model:value="rightKeyword" :placeholder="$t('请输入搜索内容')" allow-clear />
         <div class="panel-list">
           <a-checkbox-group v-model:value="rightSelectedUserIds" class="check-list">
             <div v-for="u in rightFilteredUsers" :key="u.id" class="check-item">
-              <a-checkbox :value="u.id">{{ u.name }}（{{ u.username }}）</a-checkbox>
+              <a-checkbox :value="u.id">{{ formatUserDisplay(u) }}</a-checkbox>
             </div>
           </a-checkbox-group>
         </div>
@@ -115,11 +121,20 @@ watch(
 
 const authorizedSet = computed(() => new Set(currentAuthorized.value));
 
+const deptNameMap = computed(() => {
+  const map = new Map<string, string>();
+  props.depts.forEach(d => map.set(d.id, d.name));
+  return map;
+});
+
 const leftUsers = computed(() => props.users.filter(u => !authorizedSet.value.has(u.id)));
 const leftFilteredUsers = computed(() => {
   const keyword = leftKeyword.value.trim();
   if (!keyword) return leftUsers.value;
-  return leftUsers.value.filter(u => `${u.name}${u.username}`.includes(keyword));
+  return leftUsers.value.filter(u => {
+    const deptName = u.deptId ? deptNameMap.value.get(u.deptId) ?? '' : '';
+    return `${u.name}${u.username}${deptName}`.includes(keyword);
+  });
 });
 
 const leftDepts = computed(() => {
@@ -135,11 +150,26 @@ const rightUsers = computed(() => props.users.filter(u => authorizedSet.value.ha
 const rightFilteredUsers = computed(() => {
   const keyword = rightKeyword.value.trim();
   if (!keyword) return rightUsers.value;
-  return rightUsers.value.filter(u => `${u.name}${u.username}`.includes(keyword));
+  return rightUsers.value.filter(u => {
+    const deptName = u.deptId ? deptNameMap.value.get(u.deptId) ?? '' : '';
+    return `${u.name}${u.username}${deptName}`.includes(keyword);
+  });
 });
 
-const leftTitleText = computed(() => `${leftType.value === 'user' ? leftUsers.value.length : leftDepts.value.length} 项未授权${leftType.value === 'user' ? '用户' : '部门'}`);
-const rightTitleText = computed(() => `${rightUsers.value.length} 项已授权用户`);
+const leftTitleText = computed(() => `未授权${leftType.value === 'user' ? '用户' : '部门'}`);
+const leftTitleCount = computed(() => {
+  if (leftType.value === 'user') {
+    return `${leftSelectedUserIds.value.length}/${leftUsers.value.length}`;
+  }
+  return `${leftSelectedDeptIds.value.length}/${leftDepts.value.length}`;
+});
+const rightTitleText = computed(() => '已授权用户');
+const rightTitleCount = computed(() => `${rightSelectedUserIds.value.length}/${rightUsers.value.length}`);
+
+function formatUserDisplay(user: MemberUser): string {
+  const deptName = user.deptId ? deptNameMap.value.get(user.deptId) ?? '-' : '-';
+  return `${user.name}/${user.username}/${deptName}`;
+}
 
 function authorizeSelected() {
   const next = new Set(currentAuthorized.value);
@@ -190,6 +220,17 @@ function handleConfirm() {
 .panel-title {
   font-size: 16px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  line-height: 1.2;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.panel-title-count {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .panel-list {

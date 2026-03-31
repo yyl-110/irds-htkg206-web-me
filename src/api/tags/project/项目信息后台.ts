@@ -131,4 +131,25 @@ export class AdminApiProjectTemp {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 项目团队授权用户
+   *
+   * @tags 管理后台 - 项目团队授权用户
+   * @name createProjectTeamUserAuth
+   * @summary 项目团队授权用户
+   * @request /business-service/business/project-team-user/createProjectTeamUserAuth
+   * @secure
+   */
+  static createProjectTeamUserAuth = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-team-user/createProjectTeamUserAuth`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
