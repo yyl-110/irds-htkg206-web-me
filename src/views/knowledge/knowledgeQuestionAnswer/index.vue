@@ -239,7 +239,7 @@ const handleCurrentChange = val => {
           <a-tab-pane tab="全部问答" key="all" />
           <a-tab-pane tab="我的问题" key="myQuestion" />
           <a-tab-pane tab="我的问答" key="myAnswer" />
-          <a-tab-pane tab="专家发布" key="expert" />
+          <!-- <a-tab-pane tab="专家发布" key="expert" /> -->
           <template #rightExtra>
             <div class="flex items-center">
               <a-input-search v-model:value="searchKey" placeholder="输入关键字进行搜索" @search="initData"

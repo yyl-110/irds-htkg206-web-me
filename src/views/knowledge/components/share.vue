@@ -22,7 +22,7 @@ const userStore = useUserStore();
 const visible = ref(false);
 
 // 默认选中状态
-const radioVal = ref(1);
+const radioVal = ref(3);
 
 // 默认禁止
 const redioFlag = ref(true);
@@ -116,7 +116,7 @@ const filterMethod = (query, item) => {
 };
 // 保存
 const submit = () => {
-  radioVal.value = 1
+  radioVal.value = 3
   emit("closeShare");
 };
 
@@ -179,7 +179,7 @@ const handleCloseShare = () => {
     <div class="top">
       <div>可分享者：</div>
       <a-radio-group v-model:value="radioVal" @change="getRadio">
-        <a-radio :value="1">知识专家</a-radio>
+        <!-- <a-radio :value="1">知识专家</a-radio> -->
         <a-radio :value="3">所有人</a-radio>
         <a-radio :value="2">指定人员</a-radio>
       </a-radio-group>
