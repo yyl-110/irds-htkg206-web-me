@@ -307,15 +307,40 @@ function renderFunTiele(key: any) {
   };
   return render;
 }
+const moduleRemarks = ref<string>('');
+const module3DThumbUrl = ref<string>('');
+function getModule3DThumbUrl(rowRecord: Record<string, any>, moduleParaList: any[]) {
+  const byName = moduleParaList.find((item: any) => {
+    const name = String(item?.propertyName ?? '').toLowerCase();
+    return name.includes('3d') || name.includes('缩略');
+  });
+  if (byName?.dataProp && rowRecord?.[byName.dataProp]) {
+    return String(rowRecord[byName.dataProp]);
+  }
+
+  const fallbackKeys = ['para12', 'para13', 'para14', 'para15'];
+  for (const key of fallbackKeys) {
+    const value = rowRecord?.[key];
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value;
+    }
+  }
+  return '';
+}
 async function moduleDetails(rowRecord: any) {
+  moduleRemarks.value = rowRecord.para11 || '';
+  module3DThumbUrl.value = '';
   pageFlagDrawer.value = true;
   parmType.value == 0;
   const moduleParaList = modulePropertyInfo.value;
-  modalInfo.value = moduleParaList.map((item: any) => ({
-    name: item.propertyName,
-    str: item.dataProp,
-    val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
-  }));
+  module3DThumbUrl.value = getModule3DThumbUrl(rowRecord, moduleParaList);
+  modalInfo.value = moduleParaList
+    .filter((item: any) => item.dataProp !== 'para11')
+    .map((item: any) => ({
+      name: item.propertyName,
+      str: item.dataProp,
+      val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
+    }));
 }
 
 // 超出宽度隐藏字符串 。。。代替
@@ -976,6 +1001,7 @@ function toParm(type: any) {
         }
       }
     });
+  } else if (type == 4) {
   } else if (type == 5) {
     supGbomcolumns.value = [];
     let data: any = {};
@@ -1372,6 +1398,10 @@ defineExpose({ initData, selectAllModuleInfo });
         <EpcIcon type="icon-a-xiangmu1" />
         <span>知识文档</span>
       </div>
+      <div :class="{ seDalIcon: parmType == 4, dalIcon: parmType != 4 }" @click="toParm(4)">
+        <EpcIcon type="icon-a-xiangmu1" />
+        <span>可视化</span>
+      </div>
       <div :class="{ seDalIcon: parmType == 5, dalIcon: parmType != 5 }" @click="toParm(5)">
         <EpcIcon type="icon-a-xiangmu1" />
         <span>历史文档</span>
@@ -1458,6 +1488,22 @@ defineExpose({ initData, selectAllModuleInfo });
           </a-table>
         </div>
       </div>
+      <div v-if="parmType == 4" class="visualization-wrap">
+        <div class="visualization-row">
+          <div class="visualization-title">3D缩略图</div>
+          <div class="visualization-img-box">
+            <img v-if="module3DThumbUrl" :src="module3DThumbUrl" class="visualization-img" alt="3D缩略图" />
+            <div v-else class="visualization-empty">暂无3D缩略图</div>
+          </div>
+        </div>
+        <div class="visualization-row" style="margin-top: 20px">
+          <div class="visualization-title">模块说明</div>
+          <div class="module-remarks-richtext">
+            <div v-if="moduleRemarks" v-html="moduleRemarks"></div>
+            <div v-else>暂无说明</div>
+          </div>
+        </div>
+      </div>
       <div v-if="parmType == 5" class="history-doc-table-wrap">
         <a-table
           :scroll="{ x: 1200, y: 400 }"
@@ -1493,6 +1539,55 @@ defineExpose({ initData, selectAllModuleInfo });
   :deep(.ant-table-body) {
     overflow-x: auto !important;
   }
+}
+
+.visualization-wrap {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.visualization-row {
+  width: 100%;
+}
+
+.visualization-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2d3d;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.visualization-img-box {
+  width: 100%;
+  min-height: 160px;
+  padding: 12px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+}
+
+.visualization-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.visualization-empty {
+  color: #999;
+}
+
+.module-remarks-richtext {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  overflow: auto;
+}
+
+.module-remarks-richtext :deep(img) {
+  max-width: 100%;
+  height: auto;
 }
 
 .example {
