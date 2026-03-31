@@ -18,8 +18,6 @@ interface IQueryPage {
   userId: string;
 }
 
-const proxyApi = '/Know'
-
 /**
  * 知识中心二级筛选tag
  * @param params
@@ -542,6 +540,50 @@ export function queryMapTaskDetail(data: any) {
 export function getPdfPreviewPath(data: any) {
   return httpRequest({
     url: '/base-server/fileManagerController/getPdfPreviewPath.json',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识配置-标签列表
+ * @param data
+ */
+export function knowledgeTagList(data: any) {
+  return httpRequest({
+    url: '/knowledge-server/knowledgeTag/list',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识配置-标签保存
+ * @param data
+ */
+export function tagSave(data: any) {
+  return httpRequest({
+    url: '/knowledge-server/knowledgeTag/save',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识配置-标签排序
+ * @param data
+ */
+export function sortTag(data: any) {
+  return httpRequest({
+    url: '/knowledge-server/knowledgeTag/sort',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识配置-删除节点
+ * @param data
+ */
+export function removeTag(data: any) {
+  return httpRequest({
+    url: '/knowledge-server/knowledgeTag/remove',
     data,
     method: "POST",
   });
