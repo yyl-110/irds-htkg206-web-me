@@ -324,13 +324,14 @@ function showOnLineUser() {
 </script>
 
 <template>
-  <div class="w-[100%] h-[100%] flex justify-between text-left px-3" style="flex: 1">
-    <div />
-    <div>
+  <div class="w-[100%] h-[52px] flex justify-between text-left px-3" style="flex: 1">
+    <div style="margin-top: -5px;"></div>
+    <div style="margin-top: -5px;">
+
       <EpcIcon type="icon-icon-xuqiu-yanshouguanli" style="font-size: 16px; color: #313133" />
       <span class="header-menu-text-name">&nbsp;&nbsp;陈颖琴（86291）&nbsp;&nbsp;|&nbsp;&nbsp;信息化</span>
       <span style="margin-left: 50px">
-        <img class="h-[50px]" src="@/assets/images/miji.png" />
+        <img class="h-[40px]" src="@/assets/images/miji.png" />
       </span>
     </div>
     <div class="flex items-center space-x-1">
@@ -563,5 +564,9 @@ function showOnLineUser() {
   height: 30px; /* 竖线高度，和头像匹配 */
   background-color: #0e44ae; /* 浅灰色，可改 */
   margin-left: 10px;
+}
+
+:deep(.ant-layout-header) {
+  line-height: 52px !important;
 }
 </style>

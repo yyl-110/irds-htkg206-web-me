@@ -1,25 +1,37 @@
 <script lang="ts" setup>
-import { onMounted, reactive, ref, watch } from 'vue';
+import { nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import type { FormInstance, UploadFile } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { InboxOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import localeA from 'ant-design-vue/es/date-picker/locale/zh_CN';
-import { AdminApiProductTemp } from '@/api/tags/project/项目信息后台';
+import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
+import ProjectBasicInfoTab from './ProjectBasicInfoTab.vue';
+import ProjectTeamTab from './ProjectTeamTab.vue';
+
 const PROJECT_EDITOR_DRAFT_KEY = 'project-info-editor-draft';
-/** 与列表页约定：返回/保存后回到列表时触发刷新 */
 const PROJECT_LIST_REFRESH_FLAG = 'project-info-list-refresh';
+const PROJECT_LIST_SKIP_DRAWER_ON_RETURN = 'project-info-list-skip-drawer-on-return';
+
+type BasicInfoExpose = {
+  validateForm: () => Promise<void>;
+  getMaterialFileIds: () => string[];
+  setMaterialFileListFromProject: (rawFileList: any[]) => void;
+  resetMaterialFiles: () => void;
+};
+
+type ProjectTeamExpose = {
+  loadProjectTeam: () => Promise<void>;
+};
 
 const route = useRoute();
 const router = useRouter();
 
-const projectFormTab = ref('basic');
-const projectFormRef = ref<FormInstance>();
-const materialFileList = ref<UploadFile[]>([]);
+const projectFormTab = ref('1');
 const projectFormSubmitting = ref(false);
+const basicInfoRef = ref<BasicInfoExpose>();
+const projectTeamRef = ref<ProjectTeamExpose>();
 
 const projectForm = reactive({
   projectNum: '',
@@ -33,6 +45,9 @@ const projectForm = reactive({
   dataConfidentialLevel: '公开',
   productTempName: '',
   productTempId: '',
+  actualEndTime: '',
+  actualStartTime: '',
+  projectstatus: '',
 });
 
 const confidentialOptions = [
@@ -45,13 +60,13 @@ const confidentialOptions = [
 const projectFormLabelCol = { style: { width: '120px' } };
 const projectFormWrapperCol = { span: 18 };
 
-/** 计划开始：不可选今天之前的日期 */
+const projectId = ref<any>();
+
 function disabledPlanStartDate(current: Dayjs) {
   if (!current) return false;
   return current.isBefore(dayjs(), 'day');
 }
 
-/** 计划结束：不可选今天之前，且不可早于计划开始日 */
 function disabledPlanEndDate(current: Dayjs) {
   if (!current) return false;
   if (current.isBefore(dayjs(), 'day')) return true;
@@ -73,7 +88,7 @@ watch(
 );
 
 function resetProjectForm() {
-  projectFormTab.value = 'basic';
+  projectFormTab.value = '1';
   projectForm.projectNum = '';
   projectForm.productPlatform = '';
   projectForm.projectName = '';
@@ -82,11 +97,55 @@ function resetProjectForm() {
   projectForm.confidentialLevel = 1;
   projectForm.remarks = '';
   projectForm.dataConfidentialLevel = '公开';
-  materialFileList.value = [];
+  basicInfoRef.value?.resetMaterialFiles();
+}
+
+async function handleTabchange(key: string) {
+  if (key !== '2' || !projectId.value) return;
+  await nextTick();
+  await projectTeamRef.value?.loadProjectTeam();
+}
+
+async function submitProjectForm() {
+  try {
+    await basicInfoRef.value?.validateForm();
+  } catch {
+    return;
+  }
+  projectFormSubmitting.value = true;
+  try {
+    const data: any = {
+      projectName: projectForm.projectName,
+      projectNum: projectForm.projectNum,
+      planStartTime: projectForm.planStartTime,
+      planEndTime: projectForm.planEndTime,
+      remarks: projectForm.remarks,
+      productTempId: projectForm.productTempId,
+      productPlatform: projectForm.productPlatform,
+      confidentialLevel: projectForm.confidentialLevel,
+      productPlatformId: projectForm.productPlatformId,
+      fileIds: basicInfoRef.value?.getMaterialFileIds() ?? [],
+    };
+    if (projectId.value) {
+      data.id = projectId.value;
+      data.actualStartTime = projectForm.actualStartTime;
+      data.actualEndTime = projectForm.actualEndTime;
+      data.projectStatus = projectForm.projectstatus || 1;
+      await AdminApiProjectTemp.updateProject(data);
+    } else {
+      data.projectStatus = 1;
+      const res = await AdminApiProjectTemp.createProject(data);
+      projectId.value = res.data.data;
+    }
+    message.success(WeiI18n.$t('保存成功'));
+  } finally {
+    projectFormSubmitting.value = false;
+  }
 }
 
 function goBack() {
   sessionStorage.setItem(PROJECT_LIST_REFRESH_FLAG, '1');
+  sessionStorage.setItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN, '1');
   const raw = route.query.from;
   if (typeof raw === 'string' && raw.length) {
     try {
@@ -99,170 +158,66 @@ function goBack() {
   router.back();
 }
 
-const beforeMaterialUpload = () => false;
-
-async function submitProjectForm() {
-  try {
-    await projectFormRef.value?.validate();
-  } catch {
-    return;
-  }
-  projectFormSubmitting.value = true;
-  try {
-    const data: any = {};
-    data.projectName = projectForm.projectName;
-    data.projectNum = projectForm.projectNum;
-    data.planStartTime = projectForm.planStartTime;
-    data.planEndTime = projectForm.planEndTime;
-    data.remarks = projectForm.remarks;
-    data.productTempId = projectForm.productTempId;
-    data.productPlatform = projectForm.productPlatform;
-    data.confidentialLevel = projectForm.confidentialLevel;
-    data.productPlatformId = projectForm.productPlatformId;
-    data.projectStatus = 1;
-    const res = await AdminApiProductTemp.createProject(data);
-    // TODO: 对接项目创建/更新接口
-    message.success(WeiI18n.$t('保存成功'));
-    // goBack();
-  } finally {
-    projectFormSubmitting.value = false;
-  }
-}
-
-onMounted(() => {
+onMounted(async () => {
   resetProjectForm();
   const id = route.query.id;
-  projectForm.productPlatform = route.query.categoryName;
-  projectForm.productPlatformId = route.query.categoryId;
-  if (id) {
-    const raw = sessionStorage.getItem(PROJECT_EDITOR_DRAFT_KEY);
-    if (raw) {
-      try {
-        const record = JSON.parse(raw) as Record<string, unknown>;
-        projectForm.projectNum = String(record.projectNum ?? '');
-        projectForm.productPlatform = String(record.productPlatform ?? '');
-        projectForm.projectName = String(record.projectName ?? '');
-        projectForm.confidentialLevel = String(record.confidentialLevel ?? 1);
-      } catch {
-        /* ignore */
-      }
-      sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
-    }
+  projectForm.productPlatform = route.query.categoryName as string;
+  projectForm.productPlatformId = route.query.categoryId as string;
+  if (!id) return;
+  projectId.value = id;
+  const raw = sessionStorage.getItem(PROJECT_EDITOR_DRAFT_KEY);
+  if (!raw) return;
+  try {
+    await getProjectInfo();
+  } catch {
+    /* ignore */
   }
+  sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
 });
+
+async function getProjectInfo() {
+  const res = await AdminApiProjectTemp.getProjectInfoEditFile({ id: projectId.value });
+  const projectDto = res.data.data;
+  projectForm.projectNum = projectDto.projectNum;
+  projectForm.productPlatform = projectDto.productPlatform;
+  projectForm.productPlatformId = projectDto.productPlatformId;
+  projectForm.projectName = projectDto.projectName;
+  projectForm.planStartTime = projectDto.planStartTime;
+  projectForm.planEndTime = projectDto.planEndTime;
+  projectForm.confidentialLevel = projectDto.confidentialLevel;
+  projectForm.remarks = projectDto.remarks;
+  projectForm.productTempName = projectDto.productTempName;
+  projectForm.productTempId = projectDto.productTempId;
+  projectForm.actualEndTime = projectDto.actualEndTime;
+  projectForm.actualStartTime = projectDto.actualStartTime;
+  projectForm.projectstatus = projectDto.projectstatus;
+
+  const rawFileList = projectDto?.fileList ?? projectDto?.materialFileList;
+  if (Array.isArray(rawFileList)) {
+    await nextTick();
+    basicInfoRef.value?.setMaterialFileListFromProject(rawFileList);
+  }
+}
 </script>
 
 <template>
   <div class="project-info-editor-page">
     <a-card :bordered="false" class="editor-main-card">
-      <a-tabs v-model:activeKey="projectFormTab" class="project-editor-tabs">
-        <a-tab-pane key="basic" :tab="$t('基本信息')">
-          <a-form
-            ref="projectFormRef"
-            :model="projectForm"
-            layout="horizontal"
-            :colon="false"
-            :label-col="projectFormLabelCol"
-            :wrapper-col="projectFormWrapperCol"
-            label-align="right"
-            class="project-editor-form project-editor-form--uniform">
-            <a-row :gutter="24">
-              <a-col :span="12">
-                <a-form-item :label="$t('项目编号：')" name="projectNum" :rules="[{ required: true, message: $t('请输入项目编号') }]">
-                  <a-input v-model:value="projectForm.projectNum" :placeholder="$t('请输入项目编号')" allow-clear />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item :label="$t('平台：')">
-                  <a-input v-model:value="projectForm.productPlatform" :placeholder="$t('请输入')" disabled />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            <a-row :gutter="24">
-              <a-col :span="12">
-                <a-form-item :label="$t('项目名称：')" name="projectName" :rules="[{ required: true, message: $t('请输入项目名称') }]">
-                  <a-input v-model:value="projectForm.projectName" :placeholder="$t('请输入项目名称')" allow-clear />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item :label="$t('产品模板：')">
-                  <a-input v-model:value="projectForm.productTempName" :placeholder="$t('请选择')" disabled />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            <a-row :gutter="24">
-              <a-col :span="12">
-                <a-form-item :label="$t('计划开始时间：')">
-                  <a-date-picker
-                    :locale="localeA"
-                    v-model:value="projectForm.planStartTime"
-                    class="project-form-date"
-                    style="width: 100%"
-                    placeholder="计划开始时间"
-                    format="YYYY-MM-DD"
-                    value-format="YYYY-MM-DD"
-                    :disabled-date="disabledPlanStartDate" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item :label="$t('计划结束时间：')">
-                  <a-date-picker
-                    :locale="localeA"
-                    v-model:value="projectForm.planEndTime"
-                    class="project-form-date"
-                    style="width: 100%"
-                    placeholder="计划结束时间"
-                    format="YYYY-MM-DD"
-                    value-format="YYYY-MM-DD"
-                    :disabled-date="disabledPlanEndDate" />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            <a-row :gutter="24">
-              <a-col :span="12">
-                <a-form-item :label="$t('密级：')">
-                  <a-select v-model:value="projectForm.confidentialLevel" :options="confidentialOptions"> </a-select>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12" />
-            </a-row>
-            <a-row :gutter="24">
-              <a-col :span="20">
-                <a-form-item :label="$t('备注：')">
-                  <a-textarea v-model:value="projectForm.remarks" :placeholder="$t('请输入备注')" :rows="4" allow-clear />
-                </a-form-item>
-              </a-col>
-              <a-col :span="4" />
-            </a-row>
-            <a-row :gutter="24">
-              <a-col :span="12">
-                <a-form-item :label="$t('资料密级：')">
-                  <a-select v-model:value="projectForm.dataConfidentialLevel" :options="confidentialOptions" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12" />
-            </a-row>
-            <a-row :gutter="24">
-              <a-col :span="20">
-                <a-form-item :label="$t('项目资料：')">
-                  <a-upload-dragger v-model:file-list="materialFileList" name="file" :multiple="true" :before-upload="beforeMaterialUpload">
-                    <p class="ant-upload-drag-icon">
-                      <InboxOutlined />
-                    </p>
-                    <p class="ant-upload-text">{{ $t('点击或将文件拖拽到这里上传') }}</p>
-                    <p class="ant-upload-hint">{{ $t('支持扩展名：.rar .zip .doc .docx .pdf .jpg...') }}</p>
-                  </a-upload-dragger>
-                </a-form-item>
-              </a-col>
-              <a-col :span="4" />
-            </a-row>
-          </a-form>
+      <a-tabs v-model:activeKey="projectFormTab" @change="handleTabchange" class="project-editor-tabs">
+        <a-tab-pane key="1" :tab="$t('基本信息')">
+          <ProjectBasicInfoTab
+            ref="basicInfoRef"
+            :project-form="projectForm"
+            :project-form-label-col="projectFormLabelCol"
+            :project-form-wrapper-col="projectFormWrapperCol"
+            :confidential-options="confidentialOptions"
+            :locale-a="localeA"
+            :disabled-plan-start-date="disabledPlanStartDate"
+            :disabled-plan-end-date="disabledPlanEndDate" />
         </a-tab-pane>
-        <!-- <a-tab-pane key="structure" :tab="$t('结构&团队')">
-          <div class="project-editor-tab-placeholder">
-            <a-empty :description="$t('暂无内容')" />
-          </div>
-        </a-tab-pane> -->
+        <a-tab-pane v-if="projectId" key="2" :tab="$t('项目团队')">
+          <ProjectTeamTab ref="projectTeamRef" :project-id="projectId" />
+        </a-tab-pane>
       </a-tabs>
     </a-card>
 
@@ -334,57 +289,6 @@ onMounted(() => {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-.project-editor-form {
-  padding-top: 4px;
-}
-
-.project-num-with-browse {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-}
-
-.project-num-with-browse :deep(.ant-input) {
-  flex: 1;
-  min-width: 0;
-}
-
-/* 双列等宽，控件在列内拉满，保证左右输入框视觉长度一致 */
-.project-editor-form--uniform :deep(.ant-col-12) {
-  flex: 0 0 50% !important;
-  max-width: 50% !important;
-}
-
-.project-editor-form--uniform :deep(.ant-col-12 > .ant-form-item) {
-  width: 100%;
-}
-
-.project-editor-form--uniform :deep(.ant-form-item-control) {
-  flex: 1;
-  min-width: 0;
-}
-
-.project-editor-form--uniform :deep(.ant-form-item-control-input-content) {
-  width: 100% !important;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.project-editor-form--uniform :deep(.ant-input),
-.project-editor-form--uniform :deep(.ant-input-affix-wrapper),
-.project-editor-form--uniform :deep(.ant-select),
-.project-editor-form--uniform :deep(.ant-picker),
-.project-editor-form--uniform :deep(.project-form-date),
-.project-editor-form--uniform :deep(.project-form-range),
-.project-editor-form--uniform :deep(.ant-input-textarea textarea) {
-  width: 100% !important;
-}
-
-.project-editor-form--uniform :deep(.ant-upload.ant-upload-drag) {
-  width: 100% !important;
 }
 
 .project-editor-tab-placeholder {

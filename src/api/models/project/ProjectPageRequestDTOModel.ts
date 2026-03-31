@@ -43,7 +43,7 @@ export class ProjectPageRequestDTOModel extends BaseModel implements ProjectInfo
    * 项目状态
    * @example ""
    */
-  projectstatus?: string = '';
+  projectStatus?: string = '';
 
   id?: string = '';
 

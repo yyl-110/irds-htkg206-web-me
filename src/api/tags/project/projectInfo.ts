@@ -25,7 +25,7 @@ export interface ProjectInfoRequestPO {
    * 项目状态
    * @example ""
    */
-  projectstatus?: string;
+  projectStatus?: string;
 
   /**
    * 项目名称

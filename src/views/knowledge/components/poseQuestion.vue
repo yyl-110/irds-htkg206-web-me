@@ -34,7 +34,7 @@ const level = ref(null);
 
 const appoint = ref('');
 
-const radioVal = ref(1);
+const radioVal = ref(3);
 
 // 分类标签数据
 const checkTabList = ref([]);
@@ -446,7 +446,7 @@ const submitFun = status => {
       questDesc.value = '';
       level.value = '';
       checkTabList.value = [];
-      radioVal.value = 1;
+      radioVal.value = 3;
       appoint.value = '';
       flagNum.value = '0';
       radioName.value = [];
@@ -463,7 +463,7 @@ const questCancel = () => {
   questDesc.value = '';
   level.value = '';
   checkTabList.value = [];
-  radioVal.value = 1;
+  radioVal.value = 3;
   appoint.value = '';
   flagNum.value = '0';
   radioName.value = [];
@@ -478,7 +478,7 @@ const handleCloseDialog = () => {
   questDesc.value = '';
   level.value = '';
   checkTabList.value = [];
-  radioVal.value = 1;
+  radioVal.value = 3;
   appoint.value = '';
 };
 
@@ -527,7 +527,7 @@ const handleCloseShare = () => {
       <a-form style="display: flex" :label-col="{ style: { width: '130px' } }">
         <a-form-item label="可回复人员：">
           <a-radio-group v-model:value="radioVal" @change="e => getRadio(e.target.value)">
-            <a-radio :value="1">知识专家</a-radio>
+            <!-- <a-radio :value="1">知识专家</a-radio> -->
             <a-radio :value="3">所有人</a-radio>
             <a-radio :value="2">指定人员</a-radio>
           </a-radio-group>

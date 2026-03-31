@@ -25,7 +25,7 @@ interface IQueryPage {
 
 export function querySecondTagNode(data: SecondTagNodeQuery) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTag/querySecondTagNode',
+    url: '/knowledge-service/knowledgeTag/querySecondTagNode',
     data,
     method: 'POST',
   })
@@ -37,7 +37,7 @@ export function querySecondTagNode(data: SecondTagNodeQuery) {
 
 export function queryThreeTagNode(data: SecondTagNodeQuery) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTag/queryThreeTagNode',
+    url: '/knowledge-service/knowledgeTag/queryThreeTagNode',
     data,
     method: 'POST',
   })
@@ -49,7 +49,7 @@ export function queryThreeTagNode(data: SecondTagNodeQuery) {
  */
 export function hotFileList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/hotFileList',
+    url: '/knowledge-service/knowledgePersonal/hotFileList',
     data,
     method: "POST",
   });
@@ -61,7 +61,7 @@ export function hotFileList(data: any) {
 
 export function knowledgePersonal(data: { userId: string }) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/resume',
+    url: '/knowledge-service/knowledgePersonal/resume',
     data,
     method: "POST",
   });
@@ -72,7 +72,7 @@ export function knowledgePersonal(data: { userId: string }) {
  */
 export function knowledgeQueryPage(data: IQueryPage) {
   return httpRequest({
-    url: '/knowledge-server/es_kld/queryPage',
+    url: '/knowledge-service/es_kld/queryPage',
     data,
     method: "POST",
   });
@@ -83,7 +83,7 @@ export function knowledgeQueryPage(data: IQueryPage) {
  */
 export function queryPageQuestion(data: IQueryPage) {
   return httpRequest({
-    url: '/knowledge-server/es_kld_que/queryPage',
+    url: '/knowledge-service/es_kld_que/queryPage',
     data,
     method: "POST",
   });
@@ -95,7 +95,7 @@ export function queryPageQuestion(data: IQueryPage) {
 
 export function lookFileLogList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/lookFileLogList',
+    url: '/knowledge-service/knowledgePersonal/lookFileLogList',
     data,
     method: "POST",
   });
@@ -107,7 +107,7 @@ export function lookFileLogList(data: any) {
 
 export function LearningCompleted(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTMNode/LearningCompleted',
+    url: '/knowledge-service/knowledgeTMNode/LearningCompleted',
     data,
     method: "POST",
   });
@@ -120,7 +120,7 @@ export function LearningCompleted(data: any) {
 
 export function getHistoryList(data: { userId: string }) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeFileMapData/getHistoryList',
+    url: '/knowledge-service/knowledgeFileMapData/getHistoryList',
     data,
     method: "POST",
   });
@@ -133,7 +133,7 @@ export function getHistoryList(data: { userId: string }) {
 
 export function getNodeByLevel(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTree/getNodeByLevel',
+    url: '/knowledge-service/knowledgeTree/getNodeByLevel',
     data,
     method: "POST",
   });
@@ -145,7 +145,7 @@ export function getNodeByLevel(data: any) {
  */
 export function getEchartsDataByTypel(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeFileMapData/getEchartsDataByType',
+    url: '/knowledge-service/knowledgeFileMapData/getEchartsDataByType',
     data,
     method: 'POST',
   });
@@ -157,7 +157,7 @@ export function getEchartsDataByTypel(data: any) {
  */
 export function fileList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeFileMapData/fileList',
+    url: '/knowledge-service/knowledgeFileMapData/fileList',
     data,
     method: "POST",
   });
@@ -168,7 +168,7 @@ export function fileList(data: any) {
  */
 export function commentDetail(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeDiscuss/detail',
+    url: '/knowledge-service/knowledgeDiscuss/detail',
     data,
     method: "POST",
   });
@@ -179,7 +179,7 @@ export function commentDetail(data: any) {
  */
 export function commentSave(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeDiscuss/save',
+    url: '/knowledge-service/knowledgeDiscuss/save',
     data,
     method: "POST",
   });
@@ -190,7 +190,7 @@ export function commentSave(data: any) {
  */
 export function commentFavour(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeDiscuss/favour',
+    url: '/knowledge-service/knowledgeDiscuss/favour',
     data,
     method: "POST",
   });
@@ -201,7 +201,7 @@ export function commentFavour(data: any) {
  */
 export function doInterestQuestion(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/doInterestQuestion',
+    url: '/knowledge-service/knowledgeQuestion/doInterestQuestion',
     data,
     method: "POST",
   });
@@ -212,7 +212,7 @@ export function doInterestQuestion(data: any) {
  */
 export function shareDetail(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeShare/detail',
+    url: '/knowledge-service/knowledgeShare/detail',
     data,
     method: 'POST',
   });
@@ -223,7 +223,7 @@ export function shareDetail(data: any) {
  */
 export function doCollectFile(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/doCollectFile',
+    url: '/knowledge-service/knowledgePersonal/doCollectFile',
     data,
     method: "POST",
   });
@@ -234,7 +234,7 @@ export function doCollectFile(data: any) {
  */
 export function saveLookFileLog(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/saveLookFileLog',
+    url: '/knowledge-service/knowledgePersonal/saveLookFileLog',
     data,
     method: "POST",
   });
@@ -245,7 +245,7 @@ export function saveLookFileLog(data: any) {
  */
 export function updateKldCounting(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeFile/updateKldCounting',
+    url: '/knowledge-service/knowledgeFile/updateKldCounting',
     data,
     method: "POST",
   });
@@ -256,14 +256,14 @@ export function updateKldCounting(data: any) {
  */
 export function knowledgeShare(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeShare/save',
+    url: '/knowledge-service/knowledgeShare/save',
     data,
     method: 'POST',
   });
 }
 export function modifyInit(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeFile/modifyInit',
+    url: '/knowledge-service/knowledgeFile/modifyInit',
     data,
     method: 'POST',
   });
@@ -275,7 +275,7 @@ export function modifyInit(data: any) {
  */
 export function taskMaplist(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTM/taskMaplist',
+    url: '/knowledge-service/knowledgeTM/taskMaplist',
     data,
     method: "POST",
   });
@@ -286,7 +286,7 @@ export function taskMaplist(data: any) {
  */
 export function personalMapList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTM/personalMapList',
+    url: '/knowledge-service/knowledgeTM/personalMapList',
     data,
     method: "POST",
   });
@@ -297,7 +297,7 @@ export function personalMapList(data: any) {
  */
 export function knowledgeQuestion(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/list',
+    url: '/knowledge-service/knowledgeQuestion/list',
     data,
     method: "POST",
   });
@@ -308,7 +308,7 @@ export function knowledgeQuestion(data: any) {
  */
 // export function queryExpertInformationList(data: any) {
 //   return httpRequest({
-//     url: '/knowledge-server/knowledgeQuestion/queryExpertInformationList',
+//     url: '/knowledge-service/knowledgeQuestion/queryExpertInformationList',
 //     data,
 //     method: "POST",
 //   })
@@ -319,7 +319,7 @@ export function knowledgeQuestion(data: any) {
  */
 export function hotQuestion(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/hotQuestion',
+    url: '/knowledge-service/knowledgeQuestion/hotQuestion',
     data,
     method: "POST",
   });
@@ -330,7 +330,7 @@ export function hotQuestion(data: any) {
  */
 export function answerQuestion(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/answerQuestion',
+    url: '/knowledge-service/knowledgeQuestion/answerQuestion',
     data,
     method: "POST",
   });
@@ -341,7 +341,7 @@ export function answerQuestion(data: any) {
  */
 export function removeAnswer(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/removeAnswer',
+    url: '/knowledge-service/knowledgeQuestion/removeAnswer',
     data,
     method: "POST",
   });
@@ -352,7 +352,7 @@ export function removeAnswer(data: any) {
  */
 export function removeQuestion(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/remove',
+    url: '/knowledge-service/knowledgeQuestion/remove',
     data,
     method: "POST",
   });
@@ -363,7 +363,7 @@ export function removeQuestion(data: any) {
  */
 export function getTreeNodeByNodeLevel(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTag/getTreeNodeByNodeLevel',
+    url: '/knowledge-service/knowledgeTag/getTreeNodeByNodeLevel',
     data,
     method: "POST",
   });
@@ -374,7 +374,7 @@ export function getTreeNodeByNodeLevel(data: any) {
  */
 export function userList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeShare/userList',
+    url: '/knowledge-service/knowledgeShare/userList',
     data,
     method: "POST",
   });
@@ -385,7 +385,7 @@ export function userList(data: any) {
  */
 export function saveQuestion(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/save',
+    url: '/knowledge-service/knowledgeQuestion/save',
     data,
     method: "POST",
   });
@@ -396,7 +396,7 @@ export function saveQuestion(data: any) {
  */
 export function queryExpertInformationList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeQuestion/queryExpertInformationList',
+    url: '/knowledge-service/knowledgeQuestion/queryExpertInformationList',
     data,
     method: "POST",
   });
@@ -407,7 +407,7 @@ export function queryExpertInformationList(data: any) {
  */
 export function collectFileList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/collectFileList',
+    url: '/knowledge-service/knowledgePersonal/collectFileList',
     data,
     method: "POST",
   });
@@ -418,7 +418,7 @@ export function collectFileList(data: any) {
  */
 export function interestList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/interestList',
+    url: '/knowledge-service/knowledgePersonal/interestList',
     data,
     method: "POST",
   });
@@ -429,7 +429,7 @@ export function interestList(data: any) {
  */
 export function shareQuestionList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/shareQuestionList',
+    url: '/knowledge-service/knowledgePersonal/shareQuestionList',
     data,
     method: "POST",
   });
@@ -440,7 +440,7 @@ export function shareQuestionList(data: any) {
  */
 export function shareFileList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgePersonal/shareFileList',
+    url: '/knowledge-service/knowledgePersonal/shareFileList',
     data,
     method: "POST",
   });
@@ -451,7 +451,7 @@ export function shareFileList(data: any) {
  */
 export function findAllBzfl(data: any) {
   return httpRequest({
-    url: '/knowledge-server/tbea/bzw/findAllBzfl',
+    url: '/knowledge-service/tbea/bzw/findAllBzfl',
     data,
     method: "POST",
   });
@@ -462,7 +462,7 @@ export function findAllBzfl(data: any) {
  */
 export function findBzwj(data: any) {
   return httpRequest({
-    url: '/knowledge-server/tbea/bzw/findBzwj',
+    url: '/knowledge-service/tbea/bzw/findBzwj',
     data,
     method: "POST",
   });
@@ -473,7 +473,7 @@ export function findBzwj(data: any) {
  */
 export function getFileInfo(data: any) {
   return httpRequest({
-    url: '/knowledge-server/tbea/bzw/getFileInfo',
+    url: '/knowledge-service/tbea/bzw/getFileInfo',
     data,
     method: "POST",
   });
@@ -484,7 +484,7 @@ export function getFileInfo(data: any) {
  */
 export function startLearning(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTMNode/startLearning',
+    url: '/knowledge-service/knowledgeTMNode/startLearning',
     data,
     method: "POST",
   });
@@ -495,7 +495,7 @@ export function startLearning(data: any) {
  */
 export function learningCompleted(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTMNode/LearningCompleted',
+    url: '/knowledge-service/knowledgeTMNode/LearningCompleted',
     data,
     method: "POST",
   });
@@ -506,7 +506,7 @@ export function learningCompleted(data: any) {
  */
 export function taskMapList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTMNode/list',
+    url: '/knowledge-service/knowledgeTMNode/list',
     data,
     method: "POST",
   });
@@ -517,7 +517,7 @@ export function taskMapList(data: any) {
  */
 export function queryMapNodeList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTMNode/queryNodeList',
+    url: '/knowledge-service/knowledgeTMNode/queryNodeList',
     data,
     method: "POST",
   });
@@ -528,7 +528,7 @@ export function queryMapNodeList(data: any) {
  */
 export function queryMapTaskDetail(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTM/queryMapTaskDetail',
+    url: '/knowledge-service/knowledgeTM/queryMapTaskDetail',
     data,
     method: "POST",
   });

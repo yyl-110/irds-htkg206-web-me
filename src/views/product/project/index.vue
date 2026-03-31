@@ -10,6 +10,7 @@ import { useUserStore } from '@/store/modules/user';
 import { decryptValue } from '@/utils';
 import { useLayoutStore } from '@/store/modules/layout/layout';
 import ProjectInfoList from './components/ProjectInfoListAdm.vue';
+const PROJECT_LIST_SKIP_DRAWER_ON_RETURN = 'project-info-list-skip-drawer-on-return';
 
 const layoutStore = useLayoutStore();
 const router = useRoute();
@@ -72,6 +73,17 @@ async function getMenuListData() {
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
     titleList.value = res.data.data;
+    const skipDrawerOnReturn = sessionStorage.getItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN) === '1';
+    if (skipDrawerOnReturn) {
+      sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);
+      if (Array.isArray(res.data.data) && res.data.data.length > 0) {
+        menuId.value = res.data.data[0].id;
+        titleVisible.value = false;
+        drawerStyle.value = ref({});
+        ProjectInfoListRef.value.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
+      }
+      return;
+    }
     if (res.data.data.length == 1) {
       drawerStyle.value = ref({});
       menuId.value = res.data.data[0].id;

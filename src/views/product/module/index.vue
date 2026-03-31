@@ -38,9 +38,9 @@ const menuId = ref<string>('');
 const categoryType = ref<string>('');
 const drawerStyle = ref<any>({
   marginLeft: '201px',
-  marginTop: '65px',
+  marginTop: '0px',
   width: 'calc(100% - 201px)',
-  height: 'calc(100vh - 65px)',
+  height: 'calc(100vh)',
 });
 
 /** 列表请求参数 */
@@ -613,9 +613,9 @@ async function getMenuListData() {
   treeData.value = [];
   drawerStyle.value = {
     marginLeft: layoutStore.asideWidthStyle,
-    marginTop: '65px',
+    marginTop: '0px',
     width: 'calc(100% - 241px)',
-    height: 'calc(100vh - 65px)',
+    height: 'calc(100vh)',
   };
   loading.value = true;
   try {

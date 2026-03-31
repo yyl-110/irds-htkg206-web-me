@@ -1,20 +1,20 @@
 // import { OpenApiActions, type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
-import { ContentType, httpClient, type RequestParams } from "./http-client";
+import { ContentType, httpClient, type RequestParams } from './http-client';
 
-import { CommonResultBooleanModel } from "../models/CommonResultBooleanModel";
-import { CommonResultDeptResponseDTOModel } from "../models/CommonResultDeptResponseDTOModel";
-import { CommonResultJSONArrayModel } from "../models/CommonResultJSONArrayModel";
-import { CommonResultListDeptPOModel } from "../models/CommonResultListDeptPOModel";
-import { CommonResultListDeptResponseDTOModel } from "../models/CommonResultListDeptResponseDTOModel";
-import { CommonResultListDeptSimpleResponseDTOModel } from "../models/CommonResultListDeptSimpleResponseDTOModel";
-import { CommonResultLongModel } from "../models/CommonResultLongModel";
-import { DeptCreateRequestDTOModel } from "../models/DeptCreateRequestDTOModel";
-import { DeptListRequestDTOModel } from "../models/DeptListRequestDTOModel";
-import { DeptPOModel } from "../models/DeptPOModel";
-import { DeptResponseDTOModel } from "../models/DeptResponseDTOModel";
-import { DeptSimpleResponseDTOModel } from "../models/DeptSimpleResponseDTOModel";
-import { DeptUpdateRequestDTOModel } from "../models/DeptUpdateRequestDTOModel";
-import { DeptUserRequestDTOModel } from "../models/DeptUserRequestDTOModel";
+import { CommonResultBooleanModel } from '../models/CommonResultBooleanModel';
+import { CommonResultDeptResponseDTOModel } from '../models/CommonResultDeptResponseDTOModel';
+import { CommonResultJSONArrayModel } from '../models/CommonResultJSONArrayModel';
+import { CommonResultListDeptPOModel } from '../models/CommonResultListDeptPOModel';
+import { CommonResultListDeptResponseDTOModel } from '../models/CommonResultListDeptResponseDTOModel';
+import { CommonResultListDeptSimpleResponseDTOModel } from '../models/CommonResultListDeptSimpleResponseDTOModel';
+import { CommonResultLongModel } from '../models/CommonResultLongModel';
+import { DeptCreateRequestDTOModel } from '../models/DeptCreateRequestDTOModel';
+import { DeptListRequestDTOModel } from '../models/DeptListRequestDTOModel';
+import { DeptPOModel } from '../models/DeptPOModel';
+import { DeptResponseDTOModel } from '../models/DeptResponseDTOModel';
+import { DeptSimpleResponseDTOModel } from '../models/DeptSimpleResponseDTOModel';
+import { DeptUpdateRequestDTOModel } from '../models/DeptUpdateRequestDTOModel';
+import { DeptUserRequestDTOModel } from '../models/DeptUserRequestDTOModel';
 
 /**
  * 管理后台部门
@@ -32,23 +32,41 @@ export class AdminApiSystemDept {
    * @request POST:/system/dept/update
    * @secure
    */
-  static updateDept = <
-    Req extends DeptUpdateRequestDTOModel = DeptUpdateRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static updateDept = <Req extends DeptUpdateRequestDTOModel = DeptUpdateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
         path: `/system-service/system/dept/update`,
-        method: "POST",
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
+
+  /**
+   * 授权用户获取用户部门信息
+   *
+   * @tags
+   * @name getDeptInfo
+   * @summary 授权用户获取用户部门信息
+   * @request POST:/system/dept/getDeptInfo
+   * @secure
+   */
+  static getDeptInfo = <Req extends DeptUpdateRequestDTOModel = DeptUpdateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultBooleanModel, any>(
+      {
+        path: `/system-service/system/dept/getDeptInfo`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      },
+      CommonResultBooleanModel,
+    );
+
   /**
    * 创建部门
    *
@@ -58,22 +76,17 @@ export class AdminApiSystemDept {
    * @request POST:/system/dept/create
    * @secure
    */
-  static createDept = <
-    Req extends DeptCreateRequestDTOModel = DeptCreateRequestDTOModel,
-  >(
-    data: Req,
-    params: RequestParams = {}
-  ) =>
+  static createDept = <Req extends DeptCreateRequestDTOModel = DeptCreateRequestDTOModel>(data: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultLongModel, any>(
       {
         path: `/system-service/system/dept/create`,
-        method: "POST",
+        method: 'POST',
         body: data,
         secure: true,
         type: ContentType.Json,
         ...params,
       },
-      CommonResultLongModel
+      CommonResultLongModel,
     );
   /**
    * 刷新部门数据
@@ -88,11 +101,11 @@ export class AdminApiSystemDept {
     httpClient.request<void, any>(
       {
         path: `/admin-api/system/dept/refresh`,
-        method: "GET",
+        method: 'GET',
         secure: true,
         ...params,
       },
-      undefined
+      undefined,
     );
   /**
    * 获取部门列表
@@ -103,21 +116,16 @@ export class AdminApiSystemDept {
    * @request GET:/admin-api/system/dept/list
    * @secure
    */
-  static listDepts = <
-    Req extends DeptListRequestDTOModel = DeptListRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static listDepts = <Req extends DeptListRequestDTOModel = DeptListRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/system-service/system/dept/list`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 获取部门列表懒加载
@@ -128,21 +136,16 @@ export class AdminApiSystemDept {
    * @request GET:/system/dept/listLazy
    * @secure
    */
-  static listDeptsLazy = <
-    Req extends DeptListRequestDTOModel = DeptListRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static listDeptsLazy = <Req extends DeptListRequestDTOModel = DeptListRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/system-service/system/dept/listLazy`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * 获得组织架构信息
@@ -153,21 +156,16 @@ export class AdminApiSystemDept {
    * @request GET:/admin-api/system/dept/listDeptUser
    * @secure
    */
-  static getDeptUser = <
-    Req extends DeptUserRequestDTOModel = DeptUserRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static getDeptUser = <Req extends DeptUserRequestDTOModel = DeptUserRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultJSONArrayModel, any>(
       {
         path: `/admin-api/system/dept/listDeptUser`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultJSONArrayModel
+      CommonResultJSONArrayModel,
     );
   /**
    * 获取部门列表--组织及其子组织
@@ -178,21 +176,16 @@ export class AdminApiSystemDept {
    * @request GET:/admin-api/system/dept/list-child
    * @secure
    */
-  static listChildDepts = <
-    Req extends DeptListRequestDTOModel = DeptListRequestDTOModel,
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
+  static listChildDepts = <Req extends DeptListRequestDTOModel = DeptListRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/admin-api/system/dept/list-child`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptResponseDTOModel
+      CommonResultListDeptResponseDTOModel,
     );
   /**
    * @description 只包含被开启的部门，主要用于前端的下拉选项
@@ -207,11 +200,11 @@ export class AdminApiSystemDept {
     httpClient.request<CommonResultListDeptSimpleResponseDTOModel, any>(
       {
         path: `/system-service/system/dept/list-all-simple`,
-        method: "GET",
+        method: 'GET',
         secure: true,
         ...params,
       },
-      CommonResultListDeptSimpleResponseDTOModel
+      CommonResultListDeptSimpleResponseDTOModel,
     );
   /**
    * @description 只包含被开启的部门，主要用于前端的下拉选项
@@ -226,11 +219,11 @@ export class AdminApiSystemDept {
     httpClient.request<CommonResultListDeptSimpleResponseDTOModel, any>(
       {
         path: `/system-service/system/dept/list-all-simple-right`,
-        method: "GET",
+        method: 'GET',
         secure: true,
         ...params,
       },
-      CommonResultListDeptSimpleResponseDTOModel
+      CommonResultListDeptSimpleResponseDTOModel,
     );
   /**
    * 获得部门信息
@@ -259,17 +252,17 @@ export class AdminApiSystemDept {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultDeptResponseDTOModel, any>(
       {
         path: `/system-service/system/dept/get`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultDeptResponseDTOModel
+      CommonResultDeptResponseDTOModel,
     );
   /**
    * 获得部门子部门
@@ -298,17 +291,17 @@ export class AdminApiSystemDept {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultListDeptPOModel, any>(
       {
         path: `/admin-api/system/dept/getDeptChildren`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultListDeptPOModel
+      CommonResultListDeptPOModel,
     );
   /**
    * 获得部门信息通过编号
@@ -337,17 +330,17 @@ export class AdminApiSystemDept {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultDeptResponseDTOModel, any>(
       {
         path: `/admin-api/system/dept/getByCode`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultDeptResponseDTOModel
+      CommonResultDeptResponseDTOModel,
     );
   /**
    * 删除部门
@@ -376,16 +369,16 @@ export class AdminApiSystemDept {
     },
   >(
     query: Req,
-    params: RequestParams = {}
+    params: RequestParams = {},
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
         path: `/system-service/system/dept/delete`,
-        method: "GET",
+        method: 'GET',
         query: query,
         secure: true,
         ...params,
       },
-      CommonResultBooleanModel
+      CommonResultBooleanModel,
     );
 }
