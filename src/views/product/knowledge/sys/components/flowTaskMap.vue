@@ -1,7 +1,12 @@
 <template>
   <a-row :gutter="[16, 0]" class="h-full">
     <a-col class="elAside flex flex-col overflow-y-auto">
-      <a-input-search v-model:value="searchData" placeholder="请输入标题或作者搜索" @change="getMapList" @pressEnter="getMapList">
+      <a-input-search
+        v-model:value="searchData"
+        placeholder="请输入标题或作者搜索"
+        @change="getMapList"
+        @pressEnter="getMapList"
+      >
         <template #enterButton>
           <div class="flex items-center">
             <SearchOutlined />
@@ -18,10 +23,26 @@
       </div>
 
       <div class="cardWrap flex-1 h-0 overflow-y-auto wei-scrollbar">
-        <a-card class="sideContent" :bodyStyle="{ padding: '0px' }" :bordered="false" v-for="(item, index) in sideData"
-          :key="item.id" @click="mapDetail(item)">
-          <img v-if="item.coverFileUrl" class="sideContent-img" :src="item.coverFileUrl" alt="" />
-          <img v-else class="sideContent-img" src="@/assets/images/modal1.png" alt="" />
+        <a-card
+          class="sideContent"
+          :bodyStyle="{ padding: '0px' }"
+          :bordered="false"
+          v-for="(item, index) in sideData"
+          :key="item.id"
+          @click="mapDetail(item)"
+        >
+          <img
+            v-if="item.coverFileUrl"
+            class="sideContent-img"
+            :src="item.coverFileUrl"
+            alt=""
+          />
+          <img
+            v-else
+            class="sideContent-img"
+            src="@/assets/images/modal1.png"
+            alt=""
+          />
           <div style="padding: 0 6px 10px 10px; margin-top: 8px">
             <div class="sideContent-data-top">
               <a-tooltip :mouseEnterDelay="0.5" placement="topLeft">
@@ -29,29 +50,51 @@
                 <span class="sideContent-data-top-left">{{ item.name }}</span>
               </a-tooltip>
               <div class="sideContent-data-top-right">
-                <span class="sideContent-data-top-right-text" @click.stop="mapDetail(item)">详情</span>
-                <span v-if="item.enableModify" class="sideContent-data-top-right-text"
-                  @click.stop="mapEdit(item)">编辑</span>
-                <span v-if="item.enableDelete" style="color: #155bd4; cursor: pointer"
-                  @click.stop="mapDetele(item)">删除</span>
+                <span
+                  class="sideContent-data-top-right-text"
+                  @click.stop="mapDetail(item)"
+                  >详情</span
+                >
+                <span
+                  v-if="item.enableModify"
+                  class="sideContent-data-top-right-text"
+                  @click.stop="mapEdit(item)"
+                  >编辑</span
+                >
+                <span
+                  v-if="item.enableDelete"
+                  style="color: #155bd4; cursor: pointer"
+                  @click.stop="mapDetele(item)"
+                  >删除</span
+                >
               </div>
             </div>
             <div class="sideContent-data-bottom">
               <span class="sideContent-data-bottom-text">{{
                 item.createUserName
-                }}</span>
+              }}</span>
               <span class="sideContent-data-bottom-text">{{
                 getTimes(Date.parse(item.addTime))
-                }}</span>
+              }}</span>
             </div>
           </div>
         </a-card>
       </div>
     </a-col>
     <a-col class="elMain">
-      <div class="mainRight">
-        <a-card class="pic" :bodyStyle="{ padding: '0px' }" v-for="(item, index) in mainData" :key="index">
-          <img class="pic-img" :src="item.coverFileUrl" alt="" @click="player(item)" />
+      <div class="mainRight wei-scrollbar">
+        <a-card
+          class="pic"
+          :bodyStyle="{ padding: '0px' }"
+          v-for="(item, index) in mainData"
+          :key="index"
+        >
+          <img
+            class="pic-img"
+            :src="item.coverFileUrl"
+            alt=""
+            @click="player(item)"
+          />
           <div class="pic-data">
             <div class="pic-data-top">
               <div>{{ item.name }}</div>
@@ -60,13 +103,25 @@
           </div>
         </a-card>
       </div>
-      <a-pagination class="elPage" v-model:current="page.currentPage" v-model:pageSize="page.pageSize"
-        :total="page.pageCount" show-size-changer @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
+      <a-pagination
+        class="elPage"
+        v-model:current="page.currentPage"
+        v-model:pageSize="page.pageSize"
+        :show-total="(total) => `共${total}条`"
+        :total="page.pageCount"
+        show-size-changer
+        @change="handleCurrentChange"
+        @showSizeChange="handleSizeChange"
+      />
     </a-col>
   </a-row>
 
-  <detail-dialog :dialogVisible="dialogVisible" :objData="objData" @getList="getMainData"
-    @closeDiaDetail="closeDiaDetail" />
+  <detail-dialog
+    :dialogVisible="dialogVisible"
+    :objData="objData"
+    @getList="getMainData"
+    @closeDiaDetail="closeDiaDetail"
+  />
 </template>
 
 <script setup lang="ts">
@@ -383,12 +438,16 @@ const closeDiaDetail = () => {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
+  display: flex;
+  flex-direction: column;
 
   .mainRight {
+    flex: 1;
     overflow-y: auto;
     display: flex;
     flex-wrap: wrap;
     place-content: flex-start;
+    padding-top: 16px;
 
     .pic {
       width: 480px;
