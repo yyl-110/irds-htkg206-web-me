@@ -138,8 +138,8 @@ watch(
 
 <template>
   <div class="knowledgeCenter h-full">
-    <a-row :gutter="[16, 0]" class="h-full">
-      <a-col :span="hasRightPanel ? 19 : 24" class="h-full">
+    <a-row class="h-full">
+      <a-col :span="hasRightPanel ? 19 : 24" class="h-full bg-white p-[16px] rounded-[4px]">
         <a-tabs v-model:active-key="activeKey" @change="handleTabchange" size="small" class="h-full">
           <a-tab-pane :key="index + 1" :tab="value" v-for="(value, index) in tabList">
             <keep-alive>
@@ -149,7 +149,7 @@ watch(
           </a-tab-pane>
         </a-tabs>
       </a-col>
-      <a-col v-if="hasRightPanel" :span="5" class="h-full">
+      <a-col v-if="hasRightPanel" :span="5" class="h-full pl-[16px]">
         <RightContent v-if="activeKey === 1" :user-info-list="userInfoList" :view-history-data="viewHistoryData"
           :hot-article-data="hotArticleData" :view-total="viewTotal" :hot-file-total="hotFileTotal"
           :tab-flag="activeKey" />
@@ -162,7 +162,7 @@ watch(
 
 <style lang="less" scoped>
 .knowledgeCenter {
-  padding: 16px;
+  background: #f3f2f7;
 }
 
 :deep(.ant-tabs-content) {

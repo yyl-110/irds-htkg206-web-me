@@ -70,45 +70,14 @@ export function initRouteGrauds(router: Router) {
     } else {
       // 获取当前设备类型;
       detectDevice();
-      // 手机端登录
-      if (localStorage.getItem('isMobile') === '0') {
-        if (['/login'].includes(to.path)) {
-          next(`/H5login`); // 否则全部重定向到登录页
-        } else if (!to.path.includes('H5')) {
-          next('/H5home-main');
-        } else if (getAccessToken()) {
-          // 获取所有字典
-          // const dictStore = appStore.useDictStore
-          const userStore = appStore.useUser;
-          // const permissionStore = appStore.usePermissionStore
-          // if (!dictStore.getIsSetDict) {
-          //   await dictStore.setDictMap()
-          // }
-          if (!updatedUserData.value || !userStore.getIsSetUser) {
-            await updateUserData(router);
-            // const redirectPath = from.query.redirect || to.path
-            // const redirect = decodeURIComponent(redirectPath as string)
-            // const nextData = to.path === redirect ? { ...to, replace: true } : { path: redirect }
-            // next(nextData)
-            // console.log(router.getRoutes())
-            // next()
-            next(to);
-          } else {
-            next();
-          }
-        } else {
-          next();
-        }
+      // PC端登录
+      if (['/H5login'].includes(to.path)) {
+        next(`/login`); // 否则全部重定向到登录页
+      } else if (whiteList.includes(to.path)) {
+        next();
       } else {
-        // PC端登录
-        if (['/H5login'].includes(to.path)) {
-          next(`/login`); // 否则全部重定向到登录页
-        } else if (whiteList.includes(to.path)) {
-          next();
-        } else {
-          next(`/login?redirect=${to.fullPath}`);
-        } // 否则全部重定向到登录页
-      }
+        next(`/login?redirect=${to.fullPath}`);
+      } // 否则全部重定向到登录页
     }
   });
 

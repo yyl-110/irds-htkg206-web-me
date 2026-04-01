@@ -168,7 +168,7 @@ const closeDialog = () => {
     <a-card class="box-card expert" :bordered="false">
       <template #title>
         <div class="card-header">
-          <span style="font-weight: 600; font-size: 18px">专家板块</span>
+          <span style="font-weight: 600; font-size: 16px">专家板块</span>
           <div class="more" @click="viewMoreFun('records')">更多</div>
         </div>
       </template>
@@ -197,7 +197,7 @@ const closeDialog = () => {
     <a-card class="box-card hotList" :bordered="false">
       <template #title>
         <div class="card-header">
-          <span style="font-weight: 600; font-size: 18px">热评问题</span>
+          <span style="font-weight: 600; font-size: 16px">热评问题</span>
           <div class="more" @click="viewMoreFun('hot')">更多</div>
         </div>
       </template>
@@ -295,8 +295,8 @@ const closeDialog = () => {
 </style>
 
 <style lang="less" scoped>
+@import '@/sheets/scrollbar.less';
 .rt-layout {
-  margin-top: 10px;
   overflow: hidden;
 
   .tooltip-base-box .box-item {
@@ -365,7 +365,7 @@ const closeDialog = () => {
   border: none;
 
   :deep(.ant-card-head) {
-    padding: 18px 16px;
+    padding:16px;
     border-bottom: none;
 
     .ant-card-head-title {
@@ -492,14 +492,15 @@ const closeDialog = () => {
   width: 100%;
   background: #ffffff;
   border-radius: 4px 4px 4px 4px;
-  margin-bottom: 0;
   display: flex;
   flex-direction: column;
+  margin-top: 16px;
 
   :deep(.ant-card-body) {
-    padding: 0 20px 20px 20px;
+    padding: 0 16px 16px 16px;
     flex: 1;
     overflow-y: auto;
+    .wei-scrollbar-mixin();
 
     .item {
       display: flex;

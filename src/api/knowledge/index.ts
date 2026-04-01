@@ -588,4 +588,25 @@ export function removeTag(data: any) {
     method: "POST",
   });
 }
-
+/**
+ * 编辑任务查询
+ * @param data
+ */
+export function modifyInitMap(data: any) {
+  return httpRequest({
+    url: '/knowledge-server/knowledgeTM/modifyInit',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 删除任务查询
+ * @param data
+ */
+export function removeMap(data: any) {
+  return httpRequest({
+    url: '/knowledge-server/knowledgeTM/remove',
+    data,
+    method: "POST",
+  });
+}

@@ -352,7 +352,7 @@ const handleCurrentChange = val => {
           <a-empty v-if="totalList.length === 0 && !spinning" :image="simpleImage" />
         </div>
         <footer class="pagination-footer flex justify-end">
-          <a-pagination v-model:current="page.currentPage" size="small" :total="page.pageCount" :default-page-size="page.pageSize"
+          <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
             show-less-items show-size-changer :show-total="(total) => `共${total}条`"
             @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
         </footer>

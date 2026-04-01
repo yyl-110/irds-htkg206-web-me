@@ -794,7 +794,7 @@ defineExpose({ changeBtnStyle, DisplayPersonnel, initializationassignment });
 
 .elrow {
   display: flex;
-  justify-content: start;
+  justify-content: flex-start;
   .el-form-item {
     margin-right: 15px;
   }

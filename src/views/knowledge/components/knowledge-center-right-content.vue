@@ -185,7 +185,7 @@ const closeFun = () => {
             <div style="
                 height: 20px;
                 font-weight: bold;
-                font-size: 18px;
+                font-size: 16px;
                 color: #000;
                 margin-bottom: 4px;
               ">
@@ -206,18 +206,18 @@ const closeFun = () => {
     <a-card class="box-cards" :bordered="false">
       <template #title>
         <div class="card-header">
-          <span style="font-weight: 600; font-size: 18px">浏览记录</span>
+          <span style="font-weight: 600; font-size: 16px">浏览记录</span>
           <div class="more" @click="viewMoreFun('records')">更多</div>
         </div>
       </template>
-      <div v-for="(item, index) in viewHistoryData" :key="item.id" class="text item" @click="viewPdfFun(item)">
-        <div v-if="!item.attachmentType" class="box-item">
-          <div class="fontHide" v-if="!item.attachmentType">
+      <div v-for="(item, index) in viewHistoryData" :key="item.id" class="text item w-full" @click="viewPdfFun(item)">
+        <div v-if="!item.attachmentType" class="box-item w-full">
+          <div class="fontHide w-full" v-if="!item.attachmentType">
             {{ item.description }}
           </div>
         </div>
-        <div v-if="item.attachmentType" class="box-item">
-          <div class="fontHide" v-if="item.attachmentType">
+        <div v-if="item.attachmentType" class="box-item  w-full">
+          <div class="fontHide w-full" v-if="item.attachmentType">
             {{ item.fileName }}
           </div>
         </div>
@@ -226,10 +226,10 @@ const closeFun = () => {
     <a-card class="box-card hot-card flex-1 overflow-hidden flex flex-col" :bordered="false">
       <template #title>
         <div class="card-header">
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 1">热点文档</span>
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 2">热点视频</span>
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 3">热点图片</span>
-          <span style="font-weight: 600; font-size: 18px" v-if="tabFlag === 4">热点问答</span>
+          <span style="font-weight: 600; font-size: 16px" v-if="tabFlag === 1">热点文档</span>
+          <span style="font-weight: 600; font-size: 16px" v-if="tabFlag === 2">热点视频</span>
+          <span style="font-weight: 600; font-size: 16px" v-if="tabFlag === 3">热点图片</span>
+          <span style="font-weight: 600; font-size: 16px" v-if="tabFlag === 4">热点问答</span>
           <div class="more" @click="viewMoreFun('hot')">更多</div>
         </div>
       </template>
@@ -316,7 +316,7 @@ const closeFun = () => {
   overflow: hidden;
 
   :deep(.ant-card-head-title) {
-    padding: 8px 0;
+    padding: 12px 0 8px 0;
   }
 
   .home-intro {
@@ -389,7 +389,7 @@ const closeFun = () => {
     }
 
     .desc {
-      margin: 16px 18px 20px 16px;
+      padding: 8px 16px;
       font-size: 14px;
       font-family: PingFangSC, PingFang SC;
       font-weight: 400;
@@ -445,16 +445,17 @@ const closeFun = () => {
 
   .box-cards {
     width: 100%;
-    height: 140px;
+    height: 160px;
     background: #ffffff;
     border-radius: 4px;
     margin-bottom: 16px;
     border: none;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 
-    :deep(.el-card__header) {
-      padding: 0 20px;
-      border-bottom: none;
+    :deep(.ant-card-head) {
+      width: 100%;
     }
 
     .card-header {
@@ -474,8 +475,12 @@ const closeFun = () => {
       }
     }
 
-    :deep(.el-card__body) {
-      padding: 20px;
+    :deep(.ant-card-body) {
+      padding: 16px;
+      flex: 1;
+      height: 0;
+      overflow-y: auto;
+      .wei-scrollbar-mixin();
 
       .item {
         display: flex;
@@ -529,7 +534,7 @@ const closeFun = () => {
     }
 
     :deep(.ant-card-body) {
-      padding: 0 20px 20px 20px;
+      padding: 0 16px 16px 16px;
       flex: 1;
       height: 0;
       overflow-y: auto;
@@ -594,7 +599,6 @@ const closeFun = () => {
   }
 
   .fontHide {
-    width: 204px;
     height: 34px;
     line-height: 34px;
     padding-left: 8px;
@@ -611,12 +615,6 @@ const closeFun = () => {
       color: #0d53e2;
     }
   }
-
-  // .fontHide:hover {
-  //   white-space: normal;
-  //   overflow: visible;
-  //   text-overflow: inherit;
-  // }
   .tooltip-base-box .box-item {
     width: 20px;
     margin-top: 10px;

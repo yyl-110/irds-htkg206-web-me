@@ -113,7 +113,7 @@ const sideFun = item => {
     background: #ffffff;
     border-radius: 4px;
     margin-bottom: 10px;
-    width: 244px;
+    width: 100%;
     height: 245px;
     background: linear-gradient(181deg, #fae2ab 0%, #ffffff 100%);
     border-radius: 4px 4px 4px 4px;

@@ -1,62 +1,57 @@
 <script setup lang="ts">
-import { useUserStore } from '@/store/modules/user';
-import { defineComponent, ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import * as echarts from 'echarts';
-import { message, Modal } from 'ant-design-vue';
-import { sortermethod } from '@/utils/tools';
-import { EpcIcon } from '@/components/icon/EpcIcon';
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons-vue';
-import { encryptValue } from '@/utils';
-import KnowledgeTagManage from './components/KnowledgeTagManage.vue';
+import { useUserStore } from "@/store/modules/user";
+import { defineComponent, ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import * as echarts from "echarts";
+import { message, Modal } from "ant-design-vue";
+import { sortermethod } from "@/utils/tools";
+import { EpcIcon } from "@/components/icon/EpcIcon";
+import { ReloadOutlined, SearchOutlined } from "@ant-design/icons-vue";
+import { encryptValue } from "@/utils";
+import KnowledgeTagManage from "./components/KnowledgeTagManage.vue";
+import flowTaskMap from "./components/flowTaskMap.vue";
 
-
-const router = useRouter()
+const router = useRouter();
 const userStore = useUserStore();
-const activeName = ref('knowledgeCenter');
+const activeName = ref("knowledgeCenter");
 
-onMounted(() => {
-
-});
-
+onMounted(() => {});
 </script>
 
 <template>
-  <a-tabs v-model="activeName" class="work_nav_top" >
+  <a-tabs v-model="activeName" class="work_nav_top">
     <a-tab-pane key="knowledgeCenter">
-      <template #tab>
-        知识中心管理
-      </template>
+      <template #tab> 知识中心管理 </template>
       000
     </a-tab-pane>
     <a-tab-pane key="knowledgeMap">
-      <template #tab>
-        知识地图管理
-      </template>
-        111
+      <template #tab> 知识地图管理 </template>
+      111
     </a-tab-pane>
     <a-tab-pane key="knowledgeStudy">
-      <template #tab>
-        知识学习管理
-      </template>
-        222
+      <template #tab> 知识学习管理 </template>
+      <flowTaskMap />
     </a-tab-pane>
     <a-tab-pane key="knowledgeType">
-      <template #tab>
-        知识标签管理
-      </template>
+      <template #tab> 知识标签管理 </template>
       <!-- 标签管理组件-->
-       <KnowledgeTagManage ref="tagManageRef"  ></KnowledgeTagManage>
+      <KnowledgeTagManage ref="tagManageRef"></KnowledgeTagManage>
     </a-tab-pane>
   </a-tabs>
 </template>
 
 <style lang="less" scoped>
-  .work_nav_top{
-    padding: 16px;
-  }
+.work_nav_top {
+  padding: 16px;
+  padding-top: 8px;
+  height: 100%;
+}
 
-  :deep(.ant-tabs-nav) {
-      margin: 0 0 0 0px !important;
-  }
+:deep(.ant-tabs-content) {
+  height: 100%;
+}
+
+:deep(.ant-tabs-nav) {
+  margin: 0 0 0 0px !important;
+}
 </style>
