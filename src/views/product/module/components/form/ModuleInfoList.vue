@@ -1578,8 +1578,9 @@ defineExpose({ initData, selectAllModuleInfo });
 
 .module-remarks-richtext {
   width: 100%;
-  min-height: 150px;
-  padding: 12px;
+  min-height: 100px;
+  max-height: 380px;
+  padding: 8px;
   border: 1px solid #e8e8e8;
   background: #fff;
   overflow: auto;
