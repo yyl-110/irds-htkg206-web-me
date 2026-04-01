@@ -152,4 +152,67 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 创建活动页面信息
+   *
+   * @tags 管理后台 - 创建活动页面信息
+   * @name createActivityInfo
+   * @summary 创建活动页面信息
+   * @request /business-service/business/activity-basic-info/create
+   * @secure
+   */
+  static createActivityInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 编辑活动页面信息
+   *
+   * @tags 管理后台 - 编辑活动页面信息
+   * @name updateActivityInfo
+   * @summary 编辑活动页面信息
+   * @request /business-service/business/activity-basic-info/update
+   * @secure
+   */
+  static updateActivityInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 批量删除活动页面信息
+   *
+   * @tags 管理后台 - 批量删除活动页面信息
+   * @name deleteActivityInfo
+   * @summary 批量删除活动页面信息
+   * @request /business-service/business/activity-basic-info/delete
+   * @secure
+   */
+  static deleteActivityInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/delete`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
