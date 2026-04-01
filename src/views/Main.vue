@@ -187,14 +187,6 @@ onBeforeMount(() => {
             </div>
             <WeiLayoutMenuSider :collapsed="true" />
           </aside>
-          <footer
-            class="sider-footer-bar h-[50px] flex justify-center items-center shrink-0"
-            >
-            <a-button type="text" size="small" @click="collapsed = !collapsed">
-              <MenuFoldOutlined v-if="collapsed" class="text-base text-white" />
-              <MenuUnfoldOutlined v-else class="text-base text-white" />
-            </a-button>
-          </footer>
         </a-layout-sider>
         <div
           v-if="menuPosition === 'left' && !layoutStore.homepage"
@@ -207,6 +199,10 @@ onBeforeMount(() => {
       </div>
       <a-layout>
         <a-layout-header class="collapsed-header bg-layout-header">
+          <a-button type="text" size="small" @click="collapsed = !collapsed">
+              <MenuFoldOutlined v-if="collapsed" class="text-base" />
+              <MenuUnfoldOutlined v-else class="text-base" />
+            </a-button>
           <MainHeader>
             <WeiLayoutMenuSider v-if="menuPosition === 'top'" mode="horizontal" :collapsed="true" />
           </MainHeader>

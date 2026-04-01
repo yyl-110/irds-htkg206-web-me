@@ -3,7 +3,7 @@
     <div class="rt-layout">
       <div class="home-intro">
         <div class="user">
-          <a-avatar class="elAvatar" :size="50">
+          <a-avatar class="elAvatar flex-shrink-0" :size="50">
             <template #icon> <user-outlined /></template>
           </a-avatar>
           <div class="intro">

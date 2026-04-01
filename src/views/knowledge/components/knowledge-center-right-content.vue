@@ -164,7 +164,7 @@ const closeFun = () => {
   <div class="rt-layout flex flex-col">
     <div class="home-intro">
       <div class="user">
-        <a-avatar :size="50">
+        <a-avatar :size="50" class="flex-shrink-0">
           <template #icon> <user-outlined /></template>
         </a-avatar>
         <div class="intro">
@@ -306,6 +306,7 @@ const closeFun = () => {
 </template>
 
 <style lang="less" scoped>
+@import '@/sheets/scrollbar.less';
 /* modal 通过 teleport 渲染到 body，scoped 无法穿透，样式移到下方全局块 */
 
 .rt-layout {
@@ -532,6 +533,7 @@ const closeFun = () => {
       flex: 1;
       height: 0;
       overflow-y: auto;
+      .wei-scrollbar-mixin();
 
       .item {
         display: flex;

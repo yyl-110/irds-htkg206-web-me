@@ -10,6 +10,7 @@ import { options, optionsOne, optionsTwo } from "./data";
 import RelationGraph from "relation-graph-vue3";
 import fileDrawer from "../components/fileDrawer.vue";
 import { a } from "vitest/dist/chunks/suite.CcK46U-P";
+import { SearchOutlined } from "@ant-design/icons-vue";
 
 const userStore = useUserStore();
 
@@ -183,15 +184,40 @@ onMounted(() => {
     <a-row>
       <a-col :span="6">
         <div class="searchAll mb-[16px]">
-          <a-input-search v-model:value="searchData" placeholder="请输入标题或作者搜索" enter-button @search="onSearch" />
+          <a-input-search
+            v-model:value="searchData"
+            placeholder="请输入标题或作者搜索"
+            @search="onSearch"
+          >
+            <template #enterButton>
+              <div class="flex items-center">
+                <SearchOutlined />
+                <span class="ml-[4px]">搜索</span>
+              </div>
+            </template>
+          </a-input-search>
         </div>
-        <div class="pic-list" :class="item.isCurrent ? 'current-pic-list' : ''" v-for="(item, index) in mapLocationTabs"
-          :key="index" @click="mapLocationFun(item)">
-          <a-avatar class="elava" :style="{
-            backgroundColor:
-              colorss[Math.floor(Math.random() * colorss.length)],
-          }" :size="36">{{ item.nodeName[0] }}</a-avatar>
-          <a-tooltip v-if="item.nodeName && item.nodeName.length >= 9" class="box-item" placement="right">
+        <div
+          class="pic-list"
+          :class="item.isCurrent ? 'current-pic-list' : ''"
+          v-for="(item, index) in mapLocationTabs"
+          :key="index"
+          @click="mapLocationFun(item)"
+        >
+          <a-avatar
+            class="elava"
+            :style="{
+              backgroundColor:
+                colorss[Math.floor(Math.random() * colorss.length)],
+            }"
+            :size="36"
+            >{{ item.nodeName[0] }}</a-avatar
+          >
+          <a-tooltip
+            v-if="item.nodeName && item.nodeName.length >= 9"
+            class="box-item"
+            placement="right"
+          >
             <template #title>{{ item.nodeName }}</template>
             <div class="uname">{{ item.nodeName }}</div>
           </a-tooltip>
@@ -201,12 +227,27 @@ onMounted(() => {
       <a-col :span="18">
         <div class="content">
           <div class="map-wrap">
-            <relation-graph class="rac" ref="graphRef" :options="options" v-show="tabIndex === 1"
-              :on-node-click="onNodeClick" />
-            <relation-graph class="avitive" ref="graphRefOne" :options="optionsOne" v-show="tabIndex === 2"
-              :on-node-click="onNodeClick" />
-            <RelationGraph class="avitive" ref="graphRefTwo" :options="optionsTwo" v-show="tabIndex === 3"
-              :on-node-click="onNodeClick" />
+            <relation-graph
+              class="rac"
+              ref="graphRef"
+              :options="options"
+              v-show="tabIndex === 1"
+              :on-node-click="onNodeClick"
+            />
+            <relation-graph
+              class="avitive"
+              ref="graphRefOne"
+              :options="optionsOne"
+              v-show="tabIndex === 2"
+              :on-node-click="onNodeClick"
+            />
+            <RelationGraph
+              class="avitive"
+              ref="graphRefTwo"
+              :options="optionsTwo"
+              v-show="tabIndex === 3"
+              :on-node-click="onNodeClick"
+            />
           </div>
         </div>
       </a-col>

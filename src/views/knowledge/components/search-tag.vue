@@ -125,7 +125,7 @@ const tag2 = computed(() =>
   width: 100%;
   overflow: auto;
   .cla-list {
-    padding: 0 20px;
+    padding: 0 20px 0 0;
     display: flex;
     align-items: center;
     .total {

@@ -261,7 +261,7 @@ const handleCurrentChange = val => {
 
         <searchTag @changeFlag="changeFlag" :flag="flag" />
 
-        <div class="doc-wrap flex-1 overflow-y-auto">
+        <div class="doc-wrap flex-1 wei-scrollbar">
           <div class="doc-list ask-list" v-for="allQues in totalList" :key="allQues.id">
             <div class="ask-list-top">
               <div class="ask-list-left">
@@ -353,7 +353,7 @@ const handleCurrentChange = val => {
         </div>
         <footer class="pagination-footer flex justify-end">
           <a-pagination v-model:current="page.currentPage" size="small" :total="page.pageCount" :default-page-size="page.pageSize"
-            show-less-items show-size-changer show-quick-jumper :show-total="(total) => `共${total}条`"
+            show-less-items show-size-changer :show-total="(total) => `共${total}条`"
             @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
         </footer>
       </div>
@@ -412,7 +412,7 @@ const handleCurrentChange = val => {
         // height: 48px;
         margin-bottom: 0;
         background-color: #ffffff;
-        padding: 0 0 16px 20px;
+        padding: 0 0 16px 0;
       }
 
       :deep(.ant-tabs-tab) {

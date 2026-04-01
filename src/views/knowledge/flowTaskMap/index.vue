@@ -2,27 +2,52 @@
   <a-row :gutter="[16, 0]" class="layout">
     <a-col :span="5" class="h-full">
       <div class="elAside flex flex-col">
-        <a-input v-model:value="searchData" class="search" placeholder="请输入标题或作者搜索" allow-clear @change="getMapList">
-          <template #suffix>
-            <SearchOutlined class="text-[#999]" />
+        <a-input-search
+          v-model:value="searchData"
+          placeholder="请输入标题或作者搜索"
+          @change="getMapList"
+          allow-clear
+        >
+          <template #enterButton>
+            <div class="flex items-center">
+              <SearchOutlined />
+              <span class="ml-[4px]">搜索</span>
+            </div>
           </template>
-        </a-input>
+        </a-input-search>
         <div class="mt-[16px] flex-1 overflow-y-auto">
-          <a-card v-for="item in sideData" :key="item.id" class="sideContent"
-            :body-style="{ padding: '0px' }" @click="mapDetail(item)">
+          <a-card
+            v-for="item in sideData"
+            :key="item.id"
+            class="sideContent"
+            :body-style="{ padding: '0px' }"
+            @click="mapDetail(item)"
+          >
             <img class="sideContent-img" :src="item.coverFileUrl" alt="" />
             <div style="padding: 0 6px 10px 10px; margin-top: -8px">
               <div class="sideContent-data-top">
-                <a-tooltip :title="item.name" placement="top" :mouse-enter-delay="0.5">
+                <a-tooltip
+                  :title="item.name"
+                  placement="top"
+                  :mouse-enter-delay="0.5"
+                >
                   <span class="sideContent-data-top-left">{{ item.name }}</span>
                 </a-tooltip>
                 <div class="sideContent-data-top-right">
-                  <span class="sideContent-data-top-right-text" @click.stop="mapDetail(item)">详情</span>
+                  <span
+                    class="sideContent-data-top-right-text"
+                    @click.stop="mapDetail(item)"
+                    >详情</span
+                  >
                 </div>
               </div>
               <div class="sideContent-data-bottom">
-                <span class="sideContent-data-bottom-text">{{ item.createUserName }}</span>
-                <span class="sideContent-data-bottom-text">{{ getTimes(Date.parse(item.addTime)) }}</span>
+                <span class="sideContent-data-bottom-text">{{
+                  item.createUserName
+                }}</span>
+                <span class="sideContent-data-bottom-text">{{
+                  getTimes(Date.parse(item.addTime))
+                }}</span>
               </div>
             </div>
           </a-card>
@@ -32,28 +57,67 @@
     <a-col :span="19" class="h-full">
       <div class="elMain">
         <div class="mainRight">
-          <a-card v-for="(item, index) in mainData" :key="index" class="pic"
-            :body-style="{ padding: '0px', display: 'flex' }">
-            <img class="pic-img" :src="item.coverFileUrl" alt="" @click="player(item)" />
+          <a-card
+            v-for="(item, index) in mainData"
+            :key="index"
+            class="pic"
+            :body-style="{ padding: '0px', display: 'flex' }"
+          >
+            <img
+              class="pic-img"
+              :src="item.coverFileUrl"
+              alt=""
+              @click="player(item)"
+            />
             <div class="pic-data">
               <div @click="player(item)" class="pic-data-top">
                 <div>{{ item.name }}</div>
               </div>
               <div class="pic-data-top">
-                <a-progress class="pic-data-top-progress" :percent="item.percent" :show-info="false" size="small" />
-                <PlayCircleOutlined class="pic-data-top-iconColor" @click="player(item)" />
-                <img v-if="item.percent === 0" class="pic-data-top-result" src="@/assets/svg/start.svg" alt="" />
-                <img v-if="item.percent !== 100 && item.percent !== 0" class="pic-data-top-result"
-                  src="@/assets/svg/progress.svg" alt="" />
-                <img v-if="item.percent === 100" class="pic-data-top-result" src="@/assets/svg/completed.svg" alt="" />
+                <a-progress
+                  class="pic-data-top-progress"
+                  :percent="item.percent"
+                  :show-info="false"
+                  size="small"
+                />
+                <PlayCircleOutlined
+                  class="pic-data-top-iconColor"
+                  @click="player(item)"
+                />
+                <img
+                  v-if="item.percent === 0"
+                  class="pic-data-top-result"
+                  src="@/assets/svg/start.svg"
+                  alt=""
+                />
+                <img
+                  v-if="item.percent !== 100 && item.percent !== 0"
+                  class="pic-data-top-result"
+                  src="@/assets/svg/progress.svg"
+                  alt=""
+                />
+                <img
+                  v-if="item.percent === 100"
+                  class="pic-data-top-result"
+                  src="@/assets/svg/completed.svg"
+                  alt=""
+                />
               </div>
               <div class="info">摘要：{{ item.summary }}</div>
             </div>
           </a-card>
         </div>
-        <a-pagination class="elPage" v-model:current="page.currentPage" v-model:page-size="page.pageSize"
-          :total="page.pageCount" show-size-changer show-quick-jumper :page-size-options="['10', '20', '50']"
-          @change="handlePageChange" @show-size-change="handlePageChange" />
+        <a-pagination
+          class="elPage"
+          v-model:current="page.currentPage"
+          v-model:page-size="page.pageSize"
+          :total="page.pageCount"
+          show-size-changer
+          show-quick-jumper
+          :page-size-options="['10', '20', '50']"
+          @change="handlePageChange"
+          @show-size-change="handlePageChange"
+        />
       </div>
     </a-col>
   </a-row>
@@ -66,14 +130,14 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
-import { SearchOutlined, PlayCircleOutlined } from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
-import { useRouter } from 'vue-router';
-import { startLearning, personalMapList, taskMaplist } from '@/api/knowledge';
-import { getTimes } from '@/utils/dateUtils.js';
-import { useUserStore } from '@/store/modules/user';
-import DetailDialog from './detailDialog.vue';
+import { ref, onMounted } from "vue";
+import { SearchOutlined, PlayCircleOutlined } from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
+import { useRouter } from "vue-router";
+import { startLearning, personalMapList, taskMaplist } from "@/api/knowledge";
+import { getTimes } from "@/utils/dateUtils.js";
+import { useUserStore } from "@/store/modules/user";
+import DetailDialog from "./detailDialog.vue";
 
 const router = useRouter();
 
@@ -83,7 +147,7 @@ const page = ref({
   currentPage: 1,
 });
 
-const searchData = ref('');
+const searchData = ref("");
 const objData = ref<any>({});
 const dialogVisible1 = ref(false);
 const sideData = ref<any[]>([]);
@@ -93,16 +157,16 @@ const mainData = ref<any[]>([]);
 const getMapList = async () => {
   const params = {
     userId: useUserStore().getUser.id,
-    queryContent: searchData.value || '',
+    queryContent: searchData.value || "",
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
     clientEnd: 1,
   };
   const res = await taskMaplist(params);
-  if (res && res.data.code === '0') {
+  if (res && res.data.code === "0") {
     sideData.value = res.data.data.result;
   } else {
-    message.error(res?.data?.msg || '获取列表失败');
+    message.error(res?.data?.msg || "获取列表失败");
   }
 };
 
@@ -115,11 +179,11 @@ const getMainData = async () => {
     pageSize: page.value.pageSize,
   };
   const res = await personalMapList(params);
-  if (res && res.data.code === '0') {
+  if (res && res.data.code === "0") {
     mainData.value = res.data.data.result;
     page.value.pageCount = res.data.data.rowCount;
   } else {
-    message.error(res?.data?.msg || '获取列表失败');
+    message.error(res?.data?.msg || "获取列表失败");
   }
 };
 
@@ -132,10 +196,10 @@ const handlePageChange = async (current: number, pageSize: number) => {
 
 // 详情
 const mapDetail = (item: any) => {
-  localStorage.setItem('detail', JSON.stringify(item));
+  localStorage.setItem("detail", JSON.stringify(item));
   objData.value = item;
   if (item.learned) {
-    router.push({ path: '/knowledge/createTaskMap_index' });
+    router.push({ path: "/knowledge/createTaskMap_index" });
   } else {
     dialogVisible1.value = true;
   }
@@ -148,9 +212,9 @@ const closeDiaDetail1 = () => {
 
 // 播放
 const player = async (item: any) => {
-  localStorage.setItem('detail', JSON.stringify(item));
+  localStorage.setItem("detail", JSON.stringify(item));
   await startLearn(item.id);
-  router.push({ path: '/knowledge/createTaskMap_index' });
+  router.push({ path: "/knowledge/createTaskMap_index" });
 };
 
 // 开始学习
@@ -160,8 +224,8 @@ const startLearn = async (id: string) => {
     taskMapId: id,
   };
   const res = await startLearning(params);
-  if (res && res.data.code !== '0') {
-    message.error(res?.data?.msg || '开始学习失败');
+  if (res && res.data.code !== "0") {
+    message.error(res?.data?.msg || "开始学习失败");
   }
 };
 
@@ -186,7 +250,6 @@ defineExpose({ reload });
   background-color: #fff;
   overflow-x: hidden;
   overflow-y: auto;
-
 
   .sideContent {
     margin: 0 10px 10px 10px;

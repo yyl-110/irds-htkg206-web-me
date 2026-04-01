@@ -219,7 +219,7 @@ defineExpose({ reload: () => { getTaglist(); getListData(); } });
       width: 340px;
       height: 28px;
       position: absolute;
-      margin-top: 20px;
+      margin-top: 0;
       text-align: center;
       right: 20px;
 
@@ -229,7 +229,7 @@ defineExpose({ reload: () => { getTaglist(); getListData(); } });
       min-height: 28px;
       max-height: 68px;
       overflow-y: auto;
-      margin: 15px 20px 0 20px;
+      margin: 0 20px 0 20px;
       display: flex;
       align-items: flex-start;
 

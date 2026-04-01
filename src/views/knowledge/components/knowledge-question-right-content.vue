@@ -274,7 +274,7 @@ const closeDialog = () => {
       <template #footer>
         <div class="footer flex justify-between items-center">
           <a-pagination v-model:current="page.currentPage" class="elPage" :total="page.pageCount"
-            :default-page-size="page.pageSize" show-less-items show-size-changer show-quick-jumper
+            :default-page-size="page.pageSize" show-less-items show-size-changer
             :show-total="(total) => `共${total}条`" @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
           <span class="dialog-footer">
             <a-button type="primary" @click="closeFun">关闭</a-button>

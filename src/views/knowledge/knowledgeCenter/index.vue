@@ -290,30 +290,32 @@ onMounted(() => {
 <template>
   <div class="knowledge-container flex flex-col h-full">
     <div class="w-full flex items-center justify-between header">
-      <a-radio-group v-model:value="tabValue" @change="changeType">
-        <a-radio-button :value="1">文档</a-radio-button>
-        <a-radio-button :value="4">问答</a-radio-button>
-        <a-radio-button :value="2">视频</a-radio-button>
-        <a-radio-button :value="3">图片</a-radio-button>
-      </a-radio-group>
-      <div class="flex items-center">
-        <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="max-w-[300px]">
-          <template #enterButton>
-            <div class="flex items-center">
-              <SearchOutlined />
-              <span class="ml-[4px]">搜索</span>
-            </div>
-          </template>
-        </a-input-search>
-        <a-checkbox-group v-model:value="searchType" :options="searchOptions" class="ml-[8px] flex-shrink-0" />
-      </div>
+      <a-tabs v-model:active-key="tabValue" class="elTabs" @change="changeType" size="small">
+        <a-tab-pane tab="文档" :key="1" />
+        <a-tab-pane tab="问答" :key="4" />
+        <a-tab-pane tab="视频" :key="2" />
+        <a-tab-pane tab="图片" :key="3" />
+        <template #rightExtra>
+          <div class="flex items-center">
+            <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="max-w-[300px]">
+              <template #enterButton>
+                <div class="flex items-center">
+                  <SearchOutlined />
+                  <span class="ml-[4px]">搜索</span>
+                </div>
+              </template>
+            </a-input-search>
+            <a-checkbox-group v-model:value="searchType" :options="searchOptions" class="ml-[8px] flex-shrink-0" />
+          </div>
+        </template>
+      </a-tabs>
     </div>
     <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
       :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
       :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
       @onChangeElCheckTagTwo="onChangeElCheckTagTwo" @onOffFun="onOffFun" class="mt-[16px]" />
     <main class="flex-1 h-0">
-      <div class="list h-full overflow-y-auto pt-[16px]">
+      <div class="list wei-scrollbar h-full overflow-y-auto pt-[16px]">
         <a-row class="w-full items-start" v-if="tabValue === 1" :gutter="[16, 16]">
           <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
             <text-card :text-data="item" @handleFetchList="searchData" />
@@ -338,9 +340,9 @@ onMounted(() => {
       </div>
     </main>
     <footer class="flex justify-end pt-[16px]">
-      <a-pagination v-model:current="page.currentPage" size="small" :total="page.pageCount" :default-page-size="page.pageSize"
-        show-less-items show-size-changer show-quick-jumper :show-total="(total) => `共${total}条`"
-        @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
+      <a-pagination v-model:current="page.currentPage" :total="page.pageCount"
+        :default-page-size="page.pageSize" show-less-items show-size-changer
+        :show-total="(total) => `共${total}条`" @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
     </footer>
   </div>
 </template>
@@ -358,6 +360,50 @@ onMounted(() => {
 
   .header {
     border-bottom: 1px solid #eaeaf1;
+  }
+}
+:deep(.ant-tabs-tab+.ant-tabs-tab) {
+  margin-left: 0px;
+}
+.elTabs {
+  border-radius: 4px;
+  width: 100%;
+
+  :deep(.ant-tabs-nav) {
+    // height: 48px;
+    margin-bottom: 0;
+    background-color: #ffffff;
+    padding: 0 0 16px 0;
+  }
+
+  :deep(.ant-tabs-tab) {
+    width: 72px;
+    // height: 32px;
+    font-size: 14px;
+    background: #f2f5f7;
+    border-radius: 2px 0 0 2px;
+    border: 1px solid #ffffff;
+    margin-right: 2px;
+    justify-content: center;
+    padding: 0 !important;
+  }
+
+  :deep(.ant-tabs-tab-active) {
+    background: #e6effb;
+
+    .ant-tabs-tab-btn {
+      font-weight: 600;
+      font-size: 14px;
+      color: #1366d1;
+    }
+  }
+
+  :deep(.ant-tabs-ink-bar) {
+    display: none;
+  }
+
+  :deep(.ant-tabs-content-holder) {
+    display: none;
   }
 }
 </style>

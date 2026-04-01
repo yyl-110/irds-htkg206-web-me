@@ -1,6 +1,6 @@
 // 滚动条相关样式
 
-.wei-scrollbar {
+.wei-scrollbar-mixin() {
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -47,6 +47,10 @@
       }
     }
   }
+}
+
+.wei-scrollbar {
+  .wei-scrollbar-mixin();
 }
 
 [data-doc-theme='dark'] .wei-scrollbar {

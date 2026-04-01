@@ -310,27 +310,20 @@ export class WeiI18n {
 
   /** ant design vue 的多语言文件, 在 a-config-provider 组件中使用 */
   static get antdvLocale(): AntDVLocale {
-    if (towLocales) {
-      // 在更新 ant design vue locale 时同步更新 dayjs 的 locale 配置
-      if (towLocales[WeiI18n.locale] !== undefined) {
-        dayjs.locale(towLocales[WeiI18n.locale].dayjsLocale);
-      }
+    const localeInfo = towLocales?.[WeiI18n.locale];
 
-      // 在更新 ant design vue locale 时同步更新 vxe 的 locale 配置
-      if (WeiI18n.locale !== undefined) {
-        VxeUI.setLanguage(WeiI18n.locale);
-      }
+    if (localeInfo?.dayjsLocale) dayjs.locale(localeInfo.dayjsLocale);
 
-      if (towLocales[WeiI18n.locale] !== undefined && towLocales[WeiI18n.locale]?.antdvLocale !== undefined) {
-        return towLocales[WeiI18n.locale]?.antdvLocale;
-      }
-      // return towLocales[WeiI18n.locale]?.antdvLocale
-    }
+    if (WeiI18n.locale !== undefined) VxeUI.setLanguage(WeiI18n.locale);
+
+    if (localeInfo?.antdvLocale) return localeInfo.antdvLocale;
+
+    return WeiI18n.locale === 'en-US' ? AntDVEnUs : AntDVZhCN;
   }
 
   /** dayjs 使用的多语言 key */
   static get dayjsLocale(): string {
-    return towLocales[WeiI18n.locale].dayjsLocale;
+    return towLocales?.[WeiI18n.locale]?.dayjsLocale || (WeiI18n.locale === 'en-US' ? 'en' : 'zh-cn');
   }
 
   /**
