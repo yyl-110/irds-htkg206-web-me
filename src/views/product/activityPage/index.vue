@@ -4,7 +4,6 @@ import { computed } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
-import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -15,8 +14,8 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import Tree from '@/components/tree/tree.vue';
 import { useUserStore } from '@/store/modules/user';
 import SelectBoomTree from './components/selectBoomTree.vue';
-import ParameterAdd from './components/parameter-add.vue';
-import ParameterUpdate from './components/parameter-update.vue';
+import ActivityAdd from './components/activity-add.vue';
+import ActivityUpdate from './components/activity-update.vue';
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
@@ -24,7 +23,6 @@ import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
 };
-
 // 树结构相关属性
 const treeData = ref<any[]>([]);
 const selectedKeys = ref<string>('');
@@ -143,7 +141,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     align: 'left',
     resizable: true,
     sorter: (a: any, b: any) => sortermethod(a.treeName, b.treeName),
-    width: 130,
+    width: 180,
   },
   {
     title: WeiI18n.$t('组名称'),
@@ -177,7 +175,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'left',
-    width: 200,
+    width: 130,
     fixed: 'right',
   },
   { fixed: 'right', width: 1 },
@@ -632,12 +630,12 @@ async function handleParameterDelete(data: any) {
       infoDel.checkList.push({ id: item });
     });
     infoDel.userid = userStore.getUser.id;
-    await AdminApiSystemParameter.deleteParameterInfo(infoDel);
+    await AdminApiActivityPage.deleteActivityInfo(infoDel);
   } else {
     let infoDel: any = { checkList: [] };
     infoDel.checkList[0] = { id: data.id };
     infoDel.userid = userStore.getUser.id;
-    await AdminApiSystemParameter.deleteParameterInfo(infoDel);
+    await AdminApiActivityPage.deleteActivityInfo(infoDel);
   }
   loadParameterListData();
 }
@@ -648,7 +646,7 @@ async function exportParameData() {
   try {
     let data: any = {};
     data.categoryid = selectNodeKeys.value;
-    const res = await AdminApiSystemParameter.exportDatatempalteinfo(data);
+    const res = await AdminApiActivityPage.exportDatatempalteinfo(data);
     const fileName = '系统参数.xlsx';
     downloadFileFromStream(res, fileName);
   } catch (err) {
@@ -665,7 +663,7 @@ async function handleUploadFile() {
 }
 // 下载附件
 async function templateDownload() {
-  const res = await AdminApiSystemParameter.downloadExcel({});
+  const res = await AdminApiActivityPage.downloadExcel({});
   const fileName = '系统参数.xlsx';
   downloadFileFromStream(res, fileName);
 }
@@ -786,16 +784,19 @@ function closeShareModal() {
             <template #bodyCell="{ column, record }">
               <!-- 操作列：编辑/删除 等，阻止事件冒泡 -->
               <template v-if="column.dataIndex === 'operation'">
-                <div style="display: flex; justify-content: space-around; align-items: center">
-                  <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
-                  <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('配置') }}</a>
-                  <!-- <a-divider type="vertical" /> -->
-                  <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                    <a @click.stop style="color: #ff4d4f; cursor: pointer">{{ $t('删除') }}</a>
-                  </a-popconfirm>
-                </div>
+                <a @click="handleUpdate(record)">{{ $t('编辑') }}</a>
+                <a-divider type="vertical" />
+                <a @click="showKnowledgeModal(record)">{{ $t('配置') }}</a>
+                <a-divider type="vertical" />
+                <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
+                  <a @click.stop style="color: #ff4d4f; cursor: pointer">{{ $t('删除') }}</a>
+                </a-popconfirm>
               </template>
-
+              <template v-else-if="column.dataIndex === 'pageType'">
+                <span v-if="record.pageType === '1'">{{ $t('设计配置页面') }}</span>
+                <span v-else-if="record.pageType === '2'">{{ $t('计算集成页面') }}</span>
+                <span v-else-if="record.pageType === '3'">{{ $t('自定义页面') }}</span>
+              </template>
               <!-- 默认渲染：按列 dataIndex 输出 -->
               <template v-else>
                 {{ record[column.dataIndex] }}
@@ -829,8 +830,8 @@ function closeShareModal() {
       @confirm-select-tree-node="confirmSelectTreeNode"
       @cancel-select-tree-node="cancelSelectTreeNode"
       @handle-select-tree-node="handleSelectTreeNode" />
-    <ParameterAdd ref="addModel" :modal-visible="visible" @refresh-table-data="loadParameterListData" @close="handleCloseAddModal" />
-    <ParameterUpdate ref="updateModel" :modal-visible="updateVisible" @refresh-table-data="loadParameterListData" @close="handleCloseUpdateModal" />
+    <ActivityAdd ref="addModel" :modal-visible="visible" @refresh-table-data="loadParameterListData" @close="handleCloseAddModal" />
+    <ActivityUpdate ref="updateModel" :modal-visible="updateVisible" @refresh-table-data="loadParameterListData" @close="handleCloseUpdateModal" />
     <ImportFile
       :modalVisible="batchflag"
       :fileList="fileList"
