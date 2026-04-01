@@ -553,7 +553,7 @@ function handleSave(e: any) {
   for (let i = 0; i < list1.length; i++) {
     if (i == selectParmIndex.value) {
       list1[i]['parameterNum'] = e.parameterNum;
-      list1[i]['parentId'] = e.id;
+      list1[i]['parameterId'] = e.id;
     }
     list.push(list1[i]);
   }
@@ -578,7 +578,7 @@ defineExpose({ initColumnData });
           <EpcIcon type="icon-shanchu2" style="font-size: 15px" />
           删除
         </a-button>
-        <a-button type="primary" class="btn_left" :disabled="saveFlag" @click="saveColumns">
+        <a-button type="primary" class="btn_left" @click="saveColumns">
           <EpcIcon type="icon-baocun" style="font-size: 15px" />
           保存
         </a-button>
