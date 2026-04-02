@@ -1,6 +1,21 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
+import {
+  AimOutlined,
+  BorderOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  CodeSandboxOutlined,
+  FileOutlined,
+  DesktopOutlined,
+  FileTextOutlined,
+  MinusOutlined,
+  ExclamationCircleOutlined,
+  TableOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons-vue';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 
 const props = defineProps({
@@ -11,6 +26,25 @@ const props = defineProps({
 
 const emit = defineEmits<{ close: []; save: [payload: any] }>();
 const visible = computed({ get: () => props.modalVisible, set: value => !value && emit('close') });
+
+/** 左侧组件库每项前的蓝色图标（与示意图一致：输入框/列表/文档/表格/立方体等） */
+function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDSubtype?: string }): Component {
+  if (item.type === 'TABLE') return TableOutlined;
+  if (item.type === '3D_VIEW') return CodeSandboxOutlined;
+  const map: Record<string, Component> = {
+    INPUT: BorderOutlined,
+    TEXTAREA: BorderOutlined,
+    TITLE: CheckCircleOutlined,
+    SELECT: UnorderedListOutlined,
+    RADIO: AimOutlined,
+    RICH_TEXT: FileTextOutlined,
+    DATE: CalendarOutlined,
+    FILE: FileOutlined,
+    DIVIDER: MinusOutlined,
+    DATA_VIEW: DesktopOutlined,
+  };
+  return map[item.type] || BorderOutlined;
+}
 
 const paletteGroups = [
   {
@@ -71,17 +105,10 @@ const isWorkspaceTableComponent = computed(() => {
   return selectedComponent.value?.componentType === 'TABLE' && (t === 'FIXED' || t === 'ROW_EXPAND');
 });
 const isTemplateBrowse3DComponent = computed(
-  () =>
-    selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE',
+  () => selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE',
 );
-const isModelSelect3DComponent = computed(
-  () =>
-    selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'MODEL_SELECT',
-);
-const isFixedTemplate3DComponent = computed(
-  () =>
-    selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'FIXED_TEMPLATE',
-);
+const isModelSelect3DComponent = computed(() => selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'MODEL_SELECT');
+const isFixedTemplate3DComponent = computed(() => selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'FIXED_TEMPLATE');
 const textPanelKeys = ref<string[]>(['basic']);
 const selectPanelKeys = ref<string[]>(['basic']);
 const radioPanelKeys = ref<string[]>(['basic']);
@@ -99,10 +126,7 @@ const pendingInsertIndex = ref<number | null>(null);
 const tableSizeDraft = reactive({ bodyRows: 4, cols: 3 });
 
 function createDefaultComponent(componentType: string) {
-  const customProps =
-    componentType === 'DATA_VIEW'
-      ? { inputPlaceholder: '请输入设计参数1', assembleButtonText: '装配', libraryCategory: '' }
-      : {};
+  const customProps = componentType === 'DATA_VIEW' ? { inputPlaceholder: '请输入设计参数1', assembleButtonText: '装配', libraryCategory: '' } : {};
   return {
     id: null,
     parentId: 0,
@@ -493,7 +517,10 @@ function ensureTextLikeDefaults(component: any) {
   if (!Array.isArray(component.constraintRules)) component.constraintRules = [];
   if (!component.validateRule || typeof component.validateRule !== 'object') component.validateRule = {};
   if (!component.validateRule.valueRange || typeof component.validateRule.valueRange !== 'object') {
-    component.validateRule.valueRange = { scopeType: 'WARNING', operator: '=', compareValue: '' };
+    component.validateRule.valueRange = { scopeType: 'WARNING', operator: '=', compareValue: '', compareValue2: '' };
+  } else {
+    // 兼容旧数据：后续双范围需要第二个值
+    if (component.validateRule.valueRange.compareValue2 == null) component.validateRule.valueRange.compareValue2 = '';
   }
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
     component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
@@ -506,6 +533,12 @@ function ensureSelectDefaults(component: any) {
   }
   if (!Array.isArray(component.constraintRules)) component.constraintRules = [];
   if (!component.validateRule || typeof component.validateRule !== 'object') component.validateRule = {};
+  if (!component.validateRule.valueRange || typeof component.validateRule.valueRange !== 'object') {
+    component.validateRule.valueRange = { scopeType: 'WARNING', operator: '=', compareValue: '', compareValue2: '' };
+  } else {
+    // 兼容旧数据：后续双范围需要第二个值
+    if (component.validateRule.valueRange.compareValue2 == null) component.validateRule.valueRange.compareValue2 = '';
+  }
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
     component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
   }
@@ -657,6 +690,19 @@ function getRadioOptions(item: any) {
   if (!Array.isArray(values)) return [];
   return values.map((val: string) => (val || '').trim()).filter((val: string) => val !== '');
 }
+/** 预览：默认值为选项列表中的一项时勾选该项，否则与原先一致默认第一项 */
+function isRadioPreviewChecked(item: any, opt: string, optIdx: number) {
+  const opts = getRadioOptions(item);
+  const pv = (item?.paramValue || '').trim();
+  if (pv && opts.includes(pv)) return opt === pv;
+  return optIdx === 0;
+}
+function knowledgeHintText(item: any): string {
+  return String(item?.knowledgeContent ?? '').trim();
+}
+function hasKnowledgeHint(item: any): boolean {
+  return knowledgeHintText(item) !== '';
+}
 
 watch(
   () => selectedComponent.value,
@@ -768,8 +814,8 @@ watch(
               @click="handlePaletteClick(item)"
               @dragstart="handleDragStart(item, $event)"
               @dragend="handleDragEnd">
-              <span class="tool-icon"></span>
-              <span>{{ item.label }}</span>
+              <component :is="getPaletteItemIcon(item)" class="tool-card-icon" />
+              <span class="tool-card-label">{{ item.label }}</span>
             </button>
           </div>
         </div>
@@ -817,10 +863,18 @@ watch(
                   !isModelSelect3DItem(item)
                 "
                 class="component-title">
-                {{ item.paramName || '未命名组件' }}
+                <span>{{ item.paramName || '未命名组件' }}</span>
+                <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                  <ExclamationCircleOutlined class="component-knowledge-hint" />
+                </a-tooltip>
               </div>
               <template v-if="item.componentType === 'TITLE'">
-                <div class="title-preview-text">{{ item.paramName || '标题' }}</div>
+                <div class="title-preview-text">
+                  <span>{{ item.paramName || '标题' }}</span>
+                  <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                    <ExclamationCircleOutlined class="component-knowledge-hint" />
+                  </a-tooltip>
+                </div>
                 <div v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true" class="title-divider-line"></div>
               </template>
               <a-input
@@ -845,7 +899,12 @@ watch(
                 class="preview-field" />
               <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
               <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
-                <div class="data-view-preview-title">数据浏览</div>
+                <div class="data-view-preview-title">
+                  <span>数据浏览</span>
+                  <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                    <ExclamationCircleOutlined class="component-knowledge-hint" />
+                  </a-tooltip>
+                </div>
                 <div class="data-view-preview-row">
                   <a-input
                     :value="getPreviewValue(item)"
@@ -858,7 +917,12 @@ watch(
                 </div>
               </div>
               <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
-                <div class="file-preview-title">{{ item.paramName || '附件上传' }}</div>
+                <div class="file-preview-title">
+                  <span>{{ item.paramName || '附件上传' }}</span>
+                  <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                    <ExclamationCircleOutlined class="component-knowledge-hint" />
+                  </a-tooltip>
+                </div>
                 <div class="file-preview-box">
                   <div class="file-preview-icon">📷</div>
                   <div class="file-preview-hint">图片格式为jpg, jpeg, png, 且图片最大不超过2M</div>
@@ -875,10 +939,15 @@ watch(
                 <CkeditorPlugin height="180" />
               </div>
               <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
-                <div class="radio-preview-title">{{ item.paramName || '单选项' }}</div>
+                <div class="radio-preview-title">
+                  <span>{{ item.paramName || '单选项' }}</span>
+                  <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                    <ExclamationCircleOutlined class="component-knowledge-hint" />
+                  </a-tooltip>
+                </div>
                 <div class="radio-preview-grid">
                   <label v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" class="radio-preview-item">
-                    <input type="radio" :checked="optIdx === 0" disabled />
+                    <input type="radio" :checked="isRadioPreviewChecked(item, opt, optIdx)" disabled />
                     <span>{{ opt }}</span>
                   </label>
                 </div>
@@ -888,11 +957,7 @@ watch(
                   <div class="template-browse-3d-group">
                     <div class="template-browse-3d-label">模板名称：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input
-                        :value="item.customProps?.templateName"
-                        placeholder="请输入"
-                        disabled
-                        class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-input :value="item.customProps?.templateName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
                       <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
                     </div>
                   </div>
@@ -910,11 +975,7 @@ watch(
                   <div class="template-browse-3d-group">
                     <div class="template-browse-3d-label">模板名称：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input
-                        :value="item.customProps?.templateName"
-                        placeholder="请输入"
-                        disabled
-                        class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-input :value="item.customProps?.templateName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
                     </div>
                   </div>
                   <div class="template-browse-3d-group">
@@ -929,19 +990,13 @@ watch(
               <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
                 <div class="model-select-3d-label">模型名称：</div>
                 <div class="model-select-3d-controls">
-                  <a-input
-                    :value="item.customProps?.modelSelectName"
-                    placeholder="请输入"
-                    disabled
-                    class="template-browse-3d-input template-browse-3d-input--grey" />
+                  <a-input :value="item.customProps?.modelSelectName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
                   <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
                   <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>装配模型</a-button>
                 </div>
               </div>
               <div v-else-if="isWorkspaceTableItem(item)" class="fixed-table-preview">
-                <div
-                  v-if="(item.customProps?.tableTitle || '').trim() !== '' || item.customProps?.tableSubtype === 'ROW_EXPAND'"
-                  class="fixed-table-preview-title-row">
+                <div v-if="(item.customProps?.tableTitle || '').trim() !== '' || item.customProps?.tableSubtype === 'ROW_EXPAND'" class="fixed-table-preview-title-row">
                   <span v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-text">
                     {{ item.customProps.tableTitle }}
                   </span>
@@ -971,12 +1026,7 @@ watch(
                         :class="{ 'fixed-table-preview-td--first': c === 1 }">
                         <template v-if="c === 1">
                           <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'" class="fixed-table-cell-index">{{ r }}</span>
-                          <input
-                            v-else-if="item.customProps?.firstColumnType === 'CHECKBOX'"
-                            type="checkbox"
-                            class="fixed-table-cell-check"
-                            disabled
-                            tabindex="-1" />
+                          <input v-else-if="item.customProps?.firstColumnType === 'CHECKBOX'" type="checkbox" class="fixed-table-cell-check" disabled tabindex="-1" />
                           <input
                             v-else-if="item.customProps?.firstColumnType === 'RADIO'"
                             type="radio"
@@ -998,693 +1048,781 @@ watch(
       </div>
 
       <div class="right-config">
-        <div class="panel-title">基础定义</div>
-        <a-form v-if="selectedComponent" layout="vertical">
-          <template v-if="isTextLikeComponent">
-            <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">输入输出类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.ioType">
-                      <a-select-option value="INPUT">输入</a-select-option>
-                      <a-select-option value="OUTPUT">输出</a-select-option>
-                    </a-select>
+        <div class="right-config-scroll">
+          <div class="panel-title">基础定义</div>
+          <a-form v-if="selectedComponent" layout="vertical">
+            <template v-if="isTextLikeComponent">
+              <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
-                  <div class="row-label">默认值：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">限制关系：</div>
-                  <div class="row-control row-control-full">
-                    <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                      <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                      <a-select v-model:value="rule.operator" style="width: 70px">
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">输入输出类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.ioType">
+                        <a-select-option value="INPUT">输入</a-select-option>
+                        <a-select-option value="OUTPUT">输出</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
+                    <div class="row-label">默认值：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field" v-if="selectedComponent.componentType === 'INPUT'">
+                    <div class="row-label">限制关系：</div>
+                    <div class="row-control row-control-full">
+                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
+                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
+                        <a-select v-model:value="rule.operator" style="width: 70px">
+                          <a-select-option value="=">=</a-select-option>
+                          <a-select-option value=">">></a-select-option>
+                          <a-select-option value=">=">>=</a-select-option>
+                          <a-select-option value="<"><</a-select-option>
+                          <a-select-option value="<="><=</a-select-option>
+                          <a-select-option value="!=">!=</a-select-option>
+                        </a-select>
+                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
+                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                      </div>
+                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">知识区知识：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+
+                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT'" key="range" header="取值范围定义">
+                  <div class="row-field">
+                    <div class="row-label">取值范围类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.validateRule.valueRange.scopeType">
+                        <a-select-option value="WARNING">警告型范围</a-select-option>
+                        <a-select-option value="REQUIRED">限制型范围</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">范围形式：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.validateRule.valueRange.operator">
                         <a-select-option value="=">=</a-select-option>
                         <a-select-option value=">">></a-select-option>
                         <a-select-option value=">=">>=</a-select-option>
                         <a-select-option value="<"><</a-select-option>
                         <a-select-option value="<="><=</a-select-option>
-                        <a-select-option value="!=">!=</a-select-option>
+                        <a-select-option value="≤">≤</a-select-option>
+                        <a-select-option value="<; <"><; <</a-select-option>
+                        <a-select-option value="<; <="><; <=</a-select-option>
+                        <a-select-option value="<=; <">≤; <</a-select-option>
+                        <a-select-option value="≤; <">≤; <</a-select-option>
+                        <a-select-option value="<=; <=">≤; ≤</a-select-option>
+                        <a-select-option value="≤; ≤">≤; ≤</a-select-option>
                       </a-select>
-                      <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                      <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
                     </div>
-                    <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
                   </div>
-                </div>
-              </a-collapse-panel>
+                  <div class="row-field">
+                    <div class="row-label">范围定义：</div>
+                    <div class="row-control">
+                      <div class="range-definition-values">
+                        <a-input v-model:value="selectedComponent.validateRule.valueRange.compareValue" placeholder="请输入" />
+                        <a-input
+                          v-if="selectedComponent.validateRule.valueRange.operator?.includes(';')"
+                          v-model:value="selectedComponent.validateRule.valueRange.compareValue2"
+                          placeholder="请输入" />
+                      </div>
+                    </div>
+                  </div>
+                </a-collapse-panel>
 
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">知识区知识：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
+                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT'" key="formula" header="公式定义">
+                  <div class="row-field">
+                    <div class="row-label">公式编辑器：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.expression" placeholder="请输入" /></div>
+                    <a-button type="primary" size="small">定义</a-button>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">调用JS：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" /></div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isDateComponent">
+              <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">输入输出类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.ioType">
+                        <a-select-option value="INPUT">输入</a-select-option>
+                        <a-select-option value="OUTPUT">输出</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">格式：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.customProps.format">
+                        <a-select-option value="yyyy-MM-dd">yyyy-MM-dd</a-select-option>
+                        <a-select-option value="yyyy-MM-dd HH:mm:ss">yyyy-MM-dd HH:mm:ss</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">限制关系：</div>
+                    <div class="row-control row-control-full">
+                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
+                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
+                        <a-select v-model:value="rule.operator" style="width: 70px">
+                          <a-select-option value="=">=</a-select-option>
+                          <a-select-option value=">">></a-select-option>
+                          <a-select-option value=">=">>=</a-select-option>
+                          <a-select-option value="<"><</a-select-option>
+                          <a-select-option value="<="><=</a-select-option>
+                          <a-select-option value="!=">!=</a-select-option>
+                        </a-select>
+                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
+                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                      </div>
+                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">知识区知识：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isSelectComponent">
+              <a-collapse v-model:activeKey="selectPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">输入输出类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.ioType">
+                        <a-select-option value="INPUT">输入</a-select-option>
+                        <a-select-option value="OUTPUT">输出</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
+                    <div class="row-label">默认值：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">限制关系：</div>
+                    <div class="row-control row-control-full">
+                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
+                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
+                        <a-select v-model:value="rule.operator" style="width: 70px">
+                          <a-select-option value="=">=</a-select-option>
+                          <a-select-option value=">">></a-select-option>
+                          <a-select-option value=">=">>=</a-select-option>
+                          <a-select-option value="<"><</a-select-option>
+                          <a-select-option value="<="><=</a-select-option>
+                          <a-select-option value="!=">!=</a-select-option>
+                        </a-select>
+                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
+                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                      </div>
+                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
 
-              <a-collapse-panel key="range" header="取值范围定义">
-                <div class="row-field">
-                  <div class="row-label">取值范围类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.validateRule.valueRange.scopeType">
-                      <a-select-option value="WARNING">警告型范围</a-select-option>
-                      <a-select-option value="REQUIRED">限制型范围</a-select-option>
-                    </a-select>
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">取值范围关系：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.validateRule.valueRange.operator">
-                      <a-select-option value="=">=</a-select-option>
-                      <a-select-option value=">">></a-select-option>
-                      <a-select-option value=">=">>=</a-select-option>
-                      <a-select-option value="<"><</a-select-option>
-                      <a-select-option value="<="><=</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">知识区知识：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">取值范围值：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.valueRange.compareValue" placeholder="请输入" /></div>
-                </div>
-              </a-collapse-panel>
+                </a-collapse-panel>
 
-              <a-collapse-panel key="formula" header="公式定义">
-                <div class="row-field">
-                  <div class="row-label">公式编辑器：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.expression" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">定义</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">调用JS：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" /></div>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-
-            <a-form-item label="占位符"><a-input v-model:value="selectedComponent.customProps.placeholder" placeholder="请输入" /></a-form-item>
-            <a-form-item v-if="selectedComponent.componentType === 'TEXTAREA'" label="文本域行数">
-              <a-input-number v-model:value="selectedComponent.customProps.rows" :min="2" :max="12" style="width: 100%" />
-            </a-form-item>
-            <a-form-item label="必填"><a-switch :checked="selectedComponent.isRequired === 1" @change="(checked: boolean) => (selectedComponent.isRequired = checked ? 1 : 0)" /></a-form-item>
-          </template>
-          <template v-else-if="isDateComponent">
-            <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">输入输出类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.ioType">
-                      <a-select-option value="INPUT">输入</a-select-option>
-                      <a-select-option value="OUTPUT">输出</a-select-option>
-                    </a-select>
+                <a-collapse-panel v-if="selectedComponent.ioType === 'INPUT'" key="range" header="取值范围定义">
+                  <div class="row-field">
+                    <div class="row-label">取值范围类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.validateRule.valueRange.scopeType">
+                        <a-select-option value="WARNING">警告型范围</a-select-option>
+                        <a-select-option value="REQUIRED">限制型范围</a-select-option>
+                      </a-select>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">格式：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.customProps.format">
-                      <a-select-option value="yyyy-MM-dd">yyyy-MM-dd</a-select-option>
-                      <a-select-option value="yyyy-MM-dd HH:mm:ss">yyyy-MM-dd HH:mm:ss</a-select-option>
-                    </a-select>
-                  </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">限制关系：</div>
-                  <div class="row-control row-control-full">
-                    <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                      <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                      <a-select v-model:value="rule.operator" style="width: 70px">
+                  <div class="row-field">
+                    <div class="row-label">范围形式：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.validateRule.valueRange.operator">
                         <a-select-option value="=">=</a-select-option>
                         <a-select-option value=">">></a-select-option>
                         <a-select-option value=">=">>=</a-select-option>
                         <a-select-option value="<"><</a-select-option>
                         <a-select-option value="<="><=</a-select-option>
-                        <a-select-option value="!=">!=</a-select-option>
+                        <a-select-option value="≤">≤</a-select-option>
+                        <a-select-option value="<; <"><; <</a-select-option>
+                        <a-select-option value="<; <="><; <=</a-select-option>
+                        <a-select-option value="<=; <">≤; <</a-select-option>
+                        <a-select-option value="≤; <">≤; <</a-select-option>
+                        <a-select-option value="<=; <=">≤; ≤</a-select-option>
+                        <a-select-option value="≤; ≤">≤; ≤</a-select-option>
                       </a-select>
-                      <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                      <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
                     </div>
-                    <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
                   </div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">知识区知识：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </template>
-          <template v-else-if="isSelectComponent">
-            <a-collapse v-model:activeKey="selectPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">输入输出类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.ioType">
-                      <a-select-option value="INPUT">输入</a-select-option>
-                      <a-select-option value="OUTPUT">输出</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">范围定义：</div>
+                    <div class="row-control">
+                      <div class="range-definition-values">
+                        <a-input v-model:value="selectedComponent.validateRule.valueRange.compareValue" placeholder="请输入" />
+                        <a-input
+                          v-if="selectedComponent.validateRule.valueRange.operator?.includes(';')"
+                          v-model:value="selectedComponent.validateRule.valueRange.compareValue2"
+                          placeholder="请输入" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
-                  <div class="row-label">默认值：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">限制关系：</div>
-                  <div class="row-control row-control-full">
-                    <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                      <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                      <a-select v-model:value="rule.operator" style="width: 70px">
-                        <a-select-option value="=">=</a-select-option>
-                        <a-select-option value=">">></a-select-option>
-                        <a-select-option value=">=">>=</a-select-option>
-                        <a-select-option value="<"><</a-select-option>
-                        <a-select-option value="<="><=</a-select-option>
-                        <a-select-option value="!=">!=</a-select-option>
+                </a-collapse-panel>
+
+                <a-collapse-panel key="dropdown" header="下拉属性配置">
+                  <div class="row-field align-top">
+                    <div class="row-label">序列值配置：</div>
+                    <div class="row-control row-control-full">
+                      <div class="sequence-row" v-for="(option, optionIdx) in selectedComponent.customProps.sequenceValues" :key="optionIdx">
+                        <a-input v-model:value="selectedComponent.customProps.sequenceValues[optionIdx]" placeholder="请输入" style="width: 210px" />
+                        <a-button type="link" class="icon-btn" @click="addSequenceValue">+</a-button>
+                        <a-button type="link" danger class="icon-btn" @click="removeSequenceValue(optionIdx)">x</a-button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <template v-if="selectedComponent.ioType === 'OUTPUT'">
+                    <div class="row-field">
+                      <div class="row-label">公式编辑器：</div>
+                      <div class="row-control">
+                        <a-input v-model:value="selectedComponent.validateRule.formula.expression" placeholder="请输入" />
+                        <a-button type="primary" size="small">定义</a-button>
+                      </div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">调用JS：</div>
+                      <div class="row-control">
+                        <a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" />
+                      </div>
+                    </div>
+                  </template>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isRadioComponent">
+              <a-collapse v-model:activeKey="radioPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">输入输出类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.ioType">
+                        <a-select-option value="INPUT">输入</a-select-option>
+                        <a-select-option value="OUTPUT">输出</a-select-option>
                       </a-select>
-                      <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                      <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
-                    </div>
-                    <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
-                  </div>
-                </div>
-              </a-collapse-panel>
-
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">知识区知识：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
-
-              <a-collapse-panel key="dropdown" header="下拉属性配置">
-                <div class="row-field align-top">
-                  <div class="row-label">序列值配置：</div>
-                  <div class="row-control row-control-full">
-                    <div class="sequence-row" v-for="(option, optionIdx) in selectedComponent.customProps.sequenceValues" :key="optionIdx">
-                      <a-input v-model:value="selectedComponent.customProps.sequenceValues[optionIdx]" placeholder="请输入" style="width: 210px" />
-                      <a-button type="link" class="icon-btn" @click="addSequenceValue">+</a-button>
-                      <a-button type="link" danger class="icon-btn" @click="removeSequenceValue(optionIdx)">x</a-button>
                     </div>
                   </div>
-                </div>
-              </a-collapse-panel>
-
-              <a-collapse-panel key="formula" header="公式定义">
-                <div class="row-field" v-if="selectedComponent.ioType === 'OUTPUT'">
-                  <div class="row-label">调用JS：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" /></div>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-            <a-form-item label="必填"><a-switch :checked="selectedComponent.isRequired === 1" @change="(checked: boolean) => (selectedComponent.isRequired = checked ? 1 : 0)" /></a-form-item>
-          </template>
-          <template v-else-if="isRadioComponent">
-            <a-collapse v-model:activeKey="radioPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">输入输出类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.ioType">
-                      <a-select-option value="INPUT">输入</a-select-option>
-                      <a-select-option value="OUTPUT">输出</a-select-option>
-                    </a-select>
+                  <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
+                    <div class="row-label">默认值：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
                   </div>
-                </div>
-                <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
-                  <div class="row-label">默认值：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">限制关系：</div>
-                  <div class="row-control row-control-full">
-                    <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                      <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                      <a-select v-model:value="rule.operator" style="width: 70px">
-                        <a-select-option value="=">=</a-select-option>
-                        <a-select-option value=">">></a-select-option>
-                        <a-select-option value=">=">>=</a-select-option>
-                        <a-select-option value="<"><</a-select-option>
-                        <a-select-option value="<="><=</a-select-option>
-                        <a-select-option value="!=">!=</a-select-option>
+                  <div class="row-field">
+                    <div class="row-label">限制关系：</div>
+                    <div class="row-control row-control-full">
+                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
+                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
+                        <a-select v-model:value="rule.operator" style="width: 70px">
+                          <a-select-option value="=">=</a-select-option>
+                          <a-select-option value=">">></a-select-option>
+                          <a-select-option value=">=">>=</a-select-option>
+                          <a-select-option value="<"><</a-select-option>
+                          <a-select-option value="<="><=</a-select-option>
+                          <a-select-option value="!=">!=</a-select-option>
+                        </a-select>
+                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
+                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                      </div>
+                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">知识区知识：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+
+                <a-collapse-panel key="options" header="选项配置">
+                  <div class="row-field align-top">
+                    <div class="row-label">序列值配置：</div>
+                    <div class="row-control row-control-full">
+                      <div class="sequence-row" v-for="(option, optionIdx) in selectedComponent.customProps.radioOptions" :key="optionIdx">
+                        <a-input v-model:value="selectedComponent.customProps.radioOptions[optionIdx]" placeholder="请输入" style="width: 210px" />
+                        <a-button type="link" class="icon-btn" @click="addRadioOption">+</a-button>
+                        <a-button type="link" danger class="icon-btn" @click="removeRadioOption(optionIdx)">x</a-button>
+                      </div>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isRichTextComponent">
+              <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">输入输出类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.ioType">
+                        <a-select-option value="INPUT">输入</a-select-option>
+                        <a-select-option value="OUTPUT">输出</a-select-option>
                       </a-select>
-                      <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                      <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
-                    </div>
-                    <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
-                  </div>
-                </div>
-              </a-collapse-panel>
-
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">知识区知识：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
-
-              <a-collapse-panel key="options" header="选项配置">
-                <div class="row-field align-top">
-                  <div class="row-label">序列值配置：</div>
-                  <div class="row-control row-control-full">
-                    <div class="sequence-row" v-for="(option, optionIdx) in selectedComponent.customProps.radioOptions" :key="optionIdx">
-                      <a-input v-model:value="selectedComponent.customProps.radioOptions[optionIdx]" placeholder="请输入" style="width: 210px" />
-                      <a-button type="link" class="icon-btn" @click="addRadioOption">+</a-button>
-                      <a-button type="link" danger class="icon-btn" @click="removeRadioOption(optionIdx)">x</a-button>
                     </div>
                   </div>
-                </div>
-              </a-collapse-panel>
-
-              <a-collapse-panel key="formula" header="公式定义">
-                <div class="row-field" v-if="selectedComponent.ioType === 'OUTPUT'">
-                  <div class="row-label">调用JS：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" /></div>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-            <a-form-item label="必填"><a-switch :checked="selectedComponent.isRequired === 1" @change="(checked: boolean) => (selectedComponent.isRequired = checked ? 1 : 0)" /></a-form-item>
-          </template>
-          <template v-else-if="isRichTextComponent">
-            <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">输入输出类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.ioType">
-                      <a-select-option value="INPUT">输入</a-select-option>
-                      <a-select-option value="OUTPUT">输出</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">限制关系：</div>
+                    <div class="row-control row-control-full">
+                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
+                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
+                        <a-select v-model:value="rule.operator" style="width: 70px">
+                          <a-select-option value="=">=</a-select-option>
+                          <a-select-option value=">">></a-select-option>
+                          <a-select-option value=">=">>=</a-select-option>
+                          <a-select-option value="<"><</a-select-option>
+                          <a-select-option value="<="><=</a-select-option>
+                          <a-select-option value="!=">!=</a-select-option>
+                        </a-select>
+                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
+                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                      </div>
+                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">限制关系：</div>
-                  <div class="row-control row-control-full">
-                    <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                      <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                      <a-select v-model:value="rule.operator" style="width: 70px">
-                        <a-select-option value="=">=</a-select-option>
-                        <a-select-option value=">">></a-select-option>
-                        <a-select-option value=">=">>=</a-select-option>
-                        <a-select-option value="<"><</a-select-option>
-                        <a-select-option value="<="><=</a-select-option>
-                        <a-select-option value="!=">!=</a-select-option>
+                </a-collapse-panel>
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">知识区知识：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isDataViewComponent">
+              <a-collapse v-model:activeKey="dataViewPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">输入输出类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.ioType">
+                        <a-select-option value="INPUT">输入</a-select-option>
+                        <a-select-option value="OUTPUT">输出</a-select-option>
                       </a-select>
-                      <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                      <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
                     </div>
-                    <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
                   </div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">知识区知识：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </template>
-          <template v-else-if="isDataViewComponent">
-            <a-collapse v-model:activeKey="dataViewPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">输入输出类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.ioType">
-                      <a-select-option value="INPUT">输入</a-select-option>
-                      <a-select-option value="OUTPUT">输出</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">基础资源库类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.libraryType" placeholder="请选择">
+                        <a-select-option value="MODEL_LIB">模型库</a-select-option>
+                        <a-select-option value="PLATFORM_LIB">平台库</a-select-option>
+                        <a-select-option value="STD_LIB">标准件库</a-select-option>
+                      </a-select>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">基础资源库类型：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.libraryType" placeholder="请选择">
-                      <a-select-option value="MODEL_LIB">模型库</a-select-option>
-                      <a-select-option value="PLATFORM_LIB">平台库</a-select-option>
-                      <a-select-option value="STD_LIB">标准件库</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">基础资源库分类：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.customProps.libraryCategory" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">基础资源库分类：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.libraryCategory" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">基础资源库对应参数：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.libraryParam" placeholder="请选择">
-                      <a-select-option value="PART_NO">模型件号</a-select-option>
-                      <a-select-option value="PART_NAME">模型名称</a-select-option>
-                      <a-select-option value="MATERIAL">材料</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">基础资源库对应参数：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.libraryParam" placeholder="请选择">
+                        <a-select-option value="PART_NO">模型件号</a-select-option>
+                        <a-select-option value="PART_NAME">模型名称</a-select-option>
+                        <a-select-option value="MATERIAL">材料</a-select-option>
+                      </a-select>
+                    </div>
                   </div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">知识区知识：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-            <a-form-item label="输入框占位"><a-input v-model:value="selectedComponent.customProps.inputPlaceholder" placeholder="请输入" /></a-form-item>
-            <a-form-item label="装配按钮文案"><a-input v-model:value="selectedComponent.customProps.assembleButtonText" placeholder="装配" /></a-form-item>
-            <a-form-item label="必填"><a-switch :checked="selectedComponent.isRequired === 1" @change="(checked: boolean) => (selectedComponent.isRequired = checked ? 1 : 0)" /></a-form-item>
-          </template>
-          <template v-else-if="isFileComponent">
-            <a-collapse v-model:activeKey="filePanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">允许上传的格式：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.allowedFormats" placeholder="zip,jpg,gif,prt,asm" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">允许上传最大容量：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.maxSize" placeholder="20M" /></div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">知识区知识：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-            <div class="single-upload-note">每个活动页面最多只能有一个上传组件</div>
-          </template>
-          <template v-else-if="isTitleComponent">
-            <a-collapse v-model:activeKey="titlePanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="basic" header="基础信息">
-                <div class="row-field">
-                  <div class="row-label">标题名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">是否有分割线：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.customProps.hasDivider">
-                      <a-select-option :value="1">是</a-select-option>
-                      <a-select-option :value="0">否</a-select-option>
-                    </a-select>
+                </a-collapse-panel>
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
                   </div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="knowledge" header="知识配置">
-                <div class="row-field">
-                  <div class="row-label">提示知识：</div>
-                  <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </template>
-          <template v-else-if="isDividerComponent">
-            <div class="divider-empty-panel"></div>
-          </template>
-          <template v-else-if="isWorkspaceTableComponent">
-            <a-collapse v-model:activeKey="fixedTablePanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="info" header="表格基本信息">
-                <div class="row-field">
-                  <div class="row-label">表格标题：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">表格行数：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.customProps.tableBodyRows">
-                      <a-select-option v-for="n in tableDimensionRange(50)" :key="n" :value="n">{{ n }}</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">知识区知识：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">表格列数：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.customProps.tableColCount">
-                      <a-select-option v-for="n in tableDimensionRange(20)" :key="n" :value="n">{{ n }}</a-select-option>
-                    </a-select>
+                </a-collapse-panel>
+              </a-collapse>
+              <a-form-item label="输入框占位"><a-input v-model:value="selectedComponent.customProps.inputPlaceholder" placeholder="请输入" /></a-form-item>
+              <a-form-item label="装配按钮文案"><a-input v-model:value="selectedComponent.customProps.assembleButtonText" placeholder="装配" /></a-form-item>
+            </template>
+            <template v-else-if="isFileComponent">
+              <a-collapse v-model:activeKey="filePanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
                   </div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">首列形式：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.customProps.firstColumnType">
-                      <a-select-option value="INDEX">序号</a-select-option>
-                      <a-select-option value="CHECKBOX">复选框</a-select-option>
-                      <a-select-option value="RADIO">单选框</a-select-option>
-                    </a-select>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
                   </div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="model" header="模型信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="buttons" header="按钮定义">
-                <div class="fixed-table-btn-checks">
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </template>
-          <template v-else-if="isFixedTemplate3DComponent">
-            <a-collapse v-model:activeKey="fixedTemplate3dPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="tpl" header="模板信息">
-                <div class="row-field">
-                  <div class="row-label">模板名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">关联模版库：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入模版编号" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">固定模版是否显示：</div>
-                  <div class="row-control">
-                    <a-select v-model:value="selectedComponent.customProps.fixedTemplateDisplay">
-                      <a-select-option :value="1">是</a-select-option>
-                      <a-select-option :value="0">否</a-select-option>
-                    </a-select>
+                </a-collapse-panel>
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
                   </div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="model" header="模型信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="buttons" header="按钮定义">
-                <div class="fixed-table-btn-checks">
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </template>
-          <template v-else-if="isModelSelect3DComponent">
-            <a-collapse v-model:activeKey="modelSelect3dPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="model" header="模型信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">模型名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelSelectName" placeholder="请输入" class="browse-adjoined-input" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">关联模型库：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="buttons" header="按钮定义">
-                <div class="model-select-3d-btn-checks">
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </template>
-          <template v-else-if="isTemplateBrowse3DComponent">
-            <a-collapse v-model:activeKey="templateBrowse3dPanelKeys" :bordered="false" class="text-config-collapse">
-              <a-collapse-panel key="tpl" header="模板信息">
-                <div class="row-field">
-                  <div class="row-label">模板名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">关联模版库：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">模型名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="model" header="模型信息">
-                <div class="row-field">
-                  <div class="row-label">参数代号：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" /></div>
-                  <a-button type="primary" size="small">浏览</a-button>
-                </div>
-                <div class="row-field">
-                  <div class="row-label">参数名称：</div>
-                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                </div>
-              </a-collapse-panel>
-              <a-collapse-panel key="buttons" header="按钮定义">
-                <div class="fixed-table-btn-checks">
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                </div>
-              </a-collapse-panel>
-            </a-collapse>
-          </template>
-          <template v-else>
-            <a-form-item label="参数代号"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></a-form-item>
-            <a-form-item label="参数名称"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></a-form-item>
-            <a-form-item label="输入/输出">
-              <a-select v-model:value="selectedComponent.ioType">
-                <a-select-option value="INPUT">INPUT</a-select-option>
-                <a-select-option value="OUTPUT">OUTPUT</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="默认值"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></a-form-item>
-            <a-form-item label="必填"><a-switch :checked="selectedComponent.isRequired === 1" @change="(checked: boolean) => (selectedComponent.isRequired = checked ? 1 : 0)" /></a-form-item>
-          </template>
-          <a-button danger @click="removeSelectedComponent">删除当前组件</a-button>
-        </a-form>
-        <a-empty v-else description="请选择中间组件后进行配置" />
+                  <div class="row-field">
+                    <div class="row-label">知识区知识：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+              <div class="single-upload-note">每个活动页面最多只能有一个上传组件</div>
+            </template>
+            <template v-else-if="isTitleComponent">
+              <a-collapse v-model:activeKey="titlePanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">标题名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">是否有分割线：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.customProps.hasDivider">
+                        <a-select-option :value="1">是</a-select-option>
+                        <a-select-option :value="0">否</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isDividerComponent">
+              <div class="divider-empty-panel"></div>
+            </template>
+            <template v-else-if="isWorkspaceTableComponent">
+              <a-collapse v-model:activeKey="fixedTablePanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="info" header="表格基本信息">
+                  <div class="row-field">
+                    <div class="row-label">表格标题：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">表格行数：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.customProps.tableBodyRows">
+                        <a-select-option v-for="n in tableDimensionRange(50)" :key="n" :value="n">{{ n }}</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">表格列数：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.customProps.tableColCount">
+                        <a-select-option v-for="n in tableDimensionRange(20)" :key="n" :value="n">{{ n }}</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">首列形式：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.customProps.firstColumnType">
+                        <a-select-option value="INDEX">序号</a-select-option>
+                        <a-select-option value="CHECKBOX">复选框</a-select-option>
+                        <a-select-option value="RADIO">单选框</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="model" header="模型信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="buttons" header="按钮定义">
+                  <div class="fixed-table-btn-checks">
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isFixedTemplate3DComponent">
+              <a-collapse v-model:activeKey="fixedTemplate3dPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="tpl" header="模板信息">
+                  <div class="row-field">
+                    <div class="row-label">模板名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">关联模版库：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入模版编号" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">固定模版是否显示：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.customProps.fixedTemplateDisplay">
+                        <a-select-option :value="1">是</a-select-option>
+                        <a-select-option :value="0">否</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="model" header="模型信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="buttons" header="按钮定义">
+                  <div class="fixed-table-btn-checks">
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isModelSelect3DComponent">
+              <a-collapse v-model:activeKey="modelSelect3dPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="model" header="模型信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">模型名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelSelectName" placeholder="请输入" class="browse-adjoined-input" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">关联模型库：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="buttons" header="按钮定义">
+                  <div class="model-select-3d-btn-checks">
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else-if="isTemplateBrowse3DComponent">
+              <a-collapse v-model:activeKey="templateBrowse3dPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="tpl" header="模板信息">
+                  <div class="row-field">
+                    <div class="row-label">模板名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">关联模版库：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">模型名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="model" header="模型信息">
+                  <div class="row-field">
+                    <div class="row-label">参数代号：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" />
+                      <a-button type="primary" size="small">浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">参数名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="buttons" header="按钮定义">
+                  <div class="fixed-table-btn-checks">
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
+            <template v-else>
+              <a-form-item label="参数代号"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></a-form-item>
+              <a-form-item label="参数名称"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></a-form-item>
+              <a-form-item label="输入/输出">
+                <a-select v-model:value="selectedComponent.ioType">
+                  <a-select-option value="INPUT">INPUT</a-select-option>
+                  <a-select-option value="OUTPUT">OUTPUT</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item label="默认值"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></a-form-item>
+            </template>
+          </a-form>
+          <a-empty v-else description="请选择中间组件后进行配置" />
+        </div>
+        <div class="right-config-actions">
+          <a-button type="primary" v-if="selectedComponent" danger @click="removeSelectedComponent">删除</a-button>
+        </div>
       </div>
     </div>
     <div class="footer-actions">
@@ -1743,12 +1881,32 @@ watch(
   gap: 12px;
 }
 .left-palette,
-.center-canvas,
-.right-config {
+.center-canvas {
   border: 1px solid #f0f0f0;
   border-radius: 4px;
   padding: 12px;
   overflow: auto;
+}
+.right-config {
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.right-config-scroll {
+  flex: 1;
+  overflow: auto;
+}
+.right-config-actions {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  background: #fff;
 }
 .center-canvas {
   position: relative;
@@ -1781,14 +1939,15 @@ watch(
 .tool-card {
   border: 1px solid #f0f0f0;
   background: #f7f8fa;
-  height: 34px;
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 8px;
+  gap: 6px;
+  padding: 4px 8px;
   color: #1d2a39;
   font-size: 14px;
-  line-height: 1;
+  line-height: 1.2;
   cursor: pointer;
   border-radius: 2px;
   white-space: nowrap;
@@ -1797,14 +1956,18 @@ watch(
   border-color: #cfe3ff;
   background: #edf4ff;
 }
-.tool-icon {
-  width: 10px;
-  height: 10px;
-  border: 1px solid #66b0ff;
-  border-radius: 2px;
-  margin-right: 6px;
-  background: #fff;
+.tool-card-icon {
   flex-shrink: 0;
+  font-size: 16px;
+  color: #1677ff;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+.tool-card-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
 }
 .global-actions {
   display: flex;
@@ -1863,11 +2026,25 @@ watch(
   font-size: 12px;
   color: #444;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 .title-preview-text {
   font-size: 14px;
   color: #333;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.component-knowledge-hint {
+  color: #1677ff;
+  font-size: 14px;
+  cursor: help;
+  flex-shrink: 0;
 }
 .title-divider-line {
   height: 1px;
@@ -1896,6 +2073,10 @@ watch(
   font-size: 14px;
   color: #333;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 .file-preview-box {
   border: 1px dashed #7cb7ff;
@@ -2071,6 +2252,10 @@ watch(
   color: #333;
   margin-bottom: 10px;
   font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 .data-view-preview-row {
   display: flex;
@@ -2122,6 +2307,10 @@ watch(
   font-size: 14px;
   color: #333;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 .radio-preview-grid {
   display: grid;
@@ -2157,32 +2346,60 @@ watch(
 }
 .row-field {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 8px;
-  gap: 8px;
+  gap: 6px;
 }
 .align-top {
   align-items: flex-start;
 }
 .row-label {
-  width: 82px;
+  width: auto;
   flex-shrink: 0;
   font-size: 12px;
   color: #333;
 }
 .row-control {
-  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
   min-width: 0;
 }
 .row-control :deep(.ant-select) {
-  width: 100%;
+  flex: 1;
+  width: auto;
+}
+.row-control :deep(.ant-input) {
+  flex: 1;
+  width: auto;
+}
+.row-control :deep(.ant-input-textarea) {
+  flex: 1;
+  width: auto;
+}
+.row-control :deep(.ant-picker) {
+  flex: 1;
+  width: auto;
+}
+.row-control :deep(.browse-adjoined-input) {
+  flex: 1;
+  width: auto;
+}
+.row-control :deep(.ant-btn) {
+  flex-shrink: 0;
 }
 .row-control-full {
   width: 100%;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 .constraint-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 6px;
 }
@@ -2212,6 +2429,15 @@ watch(
   margin-top: 8px;
   font-size: 12px;
   color: #999;
+}
+.range-definition-values {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.range-definition-values :deep(.ant-input) {
+  width: 100%;
 }
 .footer-actions {
   border-top: 1px solid #f0f0f0;
