@@ -17,7 +17,7 @@ import searchTag from "../components/search-tag.vue";
 const userStore = useUserStore();
 
 const tabValue = ref(1);
-const searchType = ref("");
+const searchType = ref([]);
 const searchValue = ref("");
 
 // 所属类目1
@@ -88,10 +88,10 @@ const searchData = () => {
   publicFun();
   const params = {
     kldType: tabValue.value,
-    keyWords: searchType.value === "1" ? keyWord.value : "", // 判断点没点关键字
+    keyWords: searchType.value[0] === "1" ? searchValue.value : "", // 判断点没点关键字
     userName: userStore.getUser.userName,
-    allowDownload: searchType.value === "2" ? "0" : "",
-    all: keyWord.value || "",
+    allowDownload: searchType.value[0] === "2" ? "0" : "",
+    all: searchValue.value || "",
     kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : "",
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
@@ -313,7 +313,7 @@ onMounted(() => {
     <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
       :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
       :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
-      @onChangeElCheckTagTwo="onChangeElCheckTagTwo" @onOffFun="onOffFun" class="mt-[16px]" />
+      @onChangeElCheckTagTwo="onChangeElCheckTagTwo" class="mt-[16px]" />
     <main class="flex-1 h-0">
       <div class="list wei-scrollbar h-full overflow-y-auto pt-[16px]">
         <a-row class="w-full items-start" v-if="tabValue === 1" :gutter="[16, 16]">

@@ -550,7 +550,7 @@ export function getPdfPreviewPath(data: any) {
  */
 export function knowledgeTagList(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTag/list',
+    url: '/knowledge-service/knowledgeTag/list',
     data,
     method: "POST",
   });
@@ -561,7 +561,7 @@ export function knowledgeTagList(data: any) {
  */
 export function tagSave(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTag/save',
+    url: '/knowledge-service/knowledgeTag/save',
     data,
     method: "POST",
   });
@@ -572,7 +572,7 @@ export function tagSave(data: any) {
  */
 export function sortTag(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTag/sort',
+    url: '/knowledge-service/knowledgeTag/sort',
     data,
     method: "POST",
   });
@@ -583,7 +583,7 @@ export function sortTag(data: any) {
  */
 export function removeTag(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTag/remove',
+    url: '/knowledge-service/knowledgeTag/remove',
     data,
     method: "POST",
   });
@@ -594,7 +594,7 @@ export function removeTag(data: any) {
  */
 export function modifyInitMap(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTM/modifyInit',
+    url: '/knowledge-service/knowledgeTM/modifyInit',
     data,
     method: "POST",
   });
@@ -605,7 +605,107 @@ export function modifyInitMap(data: any) {
  */
 export function removeMap(data: any) {
   return httpRequest({
-    url: '/knowledge-server/knowledgeTM/remove',
+    url: '/knowledge-service/knowledgeTM/remove',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * OU属性接口
+ * @param data
+ */
+export function OuList(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeDict/queryByKey',
+    data,
+    method: "POST",
+  });
+}
+
+/**
+ * 暂存任务地图
+ * @param data
+ */
+export function stagSave(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTM/save',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 查询所有任务地图模板
+ * @param data
+ */
+export function queryTemplate(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTM/queryTemplate',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 删除数据和节点
+ * @param data
+ */
+export function taskMapRemoveTree(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTMNode/removeTree',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 保存任务地图 第二级节点
+ * @param data
+ */
+export function taskMapSaveTree(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTMNode/saveTree',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 保存任务地图 数据
+ * @param data
+ */
+export function saveTreeData(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTMNode/saveTreeData',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 任务地图提交 数据
+ * @param data
+ */
+export function submitMap(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTM/submit',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识地图上下移动接口
+ * @param data
+ */
+export function mapTreeSort(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTMNode/sort',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 数据保存
+ * @param data
+ */
+export function saveFieMap(data: any) {
+  return httpRequest({
+    url: '/knowledge-service//knowledgeFileMapData/save',
     data,
     method: "POST",
   });

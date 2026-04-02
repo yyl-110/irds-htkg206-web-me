@@ -1,13 +1,12 @@
 <template>
-  <div class="layout">
+  <div class="layout flex flex-col h-full">
     <div class="title">
       <div class="titleText">创建知识地图</div>
     </div>
-    <div class="line"></div>
-    <div class="main">
+    <div class="main flex-1 h-0">
       <!-- 左边儿地图 -->
-      <div class="mainCenter">
-        <div v-if="imgPath.id === 1 || templateId === 1" class="totalFirst">
+      <div class="mainCenter wei-scrollbar">
+        <div v-if="imgPath.id === 1 || templateId === 1" class="totalFirst mb-[16px]">
           <div class="mainCenterTop" v-if="imgPath.id === 1 || templateId === 1">
             <img v-if="imgPath.fileUrl" class="mainCenterTopImg" :src="imgPath.fileUrl" alt="" />
             <img v-else class="mainCenterTopImg" :src="templateUrl" alt="" />
@@ -15,7 +14,8 @@
             <div v-if="imgPath.id === 1 || templateId === 1" class="mainCenterTopQuery">{{ secongData.queryObj }}</div>
             <div v-if="imgPath.id === 1 || templateId === 1" class="mainCenterTopTotal">
               <div class="mainCenterTopSide" v-for="item in secongData.nodeList" :key="item.id">
-                <div :class="item.color === true ? 'fontColor' : 'mainCenterTopSideText'" @click="getFileInfo(item)">{{ item.nodeName }}</div>
+                <div :class="item.color === true ? 'fontColor' : 'mainCenterTopSideText'" @click="getFileInfo(item)">{{
+                  item.nodeName }}</div>
               </div>
             </div>
             <div v-if="imgPath.id === 1 || templateId === 1">
@@ -84,15 +84,17 @@
             </div>
           </div>
         </div>
-        <div v-if="imgPath.id === 2 || templateId === 2" class="totalSecond">
+        <div v-if="imgPath.id === 2 || templateId === 2" class="totalSecond mb-[16px]">
           <div class="mainCenterTop8" v-if="imgPath.id === 2 || templateId === 2">
             <img class="mainCenterTopImg8" v-if="imgPath.fileUrl" :src="imgPath.fileUrl" alt="" />
             <img class="mainCenterTopImg8" v-else :src="templateUrl" alt="" />
             <div v-if="imgPath.id === 2 || templateId === 2" class="mainCenterTopTitle8">{{ secongData.name }}</div>
-            <div v-if="imgPath.id === 2 || templateId === 2" class="mainCenterTopQuery8" :content="secongData.queryObj">{{ secongData.queryObj }}</div>
+            <div v-if="imgPath.id === 2 || templateId === 2" class="mainCenterTopQuery8" :content="secongData.queryObj">
+              {{ secongData.queryObj }}</div>
             <div v-if="imgPath.id === 2 || templateId === 2" class="mainCenterTopTotal8">
               <div class="mainCenterTopSide8" v-for="item in secongData.nodeList" :key="item.id">
-                <div :class="item.color === true ? 'fontColor' : 'mainCenterTopSideText8'" @click="getFileInfo(item)" :content="item.nodeName">{{ item.nodeName }}</div>
+                <div :class="item.color === true ? 'fontColor' : 'mainCenterTopSideText8'" @click="getFileInfo(item)"
+                  :content="item.nodeName">{{ item.nodeName }}</div>
               </div>
             </div>
             <div v-if="imgPath.id === 2 || templateId === 2">
@@ -155,41 +157,43 @@
       <div class="mainLefts">
         <a-tabs v-model:activeKey="activeName" class="mainRight" @change="handleTabChange">
           <a-tab-pane tab="地图信息" key="first">
-            <div class="first">
-              <a-form :model="ruleForm" :rules="rules" layout="vertical" :colon="true">
-                <a-form-item label="地图名称" name="mapName">
-                  <a-input v-model:value="ruleForm.mapName" placeholder="请输入地图名称" />
-                </a-form-item>
-                <a-form-item label="查阅对象" name="search">
-                  <a-input v-model:value="ruleForm.search" placeholder="请输入查询对象" :maxlength="6" :showCount="true" />
-                </a-form-item>
-                <!-- <el-form-item label="创建者">
+            <div class="first h-full flex flex-col">
+              <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
+                <a-form :model="ruleForm" :rules="rules" layout="vertical" :colon="true">
+                  <a-form-item label="地图名称" name="mapName">
+                    <a-input v-model:value="ruleForm.mapName" placeholder="请输入地图名称" />
+                  </a-form-item>
+                  <a-form-item label="查阅对象" name="search">
+                    <a-input v-model:value="ruleForm.search" placeholder="请输入查询对象" :maxlength="6" :showCount="true" />
+                  </a-form-item>
+                  <!-- <el-form-item label="创建者">
                   <el-input v-model="creator" disabled />
                 </el-form-item> -->
-                <a-form-item label="OU属性" style="position: relative">
-                  <a-input :value="checkOUListText" disabled />
-                  <span class="elBtn" @click="chooseOUFun">浏览</span>
-                </a-form-item>
-                <a-form-item label="摘要">
-                  <a-textarea v-model:value="abstract" placeholder="请填写摘要" />
-                </a-form-item>
-              </a-form>
-              <a-button class="uploadBtn" @click="uploadFile">
-                <img v-if="fileInfoList.fileUrl" class="uploadimg" :src="fileInfoList.fileUrl" alt="" />
-                <img v-else-if="fileEditUrl" class="uploadimg" :src="fileEditUrl" alt="" />
-                <div v-else>
-                  <img class="uploadimgs" src="@/assets/images/Frame.png" alt="" />
-                  <div style="font-family: Source Sans 3, Source Sans 3; font-weight: 400; font-size: 14px; color: #1366d1">上传封面</div>
-                </div>
-              </a-button>
-              <div style="margin: 16px 0">创建者: {{ creator }}</div>
-              <div style="margin: 16px 0 16px -16px; height: 1px; border: 1px solid #eaeaf1"></div>
-              <!-- <img v-else class="uploadimgs" src="@/assets/images/Frame.png" alt="" /> -->
-              <div style="display: flex">
-                <a-button @click="goBack" class="back" type="primary"><span style="color: #fff">返回</span></a-button>
-                <div style="margin-left: 90px">
-                  <a-button @click="Staging" class="back" type="primary"><span style="color: #fff">暂存</span></a-button>
-                  <a-button style="margin-left: 12px" @click="saveData" class="back" type="primary"><span style="color: #fff">提交</span></a-button>
+                  <a-form-item label="OU属性" style="position: relative">
+                    <a-input :value="checkOUListText" disabled />
+                    <span class="elBtn" @click="chooseOUFun">浏览</span>
+                  </a-form-item>
+                  <a-form-item label="摘要">
+                    <a-textarea v-model:value="abstract" placeholder="请填写摘要" />
+                  </a-form-item>
+                </a-form>
+                <a-button class="uploadBtn" @click="uploadFile">
+                  <img v-if="fileInfoList.fileUrl" class="uploadimg " :src="fileInfoList.fileUrl" alt="" />
+                  <img v-else-if="fileEditUrl" class="uploadimg" :src="fileEditUrl" alt="" />
+                  <div v-else>
+                    <img class="uploadimgs" src="@/assets/images/Frame.png" alt="" />
+                    <div style="font-size: 14px; color: #1366d1">
+                      上传封面</div>
+                  </div>
+                </a-button>
+
+                <div style="margin: 16px 0">创建者: {{ creator }}</div>
+              </div>
+              <div class="flex justify-between w-full">
+                <a-button @click="goBack" class="back" type="primary">返回</a-button>
+                <div>
+                  <a-button @click="Staging" class="back" type="primary">暂存</a-button>
+                  <a-button style="margin-left: 12px" @click="saveData" class="back" type="primary">提交</a-button>
                 </div>
               </div>
             </div>
@@ -220,16 +224,10 @@
               </div>
             </div>
             <div class="treeData" v-if="treeMapData.length > 0">
-              <a-tree
-                ref="treeMapRef"
-                :selectedKeys="selectedTreeKeys"
-                show-icon
-                defaultExpandAll
-                :tree-data="treeMapData"
-                :fieldNames="treeFieldNames"
-                @select="handleTreeSelect">
-                <template #icon="{ dataRef }">
-                  <EpcIcon :type="getTreeIconType(dataRef)" style="margin-right: 5px; font-size: 14px" />
+              <a-tree ref="treeMapRef" :selectedKeys="selectedTreeKeys" show-icon defaultExpandAll
+                :tree-data="treeMapData" :fieldNames="treeFieldNames" @select="handleTreeSelect">
+                <template #icon="data">
+                  <WeiIcon :icon="getTreeIconType(data)" :size="14" />
                 </template>
               </a-tree>
             </div>
@@ -237,12 +235,16 @@
         </a-tabs>
       </div>
     </div>
-    <div v-dragModal>
-      <a-modal v-model:visible="OUDialogVisible" :maskClosable="false" :width="500" title="OU属性" @cancel="closeOUDialogFun">
-        <a-checkbox v-model:checked="checkAllOU" :indeterminate="isIndeterminate" @change="handleCheckAllChange">电装集团</a-checkbox>
-        <a-checkbox-group v-model:value="checkOUList" @change="handleCheckedCitiesChange">
-          <a-checkbox v-for="item in OUData" :key="item.id" :value="item.name">{{ item.name }}</a-checkbox>
-        </a-checkbox-group>
+    <div class="wrap" v-dragModal>
+      <a-modal :getContainer="customGetContainer" v-model:visible="OUDialogVisible" :maskClosable="false" :width="500"
+        title="OU属性" @cancel="closeOUDialogFun">
+        <a-checkbox v-model:checked="checkAllOU" :indeterminate="isIndeterminate"
+          @change="handleCheckAllChange">电装集团</a-checkbox>
+        <div class="mt-[16px]">
+          <a-checkbox-group v-model:value="checkOUList" @change="handleCheckedCitiesChange">
+            <a-checkbox v-for="item in OUData" :key="item.id" :value="item.name">{{ item.name }}</a-checkbox>
+          </a-checkbox-group>
+        </div>
         <template #footer>
           <span class="dialog-footer">
             <a-button type="primary" @click="closeOUDialogFun">确定</a-button>
@@ -251,36 +253,35 @@
         </template>
       </a-modal>
     </div>
-    <div v-dragModal>
-      <a-modal v-model:visible="dialogAddEdit" :maskClosable="false" :width="500" :title="title" @cancel="dialogCancel">
-        <a-form :model="ruleForm" :rules="rules" :labelCol="{ style: { width: '100px' } }" :colon="true">
-          <a-form-item label="父项名称">
-            <a-input v-model:value="parentName" disabled />
-          </a-form-item>
-          <a-form-item label="标签类型">
-            <a-input v-model:value="labelType" disabled />
-          </a-form-item>
-          <a-form-item label="分类名称" name="classifyName">
-            <a-input v-model:value="ruleForm.classifyName" />
-          </a-form-item>
-        </a-form>
-        <template #footer>
-          <div class="dialog-footer">
-            <a-button type="primary" @click="dialogConfirm">确认</a-button>
-            <a-button @click="dialogCancel">取消</a-button>
-          </div>
-        </template>
-      </a-modal>
-    </div>
-    <!-- <CenterSearch :addDataDialogVisible="addDataDialogVisible" :numberFlag="numberFlag" @closeCenterDia="closeDialogNotification"></CenterSearch> -->
-    <!-- <UploadVue :rowId="clickId" title="上传图片" v-model="showUpload" @onUpload="hiddenUpload"></UploadVue> -->
+    <draggable-modal v-model:visible="dialogAddEdit" :maskClosable="false" :width="500" :title="title"
+      @cancel="dialogCancel" draggable>
+      <a-form :model="ruleForm" :rules="rules" :labelCol="{ style: { width: '100px' } }" :colon="true">
+        <a-form-item label="父项名称">
+          <a-input v-model:value="parentName" disabled />
+        </a-form-item>
+        <a-form-item label="标签类型">
+          <a-input v-model:value="labelType" disabled />
+        </a-form-item>
+        <a-form-item label="分类名称" name="classifyName">
+          <a-input v-model:value="ruleForm.classifyName" />
+        </a-form-item>
+      </a-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <a-button type="primary" @click="dialogConfirm">确认</a-button>
+          <a-button @click="dialogCancel">取消</a-button>
+        </div>
+      </template>
+    </draggable-modal>
+    <center-search :addDataDialogVisible="addDataDialogVisible" @closeCenterDia="addDataDialogVisible = false"
+      @handleSuccess="handleSuccess" :nodeId="clickNodeObj.id" />
+    <upload-modal :modalVisible="showUpload" @importSuccess="hiddenUpload" @onClose="showUpload = false" />
   </div>
 </template>
 
-<script setup>
-import { ref, watch, computed, onActivated } from 'vue';
-import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+<script setup lang="ts">
+import { ref, watch, computed, onActivated, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, EditOutlined, FileTextOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import {
@@ -296,15 +297,17 @@ import {
   getPdfPreviewPath,
   submitMap,
   mapTreeSort,
-} from '@/api/knowledgeBaseManagment';
-import CenterSearch from './centerSearch.vue';
-import UploadVue from '@/components/Upload/upload.vue';
-import Cookies from 'js-cookie';
+} from '@/api/knowledge';
 import { useUserStore } from '@/store/modules/user';
 import { EpcIcon } from '@/components/icon/EpcIcon';
+import { modifyInitMap } from '@/api/knowledge';
+import draggableModal from '@/components/DraggableModal/index.vue';
+import uploadModal from './components/upload-modal.vue'
+import { WeiIcon } from '@/wei-components';
+import centerSearch from './components/centerSearch.vue'
 
 const router = useRouter();
-const store = useStore();
+const route = useRoute()
 
 const showUpload = ref(false);
 
@@ -377,7 +380,7 @@ const ruleForm = ref({
 // // 查询对象
 // const search = ref();
 // 创建者
-const creator = ref();
+const creator = ref(useUserStore().getUser.userName);
 // ou属性
 const OUProperty = ref();
 // 摘要
@@ -428,44 +431,39 @@ const templateId = ref();
 
 // 详情数据
 const detailData = ref([]);
+const fileInfoList = ref({})
 
-const fileInfoList = computed(() => {
-  return store.getters.fileInfoList;
-});
+const mapEditList = ref({})
 
-const centerDataList = computed(() => {
-  return store.getters.centerDataList;
-});
-
-const mapEditList = computed(() => {
-  return store.getters.mapEditList;
-});
-
-onActivated(() => {
+onMounted(() => {
+  if (route.query.id) getMapInfoData()
   getId();
   getOUList();
-  creator.value = Cookies.get('userName');
 });
 
-watch(
-  () => mapEditList.value,
-  val => {
-    if (val) {
-      console.log(val, '返现的数据');
-      ruleForm.value.mapName = val.name;
-      ruleForm.value.search = val.queryObj;
-      creator.value = val.createUserName;
-      abstract.value = val.summary;
-      fileEditUrl.value = val.coverFileUrl;
-      taskMapIdFlag.value = val.id;
-      currentEditId.value = val.id;
-      templateUrl.value = val.templateUrl;
-      templateId.value = val.templateId;
-      console.log(templateId.value, 'templateId.value');
+function customGetContainer() {
+  // 返回自定义挂载节点
+  return document.querySelector('.wrap');
+}
+const getMapInfoData = async () => {
+  try {
+    const res = await modifyInitMap({ id: route.query.id })
+    if (res.data.code === '0') {
+      mapEditList.value = res.data.data
+      ruleForm.value.mapName = mapEditList.value.name;
+      ruleForm.value.search = mapEditList.value.queryObj;
+      creator.value = mapEditList.value.createUserName;
+      abstract.value = mapEditList.value.summary;
+      fileEditUrl.value = mapEditList.value.coverFileUrl;
+      taskMapIdFlag.value = mapEditList.value.id;
+      currentEditId.value = mapEditList.value.id;
+      templateUrl.value = mapEditList.value.templateUrl;
+      templateId.value = mapEditList.value.templateId;
     }
-  },
-  { deep: true, immediate: true }
-);
+  } catch (error) {
+    console.log('error:', error)
+  }
+}
 
 const getDataList = () => {
   const params = {
@@ -473,24 +471,24 @@ const getDataList = () => {
     taskMapId: taskMapIdFlag.value || '',
   };
   queryMapNodeList(params).then(res => {
-    if (res && res.code === '0') {
+    if (res && res.data.code === '0') {
       secongData.value = {};
-      secongData.value = res.data;
+      secongData.value = res.data.data;
       getFileInfo();
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
 
 // 初始化数据
 const getId = () => {
-  queryTemplate().then(res => {
-    if (res && res.code === '0') {
+  queryTemplate({}).then(res => {
+    if (res && res.data.code === '0') {
       templateData.value = [];
-      templateData.value = res.data;
+      templateData.value = res.data.data;
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
@@ -504,11 +502,11 @@ const getFileInfo = data => {
     userId: useUserStore().getUser.id,
   };
   queryMapTaskDetail(params).then(res => {
-    if (res && res.code === '0') {
+    if (res && res.data.code === '0') {
       detailData.value = [];
-      detailData.value = res.data.result;
+      detailData.value = res.data.data.result;
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
   secongData.value.nodeList.forEach(v => {
@@ -539,11 +537,11 @@ const getTreeList = () => {
     userId: useUserStore().getUser.id,
   };
   taskMapList(params).then(res => {
-    if (res && res.code === '0') {
+    if (res && res.data.code === '0') {
       treeMapData.value = [];
-      treeMapData.value = res.data;
+      treeMapData.value = res.data.data;
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
@@ -568,13 +566,13 @@ const Staging = () => {
     taskMapId: taskMapIdFlag.value || '',
   };
   stagSave(params).then(res => {
-    if (res && res.code === '0') {
-      taskMapIdFlag.value = res.data.taskMapId;
+    if (res && res.data.code === '0') {
+      taskMapIdFlag.value = res.data.data.taskMapId;
       activeName.value = 'second';
       getTreeList();
       getDataList();
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
@@ -613,23 +611,20 @@ const viewPdf = item => {
     id: item.fileId,
   };
   getPdfPreviewPath(params).then(res => {
-    if (res && res.code === 200) {
+    if (res && res.data.code === 200) {
       filePath.value = res.data.fileUrl;
       router.push({ path: '/knowledgeData/pdfView_index', query: { docId: filePath.value } });
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
-};
-  store.commit('SET_OBJECTITEM', item);
-  viewPdf(item);
-  // router.push({ path: '/knowledgeData/pdfView_index', query: { docId: item.fileUrl, filePath: filePath.value } });
+  router.push({ path: '/knowledgeData/pdfView_index', query: { docId: item.fileUrl, filePath: filePath.value } });
 };
 
 const getTreeIconType = data => {
-  if (data?.nodeLevel == '1') return 'icon-wenjianjia1';
-  if (data?.nodeLevel == '2') return 'icon-icon_classification';
-  return 'icon-a-icon_model1';
+  if (data?.nodeLevel === 1) return 'icon-wjj';
+  if (data?.nodeLevel === 2) return 'icon-wj';
+  return 'icon-wj';
 };
 
 const addTreeFun = () => {
@@ -685,12 +680,12 @@ const upTreeFun = () => {
     type: '0',
   };
   mapTreeSort(params).then(res => {
-    if (res && res.code === '0') {
+    if (res && res.data.code === '0') {
       console.log(res.data);
       getDataList();
       getTreeList();
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
@@ -709,12 +704,12 @@ const downTreeFun = () => {
     type: '1',
   };
   mapTreeSort(params).then(res => {
-    if (res && res.code === '0') {
+    if (res && res.data.code === '0') {
       console.log(res.data);
       getDataList();
       getTreeList();
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
@@ -736,14 +731,14 @@ const deleteTreeFun = () => {
         userId: useUserStore().getUser.id,
       };
       taskMapRemoveTree(params).then(res => {
-        if (res && res.code === '0') {
+        if (res && res.data.code === '0') {
           getTreeList();
           getFileInfo();
           getDataList();
           message.success('删除成功');
           return;
         } else {
-          message.error(res.msg);
+          message.error(res.data.msg);
         }
       });
     },
@@ -756,9 +751,12 @@ const deleteTreeFun = () => {
 
 // 附件
 const openFileFun = () => {
-  console.log(clickNodeObj.value, '为啥不走');
   if (!clickNodeObj.value.id) {
     message.error('请选择节点！');
+    return;
+  }
+  if (clickNodeObj.value.nodeLevel === 3) {
+    message.warning('文件不能操作！');
     return;
   }
   if (clickNodeObj.value.nodeLevel === 1) {
@@ -775,15 +773,15 @@ const getThirdData = () => {
     id: clickNodeObj.value.id,
     taskMapId: taskMapIdFlag.value || '',
     userId: useUserStore().getUser.id,
-    batch: centerDataList.value,
+    // batch: centerDataList.value,
   };
   saveTreeData(params).then(res => {
-    if (res && res.code === '0') {
+    if (res && res.data.code === '0') {
       getTreeList();
       getFileInfo();
-      message.success(res.msg);
+      message.success(res.data.msg);
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
@@ -810,13 +808,13 @@ const dialogConfirm = () => {
     };
   }
   taskMapSaveTree(params).then(res => {
-    if (res && res.code === '0') {
+    if (res && res.data.code === '0') {
       ruleForm.value.classifyName = '';
       getTreeList();
-      message.success(res.msg);
+      message.success(res.data.msg);
       getDataList();
     } else {
-      message.error(res.msg);
+      message.error(res.data.msg);
     }
   });
 };
@@ -839,7 +837,6 @@ const goBack = () => {
   ruleForm.value.mapName = '';
   ruleForm.value.search = '';
   abstract.value = '';
-  store.commit('SET_FILEINFODATA', {});
   treeMapData.value = [];
   activeName.value = 'first';
   secongData.value = {};
@@ -868,11 +865,10 @@ const saveData = () => {
           userId: useUserStore().getUser.id,
         };
         submitMap(params).then(res => {
-          if (res && res.code === '0') {
+          if (res && res.data.code === '0') {
             ruleForm.value.mapName = '';
             ruleForm.value.search = '';
             abstract.value = '';
-            store.commit('SET_FILEINFODATA', {});
             treeMapData.value = [];
             activeName.value = 'first';
             secongData.value = {};
@@ -884,7 +880,7 @@ const saveData = () => {
             templateUrl.value = '';
             router.go(-1);
           } else {
-            message.error(res.msg);
+            message.error(res.data.msg);
           }
         });
       },
@@ -925,8 +921,8 @@ const getOUList = () => {
   OuList(params).then(res => {
     OUData.value = [];
     selectedName.value = [];
-    OUData.value = res.data.slice(1);
-    selectedName.value = res.data.slice(1);
+    OUData.value = res.data.data.slice(1);
+    selectedName.value = res.data.data.slice(1);
     checkOUList.value = OUData.value.map(v => v.name);
   });
 };
@@ -942,45 +938,53 @@ const uploadFile = () => {
 };
 
 const hiddenUpload = data => {
-  showUpload.value = data;
+  if (data.id) {
+    showUpload.value = false;
+    fileInfoList.value = data
+  }
 };
 
-const closeDialogNotification = () => {
-  numberFlag.value = 3;
-  getThirdData();
-  addDataDialogVisible.value = false;
-};
+// 添加数据弹框保存成功回调
+const handleSuccess = () => {
+  getTreeList()
+  addDataDialogVisible.value = false
+}
 </script>
 
-<style lang="less" scoped>
-.layout {
-  height: 100%;
-  margin: 20px;
-  width: 100%;
+<style lang="less">
+.mainRight .ant-tabs-content {
+  height: 100% !important;
+}
+</style>
 
+<style lang="less" scoped>
+:deep(.ant-tree-iconEle) {
+  display: inline-flex !important;
+  align-items: center;
+}
+
+.layout {
   .title {
     display: flex;
     justify-content: space-between;
     background-color: #fff;
-    padding: 23px 10px 11px 36px;
+    padding: 16px;
+    border-bottom: 1px solid #eaeaf1;
+
+
     .titleText {
       line-height: 32px;
-      margin-left: 10px;
       font-family: Source Sans 3, Source Sans 3;
       font-weight: bold;
       font-size: 18px;
       color: #000;
     }
   }
-  .line {
-    height: 2px;
-    width: 100%;
-    border: 1px solid #eaeaf1;
-    margin-top: 1px;
-  }
+
   .back {
     background-color: #155bd4;
   }
+
   .main {
     display: flex;
     width: 100%;
@@ -990,24 +994,28 @@ const closeDialogNotification = () => {
     white-space: nowrap;
     overflow: hidden;
     justify-content: space-between;
+
     .mainCenter {
       width: 83%;
       background-color: #fff;
-      height: 80vh;
-      padding: 20px;
-      overflow: auto;
+      padding: 16px;
+      overflow-y: auto;
+
       .totalFirst {
         overflow: auto;
         background-color: #1262a7;
         display: flex;
         justify-content: center;
+
         .mainCenterTop {
           width: 1200px;
           position: relative;
+
           .mainCenterTopImg {
             width: 100%;
             height: 610px;
           }
+
           .mainCenterTopTitle {
             font-size: 20px;
             color: #fff;
@@ -1017,15 +1025,17 @@ const closeDialogNotification = () => {
             width: 450px;
             text-align: center;
           }
+
           .mainCenterTopQuery {
             color: #fff;
             position: absolute;
             top: 159px;
-            left: 38px;
+            left: 138px;
             font-size: 16px;
             width: 100px;
             text-align: center;
           }
+
           .mainCenterTopTotal {
             height: 125px;
             color: #fff;
@@ -1036,24 +1046,28 @@ const closeDialogNotification = () => {
             width: 126px;
             text-align: center;
             overflow: auto;
+
             .mainCenterTopSide {
               .fontColor {
                 margin-top: 5px;
                 cursor: pointer;
                 color: #0400f2;
               }
+
               .mainCenterTopSideText {
                 margin-top: 5px;
                 cursor: pointer;
               }
             }
           }
+
           .imagesModal1 {
             width: 115px;
             position: absolute;
             top: 420px;
             left: 30px;
           }
+
           .mainCenterTopFile1 {
             color: #fff;
             position: absolute;
@@ -1067,12 +1081,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal2 {
             width: 115px;
             position: absolute;
             top: 250px;
             left: 150px;
           }
+
           .mainCenterTopFile2 {
             color: #fff;
             position: absolute;
@@ -1086,12 +1102,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal3 {
             width: 115px;
             position: absolute;
             top: 167px;
             left: 275px;
           }
+
           .mainCenterTopFile3 {
             color: #fff;
             position: absolute;
@@ -1105,12 +1123,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal4 {
             width: 115px;
             position: absolute;
             top: 337px;
             left: 338px;
           }
+
           .mainCenterTopFile4 {
             color: #fff;
             position: absolute;
@@ -1124,12 +1144,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal5 {
             width: 115px;
             position: absolute;
             top: 421px;
             left: 459px;
           }
+
           .mainCenterTopFile5 {
             color: #fff;
             position: absolute;
@@ -1143,12 +1165,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal6 {
             width: 115px;
             position: absolute;
             top: 251px;
             left: 520px;
           }
+
           .mainCenterTopFile6 {
             color: #fff;
             position: absolute;
@@ -1162,12 +1186,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal7 {
             width: 115px;
             position: absolute;
             top: 165px;
             left: 641px;
           }
+
           .mainCenterTopFile7 {
             color: #fff;
             position: absolute;
@@ -1181,12 +1207,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal8 {
             width: 115px;
             position: absolute;
             top: 338px;
             left: 700px;
           }
+
           .mainCenterTopFile8 {
             color: #fff;
             position: absolute;
@@ -1200,12 +1228,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal9 {
             width: 115px;
             position: absolute;
             top: 421px;
             left: 823px;
           }
+
           .mainCenterTopFile9 {
             color: #fff;
             position: absolute;
@@ -1219,12 +1249,14 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 500;
           }
+
           .imagesModal10 {
             width: 115px;
             position: absolute;
             top: 165px;
             left: 945px;
           }
+
           .mainCenterTopFile10 {
             color: #fff;
             position: absolute;
@@ -1240,18 +1272,22 @@ const closeDialogNotification = () => {
           }
         }
       }
+
       .totalSecond {
         overflow: auto;
         background-color: #c9ddf8;
         display: flex;
         justify-content: center;
+
         .mainCenterTop8 {
           width: 1200px;
           position: relative;
+
           .mainCenterTopImg8 {
             width: 100%;
             height: 610px;
           }
+
           .mainCenterTopTitle8 {
             font-size: 24px;
             color: #176dfc;
@@ -1260,6 +1296,7 @@ const closeDialogNotification = () => {
             text-align: center;
             width: 1200px;
           }
+
           .mainCenterTopQuery8 {
             color: #fff;
             position: absolute;
@@ -1274,6 +1311,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             pointer-events: none;
           }
+
           .mainCenterTopTotal8 {
             height: 125px;
             color: #f78e41;
@@ -1287,6 +1325,7 @@ const closeDialogNotification = () => {
             white-space: nowrap;
             text-overflow: ellipsis;
             pointer-events: none;
+
             .mainCenterTopSide8 {
               .fontColor {
                 margin-top: 5px;
@@ -1297,6 +1336,7 @@ const closeDialogNotification = () => {
                 text-overflow: ellipsis;
                 pointer-events: none;
               }
+
               .mainCenterTopSideText8 {
                 margin-top: 5px;
                 cursor: pointer;
@@ -1307,6 +1347,7 @@ const closeDialogNotification = () => {
               }
             }
           }
+
           .mainCenterTopFile18 {
             color: #f2262f;
             position: absolute;
@@ -1320,6 +1361,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 600;
           }
+
           .mainCenterTopFile28 {
             color: #f2262f;
             position: absolute;
@@ -1333,6 +1375,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 600;
           }
+
           .mainCenterTopFile38 {
             color: #f2262f;
             position: absolute;
@@ -1346,6 +1389,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 600;
           }
+
           .mainCenterTopFile48 {
             color: #f2262f;
             position: absolute;
@@ -1359,6 +1403,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 600;
           }
+
           .mainCenterTopFile58 {
             color: #f2262f;
             position: absolute;
@@ -1372,6 +1417,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 600;
           }
+
           .mainCenterTopFile68 {
             color: #f2262f;
             position: absolute;
@@ -1385,6 +1431,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 600;
           }
+
           .mainCenterTopFile78 {
             color: #f2262f;
             position: absolute;
@@ -1398,6 +1445,7 @@ const closeDialogNotification = () => {
             text-overflow: ellipsis;
             font-weight: 600;
           }
+
           .mainCenterTopFile88 {
             color: #f2262f;
             position: absolute;
@@ -1413,10 +1461,11 @@ const closeDialogNotification = () => {
           }
         }
       }
+
       .mainCenterBot {
-        margin-top: 28px;
         // padding: 30px;
         background-color: #fff;
+
         .mainCenterBotText {
           margin-bottom: 30px;
           font-family: PingFang SC, PingFang SC;
@@ -1424,67 +1473,77 @@ const closeDialogNotification = () => {
           font-size: 16px;
           color: #000;
         }
+
         .mainCenterBotImg {
           width: 100%;
           height: 240px;
         }
       }
     }
+
     .mainLefts {
       width: 16%;
       min-width: 20.3125rem;
       max-width: 20.3125rem;
       border-left: 2px solid #eaeaf1;
-      padding-top: 10px;
+      padding: 10px 16px 16px;
+
       .mainRight {
         width: 100%;
         height: 100%;
         background-color: #fff;
         overflow-y: hidden;
+
         .first {
-          margin-right: 20px;
-          height: 69vh;
           width: 100%;
-          overflow: auto;
-          padding-left: 16px;
+          // overflow: auto;
+
           .uploadBtn {
             width: 270px;
             height: 141px;
             border-radius: 4px;
-            border: 1px solid #1366d1;
+            border: 1px solid var(--ant-primary-color);
+            padding: 0
           }
+
           .uploadimg {
             width: 270px;
             height: 141px;
             border-radius: 4px;
-            border: 1px solid #1366d1;
+            border: 1px solid var(--ant-primary-color);
           }
+
           .uploadimgs {
             width: 40px;
             height: 40px;
           }
+
           .elBtn {
             font-family: Source Sans 3, Source Sans 3;
             font-weight: 400;
             font-size: 14px;
-            color: #1366d1;
+            color: var(--ant-primary-color);
             position: relative;
             top: 0;
             right: 40px;
             cursor: pointer;
           }
+
           :deep(.el-textarea__inner) {
             margin-left: 0;
           }
+
           :deep(.el-form-item__label) {
             font-family: Source Sans 3, Source Sans 3;
             font-weight: 400;
             font-size: 14px;
           }
+
           :deep(.el-textarea__inner) {
             width: 270px;
           }
         }
+
         .secondTop {
           width: 100%;
           display: flex;
@@ -1493,6 +1552,7 @@ const closeDialogNotification = () => {
           border-bottom: 1px solid #f1f1f1;
           padding-bottom: 10px;
           margin-bottom: 10px;
+
           .iconfont {
             display: flex;
             align-items: center;
@@ -1501,12 +1561,14 @@ const closeDialogNotification = () => {
             cursor: pointer;
           }
         }
+
         .treeData {
           width: 100%;
           height: 100%;
           overflow-x: auto;
           overflow-y: hidden;
           display: flex;
+
           :deep(.el-tree) {
             .el-tree-node {
               .el-tree-node__children {
@@ -1525,6 +1587,7 @@ const closeDialogNotification = () => {
             }
           }
         }
+
         :deep(.el-tabs__item) {
           font-family: Source Sans 3, Source Sans 3;
           font-weight: 400;
@@ -1532,12 +1595,15 @@ const closeDialogNotification = () => {
           color: #6a696e;
           padding-left: 16px;
         }
+
         :deep(.el-tabs__nav-scroll) {
           overflow: hidden;
         }
+
         :deep(.el-tabs__active-bar) {
           display: none;
         }
+
         :deep(.is-active) {
           font-family: Source Sans 3, Source Sans 3;
           font-weight: 600;
@@ -1547,9 +1613,11 @@ const closeDialogNotification = () => {
       }
     }
   }
+
   :deep(.el-input) {
     width: 270px;
   }
+
   :deep(.el-textarea__inner) {
     width: 59%;
     margin-left: 20px;

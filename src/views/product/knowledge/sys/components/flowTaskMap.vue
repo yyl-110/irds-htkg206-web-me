@@ -236,7 +236,7 @@ const getMainData = () => {
 };
 
 const addNewMap = () => {
-  router.push({ path: "/knowledgeBaseManagment/createTaskMap" });
+  router.push({ path: "/knowledgemgt/createTaskMap" });
 };
 
 // 详情
@@ -245,7 +245,7 @@ const mapDetail = (item) => {
   objData.value = item;
   if (item.viewed) {
     router.push({
-      path: "/knowledgeData/createTaskMap_index",
+      path: "/knowledge/createTaskMap_index",
       query: { flag: "2" },
     });
   } else {
@@ -255,16 +255,8 @@ const mapDetail = (item) => {
 
 // 编辑
 const mapEdit = (item) => {
-  const params = {
-    id: item.id,
-  };
-  modifyInitMap(params).then((res) => {
-    if (res && res.data.code === "0") {
-      router.push({ path: "/knowledgeBaseManagment/createTaskMap" });
-    } else {
-      message.error(res.data.msg);
-    }
-  });
+  router.push({ path: "/knowledgemgt/createTaskMap",query: {id:item.id} });
+
 };
 
 // 删除
