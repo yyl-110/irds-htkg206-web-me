@@ -16,6 +16,7 @@ import { useUserStore } from '@/store/modules/user';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import ActivityAdd from './components/activity-add.vue';
 import ActivityUpdate from './components/activity-update.vue';
+import ActivityConfigModal from './components/activity-config-modal.vue';
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
@@ -688,7 +689,35 @@ async function importSuccessfulFun() {
 }
 
 // 打开知识配置弹窗，带入当前行 id 与 knowledge 字段
-async function showKnowledgeModal(record: any) {}
+const activityConfigVisible = ref(false);
+const currentConfigRecord = ref<any>({});
+const activityConfigSaving = ref(false);
+async function showKnowledgeModal(record: any) {
+  currentConfigRecord.value = record || {};
+  activityConfigVisible.value = true;
+}
+
+function closeActivityConfigModal() {
+  activityConfigVisible.value = false;
+}
+
+async function saveActivityConfig(payload: any) {
+  activityConfigSaving.value = true;
+  try {
+    const res = await AdminApiActivityPage.saveActivityPageFormComponent(payload);
+    if (res?.data?.code === 0 || res?.data?.code === 200) {
+      message.success('配置保存成功');
+      activityConfigVisible.value = false;
+    } else {
+      message.error(res?.data?.msg || '配置保存失败');
+    }
+  } catch (error) {
+    console.error('save activity config failed:', error);
+    message.error('配置保存失败');
+  } finally {
+    activityConfigSaving.value = false;
+  }
+}
 
 // 新增：分享知识弹窗状态
 const shareModalVisible = ref(false);
@@ -841,6 +870,7 @@ function closeShareModal() {
       @templateDownload="templateDownload"
       @importSuccessfulFun="importSuccessfulFun"
       @close="batchflag = false" />
+    <ActivityConfigModal :modal-visible="activityConfigVisible" :record="currentConfigRecord" :save-loading="activityConfigSaving" @close="closeActivityConfigModal" @save="saveActivityConfig" />
   </div>
 </template>
 

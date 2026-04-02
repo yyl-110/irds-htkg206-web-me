@@ -215,4 +215,25 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 设计活动页面组件（整页保存/更新）
+   *
+   * @tags 管理后台 - 设计活动页面组件
+   * @name saveActivityPageFormComponent
+   * @summary 设计活动页面组件
+   * @request /business-service/business/page-form-component/page-save
+   * @secure
+   */
+  static saveActivityPageFormComponent = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/page-form-component/page-save`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
