@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 
@@ -31,16 +31,16 @@ const paletteGroups = [
   {
     title: '表格组件',
     items: [
-      { label: '固定表格', type: 'TABLE' },
-      { label: '行扩展表格', type: 'TABLE' },
+      { label: '固定表格', type: 'TABLE', tableSubtype: 'FIXED' },
+      { label: '行扩展表格', type: 'TABLE', tableSubtype: 'ROW_EXPAND' },
     ],
   },
   {
     title: '三维组件',
     items: [
-      { label: '浏览模版创建', type: '3D_VIEW' },
-      { label: '模型选装选配', type: '3D_VIEW' },
-      { label: '固定模版创建', type: '3D_VIEW' },
+      { label: '浏览模版创建', type: '3D_VIEW', threeDSubtype: 'TEMPLATE_BROWSE' },
+      { label: '模型选装选配', type: '3D_VIEW', threeDSubtype: 'MODEL_SELECT' },
+      { label: '固定模版创建', type: '3D_VIEW', threeDSubtype: 'FIXED_TEMPLATE' },
     ],
   },
 ];
@@ -66,12 +66,37 @@ const isRadioComponent = computed(() => selectedComponent.value?.componentType =
 const isTitleComponent = computed(() => selectedComponent.value?.componentType === 'TITLE');
 const isDividerComponent = computed(() => selectedComponent.value?.componentType === 'DIVIDER');
 const isDataViewComponent = computed(() => selectedComponent.value?.componentType === 'DATA_VIEW');
+const isWorkspaceTableComponent = computed(() => {
+  const t = selectedComponent.value?.customProps?.tableSubtype;
+  return selectedComponent.value?.componentType === 'TABLE' && (t === 'FIXED' || t === 'ROW_EXPAND');
+});
+const isTemplateBrowse3DComponent = computed(
+  () =>
+    selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE',
+);
+const isModelSelect3DComponent = computed(
+  () =>
+    selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'MODEL_SELECT',
+);
+const isFixedTemplate3DComponent = computed(
+  () =>
+    selectedComponent.value?.componentType === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'FIXED_TEMPLATE',
+);
 const textPanelKeys = ref<string[]>(['basic']);
 const selectPanelKeys = ref<string[]>(['basic']);
 const radioPanelKeys = ref<string[]>(['basic']);
 const filePanelKeys = ref<string[]>(['basic']);
 const titlePanelKeys = ref<string[]>(['basic']);
 const dataViewPanelKeys = ref<string[]>(['basic', 'knowledge']);
+const fixedTablePanelKeys = ref<string[]>(['info', 'model', 'buttons']);
+const templateBrowse3dPanelKeys = ref<string[]>(['tpl', 'model', 'buttons']);
+const modelSelect3dPanelKeys = ref<string[]>(['model', 'buttons']);
+const fixedTemplate3dPanelKeys = ref<string[]>(['tpl', 'model', 'buttons']);
+const draggingTableSubtype = ref('');
+const draggingThreeDSubtype = ref('');
+const tableSizeModalVisible = ref(false);
+const pendingInsertIndex = ref<number | null>(null);
+const tableSizeDraft = reactive({ bodyRows: 4, cols: 3 });
 
 function createDefaultComponent(componentType: string) {
   const customProps =
@@ -108,17 +133,139 @@ function canAddComponent(componentType: string) {
   }
   return true;
 }
+function parsePalettePayload(raw: string) {
+  if (!raw) return { type: '', tableSubtype: '', threeDSubtype: '' };
+  if (raw.startsWith('TABLE:')) {
+    return { type: 'TABLE', tableSubtype: raw.slice(6) || 'ROW_EXPAND', threeDSubtype: '' };
+  }
+  if (raw.startsWith('3D_VIEW:')) {
+    return { type: '3D_VIEW', tableSubtype: '', threeDSubtype: raw.slice(8) || 'DEFAULT' };
+  }
+  return { type: raw, tableSubtype: '', threeDSubtype: '' };
+}
+function insertComponentItem(newItem: any, insertIndex?: number | null) {
+  if (!canAddComponent(newItem.componentType)) return false;
+  let idx = componentList.value.length;
+  if (insertIndex != null && insertIndex >= 0 && insertIndex <= componentList.value.length) {
+    idx = insertIndex;
+  }
+  componentList.value.splice(idx, 0, newItem);
+  selectedIndex.value = idx;
+  return true;
+}
+function createTableComponent(tableSubtype: 'FIXED' | 'ROW_EXPAND', bodyRows: number, colCount: number) {
+  const item = createDefaultComponent('TABLE');
+  item.paramName = '表格标题';
+  item.customProps = {
+    ...(item.customProps || {}),
+    tableSubtype,
+    tableTitle: '表格标题',
+    tableBodyRows: Math.max(1, bodyRows),
+    tableColCount: Math.max(1, colCount),
+    firstColumnType: 'INDEX',
+    btnApplyPartNo: true,
+    btnOpenModel: false,
+    btnAssembleModel: false,
+  };
+  return item;
+}
+function createThreeDViewComponent(threeDSubtype: string) {
+  const item = createDefaultComponent('3D_VIEW');
+  if (!item.customProps) item.customProps = {};
+  item.customProps.threeDSubtype = threeDSubtype;
+  if (threeDSubtype === 'TEMPLATE_BROWSE') {
+    item.customProps.templateName = '';
+    item.customProps.modelName = '';
+    item.customProps.relatedTemplateLib = '';
+    item.customProps.btnApplyPartNo = true;
+    item.customProps.btnOpenModel = false;
+    item.customProps.btnAssembleModel = false;
+  }
+  if (threeDSubtype === 'MODEL_SELECT') {
+    item.customProps.modelSelectName = '';
+    item.customProps.relatedModelLib = '';
+    item.customProps.btnOpenModel = false;
+    item.customProps.btnAssembleModel = true;
+  }
+  if (threeDSubtype === 'FIXED_TEMPLATE') {
+    item.customProps.templateName = '';
+    item.customProps.modelName = '';
+    item.customProps.relatedTemplateLib = '';
+    item.customProps.fixedTemplateDisplay = 1;
+    item.customProps.btnApplyPartNo = true;
+    item.customProps.btnOpenModel = false;
+    item.customProps.btnAssembleModel = false;
+  }
+  return item;
+}
+function handleIncomingAdd(payload: string, insertIndex?: number | null) {
+  const { type, tableSubtype, threeDSubtype } = parsePalettePayload(payload);
+  if (!type) return;
+  if (type === 'TABLE' && tableSubtype === 'FIXED') {
+    pendingInsertIndex.value = insertIndex == null ? null : insertIndex;
+    tableSizeDraft.bodyRows = 4;
+    tableSizeDraft.cols = 3;
+    tableSizeModalVisible.value = true;
+    return;
+  }
+  if (type === 'TABLE') {
+    const t = createTableComponent('ROW_EXPAND', 4, 3);
+    insertComponentItem(t, insertIndex);
+    return;
+  }
+  if (type === '3D_VIEW') {
+    const t = createThreeDViewComponent(threeDSubtype || 'DEFAULT');
+    insertComponentItem(t, insertIndex);
+    return;
+  }
+  addComponent(type, insertIndex ?? undefined);
+}
+function handlePaletteClick(item: { type: string; tableSubtype?: string; threeDSubtype?: string }) {
+  let payload = item.type;
+  if (item.type === 'TABLE') payload = `TABLE:${item.tableSubtype || 'ROW_EXPAND'}`;
+  else if (item.type === '3D_VIEW') payload = `3D_VIEW:${item.threeDSubtype || 'DEFAULT'}`;
+  handleIncomingAdd(payload, componentList.value.length);
+}
+function confirmTableSize() {
+  const br = Number(tableSizeDraft.bodyRows);
+  const c = Number(tableSizeDraft.cols);
+  if (!Number.isFinite(br) || br < 1) {
+    message.warning('请输入有效的行数（≥1）');
+    return;
+  }
+  if (!Number.isFinite(c) || c < 1) {
+    message.warning('请输入有效的列数（≥1）');
+    return;
+  }
+  const newItem = createTableComponent('FIXED', Math.floor(br), Math.floor(c));
+  const idx = pendingInsertIndex.value == null ? componentList.value.length : pendingInsertIndex.value;
+  insertComponentItem(newItem, idx);
+  tableSizeModalVisible.value = false;
+  pendingInsertIndex.value = null;
+  draggingType.value = '';
+  draggingTableSubtype.value = '';
+}
+function cancelTableSize() {
+  tableSizeModalVisible.value = false;
+  pendingInsertIndex.value = null;
+  draggingType.value = '';
+  draggingTableSubtype.value = '';
+}
+/** 行扩展表格：预览/配置区「添加」增加一行（表体行数 +1） */
+function handleExpandTableAddRowForItem(item: any) {
+  if (!item?.customProps || item.customProps.tableSubtype !== 'ROW_EXPAND') return;
+  const p = item.customProps;
+  const cur = Number(p.tableBodyRows) || 1;
+  if (cur >= 50) {
+    message.warning('表格行数最多为 50');
+    return;
+  }
+  p.tableBodyRows = cur + 1;
+}
 function addComponent(componentType: string, insertIndex?: number) {
   if (!canAddComponent(componentType)) return false;
   const newItem = createDefaultComponent(componentType);
-  if (insertIndex == null || insertIndex < 0 || insertIndex > componentList.value.length) {
-    componentList.value.push(newItem);
-    selectedIndex.value = componentList.value.length - 1;
-  } else {
-    componentList.value.splice(insertIndex, 0, newItem);
-    selectedIndex.value = insertIndex;
-  }
-  return true;
+  return insertComponentItem(newItem, insertIndex ?? null);
 }
 function removeSelectedComponent() {
   if (selectedIndex.value < 0) return;
@@ -161,15 +308,22 @@ function handleBatchSelectParam() {
 function handleSketchConfig() {
   addComponent('DATA_VIEW');
 }
-function handleDragStart(type: string, event: DragEvent) {
-  draggingType.value = type;
+function handleDragStart(item: { type: string; tableSubtype?: string; threeDSubtype?: string }, event: DragEvent) {
+  draggingType.value = item.type;
+  draggingTableSubtype.value = item.tableSubtype || '';
+  draggingThreeDSubtype.value = item.threeDSubtype || '';
+  let payload = item.type;
+  if (item.type === 'TABLE') payload = `TABLE:${item.tableSubtype || 'ROW_EXPAND'}`;
+  else if (item.type === '3D_VIEW') payload = `3D_VIEW:${item.threeDSubtype || 'DEFAULT'}`;
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'copy';
-    event.dataTransfer.setData('text/plain', type);
+    event.dataTransfer.setData('text/plain', payload);
   }
 }
 function handleDragEnd() {
   draggingType.value = '';
+  draggingTableSubtype.value = '';
+  draggingThreeDSubtype.value = '';
   isDragOverCanvas.value = false;
 }
 function handleCanvasDragOver(event: DragEvent) {
@@ -185,10 +339,18 @@ function handleCanvasDragLeave() {
 }
 function handleCanvasDrop(event: DragEvent) {
   event.preventDefault();
-  const droppedType = event.dataTransfer?.getData('text/plain') || draggingType.value;
-  if (droppedType) addComponent(droppedType);
+  const droppedType =
+    event.dataTransfer?.getData('text/plain') ||
+    (draggingType.value === 'TABLE'
+      ? `TABLE:${draggingTableSubtype.value || 'ROW_EXPAND'}`
+      : draggingType.value === '3D_VIEW'
+        ? `3D_VIEW:${draggingThreeDSubtype.value || 'DEFAULT'}`
+        : draggingType.value);
+  if (droppedType) handleIncomingAdd(droppedType, componentList.value.length);
   isDragOverCanvas.value = false;
   draggingType.value = '';
+  draggingTableSubtype.value = '';
+  draggingThreeDSubtype.value = '';
 }
 function handleItemDragStart(index: number, event: DragEvent) {
   draggingItemIndex.value = index;
@@ -218,15 +380,23 @@ function handleItemDrop(targetIndex: number, event: DragEvent) {
   const sourceIndexRaw = event.dataTransfer?.getData('text/reorder-index');
   const sourceIndex = sourceIndexRaw ? Number(sourceIndexRaw) : draggingItemIndex.value;
   const insertIndexRaw = dropInsertIndex.value >= 0 ? dropInsertIndex.value : targetIndex;
-  const droppedType = event.dataTransfer?.getData('text/plain') || draggingType.value;
+  const droppedType =
+    event.dataTransfer?.getData('text/plain') ||
+    (draggingType.value === 'TABLE'
+      ? `TABLE:${draggingTableSubtype.value || 'ROW_EXPAND'}`
+      : draggingType.value === '3D_VIEW'
+        ? `3D_VIEW:${draggingThreeDSubtype.value || 'DEFAULT'}`
+        : draggingType.value);
   if (sourceIndex < 0 && droppedType) {
     let insertAt = insertIndexRaw;
     if (insertAt < 0) insertAt = 0;
     if (insertAt > componentList.value.length) insertAt = componentList.value.length;
-    addComponent(droppedType, insertAt);
+    handleIncomingAdd(droppedType, insertAt);
     dropInsertIndex.value = -1;
     draggingItemIndex.value = -1;
     draggingType.value = '';
+    draggingTableSubtype.value = '';
+    draggingThreeDSubtype.value = '';
     return;
   }
   if (sourceIndex < 0) {
@@ -264,8 +434,34 @@ function showInsertAfter(index: number) {
   const isLast = index === componentList.value.length - 1;
   return isLast && dropInsertIndex.value === componentList.value.length;
 }
+function isWorkspaceTableItem(item: any) {
+  const t = item?.customProps?.tableSubtype;
+  return item?.componentType === 'TABLE' && (t === 'FIXED' || t === 'ROW_EXPAND');
+}
+function isTemplateBrowse3DItem(item: any) {
+  return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE';
+}
+function isModelSelect3DItem(item: any) {
+  return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'MODEL_SELECT';
+}
+function isFixedTemplate3DItem(item: any) {
+  return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'FIXED_TEMPLATE';
+}
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
+}
+function tableDimensionRange(count: number) {
+  const n = Math.max(0, Math.min(100, Number(count) || 0));
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
+/** 固定表格预览表头：首列在序号模式下为「序号」，复选/单选下留空；其余列为「列名1」… */
+function getFixedTableHeaderLabel(item: any, colIndex: number) {
+  const firstType = item?.customProps?.firstColumnType || 'INDEX';
+  if (colIndex === 1) {
+    if (firstType === 'INDEX') return '序号';
+    return '';
+  }
+  return `列名${colIndex - 1}`;
 }
 function getTypeText(type: string) {
   const typeTextMap: Record<string, string> = {
@@ -362,6 +558,51 @@ function ensureDataViewDefaults(component: any) {
   if (!component.knowledgeContent) component.knowledgeContent = '';
   if (!component.knowledgeId) component.knowledgeId = '';
 }
+function ensureWorkspaceTableDefaults(component: any) {
+  if (!component?.customProps) component.customProps = {};
+  const st = component.customProps.tableSubtype;
+  if (st !== 'FIXED' && st !== 'ROW_EXPAND') return;
+  const p = component.customProps;
+  if (p.tableTitle == null) p.tableTitle = '表格标题';
+  if (p.tableBodyRows == null || p.tableBodyRows < 1) p.tableBodyRows = 4;
+  if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
+  if (!p.firstColumnType) p.firstColumnType = 'INDEX';
+  if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
+  if (p.btnOpenModel == null) p.btnOpenModel = false;
+  if (p.btnAssembleModel == null) p.btnAssembleModel = false;
+}
+function ensureTemplateBrowse3dDefaults(component: any) {
+  if (!component?.customProps) component.customProps = {};
+  if (component.customProps.threeDSubtype !== 'TEMPLATE_BROWSE') return;
+  const p = component.customProps;
+  if (p.templateName == null) p.templateName = '';
+  if (p.modelName == null) p.modelName = '';
+  if (p.relatedTemplateLib == null) p.relatedTemplateLib = '';
+  if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
+  if (p.btnOpenModel == null) p.btnOpenModel = false;
+  if (p.btnAssembleModel == null) p.btnAssembleModel = false;
+}
+function ensureModelSelect3dDefaults(component: any) {
+  if (!component?.customProps) component.customProps = {};
+  if (component.customProps.threeDSubtype !== 'MODEL_SELECT') return;
+  const p = component.customProps;
+  if (p.modelSelectName == null) p.modelSelectName = '';
+  if (p.relatedModelLib == null) p.relatedModelLib = '';
+  if (p.btnOpenModel == null) p.btnOpenModel = false;
+  if (p.btnAssembleModel == null) p.btnAssembleModel = true;
+}
+function ensureFixedTemplate3dDefaults(component: any) {
+  if (!component?.customProps) component.customProps = {};
+  if (component.customProps.threeDSubtype !== 'FIXED_TEMPLATE') return;
+  const p = component.customProps;
+  if (p.templateName == null) p.templateName = '';
+  if (p.modelName == null) p.modelName = '';
+  if (p.relatedTemplateLib == null) p.relatedTemplateLib = '';
+  if (p.fixedTemplateDisplay == null) p.fixedTemplateDisplay = 1;
+  if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
+  if (p.btnOpenModel == null) p.btnOpenModel = false;
+  if (p.btnAssembleModel == null) p.btnAssembleModel = false;
+}
 function addConstraintRule() {
   if (!selectedComponent.value) return;
   if (!Array.isArray(selectedComponent.value.constraintRules)) selectedComponent.value.constraintRules = [];
@@ -431,6 +672,18 @@ watch(
     if (component.componentType === 'TITLE') ensureTitleDefaults(component);
     if (component.componentType === 'FILE') ensureFileDefaults(component);
     if (component.componentType === 'DATA_VIEW') ensureDataViewDefaults(component);
+    if (component.componentType === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(component.customProps?.tableSubtype)) {
+      ensureWorkspaceTableDefaults(component);
+    }
+    if (component.componentType === '3D_VIEW' && component.customProps?.threeDSubtype === 'TEMPLATE_BROWSE') {
+      ensureTemplateBrowse3dDefaults(component);
+    }
+    if (component.componentType === '3D_VIEW' && component.customProps?.threeDSubtype === 'MODEL_SELECT') {
+      ensureModelSelect3dDefaults(component);
+    }
+    if (component.componentType === '3D_VIEW' && component.customProps?.threeDSubtype === 'FIXED_TEMPLATE') {
+      ensureFixedTemplate3dDefaults(component);
+    }
   },
   { immediate: true },
 );
@@ -455,6 +708,18 @@ watch(
     if (type === 'DATA_VIEW') {
       dataViewPanelKeys.value = ['basic', 'knowledge'];
     }
+    if (type === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(selectedComponent.value?.customProps?.tableSubtype)) {
+      fixedTablePanelKeys.value = ['info', 'model', 'buttons'];
+    }
+    if (type === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE') {
+      templateBrowse3dPanelKeys.value = ['tpl', 'model', 'buttons'];
+    }
+    if (type === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'MODEL_SELECT') {
+      modelSelect3dPanelKeys.value = ['model', 'buttons'];
+    }
+    if (type === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'FIXED_TEMPLATE') {
+      fixedTemplate3dPanelKeys.value = ['tpl', 'model', 'buttons'];
+    }
   },
 );
 watch(
@@ -478,7 +743,16 @@ watch(
 </script>
 
 <template>
-  <a-modal v-model:visible="visible" class="activity-config-fullscreen-modal" :footer="null" :mask-closable="false" width="100vw" :style="{ top: '0' }" title="活动页面配置">
+  <a-modal
+    v-model:visible="visible"
+    class="activity-config-fullscreen-modal"
+    wrap-class-name="activity-config-fullscreen-wrap"
+    :centered="false"
+    :footer="null"
+    :mask-closable="false"
+    width="100%"
+    :style="{ top: 0, paddingBottom: 0 }"
+    title="活动页面配置">
     <div class="config-layout">
       <div class="left-palette">
         <div class="panel-title">页面配置</div>
@@ -491,8 +765,8 @@ watch(
               type="button"
               class="tool-card"
               draggable="true"
-              @click="addComponent(item.type)"
-              @dragstart="handleDragStart(item.type, $event)"
+              @click="handlePaletteClick(item)"
+              @dragstart="handleDragStart(item, $event)"
               @dragend="handleDragEnd">
               <span class="tool-icon"></span>
               <span>{{ item.label }}</span>
@@ -530,7 +804,21 @@ watch(
             @drop="handleItemDrop(index, $event)"
             @dragend="handleItemDragEnd">
             <div class="component-preview-wrap">
-              <div v-if="item.componentType !== 'TITLE' && item.componentType !== 'RADIO' && item.componentType !== 'FILE' && item.componentType !== 'DIVIDER' && item.componentType !== 'DATA_VIEW'" class="component-title">{{ item.paramName || '未命名组件' }}</div>
+              <div
+                v-if="
+                  item.componentType !== 'TITLE' &&
+                  item.componentType !== 'RADIO' &&
+                  item.componentType !== 'FILE' &&
+                  item.componentType !== 'DIVIDER' &&
+                  item.componentType !== 'DATA_VIEW' &&
+                  !isWorkspaceTableItem(item) &&
+                  !isTemplateBrowse3DItem(item) &&
+                  !isFixedTemplate3DItem(item) &&
+                  !isModelSelect3DItem(item)
+                "
+                class="component-title">
+                {{ item.paramName || '未命名组件' }}
+              </div>
               <template v-if="item.componentType === 'TITLE'">
                 <div class="title-preview-text">{{ item.paramName || '标题' }}</div>
                 <div v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true" class="title-divider-line"></div>
@@ -594,6 +882,114 @@ watch(
                     <span>{{ opt }}</span>
                   </label>
                 </div>
+              </div>
+              <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
+                <div class="template-browse-3d-row">
+                  <div class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">模板名称：</div>
+                    <div class="template-browse-3d-controls">
+                      <a-input
+                        :value="item.customProps?.templateName"
+                        placeholder="请输入"
+                        disabled
+                        class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
+                    </div>
+                  </div>
+                  <div class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">模型名称：</div>
+                    <div class="template-browse-3d-controls">
+                      <a-input :value="item.customProps?.modelName" placeholder="请输入" disabled class="template-browse-3d-input" />
+                      <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>生成模型</a-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="isFixedTemplate3DItem(item)" class="template-browse-3d-preview">
+                <div class="template-browse-3d-row">
+                  <div class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">模板名称：</div>
+                    <div class="template-browse-3d-controls">
+                      <a-input
+                        :value="item.customProps?.templateName"
+                        placeholder="请输入"
+                        disabled
+                        class="template-browse-3d-input template-browse-3d-input--grey" />
+                    </div>
+                  </div>
+                  <div class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">模型名称：</div>
+                    <div class="template-browse-3d-controls">
+                      <a-input :value="item.customProps?.modelName" placeholder="请输入" disabled class="template-browse-3d-input" />
+                      <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>生成模型</a-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
+                <div class="model-select-3d-label">模型名称：</div>
+                <div class="model-select-3d-controls">
+                  <a-input
+                    :value="item.customProps?.modelSelectName"
+                    placeholder="请输入"
+                    disabled
+                    class="template-browse-3d-input template-browse-3d-input--grey" />
+                  <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
+                  <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>装配模型</a-button>
+                </div>
+              </div>
+              <div v-else-if="isWorkspaceTableItem(item)" class="fixed-table-preview">
+                <div
+                  v-if="(item.customProps?.tableTitle || '').trim() !== '' || item.customProps?.tableSubtype === 'ROW_EXPAND'"
+                  class="fixed-table-preview-title-row">
+                  <span v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-text">
+                    {{ item.customProps.tableTitle }}
+                  </span>
+                  <a-button
+                    v-if="item.customProps?.tableSubtype === 'ROW_EXPAND'"
+                    type="primary"
+                    size="small"
+                    class="fixed-table-preview-add-btn"
+                    @click.stop="handleExpandTableAddRowForItem(item)">
+                    添加
+                  </a-button>
+                </div>
+                <table class="fixed-table-preview-grid">
+                  <thead>
+                    <tr>
+                      <th v-for="c in tableDimensionRange(item.customProps?.tableColCount || 1)" :key="`h-${c}`">
+                        {{ getFixedTableHeaderLabel(item, c) }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
+                      <td
+                        v-for="c in tableDimensionRange(item.customProps?.tableColCount || 1)"
+                        :key="`b-${r}-${c}`"
+                        class="fixed-table-preview-td"
+                        :class="{ 'fixed-table-preview-td--first': c === 1 }">
+                        <template v-if="c === 1">
+                          <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'" class="fixed-table-cell-index">{{ r }}</span>
+                          <input
+                            v-else-if="item.customProps?.firstColumnType === 'CHECKBOX'"
+                            type="checkbox"
+                            class="fixed-table-cell-check"
+                            disabled
+                            tabindex="-1" />
+                          <input
+                            v-else-if="item.customProps?.firstColumnType === 'RADIO'"
+                            type="radio"
+                            class="fixed-table-cell-radio"
+                            :name="`fixed-table-radio-${index}`"
+                            :checked="r === 1"
+                            disabled
+                            tabindex="-1" />
+                        </template>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
               <div v-else class="component-type-text">{{ getTypeText(item.componentType) }}</div>
             </div>
@@ -1112,6 +1508,168 @@ watch(
           <template v-else-if="isDividerComponent">
             <div class="divider-empty-panel"></div>
           </template>
+          <template v-else-if="isWorkspaceTableComponent">
+            <a-collapse v-model:activeKey="fixedTablePanelKeys" :bordered="false" class="text-config-collapse">
+              <a-collapse-panel key="info" header="表格基本信息">
+                <div class="row-field">
+                  <div class="row-label">表格标题：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">表格行数：</div>
+                  <div class="row-control">
+                    <a-select v-model:value="selectedComponent.customProps.tableBodyRows">
+                      <a-select-option v-for="n in tableDimensionRange(50)" :key="n" :value="n">{{ n }}</a-select-option>
+                    </a-select>
+                  </div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">表格列数：</div>
+                  <div class="row-control">
+                    <a-select v-model:value="selectedComponent.customProps.tableColCount">
+                      <a-select-option v-for="n in tableDimensionRange(20)" :key="n" :value="n">{{ n }}</a-select-option>
+                    </a-select>
+                  </div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">首列形式：</div>
+                  <div class="row-control">
+                    <a-select v-model:value="selectedComponent.customProps.firstColumnType">
+                      <a-select-option value="INDEX">序号</a-select-option>
+                      <a-select-option value="CHECKBOX">复选框</a-select-option>
+                      <a-select-option value="RADIO">单选框</a-select-option>
+                    </a-select>
+                  </div>
+                </div>
+              </a-collapse-panel>
+              <a-collapse-panel key="model" header="模型信息">
+                <div class="row-field">
+                  <div class="row-label">参数代号：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></div>
+                  <a-button type="primary" size="small">浏览</a-button>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">参数名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                </div>
+              </a-collapse-panel>
+              <a-collapse-panel key="buttons" header="按钮定义">
+                <div class="fixed-table-btn-checks">
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                </div>
+              </a-collapse-panel>
+            </a-collapse>
+          </template>
+          <template v-else-if="isFixedTemplate3DComponent">
+            <a-collapse v-model:activeKey="fixedTemplate3dPanelKeys" :bordered="false" class="text-config-collapse">
+              <a-collapse-panel key="tpl" header="模板信息">
+                <div class="row-field">
+                  <div class="row-label">模板名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">关联模版库：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入模版编号" /></div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">固定模版是否显示：</div>
+                  <div class="row-control">
+                    <a-select v-model:value="selectedComponent.customProps.fixedTemplateDisplay">
+                      <a-select-option :value="1">是</a-select-option>
+                      <a-select-option :value="0">否</a-select-option>
+                    </a-select>
+                  </div>
+                </div>
+              </a-collapse-panel>
+              <a-collapse-panel key="model" header="模型信息">
+                <div class="row-field">
+                  <div class="row-label">参数代号：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" /></div>
+                  <a-button type="primary" size="small">浏览</a-button>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">参数名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                </div>
+              </a-collapse-panel>
+              <a-collapse-panel key="buttons" header="按钮定义">
+                <div class="fixed-table-btn-checks">
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                </div>
+              </a-collapse-panel>
+            </a-collapse>
+          </template>
+          <template v-else-if="isModelSelect3DComponent">
+            <a-collapse v-model:activeKey="modelSelect3dPanelKeys" :bordered="false" class="text-config-collapse">
+              <a-collapse-panel key="model" header="模型信息">
+                <div class="row-field">
+                  <div class="row-label">参数代号：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" /></div>
+                  <a-button type="primary" size="small">浏览</a-button>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">参数名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">模型名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelSelectName" placeholder="请输入" class="browse-adjoined-input" /></div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">关联模型库：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" /></div>
+                  <a-button type="primary" size="small">浏览</a-button>
+                </div>
+              </a-collapse-panel>
+              <a-collapse-panel key="buttons" header="按钮定义">
+                <div class="model-select-3d-btn-checks">
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                </div>
+              </a-collapse-panel>
+            </a-collapse>
+          </template>
+          <template v-else-if="isTemplateBrowse3DComponent">
+            <a-collapse v-model:activeKey="templateBrowse3dPanelKeys" :bordered="false" class="text-config-collapse">
+              <a-collapse-panel key="tpl" header="模板信息">
+                <div class="row-field">
+                  <div class="row-label">模板名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">关联模版库：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" /></div>
+                  <a-button type="primary" size="small">浏览</a-button>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">模型名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
+                </div>
+              </a-collapse-panel>
+              <a-collapse-panel key="model" header="模型信息">
+                <div class="row-field">
+                  <div class="row-label">参数代号：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" /></div>
+                  <a-button type="primary" size="small">浏览</a-button>
+                </div>
+                <div class="row-field">
+                  <div class="row-label">参数名称：</div>
+                  <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                </div>
+              </a-collapse-panel>
+              <a-collapse-panel key="buttons" header="按钮定义">
+                <div class="fixed-table-btn-checks">
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                  <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                </div>
+              </a-collapse-panel>
+            </a-collapse>
+          </template>
           <template v-else>
             <a-form-item label="参数代号"><a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" /></a-form-item>
             <a-form-item label="参数名称"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></a-form-item>
@@ -1134,29 +1692,50 @@ watch(
       <a-button type="primary" :loading="saveLoading" @click="handleSave">保存配置</a-button>
     </div>
   </a-modal>
+
+  <a-modal v-model:visible="tableSizeModalVisible" title="固定表格" :mask-closable="false" :width="420" :footer="null" :z-index="1100">
+    <a-form layout="vertical" class="table-size-form">
+      <a-form-item label="行数（表体数据行）" required>
+        <a-input-number v-model:value="tableSizeDraft.bodyRows" :min="1" :max="100" style="width: 100%" placeholder="请输入行数" />
+      </a-form-item>
+      <a-form-item label="列数" required>
+        <a-input-number v-model:value="tableSizeDraft.cols" :min="1" :max="50" style="width: 100%" placeholder="请输入列数" />
+      </a-form-item>
+    </a-form>
+    <div class="table-size-modal-actions">
+      <a-button @click="cancelTableSize">取消</a-button>
+      <a-button type="primary" @click="confirmTableSize">确定</a-button>
+    </div>
+  </a-modal>
 </template>
 
-<style scoped lang="less">
-.activity-config-fullscreen-modal {
-  :deep(.ant-modal) {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    margin: 0;
-    padding: 0;
-    top: 0;
-  }
-  :deep(.ant-modal-content) {
-    height: 100vh;
-    border-radius: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  :deep(.ant-modal-body) {
-    flex: 1;
-    overflow: hidden;
-    padding: 12px 16px;
-  }
+<style lang="less">
+/* 挂载在 body 下的 wrap，需非 scoped 才能生效 */
+.activity-config-fullscreen-wrap {
+  padding: 0 !important;
 }
+.activity-config-fullscreen-wrap .ant-modal {
+  top: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  padding-bottom: 0 !important;
+}
+.activity-config-fullscreen-wrap .ant-modal-content {
+  height: 100vh;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+.activity-config-fullscreen-wrap .ant-modal-body {
+  flex: 1;
+  overflow: hidden;
+  padding: 12px 16px;
+}
+</style>
+
+<style scoped lang="less">
 .config-layout {
   height: calc(100vh - 120px);
   display: grid;
@@ -1343,6 +1922,145 @@ watch(
   width: 100%;
   border-top: 1px solid #d9d9d9;
   margin: 8px 0;
+}
+.model-select-3d-preview {
+  width: 100%;
+  max-width: 960px;
+}
+.model-select-3d-label {
+  font-size: 12px;
+  color: #444;
+  margin-bottom: 8px;
+}
+.model-select-3d-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.model-select-3d-btn-checks {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 24px 32px;
+  align-items: center;
+}
+.template-browse-3d-preview {
+  width: 100%;
+}
+/* 与组件列表里「单行输入」两列网格一致 */
+.template-browse-3d-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  align-items: start;
+}
+.template-browse-3d-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.template-browse-3d-label {
+  font-size: 12px;
+  color: #444;
+}
+.template-browse-3d-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 文本框宽度与 .preview-field（单行输入）一致 */
+.template-browse-3d-input {
+  width: 270px;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+.template-browse-3d-input :deep(.ant-input) {
+  border-radius: 2px;
+}
+.template-browse-3d-input--grey :deep(.ant-input) {
+  background: #f0f0f0 !important;
+}
+.template-browse-3d-action-btn {
+  flex-shrink: 0;
+}
+/* 与右侧「浏览」主按钮同色，禁用态仍保持主色（仅预览） */
+.template-browse-3d-action-btn.ant-btn-primary:disabled,
+.template-browse-3d-action-btn.ant-btn-primary.ant-btn-disabled {
+  color: #fff !important;
+  background: #1677ff !important;
+  border-color: #1677ff !important;
+  opacity: 0.92;
+  cursor: default;
+}
+.fixed-table-preview {
+  width: 100%;
+  max-width: 900px;
+}
+.fixed-table-preview-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.fixed-table-preview-title-text {
+  font-size: 14px;
+  color: #333;
+}
+.fixed-table-preview-add-btn {
+  flex-shrink: 0;
+}
+.fixed-table-preview-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #fff;
+  font-size: 13px;
+}
+.fixed-table-preview-grid th,
+.fixed-table-preview-grid td {
+  border: 1px solid #e8e8e8;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+.fixed-table-preview-grid th {
+  font-weight: 600;
+  background: #fafafa;
+}
+.fixed-table-preview-td {
+  height: 44px;
+}
+.fixed-table-preview-td--first {
+  text-align: center;
+  vertical-align: middle;
+}
+.fixed-table-cell-index {
+  font-size: 13px;
+  color: #333;
+}
+.fixed-table-cell-check,
+.fixed-table-cell-radio {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  vertical-align: middle;
+  cursor: default;
+  accent-color: #1677ff;
+}
+.fixed-table-btn-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.table-size-modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .data-view-preview {
   width: 100%;
