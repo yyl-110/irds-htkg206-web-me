@@ -52,16 +52,9 @@ const expertFlag = ref(0);
 const exposeAskDesId = ref('');
 
 const personalInfo = ref({});
-const knowledgeStandardRef = ref<any>(null);
-const setStandardRef = (el: any, index: number) => {
-  if (index === 4) knowledgeStandardRef.value = el;
-};
 
 const handleTabchange = (key: number) => {
   activeKey.value = key as ComponentKey;
-  if (key === 5) {
-    knowledgeStandardRef.value?.reload();
-  }
 };
 
 // 获取右侧的用户列表
@@ -140,11 +133,12 @@ watch(
   <div class="knowledgeCenter h-full">
     <a-row class="h-full">
       <a-col :span="hasRightPanel ? 19 : 24" class="h-full bg-white p-[16px] rounded-[4px]">
-        <a-tabs v-model:active-key="activeKey" @change="handleTabchange" size="small" class="h-full">
+        <a-tabs v-model:active-key="activeKey" @change="handleTabchange" size="small" class="h-full"
+          destroyInactiveTabPane>
           <a-tab-pane :key="index + 1" :tab="value" v-for="(value, index) in tabList">
             <keep-alive>
               <component v-if="index in componentsMap" :is="componentsMap[index]" :exposeAskDesId="exposeAskDesId"
-                :personalInfo="personalInfo" :ref="(el) => setStandardRef(el, index)" />
+                :personalInfo="personalInfo" />
             </keep-alive>
           </a-tab-pane>
         </a-tabs>

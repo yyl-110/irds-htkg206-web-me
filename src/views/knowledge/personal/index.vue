@@ -23,6 +23,7 @@
         </a-tabs>
         <main class="flex-1 h-0">
           <div class="list h-full overflow-y-auto pt-[16px]">
+            <a-empty v-if="documentList.length === 0 && !spinning" :image="simpleImage" />
             <a-row class="w-full items-start h-full" v-if="activeName === 'doc'" :gutter="[16, 16]">
               <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
                 <text-card :text-data="{ content: item }" @handleFetchList="publicFun" />
@@ -44,13 +45,11 @@
                 <img-card :img-data="{ content: item }" @handleFetchList="publicFun" />
               </div>
             </div>
-            <a-empty v-if="documentList.length === 0 && !spinning" :image="simpleImage" />
           </div>
         </main>
         <footer class="pagination-footer flex justify-end">
-          <a-pagination v-model:current="page.currentPage" :total="page.pageCount"
-            :default-page-size="page.pageSize" show-less-items show-size-changer
-            :show-total="(total) => `共${total}条`" @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
+          <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
+            show-less-items show-size-changer :show-total="(total) => `共${total}条`" @change="handleCurrentChange" />
         </footer>
       </div>
     </div>
@@ -259,14 +258,9 @@ const sideFun = item => {
   }
 };
 const searchData = () => { }
-
-const handleSizeChange = val => {
-  page.value.pageSize = val;
-  publicFun();
-};
-
-const handleCurrentChange = val => {
+const handleCurrentChange = (val, size) => {
   page.value.currentPage = val;
+  page.value.pageSize = size;
   publicFun();
 };
 
@@ -321,7 +315,7 @@ watch(
         // height: 48px;
         margin-bottom: 0;
         background-color: #ffffff;
-        padding: 0 0 16px 20px;
+        padding: 0 0 16px 0;
       }
 
       :deep(.ant-tabs-tab) {

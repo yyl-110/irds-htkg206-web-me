@@ -6,6 +6,7 @@ import { getTimes } from "@/utils/dateUtils.js";
 import { useUserStore } from "@/store/modules/user";
 import { LikeOutlined, UserOutlined } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
+import draggableModal from "../DraggableModal/index.vue";
 
 const props = defineProps({
   commentDialogVisible: Boolean,
@@ -214,7 +215,7 @@ const handleClose = () => {
 
 <template>
   <div class="comment-dialog-layout">
-    <a-modal
+    <draggable-modal
       v-model:visible="visible"
       centered
       title="评论"
@@ -295,7 +296,7 @@ const handleClose = () => {
           </div>
         </div>
       </div>
-    </a-modal>
+    </draggable-modal>
   </div>
 </template>
 

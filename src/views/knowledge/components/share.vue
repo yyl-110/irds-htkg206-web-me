@@ -3,6 +3,7 @@ import Cookies from "js-cookie";
 import { shareDetail, knowledgeShare, userList } from "@/api/knowledge";
 import { message } from "ant-design-vue";
 import { useUserStore } from "@/store/modules/user";
+import draggableModal from "@/components/DraggableModal/index.vue";
 
 const props = defineProps({
   shareDialogVisible: {
@@ -168,13 +169,14 @@ const handleCloseShare = () => {
 </script>
 
 <template>
-  <a-modal
+  <draggable-modal
     v-model:visible="visible"
     :closable="false"
     class="dialog"
     centered
     title="分享文档"
     :width="650"
+    draggable
   >
     <div class="top">
       <div>可分享者：</div>
@@ -198,14 +200,15 @@ const handleCloseShare = () => {
         <a-button @click="submit">取消</a-button>
       </span>
     </template>
-  </a-modal>
-  <a-modal
+  </draggable-modal>
+  <draggable-modal
     v-model:visible="shareDialogVisible1"
     :closable="false"
     centered
     title="站内分享"
     :width="650"
     @after-close="handleCloseShare"
+    draggable
   >
     <a-transfer
       v-model:target-keys="value"
@@ -225,7 +228,7 @@ const handleCloseShare = () => {
         <a-button @click="handleCloseShare">取消</a-button>
       </span>
     </template>
-  </a-modal>
+  </draggable-modal>
 </template>
 
 <style lang="less" scoped>

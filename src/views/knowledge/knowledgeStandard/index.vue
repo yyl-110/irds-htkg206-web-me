@@ -31,8 +31,8 @@
         </div>
       </div>
       <div class="content">
-        <a-table :columns="columns" :data-source="standardData" :scroll="{ x: 1000, y: 'calc(100vh - 296px)' }"
-          :pagination="pagination" bordered size="small"
+        <a-table :columns="columns" :data-source="standardData" :scroll="{ x: 1200, y: 'calc(100vh - 296px)' }"
+          :pagination="pagination" bordered
           :row-class-name="(_record, index) => (index % 2 === 1 ? 'table-striped' : null)" @change="handleTableChange">
           <template #bodyCell="{ column, record, index }">
             <template v-if="column.key === 'action'">
@@ -53,6 +53,8 @@ import { message } from 'ant-design-vue';
 import type { TableColumnsType, TableProps } from 'ant-design-vue';
 import { findAllBzfl, findBzwj, getFileInfo } from '@/api/knowledge/index';
 import { useRouter } from 'vue-router';
+import { useTableFilter } from '@/hooks/useTableFilter';
+const { getColumnSearchProps, getColumnSelectProps } = useTableFilter();
 
 const baseUrl = import.meta.env.VITE_BASE_URL as string;
 
@@ -63,7 +65,7 @@ const standardClassificaData = ref<any[]>([]);
 // 搜索内容
 const keyWord = ref('');
 // 标准分类代号
-const bzfldh = ref('');
+const bzfldh = ref(null);
 // 标准状态值
 const bzzt = ref('');
 // 标准状态选项
@@ -85,13 +87,13 @@ const standardData = ref<any[]>([]);
 
 // 表头
 const columns: TableColumnsType = [
-  { title: '标准文件', dataIndex: 'bzwj', key: 'bzwj', width: 260 },
+  { title: '标准文件', dataIndex: 'bzwj', key: 'bzwj', width: 260, ...getColumnSearchProps("bzwj") },
   { title: '标准分类', dataIndex: 'flName', key: 'flName', width: 120 },
   { title: '标准号', dataIndex: 'bzdh', key: 'bzdh', width: 160 },
-  { title: '实施日期', dataIndex: 'ssrq', key: 'ssrq', width: 100 },
+  { title: '实施日期', dataIndex: 'ssrq', key: 'ssrq' },
   { title: '标准状态', dataIndex: 'bzzt', key: 'bzzt', width: 90 },
-  { title: '新增人', dataIndex: 'userName', key: 'userName', width: 120 },
-  { title: '新增时间', dataIndex: 'isrt_dt', key: 'isrt_dt', width: 100 },
+  { title: '新增人', dataIndex: 'userName', key: 'userName', width: 120, ...getColumnSelectProps('userName', standardData)  },
+  { title: '新增时间', dataIndex: 'isrt_dt', key: 'isrt_dt' },
   { title: '操作', key: 'action', fixed: 'right', width: 120 },
 ];
 
@@ -190,7 +192,6 @@ onMounted(() => {
   getListData();
 });
 
-defineExpose({ reload: () => { getTaglist(); getListData(); } });
 </script>
 
 <style lang="less" scoped>

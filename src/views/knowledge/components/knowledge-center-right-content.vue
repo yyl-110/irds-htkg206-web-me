@@ -4,7 +4,10 @@ import { UserOutlined, EyeOutlined } from "@ant-design/icons-vue";
 import { useRouter } from "vue-router";
 import { getTimes } from "@/utils/dateUtils.js";
 import { getPdfPreviewPath } from "@/api/knowledge";
+import { useUserStore } from "@/store/modules/user";
 // import { getPdfPreviewPath } from "@/api/knowledgeBaseManagment";
+import draggableModal from "@/components/DraggableModal/index.vue";
+const userStore = useUserStore()
 
 const props = defineProps({
   userInfoList: Object,
@@ -168,11 +171,10 @@ const closeFun = () => {
           <template #icon> <user-outlined /></template>
         </a-avatar>
         <div class="intro">
-          <div class="name">{{ userInfoList.name }}</div>
+          <div class="name">{{ userInfoList.name || userStore.getUser.userName }}</div>
           <div class="tags">{{ userInfoList.expertRole }}</div>
         </div>
       </div>
-      <div class="desc">个人简介：{{ userInfoList.remarks }}</div>
       <div class="flex justify-between px-[16px]">
         <div v-for="(item, index) in myData" :key="index" class="text item" @click="getInfo(item)">
           <div style="
@@ -246,48 +248,44 @@ const closeFun = () => {
             }">{{ index + 1 }}</span>{{ val.fileName }}
           </div>
         </div>
-        <div v-if="val.fileName" style="
-            margin-left: 10px;
-            margin-top: -40px;
-            display: flex;
-            align-items: center;
-          ">
+        <div v-if="val.fileName">
           <eye-outlined class="mr-[2px]" />
           {{ val.lookUpNum || val.num }}次
         </div>
       </div>
     </a-card>
     <div class="rightDialog">
-      <a-modal v-model:visible="dialogVisible" :title="dialogTit" width="50%" cancel-text="关闭" @cancel="closeFun"
-        class="record-modal">
-        <a-card v-if="dialogTit === '浏览记录'" class="box-card2" style="height: 18.75rem; overflow-y: auto"
+      <draggable-modal v-model:visible="dialogVisible" :title="dialogTit" width="50%" cancel-text="关闭"
+        @cancel="closeFun" class="record-modal">
+        <a-card v-if="dialogTit === '浏览记录'" class="box-card2 wei-scrollbar" style="height: 18.75rem; overflow-y: auto"
           :bordered="false">
-          <div v-for="(item, index) in viewHistoryData" :key="item.id" class="text item text-list"
-            @click="viewPdfFun(item)">
+          <div v-for="(item, index) in viewHistoryData" :key="item.id"
+            class="text item text-list flex justify-between py-[8px] mb-[8px]" @click="viewPdfFun(item)"
+            style="border-bottom: 1px solid #E7EAEE">
             <div class="box-item">
               <div class="tit">{{ item.fileName }}</div>
             </div>
-            <div>
+            <div class="flex-shrink-0">
               <span class="name">{{ item.userName }}</span>
-              <span class="time">{{ getTimes(Date.parse(item.addTime)) }}</span>
+              <span class="time ml-[6px]">{{ getTimes(Date.parse(item.addTime)) }}</span>
             </div>
           </div>
         </a-card>
-        <a-card v-else class="box-card1" :bordered="false" style="height: 18.75rem; overflow-y: auto">
+        <a-card v-else class="box-card1 wei-scrollbar" :bordered="false" style="height: 18.75rem; overflow-y: auto">
           <div v-for="(item, index) in hotArticleData" :key="item.id" @click="viewPdfFun(item)"
-            style="border-bottom: 1px solid #ccc">
-            <div class="text item text-list">
+            style="border-bottom: 1px solid #E7EAEE" class="py-[8px]">
+            <div class="text item text-list flex justify-between">
               <div class="box-item">
                 <div class="tit">{{ item.fileName }}</div>
               </div>
-              <div>
+              <div class="flex-shrink-0">
                 <span class="name">{{ item.userName }}</span>
                 <span class="time">{{
                   getTimes(Date.parse(item.addTime))
                 }}</span>
               </div>
             </div>
-            <div style="line-height: 22px; display: flex; align-items: center">
+            <div style="line-height: 22px;" class="mt-[4px] flex items-center">
               <eye-outlined class="mr-[2px]" />
               {{ item.lookUpNum || item.num }}次
             </div>
@@ -300,7 +298,7 @@ const closeFun = () => {
             </span>
           </div>
         </template>
-      </a-modal>
+      </draggable-modal>
     </div>
   </div>
 </template>
@@ -308,6 +306,10 @@ const closeFun = () => {
 <style lang="less" scoped>
 @import '@/sheets/scrollbar.less';
 /* modal 通过 teleport 渲染到 body，scoped 无法穿透，样式移到下方全局块 */
+
+:deep(.ant-card-body) {
+  padding: 16px !important;
+}
 
 .rt-layout {
   height: 100%;
@@ -327,7 +329,7 @@ const closeFun = () => {
     // padding: 20px 0 20px 20px;
     // overflow: hidden;
     width: 100%;
-    height: 200px;
+    padding-bottom: 16px;
     background: linear-gradient(181deg, #fae2ab 0%, #ffffff 100%);
     border-radius: 4px 4px 4px 4px;
 
@@ -388,15 +390,6 @@ const closeFun = () => {
       }
     }
 
-    .desc {
-      padding: 8px 16px;
-      font-size: 14px;
-      font-family: PingFangSC, PingFang SC;
-      font-weight: 400;
-      color: #333;
-      line-height: 20px;
-    }
-
     .elCard {
       padding-top: 23px;
       border: none;
@@ -445,7 +438,7 @@ const closeFun = () => {
 
   .box-cards {
     width: 100%;
-    height: 160px;
+    height: 190px;
     background: #ffffff;
     border-radius: 4px;
     margin-bottom: 16px;
@@ -540,17 +533,23 @@ const closeFun = () => {
       overflow-y: auto;
       .wei-scrollbar-mixin();
 
+      .box-item {
+        flex: 1;
+        width: 0;
+      }
+
       .item {
         display: flex;
         align-items: center;
-        height: 61px;
-        line-height: 60px;
+        line-height: 30px;
+        padding: 8px 0;
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
         font-weight: 500;
         color: #646566;
         flex-wrap: wrap;
-        border-bottom: 1px solid #ccc;
+        border-bottom: 1px solid #E7EAEE;
+        justify-content: space-between;
 
         &:hover {
           cursor: pointer;
@@ -571,12 +570,11 @@ const closeFun = () => {
   }
 
   .space {
-    width: 12.375rem;
+    width: 90%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: #333;
-    margin-top: -10px;
 
     &:hover {
       color: #0d53e2;
@@ -615,6 +613,7 @@ const closeFun = () => {
       color: #0d53e2;
     }
   }
+
   .tooltip-base-box .box-item {
     width: 20px;
     margin-top: 10px;
@@ -762,7 +761,6 @@ const closeFun = () => {
         .name {
           height: 22px;
           font-size: 12px;
-          font-family: PingFang-SC, PingFang-SC;
           font-weight: 500;
           color: rgba(51, 51, 51, 0.8);
           line-height: 22px;
@@ -774,7 +772,6 @@ const closeFun = () => {
         .time {
           height: 22px;
           font-size: 12px;
-          font-family: PingFang-SC, PingFang-SC;
           font-weight: 500;
           color: rgba(51, 51, 51, 0.8);
           line-height: 22px;

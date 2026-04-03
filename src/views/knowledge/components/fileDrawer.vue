@@ -270,16 +270,23 @@ defineExpose({
   <a-drawer v-model:visible="open" :closable="false" :width="800">
     <div class="h-full flex flex-col">
       <div class="header">
-        <a-input-search v-model:value="searchText" placeholder="请输入标题或作者搜索" enter-button @search="onSearch" />
-        <a-radio-group v-model:value="tabValue" class="mt-[16px]" @change="changeType">
-          <a-radio-button :value="1">文档</a-radio-button>
-          <a-radio-button :value="4">问答</a-radio-button>
-          <a-radio-button :value="2">视频</a-radio-button>
-          <a-radio-button :value="3">图片</a-radio-button>
-        </a-radio-group>
+        <a-input-search v-model:value="searchText" placeholder="请输入标题或作者搜索" @search="onSearch">
+          <template #enterButton>
+            <div class="flex items-center">
+              <SearchOutlined />
+              <span class="ml-[4px]">搜索</span>
+            </div>
+          </template>
+        </a-input-search>
+        <a-tabs v-model:active-key="tabValue" class="elTabs" @change="changeType" size="small">
+          <a-tab-pane tab="文档" :key="1" />
+          <a-tab-pane tab="问答" :key="4" />
+          <a-tab-pane tab="视频" :key="2" />
+          <a-tab-pane tab="图片" :key="3" />
+        </a-tabs>
       </div>
-      <div class="drawerMain overflow-y-auto">
-        <a-spin :spinning="spinning">
+      <div class="drawerMain overflow-y-auto wei-scrollbar">
+        <a-spin :spinning="spinning" class="h-full">
           <div v-if="tabValue === 1" class="doc-wrap">
             <div class="doc-list" v-for="(item, index) in documentList">
               <div style="display: flex; margin-top: 16px">
@@ -307,7 +314,7 @@ defineExpose({
                   <a-tooltip class="box-item" placement="top">
                     <template #title>{{
                       item.fileName + "." + item.fileType
-                      }}</template>
+                    }}</template>
                     <div class="highlightName" @click="viewPdfFun(item)">
                       {{ item.fileName }}.{{ item.fileType }}
                     </div>
@@ -316,10 +323,10 @@ defineExpose({
                     <a-breadcrumb separator="|">
                       <a-breadcrumb-item>{{
                         item.version || ""
-                        }}</a-breadcrumb-item>
+                      }}</a-breadcrumb-item>
                       <a-breadcrumb-item>{{
                         getTimes(Date.parse(item.addTime)) || ""
-                        }}</a-breadcrumb-item>
+                      }}</a-breadcrumb-item>
                     </a-breadcrumb>
                   </div>
                 </div>
@@ -343,7 +350,7 @@ defineExpose({
                   <div class="act-list elChatDotSquare" @click="commentFun(item)">
                     <message-outlined /><span>{{
                       JSON.parse(item.counting).commented
-                      }}</span>
+                    }}</span>
                   </div>
                   <div class="act-list elStarFilled icon-hanhan" @click="followFun(item)">
                     <heart-outlined v-if="!item.collectedLight" />
@@ -353,12 +360,12 @@ defineExpose({
                   <div class="act-list elShare" @click="shareFun(item)">
                     <share-alt-outlined /><span>{{
                       JSON.parse(item.counting).shared
-                      }}</span>
+                    }}</span>
                   </div>
                   <div v-if="item.allowDownload !== 1" class="act-list elShare" @click="downFun(item)">
                     <download-outlined /><span>{{
                       JSON.parse(item.counting).downloaded
-                      }}</span>
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -372,13 +379,13 @@ defineExpose({
                   <span class="name">{{ allQues.userName }}</span>
                   <span class="time">{{
                     getAllTimes(Date.parse(allQues.addTime))
-                    }}</span>
+                  }}</span>
                   <span v-if="allQues.urgency === '紧急'" class="exigency">{{
                     allQues.urgency
-                    }}</span>
+                  }}</span>
                   <span v-if="allQues.urgency === '严重'" class="importance">{{
                     allQues.urgency
-                    }}</span>
+                  }}</span>
                   <!-- <span v-if="allQues.urgency === '一般'" class="normal">{{ allQues.urgency }}</span> -->
                 </div>
               </div>
@@ -418,21 +425,21 @@ defineExpose({
                       <div class="elChatDotSquare" @click="commentQuestFun(myAnser)">
                         <message-outlined class="mr-[5px]" /><span>{{
                           myAnser.discussNum
-                          }}</span>
+                        }}</span>
                       </div>
                       <div v-if="!allQues.interestLight" class="icon-hanhan elChatDotSquare" @click="starFun(allQues)">
                         <heart-outlined class="mr-[5px]" /><span>{{
                           myAnser.discussNum
-                          }}</span>
+                        }}</span>
                       </div>
                       <div v-else class="elChatDotSquare" @click="starFun(allQues)">
                         <heart-filled class="mr-[5px] text-red" :style="{ color: 'red' }" /><span>{{ myAnser.discussNum
-                          }}</span>
+                        }}</span>
                       </div>
                       <div class="elChatDotSquare" @click="shareFun(allQues)">
                         <share-alt-outlined /><span>{{
                           myAnser.discussNum
-                          }}</span>
+                        }}</span>
                       </div>
                     </div>
                   </div>
@@ -471,7 +478,7 @@ defineExpose({
                   <span class="name">{{ item.userName }}</span>
                   <span class="time">{{
                     getTimes(Date.parse(item.addTime)) || ""
-                    }}</span>
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -504,7 +511,7 @@ defineExpose({
                   <span class="name">{{ item.userName }}</span>
                   <span class="time">{{
                     getTimes(Date.parse(item.addTime)) || ""
-                    }}</span>
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -532,12 +539,54 @@ defineExpose({
 </template>
 
 <style lang="less" scoped>
-:deep(.ant-radio-group) {
-  display: inline-flex;
-  gap: 6px;
 
-  .ant-radio-button-wrapper {
-    border-radius: 0 !important;
+:deep(.ant-tabs-tab+.ant-tabs-tab) {
+  margin-left: 0px;
+}
+
+.elTabs {
+  border-radius: 4px;
+  width: 100%;
+  margin-top: 16px;
+
+  :deep(.ant-tabs-nav) {
+    // height: 48px;
+    margin-bottom: 0;
+    background-color: #ffffff;
+    padding: 0 0 0 0;
+    &::before {
+      display: none;
+    }
+  }
+
+  :deep(.ant-tabs-tab) {
+    width: 72px;
+    // height: 32px;
+    font-size: 14px;
+    background: #f2f5f7;
+    border-radius: 2px 0 0 2px;
+    border: 1px solid #ffffff;
+    margin-right: 2px;
+    justify-content: center;
+    padding: 4px 0 !important;
+  }
+
+  :deep(.ant-tabs-tab-active) {
+    background: #e6effb;
+
+    .ant-tabs-tab-btn {
+      font-weight: 600;
+      font-size: 14px;
+      color: #1366d1;
+    }
+  }
+
+  :deep(.ant-tabs-ink-bar) {
+    display: none;
+  }
+
+  :deep(.ant-tabs-content-holder) {
+    display: none;
   }
 }
 

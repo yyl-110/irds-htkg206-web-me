@@ -260,19 +260,10 @@ const initSearch = () => {
   arrayData.value = []
   thirdData.value = []
 }
-
 // 分页
-const handleSizeChange = (val) => {
-  page.value.pageSize = val;
-  if (tabValue.value === 4) {
-    getQuestList();
-  } else {
-    searchData();
-  }
-};
-// 分页
-const handleCurrentChange = (val) => {
+const handleCurrentChange = (val, size) => {
   page.value.currentPage = val;
+  page.value.pageSize = size;
   if (tabValue.value === 4) {
     getQuestList();
   } else {
@@ -342,7 +333,7 @@ onMounted(() => {
     <footer class="flex justify-end pt-[16px]">
       <a-pagination v-model:current="page.currentPage" :total="page.pageCount"
         :default-page-size="page.pageSize" show-less-items show-size-changer
-        :show-total="(total) => `共${total}条`" @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
+        :show-total="(total) => `共${total}条`" @change="handleCurrentChange"/>
     </footer>
   </div>
 </template>

@@ -136,19 +136,10 @@ const viewMoreFun = (type) => {
     getUserList();
   }
 };
-
 //分页
-const handleSizeChange = (current, size) => {
-  page.value.pageSize = size;
-  if (typeData.value == "hot") {
-    getHotArtic();
-  } else {
-    getUserList();
-  }
-};
-//分页
-const handleCurrentChange = (val) => {
+const handleCurrentChange = (val,size) => {
   page.value.currentPage = val;
+  page.value.pageSize = size;
   if (typeData.value == "hot") {
     getHotArtic();
   } else {
@@ -165,35 +156,35 @@ const closeDialog = () => {
 
 <template>
   <div class="rt-layout h-full">
-    <a-card class="box-card expert" :bordered="false">
+    <!-- <a-card class="box-card expert" :bordered="false">
       <template #title>
         <div class="card-header">
           <span style="font-weight: 600; font-size: 16px">专家板块</span>
           <div class="more" @click="viewMoreFun('records')">更多</div>
         </div>
       </template>
-      <div class="pic-list">
-        <div class="user-block" v-for="(item, index) in userListData" :key="index">
-          <div class="user-info">
-            <a-avatar class="elAvatar" :size="44">
-              <span style="color: #1366d1; font-size: 30px">{{
-                item.name[0]
-                }}</span></a-avatar>
-            <div>
-              <div class="uname">{{ item.name }}</div>
-              <div class="udesc">
-                {{ item?.expertRole }}{{ item?.expertRole ? "·" : ""
-                }}{{ item?.ifExpert }}
-              </div>
-              <div class="btn-wrap">
-                <div class="btnlis" @click="viewExpertDes(item)">查看详情</div>
-                <div class="btnlis1" @click="expertFun(item)">提问TA</div>
-              </div>
-            </div>
-          </div>
+<div class="pic-list">
+  <div class="user-block" v-for="(item, index) in userListData" :key="index">
+    <div class="user-info">
+      <a-avatar class="elAvatar" :size="44">
+        <span style="color: #1366d1; font-size: 30px">{{
+          item.name[0]
+          }}</span></a-avatar>
+      <div>
+        <div class="uname">{{ item.name }}</div>
+        <div class="udesc">
+          {{ item?.expertRole }}{{ item?.expertRole ? "·" : ""
+          }}{{ item?.ifExpert }}
+        </div>
+        <div class="btn-wrap">
+          <div class="btnlis" @click="viewExpertDes(item)">查看详情</div>
+          <div class="btnlis1" @click="expertFun(item)">提问TA</div>
         </div>
       </div>
-    </a-card>
+    </div>
+  </div>
+</div>
+</a-card> -->
     <a-card class="box-card hotList" :bordered="false">
       <template #title>
         <div class="card-header">
@@ -203,7 +194,7 @@ const closeDialog = () => {
       </template>
       <div v-for="(artTitle, index) in articList" :key="artTitle.id" class="text item" @click="previewArt">
         <div class="box-item">
-          <div class="space">
+          <div class="space w-[90%]">
             <span style="margin-right: 0.625rem" :style="{
               color:
                 index == 0
@@ -214,12 +205,7 @@ const closeDialog = () => {
             }">{{ index + 1 }}</span>{{ artTitle.fileName }}
           </div>
         </div>
-        <div style="
-            margin-left: 10px;
-            margin-top: -40px;
-            display: flex;
-            align-items: center;
-          ">
+        <div>
           <EyeOutlined style="margin-right: 2px" />
           {{ artTitle.num }}次
         </div>
@@ -258,12 +244,12 @@ const closeDialog = () => {
         </div>
       </a-card>
       <a-card v-if="dialogTit === '热评问题'" class="box-card" :bordered="false">
-        <div v-for="art in articList" :key="art.id" style="border-bottom: 1px solid #ccc" class="p-[8px]">
+        <div v-for="art in articList" :key="art.id" style="border-bottom: 1px solid #E7EAEE" class="py-[8px]">
           <div class="text item text-list flex justify-between">
             <span class="tit">{{ art.fileName }}</span>
             <div>
               <span class="name">{{ art.userName }}</span>
-              <span class="time">{{ getTimes(Date.parse(art.addTime)) }}</span>
+              <span class="time ml-[4px]">{{ getTimes(Date.parse(art.addTime)) }}</span>
             </div>
           </div>
           <div style="line-height: 22px; display: flex; align-items: center">
@@ -274,8 +260,8 @@ const closeDialog = () => {
       <template #footer>
         <div class="footer flex justify-between items-center">
           <a-pagination v-model:current="page.currentPage" class="elPage" :total="page.pageCount"
-            :default-page-size="page.pageSize" show-less-items show-size-changer
-            :show-total="(total) => `共${total}条`" @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
+            :default-page-size="page.pageSize" show-less-items show-size-changer :show-total="(total) => `共${total}条`"
+            @change="handleCurrentChange" />
           <span class="dialog-footer">
             <a-button type="primary" @click="closeFun">关闭</a-button>
           </span>
@@ -296,6 +282,7 @@ const closeDialog = () => {
 
 <style lang="less" scoped>
 @import '@/sheets/scrollbar.less';
+
 .rt-layout {
   overflow: hidden;
 
@@ -305,52 +292,13 @@ const closeDialog = () => {
   }
 
   .space {
-    width: 12.375rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: #333;
-    margin-top: -10px;
 
     &:hover {
       color: #0d53e2;
-    }
-  }
-
-  .item {
-    display: flex;
-    align-items: center;
-    height: 20px;
-    font-size: 14px;
-    font-family: PingFangSC, PingFang SC;
-    font-weight: 400;
-    color: #333;
-    line-height: 20px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-    cursor: pointer;
-
-    .elIcon {
-      margin-right: 10px;
-      margin-left: 8px;
-      font-size: 14px;
-      cursor: pointer;
-
-      .TrophyBase-ico {
-        color: #2da641;
-      }
-
-      .StarFilled-ico {
-        color: #fad20c;
-      }
-
-      .Opportunity-ico {
-        color: #d40000;
-      }
-
-      .Document-ico {
-        color: #155bd4;
-      }
     }
   }
 }
@@ -365,7 +313,7 @@ const closeDialog = () => {
   border: none;
 
   :deep(.ant-card-head) {
-    padding:16px;
+    padding: 16px;
     border-bottom: none;
 
     .ant-card-head-title {
@@ -488,13 +436,12 @@ const closeDialog = () => {
 }
 
 .hotList {
-  height: 60%;
+  height: 100%;
   width: 100%;
   background: #ffffff;
   border-radius: 4px 4px 4px 4px;
   display: flex;
   flex-direction: column;
-  margin-top: 16px;
 
   :deep(.ant-card-body) {
     padding: 0 16px 16px 16px;
@@ -502,17 +449,23 @@ const closeDialog = () => {
     overflow-y: auto;
     .wei-scrollbar-mixin();
 
+    .box-item {
+      flex: 1;
+      width: 0;
+    }
+
     .item {
       display: flex;
       align-items: center;
-      height: 61px;
-      line-height: 60px;
+      line-height: 30px;
+      padding: 8px 0;
       font-size: 14px;
       font-family: PingFang-SC, PingFang-SC;
       font-weight: 500;
       color: #646566;
       flex-wrap: wrap;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid #E7EAEE;
+      justify-content: space-between;
 
       &:hover {
         cursor: pointer;

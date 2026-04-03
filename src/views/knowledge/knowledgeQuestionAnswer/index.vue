@@ -2,13 +2,11 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { Empty, message } from 'ant-design-vue';
 import { EditOutlined, DeleteOutlined, MessageOutlined, SearchOutlined, UserOutlined, HeartOutlined, HeartFilled, ShareAltOutlined } from '@ant-design/icons-vue';
-import shareCell from '../components/share.vue';
 import PoseQuestion from '../components/poseQuestion.vue';
 import searchTag from '../components/search-tag.vue';
 import { knowledgeQuestion, removeAnswer, doInterestQuestion, answerQuestion, removeQuestion } from '@/api/knowledge/index.js';
-import { getAllTimes } from '@/utils/dateUtils.js';
-import comment from '@/components/Comment/index.vue';
 import { useUserStore } from '@/store/modules/user';
+import questionCard from './questionCard.vue';
 
 const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE);
 
@@ -16,20 +14,11 @@ const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE);
 const flag = ref(1);
 const searchKey = ref('');
 const activeName = ref('all');
-const shareDialogVisible = ref(false);
-const docId = ref('');
 const page = ref({ pageSize: 10, pageCount: 100, currentPage: 1 });
 const poseDialogVisible = ref(false);
-const commentDialogVisible = ref(false);
-const hideFlag = ref(false);
 const tabFlag = ref(1);
 const totalList = ref([]);
-const commonDeail = ref({});
 const editData = ref({});
-const answer = ref('');
-const hideAnswer = ref(false);
-const numberFlag = ref();
-const flagId = ref();
 const selectId = ref('');
 const expertFlag = ref(0);
 const addFlag = ref('');
@@ -86,11 +75,7 @@ const initData = () => {
   spinning.value = true
   knowledgeQuestion(params).then(res => {
     if (res && res.data.code === '0') {
-      totalList.value = (res.data.data.result || []).map(v => {
-        const hidden = flagId.value != null && v.answer?.some(k => k.questionId == flagId.value);
-        if (hidden) hideFlag.value = true;
-        return { ...v, hidden: hidden || false, replay: false };
-      });
+      totalList.value = res.data.data.result
       page.value.pageCount = res.data.data.rowCount;
       expertFlag.value = 3;
     }
@@ -104,12 +89,6 @@ const poseFun = () => {
   poseDialogVisible.value = true;
 };
 
-const exposeId = item => {
-  activeName.value = 'expert';
-  tabFlag.value = 4;
-  exportId.value = item;
-  initData();
-};
 
 const closeDialog = (val, num) => {
   poseDialogVisible.value = val;
@@ -122,111 +101,9 @@ const changeFlag = val => {
   initData();
 };
 
-// 展开/收起回答（原 changeHideFlag 与 hidenFun 逻辑完全相同，合并为一个）
-const toggleAnswers = item => {
-  totalList.value.forEach(v => {
-    if (v.id === item.id) {
-      v.hidden = true;
-      hideFlag.value = !hideFlag.value;
-    } else {
-      v.hidden = false;
-    }
-  });
-};
-
-const upData = () => {
-  hideFlag.value = false;
-};
-
-const confirmAnswer = () => {
-  answerQuestion({
-    questionId: flagId.value,
-    userId: userId.value,
-    content: answer.value,
-  }).then(res => {
-    if (res && res.data.code === '0') {
-      hideAnswer.value = false;
-      answer.value = '';
-      initData();
-    }
-  });
-};
-
-const cancelAnswer = () => {
-  answer.value = '';
-  hideAnswer.value = false;
-};
-
-const commentFun = item => {
-  commonDeail.value = item;
-  numberFlag.value = 2;
-  commentDialogVisible.value = true;
-};
-
-const closeCommentDialogNotification = () => {
-  commentDialogVisible.value = false;
-};
-
-const myAnswerFun = item => {
-  flagId.value = item.id;
-  totalList.value.forEach(v => {
-    if (v.id === item.id) {
-      v.replay = true;
-      hideAnswer.value = !hideAnswer.value;
-    } else {
-      v.replay = false;
-    }
-  });
-};
-
-const editFun = item => {
-  addFlag.value = '2';
-  editData.value = item;
-  poseDialogVisible.value = true;
-};
-
-const deleteFun = item => {
-  removeQuestion({ questionId: item.id }).then(res => {
-    if (res && res.data.code === '0') initData();
-  });
-};
-
-const answerDelete = val => {
-  removeAnswer({
-    questionId: val.questionId,
-    userId: userId.value,
-    answerId: val.id,
-  }).then(res => {
-    if (res && res.data.code === '0') initData();
-  });
-};
-
-const starFun = item => {
-  doInterestQuestion({ questionId: item.id, userId: userId.value }).then(res => {
-    if (res && res.data.code === '0') {
-      message.success(item.interestLight ? '取消关注成功！' : '关注成功！');
-      initData();
-    }
-  });
-};
-
-const shareFun = item => {
-  docId.value = item.id;
-  shareDialogVisible.value = true;
-};
-
-const closeShare = () => {
-  shareDialogVisible.value = false;
-  setTimeout(initData, 2000);
-};
-
-const handleSizeChange = val => {
-  page.value.pageSize = val;
-  initData();
-};
-
-const handleCurrentChange = val => {
+const handleCurrentChange = (val, size) => {
   page.value.currentPage = val;
+  page.value.pageSize = size;
   initData();
 };
 </script>
@@ -263,107 +140,20 @@ const handleCurrentChange = val => {
 
         <div class="doc-wrap flex-1 wei-scrollbar">
           <div class="doc-list ask-list" v-for="allQues in totalList" :key="allQues.id">
-            <div class="ask-list-top">
-              <div class="ask-list-left">
-                <a-avatar class="elAvatar" :size="24">
-                  <template #icon>
-                    <UserOutlined />
-                  </template>
-                </a-avatar>
-                <span class="name">{{ allQues.userName }}</span>
-                <span
-                  style="font-family: PingFang SC, PingFang SC; font-weight: 400; font-size: 14px; color: #6a696e">提了一个问题</span>
-                <span class="time"><span style="margin: 0 3px">·</span>{{ getAllTimes(Date.parse(allQues.addTime))
-                  }}</span>
-                <span v-if="allQues.urgency === '紧急'" class="status exigency">{{ allQues.urgency }}</span>
-                <span v-if="allQues.urgency === '严重'" class="status importance">{{ allQues.urgency }}</span>
-              </div>
-              <div class="ask-list-right" v-if="!allQues.hideAnswerButton" @click="myAnswerFun(allQues)">
-                <img src="@/assets/images/group1.png" alt="" /><span class="author-myAnser-text">写回答</span>
-              </div>
-            </div>
-
-            <div class="ask-list-title" @click="toggleAnswers(allQues)">
-              <span class="ask-list-title-name">{{ allQues.description }}</span>
-            </div>
-
-            <div class="action-row">
-              <div v-if="allQues.answer.length > 0" @click="toggleAnswers(allQues)" style="display: flex">
-                <div style="margin-right: 4px">展开全部</div>
-                <img src="@/assets/images/down11.png" alt="" style="margin-right: 20px" />
-              </div>
-              <span v-if="allQues.userId === Number(userId)" class="author-elEdit" @click="editFun(allQues)">
-                <edit-outlined class="imgColor" /><span class="author-elEdit-text">编辑</span>
-              </span>
-              <span v-if="allQues.userId === Number(userId)" class="author-elDelete">
-                <a-popconfirm ok-text="确定" cancel-text="取消" title="确定要删除吗?" @confirm="deleteFun(allQues)">
-                  <div>
-                    <delete-outlined class="imgColor" />
-                    <span class="author-elDelete-text">删除</span>
-                  </div>
-                </a-popconfirm>
-              </span>
-            </div>
-
-            <div class="commont mt-[16px]" v-if="hideAnswer && allQues.replay === true">
-              <a-textarea v-model:value="answer" />
-              <div class="flex justify-end mt-[8px] gap-[8px]">
-                <a-button class="commont-btn" type="primary" @click="confirmAnswer">确定</a-button>
-                <a-button class="commont-btn" @click="cancelAnswer">取消</a-button>
-              </div>
-            </div>
-
-            <div v-if="hideFlag && allQues.hidden === true && allQues.answer.length > 0">
-              <div class="bottomAnswer" v-for="myAnser in allQues.answer" :key="myAnser.id">
-                <div class="titleTop">
-                  <div class="content">
-                    <span class="content-answer">答</span><span class="name">{{ myAnser.userName }}：</span>{{
-                      myAnser.content }}
-                  </div>
-                  <div style="margin-top: 5px" v-if="myAnser.showDeleteBotton">
-                    <a-popconfirm ok-text="确定" cancel-text="取消" title="确定要删除吗?" @confirm="answerDelete(myAnser)">
-                      <div>
-                        <delete-outlined class="imgColor" />
-                        <span class="author-elDelete-text">删除</span>
-                      </div>
-                    </a-popconfirm>
-                  </div>
-                </div>
-                <div class="starComment">
-                  <div class="elChatDotSquare" @click="commentFun(myAnser)">
-                    <message-outlined /><span>{{ myAnser.discussNum }}</span>
-                  </div>
-                  <div class="icon-hanhan elChatDotSquare" @click="starFun(allQues)">
-                    <HeartOutlined v-if="!allQues.interestLight" />
-                    <HeartFilled v-else class="text-red" :style="{ color: 'red' }" />
-                    <span>{{ myAnser.discussNum }}</span>
-                  </div>
-                  <div class="elChatDotSquare" @click="shareFun(myAnser)">
-                    <ShareAltOutlined /><span>{{ myAnser.discussNum }}</span>
-                  </div>
-                </div>
-              </div>
-              <span class="up" @click="upData">
-                <div style="margin-right: 4px">收起回答</div>
-                <img src="@/assets/images/up11.png" alt="" />
-              </span>
-            </div>
+            <question-card :allQues="allQues" @handleReload="initData" />
           </div>
           <a-empty v-if="totalList.length === 0 && !spinning" :image="simpleImage" />
         </div>
         <footer class="pagination-footer flex justify-end">
           <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
-            show-less-items show-size-changer :show-total="(total) => `共${total}条`"
-            @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
+            show-less-items show-size-changer :show-total="(total) => `共${total}条`" @change="handleCurrentChange" />
         </footer>
       </div>
     </div>
 
-    <shareCell :shareDialogVisible="shareDialogVisible" :docId="docId" @closeShare="closeShare" />
-    <PoseQuestion :poseDialogVisible="poseDialogVisible" :editData="editData" :addFlag="addFlag" @closeDialog="closeDialog"></PoseQuestion>
-
-    <comment :commentDialogVisible="commentDialogVisible" :commonDeail="commonDeail" :numberFlag="numberFlag"
-      @closeCommentDialogNotification="closeCommentDialogNotification" @getFlagList="initData" />
+    <PoseQuestion :poseDialogVisible="poseDialogVisible" :editData="editData" :addFlag="addFlag"
+      @closeDialog="closeDialog">
+    </PoseQuestion>
   </div>
 </template>
 
@@ -447,11 +237,10 @@ const handleCurrentChange = val => {
     }
 
     .doc-wrap {
-      height: calc(100vh - 292px);
       overflow-y: auto;
       background: #ffffff;
       border-radius: 4px;
-      padding: 0 20px 20px 20px;
+      padding: 0 16px 16px 16px;
 
       .doc-list {
         margin-bottom: 14px;

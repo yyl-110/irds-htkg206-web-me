@@ -11,6 +11,7 @@ import {
 import { message } from "ant-design-vue";
 import shareCell from "./share.vue";
 import VideoImg from "./videoImg.vue";
+import draggableModal from "@/components/DraggableModal/index.vue";
 
 const props = defineProps({
   imgData: {
@@ -151,7 +152,7 @@ const getDes = () => {
       @close-share="closeShare"
     />
 
-    <a-modal :closable="false" v-model:visible="showDetail" title="查看详情" width="40%" centered>
+    <draggable-modal :closable="false" v-model:visible="showDetail" title="查看详情" width="40%" centered>
       <a-form-item label="附件名称：" label-width="100">
         <a-input v-model:value="formInline.fileName" disabled />
       </a-form-item>
@@ -169,7 +170,7 @@ const getDes = () => {
           <a-button @click="showDetail = false">关闭</a-button>
         </div>
       </template>
-    </a-modal>
+    </draggable-modal>
 
     <VideoImg
       :video-hide="imgHide"

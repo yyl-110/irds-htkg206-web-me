@@ -116,7 +116,6 @@
           show-quick-jumper
           :page-size-options="['10', '20', '50']"
           @change="handlePageChange"
-          @show-size-change="handlePageChange"
         />
       </div>
     </a-col>
@@ -236,8 +235,6 @@ const reload = async () => {
 onMounted(() => {
   reload();
 });
-
-defineExpose({ reload });
 </script>
 
 <style lang="less" scoped>

@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue';
 import { userList, knowledgeShare, saveQuestion, getTreeNodeByNodeLevel } from '@/api/knowledge';
 import { message } from 'ant-design-vue';
 import { useUserStore } from '@/store/modules/user';
+import draggableModal from "@/components/DraggableModal/index.vue";
 
 
 const props = defineProps({
@@ -507,7 +508,7 @@ const handleCloseShare = () => {
 </script>
 
 <template>
-  <a-modal class="dialog" :visible="poseDialogVisible" title="我要提问" :width="800" @cancel="handleCloseDialog">
+  <draggable-modal class="dialog" :visible="poseDialogVisible" title="我要提问" :width="800" @cancel="handleCloseDialog">
     <a-form class="dialog-form" :label-col="{ style: { width: '130px' } }">
       <a-form-item label="等级：">
         <a-select class="dialog-form-item-select" v-model:value="level" placeholder="请选择等级">
@@ -556,8 +557,8 @@ const handleCloseShare = () => {
         <a-button @click="questCancel">取消</a-button>
       </span>
     </template>
-  </a-modal>
-  <a-modal :maskClosable="false" :visible="poseDialogVisible1" title="站内分享" :width="650" @cancel="handleCloseShare">
+  </draggable-modal>
+  <draggable-modal :maskClosable="false" :visible="poseDialogVisible1" title="站内分享" :width="650" @cancel="handleCloseShare">
     <a-transfer :target-keys="value" :show-search="true" :filter-option="filterMethod" :data-source="data"
       :render="item => item.title" @change="handleTransferChange" />
     <template #footer>
@@ -566,13 +567,12 @@ const handleCloseShare = () => {
         <a-button @click="shareConcel">取消</a-button>
       </span>
     </template>
-  </a-modal>
-  <a-modal :maskClosable="false" class="labelModal" v-model:visible="tabStatsDialogVisible" :width="600" title="标签应用"
+  </draggable-modal>
+  <draggable-modal :maskClosable="false" class="labelModal" v-model:visible="tabStatsDialogVisible" :width="600" title="标签应用"
     @cancel="closeTabStatsDialogFun">
     <div class="group" v-for="item in labelData" :key="item.nodeName">
       <div class="titleStyle mb-[8px]">
         <div :class="{ fontStyle: item.nodeLevel === '2' }" v-if="item.nodeLevel === '2'">{{ item.nodeName }}</div>
-        <div :class="{ line: item.nodeLevel === '2' }"></div>
       </div>
       <a-checkbox-group class="checkGroup"
         v-if="item.children && item.children.length > 0 && item.nodeLevel === '2' && item.selectType === '1'"
@@ -593,7 +593,7 @@ const handleCloseShare = () => {
         <a-button @click="closeTabStatsDialogFun">取消</a-button>
       </span>
     </template>
-  </a-modal>
+  </draggable-modal>
 </template>
 
 <style lang="less">
@@ -655,17 +655,11 @@ const handleCloseShare = () => {
   align-items: center;
 
   .fontStyle {
-    font-size: 18px;
-    color: #01aaed;
+    font-size: 16px;
+    font-weight: bold;
+    color: #313133;
   }
 
-  .line {
-    height: 1px;
-    width: 400px;
-    background-color: #e4e4e4;
-    line-height: 27px;
-    margin-left: 20px;
-  }
 }
 
 .checkGroup {

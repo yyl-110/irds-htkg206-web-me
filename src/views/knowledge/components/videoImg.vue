@@ -1,6 +1,7 @@
 
 <script setup lang="ts">
 import { defineProps, nextTick } from "vue";
+import draggableModal from "@/components/DraggableModal/index.vue";
 
 const props = defineProps({
   videoHide: Boolean,
@@ -40,7 +41,7 @@ watch(
 </script>
 
 <template>
-  <a-modal
+  <draggable-modal
     v-model:visible="visible"
     :closable="false"
     :title="titleType"
@@ -72,5 +73,5 @@ watch(
         <a-button type="primary" @click="getFlag">关闭</a-button>
       </div>
     </template>
-  </a-modal>
+  </draggable-modal>
 </template>

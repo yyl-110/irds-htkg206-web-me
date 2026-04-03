@@ -1,5 +1,5 @@
 <template>
-  <a-modal
+  <draggabl-modal
     :visible="dialogVisible1"
     title="地图详情"
     :width="600"
@@ -19,7 +19,7 @@
       <PlayCircleOutlined class="iconColor" @click="player" />
     </div>
     <div>摘要：{{ objData?.summary }}</div>
-  </a-modal>
+  </draggabl-modal>
 </template>
 
 <script lang="ts" setup>
@@ -28,6 +28,7 @@ import { message } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
 import { startLearning } from '@/api/knowledge';
 import { useUserStore } from '@/store/modules/user';
+import draggableModal from "@/components/DraggableModal/index.vue";
 
 const router = useRouter();
 

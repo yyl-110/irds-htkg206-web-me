@@ -7,7 +7,7 @@
             <template #icon> <user-outlined /></template>
           </a-avatar>
           <div class="intro">
-            <div class="name">{{ userInfoList.name }}</div>
+            <div class="name">{{ userInfoList.name || useUserStore().getUser.userName }}</div>
             <div class="tags">{{ userInfoList.expertRole }}</div>
           </div>
         </div>
