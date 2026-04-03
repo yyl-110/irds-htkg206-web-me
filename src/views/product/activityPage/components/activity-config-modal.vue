@@ -123,7 +123,56 @@ const draggingTableSubtype = ref('');
 const draggingThreeDSubtype = ref('');
 const tableSizeModalVisible = ref(false);
 const pendingInsertIndex = ref<number | null>(null);
-const tableSizeDraft = reactive({ bodyRows: 4, cols: 3 });
+const tableSizeDraft = reactive({
+  tableTitle: '表格标题',
+  tableBizType: 'MODULE_LIB_READ' as string,
+  bodyRows: 4,
+  cols: 3,
+});
+
+/** 固定表格弹窗嵌套在全屏 Modal 内：下拉默认挂在内层易被 overflow 裁剪，挂到 body 并抬高 z-index */
+function getTableBizTypeSelectPopupContainer() {
+  return document.body;
+}
+const tableBizTypeSelectDropdownStyle = { zIndex: 1200 };
+
+const columnDefModalVisible = ref(false);
+const columnDefDraft = ref<any[]>([]);
+
+function cloneFixedTableColDefsForModal(defs: any[] | undefined) {
+  return (defs || []).map(d => ({
+    paramCode: d?.paramCode ?? '',
+    dataType: d?.dataType || 'TEXT',
+    dropdownValues: d?.dropdownValues ?? '',
+    columnWidth: d?.columnWidth ?? '',
+  }));
+}
+function getFixedTableColDataTypeLabel(v: string) {
+  const m: Record<string, string> = {
+    TEXT: '文本',
+    READONLY_TEXT: '只读文本',
+    DROPDOWN: '下拉值',
+  };
+  return m[v] || v || '—';
+}
+function openColumnDefModal() {
+  const c = selectedComponent.value;
+  if (!c?.customProps || c.customProps.tableSubtype !== 'FIXED') return;
+  syncFixedTableRowColDefs(c);
+  columnDefDraft.value = cloneFixedTableColDefsForModal(c.customProps.tableColDefs);
+  columnDefModalVisible.value = true;
+}
+function applyColumnDefModal() {
+  const c = selectedComponent.value;
+  if (!c?.customProps) return;
+  const p = c.customProps;
+  const next = cloneFixedTableColDefsForModal(columnDefDraft.value);
+  p.tableColDefs.splice(0, p.tableColDefs.length, ...next);
+  columnDefModalVisible.value = false;
+}
+function cancelColumnDefModal() {
+  columnDefModalVisible.value = false;
+}
 
 function createDefaultComponent(componentType: string) {
   const customProps = componentType === 'DATA_VIEW' ? { inputPlaceholder: '请输入设计参数1', assembleButtonText: '装配', libraryCategory: '' } : {};
@@ -177,20 +226,44 @@ function insertComponentItem(newItem: any, insertIndex?: number | null) {
   selectedIndex.value = idx;
   return true;
 }
-function createTableComponent(tableSubtype: 'FIXED' | 'ROW_EXPAND', bodyRows: number, colCount: number) {
+function createTableComponent(
+  tableSubtype: 'FIXED' | 'ROW_EXPAND',
+  bodyRows: number,
+  colCount: number,
+  opts?: { tableTitle?: string; tableBizType?: string },
+) {
   const item = createDefaultComponent('TABLE');
-  item.paramName = '表格标题';
-  item.customProps = {
-    ...(item.customProps || {}),
+  const br = Math.max(1, bodyRows);
+  const cc = Math.max(1, colCount);
+  const titleRaw = opts?.tableTitle != null ? String(opts.tableTitle).trim() : '';
+  const tableTitle = titleRaw || '表格标题';
+  item.paramName = tableTitle;
+  const base = {
     tableSubtype,
-    tableTitle: '表格标题',
-    tableBodyRows: Math.max(1, bodyRows),
-    tableColCount: Math.max(1, colCount),
+    tableTitle,
+    tableBodyRows: br,
+    tableColCount: cc,
     firstColumnType: 'INDEX',
-    btnApplyPartNo: true,
     btnOpenModel: false,
     btnAssembleModel: false,
-  };
+  } as Record<string, any>;
+  if (tableSubtype === 'ROW_EXPAND') {
+    base.btnApplyPartNo = true;
+  }
+  if (tableSubtype === 'FIXED') {
+    const biz = opts?.tableBizType || 'NORMAL';
+    base.tableBizType = ['MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'NORMAL'].includes(biz) ? biz : 'NORMAL';
+    base.tableNumber = '';
+    base.btnOpenDrawing = true;
+    base.tableRowDefs = Array.from({ length: br }, () => ({ moduleLibCategory: '' }));
+    base.tableColDefs = Array.from({ length: cc }, () => ({
+      paramCode: '',
+      dataType: 'TEXT',
+      dropdownValues: '',
+      columnWidth: '',
+    }));
+  }
+  item.customProps = { ...(item.customProps || {}), ...base };
   return item;
 }
 function createThreeDViewComponent(threeDSubtype: string) {
@@ -227,6 +300,8 @@ function handleIncomingAdd(payload: string, insertIndex?: number | null) {
   if (!type) return;
   if (type === 'TABLE' && tableSubtype === 'FIXED') {
     pendingInsertIndex.value = insertIndex == null ? null : insertIndex;
+    tableSizeDraft.tableTitle = '表格标题';
+    tableSizeDraft.tableBizType = 'MODULE_LIB_READ';
     tableSizeDraft.bodyRows = 4;
     tableSizeDraft.cols = 3;
     tableSizeModalVisible.value = true;
@@ -251,6 +326,15 @@ function handlePaletteClick(item: { type: string; tableSubtype?: string; threeDS
   handleIncomingAdd(payload, componentList.value.length);
 }
 function confirmTableSize() {
+  const name = String(tableSizeDraft.tableTitle || '').trim();
+  if (!name) {
+    message.warning('请输入表格名称');
+    return;
+  }
+  if (!tableSizeDraft.tableBizType) {
+    message.warning('请选择表格类型');
+    return;
+  }
   const br = Number(tableSizeDraft.bodyRows);
   const c = Number(tableSizeDraft.cols);
   if (!Number.isFinite(br) || br < 1) {
@@ -261,7 +345,10 @@ function confirmTableSize() {
     message.warning('请输入有效的列数（≥1）');
     return;
   }
-  const newItem = createTableComponent('FIXED', Math.floor(br), Math.floor(c));
+  const newItem = createTableComponent('FIXED', Math.floor(br), Math.floor(c), {
+    tableTitle: name,
+    tableBizType: tableSizeDraft.tableBizType,
+  });
   const idx = pendingInsertIndex.value == null ? componentList.value.length : pendingInsertIndex.value;
   insertComponentItem(newItem, idx);
   tableSizeModalVisible.value = false;
@@ -478,6 +565,12 @@ function tableDimensionRange(count: number) {
   const n = Math.max(0, Math.min(100, Number(count) || 0));
   return Array.from({ length: n }, (_, i) => i + 1);
 }
+/** 固定表格列定义：首列固定为序号，配置行从第 2 列起 */
+function tableDimensionRangeFromSecond(count: number) {
+  const n = Math.max(0, Math.min(100, Number(count) || 0));
+  if (n <= 1) return [];
+  return Array.from({ length: n - 1 }, (_, i) => i + 2);
+}
 /** 固定表格预览表头：首列在序号模式下为「序号」，复选/单选下留空；其余列为「列名1」… */
 function getFixedTableHeaderLabel(item: any, colIndex: number) {
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
@@ -591,6 +684,40 @@ function ensureDataViewDefaults(component: any) {
   if (!component.knowledgeContent) component.knowledgeContent = '';
   if (!component.knowledgeId) component.knowledgeId = '';
 }
+function syncFixedTableRowColDefs(component: any) {
+  const p = component?.customProps;
+  if (!p || p.tableSubtype !== 'FIXED') return;
+  const rows = Math.max(1, Math.min(50, Number(p.tableBodyRows) || 1));
+  const cols = Math.max(1, Math.min(20, Number(p.tableColCount) || 1));
+  if (!Array.isArray(p.tableRowDefs)) p.tableRowDefs = [];
+  if (!Array.isArray(p.tableColDefs)) p.tableColDefs = [];
+  while (p.tableRowDefs.length < rows) {
+    p.tableRowDefs.push({ moduleLibCategory: '' });
+  }
+  while (p.tableRowDefs.length > rows) {
+    p.tableRowDefs.pop();
+  }
+  while (p.tableColDefs.length < cols) {
+    p.tableColDefs.push({ paramCode: '', dataType: 'TEXT', dropdownValues: '', columnWidth: '' });
+  }
+  while (p.tableColDefs.length > cols) {
+    p.tableColDefs.pop();
+  }
+  for (let i = 0; i < p.tableRowDefs.length; i++) {
+    if (!p.tableRowDefs[i] || typeof p.tableRowDefs[i] !== 'object') p.tableRowDefs[i] = { moduleLibCategory: '' };
+    if (p.tableRowDefs[i].moduleLibCategory == null) p.tableRowDefs[i].moduleLibCategory = '';
+  }
+  for (let i = 0; i < p.tableColDefs.length; i++) {
+    if (!p.tableColDefs[i] || typeof p.tableColDefs[i] !== 'object') {
+      p.tableColDefs[i] = { paramCode: '', dataType: 'TEXT', dropdownValues: '', columnWidth: '' };
+    } else {
+      if (p.tableColDefs[i].paramCode == null) p.tableColDefs[i].paramCode = '';
+      if (!p.tableColDefs[i].dataType) p.tableColDefs[i].dataType = 'TEXT';
+      if (p.tableColDefs[i].dropdownValues == null) p.tableColDefs[i].dropdownValues = '';
+      if (p.tableColDefs[i].columnWidth == null) p.tableColDefs[i].columnWidth = '';
+    }
+  }
+}
 function ensureWorkspaceTableDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   const st = component.customProps.tableSubtype;
@@ -600,9 +727,20 @@ function ensureWorkspaceTableDefaults(component: any) {
   if (p.tableBodyRows == null || p.tableBodyRows < 1) p.tableBodyRows = 4;
   if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
   if (!p.firstColumnType) p.firstColumnType = 'INDEX';
-  if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = false;
+  if (st === 'ROW_EXPAND') {
+    if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
+  }
+  if (st === 'FIXED') {
+    if (p.tableBizType == null) p.tableBizType = 'NORMAL';
+    if (p.tableNumber == null) p.tableNumber = '';
+    if (p.btnOpenDrawing == null) {
+      if (p.btnApplyPartNo != null) p.btnOpenDrawing = !!p.btnApplyPartNo;
+      else p.btnOpenDrawing = true;
+    }
+    syncFixedTableRowColDefs(component);
+  }
 }
 function ensureTemplateBrowse3dDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
@@ -755,7 +893,8 @@ watch(
       dataViewPanelKeys.value = ['basic', 'knowledge'];
     }
     if (type === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(selectedComponent.value?.customProps?.tableSubtype)) {
-      fixedTablePanelKeys.value = ['info', 'model', 'buttons'];
+      fixedTablePanelKeys.value =
+        selectedComponent.value?.customProps?.tableSubtype === 'FIXED' ? ['info', 'rows', 'cols'] : ['info', 'model', 'buttons'];
     }
     if (type === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE') {
       templateBrowse3dPanelKeys.value = ['tpl', 'model', 'buttons'];
@@ -765,6 +904,33 @@ watch(
     }
     if (type === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'FIXED_TEMPLATE') {
       fixedTemplate3dPanelKeys.value = ['tpl', 'model', 'buttons'];
+    }
+  },
+  { immediate: true },
+);
+watch(
+  () => selectedComponent.value?.customProps?.tableSubtype,
+  st => {
+    if (selectedComponent.value?.componentType !== 'TABLE') return;
+    if (st === 'FIXED') {
+      fixedTablePanelKeys.value = ['info', 'rows', 'cols'];
+      syncFixedTableRowColDefs(selectedComponent.value);
+    } else if (st === 'ROW_EXPAND') {
+      fixedTablePanelKeys.value = ['info', 'model', 'buttons'];
+    }
+  },
+  { immediate: true },
+);
+watch(
+  () => [
+    selectedComponent.value?.customProps?.tableBodyRows,
+    selectedComponent.value?.customProps?.tableColCount,
+    selectedComponent.value?.customProps?.tableSubtype,
+  ],
+  () => {
+    const c = selectedComponent.value;
+    if (c?.componentType === 'TABLE' && c?.customProps?.tableSubtype === 'FIXED') {
+      syncFixedTableRowColDefs(c);
     }
   },
 );
@@ -1634,58 +1800,170 @@ watch(
             </template>
             <template v-else-if="isWorkspaceTableComponent">
               <a-collapse v-model:activeKey="fixedTablePanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="info" header="表格基本信息">
-                  <div class="row-field">
-                    <div class="row-label">表格标题：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">表格行数：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.customProps.tableBodyRows">
-                        <a-select-option v-for="n in tableDimensionRange(50)" :key="n" :value="n">{{ n }}</a-select-option>
-                      </a-select>
+                <template v-if="selectedComponent.customProps.tableSubtype === 'FIXED'">
+                  <a-collapse-panel key="info" header="表格基本信息">
+                    <div class="row-field">
+                      <div class="row-label">表格标题：</div>
+                      <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
                     </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">表格列数：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.customProps.tableColCount">
-                        <a-select-option v-for="n in tableDimensionRange(20)" :key="n" :value="n">{{ n }}</a-select-option>
-                      </a-select>
+                    <div class="row-field">
+                      <div class="row-label">表格行数：</div>
+                      <div class="row-control">
+                        <a-select v-model:value="selectedComponent.customProps.tableBodyRows">
+                          <a-select-option v-for="n in tableDimensionRange(50)" :key="n" :value="n">{{ n }}</a-select-option>
+                        </a-select>
+                      </div>
                     </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">首列形式：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.customProps.firstColumnType">
-                        <a-select-option value="INDEX">序号</a-select-option>
-                        <a-select-option value="CHECKBOX">复选框</a-select-option>
-                        <a-select-option value="RADIO">单选框</a-select-option>
-                      </a-select>
+                    <div class="row-field">
+                      <div class="row-label">表格列数：</div>
+                      <div class="row-control">
+                        <a-select v-model:value="selectedComponent.customProps.tableColCount">
+                          <a-select-option v-for="n in tableDimensionRange(20)" :key="n" :value="n">{{ n }}</a-select-option>
+                        </a-select>
+                      </div>
                     </div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="model" header="模型信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
+                    <div class="row-field">
+                      <div class="row-label">表格编号：</div>
+                      <div class="row-control">
+                        <a-input v-model:value="selectedComponent.customProps.tableNumber" placeholder="请输入" class="browse-adjoined-input" />
+                        <a-button type="primary" size="small">浏览</a-button>
+                      </div>
                     </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="buttons" header="按钮定义">
-                  <div class="fixed-table-btn-checks">
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                  </div>
-                </a-collapse-panel>
+                    <div class="row-field">
+                      <div class="row-label">表格类型：</div>
+                      <div class="row-control">
+                        <a-select v-model:value="selectedComponent.customProps.tableBizType" placeholder="请选择">
+                          <a-select-option value="MODULE_LIB_READ">模块库读取</a-select-option>
+                          <a-select-option value="BASIC_RESOURCE_LIB_READ">基础资源库读取</a-select-option>
+                          <a-select-option value="FILE_COLLAB">文件协同</a-select-option>
+                          <a-select-option value="NORMAL">普通表格</a-select-option>
+                        </a-select>
+                      </div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">操作列按钮：</div>
+                      <div class="row-control row-control-full">
+                        <div class="fixed-table-btn-checks fixed-table-btn-checks--col">
+                          <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenDrawing">打开图纸</a-checkbox>
+                          <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                          <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                        </div>
+                      </div>
+                    </div>
+                  </a-collapse-panel>
+                  <a-collapse-panel key="rows" header="行定义">
+                    <div class="fixed-table-def-scroll">
+                      <table class="fixed-table-def-table">
+                        <thead>
+                          <tr>
+                            <th class="fixed-table-def-th fixed-table-def-th--narrow">行名称</th>
+                            <th class="fixed-table-def-th">关联模块库分类</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="r in tableDimensionRange(selectedComponent.customProps.tableBodyRows)" :key="`row-${r}`">
+                            <td class="fixed-table-def-td">第{{ r }}行</td>
+                            <td class="fixed-table-def-td">
+                              <div class="fixed-table-def-cell fixed-table-def-cell--browse">
+                                <a-input
+                                  v-model:value="selectedComponent.customProps.tableRowDefs[r - 1].moduleLibCategory"
+                                  placeholder="请通过浏览选择"
+                                  disabled
+                                  class="browse-adjoined-input" />
+                                <a-button type="primary" size="small" class="fixed-table-def-browse-btn">浏览</a-button>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </a-collapse-panel>
+                  <a-collapse-panel key="cols">
+                    <template #header>
+                      <div class="fixed-table-col-def-collapse-header">
+                        <span>列定义</span>
+                        <a-button type="link" size="small" class="fixed-table-col-def-config-btn" @click.stop="openColumnDefModal">配置</a-button>
+                      </div>
+                    </template>
+                    <p class="fixed-table-col-def-view-hint">以下为当前列配置概览，完整编辑请点「配置」在弹窗中操作。</p>
+                    <div class="fixed-table-def-scroll fixed-table-def-scroll--readonly-summary">
+                      <table class="fixed-table-def-table fixed-table-def-table--cols fixed-table-def-table--readonly-summary">
+                        <thead>
+                          <tr>
+                            <th class="fixed-table-def-th fixed-table-def-th--narrow">列数</th>
+                            <th class="fixed-table-def-th">关联参数代号</th>
+                            <th class="fixed-table-def-th fixed-table-def-th--dtype">数据类型</th>
+                            <th class="fixed-table-def-th fixed-table-def-th--width">列宽</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="c in tableDimensionRangeFromSecond(selectedComponent.customProps.tableColCount)" :key="`col-view-${c}`">
+                            <td class="fixed-table-def-td">第{{ c }}列</td>
+                            <td class="fixed-table-def-td fixed-table-def-td--readonly-text">
+                              {{ selectedComponent.customProps.tableColDefs[c - 1]?.paramCode || '—' }}
+                            </td>
+                            <td class="fixed-table-def-td">{{ getFixedTableColDataTypeLabel(selectedComponent.customProps.tableColDefs[c - 1]?.dataType) }}</td>
+                            <td class="fixed-table-def-td">{{ selectedComponent.customProps.tableColDefs[c - 1]?.columnWidth || '—' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </a-collapse-panel>
+                </template>
+                <template v-else>
+                  <a-collapse-panel key="info" header="表格基本信息">
+                    <div class="row-field">
+                      <div class="row-label">表格标题：</div>
+                      <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">表格行数：</div>
+                      <div class="row-control">
+                        <a-select v-model:value="selectedComponent.customProps.tableBodyRows">
+                          <a-select-option v-for="n in tableDimensionRange(50)" :key="n" :value="n">{{ n }}</a-select-option>
+                        </a-select>
+                      </div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">表格列数：</div>
+                      <div class="row-control">
+                        <a-select v-model:value="selectedComponent.customProps.tableColCount">
+                          <a-select-option v-for="n in tableDimensionRange(20)" :key="n" :value="n">{{ n }}</a-select-option>
+                        </a-select>
+                      </div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">首列形式：</div>
+                      <div class="row-control">
+                        <a-select v-model:value="selectedComponent.customProps.firstColumnType">
+                          <a-select-option value="INDEX">序号</a-select-option>
+                          <a-select-option value="CHECKBOX">复选框</a-select-option>
+                          <a-select-option value="RADIO">单选框</a-select-option>
+                        </a-select>
+                      </div>
+                    </div>
+                  </a-collapse-panel>
+                  <a-collapse-panel key="model" header="模型信息">
+                    <div class="row-field">
+                      <div class="row-label">参数代号：</div>
+                      <div class="row-control">
+                        <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" />
+                        <a-button type="primary" size="small">浏览</a-button>
+                      </div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">参数名称：</div>
+                      <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                    </div>
+                  </a-collapse-panel>
+                  <a-collapse-panel key="buttons" header="按钮定义">
+                    <div class="fixed-table-btn-checks">
+                      <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
+                      <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
+                      <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                    </div>
+                  </a-collapse-panel>
+                </template>
               </a-collapse>
             </template>
             <template v-else-if="isFixedTemplate3DComponent">
@@ -1746,10 +2024,6 @@ watch(
                     <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
                   </div>
                   <div class="row-field">
-                    <div class="row-label">模型名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelSelectName" placeholder="请输入" class="browse-adjoined-input" /></div>
-                  </div>
-                  <div class="row-field">
                     <div class="row-label">关联模型库：</div>
                     <div class="row-control">
                       <a-input v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" />
@@ -1778,10 +2052,6 @@ watch(
                       <a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" />
                       <a-button type="primary" size="small">浏览</a-button>
                     </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">模型名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
                   </div>
                 </a-collapse-panel>
                 <a-collapse-panel key="model" header="模型信息">
@@ -1831,8 +2101,24 @@ watch(
     </div>
   </a-modal>
 
-  <a-modal v-model:visible="tableSizeModalVisible" title="固定表格" :mask-closable="false" :width="420" :footer="null" :z-index="1100">
+  <a-modal v-model:visible="tableSizeModalVisible" title="固定表格" :mask-closable="false" :width="480" :footer="null" :z-index="1100">
     <a-form layout="vertical" class="table-size-form">
+      <a-form-item label="表格名称" required>
+        <a-input v-model:value="tableSizeDraft.tableTitle" placeholder="请输入" allow-clear />
+      </a-form-item>
+      <a-form-item label="表格类型" required>
+        <a-select
+          v-model:value="tableSizeDraft.tableBizType"
+          placeholder="请选择"
+          style="width: 100%"
+          :getPopupContainer="getTableBizTypeSelectPopupContainer"
+          :dropdown-style="tableBizTypeSelectDropdownStyle">
+          <a-select-option value="MODULE_LIB_READ">模块库读取</a-select-option>
+          <a-select-option value="BASIC_RESOURCE_LIB_READ">基础资源库读取</a-select-option>
+          <a-select-option value="FILE_COLLAB">文件协同</a-select-option>
+          <a-select-option value="NORMAL">普通表格</a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item label="行数（表体数据行）" required>
         <a-input-number v-model:value="tableSizeDraft.bodyRows" :min="1" :max="100" style="width: 100%" placeholder="请输入行数" />
       </a-form-item>
@@ -1843,6 +2129,73 @@ watch(
     <div class="table-size-modal-actions">
       <a-button @click="cancelTableSize">取消</a-button>
       <a-button type="primary" @click="confirmTableSize">确定</a-button>
+    </div>
+  </a-modal>
+
+  <a-modal
+    v-model:visible="columnDefModalVisible"
+    title="列定义配置"
+    :width="1000"
+    :mask-closable="false"
+    :footer="null"
+    :z-index="1100"
+    wrap-class-name="column-def-config-modal-wrap"
+    @cancel="cancelColumnDefModal">
+    <div v-if="columnDefModalVisible && columnDefDraft.length" class="fixed-table-def-scroll fixed-table-def-scroll--modal">
+      <table class="fixed-table-def-table fixed-table-def-table--cols fixed-table-def-table--modal-edit">
+        <thead>
+          <tr>
+            <th class="fixed-table-def-th fixed-table-def-th--narrow">列数</th>
+            <th class="fixed-table-def-th">关联参数代号</th>
+            <th class="fixed-table-def-th fixed-table-def-th--dtype">数据类型</th>
+            <th class="fixed-table-def-th">下拉值配置</th>
+            <th class="fixed-table-def-th fixed-table-def-th--width">列宽</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="c in tableDimensionRangeFromSecond(selectedComponent?.customProps?.tableColCount || 1)" :key="`col-edit-${c}`">
+            <td class="fixed-table-def-td">第{{ c }}列</td>
+            <td class="fixed-table-def-td">
+              <div class="fixed-table-def-cell fixed-table-def-cell--browse">
+                <a-input
+                  v-model:value="columnDefDraft[c - 1].paramCode"
+                  placeholder="请通过浏览选择"
+                  disabled
+                  class="browse-adjoined-input" />
+                <a-button type="primary" size="small" class="fixed-table-def-browse-btn">浏览</a-button>
+              </div>
+            </td>
+            <td class="fixed-table-def-td">
+              <a-select
+                v-model:value="columnDefDraft[c - 1].dataType"
+                class="fixed-table-def-select"
+                :getPopupContainer="getTableBizTypeSelectPopupContainer"
+                :dropdown-style="tableBizTypeSelectDropdownStyle">
+                <a-select-option value="TEXT">文本</a-select-option>
+                <a-select-option value="READONLY_TEXT">只读文本</a-select-option>
+                <a-select-option value="DROPDOWN">下拉值</a-select-option>
+              </a-select>
+            </td>
+            <td class="fixed-table-def-td">
+              <a-input
+                v-if="columnDefDraft[c - 1].dataType === 'DROPDOWN'"
+                v-model:value="columnDefDraft[c - 1].dropdownValues"
+                placeholder="如：2;4;6;8;10" />
+              <span v-else class="fixed-table-def-placeholder">—</span>
+            </td>
+            <td class="fixed-table-def-td">
+              <a-input
+                v-model:value="columnDefDraft[c - 1].columnWidth"
+                placeholder="如：120px、20%"
+                class="fixed-table-def-col-width-input" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="column-def-modal-actions">
+      <a-button @click="cancelColumnDefModal">取消</a-button>
+      <a-button type="primary" @click="applyColumnDefModal">确定</a-button>
     </div>
   </a-modal>
 </template>
@@ -2237,7 +2590,126 @@ watch(
   flex-direction: column;
   gap: 10px;
 }
+.fixed-table-btn-checks--col {
+  gap: 8px;
+}
+.fixed-table-def-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  /* 约 1 行表头 + 5 行表体可视，超出纵向滚动（行高随内容略变，300px 为经验值） */
+  max-height: 300px;
+}
+.fixed-table-def-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  border: 1px solid #f0f0f0;
+}
+.fixed-table-def-table--cols {
+  min-width: 620px;
+}
+.fixed-table-def-th,
+.fixed-table-def-td {
+  border: 1px solid #f0f0f0;
+  padding: 8px 10px;
+  vertical-align: middle;
+  text-align: left;
+  background: #fff;
+}
+.fixed-table-def-th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fafafa;
+  font-weight: 600;
+  color: #333;
+  /* 表体向上滚过时与表头底边分隔，避免透视叠字 */
+  box-shadow: 0 1px 0 #f0f0f0;
+}
+.fixed-table-def-th--narrow {
+  width: 72px;
+  white-space: nowrap;
+}
+.fixed-table-def-th--dtype {
+  width: 120px;
+}
+.fixed-table-def-th--width {
+  width: 112px;
+  white-space: nowrap;
+}
+.fixed-table-def-col-width-input {
+  width: 100%;
+  max-width: 104px;
+}
+.fixed-table-def-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 行定义 / 列定义：输入框固定较短宽度，浏览与输入同一行 */
+.fixed-table-def-cell--browse {
+  flex-wrap: nowrap;
+}
+.fixed-table-def-cell--browse :deep(.browse-adjoined-input) {
+  flex: 0 0 auto;
+  width: 120px;
+  max-width: 100%;
+}
+.fixed-table-def-cell--browse .fixed-table-def-browse-btn {
+  flex-shrink: 0;
+}
+.fixed-table-def-select {
+  width: 100%;
+  min-width: 100px;
+}
+.fixed-table-def-placeholder {
+  color: #bfbfbf;
+}
 .table-size-modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.fixed-table-col-def-collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 100%;
+  gap: 8px;
+}
+.fixed-table-col-def-config-btn {
+  padding: 0 4px;
+  height: auto;
+  line-height: 1.2;
+}
+.fixed-table-col-def-view-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+.fixed-table-def-td--readonly-text {
+  max-width: 220px;
+  word-break: break-all;
+}
+.fixed-table-def-scroll--readonly-summary {
+  max-height: 280px;
+}
+.fixed-table-def-scroll--modal {
+  max-height: min(560px, 70vh);
+}
+.fixed-table-def-table--modal-edit {
+  min-width: 960px;
+}
+/* 列定义弹窗内：关联参数代号输入区加宽（右侧「列定义」折叠区仍为 120px） */
+.fixed-table-def-table--modal-edit .fixed-table-def-cell--browse :deep(.browse-adjoined-input) {
+  width: 260px;
+  max-width: 100%;
+}
+.column-def-modal-actions {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
