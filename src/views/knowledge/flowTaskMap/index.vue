@@ -87,19 +87,19 @@
                 <img
                   v-if="item.percent === 0"
                   class="pic-data-top-result"
-                  src="@/assets/svg/start.svg"
+                  src="@/assets/svgs/start.svg"
                   alt=""
                 />
                 <img
                   v-if="item.percent !== 100 && item.percent !== 0"
                   class="pic-data-top-result"
-                  src="@/assets/svg/progress.svg"
+                  src="@/assets/svgs/progress.svg"
                   alt=""
                 />
                 <img
                   v-if="item.percent === 100"
                   class="pic-data-top-result"
-                  src="@/assets/svg/completed.svg"
+                  src="@/assets/svgs/completed.svg"
                   alt=""
                 />
               </div>
