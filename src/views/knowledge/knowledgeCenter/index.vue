@@ -1,24 +1,17 @@
 <script setup lang="ts">
-import {
-  fileList,
-  getNodeByLevel,
-  knowledgeQueryPage,
-  queryPageQuestion,
-  querySecondTagNode,
-  queryThreeTagNode,
-} from "@/api/knowledge";
-import textCard from "../components/textCard.vue";
-import askCard from "../components/askCard.vue";
-import videoCard from "../components/videoCard.vue";
-import imgCard from "../components/imgCard.vue";
-import { SearchOutlined } from "@ant-design/icons-vue";
-import { useUserStore } from "@/store/modules/user";
-import searchTag from "../components/search-tag.vue";
+import { fileList, getNodeByLevel, knowledgeQueryPage, queryPageQuestion, querySecondTagNode, queryThreeTagNode } from '@/api/knowledge';
+import textCard from '../components/textCard.vue';
+import askCard from '../components/askCard.vue';
+import videoCard from '../components/videoCard.vue';
+import imgCard from '../components/imgCard.vue';
+import { SearchOutlined } from '@ant-design/icons-vue';
+import { useUserStore } from '@/store/modules/user';
+import searchTag from '../components/search-tag.vue';
 const userStore = useUserStore();
 
 const tabValue = ref(1);
 const searchType = ref([]);
-const searchValue = ref("");
+const searchValue = ref('');
 
 // 所属类目1
 const elTagcheckedOneData = ref([]);
@@ -31,7 +24,7 @@ const hiddenStatus = ref(false);
 const elTagcheckedOneStatus = ref(false);
 const elTagcheckedTwoStatus = ref(false);
 
-const keyWord = ref("");
+const keyWord = ref('');
 const isDownload = ref(false);
 
 // 所有三级节点的id
@@ -44,7 +37,7 @@ const documentList = ref([]);
 
 const flagSecondData = ref([]);
 
-const firstId = ref("");
+const firstId = ref('');
 
 const page = ref({
   pageSize: 10,
@@ -56,8 +49,8 @@ const currentPageData = ref(1);
 
 const searchOptions = [
   {
-    label: "关键字",
-    value: "1",
+    label: '关键字',
+    value: '1',
   },
   // {
   //   label: "下载项",
@@ -88,17 +81,17 @@ const searchData = () => {
   publicFun();
   const params = {
     kldType: tabValue.value,
-    keyWords: searchType.value[0] === "1" ? searchValue.value : "", // 判断点没点关键字
+    keyWords: searchType.value[0] === '1' ? searchValue.value : '', // 判断点没点关键字
     userName: userStore.getUser.userName,
-    allowDownload: searchType.value[0] === "2" ? "0" : "",
-    all: searchValue.value || "",
-    kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : "",
+    allowDownload: searchType.value[0] === '2' ? '0' : '',
+    all: searchValue.value || '',
+    kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : '',
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
     userId: userStore.getUser.id,
   };
-  knowledgeQueryPage(params).then((res) => {
-    if (res && res.data.code === "0") {
+  knowledgeQueryPage(params).then(res => {
+    if (res && res.data.code === '0') {
       changeTabFlag.value = 3;
       documentList.value = [];
       documentList.value = res.data.data.data;
@@ -113,14 +106,14 @@ const searchData = () => {
 const getQuestList = () => {
   publicFun();
   const params = {
-    all: keyWord.value || "",
-    kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : "",
+    all: keyWord.value || '',
+    kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : '',
     userId: userStore.getUser.id,
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
   };
-  queryPageQuestion(params).then((res) => {
-    if (res && res.data.code === "0") {
+  queryPageQuestion(params).then(res => {
+    if (res && res.data.code === '0') {
       changeTabFlag.value = 3;
       documentList.value = [];
       documentList.value = res.data.data.data;
@@ -134,7 +127,7 @@ const getQuestList = () => {
 // 切换标识
 const changeType = () => {
   initPage();
-  initSearch()
+  initSearch();
   documentList.value = [];
   if (tabValue.value === 4) {
     getQuestList();
@@ -149,24 +142,18 @@ const changeType = () => {
 const getTaglist = () => {
   const params = {
     tagType: 1,
-    nodeLevel: "2",
+    nodeLevel: '2',
     fileType: tabValue.value,
   };
-  querySecondTagNode(params).then((res) => {
-    if (res && res.data.code === "0") {
+  querySecondTagNode(params).then(res => {
+    if (res && res.data.code === '0') {
       // 二级节点
       elTagcheckedOneData.value = [];
       elTagcheckedOneData.value = res.data.data.result;
-      if (
-        res.data.data.result.length > 12 &&
-        elTagcheckedOneStatus.value === false
-      ) {
+      if (res.data.data.result.length > 12 && elTagcheckedOneStatus.value === false) {
         elTagcheckedOneData.value = [];
         elTagcheckedOneData.value = res.data.data.result.splice(0, 13);
-      } else if (
-        res.data.data.result.length > 12 &&
-        elTagcheckedOneStatus.value === true
-      ) {
+      } else if (res.data.data.result.length > 12 && elTagcheckedOneStatus.value === true) {
         elTagcheckedOneData.value = [];
         elTagcheckedOneData.value = res.data.data.result;
       }
@@ -175,14 +162,14 @@ const getTaglist = () => {
 };
 
 // 获取三级节点数据
-const getThirdData = (id) => {
+const getThirdData = id => {
   const params = {
     tagType: 1,
     id,
     fileType: tabValue.value,
   };
-  queryThreeTagNode(params).then((res) => {
-    if (res && res.data.code === "0") {
+  queryThreeTagNode(params).then(res => {
+    if (res && res.data.code === '0') {
       arrayData.value = [];
       elTagcheckedTwoData.value = [];
       flagSecondData.value = [];
@@ -190,19 +177,13 @@ const getThirdData = (id) => {
       flagSecondData.value = JSON.parse(JSON.stringify(res.data.data.result));
       elTagcheckedTwoData.value = res.data.data.result;
 
-      res.data.data.result.map((v) => {
+      res.data.data.result.map(v => {
         arrayData.value.push(v.id);
       });
 
-      if (
-        elTagcheckedTwoData.value.length > 12 &&
-        elTagcheckedTwoStatus.value === false
-      ) {
+      if (elTagcheckedTwoData.value.length > 12 && elTagcheckedTwoStatus.value === false) {
         elTagcheckedTwoData.value = elTagcheckedTwoData.value.splice(0, 13);
-      } else if (
-        elTagcheckedTwoData.value.length > 12 &&
-        elTagcheckedTwoStatus.value === true
-      ) {
+      } else if (elTagcheckedTwoData.value.length > 12 && elTagcheckedTwoStatus.value === true) {
         elTagcheckedTwoData.value = [];
         elTagcheckedTwoData.value = flagSecondData.value;
       }
@@ -241,7 +222,7 @@ const onChangeElCheckTagOne = (val, item, index) => {
 };
 
 //所属类目2切换
-const onChangeElCheckTagTwo = (val) => {
+const onChangeElCheckTagTwo = val => {
   initPage();
   arrayData.value = val;
   if (tabValue.value === 4) {
@@ -257,9 +238,9 @@ const initPage = () => {
   page.value.currentPage = 1;
 };
 const initSearch = () => {
-  arrayData.value = []
-  thirdData.value = []
-}
+  arrayData.value = [];
+  thirdData.value = [];
+};
 // 分页
 const handleCurrentChange = (val, size) => {
   page.value.currentPage = val;
@@ -276,7 +257,6 @@ onMounted(() => {
   getTaglist();
 });
 </script>
-
 
 <template>
   <div class="knowledge-container flex flex-col h-full">
@@ -301,10 +281,15 @@ onMounted(() => {
         </template>
       </a-tabs>
     </div>
-    <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
-      :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
-      :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
-      @onChangeElCheckTagTwo="onChangeElCheckTagTwo" class="mt-[16px]" />
+    <searchTag
+      :elTagcheckedOneData="elTagcheckedOneData"
+      :hiddenStatus="hiddenStatus"
+      :elTagcheckedOneStatus="elTagcheckedOneStatus"
+      :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
+      :elTagcheckedTwoData="elTagcheckedTwoData"
+      @onChangeElCheckTagOne="onChangeElCheckTagOne"
+      @onChangeElCheckTagTwo="onChangeElCheckTagTwo"
+      class="mt-[16px]" />
     <main class="flex-1 h-0">
       <div class="list wei-scrollbar h-full overflow-y-auto pt-[16px]">
         <a-row class="w-full items-start" v-if="tabValue === 1" :gutter="[16, 16]">
@@ -331,9 +316,14 @@ onMounted(() => {
       </div>
     </main>
     <footer class="flex justify-end pt-[16px]">
-      <a-pagination v-model:current="page.currentPage" :total="page.pageCount"
-        :default-page-size="page.pageSize" show-less-items show-size-changer
-        :show-total="(total) => `共${total}条`" @change="handleCurrentChange"/>
+      <a-pagination
+        v-model:current="page.currentPage"
+        :total="page.pageCount"
+        :default-page-size="page.pageSize"
+        show-less-items
+        show-size-changer
+        :show-total="total => `共${total}条`"
+        @change="handleCurrentChange" />
     </footer>
   </div>
 </template>
@@ -353,7 +343,7 @@ onMounted(() => {
     border-bottom: 1px solid #eaeaf1;
   }
 }
-:deep(.ant-tabs-tab+.ant-tabs-tab) {
+:deep(.ant-tabs-tab + .ant-tabs-tab) {
   margin-left: 0px;
 }
 .elTabs {

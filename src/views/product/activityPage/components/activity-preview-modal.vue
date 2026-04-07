@@ -382,7 +382,7 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
 }
 .model-select-3d-preview {
   width: 100%;
-  max-width: 960px;
+  max-width: 848px;
 }
 .model-select-3d-label {
   font-size: 12px;
@@ -397,7 +397,7 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
 }
 .template-browse-3d-preview {
   width: 100%;
-  max-width: 960px;
+  max-width: 848px;
 }
 .template-browse-3d-row {
   display: grid;
@@ -413,10 +413,10 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
   margin-bottom: 8px;
 }
 .template-browse-3d-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 .data-view-preview-row {
   display: flex;
@@ -475,8 +475,8 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
   background: #fafafa;
 }
 .template-browse-3d-input {
-  width: 420px;
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
 }
 .template-browse-3d-input :deep(.ant-input) {
   text-align: left;
