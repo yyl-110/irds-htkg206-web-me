@@ -416,13 +416,136 @@ function removeSelectedComponent() {
   componentList.value.splice(selectedIndex.value, 1);
   selectedIndex.value = componentList.value.length ? Math.max(0, selectedIndex.value - 1) : -1;
 }
-function buildPayload() {
-  const list = componentList.value.map((item, index) => ({ ...item, sortNo: index + 1 }));
+function normalizeOperationType(v: unknown): 'insert' | 'update' {
+  return String(v || '').toLowerCase() === 'insert' ? 'insert' : 'update';
+}
+function mapConstraintRules(rules: any) {
+  const list = Array.isArray(rules) ? rules : [];
+  return list.map((r: any) => ({
+    refParamCode: r?.refParamCode ?? '',
+    operator: r?.operator ?? '=',
+    compareValue: r?.compareValue ?? '',
+    dictType: r?.dictType ?? null,
+  }));
+}
+function mapValidateRule(rule: any) {
+  if (!rule || typeof rule !== 'object') return null;
   return {
-    formId: formState.value.formId,
-    formCode: formState.value.formCode,
+    valueRange: rule?.valueRange
+      ? {
+          scopeType: rule.valueRange.scopeType ?? 'WARNING',
+          operator: rule.valueRange.operator ?? '=',
+          compareValue: rule.valueRange.compareValue ?? '',
+        }
+      : null,
+    formula: rule?.formula
+      ? {
+          mode: rule.formula.mode ?? 'FORMULA',
+          expression: rule.formula.expression ?? null,
+          jsMethodName: rule.formula.jsMethodName ?? null,
+        }
+      : null,
+    regex: rule?.regex ?? null,
+    minLength: rule?.minLength ?? null,
+    maxLength: rule?.maxLength ?? null,
+  };
+}
+function mapModelConfig(item: any) {
+  if (item?.componentType !== '3D_VIEW') return item?.modelConfig ?? null;
+  const p = item?.customProps || {};
+  const subtype = p.threeDSubtype || '';
+  const integrationSubTypeMap: Record<string, string> = {
+    TEMPLATE_BROWSE: 'BROWSE_TEMPLATE',
+    MODEL_SELECT: 'ASSEMBLE_TEMPLATE',
+    FIXED_TEMPLATE: 'BROWSE_TEMPLATE',
+  };
+  const integrationSubType = integrationSubTypeMap[subtype] || 'CUSTOM_PARAM';
+  return {
+    integrationSubType,
+    templateName: p.templateName ?? null,
+    templateLibraryId: p.relatedTemplateLib ?? null,
+    modelParamCode: item?.paramCode ?? '',
+    modelParamName: item?.paramName ?? '',
+    buttons: {
+      applyPartNumber: !!(p.btnApplyPartNo ?? false),
+      openModel: !!(p.btnOpenModel ?? false),
+      assembleModel: !!(p.btnAssembleModel ?? false),
+    },
+  };
+}
+function mapTableConfig(item: any) {
+  if (item?.componentType !== 'TABLE') return item?.tableConfig ?? null;
+  const p = item?.customProps || {};
+  const tableTypeMap: Record<string, string> = {
+    FIXED: 'FIXED_ROW_COL',
+    ROW_EXPAND: 'ROW_EXPANDABLE',
+  };
+  const firstColumnStyleMap: Record<string, string> = {
+    INDEX: 'SERIAL',
+    CHECKBOX: 'CHECKBOX',
+    RADIO: 'RADIO',
+  };
+  const cols = Array.isArray(p.tableColDefs) ? p.tableColDefs : [];
+  return {
+    tableTitle: p.tableTitle ?? item?.paramName ?? '',
+    tableType: tableTypeMap[p.tableSubtype] || 'FIXED_ROW_COL',
+    rowCount: Number(p.tableBodyRows) || 0,
+    columnCount: Number(p.tableColCount) || 0,
+    tableCode: p.tableNumber ?? '',
+    firstColumnStyle: firstColumnStyleMap[p.firstColumnType] || 'SERIAL',
+    columns: cols.map((col: any, i: number) => ({
+      colIndex: i,
+      header: String(col?.columnName ?? '').trim() || (i === 0 ? '序号' : `列名${i}`),
+      width: col?.columnWidth ?? '',
+      cellBinding: {
+        type: col?.paramCode ? 'PARAM' : 'CONST',
+        paramCode: col?.paramCode ?? '',
+        expression: null,
+      },
+    })),
+    modelSection: { paramCode: item?.paramCode ?? '', paramName: item?.paramName ?? '' },
+    buttons: {
+      applyPartNumber: !!(p.btnApplyPartNo ?? false),
+      openModel: !!(p.btnOpenModel ?? false),
+      assembleModel: !!(p.btnAssembleModel ?? false),
+    },
+  };
+}
+function mapComponentForApi(item: any, index: number, operationType: 'insert' | 'update') {
+  const mapped = {
+    id: operationType === 'insert' ? null : item?.id ?? null,
+    parentId: item?.parentId ?? 0,
+    componentType: item?.componentType ?? '',
+    paramCode: item?.paramCode ?? '',
+    paramName: item?.paramName ?? '',
+    ioType: item?.ioType ?? 'INPUT',
+    sortNo: index + 1,
+    constraintRules: mapConstraintRules(item?.constraintRules),
+    customProps: item?.customProps ?? null,
+    tableConfig: mapTableConfig(item),
+    modelConfig: mapModelConfig(item),
+    isRequired: Number(item?.isRequired ?? 0),
+    validateRule: mapValidateRule(item?.validateRule),
+    libraryType: item?.libraryType ?? '',
+    libraryParam: item?.libraryParam ?? '',
+    paramValue: item?.paramValue ?? null,
+  } as Record<string, any>;
+  if (item?.parameterId !== undefined) mapped.parameterId = item?.parameterId ?? null;
+  if (item?.knowledgeType !== undefined) mapped.knowledgeType = item?.knowledgeType ?? null;
+  if (item?.knowledgeContent !== undefined) mapped.knowledgeContent = item?.knowledgeContent ?? null;
+  if (item?.knowledgeId !== undefined) mapped.knowledgeId = item?.knowledgeId ?? null;
+  if (item?.versionNum !== undefined) mapped.versionNum = item?.versionNum;
+  if (item?.confidentialLevel !== undefined) mapped.confidentialLevel = item?.confidentialLevel;
+  return mapped;
+}
+function buildPayload() {
+  const operationType = normalizeOperationType(formState.value.operationType);
+  const list = componentList.value.map((item, index) => mapComponentForApi(item, index, operationType));
+  return {
+    formId: operationType === 'insert' ? null : formState.value.formId,
+    formCode: operationType === 'insert' ? null : formState.value.formCode,
     activityPageId: formState.value.activityPageId,
-    operationType: formState.value.operationType,
+    operationType,
     basicComponentList: list.filter(item => basicTypes.includes(item.componentType)),
     threeDComponentList: list.filter(item => threeDTypes.includes(item.componentType)),
     uploadComponentList: list.filter(item => uploadTypes.includes(item.componentType)),
@@ -1260,7 +1383,7 @@ watch(
               <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
               <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
                 <div class="data-view-preview-title">
-                  <span>数据浏览</span>
+                  <span>{{ item.paramName || '数据浏览' }}</span>
                   <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
                     <ExclamationCircleOutlined class="component-knowledge-hint" />
                   </a-tooltip>
