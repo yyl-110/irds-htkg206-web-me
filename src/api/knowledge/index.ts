@@ -539,7 +539,7 @@ export function queryMapTaskDetail(data: any) {
  */
 export function getPdfPreviewPath(data: any) {
   return httpRequest({
-    url: '/base-server/fileManagerController/getPdfPreviewPath.json',
+    url: '/base-service/fileManagerController/getPdfPreviewPath.json',
     data,
     method: "POST",
   });
@@ -709,4 +709,81 @@ export function saveFieMap(data: any) {
     data,
     method: "POST",
   });
+}
+/**
+ * 知识树
+ * @param data
+ */
+export function knowledgeTree(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTree/list',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识地图管理数据的数据查询
+ * @param data
+ */
+export function knowledgeFileMapData(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeFileMapData/list',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 标签
+ * @param data
+ */
+export function queryByKey(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeDict/queryByKey',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识树添加编辑
+ * @param data
+ */
+export function saveknowledgeTree(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTree/save',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识树排序
+ * @param data
+ */
+export function sortTree(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTree/sort',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识树删除
+ * @param data
+ */
+export function removeTree(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeTree/remove',
+    data,
+    method: "POST",
+  });
+}
+/**
+ * 知识树删除
+ * @param data
+ */
+export function removeMapData(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeFileMapData/remove',
+    data,
+    method: "POST",
+  })
 }
