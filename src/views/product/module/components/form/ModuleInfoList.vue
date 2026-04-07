@@ -1732,7 +1732,7 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 
 .dalIconList2 {
-  width: 98%;
+  width: 100%;
   height: 40px;
   background-color: #e5efff;
   display: flex;
@@ -1791,5 +1791,8 @@ defineExpose({ initData, selectAllModuleInfo });
   position: sticky !important;
   top: 0;
   z-index: 4 !important;
+}
+:deep(.ant-drawer-body) {
+  padding: 10px !important;
 }
 </style>

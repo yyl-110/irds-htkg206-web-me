@@ -169,7 +169,7 @@
                   <!-- <el-form-item label="创建者">
                   <el-input v-model="creator" disabled />
                 </el-form-item> -->
-                  <a-form-item label="OU属性" style="position: relative">
+                  <a-form-item label="OU属性" style="position: relative;display: none;">
                     <a-input :value="checkOUListText" disabled />
                     <span class="elBtn" @click="chooseOUFun">浏览</span>
                   </a-form-item>

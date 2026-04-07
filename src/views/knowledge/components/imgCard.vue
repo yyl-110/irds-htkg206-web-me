@@ -159,7 +159,7 @@ const getDes = () => {
       <a-form-item label="标签属性：" label-width="100">
         <a-input v-model:value="formInline.kldTageNames" disabled />
       </a-form-item>
-      <a-form-item label="OU属性：" label-width="100">
+      <a-form-item label="OU属性：" label-width="100" style="display: none;">
         <a-input v-model:value="formInline.ouName" disabled />
       </a-form-item>
       <a-form-item label="关键字：" label-width="100">
