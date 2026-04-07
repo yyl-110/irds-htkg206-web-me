@@ -539,7 +539,7 @@ export function queryMapTaskDetail(data: any) {
  */
 export function getPdfPreviewPath(data: any) {
   return httpRequest({
-    url: '/base-server/fileManagerController/getPdfPreviewPath.json',
+    url: '/system-service/fileManagerController/getPdfPreviewPath.json',
     data,
     method: "POST",
   });
