@@ -22,9 +22,9 @@ const ProjectInfoListRef = ref();
 const menuId = ref<string>('');
 const drawerStyle = ref<any>({
   marginLeft: '201px',
-  marginTop: '65px',
+  marginTop: '0px',
   width: 'calc(100% - 201px)',
-  height: 'calc(100vh - 65px)',
+  height: 'calc(100vh)',
 });
 
 /** 列表请求参数 */
@@ -103,9 +103,9 @@ function onClose() {
 onMounted(() => {
   drawerStyle.value = {
     marginLeft: layoutStore.asideWidthStyle,
-    marginTop: '65px',
+    marginTop: '0px',
     width: 'calc(100% - 241px)',
-    height: 'calc(100vh - 65px)',
+    height: 'calc(100vh)',
   };
   getMenuListData();
 });
@@ -116,7 +116,7 @@ onMounted(() => {
     <ProjectInfoList ref="ProjectInfoListRef" :menuId="menuId" @getListData="getListData" />
   </div>
   <a-drawer
-    :title="`产品平台管理`"
+    :title="`产品平台选择`"
     placement="left"
     :style="drawerStyle"
     :closable="false"
