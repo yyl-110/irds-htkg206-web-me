@@ -59,10 +59,10 @@ const searchOptions = [
     label: "关键字",
     value: "1",
   },
-  {
-    label: "下载项",
-    value: "2",
-  },
+  // {
+  //   label: "下载项",
+  //   value: "2",
+  // },
 ];
 const onSearch = () => {
   initPage();
