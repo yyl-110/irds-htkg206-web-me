@@ -14,6 +14,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** 与 ant-design Modal 的 z-index 一致；嵌套在其它更高 z-index 的弹窗（如列定义配置）内时需传更大值 */
+  modalZIndex: {
+    type: Number,
+    default: 1000,
+  },
   bomInfoData: {
     require: false,
     type: Array,
@@ -250,7 +255,15 @@ defineExpose({
 </script>
 
 <template>
-  <a-modal v-model:visible="visible" style="width: 80%" @cancel="cancel" :ok-text="false" :confirm-loading="$isPending()" :mask-closable="false" :title="$t('参数字典')">
+  <a-modal
+    v-model:visible="visible"
+    style="width: 80%"
+    :z-index="modalZIndex"
+    @cancel="cancel"
+    :ok-text="false"
+    :confirm-loading="$isPending()"
+    :mask-closable="false"
+    :title="$t('参数字典')">
     <div>
       <span>参数名称：</span>
       <a-input v-model:value="requestParams.parameterName" allowClear placeholder="请输入参数名称" style="width: 220px"></a-input>
@@ -266,6 +279,7 @@ defineExpose({
 
     <a-modal
       v-model:visible="treeModalVisible"
+      :z-index="modalZIndex + 100"
       :mask-closable="false"
       :confirm-loading="treeLoading"
       title="选择节点"
