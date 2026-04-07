@@ -1,23 +1,16 @@
 <script setup lang="ts">
-import { inject, nextTick, reactive, ref, h } from "vue";
-import { computed } from "vue";
+import { nextTick, reactive, ref, h } from "vue";
 import { Pane, Splitpanes } from "splitpanes";
 import type { TableColumnType, TableProps } from "ant-design-vue";
-import { message, Tooltip } from "ant-design-vue";
-import { useForm } from "ant-design-vue/es/form";
-import { AdminApiSystemMenu } from "@/api/tags/管理后台菜单";
-import { AdminApiSystemProduct } from "@/api/tags/product/产品平台后台";
-import { AdminApiSystemParameter } from "@/api/tags/parameter/系统参数管理";
+import { message, } from "ant-design-vue";
 import type { MenuResponseDTOModel } from "@/api/models/MenuResponseDTOModel";
 import { WeiI18n } from "@/utils/WeiI18n";
-import { sortermethod, findNodeByIdFromKey } from "@/utils/tools";
-import { ParameterPageRequestDTOModel } from "@/api/models/parameter/ParameterPageRequestDTOModel";
-import { ParameterInfoRequestDTOModel } from "@/api/models/parameter/ParameterInfoRequestDTOModel";
+import { findNodeByIdFromKey } from "@/utils/tools";
 import Empty from "@/components/Empty/index.vue";
 import Tree from "@/components/tree/tree.vue";
 import { useUserStore } from "@/store/modules/user";
 import { knowledgeTagList, removeTag, sortTag } from "@/api/knowledge";
-import addAndEditTag from "./add-and-edit-tag.vue";
+import addAndEditTag from "../components/add-and-edit-tag.vue";
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -331,6 +324,7 @@ async function reloadTree() {
 const saveSuccess = () => {
   reloadTree();
 };
+
 </script>
 
 <template>
@@ -339,23 +333,11 @@ const saveSuccess = () => {
     <Splitpanes class="default-theme sbom">
       <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
         <a-spin :spinning="loadingTree" tip="加载中...">
-          <Tree
-            ref="treePage"
-            :operate-flag="true"
-            :tree-data="treeData"
-            bomType="unBom"
-            :selected-keys="selectedKeys"
-            :expanded-keys="expandedKeys"
-            @select-node="selectNode"
-            @up-Node="upNode"
-            @down-Node="downNode"
-            @get-node-update-data="getNodeUpdateData"
-            @get-node-add-data="getNodeAddData"
-            @delete-tree-node="deleteTreeNode"
-            @select-Boom-Tree="selectBoomTree"
-            @reload-tree="reloadTree"
-            @change-select-key="handleChangeSelectKey"
-          />
+          <Tree ref="treePage" :operate-flag="true" :tree-data="treeData" bomType="unBom" :selected-keys="selectedKeys"
+            :expanded-keys="expandedKeys" @select-node="selectNode" @up-Node="upNode" @down-Node="downNode"
+            @get-node-update-data="getNodeUpdateData" @get-node-add-data="getNodeAddData"
+            @delete-tree-node="deleteTreeNode" @select-Boom-Tree="selectBoomTree" @reload-tree="reloadTree"
+            @change-select-key="handleChangeSelectKey" />
         </a-spin>
       </Pane>
 
@@ -364,37 +346,21 @@ const saveSuccess = () => {
         <div class="form-layout">
           <div class="form-list">
             <div class="tabStatsTit">{{ currentNode?.partName }}</div>
-            <a-checkbox-group
-              class="checkGroup"
-              v-if="
-                currentNode?.children &&
-                currentNode.children.length > 0 &&
-                rawTreeData[0]?.selectType === '1'
-              "
-            >
-              <a-checkbox
-                class="checkBox"
-                v-for="(item, index) in currentNode.children"
-                :key="item.partName"
-                :value="item.partName"
-                disabled
-                >{{ item.partName }}</a-checkbox
-              >
+            <a-checkbox-group class="checkGroup" v-if="
+              currentNode?.children &&
+              currentNode.children.length > 0 &&
+              rawTreeData[0]?.selectType === '1'
+            ">
+              <a-checkbox class="checkBox" v-for="(item, index) in currentNode.children" :key="item.partName"
+                :value="item.partName" disabled>{{ item.partName }}</a-checkbox>
             </a-checkbox-group>
-            <a-radio-group
-              v-if="
-                currentNode?.children &&
-                currentNode.children.length > 0 &&
-                rawTreeData[0]?.selectType === '0'
-              "
-            >
-              <a-radio
-                v-for="(item, index) in currentNode.children"
-                :label="item.partName"
-                disabled
-                :value="item.key"
-                :key="item.key"
-              />
+            <a-radio-group v-if="
+              currentNode?.children &&
+              currentNode.children.length > 0 &&
+              rawTreeData[0]?.selectType === '0'
+            ">
+              <a-radio v-for="(item, index) in currentNode.children" :label="item.partName" disabled :value="item.key"
+                :key="item.key" />
             </a-radio-group>
           </div>
         </div>
@@ -409,20 +375,25 @@ const saveSuccess = () => {
 ::v-deep(.splitpanes__splitter:before) {
   border-left: 1px solid #e6e7e9 !important;
 }
+
 ::v-deep(.sbom > .splitpanes__splitter) {
   border-left: 1px solid #e6e7e9 !important;
 }
+
 ::v-deep(.splitpanes.default-theme .splitpanes__pane) {
   background-color: #fff;
 }
+
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
 }
+
 :deep(.marginstyle) {
   padding: 10px !important;
   padding-right: 5px !important;
   padding-bottom: 5px !important;
 }
+
 .drawerContent {
   position: sticky;
   bottom: 20px !important;
@@ -455,7 +426,7 @@ const saveSuccess = () => {
     border-top: 0;
     border-bottom: 0;
 
-    .ant-table-thead > tr > th {
+    .ant-table-thead>tr>th {
       background-color: #f5f5f5;
       color: #333;
       font-weight: 500;
@@ -463,7 +434,7 @@ const saveSuccess = () => {
       border-bottom: 1px solid #e6e7e9;
     }
 
-    .ant-table-tbody > tr > td {
+    .ant-table-tbody>tr>td {
       padding: 10px;
       border-bottom: 1px solid #e6e7e9;
     }
@@ -472,8 +443,10 @@ const saveSuccess = () => {
 
 .form-layout {
   padding: 16px;
+
   .form-list {
     margin-bottom: 40px;
+
     .tabStatsTit {
       height: 20px;
       font-size: 18px;

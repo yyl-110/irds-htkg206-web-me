@@ -210,6 +210,7 @@ onMounted(() => {
     border-radius: 4px;
     overflow: hidden;
     display: flex;
+    flex-shrink: 0;
 
     .second {
       position: relative;
