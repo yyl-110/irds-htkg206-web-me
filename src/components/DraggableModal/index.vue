@@ -10,7 +10,7 @@ defineOptions({
 const props = defineProps({
   draggable: {
     type: Boolean,
-    default: false,
+    default: true,
   },
 });
 
