@@ -236,4 +236,25 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 初始化设计活动页面组件
+   *
+   * @tags 管理后台 - 初始化设计活动页面组件
+   * @name pageConfigList
+   * @summary 初始化设计活动页面组件
+   * @request /business-service/business/page-form-component/page-config-list
+   * @secure
+   */
+  static pageConfigList = <Req extends Record<string, any> = Record<string, any>>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/page-form-component/page-config-list`,
+        method: 'GET',
+        query: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

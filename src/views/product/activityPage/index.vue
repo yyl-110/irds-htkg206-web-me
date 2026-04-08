@@ -17,6 +17,7 @@ import SelectBoomTree from './components/selectBoomTree.vue';
 import ActivityAdd from './components/activity-add.vue';
 import ActivityUpdate from './components/activity-update.vue';
 import ActivityConfigModal from './components/activity-config-modal.vue';
+import ActivityPreviewModal from './components/activity-preview-modal.vue';
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
@@ -176,7 +177,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'left',
-    width: 130,
+    width: 180,
     fixed: 'right',
   },
   { fixed: 'right', width: 1 },
@@ -692,9 +693,60 @@ async function importSuccessfulFun() {
 const activityConfigVisible = ref(false);
 const currentConfigRecord = ref<any>({});
 const activityConfigSaving = ref(false);
-async function showKnowledgeModal(record: any) {
+const activityPreviewVisible = ref(false);
+const currentPreviewRecord = ref<any>({});
+function toNumOrFallback(v: any, fallback = Number.MIN_SAFE_INTEGER) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+/** 将 pageConfigList 的扁平 data[] 归并为设计器可直接初始化的 record 结构 */
+function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) return { ...(baseRecord || {}) };
+  // 同一 activityPage 可能返回多个 formId 的快照，优先取 formId 最大（最新）的一组
+  const latestFormId = list.reduce((max, item) => Math.max(max, toNumOrFallback(item?.formId)), Number.MIN_SAFE_INTEGER);
+  const filtered = list.filter(item => toNumOrFallback(item?.formId) === latestFormId);
+  const finalList = filtered.length ? filtered : list;
+  const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, 0) - toNumOrFallback(b?.sortNo, 0));
+  const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+  const uploadTypes = ['FILE'];
+  const tableTypes = ['TABLE'];
+  const threeDTypes = ['3D_VIEW'];
+  const pick = (types: string[]) => sorted.filter(item => types.includes(String(item?.componentType || '')));
+  return {
+    ...(baseRecord || {}),
+    formId: sorted[0]?.formId ?? null,
+    formCode: sorted[0]?.formCode ?? null,
+    activityPageId: sorted[0]?.activityPageId ?? baseRecord?.id ?? null,
+    basicComponentList: pick(basicTypes),
+    threeDComponentList: pick(threeDTypes),
+    uploadComponentList: pick(uploadTypes),
+    tableComponentList: pick(tableTypes),
+  };
+}
+async function showPageConfigModal(record: any) {
   currentConfigRecord.value = record || {};
+  const res = await AdminApiActivityPage.pageConfigList({ activityPageId: record.id });
+  const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
+  currentConfigRecord.value = normalizePageConfigResponseToRecord(record, rows);
   activityConfigVisible.value = true;
+}
+
+async function priviewPageConfigModal(record: any) {
+  try {
+    const res = await AdminApiActivityPage.pageConfigList({ activityPageId: record.id });
+    const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
+    currentPreviewRecord.value = normalizePageConfigResponseToRecord(record, rows);
+    activityPreviewVisible.value = true;
+  } catch (error) {
+    console.error('preview activity config failed:', error);
+    message.error('页面预览加载失败');
+  }
+}
+
+function closeActivityPreviewModal() {
+  activityPreviewVisible.value = false;
+  currentPreviewRecord.value = {};
 }
 
 function closeActivityConfigModal() {
@@ -815,7 +867,9 @@ function closeShareModal() {
               <template v-if="column.dataIndex === 'operation'">
                 <a @click="handleUpdate(record)">{{ $t('编辑') }}</a>
                 <a-divider type="vertical" />
-                <a @click="showKnowledgeModal(record)">{{ $t('配置') }}</a>
+                <a @click="showPageConfigModal(record)">{{ $t('配置') }}</a>
+                <a-divider type="vertical" />
+                <a @click="priviewPageConfigModal(record)">{{ $t('预览') }}</a>
                 <a-divider type="vertical" />
                 <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
                   <a @click.stop style="color: #ff4d4f; cursor: pointer">{{ $t('删除') }}</a>
@@ -870,7 +924,13 @@ function closeShareModal() {
       @templateDownload="templateDownload"
       @importSuccessfulFun="importSuccessfulFun"
       @close="batchflag = false" />
-    <ActivityConfigModal :modal-visible="activityConfigVisible" :record="currentConfigRecord" :save-loading="activityConfigSaving" @close="closeActivityConfigModal" @save="saveActivityConfig" />
+    <ActivityConfigModal
+      :modal-visible="activityConfigVisible"
+      :record="currentConfigRecord"
+      :save-loading="activityConfigSaving"
+      @close="closeActivityConfigModal"
+      @save="saveActivityConfig" />
+    <ActivityPreviewModal :modal-visible="activityPreviewVisible" :record="currentPreviewRecord" @close="closeActivityPreviewModal" />
   </div>
 </template>
 
@@ -939,4 +999,5 @@ function closeShareModal() {
     }
   }
 }
+
 </style>

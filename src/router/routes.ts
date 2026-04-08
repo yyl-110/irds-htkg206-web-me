@@ -118,6 +118,28 @@ export const routes: RouteRecordRaw[] = [
       // },
     ],
   },
+  /** 知识库：PDF 预览页（兼容 textCard 直接跳转） */
+  {
+    name: 'KnowledgePdfViewContainer',
+    path: '/knowledge/pdfView',
+    component: () => import('@/views/Main.vue'),
+    meta: {
+      hidden: true,
+      title: 'PDF预览',
+    },
+    children: [
+      {
+        path: '',
+        name: '/knowledge/pdfView',
+        component: () => import('@/views/knowledge/pdfView.vue'),
+        meta: {
+          hidden: true,
+          title: 'PDF预览',
+          noCache: true,
+        },
+      },
+    ],
+  },
   /** 不在菜单中展示：项目信息创建/编辑全页 */
   {
     name: 'InternalApp',

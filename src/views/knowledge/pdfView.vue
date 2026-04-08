@@ -1,29 +1,46 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { getTimes } from "@/utils/dateUtils.js";
-import { message } from "ant-design-vue";
-import { LearningCompleted } from "@/api/knowledge";
-
+import { ref, watch, nextTick, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { message } from 'ant-design-vue';
+import { LearningCompleted } from '@/api/knowledge';
 
 const router = useRouter();
 const route = useRoute();
-const fileDataUrl = ref("https://www.gov.cn/zhengce/pdfFile/2023_PDF.pdf");
-const docId = ref("");
+const fileDataUrl = ref('https://www.gov.cn/zhengce/pdfFile/2023_PDF.pdf');
+const docId = ref('');
+const pdfViewerSrc = computed(() => {
+  if (!fileDataUrl.value) return '';
+  return `/pdfjs-2.12.313/web/viewer.html?file=${encodeURIComponent(fileDataUrl.value)}`;
+});
+/** 跨域地址在 pdf.js 里常因 CORS 被拦，优先直接 iframe 打开 */
+const directPdfSrc = computed(() => fileDataUrl.value || '');
+const usePdfJsViewer = computed(() => {
+  if (!fileDataUrl.value) return false;
+  try {
+    const u = new URL(fileDataUrl.value, window.location.origin);
+    return u.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+});
 
 const hidden = ref(false);
 
 const goback = () => {
   router.go(-1);
 };
+const openInNewTab = () => {
+  if (!fileDataUrl.value) return;
+  window.open(fileDataUrl.value, '_blank');
+};
 
 const completed = () => {
   const params = {
     id: route.query.learnNodeId,
   };
-  LearningCompleted(params).then((res) => {
-    if (res && res.data.code === "0") {
-      message.success("学习完成");
+  LearningCompleted(params).then(res => {
+    if (res && res.data.code === '0') {
+      message.success('学习完成');
       router.go(-1);
     } else {
       message.error(res.data.msg);
@@ -38,7 +55,7 @@ watch(
     if (newVal.query.docId) {
       nextTick(() => {
         docId.value = newVal.query.docId;
-        if (newVal.query.flag === "1" && newVal.query.learnNodeId) {
+        if (newVal.query.flag === '1' && newVal.query.learnNodeId) {
           hidden.value = true;
         } else {
           hidden.value = false;
@@ -50,19 +67,19 @@ watch(
   {
     deep: true,
     immediate: true,
-  }
+  },
 );
 </script>
-
 
 <template>
   <div class="pdf-layout">
     <div class="content">
-      <iframe v-if="fileDataUrl" :src="`/cir/lib/pdfjs-2.12.313-legacy-dist/web/viewer.html?file=${encodeURIComponent(
-        fileDataUrl
-      )}`" />
+      <iframe v-if="usePdfJsViewer && pdfViewerSrc" :src="pdfViewerSrc" />
+      <iframe v-else-if="directPdfSrc" :src="directPdfSrc" />
+      <div v-else class="empty-tip">未获取到可预览的文件地址</div>
     </div>
     <a-button type="primary" class="goback" @click="goback"> 返回 </a-button>
+    <a-button v-if="fileDataUrl" class="open-link" @click="openInNewTab">新窗打开</a-button>
     <a-button v-if="hidden" class="buttn" type="primary" @click="completed">学习完成</a-button>
   </div>
 </template>
@@ -154,27 +171,55 @@ watch(
 
   .buttn {
     position: fixed;
-    width: 60px;
-    height: 60px;
-    border-radius: 100%;
-    bottom: 90px;
-    left: 94%;
-    margin-left: 0;
+    right: 24px;
+    bottom: 140px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
     font-size: 12px;
+    line-height: 1.2;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    z-index: 10;
   }
 
   .goback {
     position: fixed;
-    left: 94%;
-    bottom: 20px;
+    right: 24px;
+    bottom: 24px;
     font-size: 14px;
     font-family: PingFang-SC, PingFang-SC;
     font-weight: 500;
-    color: #155bd4;
+    color: #222;
     cursor: pointer;
-    width: 60px;
-    height: 60px;
-    border-radius: 100%;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    z-index: 10;
+  }
+  .open-link {
+    position: fixed;
+    right: 24px;
+    bottom: 82px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1.2;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    z-index: 10;
+  }
+  .open-link :deep(span) {
+    transform: translateX(-3px);
+    display: inline-block;
+  }
+  .empty-tip {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 14px;
   }
 }
 </style>
