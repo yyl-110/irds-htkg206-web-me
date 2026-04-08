@@ -502,12 +502,16 @@ function DisplayPersonnel(key: string, names: any, ids: string) {
 function initializationassignment(node: any) {
   selectedNode.value = node;
 }
+function getExpandedKeys () {
+  return newExpandedKeys.value
+}
 defineExpose({
   reloadTableStyle,
   changeBtnStyle,
   onTreeNodeSelected,
   DisplayPersonnel,
   initializationassignment,
+  getExpandedKeys
 });
 </script>
 

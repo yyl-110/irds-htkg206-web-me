@@ -6,6 +6,7 @@ import { ReloadOutlined, SearchOutlined } from "@ant-design/icons-vue";
 import KnowledgeTagManage from "./KnowledgeTagManage/index.vue";
 import flowTaskMap from "./components/flowTaskMap.vue";
 import KnowledgeMapManage from './KnowledgeMapManage/index.vue'
+import KnowledgeCenterManage from './KnowledgeCenterManage/index.vue'
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -18,7 +19,7 @@ onMounted(() => { });
   <a-tabs v-model="activeName" class="work_nav_top" destroyInactiveTabPane>
     <a-tab-pane key="knowledgeCenter">
       <template #tab> 知识中心管理 </template>
-      000
+      <KnowledgeCenterManage />
     </a-tab-pane>
     <a-tab-pane key="knowledgeMap">
       <template #tab> 知识地图管理 </template>

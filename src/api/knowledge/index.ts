@@ -787,3 +787,25 @@ export function removeMapData(data: any) {
     method: "POST",
   })
 }
+/**
+ * 知识文档获取列表
+ * @param data
+ */
+export function knowledgeFileList(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeFile/list',
+    data,
+    method: "POST",
+  })
+}
+/**
+ * 知识文档删除文件
+ * @param data
+ */
+export function removeFile(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeFile/remove',
+    data,
+    method: "POST",
+  })
+}

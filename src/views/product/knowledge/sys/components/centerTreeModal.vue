@@ -1,27 +1,20 @@
 <template>
   <div class="content-layout">
-    <a-modal :visible="tagDialogVisible" :title="modalType === 2 ? '编辑' : '添加'" :closable="false" centered
-      @cancel="closeFun" @ok="submitFun" :ok-text="modalType === 2 ? '确认' : '确认'" :cancel-text="'取消'" :width="650">
-      <a-form ref="ruleFormRef" :model="ruleForm" :rules="rules" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="父项名称：">
-          <a-input v-model:value="ruleForm.titleMap" disabled />
+    <draggable-modal :visible="tagDialogVisible" :title="modalType === 2 ? '编辑节点' : '添加节点'" :closable="false" centered
+      @cancel="closeFun" @ok="submitFun" :ok-text="modalType === 2 ? '确认' : '确认'" :cancel-text="'取消'" :width="550">
+
+      <a-form ref="ruleFormRef" :model="ruleForm" :rules="rules" :label-col="{ span: 5 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="父项节点名称：">
+          <a-input v-model:value="ruleForm.parentName" disabled />
         </a-form-item>
         <a-form-item label="节点名称：" name="nodeName">
           <a-input v-model:value="ruleForm.nodeName" placeholder="请输入节点名称" />
         </a-form-item>
-        <a-form-item label="风格样式" v-if="showStyle">
-          <a-select v-model:value="ruleForm.styleMap" placeholder="请选择风格样式" allow-clear>
-            <a-select-option :value="item.value" v-for="item in tagList" :key="item.id">{{ item.name
-              }}</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="标签类型">
-          <a-select v-model:value="ruleForm.labelType" placeholder="请选择类型" allow-clear>
-            <a-select-option value="标签分类">标签分类</a-select-option>
-          </a-select>
+        <a-form-item label="URL链接：">
+          <a-input v-model:value="ruleForm.url" placeholder="请输入URL链接" />
         </a-form-item>
       </a-form>
-    </a-modal>
+    </draggable-modal>
   </div>
 </template>
 
@@ -29,10 +22,9 @@
 import { ref, defineProps, watch, reactive, computed } from "vue";
 import { message } from "ant-design-vue";
 import { saveknowledgeTree, tagSave } from "@/api/knowledge";
+import draggableModal from "@/components/DraggableModal/index.vue";
 
 const defProps = defineProps({
-  dialogTit: String,
-  tagList: Array,
 });
 const emit = defineEmits(["saveSuccess"]);
 
@@ -42,15 +34,14 @@ const nodeData = ref({});
 const parentNode = ref({});
 const ruleFormRef = ref();
 const ruleForm = reactive({
-  titleMap: "",
+  parentName: "",
   nodeName: null,
-  styleMap: null,
-  labelType: null,
+  url: '',
 });
 
 // 注意：Ant Design Vue 的 rules 需配合 a-form-item 的 name 使用
 const rules = {
-  // labelName: [{ required: true, message: "请输入标签名称", trigger: "blur" }],
+  nodeName: [{ required: true, message: "请输入节点名称", trigger: "blur" }],
 };
 
 const tagsType = ref("0");
@@ -67,22 +58,20 @@ const show = (node, parent, type) => {
   modalType.value = type;
   if (type === 2) {
     parentNode.value = parent;
-    ruleForm.titleMap = parentNode.value.nodeName;
+    ruleForm.parentName = parentNode.value.nodeName;
     ruleForm.nodeName = nodeData.value.partName;
-    ruleForm.styleMap = defProps.tagList.find(item => item.value === nodeData.value.style)?.name;
-    ruleForm.labelType = '标签分类';
-  }else {
-    ruleForm.titleMap = nodeData.value.partName;
+  } else {
+    ruleForm.parentName = nodeData.value.partName;
   }
+  ruleForm.url = nodeData.value.url;
   tagDialogVisible.value = true;
 };
 
 const close = () => {
   tagDialogVisible.value = false;
-  ruleForm.titleMap = nodeData.value.nodeName;
+  ruleForm.parentName = nodeData.value.nodeName;
   ruleForm.nodeName = ''
-  ruleForm.styleMap = ''
-  ruleForm.labelType = ''
+  ruleForm.url = ''
 };
 
 defineExpose({
@@ -116,13 +105,12 @@ const add = () => {
     id: '',
     nodeName: ruleForm.nodeName,
     parentId: Number(nodeData.value.key),
-    treeType: '0',
-    style: ruleForm.styleMap,
+    treeType: '1',
     tagType: tagsType.value,
-    // tagType: ruleForm.value.labelType === '标签分类' ? '0' : '1',
     categoryId: nodeData.value.categoryId,
     categoryParentId: nodeData.value.categoryParentId,
     nodeLevel: Number(nodeData.value.nodeLevel) + 1,
+    url: ruleForm.url
   };
   saveknowledgeTree(params).then((res) => {
     if (res && res.data.code === "0") {
@@ -138,14 +126,13 @@ const edit = () => {
   const params = {
     nodeName: ruleForm.nodeName,
     id: nodeData.value.key,
-    treeType: '0',
+    treeType: '1',
     parentId: parentNode.value.id,
-    style: ruleForm.styleMap,
     tagType: tagsType.value,
-    // tagType: ruleForm.value.labelType === '标签分类' ? '0' : '1',
     categoryId: nodeData.value.categoryId,
     categoryParentId: nodeData.value.categoryParentId,
     nodeLevel: Number(nodeData.value.nodeLevel),
+    url: ruleForm.url
   };
   saveknowledgeTree(params).then((res) => {
     if (res && res.data.code === "0") {

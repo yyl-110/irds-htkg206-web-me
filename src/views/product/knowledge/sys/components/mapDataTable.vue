@@ -7,7 +7,7 @@
         <a-select v-model:value="searchData.type" class="min-w-[200px] max-w-[200px]" placeholder="请选择知识类型">
           <a-select-option :value="item.value" v-for="item in tagList" :key="item.id">{{ item.name }}</a-select-option>
         </a-select>
-        <a-input placeholder="请输入标签标题" class="max-w-[200px]" v-model:value="searchData.title"
+        <a-input placeholder="请输入标题" class="max-w-[200px]" v-model:value="searchData.title"
           @keydown.enter="fetchProductList" />
         <a-input placeholder="请输入创建人" class="max-w-[200px]" v-model:value="searchData.userName"
           @keydown.enter="fetchProductList" />
@@ -17,7 +17,7 @@
       </div>
 
       <div class="flex items-center gap-[8px] mt-[16px]">
-        <a-button type="primary">
+        <a-button type="primary" @click="addDataDialogVisible = true">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -56,6 +56,8 @@
       </a-table>
     </main>
 
+    <center-search :addDataDialogVisible="addDataDialogVisible" @closeCenterDia="addDataDialogVisible = false"
+      @handleSuccess="handleSuccess" :nodeId="nodeId" />
     <Video :videoHide="videoHide" :fileUrlPlay="fileUrlPlay" :dialogType="dialogType" :titleType="titleType"
       @getVideoHide="getVideoHide"></Video>
   </div>
@@ -69,6 +71,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { getTimes } from '@/utils/dateUtils';
 import { PaginationConfig } from 'ant-design-vue/es/pagination';
 import Video from '@/views/knowledge/components/videoImg.vue';
+import centerSearch from './centerSearch.vue'
 
 
 const props = defineProps({
@@ -79,6 +82,10 @@ const props = defineProps({
   tagList: {
     type: Array,
     default: () => []
+  },
+  nodeId: {
+    type: String,
+    default: ''
   }
 })
 
@@ -93,6 +100,7 @@ const searchData = ref({
 const loading = ref(false)
 const selectedRowKeys = ref<string[]>([]);
 const router = useRouter()
+const addDataDialogVisible = ref(false)
 
 const videoHide = ref(false)
 const fileUrlPlay = ref('')
@@ -114,6 +122,12 @@ const pagination = reactive<PaginationConfig>({
     fetchProductList();
   },
 })
+
+// 添加数据弹框保存成功回调
+const handleSuccess = () => {
+  fetchProductList()
+  addDataDialogVisible.value = false
+}
 
 async function fetchProductList() {
   try {

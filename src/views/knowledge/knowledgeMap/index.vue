@@ -182,7 +182,7 @@ onMounted(() => {
 <template>
   <div class="knowledgeMap h-full">
     <a-row>
-      <a-col :span="6">
+      <a-col :span="6" style="border-right: 1px solid #EAEAF1" class="pr-[16px]">
         <div class="searchAll mb-[16px]">
           <a-input-search
             v-model:value="searchData"

@@ -1,15 +1,7 @@
 <template>
   <div class="centerSearch" v-dragModal>
-    <a-modal
-      :getContainer="customGetContainer"
-      :maskClosable="false"
-      class="layout"
-      :visible="addDataDialogVisible"
-      title="添加数据"
-      width="70%"
-      @cancel="handleClose"
-      height="80%"
-      @ok="confirmDialog">
+    <draggable-modal :getContainer="customGetContainer" :maskClosable="false" class="layout"
+      :visible="addDataDialogVisible" title="添加数据" width="70%" @cancel="handleClose" height="80%" @ok="confirmDialog">
       <div class="knowledge-container flex flex-col h-full">
         <div class="flex items-center justify-end">
           <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="max-w-[300px]">
@@ -21,22 +13,18 @@
             </template>
           </a-input-search>
         </div>
-        <searchTag
-          :elTagcheckedOneData="elTagcheckedOneData"
-          :hiddenStatus="hiddenStatus"
-          :elTagcheckedOneStatus="elTagcheckedOneStatus"
-          :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
-          :elTagcheckedTwoData="elTagcheckedTwoData"
-          @onChangeElCheckTagOne="onChangeElCheckTagOne"
-          @onChangeElCheckTagTwo="onChangeElCheckTagTwo"
-          class="mt-[16px]" />
+        <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
+          :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
+          :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
+          @onChangeElCheckTagTwo="onChangeElCheckTagTwo" class="mt-[16px]" />
         <main class="flex-1 h-0">
           <div class="list overflow-y-auto wei-scrollbar h-full pt-[16px]">
             <a-spin :spinning="loading" class="h-full">
               <a-row class="w-full items-start h-full" :gutter="[16, 16]">
                 <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
                   <div class="flex">
-                    <a-checkbox :checked="item.content.isSelected" @change="val => getChangeBox(val, item.content)" class="mr-[8px]" />
+                    <a-checkbox :checked="item.content.isSelected" @change="val => getChangeBox(val, item.content)"
+                      class="mr-[8px]" />
                     <text-card :text-data="item" @handleFetchList="searchData" />
                   </div>
                 </a-col>
@@ -46,18 +34,12 @@
           </div>
         </main>
         <footer class="flex justify-end pt-[16px]">
-          <a-pagination
-            v-model:current="page.currentPage"
-            :total="page.pageCount"
-            :default-page-size="page.pageSize"
-            show-less-items
-            show-size-changer
-            :show-total="total => `共${total}条`"
-            @change="handleCurrentChange"
+          <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
+            show-less-items show-size-changer :show-total="total => `共${total}条`" @change="handleCurrentChange"
             @showSizeChange="handleSizeChange" />
         </footer>
       </div>
-    </a-modal>
+    </draggable-modal>
   </div>
 </template>
 
@@ -70,6 +52,7 @@ import { useRoute } from 'vue-router';
 import { knowledgeQueryPage, getNodeByLevel, querySecondTagNode, queryThreeTagNode, saveFieMap, saveTreeData } from '@/api/knowledge/index';
 import TextCard from '@/views/knowledge/components/textCard.vue';
 import { useUserStore } from '@/store/modules/user';
+import draggableModal from '@/components/DraggableModal/index.vue'
 
 const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE);
 

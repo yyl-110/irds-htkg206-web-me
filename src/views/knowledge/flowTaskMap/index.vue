@@ -1,6 +1,6 @@
 <template>
-  <a-row :gutter="[16, 0]" class="layout">
-    <a-col :span="5" class="h-full">
+  <a-row class="layout">
+    <a-col :span="6" class="h-full pr-[16px]"  style="border-right: 1px solid #EAEAF1">
       <div class="elAside flex flex-col">
         <a-input-search
           v-model:value="searchData"
@@ -54,7 +54,7 @@
         </div>
       </div>
     </a-col>
-    <a-col :span="19" class="h-full">
+    <a-col :span="18" class="h-full">
       <div class="elMain">
         <div class="mainRight">
           <a-card

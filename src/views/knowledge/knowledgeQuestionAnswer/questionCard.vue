@@ -145,7 +145,7 @@ const handleCurrentChange = (val, size) => {
         <span
           style="font-family: PingFang SC, PingFang SC; font-weight: 400; font-size: 14px; color: #6a696e">提了一个问题</span>
         <span class="time"><span style="margin: 0 3px">·</span>{{ getAllTimes(Date.parse(allQues.addTime))
-          }}</span>
+        }}</span>
         <span v-if="allQues.urgency === '紧急'" class="status exigency">{{ allQues.urgency }}</span>
         <span v-if="allQues.urgency === '严重'" class="status importance">{{ allQues.urgency }}</span>
       </div>
@@ -163,12 +163,13 @@ const handleCurrentChange = (val, size) => {
         <div style="margin-right: 4px">展开全部</div>
         <img src="@/assets/images/down11.png" alt="" style="margin-right: 20px" />
       </div>
-      <span v-if="allQues.userId === Number(userId)" class="author-elEdit flex items-center gap-[2px]" @click="editFun(allQues)">
+      <span v-if="allQues.userId === Number(userId)" class="author-elEdit flex items-center gap-[2px]"
+        @click="editFun(allQues)">
         <edit-outlined class="imgColor" /><span class="author-elEdit-text">编辑</span>
       </span>
       <span v-if="allQues.userId === Number(userId)" class="author-elDelete">
         <a-popconfirm ok-text="确定" cancel-text="取消" title="确定要删除吗?" @confirm="deleteFun(allQues)">
-          <div class="flex items-center gap-[2px]">
+          <div class="flex items-center gap-[2px] text-[12px]">
             <delete-outlined class="imgColor" />
             <span class="author-elDelete-text">删除</span>
           </div>
@@ -193,7 +194,7 @@ const handleCurrentChange = (val, size) => {
           </div>
           <div style="margin-top: 5px" v-if="myAnser.showDeleteBotton">
             <a-popconfirm ok-text="确定" cancel-text="取消" title="确定要删除吗?" @confirm="answerDelete(myAnser)">
-              <div class="flex items-center gap-[2px]">
+              <div class="flex items-center gap-[2px] text-[12px]">
                 <delete-outlined class="imgColor" />
                 <span class="author-elDelete-text">删除</span>
               </div>
@@ -402,17 +403,18 @@ const handleCurrentChange = (val, size) => {
       }
     }
 
-    span {
-      height: 22px;
-      font-size: 14px;
-      font-family: PingFang-SC, PingFang-SC;
-      font-weight: 500;
-      line-height: 22px;
-    }
 
     .content {
       margin: 5px 20px 0 0;
       line-height: 24px;
+
+      span {
+        height: 22px;
+        font-size: 14px;
+        font-family: PingFang-SC, PingFang-SC;
+        font-weight: 500;
+        line-height: 22px;
+      }
 
       .content-answer {
         display: inline-block;
