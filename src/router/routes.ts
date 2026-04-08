@@ -147,7 +147,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/Main.vue'),
     meta: {
       hidden: true,
-      title: 'PDF预览',
+      title: '知识学习',
     },
     children: [
       {
@@ -156,7 +156,7 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/createTaskMap.vue'),
         meta: {
           hidden: true,
-          title: 'PDF预览',
+          title: '知识学习',
           noCache: true,
         },
       },
