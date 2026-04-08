@@ -212,7 +212,7 @@ const viewPdf = (id) => {
     if (res && res.data.code === 200) {
       open.value = false
       router.push({
-        path: "/knowledge/pdfView_index",
+        path: "/knowledge/pdfView",
         query: { docId: res.data.data.fileUrl },
       });
     }

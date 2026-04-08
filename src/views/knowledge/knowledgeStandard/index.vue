@@ -149,7 +149,7 @@ const handlePreview = async (_index: number, row: any) => {
     if (res.data.data.previewFile === true) {
       fileList.value.fileName = res.data.data.bzwj;
       filePath.value = res.data.data.previewFilePath;
-      router.push({ path: '/knowledge/pdfView_index', query: { docId: filePath.value } });
+      router.push({ path: '/knowledge/pdfView', query: { docId: filePath.value } });
     } else {
       message.error('该文件不支持预览！');
     }

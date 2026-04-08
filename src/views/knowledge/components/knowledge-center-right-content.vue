@@ -102,7 +102,7 @@ const viewPdf = (id) => {
   getPdfPreviewPath(params).then((res) => {
     if (res && res.data.code === 200) {
       router.push({
-        path: "/knowledge/pdfView_index",
+        path: "/knowledge/pdfView",
         query: { docId: res.data.data.fileUrl },
       });
     }

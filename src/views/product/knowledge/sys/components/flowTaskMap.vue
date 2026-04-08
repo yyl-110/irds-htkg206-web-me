@@ -245,7 +245,7 @@ const mapDetail = (item) => {
   objData.value = item;
   if (item.viewed) {
     router.push({
-      path: "/knowledge/createTaskMap_index",
+      path: "/knowledge/createTaskMap",
       query: { flag: "2" },
     });
   } else {

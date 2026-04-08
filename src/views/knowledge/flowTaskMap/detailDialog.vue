@@ -48,7 +48,7 @@ const player = async () => {
   if (res && res.data.code === '0') {
     emit('getList1');
     emit('closeDiaDetail1');
-    router.push({ path: '/knowledge/createTaskMap_index' });
+    router.push({ path: '/knowledge/createTaskMap' });
   } else {
     message.error(res?.data?.msg || '开始学习失败');
   }

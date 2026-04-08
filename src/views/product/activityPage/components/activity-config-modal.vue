@@ -18,6 +18,7 @@ import {
 } from '@ant-design/icons-vue';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue';
+import FormulaEditorModal from './formula-editor-modal.vue';
 
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
@@ -32,7 +33,8 @@ const ParameterGeneralRef = ref<any>(null);
 type ParameterPickTarget =
   | { type: 'component' }
   | { type: 'tableColDraft'; colIndex: number }
-  | { type: 'tableCellInherit'; field: 'cellParamCode' | 'cellTableNumber' | 'cellTableCellRef' };
+  | { type: 'tableCellInherit'; field: 'cellParamCode' | 'cellTableNumber' | 'cellTableCellRef' }
+  | { type: 'formulaExpression' };
 const parameterPickTarget = ref<ParameterPickTarget>({ type: 'component' });
 const emit = defineEmits<{ close: []; save: [payload: any] }>();
 const visible = computed({ get: () => props.modalVisible, set: value => !value && emit('close') });
@@ -156,6 +158,9 @@ const parameterDictionaryModalZIndex = 1200;
 
 const columnDefModalVisible = ref(false);
 const columnDefDraft = ref<any[]>([]);
+const formulaEditorRef = ref<any>(null);
+const formulaEditorVisible = ref(false);
+const formulaEditorInitialValue = ref('');
 
 function cloneFixedTableColDefsForModal(defs: any[] | undefined) {
   return (defs || []).map(d => ({
@@ -428,16 +433,37 @@ function mapConstraintRules(rules: any) {
     dictType: r?.dictType ?? null,
   }));
 }
+/** 双边界区间：接口侧仅接收 compareValue，两界用 ; 拼接，如 2;10 */
+function serializeValueRangeForApi(vr: any) {
+  const op = String(vr?.operator ?? '=').trim();
+  const v1 = String(vr?.compareValue ?? '').trim();
+  const v2 = String(vr?.compareValue2 ?? '').trim();
+  let compareValue = v1;
+  if (op.includes(';')) {
+    compareValue = v2 !== '' ? `${v1};${v2}` : v1;
+  }
+  return {
+    scopeType: vr.scopeType ?? 'WARNING',
+    operator: vr.operator ?? '=',
+    compareValue,
+  };
+}
+/** 从 compareValue 的 2;10 形式拆回双输入框（compareValue2 为空时） */
+function hydrateValueRangeCompareSemicolon(vr: any) {
+  if (!vr || typeof vr !== 'object') return;
+  const op = String(vr.operator ?? '');
+  if (!op.includes(';')) return;
+  if (String(vr.compareValue2 ?? '').trim() !== '') return;
+  const raw = String(vr.compareValue ?? '').trim();
+  if (!raw.includes(';')) return;
+  const idx = raw.indexOf(';');
+  vr.compareValue = raw.slice(0, idx).trim();
+  vr.compareValue2 = raw.slice(idx + 1).trim();
+}
 function mapValidateRule(rule: any) {
   if (!rule || typeof rule !== 'object') return null;
   return {
-    valueRange: rule?.valueRange
-      ? {
-          scopeType: rule.valueRange.scopeType ?? 'WARNING',
-          operator: rule.valueRange.operator ?? '=',
-          compareValue: rule.valueRange.compareValue ?? '',
-        }
-      : null,
+    valueRange: rule?.valueRange ? serializeValueRangeForApi(rule.valueRange) : null,
     formula: rule?.formula
       ? {
           mode: rule.formula.mode ?? 'FORMULA',
@@ -513,7 +539,7 @@ function mapTableConfig(item: any) {
 }
 function mapComponentForApi(item: any, index: number, operationType: 'insert' | 'update') {
   const mapped = {
-    id: operationType === 'insert' ? null : item?.id ?? null,
+    id: operationType === 'insert' ? null : (item?.id ?? null),
     parentId: item?.parentId ?? 0,
     componentType: item?.componentType ?? '',
     paramCode: item?.paramCode ?? '',
@@ -556,6 +582,22 @@ function buildPayload() {
 function handleSave() {
   emit('save', buildPayload());
 }
+function openFormulaEditor() {
+  const c = selectedComponent.value;
+  if (!c?.validateRule?.formula) return;
+  formulaEditorInitialValue.value = String(c.validateRule.formula.expression ?? '');
+  formulaEditorVisible.value = true;
+}
+function handleFormulaInsertParameter() {
+  showParameter({ type: 'formulaExpression' });
+}
+function confirmFormulaEditor(v: string) {
+  const c = selectedComponent.value;
+  if (c?.validateRule?.formula) {
+    c.validateRule.formula.expression = v;
+  }
+  formulaEditorVisible.value = false;
+}
 function pickParameterIdFromDictionaryRow(row: any): number | string | null {
   if (row == null) return null;
   if (row.parameterId != null) return row.parameterId;
@@ -589,6 +631,8 @@ function handleSaveParameter(row: any) {
         }
       }
     }
+  } else if (t.type === 'formulaExpression') {
+    formulaEditorRef.value?.insertText?.(code);
   } else if (selectedComponent.value) {
     selectedComponent.value.paramCode = code;
     selectedComponent.value.parameterId = parameterId;
@@ -884,6 +928,47 @@ function getTypeText(type: string) {
 function getPreviewValue(item: any) {
   return item?.paramValue || '';
 }
+function normalizeRangeHintOperator(op: string) {
+  const s = String(op ?? '')
+    .trim()
+    .replace(/≤/g, '<=')
+    .replace(/≥/g, '>=');
+  if (s === '<=') return '≤';
+  if (s === '>=') return '≥';
+  return s;
+}
+function getResolvedRangeHintBounds(vr: any): { v1: string; v2: string } {
+  const raw = String(vr?.compareValue ?? '')
+    .trim()
+    .replace(/；/g, ';');
+  const v2raw = String(vr?.compareValue2 ?? '').trim();
+  const op = String(vr?.operator ?? '');
+  if (op.includes(';') && !v2raw && raw.includes(';')) {
+    const idx = raw.indexOf(';');
+    return {
+      v1: raw.slice(0, idx).trim(),
+      v2: raw.slice(idx + 1).trim(),
+    };
+  }
+  return { v1: raw, v2: v2raw };
+}
+function getInputValueRangeHint(item: any): string {
+  if (item?.componentType !== 'INPUT') return '';
+  const vr = item?.validateRule?.valueRange;
+  if (!vr || typeof vr !== 'object') return '';
+  const opRaw = String(vr.operator ?? '')
+    .trim()
+    .replace(/；/g, ';');
+  if (!opRaw) return '';
+  const { v1, v2 } = getResolvedRangeHintBounds(vr);
+  if (opRaw.includes(';')) {
+    if (!v1 || !v2) return '';
+    const [left = '<', right = '<'] = opRaw.split(';').map(s => normalizeRangeHintOperator(s));
+    return `${v1} ${left} X ${right} ${v2}`;
+  }
+  if (!v1) return '';
+  return `X ${normalizeRangeHintOperator(opRaw)} ${v1}`;
+}
 function ensureTextareaDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (component.customProps.rows == null) component.customProps.rows = 4;
@@ -899,6 +984,7 @@ function ensureTextLikeDefaults(component: any) {
     // 兼容旧数据：后续双范围需要第二个值
     if (component.validateRule.valueRange.compareValue2 == null) component.validateRule.valueRange.compareValue2 = '';
   }
+  hydrateValueRangeCompareSemicolon(component.validateRule.valueRange);
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
     component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
   }
@@ -916,6 +1002,7 @@ function ensureSelectDefaults(component: any) {
     // 兼容旧数据：后续双范围需要第二个值
     if (component.validateRule.valueRange.compareValue2 == null) component.validateRule.valueRange.compareValue2 = '';
   }
+  hydrateValueRangeCompareSemicolon(component.validateRule.valueRange);
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
     component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
   }
@@ -1360,12 +1447,10 @@ watch(
                 </div>
                 <div v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true" class="title-divider-line"></div>
               </template>
-              <a-input
-                v-else-if="item.componentType === 'INPUT'"
-                :value="getPreviewValue(item)"
-                :placeholder="item.customProps?.placeholder || '请输入'"
-                disabled
-                class="preview-field" />
+              <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
+                <a-input :value="getPreviewValue(item)" :placeholder="item.customProps?.placeholder || '请输入'" disabled class="preview-field" />
+                <span v-if="getInputValueRangeHint(item)" class="value-range-hint-chip">{{ getInputValueRangeHint(item) }}</span>
+              </div>
               <a-textarea
                 v-else-if="item.componentType === 'TEXTAREA'"
                 :value="getPreviewValue(item)"
@@ -1595,13 +1680,6 @@ watch(
                     <div class="row-label">提示知识：</div>
                     <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
                   </div>
-                  <div class="row-field">
-                    <div class="row-label">知识区知识：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
-                    </div>
-                  </div>
                 </a-collapse-panel>
 
                 <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT'" key="range" header="取值范围定义">
@@ -1647,11 +1725,17 @@ watch(
                   </div>
                 </a-collapse-panel>
 
-                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT'" key="formula" header="公式定义">
+                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'OUTPUT'" key="formula" header="公式定义">
                   <div class="row-field">
                     <div class="row-label">公式编辑器：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.expression" placeholder="请输入" /></div>
-                    <a-button type="primary" size="small">定义</a-button>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.validateRule.formula.expression" disabled placeholder="请定义" /><a-button
+                        type="primary"
+                        size="small"
+                        @click="openFormulaEditor"
+                        >定义</a-button
+                      >
+                    </div>
                   </div>
                   <div class="row-field">
                     <div class="row-label">调用JS：</div>
@@ -1717,13 +1801,6 @@ watch(
                     <div class="row-label">提示知识：</div>
                     <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
                   </div>
-                  <div class="row-field">
-                    <div class="row-label">知识区知识：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
-                    </div>
-                  </div>
                 </a-collapse-panel>
               </a-collapse>
             </template>
@@ -1779,13 +1856,6 @@ watch(
                   <div class="row-field">
                     <div class="row-label">提示知识：</div>
                     <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">知识区知识：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
-                    </div>
                   </div>
                 </a-collapse-panel>
 
@@ -1843,22 +1913,6 @@ watch(
                       </div>
                     </div>
                   </div>
-
-                  <template v-if="selectedComponent.ioType === 'OUTPUT'">
-                    <div class="row-field">
-                      <div class="row-label">公式编辑器：</div>
-                      <div class="row-control">
-                        <a-input v-model:value="selectedComponent.validateRule.formula.expression" placeholder="请输入" />
-                        <a-button type="primary" size="small">定义</a-button>
-                      </div>
-                    </div>
-                    <div class="row-field">
-                      <div class="row-label">调用JS：</div>
-                      <div class="row-control">
-                        <a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" />
-                      </div>
-                    </div>
-                  </template>
                 </a-collapse-panel>
               </a-collapse>
             </template>
@@ -1914,13 +1968,6 @@ watch(
                   <div class="row-field">
                     <div class="row-label">提示知识：</div>
                     <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">知识区知识：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
-                    </div>
                   </div>
                 </a-collapse-panel>
 
@@ -1986,13 +2033,6 @@ watch(
                     <div class="row-label">提示知识：</div>
                     <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
                   </div>
-                  <div class="row-field">
-                    <div class="row-label">知识区知识：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
-                    </div>
-                  </div>
                 </a-collapse-panel>
               </a-collapse>
             </template>
@@ -2052,13 +2092,6 @@ watch(
                     <div class="row-label">提示知识：</div>
                     <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
                   </div>
-                  <div class="row-field">
-                    <div class="row-label">知识区知识：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
-                    </div>
-                  </div>
                 </a-collapse-panel>
               </a-collapse>
               <a-form-item label="输入框占位"><a-input v-model:value="selectedComponent.customProps.inputPlaceholder" placeholder="请输入" /></a-form-item>
@@ -2083,13 +2116,6 @@ watch(
                   <div class="row-field">
                     <div class="row-label">提示知识：</div>
                     <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">知识区知识：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.knowledgeId" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
-                    </div>
                   </div>
                 </a-collapse-panel>
               </a-collapse>
@@ -2527,6 +2553,15 @@ watch(
       <a-button type="primary" @click="applyColumnDefModal">确定</a-button>
     </div>
   </a-modal>
+
+  <FormulaEditorModal
+    ref="formulaEditorRef"
+    :visible="formulaEditorVisible"
+    :initial-value="formulaEditorInitialValue"
+    :z-index="1100"
+    @update:visible="(v: boolean) => (formulaEditorVisible = v)"
+    @insert-parameter="handleFormulaInsertParameter"
+    @confirm="confirmFormulaEditor" />
 
   <ParameterGeneral
     ref="ParameterGeneralRef"
@@ -3173,6 +3208,24 @@ watch(
 .preview-field {
   max-width: 270px;
   width: 100%;
+}
+.value-range-inline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.value-range-hint-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #1f1f1f;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 .text-config-collapse {
   margin-bottom: 8px;
