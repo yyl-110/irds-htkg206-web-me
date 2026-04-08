@@ -140,6 +140,29 @@ export const routes: RouteRecordRaw[] = [
       },
     ],
   },
+
+  {
+    name: 'KnowledgeCreateTaskContainer',
+    path: '/knowledge/createTaskMap',
+    component: () => import('@/views/Main.vue'),
+    meta: {
+      hidden: true,
+      title: 'PDF预览',
+    },
+    children: [
+      {
+        path: '',
+        name: '/knowledge/createTaskMap',
+        component: () => import('@/views/knowledge/createTaskMap.vue'),
+        meta: {
+          hidden: true,
+          title: 'PDF预览',
+          noCache: true,
+        },
+      },
+    ],
+  },
+
   /** 不在菜单中展示：项目信息创建/编辑全页 */
   {
     name: 'InternalApp',
