@@ -83,6 +83,7 @@ async function getListData(type?: string) {
                 currentNode.value.key,
                 "key"
               );
+              expandedKeys.value = treePage.value.getExpandedKeys().join(",");
               selectNode(rootNode);
             }
           } else {

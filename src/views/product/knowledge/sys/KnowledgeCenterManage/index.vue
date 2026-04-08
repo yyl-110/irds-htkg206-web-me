@@ -5,8 +5,8 @@ import { message, Spin } from "ant-design-vue";
 import { Pane, Splitpanes } from "splitpanes";
 import { findNodeByIdFromKey } from "@/utils/tools";
 import Tree from "@/components/tree/tree.vue";
-import mapDataTable from '../components/mapDataTable.vue'
-import mapTreeModal from '../components/mapTreeModal.vue'
+import centerTreeModal from '../components/centerTreeModal.vue'
+import centerList from '../components/centerList.vue'
 
 const treeData = ref([]);
 const loadingTree = ref(false)
@@ -19,9 +19,8 @@ const parameterNum = ref<string>("");
 const selectNodeKeys = ref<string>("");
 const currentNode = ref<any>();
 const currentNodeLevel = ref<number>(2);
-const addAndEditTreeRef = ref(null)
 const rawTreeData = ref<Array<any>>([]); // 保存完整的原始树数据
-const tagList = ref<any>([]);
+const centerTreeModalRef = ref(null)
 
 async function selectNode(node: any) {
   currentNode.value = node;
@@ -45,21 +44,12 @@ function getAllChildrenKeys(node: any): string[] {
   return keys;
 }
 
-/** 获取当前 selectedKeys 对应节点的所有子孙节点 key 字符串 */
-const kldTreeIds = computed(() => {
-  const targetNode = findNodeByIdFromKey(treeData.value, selectNodeKeys.value, 'key');
-  if (!targetNode) return '';
-  const allChildrenKeys = getAllChildrenKeys(targetNode);
-  const allKeys = [selectNodeKeys.value, ...allChildrenKeys];
-  return allKeys.join(',');
-});
-
 /** 获取分类数据 */
 async function getTreeData(type?: string) {
   loadingTree.value = true;
   try {
     // 使用正确的API获取产品树数据
-    const res = await knowledgeTree({ menuId: 1, treeType: "2", parentId: "0", menuParentId: '' });
+    const res = await knowledgeTree({ menuId: 1, treeType: "1", parentId: "0", menuParentId: '' });
     loadingTree.value = false;
     // 处理返回的数据格式
     if (res.data.code == 0 && res.data.data) {
@@ -70,7 +60,6 @@ async function getTreeData(type?: string) {
       // 保存原始数据
       rawTreeData.value = rawData;
       const treeNodes = convertToTreeNodes(rawTreeData.value);
-      console.log('treeNodes:', treeNodes)
       treeData.value = treeNodes;
       // 默认选中第一个节点
       if (treeNodes.length > 0) {
@@ -121,6 +110,15 @@ async function upNode(selectedKeys: any) {
 function Selectafterchanges() {
   selectedKeys.value = currentNode.value.key;
 }
+
+/** 获取当前 selectedKeys 对应节点的所有子孙节点 key 字符串 */
+const kldTreeIds = computed(() => {
+  const targetNode = findNodeByIdFromKey(treeData.value, selectNodeKeys.value, 'key');
+  if (!targetNode) return '';
+  const allChildrenKeys = getAllChildrenKeys(targetNode);
+  const allKeys = [selectNodeKeys.value, ...allChildrenKeys];
+  return allKeys.join(',');
+});
 
 /** 删除树节点 */
 async function deleteTreeNode(selectedKeys: any) {
@@ -235,12 +233,8 @@ function convertToTreeNodes(data: any[]): any[] {
 
 /** 获取节点添加数据 */
 async function getNodeAddData(selectedKeys: any) {
-  // if (selectedKeys?.level === 3) {
-  //   message.warn("请选择上层父节点添加！");
-  //   return;
-  // }
   // 这里可以根据需要实现添加节点的逻辑
-  addAndEditTreeRef.value.show(selectedKeys || currentNode.value, {}, 1);
+  centerTreeModalRef.value.show(selectedKeys || currentNode.value, {}, 1);
 }
 
 const getParentNode = (nodeId: string): any | null => {
@@ -281,21 +275,7 @@ async function getNodeUpdateData(selectedKeys: any) {
     message.error("未找到父节点");
     return;
   }
-  addAndEditTreeRef.value.show(selectedKeys, parentNode, 2);
-}
-
-const fetchTagList = async () => {
-  try {
-    const res = await queryByKey({
-      key: "style"
-    })
-    if (res.data.code === '0') {
-      tagList.value = res.data.data
-    }
-  } catch (error) {
-    console.log('error:', error)
-
-  }
+  centerTreeModalRef.value.show(selectedKeys, parentNode, 2);
 }
 
 const saveSuccess = () => {
@@ -305,7 +285,6 @@ const saveSuccess = () => {
 onMounted(() => {
   // 获取树数据
   getTreeData();
-  fetchTagList();
 });
 
 
@@ -326,10 +305,10 @@ onMounted(() => {
       </Pane>
       <!-- 右侧内容区域 -->
       <Pane class="splitpane-cls">
-        <mapDataTable :kldTreeId="kldTreeIds" :tagList="tagList" :nodeId="currentNode?.key" />
+        <center-list :kldTreeId="kldTreeIds" />
       </Pane>
     </Splitpanes>
-    <mapTreeModal ref="addAndEditTreeRef" :tagList="tagList" @saveSuccess="saveSuccess" />
+    <centerTreeModal ref="centerTreeModalRef" @saveSuccess="saveSuccess" />
   </div>
 </template>
 
