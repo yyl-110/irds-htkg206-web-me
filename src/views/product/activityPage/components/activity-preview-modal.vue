@@ -3,6 +3,9 @@ import { computed, ref, watch } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { message } from 'ant-design-vue';
+import { InboxOutlined } from '@ant-design/icons-vue';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { useUserStore } from '@/store/modules/user';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 
 const props = defineProps({
@@ -12,6 +15,7 @@ const props = defineProps({
 
 const emit = defineEmits<{ close: [] }>();
 const visible = computed({ get: () => props.modalVisible, set: value => !value && emit('close') });
+const userStore = useUserStore();
 
 const previewList = computed(() => {
   const r = props.record || {};
@@ -53,6 +57,7 @@ const previewFieldValueMap = ref<Record<string, string>>({});
 const inputRangeBlurredMap = ref<Record<string, boolean>>({});
 /** 限制型范围失焦校验失败时回退到最近一次合法值 */
 const inputLastValidValueMap = ref<Record<string, string>>({});
+const previewUploadFileMap = ref<Record<string, any[]>>({});
 function getPreviewItemKey(item: any, index: number) {
   return String(item?.id ?? `${item?.componentType}-${index}`);
 }
@@ -131,6 +136,7 @@ watch(
     previewFieldValueMap.value = {};
     inputRangeBlurredMap.value = {};
     inputLastValidValueMap.value = {};
+    previewUploadFileMap.value = {};
   },
   { deep: false },
 );
@@ -231,7 +237,10 @@ function normalizeRangeOperator(op: string) {
     .replace(/≤/g, '<=');
 }
 function normalizeRangeHintOperator(op: string) {
-  const s = String(op ?? '').trim().replace(/≤/g, '<=').replace(/≥/g, '>=');
+  const s = String(op ?? '')
+    .trim()
+    .replace(/≤/g, '<=')
+    .replace(/≥/g, '>=');
   if (s === '<=') return '≤';
   if (s === '>=') return '≥';
   return s;
@@ -257,7 +266,9 @@ function getInputValueRangeHint(item: any): string {
   if (item?.componentType !== 'INPUT') return '';
   const vr = item?.validateRule?.valueRange;
   if (!vr || typeof vr !== 'object') return '';
-  const opRaw = String(vr.operator ?? '').trim().replace(/；/g, ';');
+  const opRaw = String(vr.operator ?? '')
+    .trim()
+    .replace(/；/g, ';');
   if (!opRaw) return '';
   const { v1, v2 } = getResolvedValueRangeBounds(vr);
   if (opRaw.includes(';')) {
@@ -432,6 +443,46 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
   if (raw != null && String(raw).trim() !== '') return String(raw).trim();
   return `列名${colIndex - 1}`;
 }
+
+function getUploadHint() {
+  return '支持任意文件类型上传';
+}
+async function customRequestPreviewUpload(item: any, index: number, options: any) {
+  try {
+    const res = await AdminApiSystemUploadFile.uploadFile({
+      file: options.file as File,
+      userId: userStore.getUser.id,
+      securityLevel: 1,
+    });
+    if (res?.data?.code == 0) {
+      const uploaded = {
+        uid: String(res.data.id || options.file?.uid || Date.now()),
+        name: res.data?.oldFileName || options.file?.name || '未命名文件',
+        status: 'done',
+        id: res.data.id || '',
+        url: res.data.filePath || '',
+        oldFileName: res.data.oldFileName,
+        fileName: res.data.fileName,
+        filePath: res.data.filePath,
+      };
+      const key = getPreviewItemKey(item, index);
+      previewUploadFileMap.value = { ...previewUploadFileMap.value, [key]: [uploaded] };
+      options?.onSuccess?.(res.data, options.file);
+      message.success('上传成功');
+      return;
+    }
+    options?.onError?.(new Error('upload failed'));
+    message.error('上传失败');
+  } catch (e: any) {
+    options?.onError?.(e instanceof Error ? e : new Error('upload failed'));
+    message.error('上传失败');
+  }
+}
+function onPreviewFileChange(item: any, index: number, info: any) {
+  const key = getPreviewItemKey(item, index);
+  const nextList = Array.isArray(info?.fileList) ? info.fileList.slice(-1) : [];
+  previewUploadFileMap.value = { ...previewUploadFileMap.value, [key]: nextList };
+}
 </script>
 
 <template>
@@ -524,10 +575,19 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
 
               <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
                 <div class="component-title">{{ item.paramName || '未命名组件' }}</div>
-                <div class="file-preview-box">
-                  <div class="file-preview-icon">📷</div>
-                  <div class="file-preview-hint">图片格式为jpg, jpeg, png, 且图片最大不超过2M</div>
-                </div>
+                <a-upload-dragger
+                  class="file-preview-dragger"
+                  :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
+                  :multiple="false"
+                  :max-count="1"
+                  :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
+                  @change="(info: any) => onPreviewFileChange(item, index, info)">
+                  <p class="ant-upload-drag-icon">
+                    <InboxOutlined />
+                  </p>
+                  <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
+                  <p class="ant-upload-hint">{{ getUploadHint() }}</p>
+                </a-upload-dragger>
               </div>
 
               <a-select
@@ -541,11 +601,7 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
               <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
                 <div class="component-title">{{ item.paramName || '单选项' }}</div>
                 <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
-                <a-radio-group
-                  v-else
-                  v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]"
-                  :disabled="isOutputIoType(item)"
-                  class="radio-preview-grid">
+                <a-radio-group v-else v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
                   <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">
                     {{ opt }}
                   </a-radio>
@@ -824,6 +880,23 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
 .data-view-preview-input {
   width: 420px;
   max-width: 100%;
+}
+.file-preview-wrap {
+  width: 420px;
+  max-width: 100%;
+}
+.file-preview-dragger {
+  width: 420px !important;
+  max-width: 100%;
+  display: block;
+}
+.file-preview-dragger :deep(.ant-upload-drag) {
+  width: 420px !important;
+  max-width: 100%;
+  margin: 0;
+}
+.file-preview-dragger :deep(.ant-upload) {
+  padding: 16px 12px;
 }
 .file-preview-box {
   border: 1px dashed #d9d9d9;
