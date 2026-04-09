@@ -11,6 +11,7 @@ import {
   FileOutlined,
   DesktopOutlined,
   FileTextOutlined,
+  InboxOutlined,
   MinusOutlined,
   ExclamationCircleOutlined,
   TableOutlined,
@@ -19,7 +20,8 @@ import {
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue';
 import FormulaEditorModal from './formula-editor-modal.vue';
-
+import { businessApiLibrary } from '@/api/tags/library/基础资源库';
+import { LibraryPageRequestDTOModel } from '@/api/models/library/LibraryPageRequestDTOModel';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
@@ -414,7 +416,12 @@ function handleExpandTableAddRowForItem(item: any) {
 function addComponent(componentType: string, insertIndex?: number) {
   if (!canAddComponent(componentType)) return false;
   const newItem = createDefaultComponent(componentType);
-  return insertComponentItem(newItem, insertIndex ?? null);
+  const inserted = insertComponentItem(newItem, insertIndex ?? null);
+  if (inserted && componentType === 'DATA_VIEW') {
+    // 数据浏览组件在点击或拖拽新增后，立即拉取资源库分类数据
+    void selectLibraryCategory();
+  }
+  return inserted;
 }
 function removeSelectedComponent() {
   if (selectedIndex.value < 0) return;
@@ -651,6 +658,38 @@ function showParameter(target?: ParameterPickTarget) {
   nextTick(() => {
     ParameterGeneralRef.value?.handlegetData?.('');
   });
+}
+const requestParams = reactive(new LibraryPageRequestDTOModel());
+const libraryTypeOptions = ref<Array<{ label: string; value: string }>>([]);
+function shouldShowDataViewLibraryParam() {
+  if (!isDataViewComponent.value || !selectedComponent.value) return true;
+  const selectedTypeValue = String(selectedComponent.value.libraryType ?? '').trim();
+  if (!selectedTypeValue) return true;
+  const selectedOpt = libraryTypeOptions.value.find(opt => opt.value === selectedTypeValue);
+  const matchText = `${selectedOpt?.label ?? ''}|${selectedTypeValue}`.toLowerCase();
+  // 选中模块库时，不显示「基础资源库对应参数」
+  return !(matchText.includes('模块库') || matchText.includes('module') || matchText.includes('模型库'));
+}
+async function selectLibraryCategory() {
+  requestParams.pageNo = 1;
+  requestParams.pageSize = 10;
+  const res = await businessApiLibrary.getLibraryPageList({
+    ...requestParams,
+  });
+  const list = Array.isArray(res?.data?.data?.list) ? res.data.data.list : [];
+  libraryTypeOptions.value = list
+    .map((item: any) => ({
+      label: String(item?.menuName ?? item?.name ?? '').trim(),
+      value: String(item?.menuNum ?? item?.id ?? '').trim(),
+    }))
+    .filter((item: { label: string; value: string }) => item.label !== '' && item.value !== '');
+  if (isDataViewComponent.value && selectedComponent.value) {
+    const current = String(selectedComponent.value.libraryType ?? '').trim();
+    const hasCurrent = libraryTypeOptions.value.some(opt => opt.value === current);
+    if (!hasCurrent) {
+      selectedComponent.value.libraryType = libraryTypeOptions.value[0]?.value ?? '';
+    }
+  }
 }
 function parseList(raw: any) {
   if (!raw) return [];
@@ -1042,7 +1081,7 @@ function ensureDateDefaults(component: any) {
 }
 function ensureFileDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
-  if (!component.customProps.allowedFormats) component.customProps.allowedFormats = 'zip,jpg,gif,prt,asm';
+  if (component.customProps.allowedFormats == null) component.customProps.allowedFormats = '';
   if (!component.customProps.maxSize) component.customProps.maxSize = '20M';
   if (!component.knowledgeContent) component.knowledgeContent = '';
   if (!component.knowledgeId) component.knowledgeId = '';
@@ -1284,6 +1323,9 @@ watch(
     }
     if (type === 'DATA_VIEW') {
       dataViewPanelKeys.value = ['basic', 'knowledge'];
+      if (!libraryTypeOptions.value.length) {
+        void selectLibraryCategory();
+      }
     }
     if (type === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(selectedComponent.value?.customProps?.tableSubtype)) {
       const biz = selectedComponent.value?.customProps?.tableBizType;
@@ -1491,10 +1533,13 @@ watch(
                     <ExclamationCircleOutlined class="component-knowledge-hint" />
                   </a-tooltip>
                 </div>
-                <div class="file-preview-box">
-                  <div class="file-preview-icon">📷</div>
-                  <div class="file-preview-hint">图片格式为jpg, jpeg, png, 且图片最大不超过2M</div>
-                </div>
+                <a-upload-dragger :disabled="true" class="file-preview-dragger">
+                  <p class="ant-upload-drag-icon">
+                    <InboxOutlined />
+                  </p>
+                  <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
+                  <p class="ant-upload-hint">支持任意文件类型上传</p>
+                </a-upload-dragger>
               </div>
               <a-select
                 v-else-if="item.componentType === 'SELECT'"
@@ -2063,9 +2108,7 @@ watch(
                     <div class="row-label">基础资源库类型：</div>
                     <div class="row-control">
                       <a-select v-model:value="selectedComponent.libraryType" placeholder="请选择">
-                        <a-select-option value="MODEL_LIB">模型库</a-select-option>
-                        <a-select-option value="PLATFORM_LIB">平台库</a-select-option>
-                        <a-select-option value="STD_LIB">标准件库</a-select-option>
+                        <a-select-option v-for="opt in libraryTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</a-select-option>
                       </a-select>
                     </div>
                   </div>
@@ -2073,10 +2116,10 @@ watch(
                     <div class="row-label">基础资源库分类：</div>
                     <div class="row-control">
                       <a-input v-model:value="selectedComponent.customProps.libraryCategory" placeholder="请输入" />
-                      <a-button type="primary" size="small">浏览</a-button>
+                      <a-button type="primary" size="small" @click="selectLibraryCategory()">浏览</a-button>
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div v-if="shouldShowDataViewLibraryParam()" class="row-field">
                     <div class="row-label">基础资源库对应参数：</div>
                     <div class="row-control">
                       <a-select v-model:value="selectedComponent.libraryParam" placeholder="请选择">
@@ -2094,8 +2137,6 @@ watch(
                   </div>
                 </a-collapse-panel>
               </a-collapse>
-              <a-form-item label="输入框占位"><a-input v-model:value="selectedComponent.customProps.inputPlaceholder" placeholder="请输入" /></a-form-item>
-              <a-form-item label="装配按钮文案"><a-input v-model:value="selectedComponent.customProps.assembleButtonText" placeholder="装配" /></a-form-item>
             </template>
             <template v-else-if="isFileComponent">
               <a-collapse v-model:activeKey="filePanelKeys" :bordered="false" class="text-config-collapse">
