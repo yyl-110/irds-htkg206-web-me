@@ -143,7 +143,7 @@ export const routes: RouteRecordRaw[] = [
 
   {
     name: 'KnowledgeCreateTaskContainer',
-    path: '/knowledge/createTaskMap',
+    path: '/knowledge/taskMapDetail',
     component: () => import('@/views/Main.vue'),
     meta: {
       hidden: true,
@@ -152,11 +152,32 @@ export const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        name: '/knowledge/createTaskMap',
+        name: '/knowledge/taskMapDetail',
         component: () => import('@/views/knowledge/createTaskMap.vue'),
         meta: {
           hidden: true,
           title: '知识学习',
+          noCache: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'KnowledgeMgtCreateTaskContainer',
+    path: '/knowledgemgt/createTaskMap',
+    component: () => import('@/views/Main.vue'),
+    meta: {
+      hidden: true,
+      title: '任务流程图创建',
+    },
+    children: [
+      {
+        path: '',
+        name: '/knowledge/createTaskMap',
+        component: () => import('@/views/product/knowledge/sys/createTaskMap.vue'),
+        meta: {
+          hidden: true,
+          title: '任务流程图创建',
           noCache: true,
         },
       },

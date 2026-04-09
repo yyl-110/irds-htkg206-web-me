@@ -245,7 +245,7 @@ const mapDetail = (item) => {
   objData.value = item;
   if (item.viewed) {
     router.push({
-      path: "/knowledge/createTaskMap",
+      path: "/knowledge/taskMapDetail",
       query: { flag: "2" },
     });
   } else {
@@ -291,7 +291,7 @@ const mapDetele = (item) => {
 const player = (item) => {
   localStorage.setItem("detail", JSON.stringify(item));
   router.push({
-    path: "/knowledgeData/createTaskMap_index",
+    path: "/knowledge/taskMapDetail",
     query: { flag: "2" },
   });
 };

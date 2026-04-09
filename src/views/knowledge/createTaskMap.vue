@@ -243,7 +243,7 @@ const getIconClass = (nodeLevel: string) => {
   return 'iconfont icon-a-icon_model1';
 };
 
-onActivated(async () => {
+onMounted(async () => {
   detail.value = JSON.parse(localStorage.getItem('detail') || '{}');
   await getTreeList();
   await getDataList();

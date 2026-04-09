@@ -198,7 +198,7 @@ const mapDetail = (item: any) => {
   localStorage.setItem("detail", JSON.stringify(item));
   objData.value = item;
   if (item.learned) {
-    router.push({ path: "/knowledge/createTaskMap" });
+    router.push({ path: "/knowledge/taskMapDetail" });
   } else {
     dialogVisible1.value = true;
   }
@@ -213,7 +213,7 @@ const closeDiaDetail1 = () => {
 const player = async (item: any) => {
   localStorage.setItem("detail", JSON.stringify(item));
   await startLearn(item.id);
-  router.push({ path: "/knowledge/createTaskMap" });
+  router.push({ path: "/knowledge/taskMapDetail" });
 };
 
 // 开始学习
