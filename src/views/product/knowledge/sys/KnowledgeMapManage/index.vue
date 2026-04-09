@@ -354,7 +354,7 @@ onMounted(() => {
 :deep(.marginstyle) {
   padding: 10px !important;
   padding-bottom: 5px !important;
-  padding-top: 16px !important;
+  padding-left: 0 !important;
 }
 
 .drawerContent {

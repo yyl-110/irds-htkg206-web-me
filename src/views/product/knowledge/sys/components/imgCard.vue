@@ -16,7 +16,7 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(["handleFetchList"]);
+const emits = defineEmits(["handleFetchList", 'handleEdit']);
 
 const shareDialogVisible = ref(false);
 const docId = ref("");
@@ -54,6 +54,10 @@ const deleteData = async () => {
     console.log('error:', error)
   }
 }
+
+const handleEditCard = () => {
+  emits('handleEdit');
+}
 </script>
 
 <template>
@@ -78,7 +82,7 @@ const deleteData = async () => {
 
     <div class="flex items-center px-[16px] justify-end mt-[6px]">
       <span class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer">
-        <edit-outlined class="imgColor" /><span class="author-elEdit-text">编辑</span>
+        <edit-outlined class="imgColor" /><span class="author-elEdit-text" @click="handleEditCard">编辑</span>
       </span>
       <span class="ml-[8px]">
         <a-popconfirm ok-text="确定" cancel-text="取消" title="确定要删除吗?" @confirm="deleteData">

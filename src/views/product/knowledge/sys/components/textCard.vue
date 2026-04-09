@@ -18,7 +18,7 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(['handleFetchList']);
+const emits = defineEmits(['handleFetchList', 'handleEdit']);
 
 const commentDialogVisible = ref(false);
 const shareDialogVisible = ref(false);
@@ -113,6 +113,10 @@ const deleteData = async () => {
     console.log('error:', error)
   }
 }
+
+const handleEditCard = () => {
+  emits('handleEdit');
+}
 </script>
 
 <template>
@@ -129,7 +133,7 @@ const deleteData = async () => {
         </div>
         <div v-else class="box-item">
           <div class="highlightName" @click="viewPdfFun">{{ textData.fileName }}.{{ textData.fileType
-          }}【{{ textData.version || '' }}】 <span v-if="textData.releaseStatus === 0">【已发布】</span>
+            }}【{{ textData.version || '' }}】 <span v-if="textData.releaseStatus === 0">【已发布】</span>
             <span v-else-if="textData.releaseStatus === 1">【未发布】</span>
           </div>
         </div>
@@ -179,7 +183,7 @@ const deleteData = async () => {
         </a-tooltip>
       </div>
       <div class="flex items-center">
-        <span class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer">
+        <span class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer" @click="handleEditCard">
           <edit-outlined class="imgColor" /><span class="author-elEdit-text">编辑</span>
         </span>
         <span class="ml-[8px]">

@@ -4,7 +4,7 @@ import { useUserStore } from "@/store/modules/user";
 import { getTimes } from "@/utils/dateUtils";
 import {
   CaretRightFilled,
-  EditOutlined, 
+  EditOutlined,
   DeleteOutlined
 } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
@@ -18,7 +18,7 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(["handleFetchList"]);
+const emits = defineEmits(["handleFetchList", 'handleEdit']);
 
 const shareDialogVisible = ref(false);
 const docId = ref("");
@@ -56,6 +56,10 @@ const deleteData = async () => {
     console.log('error:', error)
   }
 }
+
+const handleEditCard = () => {
+  emits('handleEdit');
+}
 </script>
 
 <template>
@@ -82,7 +86,7 @@ const deleteData = async () => {
     </div>
 
     <div class="flex items-center px-[16px] justify-end mt-[6px]">
-      <span class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer">
+      <span class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer" @click="handleEditCard">
         <edit-outlined class="imgColor" /><span class="author-elEdit-text">编辑</span>
       </span>
       <span class="ml-[8px]">

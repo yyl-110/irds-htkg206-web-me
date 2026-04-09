@@ -12,11 +12,11 @@
       </div>
 
       <div class="flex items-center gap-[8px] mt-[16px]">
-        <a-button type="primary" @click="addDataDialogVisible = true">
+        <a-button type="primary" @click="add">
           <template #icon>
             <PlusOutlined />
           </template>
-          创建项目
+          新建
         </a-button>
         <a-button>
           <template #icon>
@@ -38,17 +38,19 @@
         <div class="list wei-scrollbar h-full overflow-y-auto pt-[16px]">
           <div v-if="tabValue === 1">
             <div class="item" v-for="item in documentList" :key="item.id">
-              <text-card :text-data="item" @handleFetchList="fetchList" />
+              <text-card :text-data="item" @handleFetchList="fetchList"
+                @handleEdit="() => { handleEditCard(item.id) }" />
             </div>
           </div>
           <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 2">
             <div class="item" v-for="item in documentList" :key="item.id">
-              <video-card :video-data="item" @handleFetchList="fetchList" />
+              <video-card :video-data="item" @handleFetchList="fetchList"
+                @handleEdit="() => { handleEditCard(item.id) }" />
             </div>
           </div>
           <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 3">
             <div class="item" v-for="item in documentList" :key="item.id">
-              <img-card :img-data="item" @handleFetchList="fetchList" />
+              <img-card :img-data="item" @handleFetchList="fetchList" @handleEdit="() => { handleEditCard(item.id) }" />
             </div>
           </div>
           <a-empty v-if="documentList.length === 0 && !loading" :image="simpleImage" />
@@ -60,6 +62,8 @@
         :default-page-size="pagination.pageSize" show-less-items show-size-changer show-quick-jumper
         :show-total="pagination.showTotal" @change="pagination.onChange" />
     </footer>
+    <!-- 新建编辑弹框 -->
+    <knowledge-modal ref="knowledgeModalRef" :nodeData="nodeData" :parentNode="parentNode" @saveSuccess="fetchList" />
   </div>
 </template>
 
@@ -72,11 +76,20 @@ import { knowledgeFileList } from '@/api/knowledge';
 import { PaginationConfig } from 'ant-design-vue/es/pagination';
 import { useUserStore } from '@/store/modules/user';
 import { Empty } from 'ant-design-vue';
+import knowledgeModal from './knowledgeModal.vue'
 
 const props = defineProps({
   kldTreeId: {
     type: String,
     default: ''
+  },
+  nodeData: {
+    type: Object,
+    default: () => { },
+  },
+  parentNode: {
+    type: Object,
+    default: () => { },
   }
 })
 
@@ -90,6 +103,7 @@ const searchData = ref({
 const tabValue = ref(1)
 const documentList = ref([])
 const loading = ref(false)
+const knowledgeModalRef = ref(null)
 
 const pagination = reactive<PaginationConfig>({
   current: 1,
@@ -138,6 +152,14 @@ const reset = () => {
     dataCreate: ''
   }
   fetchList()
+}
+
+const add = () => {
+  knowledgeModalRef.value && knowledgeModalRef.value.show(1)
+}
+
+const handleEditCard = (id) => {
+  knowledgeModalRef.value && knowledgeModalRef.value.show(2, id)
 }
 
 watch(() => props.kldTreeId, () => {
@@ -201,8 +223,10 @@ watch(() => props.kldTreeId, () => {
     display: none;
   }
 }
+
 :deep(.ant-spin-nested-loading) {
   height: 100%;
+
   .ant-spin-container {
     height: 100%;
   }

@@ -4,7 +4,7 @@ import { defineComponent, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ReloadOutlined, SearchOutlined } from "@ant-design/icons-vue";
 import KnowledgeTagManage from "./KnowledgeTagManage/index.vue";
-import flowTaskMap from "./components/flowTaskMap.vue";
+import KnowledgeLearningManage from "./KnowledgeLearningManage/index.vue";
 import KnowledgeMapManage from './KnowledgeMapManage/index.vue'
 import KnowledgeCenterManage from './KnowledgeCenterManage/index.vue'
 
@@ -27,7 +27,7 @@ onMounted(() => { });
     </a-tab-pane>
     <a-tab-pane key="knowledgeStudy">
       <template #tab> 知识学习管理 </template>
-      <flowTaskMap />
+      <KnowledgeLearningManage />
     </a-tab-pane>
     <a-tab-pane key="knowledgeType">
       <template #tab> 知识标签管理 </template>

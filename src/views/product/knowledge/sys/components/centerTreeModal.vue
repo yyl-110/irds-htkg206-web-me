@@ -46,7 +46,6 @@ const rules = {
 
 const tagsType = ref("0");
 
-const showStyle = computed(() => (modalType.value === 1 && nodeData.value.level === 1) || (modalType.value === 2 && nodeData.value.level === 2))
 /**
  * 显示标签弹窗
  * @param {Object} node 当前节点

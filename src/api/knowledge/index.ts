@@ -809,3 +809,14 @@ export function removeFile(data: any) {
     method: "POST",
   })
 }
+/**
+ * 知识文档保存文件
+ * @param data
+ */
+export function saveKnowledgeFile(data: any) {
+  return httpRequest({
+    url: '/knowledge-service/knowledgeFile/save',
+    data,
+    method: "POST",
+  })
+}

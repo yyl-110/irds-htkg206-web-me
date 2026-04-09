@@ -1,127 +1,75 @@
 <template>
-  <a-row :gutter="[16, 0]" class="h-full">
-    <a-col class="elAside flex flex-col overflow-y-auto">
-      <a-input-search
-        v-model:value="searchData"
-        placeholder="请输入标题或作者搜索"
-        @change="getMapList"
-        @pressEnter="getMapList"
-      >
-        <template #enterButton>
-          <div class="flex items-center">
-            <SearchOutlined />
-            <!-- <span class="ml-[4px]">搜索</span> -->
+  <div class="drawerContent">
+    <Splitpanes class="default-theme sbom">
+      <!-- 左侧 -->
+      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+        <div class="elAside flex flex-col overflow-y-auto">
+          <a-input v-model:value="searchData" placeholder="请输入标题或作者搜索" @change="getMapList" @pressEnter="getMapList">
+          </a-input>
+
+          <div class="titleText py-[8px]" @click="addNewMap">
+            <span class="creatText">创建一份新地图</span>
+            <div class="iconStyle">
+              <PlusOutlined class="plus" />
+            </div>
           </div>
-        </template>
-      </a-input-search>
 
-      <div class="titleText" @click="addNewMap">
-        <span class="creatText">创建一份新地图</span>
-        <div class="iconStyle">
-          <PlusOutlined class="plus" />
-        </div>
-      </div>
-
-      <div class="cardWrap flex-1 h-0 overflow-y-auto wei-scrollbar">
-        <a-card
-          class="sideContent"
-          :bodyStyle="{ padding: '0px' }"
-          :bordered="false"
-          v-for="(item, index) in sideData"
-          :key="item.id"
-          @click="mapDetail(item)"
-        >
-          <img
-            v-if="item.coverFileUrl"
-            class="sideContent-img"
-            :src="item.coverFileUrl"
-            alt=""
-          />
-          <img
-            v-else
-            class="sideContent-img"
-            src="@/assets/images/modal1.png"
-            alt=""
-          />
-          <div style="padding: 0 6px 10px 10px; margin-top: 8px">
-            <div class="sideContent-data-top">
-              <a-tooltip :mouseEnterDelay="0.5" placement="topLeft">
-                <template #title>{{ item.name }}</template>
-                <span class="sideContent-data-top-left">{{ item.name }}</span>
-              </a-tooltip>
-              <div class="sideContent-data-top-right">
-                <span
-                  class="sideContent-data-top-right-text"
-                  @click.stop="mapDetail(item)"
-                  >详情</span
-                >
-                <span
-                  v-if="item.enableModify"
-                  class="sideContent-data-top-right-text"
-                  @click.stop="mapEdit(item)"
-                  >编辑</span
-                >
-                <span
-                  v-if="item.enableDelete"
-                  style="color: #155bd4; cursor: pointer"
-                  @click.stop="mapDetele(item)"
-                  >删除</span
-                >
+          <div class="cardWrap flex-1 h-0 overflow-y-auto wei-scrollbar">
+            <a-card class="sideContent" :bodyStyle="{ padding: '0px' }" :bordered="false"
+              v-for="(item, index) in sideData" :key="item.id" @click="mapDetail(item)">
+              <img v-if="item.coverFileUrl" class="sideContent-img" :src="item.coverFileUrl" alt="" />
+              <img v-else class="sideContent-img" src="@/assets/images/modal1.png" alt="" />
+              <div style="padding: 0 6px 10px 10px; margin-top: 8px">
+                <div class="sideContent-data-top">
+                  <a-tooltip :mouseEnterDelay="0.5" placement="topLeft">
+                    <template #title>{{ item.name }}</template>
+                    <span class="sideContent-data-top-left">{{ item.name }}</span>
+                  </a-tooltip>
+                  <div class="sideContent-data-top-right">
+                    <span class="sideContent-data-top-right-text" @click.stop="mapDetail(item)">详情</span>
+                    <span v-if="item.enableModify" class="sideContent-data-top-right-text"
+                      @click.stop="mapEdit(item)">编辑</span>
+                    <span v-if="item.enableDelete" style="color: #155bd4; cursor: pointer"
+                      @click.stop="mapDetele(item)">删除</span>
+                  </div>
+                </div>
+                <div class="sideContent-data-bottom">
+                  <span class="sideContent-data-bottom-text">{{
+                    item.createUserName
+                    }}</span>
+                  <span class="sideContent-data-bottom-text">{{
+                    getTimes(Date.parse(item.addTime))
+                    }}</span>
+                </div>
               </div>
-            </div>
-            <div class="sideContent-data-bottom">
-              <span class="sideContent-data-bottom-text">{{
-                item.createUserName
-              }}</span>
-              <span class="sideContent-data-bottom-text">{{
-                getTimes(Date.parse(item.addTime))
-              }}</span>
-            </div>
+            </a-card>
           </div>
-        </a-card>
-      </div>
-    </a-col>
-    <a-col class="elMain">
-      <div class="mainRight wei-scrollbar">
-        <a-card
-          class="pic"
-          :bodyStyle="{ padding: '0px' }"
-          v-for="(item, index) in mainData"
-          :key="index"
-        >
-          <img
-            class="pic-img"
-            :src="item.coverFileUrl"
-            alt=""
-            @click="player(item)"
-          />
-          <div class="pic-data">
-            <div class="pic-data-top">
-              <div>{{ item.name }}</div>
-            </div>
-            <div class="pic-data-bom">摘要：{{ item.summary }}</div>
+        </div>
+      </Pane>
+      <!-- 右侧内容区域 -->
+      <Pane class="splitpane-cls">
+        <div class="elMain">
+          <div class="mainRight wei-scrollbar">
+            <a-card class="pic" :bodyStyle="{ padding: '0px' }" v-for="(item, index) in mainData" :key="index">
+              <img class="pic-img" :src="item.coverFileUrl" alt="" @click="player(item)" />
+              <div class="pic-data">
+                <div class="pic-data-top">
+                  <div>{{ item.name }}</div>
+                </div>
+                <div class="pic-data-bom">摘要：{{ item.summary }}</div>
+              </div>
+            </a-card>
           </div>
-        </a-card>
-      </div>
-      <a-pagination
-        class="elPage"
-        v-model:current="page.currentPage"
-        v-model:pageSize="page.pageSize"
-        :show-total="(total) => `共${total}条`"
-        :total="page.pageCount"
-        show-size-changer
-        @change="handleCurrentChange"
-        @showSizeChange="handleSizeChange"
-      />
-    </a-col>
-  </a-row>
+          <a-pagination class="elPage" v-model:current="page.currentPage" v-model:pageSize="page.pageSize"
+            :show-total="(total) => `共${total}条`" :total="page.pageCount" show-size-changer
+            @change="handleCurrentChange" @showSizeChange="handleSizeChange" />
+        </div>
+      </Pane>
+    </Splitpanes>
+  </div>
 
-  <detail-dialog
-    :dialogVisible="dialogVisible"
-    :objData="objData"
-    @getList="getMainData"
-    @closeDiaDetail="closeDiaDetail"
-  />
+  <detail-dialog :dialogVisible="dialogVisible" :objData="objData" @getList="getMainData"
+    @closeDiaDetail="closeDiaDetail" />
 </template>
 
 <script setup lang="ts">
@@ -135,6 +83,7 @@ import {
   CheckCircleOutlined,
   EnvironmentOutlined,
 } from "@ant-design/icons-vue";
+import { Pane, Splitpanes } from "splitpanes";
 import { useRouter } from "vue-router";
 // 接口导入保持不变
 import { getTimes } from "@/utils/dateUtils.js";
@@ -145,7 +94,7 @@ import {
   modifyInitMap,
   removeMap,
 } from "@/api/knowledge";
-import detailDialog from "./detailDialog.vue";
+import detailDialog from "../components/detailDialog.vue";
 
 const page = ref({
   pageSize: 10,
@@ -255,7 +204,7 @@ const mapDetail = (item) => {
 
 // 编辑
 const mapEdit = (item) => {
-  router.push({ path: "/knowledgemgt/createTaskMap",query: {id:item.id} });
+  router.push({ path: "/knowledgemgt/createTaskMap", query: { id: item.id } });
 
 };
 
@@ -317,19 +266,19 @@ const closeDiaDetail = () => {
 
 <style lang="less" scoped>
 .elAside {
-  width: 14rem;
   height: 100%;
-  background-color: #fff;
   overflow-x: hidden;
-  padding-top: 16px;
-  border-right: 1px solid #eaeaf1;
+
+  .cardWrap {
+    overflow-x: hidden;
+    width: 100%;
+  }
 
   .titleText {
     align-items: center;
+    justify-content: center;
     display: flex;
     cursor: pointer;
-    margin-top: 8px;
-    padding-left: 8px;
 
     .creatText {
       font-size: 14px;
@@ -354,7 +303,7 @@ const closeDiaDetail = () => {
   }
 
   .sideContent {
-    margin-bottom: 10px;
+    margin: 0 auto 10px;
     width: 196px;
     cursor: pointer;
     border: 1px solid #ccc;
@@ -429,7 +378,7 @@ const closeDiaDetail = () => {
   background-color: #fff;
   overflow-y: auto;
   overflow-x: hidden;
-  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
 
@@ -515,5 +464,35 @@ const closeDiaDetail = () => {
 
 :deep(.ant-tooltip-arrow-content) {
   background: #4b4b4b;
+}
+
+::v-deep(.splitpanes__splitter:after),
+::v-deep(.splitpanes__splitter:before) {
+  border-left: 1px solid #e6e7e9 !important;
+}
+
+::v-deep(.sbom > .splitpanes__splitter) {
+  border-left: 1px solid #e6e7e9 !important;
+}
+
+::v-deep(.splitpanes.default-theme .splitpanes__pane) {
+  background-color: #fff;
+}
+
+.splitpane-cls {
+  border-top: 3px solid #ffffff !important;
+}
+
+:deep(.marginstyle) {
+  padding: 10px !important;
+  padding-bottom: 5px !important;
+  padding-left: 0 !important;
+}
+
+.drawerContent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  background-color: #ffffff !important;
 }
 </style>

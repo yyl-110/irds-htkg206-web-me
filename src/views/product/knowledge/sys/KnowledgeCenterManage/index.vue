@@ -262,6 +262,13 @@ const getParentNode = (nodeId: string): any | null => {
   return findParent(rawTreeData.value, nodeId);
 };
 
+const parentNode = computed(() => {
+  if (currentNode.value?.key) {
+    return getParentNode(currentNode.value.key);
+  }
+  return null;
+});
+
 
 
 /** 获取节点编辑数据 */
@@ -305,7 +312,7 @@ onMounted(() => {
       </Pane>
       <!-- 右侧内容区域 -->
       <Pane class="splitpane-cls">
-        <center-list :kldTreeId="kldTreeIds" />
+        <center-list :kldTreeId="kldTreeIds" :nodeData="currentNode" :parentNode="parentNode" />
       </Pane>
     </Splitpanes>
     <centerTreeModal ref="centerTreeModalRef" @saveSuccess="saveSuccess" />
@@ -333,7 +340,7 @@ onMounted(() => {
 :deep(.marginstyle) {
   padding: 10px !important;
   padding-bottom: 5px !important;
-  padding-top: 16px !important;
+  padding-left: 0 !important;
 }
 
 .drawerContent {

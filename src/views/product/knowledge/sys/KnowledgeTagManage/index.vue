@@ -393,6 +393,7 @@ const saveSuccess = () => {
   padding: 10px !important;
   padding-right: 5px !important;
   padding-bottom: 5px !important;
+  padding-left: 0 !important;
 }
 
 .drawerContent {
