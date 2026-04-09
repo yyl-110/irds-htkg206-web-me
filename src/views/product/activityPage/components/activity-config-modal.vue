@@ -22,6 +22,8 @@ import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue
 import FormulaEditorModal from './formula-editor-modal.vue';
 import { businessApiLibrary } from '@/api/tags/library/基础资源库';
 import { LibraryPageRequestDTOModel } from '@/api/models/library/LibraryPageRequestDTOModel';
+import { useUserStore } from '@/store/modules/user';
+import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
@@ -40,7 +42,7 @@ type ParameterPickTarget =
 const parameterPickTarget = ref<ParameterPickTarget>({ type: 'component' });
 const emit = defineEmits<{ close: []; save: [payload: any] }>();
 const visible = computed({ get: () => props.modalVisible, set: value => !value && emit('close') });
-
+const userStore = useUserStore();
 /** 左侧组件库每项前的蓝色图标（与示意图一致：输入框/列表/文档/表格/立方体等） */
 function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDSubtype?: string }): Component {
   if (item.type === 'TABLE') return TableOutlined;
@@ -163,6 +165,13 @@ const columnDefDraft = ref<any[]>([]);
 const formulaEditorRef = ref<any>(null);
 const formulaEditorVisible = ref(false);
 const formulaEditorInitialValue = ref('');
+const libraryCategoryModalVisible = ref(false);
+const libraryCategoryTreeData = ref<any[]>([]);
+const libraryCategoryExpandedKeys = ref<Array<string | number>>([]);
+const libraryCategorySelectedKeys = ref<Array<string | number>>([]);
+const libraryCategorySelectedTitle = ref('');
+const libraryCategorySelectedId = ref('');
+const libraryCategoryPickTarget = ref<'dataView' | 'template3d' | 'modelSelect3d'>('dataView');
 
 function cloneFixedTableColDefsForModal(defs: any[] | undefined) {
   return (defs || []).map(d => ({
@@ -207,7 +216,7 @@ function cancelColumnDefModal() {
 }
 
 function createDefaultComponent(componentType: string) {
-  const customProps = componentType === 'DATA_VIEW' ? { inputPlaceholder: '请输入设计参数1', assembleButtonText: '装配', libraryCategory: '' } : {};
+  const customProps = componentType === 'DATA_VIEW' ? { inputPlaceholder: '请输入设计参数', assembleButtonText: '浏览', libraryCategory: '', libraryCategoryId: '' } : {};
   return {
     id: null,
     parentId: 0,
@@ -306,23 +315,33 @@ function createThreeDViewComponent(threeDSubtype: string) {
   if (!item.customProps) item.customProps = {};
   item.customProps.threeDSubtype = threeDSubtype;
   if (threeDSubtype === 'TEMPLATE_BROWSE') {
-    item.customProps.templateName = '';
-    item.customProps.modelName = '';
+    item.paramName = '模板名称';
+    item.customProps.templateName = '模板名称';
+    item.customProps.templateValue = '';
+    item.customProps.modelName = '模型名称';
+    item.customProps.modelValue = '';
     item.customProps.relatedTemplateLib = '';
+    item.customProps.relatedTemplateLibId = '';
     item.customProps.btnApplyPartNo = true;
     item.customProps.btnOpenModel = false;
     item.customProps.btnAssembleModel = false;
   }
   if (threeDSubtype === 'MODEL_SELECT') {
+    item.paramName = '模型名称';
     item.customProps.modelSelectName = '';
     item.customProps.relatedModelLib = '';
+    item.customProps.relatedModelLibId = '';
     item.customProps.btnOpenModel = false;
     item.customProps.btnAssembleModel = true;
   }
   if (threeDSubtype === 'FIXED_TEMPLATE') {
-    item.customProps.templateName = '';
-    item.customProps.modelName = '';
+    item.paramName = '模板名称';
+    item.customProps.templateName = '模板名称';
+    item.customProps.templateValue = '';
+    item.customProps.modelName = '模型名称';
+    item.customProps.modelValue = '';
     item.customProps.relatedTemplateLib = '';
+    item.customProps.relatedTemplateLibId = '';
     item.customProps.fixedTemplateDisplay = 1;
     item.customProps.btnApplyPartNo = true;
     item.customProps.btnOpenModel = false;
@@ -643,7 +662,17 @@ function handleSaveParameter(row: any) {
   } else if (selectedComponent.value) {
     selectedComponent.value.paramCode = code;
     selectedComponent.value.parameterId = parameterId;
-    if (name) selectedComponent.value.paramName = name;
+    if (name) {
+      const c = selectedComponent.value as any;
+      const subtype = String(c?.customProps?.threeDSubtype ?? '');
+      // 3D 模板类组件：参数字典回填的名称应落在「模型名称」，而非上方「模板名称」
+      if (c?.componentType === '3D_VIEW' && (subtype === 'TEMPLATE_BROWSE' || subtype === 'FIXED_TEMPLATE')) {
+        if (!c.customProps || typeof c.customProps !== 'object') c.customProps = {};
+        c.customProps.modelName = name;
+      } else {
+        selectedComponent.value.paramName = name;
+      }
+    }
   }
   ParameterGeneralVisible.value = false;
   parameterPickTarget.value = { type: 'component' };
@@ -690,6 +719,67 @@ async function selectLibraryCategory() {
       selectedComponent.value.libraryType = libraryTypeOptions.value[0]?.value ?? '';
     }
   }
+}
+async function selectLibraryCategoryName(target: 'dataView' | 'template3d' | 'modelSelect3d' = 'dataView') {
+  if (!selectedComponent.value) return;
+  libraryCategoryPickTarget.value = target;
+  if (target === 'dataView' && String(selectedComponent.value.libraryType ?? '') !== '9') {
+    message.warning('当前仅模块库类型支持选择分类节点');
+    return;
+  }
+  const data: any = {};
+  data.userId = userStore.getUser.id;
+  const res = await AdminApiSystemModule.getModuleMenuList(data);
+  const rawList = Array.isArray(res?.data?.data) ? res.data.data : [];
+  const toTreeNode = (item: any): any => {
+    const children = Array.isArray(item?.children) ? item.children.map((c: any) => toTreeNode(c)) : [];
+    const nodeId = String(item?.id ?? item?.menuId ?? '');
+    const key = nodeId || String(item?.treeUrl ?? Math.random());
+    return {
+      title: String(item?.categoryName ?? item?.name ?? '未命名节点'),
+      key,
+      nodeId,
+      raw: item,
+      children,
+      isLeaf: children.length === 0,
+    };
+  };
+  libraryCategoryTreeData.value = rawList.map((item: any) => toTreeNode(item));
+  libraryCategoryExpandedKeys.value = rawList.map((item: any) => String(item?.id ?? item?.menuId ?? '')).filter((k: string) => k !== '');
+  libraryCategorySelectedKeys.value = [];
+  libraryCategorySelectedTitle.value = '';
+  libraryCategorySelectedId.value = '';
+  libraryCategoryModalVisible.value = true;
+}
+function onLibraryCategorySelect(keys: Array<string | number>, info: any) {
+  libraryCategorySelectedKeys.value = keys;
+  const n = info?.node;
+  libraryCategorySelectedTitle.value = String(n?.title ?? '');
+  libraryCategorySelectedId.value = String(n?.nodeId ?? n?.raw?.id ?? n?.raw?.menuId ?? keys?.[0] ?? '');
+}
+function onLibraryCategoryConfirm() {
+  if (!selectedComponent.value) return;
+  if (!libraryCategorySelectedTitle.value) {
+    message.warning('请选择一个分类节点');
+    return;
+  }
+  if (!selectedComponent.value.customProps || typeof selectedComponent.value.customProps !== 'object') {
+    selectedComponent.value.customProps = {};
+  }
+  if (libraryCategoryPickTarget.value === 'template3d') {
+    selectedComponent.value.customProps.relatedTemplateLib = libraryCategorySelectedTitle.value;
+    selectedComponent.value.customProps.relatedTemplateLibId = libraryCategorySelectedId.value;
+  } else if (libraryCategoryPickTarget.value === 'modelSelect3d') {
+    selectedComponent.value.customProps.relatedModelLib = libraryCategorySelectedTitle.value;
+    selectedComponent.value.customProps.relatedModelLibId = libraryCategorySelectedId.value;
+  } else {
+    selectedComponent.value.customProps.libraryCategory = libraryCategorySelectedTitle.value;
+    selectedComponent.value.customProps.libraryCategoryId = libraryCategorySelectedId.value;
+  }
+  libraryCategoryModalVisible.value = false;
+}
+function onLibraryCategoryCancel() {
+  libraryCategoryModalVisible.value = false;
 }
 function parseList(raw: any) {
   if (!raw) return [];
@@ -848,6 +938,21 @@ function isModelSelect3DItem(item: any) {
 }
 function isFixedTemplate3DItem(item: any) {
   return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'FIXED_TEMPLATE';
+}
+function get3dPreviewButtons(item: any) {
+  const p = item?.customProps || {};
+  const buttons: string[] = [];
+  if (p.btnApplyPartNo) buttons.push('申请件号');
+  if (p.btnOpenModel) buttons.push('打开模型');
+  if (p.btnAssembleModel) buttons.push('装配模型');
+  return buttons;
+}
+function getModelSelectPreviewButtons(item: any) {
+  const p = item?.customProps || {};
+  const buttons: string[] = [];
+  if (p.btnOpenModel) buttons.push('打开模型');
+  if (p.btnAssembleModel) buttons.push('装配模型');
+  return buttons;
 }
 function isFullRowComponent(type: string) {
   return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
@@ -1089,8 +1194,9 @@ function ensureFileDefaults(component: any) {
 function ensureDataViewDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (component.customProps.inputPlaceholder === undefined) component.customProps.inputPlaceholder = '请输入设计参数1';
-  if (component.customProps.assembleButtonText === undefined) component.customProps.assembleButtonText = '装配';
+  if (component.customProps.assembleButtonText === undefined) component.customProps.assembleButtonText = '浏览';
   if (component.customProps.libraryCategory == null) component.customProps.libraryCategory = '';
+  if (component.customProps.libraryCategoryId == null) component.customProps.libraryCategoryId = '';
   if (!component.knowledgeContent) component.knowledgeContent = '';
   if (!component.knowledgeId) component.knowledgeId = '';
 }
@@ -1177,9 +1283,13 @@ function ensureTemplateBrowse3dDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (component.customProps.threeDSubtype !== 'TEMPLATE_BROWSE') return;
   const p = component.customProps;
-  if (p.templateName == null) p.templateName = '';
-  if (p.modelName == null) p.modelName = '';
+  if (component.paramName == null || String(component.paramName).trim() === '') component.paramName = '模板名称';
+  if (p.templateName == null || String(p.templateName).trim() === '') p.templateName = '模板名称';
+  if (p.templateValue == null) p.templateValue = '';
+  if (p.modelName == null || String(p.modelName).trim() === '') p.modelName = '模型名称';
+  if (p.modelValue == null) p.modelValue = '';
   if (p.relatedTemplateLib == null) p.relatedTemplateLib = '';
+  if (p.relatedTemplateLibId == null) p.relatedTemplateLibId = '';
   if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = false;
@@ -1188,8 +1298,10 @@ function ensureModelSelect3dDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (component.customProps.threeDSubtype !== 'MODEL_SELECT') return;
   const p = component.customProps;
+  if (component.paramName == null || String(component.paramName).trim() === '') component.paramName = '模型名称';
   if (p.modelSelectName == null) p.modelSelectName = '';
   if (p.relatedModelLib == null) p.relatedModelLib = '';
+  if (p.relatedModelLibId == null) p.relatedModelLibId = '';
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = true;
 }
@@ -1197,9 +1309,13 @@ function ensureFixedTemplate3dDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (component.customProps.threeDSubtype !== 'FIXED_TEMPLATE') return;
   const p = component.customProps;
-  if (p.templateName == null) p.templateName = '';
-  if (p.modelName == null) p.modelName = '';
+  if (component.paramName == null || String(component.paramName).trim() === '') component.paramName = '模板名称';
+  if (p.templateName == null || String(p.templateName).trim() === '') p.templateName = '模板名称';
+  if (p.templateValue == null) p.templateValue = '';
+  if (p.modelName == null || String(p.modelName).trim() === '') p.modelName = '模型名称';
+  if (p.modelValue == null) p.modelValue = '';
   if (p.relatedTemplateLib == null) p.relatedTemplateLib = '';
+  if (p.relatedTemplateLibId == null) p.relatedTemplateLibId = '';
   if (p.fixedTemplateDisplay == null) p.fixedTemplateDisplay = 1;
   if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
   if (p.btnOpenModel == null) p.btnOpenModel = false;
@@ -1388,12 +1504,19 @@ watch(
     formState.value.formId = props.record?.formId ?? null;
     formState.value.formCode = props.record?.formCode ?? null;
     formState.value.operationType = props.record?.formId ? 'update' : 'insert';
-    componentList.value = [
+    const mergedList = [
       ...parseList(props.record?.basicComponentList),
       ...parseList(props.record?.threeDComponentList),
       ...parseList(props.record?.uploadComponentList),
       ...parseList(props.record?.tableComponentList),
     ];
+    componentList.value = mergedList.slice().sort((a: any, b: any) => {
+      const sa = Number(a?.sortNo);
+      const sb = Number(b?.sortNo);
+      const av = Number.isFinite(sa) ? sa : Number.MAX_SAFE_INTEGER;
+      const bv = Number.isFinite(sb) ? sb : Number.MAX_SAFE_INTEGER;
+      return av - bv;
+    });
     selectedIndex.value = componentList.value.length > 0 ? 0 : -1;
   },
   { immediate: true },
@@ -1522,7 +1645,7 @@ watch(
                     disabled
                     class="data-view-preview-input browse-adjoined-input" />
                   <a-button type="primary" class="data-view-assemble-btn" disabled>
-                    {{ item.customProps?.assembleButtonText || '装配' }}
+                    {{ '浏览' }}
                   </a-button>
                 </div>
               </div>
@@ -1568,17 +1691,21 @@ watch(
               <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
                 <div class="template-browse-3d-row">
                   <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">模板名称：</div>
+                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.templateName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
                       <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
                     </div>
                   </div>
                   <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">模型名称：</div>
+                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.modelName" placeholder="请输入" disabled class="template-browse-3d-input" />
-                      <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>生成模型</a-button>
+                      <a-input :value="item.customProps?.modelValue" placeholder="请输入" disabled class="template-browse-3d-input" />
+                      <div class="three-d-preview-btn-grid">
+                        <a-button v-for="btn in get3dPreviewButtons(item)" :key="`tpl-btn-${btn}`" type="primary" size="small" class="template-browse-3d-action-btn" disabled>
+                          {{ btn }}
+                        </a-button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1586,26 +1713,38 @@ watch(
               <div v-else-if="isFixedTemplate3DItem(item)" class="template-browse-3d-preview">
                 <div class="template-browse-3d-row">
                   <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">模板名称：</div>
+                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.templateName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
                     </div>
                   </div>
                   <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">模型名称：</div>
+                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.modelName" placeholder="请输入" disabled class="template-browse-3d-input" />
-                      <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>生成模型</a-button>
+                      <a-input :value="item.customProps?.modelValue" placeholder="请输入" disabled class="template-browse-3d-input" />
+                      <div class="three-d-preview-btn-grid">
+                        <a-button v-for="btn in get3dPreviewButtons(item)" :key="`fixed-btn-${btn}`" type="primary" size="small" class="template-browse-3d-action-btn" disabled>
+                          {{ btn }}
+                        </a-button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
               <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
-                <div class="model-select-3d-label">模型名称：</div>
+                <div class="model-select-3d-label">{{ item.paramName || '模型名称' }}：</div>
                 <div class="model-select-3d-controls">
                   <a-input :value="item.customProps?.modelSelectName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
                   <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
-                  <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>装配模型</a-button>
+                  <a-button
+                    v-for="btn in getModelSelectPreviewButtons(item)"
+                    :key="`model-select-btn-${btn}`"
+                    type="primary"
+                    size="small"
+                    class="template-browse-3d-action-btn"
+                    disabled>
+                    {{ btn }}
+                  </a-button>
                 </div>
               </div>
               <div v-else-if="isWorkspaceTableItem(item)" class="fixed-table-preview">
@@ -2115,8 +2254,8 @@ watch(
                   <div class="row-field">
                     <div class="row-label">基础资源库分类：</div>
                     <div class="row-control">
-                      <a-input v-model:value="selectedComponent.customProps.libraryCategory" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="selectLibraryCategory()">浏览</a-button>
+                      <a-input v-model:value="selectedComponent.customProps.libraryCategory" disabled placeholder="请浏览选取" />
+                      <a-button type="primary" size="small" @click="selectLibraryCategoryName('dataView')">浏览</a-button>
                     </div>
                   </div>
                   <div v-if="shouldShowDataViewLibraryParam()" class="row-field">
@@ -2370,14 +2509,14 @@ watch(
                 <a-collapse-panel key="tpl" header="模板信息">
                   <div class="row-field">
                     <div class="row-label">模板名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
                   </div>
                   <div class="row-field">
-                    <div class="row-label">关联模版库：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入模版编号" /></div>
+                    <div class="row-label">模板编号：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateValue" placeholder="请输入模板编号" /></div>
                   </div>
                   <div class="row-field">
-                    <div class="row-label">固定模版是否显示：</div>
+                    <div class="row-label">是否显示：</div>
                     <div class="row-control">
                       <a-select v-model:value="selectedComponent.customProps.fixedTemplateDisplay">
                         <a-select-option :value="1">是</a-select-option>
@@ -2395,12 +2534,12 @@ watch(
                     </div>
                   </div>
                   <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                    <div class="row-label">模型名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
                   </div>
                 </a-collapse-panel>
                 <a-collapse-panel key="buttons" header="按钮定义">
-                  <div class="fixed-table-btn-checks">
+                  <div class="three-d-config-btn-checks">
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
@@ -2423,15 +2562,15 @@ watch(
                     <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
                   </div>
                   <div class="row-field">
-                    <div class="row-label">关联模型库：</div>
+                    <div class="row-label">关联模型库分类：</div>
                     <div class="row-control">
-                      <a-input v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" />
-                      <a-button type="primary" size="small">浏览</a-button>
+                      <a-input disabled v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" />
+                      <a-button type="primary" @click="selectLibraryCategoryName('modelSelect3d')" size="small">浏览</a-button>
                     </div>
                   </div>
                 </a-collapse-panel>
                 <a-collapse-panel key="buttons" header="按钮定义">
-                  <div class="model-select-3d-btn-checks">
+                  <div class="three-d-config-btn-checks">
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
                   </div>
@@ -2443,13 +2582,13 @@ watch(
                 <a-collapse-panel key="tpl" header="模板信息">
                   <div class="row-field">
                     <div class="row-label">模板名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateName" placeholder="请输入" /></div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
                   </div>
                   <div class="row-field">
-                    <div class="row-label">关联模版库：</div>
+                    <div class="row-label">关联模型库分类：</div>
                     <div class="row-control">
-                      <a-input v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" />
-                      <a-button type="primary" size="small">浏览</a-button>
+                      <a-input disabled v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" />
+                      <a-button type="primary" size="small" @click="selectLibraryCategoryName('template3d')">浏览</a-button>
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -2462,12 +2601,12 @@ watch(
                     </div>
                   </div>
                   <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                    <div class="row-label">模型名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
                   </div>
                 </a-collapse-panel>
                 <a-collapse-panel key="buttons" header="按钮定义">
-                  <div class="fixed-table-btn-checks">
+                  <div class="three-d-config-btn-checks">
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
@@ -2531,8 +2670,8 @@ watch(
       </a-form-item>
     </a-form>
     <div class="table-size-modal-actions">
-      <a-button @click="cancelTableSize">取消</a-button>
       <a-button type="primary" @click="confirmTableSize">确定</a-button>
+      <a-button @click="cancelTableSize">取消</a-button>
     </div>
   </a-modal>
 
@@ -2590,9 +2729,24 @@ watch(
       </table>
     </div>
     <div class="column-def-modal-actions">
-      <a-button @click="cancelColumnDefModal">取消</a-button>
       <a-button type="primary" @click="applyColumnDefModal">确定</a-button>
+      <a-button @click="cancelColumnDefModal">取消</a-button>
     </div>
+  </a-modal>
+
+  <a-modal v-model:visible="libraryCategoryModalVisible" title="选择节点" :mask-closable="false" :width="700" :z-index="1100" @cancel="onLibraryCategoryCancel">
+    <div class="library-category-tree-wrap">
+      <a-tree
+        :tree-data="libraryCategoryTreeData"
+        :selected-keys="libraryCategorySelectedKeys"
+        :expanded-keys="libraryCategoryExpandedKeys"
+        @select="onLibraryCategorySelect"
+        @update:expandedKeys="(keys: any) => (libraryCategoryExpandedKeys = keys)" />
+    </div>
+    <template #footer>
+      <a-button type="primary" @click="onLibraryCategoryConfirm">确定</a-button>
+      <a-button @click="onLibraryCategoryCancel">取消</a-button>
+    </template>
   </a-modal>
 
   <FormulaEditorModal
@@ -2900,6 +3054,8 @@ watch(
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 16px;
   align-items: start;
+  width: 100%;
+  min-width: 0;
 }
 .template-browse-3d-group {
   display: flex;
@@ -2915,7 +3071,32 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.three-d-preview-btn-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  overflow: visible;
+  white-space: nowrap;
+  max-width: none;
+}
+.three-d-preview-btn-grid :deep(.ant-btn) {
+  flex: 0 0 auto;
+}
+.three-d-config-btn-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+  justify-items: start;
+  align-items: center;
+  width: 100%;
+}
+.three-d-config-btn-checks :deep(.ant-checkbox-wrapper) {
+  margin-inline: 0 !important;
 }
 /* 文本框宽度与 .preview-field（单行输入）一致 */
 .template-browse-3d-input {
@@ -3378,6 +3559,14 @@ watch(
 }
 .range-definition-values :deep(.ant-input) {
   width: 100%;
+}
+.library-category-tree-wrap {
+  height: 420px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 12px;
 }
 .footer-actions {
   border-top: 1px solid #f0f0f0;

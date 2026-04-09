@@ -40,7 +40,7 @@ const parameterTypeOptions = [
 ];
 // 资源库类型选项
 const resourceLibraryTypeOptions = [
-  { label: '模块库', value: 1 },
+  { label: '模型库', value: 1 },
   { label: 'UDF库', value: 2 },
   { label: '列表数据类', value: 3 },
   { label: '系统集成类', value: 4 },
