@@ -177,4 +177,5 @@ export class UserResponseDTOModel extends BaseModel implements UserResponseDTO {
   province: string = '';
   serviceStationName: string = '';
   productLine: string = '';
-}
+  confidentialLevel: number = 0;
+  idNumber: string = '';}

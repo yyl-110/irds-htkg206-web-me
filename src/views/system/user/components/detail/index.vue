@@ -81,6 +81,8 @@ const formData = ref<Partial<UserFormDTO>>({
   province: '',
   serviceStationName: '',
   productLine: '',
+  confidentialLevel: 0,
+  idNumber: '',
 });
 /** 页面下拉字典 page_combo_config 字典常量定义 */
 const categoryList = computed(() => {
@@ -273,6 +275,10 @@ async function handleModalAddOrUpdate(id: any) {
     province: res.data.data?.province,
     serviceStationName: res.data.data?.serviceStationName,
     productLine: res.data.data?.productLine,
+    confidentialLevel: res.data.data?.confidentialLevel,
+    idNumber: res.data.data?.idNumber,
+
+
   };
   showfrom.value = data.userCategory ? `${JSON.parse(data.userCategory)}` : '';
   targetKeys.value = res.data.data?.roles;
@@ -324,6 +330,9 @@ async function submit() {
       province: formData.value.province,
       serviceStationName: formData.value.serviceStationName,
       productLine: formData.value.productLine,
+      confidentialLevel: formData.value.confidentialLevel,
+      idNumber: formData.value.idNumber,
+
     };
 
     // 修改 保存
@@ -365,17 +374,13 @@ defineExpose({ handleModalAddOrUpdate });
 
       <a-row>
         <a-col :span="10">
-          <a-form-item :label="$t('电话')" name="mobile" class="f-item">
+          <a-form-item :label="$t('联系电话')" name="mobile" class="f-item">
             <a-input v-model:value="formData.mobile" disabled />
           </a-form-item>
         </a-col>
         <a-col :span="10">
-          <a-form-item :label="$t('类型')" name="type" class="f-item">
-            <a-select v-model:value="formData.type" :placeholder="$t('请选择用户类型')" disabled show-search>
-              <a-select-option v-for="item in userType" :key="item.label" :value="item.value">
-                {{ item.label }}
-              </a-select-option>
-            </a-select>
+          <a-form-item :label="$t('邮箱')" name="email" class="f-item">
+            <a-input v-model:value="formData.email" disabled/>
           </a-form-item>
         </a-col>
       </a-row>
@@ -401,6 +406,25 @@ defineExpose({ handleModalAddOrUpdate });
         </a-col>
       </a-row>
       <a-row>
+        <a-col :span="10">
+          <a-form-item :label="$t('身份证号')" name="idNumber" class="f-item" >
+            <a-input v-model:value="formData.idNumber" disabled/>
+          </a-form-item>
+        </a-col>
+        <a-col :span="10">
+          <a-form-item :label="$t('是否专家')" name="type" class="f-item">
+            <a-input :value="formData.type == '1' ? '是' : '否'" disabled />
+          </a-form-item>
+        </a-col>
+        
+      </a-row>
+      <a-row> 
+        <a-col :span="10">
+          <a-form-item :label="$t('密级')" name="type" class="f-item">
+            <a-input :value="formData.confidentialLevel==2 ?'一般': formData.confidentialLevel==3 ? '重要' : formData.confidentialLevel==4 ? '核心':'公开' " disabled/>
+          </a-form-item>
+          
+        </a-col>
         <a-col :span="10">
           <a-form-item :label="$t('备注')" name="remark" class="f-item">
             <a-input v-model:value="formData.remark" disabled />

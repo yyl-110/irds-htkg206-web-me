@@ -91,11 +91,20 @@ const columns: VxeGridPropTypes.Columns<UserPageItemResponseDTOModel> = [
   {
     title: WeiI18n.t('部门名称').value,
     field: 'dept',
-    width: 300,
+    width: 200,
     align: 'left',
     slots: {
       default: 'dept_default',
     },
+  },
+  {
+    title: WeiI18n.t('密级').value,
+    field: 'confidentialLevel',
+    width: 100,
+    slots: {
+      default: 'confidentialLevel_default',
+    },
+    //根据行中数据数值显示密级
   },
   {
     title: WeiI18n.t('状态').value,
@@ -212,16 +221,11 @@ onMounted(() => {
  * 删除用户
  * @param id user id
  */
-function handleDelete(id: number) {
-  Modal.confirm({
-    title: `${WeiI18n.t('确定要删除吗').value}?`,
-    async onOk() {
-      await AdminApiSystemUser.deleteUser1({ id });
-      message.success(WeiI18n.t('删除成功').value);
-      pagination.current = 1;
-      getListData();
-    },
-  });
+async function handleDelete(id: number) {
+  await AdminApiSystemUser.deleteUser1({ id });
+  message.success(WeiI18n.t('删除成功').value);
+  pagination.current = 1;
+  getListData();
 }
 /**
  * 新增 or 修改 弹窗
@@ -470,6 +474,13 @@ async function exportData() {
         <template #dept_default="{ row }">
           <div>{{ handledeptIdList(row) }}</div>
         </template>
+        <template #confidentialLevel_default="{ row }">
+          <div v-if="row.confidentialLevel==2">一般</div>
+          <div v-else-if="row.confidentialLevel==3">重要</div>
+          <div v-else-if="row.confidentialLevel==4">核心</div>
+          <div v-else>公开</div>
+        </template>
+        
         <template #userType_default="{ row }">
           <div>{{ userList[row.type - 1]?.label }}</div>
         </template>

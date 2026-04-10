@@ -35,14 +35,35 @@ const updFlag = ref<boolean>(false);
 const formRef = ref<FormInstance>();
 const userType = ref([
   {
-    label: '普通用户',
+    label: '是',
     value: 1,
   },
   {
-    label: 'pdm',
+    label: '否',
     value: 2,
   },
 ]);
+
+const confidentialLevelList = ref([
+  {
+    label: '公开',
+    value: 1,
+  },
+  {
+    label: '一般',
+    value: 2,
+  },
+  {
+    label: '重要',
+    value: 3,
+  },
+  {
+    label: '核心',
+    value: 4,
+  },
+]);
+
+
 const regionList = ref([]);
 /** 获取字典 */
 const useDict = useDictStore();
@@ -88,11 +109,13 @@ const formData = ref<Partial<UserFormDTO>>({
   mainMachineFactory: '', // 主机厂用户
   company: '', // 业务公司
   remark: '', // 备注
-  type: '', //用户类型
+  type: 2, //用户类型
   industry: [], // 行业
   province: '',
   serviceStationName: '',
   productLine: '',
+  confidentialLevel: 1,
+  idNumber:'',
 });
 /** 页面下拉字典 page_combo_config 字典常量定义 */
 const categoryList = computed(() => {
@@ -338,6 +361,8 @@ async function handleModalAddOrUpdate(id: any) {
       province: res.data.data?.province,
       serviceStationName: res.data.data?.serviceStationName,
       productLine: res.data.data?.productLine,
+      confidentialLevel: Number(res.data.data?.confidentialLevel || 1),
+      idNumber: res.data.data?.idNumber,
     };
     targetKeys.value = res.data.data?.roles;
     if (res.data.data?.roles) {
@@ -393,6 +418,9 @@ async function submit() {
       province: formData.value.province,
       serviceStationName: formData.value.serviceStationName,
       productLine: formData.value.productLine,
+      confidentialLevel: Number(formData.value.confidentialLevel || 1),
+      idNumber: formData.value.idNumber,
+
     };
     if (formData.value.id) {
       // 修改 保存
@@ -443,7 +471,7 @@ defineExpose({ handleModalAddOrUpdate });
       <a-row>
         <a-col :span="10">
           <a-form-item
-            :label="$t('电话')"
+            :label="$t('联系电话')"
             name="mobile"
             :rules="[
               {
@@ -457,12 +485,8 @@ defineExpose({ handleModalAddOrUpdate });
           </a-form-item>
         </a-col>
         <a-col :span="10">
-          <a-form-item :label="$t('类型')" name="type" class="f-item" :rules="[{ required: true, message: `${$t('请选择用户类型')}` }]">
-            <a-select v-model:value="formData.type" :placeholder="$t('请选择用户类型')" show-search>
-              <a-select-option v-for="item in userType" :key="item.label" :value="item.value">
-                {{ item.label }}
-              </a-select-option>
-            </a-select>
+          <a-form-item :label="$t('邮箱')" name="email" class="f-item">
+            <a-input v-model:value="formData.email" />
           </a-form-item>
         </a-col>
       </a-row>
@@ -493,6 +517,37 @@ defineExpose({ handleModalAddOrUpdate });
           </a-form-item>
         </a-col>
       </a-row>
+
+      <a-row>
+        <a-col :span="10">
+          <a-form-item :label="$t('身份证号')" name="idNumber" class="f-item" :rules="[{ required: true, message: `${$t('请输入身份证号')}` }]">
+            <a-input v-model:value="formData.idNumber" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="10">
+          <a-form-item :label="$t('是否专家')" name="type" class="f-item">
+            <a-select v-model:value="formData.type" :placeholder="$t('请选择是否专家')" show-search>
+              <a-select-option v-for="item in userType" :key="item.label" :value="item.value">
+                {{ item.label }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+        
+      </a-row>
+      <a-row> 
+        <a-col :span="10">
+          <a-form-item :label="$t('密级')" name="confidentialLevel" class="f-item" :rules="[{ required: true, message: `${$t('请选择密级')}` }]">
+            <a-select v-model:value="formData.confidentialLevel" :placeholder="$t('请选择密级')" show-search>
+              <a-select-option v-for="item in confidentialLevelList" :key="item.label" :value="item.value">
+                {{ item.label }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+      </a-row>
+            
+
       <a-row>
         <a-col :span="10">
           <a-form-item :label="$t('备注')" name="remark" class="f-item">
