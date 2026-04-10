@@ -4171,7 +4171,7 @@ export interface UserFormDTO {
    * 用户类别
    * @example ""
    */
-  type: string;
+  type: number | string;
 
   /**
    * 备注
@@ -4186,6 +4186,17 @@ export interface UserFormDTO {
   province: string;
   serviceStationName: string;
   productLine: string;
+     /**
+   * 密级
+   * @example ""
+   */
+  confidentialLevel: number;
+   /**
+   * 身份证号
+   * @example ""
+   */
+  idNumber: string;
+  
 }
 /** 数据同步异常管理 */
 export interface AbnormalFormDTO {
