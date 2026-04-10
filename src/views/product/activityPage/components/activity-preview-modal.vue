@@ -7,7 +7,7 @@ import { InboxOutlined } from '@ant-design/icons-vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
-
+import ModuleLibraryPickerModal from './module-library-picker-modal.vue';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
@@ -58,6 +58,12 @@ const inputRangeBlurredMap = ref<Record<string, boolean>>({});
 /** 限制型范围失焦校验失败时回退到最近一次合法值 */
 const inputLastValidValueMap = ref<Record<string, string>>({});
 const previewUploadFileMap = ref<Record<string, any[]>>({});
+const modulePickerVisible = ref(false);
+const modulePickerItemKey = ref('');
+const modulePickerCategoryId = ref('');
+const modulePickerMenuId = ref('');
+const modulePickerMode = ref<'dataView' | 'templateBrowse' | 'modelSelectBrowse'>('dataView');
+const modulePickerTargetFieldKey = ref('');
 function getPreviewItemKey(item: any, index: number) {
   return String(item?.id ?? `${item?.componentType}-${index}`);
 }
@@ -104,9 +110,132 @@ function isModelSelect3DItem(item: any) {
 function isFixedTemplate3DItem(item: any) {
   return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'FIXED_TEMPLATE';
 }
+function shouldShowFixedTemplateName(item: any) {
+  const display = item?.customProps?.fixedTemplateDisplay;
+  return display === 1 || display === '1' || display === true;
+}
+function get3dPreviewButtons(item: any) {
+  const p = item?.customProps || {};
+  const buttons: string[] = [];
+  if (p.btnApplyPartNo) buttons.push('申请件号');
+  if (p.btnOpenModel) buttons.push('打开模型');
+  if (p.btnAssembleModel) buttons.push('装配模型');
+  return buttons;
+}
+function getModelSelectPreviewButtons(item: any) {
+  const p = item?.customProps || {};
+  const buttons: string[] = [];
+  if (p.btnOpenModel) buttons.push('打开模型');
+  if (p.btnAssembleModel) buttons.push('装配模型');
+  return buttons;
+}
 /** 输入输出类型为「输出」时预览不可编辑（与配置页 ioType 一致） */
 function isOutputIoType(item: any) {
   return String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT';
+}
+function shouldDisable3dModelInput(item: any) {
+  return isOutputIoType(item) || !!item?.customProps?.btnApplyPartNo;
+}
+async function showModuleInfo(item: any, index: number, mode: 'dataView' | 'templateBrowse' | 'modelSelectBrowse' = 'dataView') {
+  const isTemplateBrowse = mode === 'templateBrowse';
+  const isModelSelectBrowse = mode === 'modelSelectBrowse';
+  const categoryId = isTemplateBrowse
+    ? String(item?.customProps?.relatedTemplateLibId ?? '').trim()
+    : isModelSelectBrowse
+      ? String(item?.customProps?.relatedModelLibId ?? '').trim()
+      : String(item?.customProps?.libraryCategoryId ?? '').trim();
+  const menuId = isTemplateBrowse || isModelSelectBrowse ? '9' : String(item?.libraryType ?? '').trim();
+  if (!categoryId || !menuId) {
+    message.warning(isTemplateBrowse || isModelSelectBrowse ? '请先在配置中选择关联模型库分类' : '请先在配置中选择基础资源库类型和分类节点');
+    return;
+  }
+  modulePickerMode.value = mode;
+  modulePickerItemKey.value = String(item?.id ?? '');
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = menuId;
+  if (mode === 'templateBrowse') {
+    modulePickerTargetFieldKey.value = getPreview3dSubKey(item, index, 'templateName');
+  } else if (mode === 'modelSelectBrowse') {
+    modulePickerTargetFieldKey.value = getPreview3dSubKey(item, index, 'modelSelectName');
+  } else {
+    modulePickerTargetFieldKey.value = getPreviewItemKey(item, index);
+  }
+  modulePickerVisible.value = true;
+}
+function mapLibraryParamToKeywords(code: string): string[] {
+  const c = String(code ?? '')
+    .trim()
+    .toUpperCase();
+  if (c === 'PART_NO') return ['件号', '编码', '编码号'];
+  if (c === 'PART_NAME') return ['名称'];
+  if (c === 'MATERIAL') return ['材料', '材质'];
+  return [];
+}
+function findValueByColumnKeywords(row: any, columns: any[], keywords: string[]) {
+  const col = (Array.isArray(columns) ? columns : []).find((c: any) => keywords.some((kw: string) => String(c?.title ?? '').includes(kw)));
+  if (!col) return '';
+  return String(row?.[col.dataIndex] ?? '').trim();
+}
+function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
+  const list = previewList.value;
+  const idx = list.findIndex((it: any) => String(it?.id ?? '') === modulePickerItemKey.value);
+  if (idx < 0) return;
+  const item = list[idx] as any;
+  const key = getPreviewItemKey(item, idx);
+  const cols = Array.isArray(payload?.columns) ? payload.columns : [];
+  const nextFieldValueMap: Record<string, string> = { ...previewFieldValueMap.value };
+  const partNo = findValueByColumnKeywords(payload?.row, cols, ['模型件号', '件号']);
+  const modelType = findValueByColumnKeywords(payload?.row, cols, ['模型类型', '类型']);
+  const mergedValue = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
+  if (modulePickerMode.value === 'templateBrowse' || modulePickerMode.value === 'modelSelectBrowse') {
+    const targetKey =
+      modulePickerTargetFieldKey.value ||
+      (modulePickerMode.value === 'modelSelectBrowse' ? getPreview3dSubKey(item, idx, 'modelSelectName') : getPreview3dSubKey(item, idx, 'templateName'));
+    nextFieldValueMap[targetKey] = mergedValue;
+    previewFieldValueMap.value = nextFieldValueMap;
+    return;
+  }
+  if (mergedValue) {
+    nextFieldValueMap[key] = mergedValue;
+  } else {
+    const keywords = mapLibraryParamToKeywords(item?.libraryParam);
+    let targetCol = cols.find((c: any) => keywords.some((kw: string) => String(c?.title ?? '').includes(kw)));
+    if (!targetCol) targetCol = cols[0];
+    const fallbackValue = targetCol ? payload?.row?.[targetCol.dataIndex] : '';
+    nextFieldValueMap[key] = String(fallbackValue ?? '');
+  }
+
+  // 联动回填：按返回列 parameterNum 匹配页面中相同 paramCode 的组件，批量赋值
+  cols.forEach((col: any) => {
+    const parameterNum = String(col?.parameterNum ?? '').trim();
+    const dataIndex = String(col?.dataIndex ?? '').trim();
+    if (!parameterNum || !dataIndex) return;
+    const v = String(payload?.row?.[dataIndex] ?? '');
+    for (let i = 0; i < list.length; i++) {
+      const comp = list[i] as any;
+      if (String(comp?.paramCode ?? '').trim() !== parameterNum) continue;
+      const compKey = getPreviewItemKey(comp, i);
+      nextFieldValueMap[compKey] = v;
+    }
+  });
+
+  previewFieldValueMap.value = nextFieldValueMap;
+}
+function handle3dPreviewButtonClick(btn: string, item: any, index: number) {
+  const text = String(btn ?? '').trim();
+  if (text === '申请件号') {
+    void showModuleInfo(item, index, 'templateBrowse');
+    return;
+  }
+  if (text === '打开模型' || text === '生成模型') {
+    message.info('打开模型（示例）');
+    return;
+  }
+  if (text === '装配模型') {
+    message.info('装配模型（示例）');
+    return;
+  }
+  message.info(`${text}（示例）`);
 }
 /** 兼容后端/配置里常见 Java 日期格式到 dayjs（Antd DatePicker）格式 */
 function normalizeDateFormatForPicker(raw: unknown) {
@@ -160,8 +289,9 @@ watch(
         if (isTemplateBrowse3DItem(item) || isFixedTemplate3DItem(item)) {
           const k1 = getPreview3dSubKey(item, index, 'templateName');
           const k2 = getPreview3dSubKey(item, index, 'modelName');
-          if (!(k1 in next)) next[k1] = String(item?.customProps?.templateName ?? '');
-          if (!(k2 in next)) next[k2] = String(item?.customProps?.modelName ?? '');
+          // 模板/模型「名称」用于标签展示，输入框默认值应来自 value 字段（为空则保持空）
+          if (!(k1 in next)) next[k1] = String(item?.customProps?.templateValue ?? '');
+          if (!(k2 in next)) next[k2] = String(item?.customProps?.modelValue ?? '');
         }
         if (isModelSelect3DItem(item)) {
           const k1 = getPreview3dSubKey(item, index, 'modelSelectName');
@@ -566,10 +696,10 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                 <div class="data-view-preview-row">
                   <a-input
                     v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                    :placeholder="item.customProps?.inputPlaceholder || '请输入设计参数1'"
-                    :disabled="isOutputIoType(item)"
+                    :placeholder="'请选择参数'"
+                    :disabled="true"
                     class="data-view-preview-input browse-adjoined-input" />
-                  <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)">{{ item.customProps?.assembleButtonText || '装配' }}</a-button>
+                  <a-button type="primary" class="data-view-assemble-btn" @click="showModuleInfo(item, index, 'dataView')" :disabled="isOutputIoType(item)">{{ '浏览' }}</a-button>
                 </div>
               </div>
 
@@ -635,70 +765,99 @@ function onPreviewFileChange(item: any, index: number, info: any) {
               </div>
 
               <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
-                <div class="component-title">{{ item.paramName || '未命名组件' }}</div>
                 <div class="template-browse-3d-row">
-                  <div class="template-browse-3d-col">
-                    <div class="component-title">模板名称：</div>
-                    <div class="preview-field-join-row">
+                  <div class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
+                    <div class="template-browse-3d-controls">
                       <a-input
                         v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
-                        placeholder="请输入"
-                        :disabled="isOutputIoType(item)"
-                        class="preview-field template-browse-3d-input--grey" />
-                      <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)">浏览</a-button>
+                        placeholder="请选择参数"
+                        :disabled="true"
+                        class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-button type="primary" @click="showModuleInfo(item, index, 'templateBrowse')" size="small" class="template-browse-3d-action-btn">浏览</a-button>
                     </div>
                   </div>
-                  <div class="template-browse-3d-col">
-                    <div class="component-title">模型名称：</div>
-                    <div class="preview-field-join-row">
+                  <div class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
+                    <div class="template-browse-3d-controls">
                       <a-input
                         v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
                         placeholder="请输入"
-                        :disabled="isOutputIoType(item)"
-                        class="preview-field" />
-                      <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)">生成模型</a-button>
+                        :disabled="shouldDisable3dModelInput(item)"
+                        class="template-browse-3d-input" />
+                      <div class="three-d-preview-btn-grid">
+                        <a-button
+                          v-for="btn in get3dPreviewButtons(item)"
+                          :key="`preview-tpl-btn-${btn}`"
+                          type="primary"
+                          size="small"
+                          class="template-browse-3d-action-btn"
+                          :disabled="isOutputIoType(item)"
+                          @click="handle3dPreviewButtonClick(btn, item, index)">
+                          {{ btn }}
+                        </a-button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div v-else-if="isFixedTemplate3DItem(item)" class="template-browse-3d-preview">
-                <div class="component-title">{{ item.paramName || '未命名组件' }}</div>
                 <div class="template-browse-3d-row">
-                  <div class="template-browse-3d-col">
-                    <div class="component-title">模板名称：</div>
-                    <div class="preview-field-join-row">
+                  <div v-if="shouldShowFixedTemplateName(item)" class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
+                    <div class="template-browse-3d-controls">
                       <a-input
                         v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
                         placeholder="请输入"
-                        :disabled="isOutputIoType(item)"
-                        class="preview-field template-browse-3d-input--grey" />
+                        :disabled="true"
+                        class="template-browse-3d-input template-browse-3d-input--grey" />
                     </div>
                   </div>
-                  <div class="template-browse-3d-col">
-                    <div class="component-title">模型名称：</div>
-                    <div class="preview-field-join-row">
+                  <div class="template-browse-3d-group">
+                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
+                    <div class="template-browse-3d-controls">
                       <a-input
                         v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
                         placeholder="请输入"
-                        :disabled="isOutputIoType(item)"
-                        class="preview-field" />
-                      <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)">生成模型</a-button>
+                        :disabled="shouldDisable3dModelInput(item)"
+                        class="template-browse-3d-input" />
+                      <div class="three-d-preview-btn-grid">
+                        <a-button
+                          v-for="btn in get3dPreviewButtons(item)"
+                          :key="`preview-fixed-btn-${btn}`"
+                          type="primary"
+                          size="small"
+                          class="template-browse-3d-action-btn"
+                          :disabled="isOutputIoType(item)"
+                          @click="handle3dPreviewButtonClick(btn, item, index)">
+                          {{ btn }}
+                        </a-button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
-                <div class="component-title">{{ item.paramName || '未命名组件' }}</div>
-                <div class="preview-field-join-row">
+                <div class="model-select-3d-label">{{ item.paramName || '模型名称' }}：</div>
+                <div class="model-select-3d-controls">
                   <a-input
                     v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')]"
                     placeholder="请输入"
+                    disabled
+                    class="template-browse-3d-input template-browse-3d-input--grey" />
+                  <a-button type="primary" size="small" @click="showModuleInfo(item, index, 'modelSelectBrowse')" class="template-browse-3d-action-btn">浏览</a-button>
+                  <a-button
+                    v-for="btn in getModelSelectPreviewButtons(item)"
+                    :key="`preview-model-select-btn-${btn}`"
+                    type="primary"
+                    size="small"
+                    class="template-browse-3d-action-btn"
                     :disabled="isOutputIoType(item)"
-                    class="preview-field template-browse-3d-input--grey" />
-                  <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)">浏览</a-button>
-                  <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)">装配模型</a-button>
+                    @click="handle3dPreviewButtonClick(btn, item, index)">
+                    {{ btn }}
+                  </a-button>
                 </div>
               </div>
             </div>
@@ -710,6 +869,12 @@ function onPreviewFileChange(item: any, index: number, info: any) {
       </div>
     </div>
   </a-modal>
+  <ModuleLibraryPickerModal
+    v-model:visible="modulePickerVisible"
+    :category-id="modulePickerCategoryId"
+    :menu-id="modulePickerMenuId"
+    :user-id="userStore.getUser.id"
+    @confirm="onModulePickerConfirm" />
 </template>
 
 <style lang="less">
@@ -848,6 +1013,20 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .model-select-3d-preview {
   width: 100%;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.model-select-3d-label {
+  font-size: 12px;
+  color: #444;
+}
+.model-select-3d-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 .template-browse-3d-preview {
   width: 100%;
@@ -857,8 +1036,43 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .template-browse-3d-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
+  gap: 8px;
   align-items: start;
+}
+.template-browse-3d-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.template-browse-3d-label {
+  font-size: 12px;
+  color: #444;
+}
+.template-browse-3d-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.template-browse-3d-input {
+  width: 420px;
+  max-width: 100%;
+}
+.three-d-preview-btn-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+.template-browse-3d-action-btn {
+  flex-shrink: 0;
+  min-width: 64px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
 }
 .template-browse-3d-col {
   min-width: 0;

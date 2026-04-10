@@ -707,7 +707,7 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const latestFormId = list.reduce((max, item) => Math.max(max, toNumOrFallback(item?.formId)), Number.MIN_SAFE_INTEGER);
   const filtered = list.filter(item => toNumOrFallback(item?.formId) === latestFormId);
   const finalList = filtered.length ? filtered : list;
-  const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, 0) - toNumOrFallback(b?.sortNo, 0));
+  const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, Number.MAX_SAFE_INTEGER) - toNumOrFallback(b?.sortNo, Number.MAX_SAFE_INTEGER));
   const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
   const uploadTypes = ['FILE'];
   const tableTypes = ['TABLE'];
