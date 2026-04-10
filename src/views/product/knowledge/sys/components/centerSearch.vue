@@ -366,7 +366,7 @@ const handleClose = () => {
     .ant-tabs-tab-btn {
       font-weight: 600;
       font-size: 14px;
-      color: #1366d1;
+      color: var(--ant-primary-color);
     }
   }
 

@@ -229,7 +229,7 @@ const closeDialog = () => {
         </a-form>
         <div class="listWrap w-full flex flex-wrap justify-start gap-[16px] mt-[16px]">
           <div v-for="item in userList" :key="item.id" class="pic-list">
-            <a-avatar class="elAvatar" :size="44"><span style="color: #1366d1; font-size: 30px">{{
+            <a-avatar class="elAvatar" :size="44"><span class="text-primary font-[30px]">{{
               item.name[0]
                 }}</span></a-avatar>
             <div style="margin-top: 12px">
@@ -298,7 +298,7 @@ const closeDialog = () => {
     color: #333;
 
     &:hover {
-      color: #0d53e2;
+      color: var(--ant-primary-color);
     }
   }
 }
@@ -333,7 +333,7 @@ const closeDialog = () => {
       font-family: PingFang SC, PingFang SC;
       font-weight: 400;
       font-size: 14px;
-      color: #1366d1;
+      color: var(--ant-primary-color);
       line-height: 22px;
     }
   }
@@ -426,7 +426,7 @@ const closeDialog = () => {
         background: #ffffff;
         border-radius: 4px 4px 4px 4px;
         font-size: 12px;
-        color: #1366d1;
+        color: var(--ant-primary-color);
         cursor: pointer;
         margin-right: 8px;
         text-align: center;
@@ -469,12 +469,12 @@ const closeDialog = () => {
 
       &:hover {
         cursor: pointer;
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
 
       .elTag {
         margin-right: 8px;
-        color: #155bd4 !important;
+        color: var(--ant-primary-color) !important;
         background: #edf4ff !important;
       }
     }
@@ -533,7 +533,7 @@ const closeDialog = () => {
     cursor: pointer;
 
     &:hover {
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -631,7 +631,7 @@ const closeDialog = () => {
         background: #ffffff;
         border-radius: 4px 4px 4px 4px;
         font-size: 12px;
-        color: #1366d1;
+        color: var(--ant-primary-color);
         cursor: pointer;
         margin-right: 8px;
         text-align: center;

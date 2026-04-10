@@ -28,6 +28,18 @@ const docId = ref('');
 const showDetail = ref(false);
 const formInline = ref({});
 
+const confidentialLevel = computed(() => {
+  if (props.textData.content.confidential_level === 0)
+    return '公开';
+  if (props.textData.content.confidential_level === 1)
+    return '内部';
+  if (props.textData.content.confidential_level === 2)
+    return '秘密';
+  if (props.textData.content.confidential_level === 3)
+    return '机密';
+  return '公开';
+})
+
 const viewPdfFun = async () => {
   const params = {
     name: useUserStore().getUser.userName, //userName
@@ -102,7 +114,7 @@ const closeShare = () => {
   }, 1000);
 };
 
-const downFun = () => {};
+const downFun = () => { };
 
 const getDes = () => {
   showDetail.value = true;
@@ -128,21 +140,26 @@ const getDes = () => {
         <span>{{ textData.content.fileType[0] }}</span>
       </div>
       <div style="width: 85%">
-        <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0" class="box-item">
-          <div v-html="textData.highlightFields?.fileName[0] + '.' + textData.content.fileType" class="highlightName" @click="viewPdfFun"></div>
+        <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0"
+          class="box-item">
+          <div v-html="textData.highlightFields?.fileName[0] + '.' + textData.content.fileType" class="highlightName"
+            @click="viewPdfFun"></div>
         </div>
         <div v-else class="box-item">
-          <div class="highlightName" @click="viewPdfFun">{{ textData.content.fileName }}.{{ textData.content.fileType }}</div>
+          <div class="highlightName" @click="viewPdfFun">{{ textData.content.fileName }}.{{ textData.content.fileType }}
+          </div>
         </div>
         <div style="height: 26px; margin-top: 4px">
           <a-breadcrumb separator="|">
             <a-breadcrumb-item>{{ textData.content.version || '' }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ getTimes(Date.parse(textData.content.addTime)) || '' }}</a-breadcrumb-item>
+            <a-breadcrumb-item>{{ confidentialLevel }}</a-breadcrumb-item>
           </a-breadcrumb>
         </div>
       </div>
     </div>
-    <div v-if="textData.highlightFields?.summary && textData.highlightFields?.summary.length > 0" v-html="textData.highlightFields?.summary[0]" class="desc descColor"></div>
+    <div v-if="textData.highlightFields?.summary && textData.highlightFields?.summary.length > 0"
+      v-html="textData.highlightFields?.summary[0]" class="desc descColor"></div>
     <div v-else class="desc">{{ textData.content.summary }}</div>
     <div class="doc-list-bottom">
       <div class="author">
@@ -195,13 +212,11 @@ const getDes = () => {
         </a-tooltip>
       </div>
     </div>
-    <comment
-      :comment-dialog-visible="commentDialogVisible"
-      :common-deail="commentDetail"
-      @close-comment-dialog-notification="closeCommentDialogNotification"
-      @get-flag-list="getList" />
+    <comment :comment-dialog-visible="commentDialogVisible" :common-deail="commentDetail"
+      @close-comment-dialog-notification="closeCommentDialogNotification" @get-flag-list="getList" />
 
-    <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="1" :tab-flag="1" @close-share="closeShare" />
+    <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="1" :tab-flag="1"
+      @close-share="closeShare" />
 
     <draggable-modal :closable="false" v-model:visible="showDetail" title="查看详情" width="40%" centered>
       <a-form-item label="附件名称：" :label-col="{ style: { width: '80px' } }">
@@ -255,10 +270,10 @@ const getDes = () => {
   }
 
   &:hover {
-    border-color: #155bd4;
+    border-color: var(--ant-primary-color);
 
     .highlightName {
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -342,7 +357,7 @@ const getDes = () => {
         cursor: pointer;
 
         &:hover {
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
 
         &:last-child {

@@ -29,17 +29,17 @@
                     <span class="sideContent-data-top-right-text" @click.stop="mapDetail(item)">详情</span>
                     <span v-if="item.enableModify" class="sideContent-data-top-right-text"
                       @click.stop="mapEdit(item)">编辑</span>
-                    <span v-if="item.enableDelete" style="color: #155bd4; cursor: pointer"
+                    <span v-if="item.enableDelete" class="text-primary" style="cursor: pointer"
                       @click.stop="mapDetele(item)">删除</span>
                   </div>
                 </div>
                 <div class="sideContent-data-bottom">
                   <span class="sideContent-data-bottom-text">{{
                     item.createUserName
-                    }}</span>
+                  }}</span>
                   <span class="sideContent-data-bottom-text">{{
                     getTimes(Date.parse(item.addTime))
-                    }}</span>
+                  }}</span>
                 </div>
               </div>
             </a-card>
@@ -283,7 +283,7 @@ const closeDiaDetail = () => {
     .creatText {
       font-size: 14px;
       margin-right: 10px;
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
 
     .iconStyle {
@@ -323,7 +323,7 @@ const closeDiaDetail = () => {
         justify-content: space-between;
 
         &-left {
-          color: #155bd4;
+          color: var(--ant-primary-color);
           font-size: 12px;
           height: 16px;
           line-height: 16px;
@@ -341,7 +341,7 @@ const closeDiaDetail = () => {
 
           &-text {
             margin-right: 5px;
-            color: #155bd4;
+            color: var(--ant-primary-color);
             cursor: pointer;
 
             &:last-child {
@@ -398,10 +398,10 @@ const closeDiaDetail = () => {
       margin: 0 16px 16px 0;
 
       &:hover {
-        border-color: #155bd4;
+        border-color: var(--ant-primary-color);
 
         .pic-data-top {
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
       }
 

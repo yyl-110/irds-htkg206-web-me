@@ -95,23 +95,23 @@ const getInfo = (item) => {
 };
 
 // 查看pdf
-const viewPdf = (id) => {
+const viewPdf = async (id) => {
   const params = {
     id: id,
   };
-  getPdfPreviewPath(params).then((res) => {
-    if (res && res.data.code === 200) {
-      router.push({
-        path: "/knowledge/pdfView",
-        query: { docId: res.data.data.fileUrl },
-      });
-    }
-  });
+  try {
+    const res = await getPdfPreviewPath(params);
+    router.push({
+      path: "/knowledge/pdfView",
+      query: { docId: res.data.fileUrl },
+    });
+  } catch (error) {
+    console.log('error:', error)
+  }
 };
 
 //查看pdf
 const viewPdfFun = (item) => {
-  console.log(item, "itemsdkfhakshfds");
   closeFun();
   if (
     item.fileType === "doc" ||
@@ -262,7 +262,7 @@ const closeFun = () => {
           <div v-for="(item, index) in viewHistoryData" :key="item.id"
             class="text item text-list flex justify-between py-[8px] mb-[8px]" @click="viewPdfFun(item)"
             style="border-bottom: 1px solid #E7EAEE">
-            <div class="box-item">
+            <div class="box-item pr-[32px]">
               <div class="tit">{{ item.fileName }}</div>
             </div>
             <div class="flex-shrink-0">
@@ -275,12 +275,12 @@ const closeFun = () => {
           <div v-for="(item, index) in hotArticleData" :key="item.id" @click="viewPdfFun(item)"
             style="border-bottom: 1px solid #E7EAEE" class="py-[8px]">
             <div class="text item text-list flex justify-between">
-              <div class="box-item">
+              <div class="box-item pr-[32px]">
                 <div class="tit">{{ item.fileName }}</div>
               </div>
               <div class="flex-shrink-0">
                 <span class="name">{{ item.userName }}</span>
-                <span class="time">{{
+                <span class="time ml-[6px]">{{
                   getTimes(Date.parse(item.addTime))
                 }}</span>
               </div>
@@ -376,7 +376,7 @@ const closeFun = () => {
           color: #674800;
           // .elTag {
           //   height: 24px;
-          //   // color: #155bd4 !important;
+          //   // color: var(--ant-primary-color) !important;
           //   // background: #edf4ff !important;
           //   font-family: Source Sans 3, Source Sans 3;
           //   font-weight: 400;
@@ -429,7 +429,7 @@ const closeFun = () => {
           }
 
           .Document-ico {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
       }
@@ -460,11 +460,11 @@ const closeFun = () => {
       // padding: 18px 0 0px 0;
       .more {
         cursor: pointer;
-        // color: #155bd4;
+        // color: var(--ant-primary-color);
         font-family: PingFang SC, PingFang SC;
         font-weight: 400;
         font-size: 14px;
-        color: #0d53e2;
+        color: var(--ant-primary-color);
       }
     }
 
@@ -489,12 +489,12 @@ const closeFun = () => {
 
         &:hover {
           cursor: pointer;
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
 
         .elTag {
           margin-right: 8px;
-          color: #155bd4 !important;
+          color: var(--ant-primary-color) !important;
           background: #edf4ff !important;
         }
 
@@ -518,11 +518,11 @@ const closeFun = () => {
       // padding: 18px 0 0 0;
       .more {
         cursor: pointer;
-        // color: #155bd4;
+        // color: var(--ant-primary-color);
         font-family: PingFang SC, PingFang SC;
         font-weight: 400;
         font-size: 14px;
-        color: #0d53e2;
+        color: var(--ant-primary-color);
       }
     }
 
@@ -553,12 +553,12 @@ const closeFun = () => {
 
         &:hover {
           cursor: pointer;
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
 
         .elTag {
           margin-right: 8px;
-          color: #155bd4 !important;
+          color: var(--ant-primary-color) !important;
           background: #edf4ff !important;
         }
 
@@ -577,7 +577,7 @@ const closeFun = () => {
     color: #333;
 
     &:hover {
-      color: #0d53e2;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -610,7 +610,7 @@ const closeFun = () => {
     margin-bottom: 12px;
 
     &:hover {
-      color: #0d53e2;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -641,7 +641,7 @@ const closeFun = () => {
 
           .more {
             cursor: pointer;
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -658,12 +658,12 @@ const closeFun = () => {
 
             &:hover {
               cursor: pointer;
-              color: #155bd4;
+              color: var(--ant-primary-color);
             }
 
             .elTag {
               margin-right: 8px;
-              color: #155bd4 !important;
+              color: var(--ant-primary-color) !important;
               background: #edf4ff !important;
             }
 
@@ -690,7 +690,7 @@ const closeFun = () => {
 
           .more {
             cursor: pointer;
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -711,12 +711,12 @@ const closeFun = () => {
 
             &:hover {
               cursor: pointer;
-              color: #155bd4;
+              color: var(--ant-primary-color);
             }
 
             .elTag {
               margin-right: 8px;
-              color: #155bd4 !important;
+              color: var(--ant-primary-color) !important;
               background: #edf4ff !important;
             }
 
@@ -748,7 +748,7 @@ const closeFun = () => {
           font-size: 14px;
           font-family: PingFang-SC, PingFang-SC;
           font-weight: 500;
-          // color: #155bd4;
+          // color: var(--ant-primary-color);
           line-height: 32px;
           justify-content: flex-start;
           cursor: pointer;

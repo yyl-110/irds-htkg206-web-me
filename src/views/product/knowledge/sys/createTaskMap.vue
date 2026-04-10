@@ -182,7 +182,7 @@
                   <img v-else-if="fileEditUrl" class="uploadimg" :src="fileEditUrl" alt="" />
                   <div v-else>
                     <img class="uploadimgs" src="@/assets/images/Frame.png" alt="" />
-                    <div style="font-size: 14px; color: #1366d1">
+                    <div class="font-[14px] text-primary">
                       上传封面</div>
                   </div>
                 </a-button>
@@ -982,7 +982,7 @@ const handleSuccess = () => {
   }
 
   .back {
-    background-color: #155bd4;
+    background-color: var(--ant-primary-color);
   }
 
   .main {
@@ -1021,7 +1021,8 @@ const handleSuccess = () => {
             color: #fff;
             position: absolute;
             top: 50px;
-            left: 345px;
+            transform: translateX(-54%);
+            left: 50%;
             width: 450px;
             text-align: center;
           }
@@ -1030,7 +1031,7 @@ const handleSuccess = () => {
             color: #fff;
             position: absolute;
             top: 159px;
-            left: 138px;
+            left: 2%;
             font-size: 16px;
             width: 100px;
             text-align: center;

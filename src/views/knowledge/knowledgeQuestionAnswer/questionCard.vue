@@ -302,7 +302,7 @@ const handleCurrentChange = (val, size) => {
       .author-myAnser-text {
         font-weight: 400;
         font-size: 16px;
-        color: #1366d1;
+        color: var(--ant-primary-color);
         margin-left: 5px;
       }
     }
@@ -343,7 +343,7 @@ const handleCurrentChange = (val, size) => {
       margin-left: 10px;
 
       &:hover {
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
     }
 
@@ -369,7 +369,7 @@ const handleCurrentChange = (val, size) => {
       margin: 0 20px 0 0;
 
       &-text {
-        color: #155bd4;
+        color: var(--ant-primary-color);
         cursor: pointer;
         margin-top: 2px;
       }
@@ -382,7 +382,7 @@ const handleCurrentChange = (val, size) => {
       padding-top: 3px;
 
       &-text {
-        color: #155bd4;
+        color: var(--ant-primary-color);
         cursor: pointer;
       }
     }
@@ -425,7 +425,7 @@ const handleCurrentChange = (val, size) => {
         font-family: PingFang SC, PingFang SC;
         font-weight: 500;
         font-size: 14px;
-        color: #1366d1;
+        color: var(--ant-primary-color);
         border-radius: 8px 8px 0 8px;
         margin-right: 10px;
       }
@@ -459,7 +459,7 @@ const handleCurrentChange = (val, size) => {
       align-items: center;
 
       &:hover {
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
     }
 
@@ -493,7 +493,7 @@ const handleCurrentChange = (val, size) => {
 
 
 .imgColor {
-  color: #155bd4;
+  color: var(--ant-primary-color);
   padding-top: 2px;
 }
 

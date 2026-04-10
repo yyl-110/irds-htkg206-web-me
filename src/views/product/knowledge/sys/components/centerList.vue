@@ -1,5 +1,5 @@
 <template>
-  <div class="p-[16px] h-full flex flex-col">
+  <div class="p-[16px] h-full flex flex-col pb-0">
     <div class="header flex-shrink-0">
       <div class="flex items-center gap-[8px]">
         <a-input placeholder="请输入文件名称" class="max-w-[200px]" v-model:value="searchData.dataFileName"
@@ -211,7 +211,7 @@ watch(() => props.kldTreeId, () => {
     .ant-tabs-tab-btn {
       font-weight: 600;
       font-size: 14px;
-      color: #1366d1;
+      color: var(--ant-primary-color);
     }
   }
 

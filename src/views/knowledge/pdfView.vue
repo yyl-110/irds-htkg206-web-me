@@ -78,9 +78,9 @@ watch(
       <iframe v-else-if="directPdfSrc" :src="directPdfSrc" />
       <div v-else class="empty-tip">未获取到可预览的文件地址</div>
     </div>
-    <a-button type="primary" class="goback" @click="goback"> 返回 </a-button>
-    <a-button v-if="fileDataUrl" class="open-link" @click="openInNewTab">新窗打开</a-button>
-    <a-button v-if="hidden" class="buttn" type="primary" @click="completed">学习完成</a-button>
+    <a-button type="primary" class="goback" @click="goback">返回</a-button>
+    <a-button v-if="fileDataUrl" class="open-link" @click="openInNewTab">新窗<br/>打开</a-button>
+    <a-button v-if="hidden" class="buttn" type="primary" @click="completed">学习<br/>完成</a-button>
   </div>
 </template>
 
@@ -93,6 +93,10 @@ watch(
   border: 1px solid #dcdee0;
   margin: 15px auto;
   overflow-y: auto;
+
+  :deep(.ant-btn) {
+    padding: 0;
+  }
 
   .top {
     margin: 20px;
@@ -189,14 +193,18 @@ watch(
     font-size: 14px;
     font-family: PingFang-SC, PingFang-SC;
     font-weight: 500;
-    color: #222;
+    color: #fff;
     cursor: pointer;
     width: 54px;
     height: 54px;
     border-radius: 50%;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
     z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
+
   .open-link {
     position: fixed;
     right: 24px;
@@ -208,11 +216,13 @@ watch(
     line-height: 1.2;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
     z-index: 10;
+    text-align: center;
   }
+
   .open-link :deep(span) {
-    transform: translateX(-3px);
     display: inline-block;
   }
+
   .empty-tip {
     height: 100%;
     display: flex;

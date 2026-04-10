@@ -127,7 +127,7 @@ const tag2 = computed(() =>
               Source Sans 3;
             font-weight: 600;
             font-size: 14px;
-            color: #1366d1;
+            color: var(--ant-primary-color);
           }
         }
         .el-check-tag-wrap1 {
@@ -153,7 +153,7 @@ const tag2 = computed(() =>
             // background-color: #f2f5f7;
           }
           :deep(.is-checked) {
-            // background-color: #1366d1;
+            // background-color: var(--ant-primary-color);
             font-family:
               PingFang SC,
               PingFang SC;
@@ -164,7 +164,7 @@ const tag2 = computed(() =>
               color: #313133;
             }
             .el-checkbox__inner {
-              background-color: #1366d1;
+              background-color: var(--ant-primary-color);
             }
           }
         }
@@ -175,7 +175,7 @@ const tag2 = computed(() =>
           PingFangSC,
           PingFang SC;
         font-weight: 400;
-        color: #155bd4;
+        color: var(--ant-primary-color);
         cursor: pointer;
         margin-left: 18px;
         vertical-align: middle;

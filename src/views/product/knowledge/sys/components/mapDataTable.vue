@@ -1,5 +1,5 @@
 <template>
-  <div class="tableWrap p-[16px] h-full flex flex-col">
+  <div class="tableWrap p-[16px] h-full flex flex-col pb-0">
     <div class="header">
       <div class="flex items-center gap-[8px]">
         <a-input placeholder="请输入标签名称" class="max-w-[200px]" v-model:value="searchData.tagName"

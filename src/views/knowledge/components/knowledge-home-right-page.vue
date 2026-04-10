@@ -234,7 +234,7 @@ const sideFun = item => {
           }
 
           .Document-ico {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
       }

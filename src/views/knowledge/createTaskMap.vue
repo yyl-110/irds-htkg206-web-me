@@ -385,7 +385,7 @@ const goBack = () => {
             color: #fff;
             position: absolute;
             top: 159px;
-            left: 150px;
+            left: 38px;
             font-size: 16px;
             width: 100px;
             text-align: center;
@@ -399,7 +399,7 @@ const goBack = () => {
             color: #fff;
             position: absolute;
             top: 215px;
-            left: 145px;
+            left: 27px;
             cursor: pointer;
             width: 126px;
             text-align: center;
@@ -500,8 +500,8 @@ const goBack = () => {
       width: 20%;
       padding: 10px;
       min-height: 100%;
+      padding-left: 0;
       background-color: #fff;
-      margin-left: 10px;
       overflow-x: auto;
       overflow-y: hidden;
       .treeData {
@@ -523,6 +523,9 @@ const goBack = () => {
     width: 50px;
     height: 50px;
     border-radius: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 }
 </style>

@@ -332,7 +332,7 @@ const saveSuccess = () => {
   <div class="drawerContent">
     <!-- 左侧树结构 -->
     <Splitpanes class="default-theme sbom">
-      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+      <Pane min-size="0" :size="20" class="splitpane-cls marginstyle">
         <a-spin :spinning="loadingTree" tip="加载中...">
           <Tree ref="treePage" :operate-flag="true" :tree-data="treeData" bomType="unBom" :selected-keys="selectedKeys"
             :expanded-keys="expandedKeys" @select-node="selectNode" @up-Node="upNode" @down-Node="downNode"
@@ -451,12 +451,17 @@ const saveSuccess = () => {
 
     .tabStatsTit {
       height: 20px;
-      font-size: 18px;
+      font-size: 14px;
       font-weight: bold;
-      color: #1890ff;
+      color: var(--ant-primary-color);
       line-height: 20px;
       margin-bottom: 16px;
     }
+  }
+}
+:deep(.ant-checkbox-wrapper-disabled) {
+  span {
+    color: #6a696e!important;
   }
 }
 </style>

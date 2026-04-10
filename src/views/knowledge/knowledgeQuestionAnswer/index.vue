@@ -174,7 +174,7 @@ const handleCurrentChange = (val, size) => {
 
     .btn {
       width: 180px;
-      background: #155bd4;
+      background: var(--ant-primary-color);
       border-radius: 8px;
       font-size: 24px;
       font-family: PingFangSC, PingFang SC;
@@ -223,7 +223,7 @@ const handleCurrentChange = (val, size) => {
         .ant-tabs-tab-btn {
           font-weight: 600;
           font-size: 14px;
-          color: #1366d1;
+          color: var(--ant-primary-color);
         }
       }
 
@@ -312,7 +312,7 @@ const handleCurrentChange = (val, size) => {
             .author-myAnser-text {
               font-weight: 400;
               font-size: 16px;
-              color: #1366d1;
+              color: var(--ant-primary-color);
               margin-left: 5px;
             }
           }
@@ -353,7 +353,7 @@ const handleCurrentChange = (val, size) => {
             margin-left: 10px;
 
             &:hover {
-              color: #155bd4;
+              color: var(--ant-primary-color);
             }
           }
 
@@ -379,7 +379,7 @@ const handleCurrentChange = (val, size) => {
             margin: 0 20px 0 0;
 
             &-text {
-              color: #155bd4;
+              color: var(--ant-primary-color);
               cursor: pointer;
               margin-top: 2px;
             }
@@ -392,7 +392,7 @@ const handleCurrentChange = (val, size) => {
             padding-top: 3px;
 
             &-text {
-              color: #155bd4;
+              color: var(--ant-primary-color);
               cursor: pointer;
             }
           }
@@ -436,7 +436,7 @@ const handleCurrentChange = (val, size) => {
               font-family: PingFang SC, PingFang SC;
               font-weight: 500;
               font-size: 14px;
-              color: #1366d1;
+              color: var(--ant-primary-color);
               border-radius: 8px 8px 0 8px;
               margin-right: 10px;
             }
@@ -470,7 +470,7 @@ const handleCurrentChange = (val, size) => {
             align-items: center;
 
             &:hover {
-              color: #155bd4;
+              color: var(--ant-primary-color);
             }
           }
 
@@ -522,7 +522,7 @@ const handleCurrentChange = (val, size) => {
     right: 20px;
     width: 100px;
     line-height: 32px;
-    background: #1366d1;
+    background: var(--ant-primary-color);
     border-radius: 4px;
     font-weight: 400;
     color: #ffffff !important;
@@ -561,8 +561,8 @@ const handleCurrentChange = (val, size) => {
       .btn {
         width: 57px;
         height: 32px;
-        background: #155bd4;
-        border: 1px solid #1366d1;
+        background: var(--ant-primary-color);
+        border: 1px solid var(--ant-primary-color);
         border-radius: 0 5px 5px 0;
         font-size: 16px;
         color: #ffffff;
@@ -582,7 +582,7 @@ const handleCurrentChange = (val, size) => {
 }
 
 .imgColor {
-  color: #155bd4;
+  color: var(--ant-primary-color);
   padding-top: 2px;
 }
 

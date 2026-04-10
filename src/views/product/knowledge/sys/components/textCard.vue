@@ -6,6 +6,7 @@ import { getTimes } from '@/utils/dateUtils';
 import { EyeOutlined, MessageOutlined, StarOutlined, StarFilled, ShareAltOutlined, DownloadOutlined, InfoCircleFilled, UserOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import shareCell from '@/views/knowledge/components/share.vue';
+import HttpRequestConfig from '@/httpRequest/config';
 
 const router = useRouter();
 
@@ -25,6 +26,18 @@ const shareDialogVisible = ref(false);
 const commentDetail = ref({});
 const docId = ref('');
 const formInline = ref({});
+
+const confidentialLevel = computed(() => {
+  if (props.textData.confidential_level === 0)
+    return '公开';
+  if (props.textData.confidential_level === 1)
+    return '内部';
+  if (props.textData.confidential_level === 2)
+    return '秘密';
+  if (props.textData.confidential_level === 3)
+    return '机密';
+  return '公开';
+})
 
 const viewPdfFun = async () => {
   const params = {
@@ -100,7 +113,10 @@ const closeShare = () => {
   }, 1000);
 };
 
-const download = () => { };
+//下载
+const download = () => {
+  window.location.href = import.meta.env.VITE_BASE_HTMLPREVIEW_URL + '/base-service/fileManagerController/download.json?fileId=' + props.textData.fileId;
+};
 
 const deleteData = async () => {
   try {
@@ -133,7 +149,7 @@ const handleEditCard = () => {
         </div>
         <div v-else class="box-item">
           <div class="highlightName" @click="viewPdfFun">{{ textData.fileName }}.{{ textData.fileType
-            }}【{{ textData.version || '' }}】 <span v-if="textData.releaseStatus === 0">【已发布】</span>
+          }}【{{ textData.version || '' }}】 <span v-if="textData.releaseStatus === 0">【已发布】</span>
             <span v-else-if="textData.releaseStatus === 1">【未发布】</span>
           </div>
         </div>
@@ -141,6 +157,7 @@ const handleEditCard = () => {
           <a-breadcrumb separator="|">
             <a-breadcrumb-item>{{ textData.userName }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ getTimes(Date.parse(textData.addTime)) || '' }}</a-breadcrumb-item>
+            <a-breadcrumb-item>{{ confidentialLevel }}</a-breadcrumb-item>
           </a-breadcrumb>
         </div>
       </div>
@@ -213,7 +230,7 @@ const handleEditCard = () => {
   max-height: 180px;
 
   .imgColor {
-    color: #155bd4;
+    color: var(--ant-primary-color);
   }
 
   .header {
@@ -239,7 +256,7 @@ const handleEditCard = () => {
 
   &:hover {
     .highlightName {
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -322,7 +339,7 @@ const handleEditCard = () => {
         cursor: pointer;
 
         &:hover {
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
 
         &:last-child {

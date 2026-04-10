@@ -370,13 +370,13 @@ const closeShare = () => {
         width: 14px;
         height: 14px;
         margin-right: 2px;
-        color: #1366d1;
+        color: var(--ant-primary-color);
       }
 
       .author-myAnser-text {
         font-weight: 400;
         font-size: 16px;
-        color: #1366d1;
+        color: var(--ant-primary-color);
         margin-left: 5px;
       }
     }
@@ -407,14 +407,14 @@ const closeShare = () => {
       background-color: #e5f0db;
       font-weight: 500;
       margin-left: 10px;
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
 
     .ask-list-title-answerUp {
       font-size: 14px;
       font-weight: 500;
       margin-left: 10px;
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -461,13 +461,13 @@ const closeShare = () => {
       align-items: center;
 
       &-text {
-        color: #155bd4;
+        color: var(--ant-primary-color);
         cursor: pointer;
       }
     }
 
     .imgColor {
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
 
     .elStarFilled {
@@ -478,7 +478,7 @@ const closeShare = () => {
       line-height: 23px;
 
       &:hover {
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
     }
 
@@ -545,7 +545,7 @@ const closeShare = () => {
         font-family: PingFang SC, PingFang SC;
         font-weight: 500;
         font-size: 14px;
-        color: #1366d1;
+        color: var(--ant-primary-color);
         // line-height: 26px;
         border-radius: 8px 8px 0 8px;
         // padding: 3px;
@@ -555,7 +555,7 @@ const closeShare = () => {
   }
 
   .up {
-    // color: #155bd4;
+    // color: var(--ant-primary-color);
     position: relative;
     top: 10px;
     // left: 50%;
@@ -582,7 +582,7 @@ const closeShare = () => {
       align-items: center;
 
       &:hover {
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
     }
 
@@ -647,7 +647,7 @@ const closeShare = () => {
       cursor: pointer;
 
       &:hover {
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
     }
 
@@ -656,7 +656,7 @@ const closeShare = () => {
       color: red;
 
       &:hover {
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
     }
   }
@@ -690,7 +690,7 @@ const closeShare = () => {
       font-size: 14px;
       font-family: PingFang-SC, PingFang-SC;
       font-weight: 500;
-      color: #155bd4;
+      color: var(--ant-primary-color);
       line-height: 22px;
       margin-right: 11px;
     }
@@ -706,7 +706,7 @@ const closeShare = () => {
       display: flex;
 
       .act-list {
-        color: #155bd4;
+        color: var(--ant-primary-color);
 
         .delete-wrap {
           display: flex;

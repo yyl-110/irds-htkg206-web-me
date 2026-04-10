@@ -215,82 +215,58 @@ const handleClose = () => {
 
 <template>
   <div class="comment-dialog-layout">
-    <draggable-modal
-      v-model:visible="visible"
-      centered
-      title="评论"
-      :width="1000"
-      @cancel="handleClose"
-      :footer="null"
-    >
+    <draggable-modal v-model:visible="visible" centered title="评论" :width="1000" @cancel="handleClose" :footer="null">
       <div class="comment-wrap">
-        <a-textarea
-          v-model:value="commentText"
-          :rows="4"
-          maxlength="200"
-          placeholder="请输入评论，最多200字"
-        />
+        <a-textarea v-model:value="commentText" :rows="4" maxlength="200" placeholder="请输入评论，最多200字" />
         <div class="elrow flex justify-end mt-[16px]">
           <!-- <el-checkbox v-model="checked">同时转发</el-checkbox> -->
           <a-button type="primary" @click="release">发布</a-button>
         </div>
         <!-- <p class="totality">共123条评论</p> -->
-        <div
-          v-for="(item, index) in commentData"
-          :key="item.id"
-          class="comment-list"
-        >
-          <div class="user">
-            <a-avatar class="avatar" size="34">
-              <template #icon><UserOutlined /></template>
-            </a-avatar>
-            <span class="name">{{ item.beReplyUserName }}</span>
-          </div>
-          <div class="content">{{ item.content }}</div>
-          <div class="time-wrap">
-            <span class="time">{{ getTimes(Date.parse(item.addTime)) }}</span>
-            <span class="pra">
-              <span class="reply" @click="replyData(item)">回复</span>
-              <LikeOutlined
-                :class="[item.like ? 'icon' : 'icon1']"
-                @click="likeComment(item)"
-              />
-              {{ item.favourNum }}
-            </span>
-          </div>
-          <div v-if="item.hidden">
-            <a-textarea
-              v-model:value="commentTextDetail"
-              class="inputStyle"
-              :rows="3"
-              maxlength="200"
-              placeholder="请输入评论，最多200字"
-            />
-            <span class="fontColor" @click="detailReplace">发布</span>
-          </div>
-          <div
-            v-if="item.child && item.child.length > 0"
-            class="comment-inner-list"
-          >
-            <div v-for="(val, index) in item.child" :key="val.id">
-              <div class="user">
-                <a-avatar class="avatar" size="34">
-                  <template #icon><UserOutlined /></template>
-                </a-avatar>
-                <span class="name">{{ val.replyUserName }}</span>
-              </div>
-              <div class="content">{{ val.content }}</div>
-              <div class="time-wrap">
-                <span class="time">{{
-                  getTimes(Date.parse(val.addTime))
-                }}</span>
-                <span class="pra">
-                  <LikeOutlined
-                    :class="[val.commentLike ? 'icon' : 'icon1']"
-                    @click="likeCommentDetail(item)"
-                  />
-                  {{ val.favourNum }}</span
-                >
+        <div class="max-h-[400px] overflow-y-auto wei-scrollbar mt-[8px]">
+          <div v-for="(item, index) in commentData" :key="item.id" class="comment-list">
+            <div class="user">
+              <a-avatar class="avatar" size="34">
+                <template #icon>
+                  <UserOutlined />
+                </template>
+              </a-avatar>
+              <span class="name">{{ item.beReplyUserName }}</span>
+            </div>
+            <div class="content">{{ item.content }}</div>
+            <div class="time-wrap">
+              <span class="time">{{ getTimes(Date.parse(item.addTime)) }}</span>
+              <span class="pra">
+                <span class="reply flex items-center" @click="replyData(item)">回复</span>
+                <LikeOutlined class="mr-[2px]" :class="[item.like ? 'icon' : 'icon1']" @click="likeComment(item)" />
+                {{ item.favourNum }}
+              </span>
+            </div>
+            <div v-if="item.hidden">
+              <a-textarea v-model:value="commentTextDetail" class="inputStyle" :rows="3" maxlength="200"
+                placeholder="请输入评论，最多200字" />
+              <span class="fontColor" @click="detailReplace">发布</span>
+            </div>
+            <div v-if="item.child && item.child.length > 0" class="comment-inner-list">
+              <div v-for="(val, index) in item.child" :key="val.id">
+                <div class="user">
+                  <a-avatar class="avatar" size="34">
+                    <template #icon>
+                      <UserOutlined />
+                    </template>
+                  </a-avatar>
+                  <span class="name">{{ val.replyUserName }}</span>
+                </div>
+                <div class="content">{{ val.content }}</div>
+                <div class="time-wrap">
+                  <span class="time">{{
+                    getTimes(Date.parse(val.addTime))
+                    }}</span>
+                  <span class="pra">
+                    <LikeOutlined :class="[val.commentLike ? 'icon' : 'icon1']" @click="likeCommentDetail(item)" />
+                    {{ val.favourNum }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -303,17 +279,21 @@ const handleClose = () => {
 <style lang="less" scoped>
 .comment-list {
   margin-bottom: 32px;
+
   .user {
     display: flex;
     align-items: center;
+
     .avatar {
       width: 34px;
       height: 34px;
     }
+
     .name {
       margin-left: 8px;
     }
   }
+
   .content {
     margin-left: 42px;
     font-size: 14px;
@@ -322,6 +302,7 @@ const handleClose = () => {
     color: #323233;
     line-height: 20px;
   }
+
   .time-wrap {
     margin-left: 42px;
     margin-top: 8px;
@@ -333,51 +314,62 @@ const handleClose = () => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+
     .pra {
       display: flex;
       align-items: center;
       cursor: pointer;
+
       .ico {
         margin-right: 5px;
         // cursor: pointer;
       }
+
       .ico1 {
         margin-right: 5px;
         color: red;
       }
+
       .reply {
         margin-right: 10px;
         // cursor: pointer;
       }
     }
   }
+
   .inputStyle {
     width: 90%;
     margin-left: 40px;
     margin-top: 5px;
+
     :deep(.el-textarea__inner) {
       height: 60px !important;
     }
   }
+
   .fontColor {
     color: #409eff;
     margin-left: 10px;
     cursor: pointer;
   }
+
   .comment-inner-list {
     margin-left: 42px;
     margin-top: 16px;
   }
 }
+
 .comment-dialog-layout {
   :deep(.el-dialog__body) {
     margin: 0 !important;
   }
+
   .elrow {
     display: flex;
     flex-direction: row-reverse;
     margin: 22px 0 36px 0;
   }
+
   .totality {
     height: 20px;
     font-size: 14px;

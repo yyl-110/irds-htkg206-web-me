@@ -201,7 +201,7 @@ const getDes = () => {
     cursor: pointer;
 
     &:hover {
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -221,10 +221,10 @@ const getDes = () => {
   position: relative;
 
   &:hover {
-    border-color: #155bd4;
+    border-color: var(--ant-primary-color);
 
     h3 {
-      color: #155bd4;
+      color: var(--ant-primary-color);
     }
 
     .playBtn {
@@ -263,7 +263,7 @@ const getDes = () => {
     font-size: 14px;
     font-family: PingFang-SC, PingFang-SC;
     font-weight: 400;
-    color: #155bd4;
+    color: var(--ant-primary-color);
     line-height: 22px;
     display: inline-block;
     cursor: pointer;

@@ -302,7 +302,7 @@ onMounted(() => {
 
   .current-pic-list {
     // .elava {
-    //   background: #155bd4;
+    //   background: var(--ant-primary-color);
     // }
     width: 100%;
     height: 60px;

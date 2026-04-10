@@ -542,7 +542,7 @@ watch(
     font-family: Source Sans 3, Source Sans 3;
     font-weight: 400;
     font-size: 14px;
-    color: #1366d1;
+    color: var(--ant-primary-color);
   }
 }
 

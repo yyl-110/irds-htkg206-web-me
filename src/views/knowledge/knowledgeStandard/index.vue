@@ -101,6 +101,7 @@ const pagination = computed(() => ({
   current: page.value.currentPage,
   pageSize: page.value.pageSize,
   total: page.value.pageCount,
+  showTotal: (total: number) => `共 ${total} 条`,
   showSizeChanger: true,
   showQuickJumper: true,
   pageSizeOptions: ['10', '20', '50', '100'],

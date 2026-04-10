@@ -268,7 +268,7 @@ onMounted(() => {
         margin-top: 10px;
 
         &-left {
-          color: #155bd4;
+          color: var(--ant-primary-color);
           font-size: 12px;
           height: 16px;
           line-height: 16px;
@@ -291,7 +291,7 @@ onMounted(() => {
 
           &-text {
             margin-right: 10px;
-            color: #155bd4;
+            color: var(--ant-primary-color);
             cursor: pointer;
 
             &:last-child {
@@ -339,7 +339,7 @@ onMounted(() => {
       margin: 0 16px 16px 0;
 
       &:hover {
-        border-color: #155bd4;
+        border-color: var(--ant-primary-color);
 
         .pic-data-top {
           color: #409eff;
@@ -371,7 +371,7 @@ onMounted(() => {
           display: flex;
           font-weight: 600;
           font-size: 14px;
-          color: #155bd4;
+          color: var(--ant-primary-color);
           line-height: 22px;
           cursor: pointer;
           align-items: center;

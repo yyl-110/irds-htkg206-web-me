@@ -17,6 +17,7 @@ import {
   HeartFilled,
   ShareAltOutlined,
   StarFilled,
+  StarOutlined,
 } from "@ant-design/icons-vue";
 import { Empty, message } from "ant-design-vue";
 import shareCell from "./share.vue";
@@ -261,6 +262,19 @@ const viewPdfFun = (item) => {
   fetchFileList();
 };
 
+
+const confidentialLevel = (val) => {
+  if (val.confidential_level === 0)
+    return '公开';
+  if (val.confidential_level === 1)
+    return '内部';
+  if (val.confidential_level === 2)
+    return '秘密';
+  if (val.confidential_level === 3)
+    return '机密';
+  return '公开';
+}
+
 defineExpose({
   openDrawer,
 });
@@ -327,6 +341,7 @@ defineExpose({
                       <a-breadcrumb-item>{{
                         getTimes(Date.parse(item.addTime)) || ""
                       }}</a-breadcrumb-item>
+                      <a-breadcrumb-item>{{ confidentialLevel(item) }}</a-breadcrumb-item>
                     </a-breadcrumb>
                   </div>
                 </div>
@@ -353,8 +368,8 @@ defineExpose({
                     }}</span>
                   </div>
                   <div class="act-list elStarFilled icon-hanhan" @click="followFun(item)">
-                    <heart-outlined v-if="!item.collectedLight" />
-                    <heart-filled v-else class="text-red" :style="{ color: 'red' }" />
+                    <star-outlined v-if="!item.collectedLight" />
+                    <star-filled v-else class="text-red" :style="{ color: 'red' }" />
                     <span>{{ JSON.parse(item.counting).collectd }}</span>
                   </div>
                   <div class="act-list elShare" @click="shareFun(item)">
@@ -464,7 +479,8 @@ defineExpose({
                 <div class="video-wrap-title-right">
                   <span>{{ JSON.parse(item.counting).previewed }}次播放</span>
                   <div class="act-list elStarFilled" @click="followFun(item)">
-                    <StarFilled :style="{ color: !item.collectedLight ? '' : '#87d068' }" />
+                    <star-outlined v-if="!item.collectedLight" />
+                    <star-filled v-else style="color: red" />
                     <span>{{ JSON.parse(item.counting).collectd }}</span>
                   </div>
                   <div class="act-list elShare" @click="shareFun(item)">
@@ -539,7 +555,6 @@ defineExpose({
 </template>
 
 <style lang="less" scoped>
-
 :deep(.ant-tabs-tab+.ant-tabs-tab) {
   margin-left: 0px;
 }
@@ -554,6 +569,7 @@ defineExpose({
     margin-bottom: 0;
     background-color: #ffffff;
     padding: 0 0 0 0;
+
     &::before {
       display: none;
     }
@@ -577,7 +593,7 @@ defineExpose({
     .ant-tabs-tab-btn {
       font-weight: 600;
       font-size: 14px;
-      color: #1366d1;
+      color: var(--ant-primary-color);
     }
   }
 
@@ -654,7 +670,7 @@ defineExpose({
           }
 
           span {
-            margin: 0 9px;
+            margin: 0 6px;
           }
         }
 
@@ -667,7 +683,7 @@ defineExpose({
           cursor: pointer;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
 
           &:last-child {
@@ -734,7 +750,7 @@ defineExpose({
           font-size: 14px;
           font-family: PingFang-SC, PingFang-SC;
           font-weight: 500;
-          color: #155bd4;
+          color: var(--ant-primary-color);
           line-height: 22px;
           margin-right: 11px;
         }
@@ -750,7 +766,7 @@ defineExpose({
           display: flex;
 
           .act-list {
-            color: #155bd4;
+            color: var(--ant-primary-color);
 
             .delete-wrap {
               display: flex;
@@ -803,7 +819,7 @@ defineExpose({
           cursor: pointer;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -827,7 +843,7 @@ defineExpose({
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
         // font-weight: bold;
-        color: #155bd4;
+        color: var(--ant-primary-color);
         line-height: 22px;
         display: inline-block;
         cursor: pointer;
@@ -874,7 +890,7 @@ defineExpose({
           }
 
           span {
-            margin: 0 9px;
+            margin: 0 6px;
           }
         }
 
@@ -887,7 +903,7 @@ defineExpose({
           cursor: pointer;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -938,7 +954,7 @@ defineExpose({
           font-size: 14px;
           font-family: PingFang-SC, PingFang-SC;
           font-weight: 500;
-          color: #155bd4;
+          color: var(--ant-primary-color);
           line-height: 22px;
           margin-right: 11px;
         }
@@ -954,7 +970,7 @@ defineExpose({
           display: flex;
 
           .act-list {
-            color: #155bd4;
+            color: var(--ant-primary-color);
 
             .delete-wrap {
               display: flex;
@@ -1012,7 +1028,7 @@ defineExpose({
           cursor: pointer;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -1036,7 +1052,7 @@ defineExpose({
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
         font-weight: 400;
-        color: #155bd4;
+        color: var(--ant-primary-color);
         line-height: 22px;
         display: inline-block;
         cursor: pointer;
@@ -1087,7 +1103,7 @@ defineExpose({
           }
 
           span {
-            margin: 0 9px;
+            margin: 0 6px;
           }
         }
 
@@ -1100,7 +1116,7 @@ defineExpose({
           cursor: pointer;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -1151,7 +1167,7 @@ defineExpose({
           font-size: 14px;
           font-family: PingFang-SC, PingFang-SC;
           font-weight: 500;
-          color: #155bd4;
+          color: var(--ant-primary-color);
           line-height: 22px;
           margin-right: 11px;
         }
@@ -1167,7 +1183,7 @@ defineExpose({
           display: flex;
 
           .act-list {
-            color: #155bd4;
+            color: var(--ant-primary-color);
 
             .delete-wrap {
               display: flex;
@@ -1253,13 +1269,13 @@ defineExpose({
             width: 14px;
             height: 14px;
             margin-right: 2px;
-            color: #1366d1;
+            color: var(--ant-primary-color);
           }
 
           .author-myAnser-text {
             font-weight: 400;
             font-size: 16px;
-            color: #1366d1;
+            color: var(--ant-primary-color);
             margin-left: 5px;
           }
         }
@@ -1283,14 +1299,14 @@ defineExpose({
           background-color: #e5f0db;
           font-weight: 500;
           margin-left: 10px;
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
 
         .ask-list-title-answerUp {
           font-size: 14px;
           font-weight: 500;
           margin-left: 10px;
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
       }
 
@@ -1316,7 +1332,7 @@ defineExpose({
           align-items: center;
 
           &-text {
-            color: #155bd4;
+            color: var(--ant-primary-color);
             cursor: pointer;
           }
         }
@@ -1327,7 +1343,7 @@ defineExpose({
           align-items: center;
 
           &-text {
-            color: #155bd4;
+            color: var(--ant-primary-color);
             cursor: pointer;
           }
         }
@@ -1337,13 +1353,13 @@ defineExpose({
           align-items: center;
 
           &-text {
-            color: #155bd4;
+            color: var(--ant-primary-color);
             cursor: pointer;
           }
         }
 
         .imgColor {
-          color: #155bd4;
+          color: var(--ant-primary-color);
         }
 
         .elStarFilled {
@@ -1353,7 +1369,7 @@ defineExpose({
           margin-left: 10px;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -1418,7 +1434,7 @@ defineExpose({
             font-family: PingFang SC, PingFang SC;
             font-weight: 500;
             font-size: 14px;
-            color: #1366d1;
+            color: var(--ant-primary-color);
             // line-height: 26px;
             border-radius: 8px 8px 0 8px;
             // padding: 3px;
@@ -1428,7 +1444,7 @@ defineExpose({
       }
 
       .up {
-        // color: #155bd4;
+        // color: var(--ant-primary-color);
         position: relative;
         top: 10px;
         // left: 50%;
@@ -1454,7 +1470,7 @@ defineExpose({
           align-items: center;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -1493,7 +1509,7 @@ defineExpose({
       }
 
       h3:hover {
-        color: #155bd4;
+        color: var(--ant-primary-color);
       }
 
       .desc {
@@ -1520,7 +1536,7 @@ defineExpose({
           }
 
           span {
-            margin: 0 9px;
+            margin: 0 6px;
           }
         }
 
@@ -1535,7 +1551,7 @@ defineExpose({
           align-items: center;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
 
@@ -1544,7 +1560,7 @@ defineExpose({
           color: red;
 
           &:hover {
-            color: #155bd4;
+            color: var(--ant-primary-color);
           }
         }
       }
@@ -1576,7 +1592,7 @@ defineExpose({
           font-size: 14px;
           font-family: PingFang-SC, PingFang-SC;
           font-weight: 500;
-          color: #155bd4;
+          color: var(--ant-primary-color);
           line-height: 22px;
           margin-right: 11px;
         }
@@ -1592,7 +1608,7 @@ defineExpose({
           display: flex;
 
           .act-list {
-            color: #155bd4;
+            color: var(--ant-primary-color);
 
             .delete-wrap {
               display: flex;
@@ -1606,7 +1622,7 @@ defineExpose({
 
   .fontHide {
     width: 200px;
-    color: #155bd4;
+    color: var(--ant-primary-color);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
