@@ -564,6 +564,8 @@ function isPreviewConstraintVisible(item: any): boolean {
 }
 
 function getFixedTableHeaderLabel(item: any, colIndex: number) {
+  if (isWorkspaceTableOperationColumn(item, colIndex)) return '操作';
+  if (String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -572,6 +574,32 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
   const raw = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnName;
   if (raw != null && String(raw).trim() !== '') return String(raw).trim();
   return `列名${colIndex - 1}`;
+}
+function shouldShowWorkspaceTableOperationColumn(item: any) {
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB';
+}
+function getWorkspaceTablePreviewColCount(item: any) {
+  const base = Math.max(1, Number(item?.customProps?.tableColCount) || 1);
+  return shouldShowWorkspaceTableOperationColumn(item) ? base + 1 : base;
+}
+function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
+  if (!shouldShowWorkspaceTableOperationColumn(item)) return false;
+  return colIndex === getWorkspaceTablePreviewColCount(item);
+}
+function getWorkspaceTableOperationButtons(item: any) {
+  const p = item?.customProps || {};
+  const biz = String(p.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB') return ['上传', '下载', '清空'];
+  if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
+  if (biz === 'MODULE_LIB_READ') {
+    const buttons = ['浏览'];
+    if (p.btnOpenDrawing) buttons.push('打开图纸');
+    if (p.btnOpenModel) buttons.push('打开模型');
+    if (p.btnAssembleModel) buttons.push('装配模型');
+    return buttons;
+  }
+  return [];
 }
 
 function getUploadHint() {
@@ -749,14 +777,25 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                 <table class="fixed-table-preview-grid">
                   <thead>
                     <tr>
-                      <th v-for="c in tableDimensionRange(item.customProps?.tableColCount || 1)" :key="`h-${c}`">{{ getFixedTableHeaderLabel(item, c) }}</th>
+                      <th v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))" :key="`h-${c}`">{{ getFixedTableHeaderLabel(item, c) }}</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
-                      <td v-for="c in tableDimensionRange(item.customProps?.tableColCount || 1)" :key="`b-${r}-${c}`" class="fixed-table-preview-td">
+                      <td v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))" :key="`b-${r}-${c}`" class="fixed-table-preview-td">
                         <template v-if="c === 1">
                           <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</span>
+                        </template>
+                        <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
+                          <div class="fixed-table-cell-op-btns">
+                            <a
+                              v-for="btn in getWorkspaceTableOperationButtons(item)"
+                              :key="`preview-table-op-${index}-${r}-${btn}`"
+                              class="fixed-table-cell-op-link"
+                              :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }">
+                              {{ btn }}
+                            </a>
+                          </div>
                         </template>
                       </td>
                     </tr>
@@ -1158,6 +1197,22 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .fixed-table-preview-grid th {
   font-weight: 600;
   background: #fafafa;
+}
+.fixed-table-cell-op-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fixed-table-cell-op-link {
+  color: #1677ff;
+  text-decoration: underline;
+  cursor: pointer;
+  line-height: 22px;
+}
+.fixed-table-cell-op-link--disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
+  text-decoration-color: rgba(0, 0, 0, 0.25);
 }
 .template-browse-3d-input--grey :deep(.ant-input) {
   background: #f5f7fa;

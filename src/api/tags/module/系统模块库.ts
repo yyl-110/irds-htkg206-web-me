@@ -137,6 +137,27 @@ export class AdminApiSystemModule {
     );
 
   /**
+   * 获取菜单分类加树结构
+   *
+   * @tags 获取菜单分类加树结构
+   * @name getMenuCategoryTrees
+   * @summary 获取菜单分类加树结构
+   * @request /business-service/business/library-category/getMenuCategoryTrees
+   * @secure
+   */
+  static getMenuCategoryTrees = <Req extends ModuleTypeRequestDTOModel = ModuleTypeRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-category/getMenuCategoryTrees`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 模块库表头列表查询
    *
    * @tags 模块库表头列表查询

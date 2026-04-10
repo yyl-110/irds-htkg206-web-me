@@ -171,7 +171,18 @@ const libraryCategoryExpandedKeys = ref<Array<string | number>>([]);
 const libraryCategorySelectedKeys = ref<Array<string | number>>([]);
 const libraryCategorySelectedTitle = ref('');
 const libraryCategorySelectedId = ref('');
-const libraryCategoryPickTarget = ref<'dataView' | 'template3d' | 'modelSelect3d'>('dataView');
+const libraryCategoryPickTarget = ref<'dataView' | 'template3d' | 'modelSelect3d' | 'tableRow'>('dataView');
+/** 行定义「浏览」时写入 `tableRowDefs` 的下标（0-based） */
+const libraryCategoryTableRowIndex = ref(0);
+const menuCategoryModalVisible = ref(false);
+const menuCategoryTabs = ref<Array<{ menuId: string; menuName: string; treeData: any[]; expandedKeys: Array<string | number> }>>([]);
+const menuCategoryActiveKey = ref('');
+const menuCategorySelectedKeys = ref<Array<string | number>>([]);
+const menuCategorySelectedTitle = ref('');
+const menuCategorySelectedId = ref('');
+const menuCategorySelectedMenuId = ref('');
+/** 行定义「浏览菜单分类」时写入 `tableRowDefs` 的下标（0-based） */
+const menuCategoryTableRowIndex = ref(0);
 
 function cloneFixedTableColDefsForModal(defs: any[] | undefined) {
   return (defs || []).map(d => ({
@@ -296,7 +307,10 @@ function createTableComponent(tableSubtype: 'FIXED' | 'ROW_EXPAND', bodyRows: nu
     if (base.tableBizType === 'BASIC_RESOURCE_LIB_READ') {
       base.basicResourceLibType = 'MODEL_LIB';
     }
-    base.tableRowDefs = base.tableBizType === 'FILE_COLLAB' || base.tableBizType === 'NORMAL' ? [] : Array.from({ length: br }, () => ({ moduleLibCategory: '' }));
+    base.tableRowDefs =
+      base.tableBizType === 'FILE_COLLAB' || base.tableBizType === 'NORMAL'
+        ? []
+        : Array.from({ length: br }, () => ({ moduleLibCategory: '', moduleLibCategoryId: '', moduleLibCategoryMenuId: '' }));
     base.tableColDefs = Array.from({ length: cc }, () => ({
       paramCode: '',
       parameterId: null,
@@ -720,9 +734,107 @@ async function selectLibraryCategory() {
     }
   }
 }
-async function selectLibraryCategoryName(target: 'dataView' | 'template3d' | 'modelSelect3d' = 'dataView') {
+function getActiveMenuCategoryTab() {
+  return menuCategoryTabs.value.find(t => t.menuId === menuCategoryActiveKey.value) || null;
+}
+function getActiveMenuCategoryTreeData() {
+  return getActiveMenuCategoryTab()?.treeData || [];
+}
+function getActiveMenuCategoryExpandedKeys() {
+  return getActiveMenuCategoryTab()?.expandedKeys || [];
+}
+function updateActiveMenuCategoryExpandedKeys(keys: Array<string | number>) {
+  const tab = getActiveMenuCategoryTab();
+  if (!tab) return;
+  tab.expandedKeys = Array.isArray(keys) ? keys : [];
+}
+function onMenuCategoryTabChange(key: string) {
+  menuCategoryActiveKey.value = String(key ?? '');
+  menuCategorySelectedKeys.value = [];
+  menuCategorySelectedTitle.value = '';
+  menuCategorySelectedId.value = '';
+  menuCategorySelectedMenuId.value = '';
+}
+function onMenuCategorySelect(keys: Array<string | number>, info: any) {
+  menuCategorySelectedKeys.value = keys;
+  const n = info?.node;
+  menuCategorySelectedTitle.value = String(n?.title ?? '');
+  menuCategorySelectedId.value = String(n?.nodeId ?? n?.raw?.id ?? keys?.[0] ?? '');
+  menuCategorySelectedMenuId.value = String(n?.menuId ?? menuCategoryActiveKey.value ?? '');
+}
+async function selectMenuCategory(tableRowIndex?: number) {
+  if (!selectedComponent.value) return;
+  if (tableRowIndex == null || tableRowIndex < 0) return;
+  syncWorkspaceTableRowColDefs(selectedComponent.value);
+  menuCategoryTableRowIndex.value = tableRowIndex;
+  const res = await AdminApiSystemModule.getMenuCategoryTrees({});
+  const rawList = Array.isArray(res?.data?.data) ? res.data.data : [];
+  const toTreeNode = (item: any, menuId: string): any => {
+    const children = Array.isArray(item?.children) ? item.children.map((c: any) => toTreeNode(c, menuId)) : [];
+    const nodeId = String(item?.id ?? '');
+    const key = `${menuId}-${nodeId || String(item?.treeUrl ?? Math.random())}`;
+    return {
+      title: String(item?.categoryName ?? item?.name ?? '未命名节点'),
+      key,
+      nodeId,
+      menuId,
+      raw: item,
+      children,
+      isLeaf: children.length === 0,
+    };
+  };
+  menuCategoryTabs.value = rawList.map((menu: any) => {
+    const menuId = String(menu?.menuId ?? '');
+    const roots = Array.isArray(menu?.categoryTrees) ? menu.categoryTrees : [];
+    return {
+      menuId,
+      menuName: String(menu?.menuName ?? '未命名菜单'),
+      treeData: roots.map((r: any) => toTreeNode(r, menuId)),
+      expandedKeys: roots.map((r: any) => `${menuId}-${String(r?.id ?? '')}`).filter((k: string) => !k.endsWith('-')),
+    };
+  });
+  if (!menuCategoryTabs.value.length) {
+    message.warning('未获取到菜单分类数据');
+    return;
+  }
+  menuCategoryActiveKey.value = menuCategoryTabs.value[0].menuId;
+  menuCategorySelectedKeys.value = [];
+  menuCategorySelectedTitle.value = '';
+  menuCategorySelectedId.value = '';
+  menuCategorySelectedMenuId.value = '';
+  menuCategoryModalVisible.value = true;
+}
+function onMenuCategoryConfirm() {
+  if (!selectedComponent.value) return;
+  if (!menuCategorySelectedTitle.value) {
+    message.warning('请选择一个分类节点');
+    return;
+  }
+  const idx = menuCategoryTableRowIndex.value;
+  const defs = selectedComponent.value?.customProps?.tableRowDefs;
+  if (!Array.isArray(defs) || idx < 0 || idx >= defs.length) {
+    message.warning('行定义数据异常，请重试');
+    return;
+  }
+  if (!defs[idx] || typeof defs[idx] !== 'object') {
+    defs[idx] = { moduleLibCategory: '', moduleLibCategoryId: '', moduleLibCategoryMenuId: '' };
+  }
+  defs[idx].moduleLibCategory = menuCategorySelectedTitle.value;
+  defs[idx].moduleLibCategoryId = menuCategorySelectedId.value;
+  defs[idx].moduleLibCategoryMenuId = menuCategorySelectedMenuId.value;
+  menuCategoryModalVisible.value = false;
+}
+function onMenuCategoryCancel() {
+  menuCategoryModalVisible.value = false;
+}
+async function selectLibraryCategoryName(target: 'dataView' | 'template3d' | 'modelSelect3d' | 'tableRow' = 'dataView', tableRowIndex?: number) {
   if (!selectedComponent.value) return;
   libraryCategoryPickTarget.value = target;
+  if (target === 'tableRow') {
+    if (tableRowIndex == null || tableRowIndex < 0) return;
+    syncWorkspaceTableRowColDefs(selectedComponent.value);
+    libraryCategoryTableRowIndex.value = tableRowIndex;
+  }
   if (target === 'dataView' && String(selectedComponent.value.libraryType ?? '') !== '9') {
     message.warning('当前仅模块库类型支持选择分类节点');
     return;
@@ -772,6 +884,17 @@ function onLibraryCategoryConfirm() {
   } else if (libraryCategoryPickTarget.value === 'modelSelect3d') {
     selectedComponent.value.customProps.relatedModelLib = libraryCategorySelectedTitle.value;
     selectedComponent.value.customProps.relatedModelLibId = libraryCategorySelectedId.value;
+  } else if (libraryCategoryPickTarget.value === 'tableRow') {
+    const idx = libraryCategoryTableRowIndex.value;
+    const defs = selectedComponent.value.customProps.tableRowDefs;
+    if (!Array.isArray(defs) || idx < 0 || idx >= defs.length) {
+      message.warning('行定义数据异常，请重试');
+      return;
+    }
+    if (!defs[idx] || typeof defs[idx] !== 'object') defs[idx] = { moduleLibCategory: '', moduleLibCategoryId: '', moduleLibCategoryMenuId: '' };
+    defs[idx].moduleLibCategory = libraryCategorySelectedTitle.value;
+    defs[idx].moduleLibCategoryId = libraryCategorySelectedId.value;
+    defs[idx].moduleLibCategoryMenuId = '';
   } else {
     selectedComponent.value.customProps.libraryCategory = libraryCategorySelectedTitle.value;
     selectedComponent.value.customProps.libraryCategoryId = libraryCategorySelectedId.value;
@@ -961,14 +1084,50 @@ function tableDimensionRange(count: number) {
   const n = Math.max(0, Math.min(100, Number(count) || 0));
   return Array.from({ length: n }, (_, i) => i + 1);
 }
+function shouldShowWorkspaceTableOperationColumn(item: any) {
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB';
+}
+function getWorkspaceTablePreviewColCount(item: any) {
+  const base = Math.max(1, Number(item?.customProps?.tableColCount) || 1);
+  return shouldShowWorkspaceTableOperationColumn(item) ? base + 1 : base;
+}
+function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
+  if (!shouldShowWorkspaceTableOperationColumn(item)) return false;
+  return colIndex === getWorkspaceTablePreviewColCount(item);
+}
+function getWorkspaceTableOperationButtons(item: any) {
+  const p = item?.customProps || {};
+  const biz = String(p.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB') return ['上传', '下载', '清空'];
+  if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
+  if (biz === 'MODULE_LIB_READ') {
+    const buttons = ['浏览'];
+    if (p.btnOpenDrawing) buttons.push('打开图纸');
+    if (p.btnOpenModel) buttons.push('打开模型');
+    if (p.btnAssembleModel) buttons.push('装配模型');
+    return buttons;
+  }
+  return [];
+}
 /** 固定表格列定义：首列固定为序号，配置行从第 2 列起 */
 function tableDimensionRangeFromSecond(count: number) {
   const n = Math.max(0, Math.min(100, Number(count) || 0));
   if (n <= 1) return [];
   return Array.from({ length: n - 1 }, (_, i) => i + 2);
 }
+/** 列定义中可配置列范围：文件协同类型固定第2列为「文件名称」，从第3列开始可配置 */
+function getFixedTableConfigurableColRange(customProps: any) {
+  const n = Math.max(0, Math.min(100, Number(customProps?.tableColCount) || 0));
+  const biz = String(customProps?.tableBizType ?? '');
+  const start = biz === 'FILE_COLLAB' ? 3 : 2;
+  if (n < start) return [];
+  return Array.from({ length: n - start + 1 }, (_, i) => i + start);
+}
 /** 固定表格预览表头：首列在序号模式下为「序号」，复选/单选下留空；其余列优先 customProps.tableColDefs 中的 columnName */
 function getFixedTableHeaderLabel(item: any, colIndex: number) {
+  if (isWorkspaceTableOperationColumn(item, colIndex)) return '操作';
+  if (String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -1009,10 +1168,19 @@ function ensureCellParamInheritEntry(component: any, row: number, col: number) {
 function onTablePreviewCellClick(itemIndex: number, row: number, col: number) {
   const item = componentList.value[itemIndex];
   if (!item?.customProps || !['FIXED', 'ROW_EXPAND'].includes(item.customProps.tableSubtype)) return;
+  /** 第 1 列和操作列均为展示/操作区，不参与单元格参数继承配置 */
+  if (col === 1 || isWorkspaceTableOperationColumn(item, col)) return;
+  /** 仅「只读文本」列支持进入右侧单元格参数继承设计 */
+  if (!isWorkspaceTableCellDesignable(item, col)) return;
   selectedIndex.value = itemIndex;
   syncWorkspaceTableRowColDefs(item);
   ensureCellParamInheritEntry(item, row, col);
   selectedTableCell.value = { row, col };
+}
+function isWorkspaceTableCellDesignable(item: any, col: number) {
+  if (!item?.customProps) return false;
+  const dt = String(item.customProps?.tableColDefs?.[col - 1]?.dataType ?? 'TEXT');
+  return dt === 'READONLY_TEXT';
 }
 function onTablePreviewTitleClick(itemIndex: number) {
   const item = componentList.value[itemIndex];
@@ -1046,6 +1214,9 @@ function normalizeFixedTableColumnWidthCss(raw: unknown): string | undefined {
 function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
   if (colIndex === 1) {
     return { width: '100px', minWidth: '100px' } as Record<string, string>;
+  }
+  if (isWorkspaceTableOperationColumn(item, colIndex)) {
+    return { width: '240px', minWidth: '240px' } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
   const css = normalizeFixedTableColumnWidthCss(w);
@@ -1212,14 +1383,16 @@ function syncWorkspaceTableRowColDefs(component: any) {
   } else {
     if (!Array.isArray(p.tableRowDefs)) p.tableRowDefs = [];
     while (p.tableRowDefs.length < rows) {
-      p.tableRowDefs.push({ moduleLibCategory: '' });
+      p.tableRowDefs.push({ moduleLibCategory: '', moduleLibCategoryId: '', moduleLibCategoryMenuId: '' });
     }
     while (p.tableRowDefs.length > rows) {
       p.tableRowDefs.pop();
     }
     for (let i = 0; i < p.tableRowDefs.length; i++) {
-      if (!p.tableRowDefs[i] || typeof p.tableRowDefs[i] !== 'object') p.tableRowDefs[i] = { moduleLibCategory: '' };
+      if (!p.tableRowDefs[i] || typeof p.tableRowDefs[i] !== 'object') p.tableRowDefs[i] = { moduleLibCategory: '', moduleLibCategoryId: '', moduleLibCategoryMenuId: '' };
       if (p.tableRowDefs[i].moduleLibCategory == null) p.tableRowDefs[i].moduleLibCategory = '';
+      if (p.tableRowDefs[i].moduleLibCategoryId == null) p.tableRowDefs[i].moduleLibCategoryId = '';
+      if (p.tableRowDefs[i].moduleLibCategoryMenuId == null) p.tableRowDefs[i].moduleLibCategoryMenuId = '';
     }
   }
   while (p.tableColDefs.length < cols) {
@@ -1767,7 +1940,7 @@ watch(
                 <table class="fixed-table-preview-grid">
                   <thead>
                     <tr>
-                      <th v-for="c in tableDimensionRange(item.customProps?.tableColCount || 1)" :key="`h-${c}`" :style="getFixedTableColumnPreviewStyle(item, c)">
+                      <th v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))" :key="`h-${c}`" :style="getFixedTableColumnPreviewStyle(item, c)">
                         {{ getFixedTableHeaderLabel(item, c) }}
                       </th>
                     </tr>
@@ -1775,11 +1948,12 @@ watch(
                   <tbody>
                     <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
                       <td
-                        v-for="c in tableDimensionRange(item.customProps?.tableColCount || 1)"
+                        v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
                         :key="`b-${r}-${c}`"
                         class="fixed-table-preview-td"
                         :class="{
                           'fixed-table-preview-td--first': c === 1,
+                          'fixed-table-preview-td--clickable': isWorkspaceTableCellDesignable(item, c),
                           'fixed-table-preview-td--selected': selectedIndex === index && selectedTableCell?.row === r && selectedTableCell?.col === c,
                         }"
                         :style="getFixedTableColumnPreviewStyle(item, c)"
@@ -1795,6 +1969,13 @@ watch(
                             :checked="r === 1"
                             disabled
                             tabindex="-1" />
+                        </template>
+                        <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
+                          <div class="fixed-table-cell-op-btns">
+                            <a v-for="btn in getWorkspaceTableOperationButtons(item)" :key="`table-op-${index}-${r}-${btn}`" class="fixed-table-cell-op-link">
+                              {{ btn }}
+                            </a>
+                          </div>
                         </template>
                       </td>
                     </tr>
@@ -2254,6 +2435,7 @@ watch(
                   <div class="row-field">
                     <div class="row-label">基础资源库分类：</div>
                     <div class="row-control">
+                      <!--数据浏览-->
                       <a-input v-model:value="selectedComponent.customProps.libraryCategory" disabled placeholder="请浏览选取" />
                       <a-button type="primary" size="small" @click="selectLibraryCategoryName('dataView')">浏览</a-button>
                     </div>
@@ -2330,7 +2512,7 @@ watch(
               <div class="divider-empty-panel"></div>
             </template>
             <template v-else-if="isWorkspaceTableComponent">
-              <p v-if="!selectedTableCell" class="table-cell-inherit-hint">点击画布中表格单元格，可配置该单元格的参数继承属性。</p>
+              <p v-if="!selectedTableCell" class="table-cell-inherit-hint">点击画布中表格列为只读文本类型的单元格，可配置该单元格的参数继承属性。</p>
               <a-collapse
                 v-if="selectedTableCell && activeCellParamInherit"
                 v-model:activeKey="tableCellInheritPanelKeys"
@@ -2352,21 +2534,21 @@ watch(
                       </a-select>
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div class="row-field" v-if="activeCellParamInherit.cellInheritType === 'FROM_PARAM'">
                     <div class="row-label">参数代号：</div>
                     <div class="row-control">
                       <a-input v-model:value="activeCellParamInherit.cellParamCode" placeholder="请输入" />
                       <a-button type="primary" size="small" @click="showParameter({ type: 'tableCellInherit', field: 'cellParamCode' })"> 浏览 </a-button>
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div class="row-field" v-if="activeCellParamInherit.cellInheritType === 'FIXED'">
                     <div class="row-label">表格编号：</div>
                     <div class="row-control">
                       <a-input v-model:value="activeCellParamInherit.cellTableNumber" placeholder="请输入" />
                       <a-button type="primary" size="small" @click="showParameter({ type: 'tableCellInherit', field: 'cellTableNumber' })"> 浏览 </a-button>
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div class="row-field" v-if="activeCellParamInherit.cellInheritType === 'FIXED'">
                     <div class="row-label">表格单元格：</div>
                     <div class="row-control">
                       <a-input v-model:value="activeCellParamInherit.cellTableCellRef" placeholder="请输入" />
@@ -2398,13 +2580,13 @@ watch(
                         </a-select>
                       </div>
                     </div>
-                    <div class="row-field">
+                    <!-- <div class="row-field"  暂定表格编号由后端生成>
                       <div class="row-label">表格编号：</div>
                       <div class="row-control">
                         <a-input v-model:value="selectedComponent.customProps.tableNumber" placeholder="请输入" class="browse-adjoined-input" />
                         <a-button type="primary" size="small">浏览</a-button>
                       </div>
-                    </div>
+                    </div> -->
                     <div class="row-field">
                       <div class="row-label">表格类型：</div>
                       <div class="row-control">
@@ -2462,7 +2644,7 @@ watch(
                                   placeholder="请通过浏览选择"
                                   disabled
                                   class="browse-adjoined-input" />
-                                <a-button type="primary" size="small" class="fixed-table-def-browse-btn">浏览</a-button>
+                                <a-button type="primary" size="small" class="fixed-table-def-browse-btn" @click="selectMenuCategory(r - 1)">浏览</a-button>
                               </div>
                             </td>
                           </tr>
@@ -2489,7 +2671,7 @@ watch(
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="c in tableDimensionRangeFromSecond(selectedComponent.customProps.tableColCount)" :key="`col-view-${c}`">
+                          <tr v-for="c in getFixedTableConfigurableColRange(selectedComponent.customProps)" :key="`col-view-${c}`">
                             <td class="fixed-table-def-td">{{ getFixedTableColDisplayName(selectedComponent.customProps, c) }}</td>
                             <td class="fixed-table-def-td fixed-table-def-td--readonly-text">
                               {{ selectedComponent.customProps.tableColDefs[c - 1]?.paramCode || '—' }}
@@ -2563,6 +2745,7 @@ watch(
                   </div>
                   <div class="row-field">
                     <div class="row-label">关联模型库分类：</div>
+                    <!--模型选装选配-->
                     <div class="row-control">
                       <a-input disabled v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" />
                       <a-button type="primary" @click="selectLibraryCategoryName('modelSelect3d')" size="small">浏览</a-button>
@@ -2586,6 +2769,7 @@ watch(
                   </div>
                   <div class="row-field">
                     <div class="row-label">关联模型库分类：</div>
+                    <!--浏览模板创建-->
                     <div class="row-control">
                       <a-input disabled v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" />
                       <a-button type="primary" size="small" @click="selectLibraryCategoryName('template3d')">浏览</a-button>
@@ -2696,7 +2880,7 @@ watch(
           </tr>
         </thead>
         <tbody>
-          <tr v-for="c in tableDimensionRangeFromSecond(selectedComponent?.customProps?.tableColCount || 1)" :key="`col-edit-${c}`">
+          <tr v-for="c in getFixedTableConfigurableColRange(selectedComponent?.customProps)" :key="`col-edit-${c}`">
             <td class="fixed-table-def-td">
               <a-input v-model:value="columnDefDraft[c - 1].columnName" :placeholder="`第${c}列`" allow-clear class="fixed-table-def-col-name-input" />
             </td>
@@ -2732,6 +2916,24 @@ watch(
       <a-button type="primary" @click="applyColumnDefModal">确定</a-button>
       <a-button @click="cancelColumnDefModal">取消</a-button>
     </div>
+  </a-modal>
+
+  <a-modal v-model:visible="menuCategoryModalVisible" title="选择分类节点" :mask-closable="false" :width="760" :z-index="1100" @cancel="onMenuCategoryCancel">
+    <a-tabs v-model:activeKey="menuCategoryActiveKey" @change="onMenuCategoryTabChange">
+      <a-tab-pane v-for="tab in menuCategoryTabs" :key="tab.menuId" :tab="tab.menuName" />
+    </a-tabs>
+    <div class="library-category-tree-wrap">
+      <a-tree
+        :tree-data="getActiveMenuCategoryTreeData()"
+        :selected-keys="menuCategorySelectedKeys"
+        :expanded-keys="getActiveMenuCategoryExpandedKeys()"
+        @select="onMenuCategorySelect"
+        @update:expandedKeys="(keys: any) => updateActiveMenuCategoryExpandedKeys(keys)" />
+    </div>
+    <template #footer>
+      <a-button type="primary" @click="onMenuCategoryConfirm">确定</a-button>
+      <a-button @click="onMenuCategoryCancel">取消</a-button>
+    </template>
   </a-modal>
 
   <a-modal v-model:visible="libraryCategoryModalVisible" title="选择节点" :mask-closable="false" :width="700" :z-index="1100" @cancel="onLibraryCategoryCancel">
@@ -3161,11 +3363,28 @@ watch(
 .fixed-table-preview-td {
   height: 44px;
 }
+.fixed-table-cell-op-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fixed-table-cell-op-link {
+  color: #1677ff;
+  text-decoration: underline;
+  cursor: default;
+  line-height: 22px;
+}
 .fixed-table-preview-td--first {
   text-align: center;
   vertical-align: middle;
 }
 .fixed-table-preview-grid tbody td {
+  cursor: default;
+}
+.fixed-table-preview-grid tbody td.fixed-table-preview-td--first {
+  cursor: default;
+}
+.fixed-table-preview-grid tbody td.fixed-table-preview-td--clickable {
   cursor: pointer;
 }
 .fixed-table-preview-td--selected {
