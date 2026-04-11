@@ -1210,18 +1210,28 @@ function normalizeFixedTableColumnWidthCss(raw: unknown): string | undefined {
   if (/^\d+(\.\d+)?$/.test(s)) return `${s}px`;
   return s;
 }
-/** 画布预览表：第 1 列（序号等）固定 100px；其余列按 tableColDefs[colIndex-1].columnWidth */
+/** 画布预览表：序号列 100px；数据列默认 170px（可配置列宽）；操作列按类型设宽且 sticky 右侧 */
 function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
   if (colIndex === 1) {
     return { width: '100px', minWidth: '100px' } as Record<string, string>;
   }
   if (isWorkspaceTableOperationColumn(item, colIndex)) {
-    return { width: '240px', minWidth: '240px' } as Record<string, string>;
+    const biz = String(item?.customProps?.tableBizType ?? '');
+    if (biz === 'FILE_COLLAB') {
+      return { width: '200px', minWidth: '200px' } as Record<string, string>;
+    }
+    if (biz === 'MODULE_LIB_READ') {
+      const n = getWorkspaceTableOperationButtons(item).length;
+      /** 按链接条数收紧宽度，避免操作列右侧大块留白 */
+      const w = Math.min(300, Math.max(88, 58 * n + 36));
+      return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
+    }
+    return { width: '96px', minWidth: '96px' } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
   const css = normalizeFixedTableColumnWidthCss(w);
-  if (!css) return undefined;
-  return { width: css, minWidth: css } as Record<string, string>;
+  const width = css || '170px';
+  return { width, minWidth: width } as Record<string, string>;
 }
 function getTypeText(type: string) {
   const typeTextMap: Record<string, string> = {
@@ -1937,27 +1947,33 @@ watch(
                     添加
                   </a-button>
                 </div>
-                <table class="fixed-table-preview-grid">
-                  <thead>
-                    <tr>
-                      <th v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))" :key="`h-${c}`" :style="getFixedTableColumnPreviewStyle(item, c)">
-                        {{ getFixedTableHeaderLabel(item, c) }}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
-                      <td
-                        v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
-                        :key="`b-${r}-${c}`"
-                        class="fixed-table-preview-td"
-                        :class="{
-                          'fixed-table-preview-td--first': c === 1,
-                          'fixed-table-preview-td--clickable': isWorkspaceTableCellDesignable(item, c),
-                          'fixed-table-preview-td--selected': selectedIndex === index && selectedTableCell?.row === r && selectedTableCell?.col === c,
-                        }"
-                        :style="getFixedTableColumnPreviewStyle(item, c)"
-                        @click.stop="onTablePreviewCellClick(index, r, c)">
+                <div class="fixed-table-preview-scroll">
+                  <table class="fixed-table-preview-grid">
+                    <thead>
+                      <tr>
+                        <th
+                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                          :key="`h-${c}`"
+                          :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
+                          :style="getFixedTableColumnPreviewStyle(item, c)">
+                          {{ getFixedTableHeaderLabel(item, c) }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
+                        <td
+                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                          :key="`b-${r}-${c}`"
+                          class="fixed-table-preview-td"
+                          :class="{
+                            'fixed-table-preview-td--first': c === 1,
+                            'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c),
+                            'fixed-table-preview-td--clickable': isWorkspaceTableCellDesignable(item, c),
+                            'fixed-table-preview-td--selected': selectedIndex === index && selectedTableCell?.row === r && selectedTableCell?.col === c,
+                          }"
+                          :style="getFixedTableColumnPreviewStyle(item, c)"
+                          @click.stop="onTablePreviewCellClick(index, r, c)">
                         <template v-if="c === 1">
                           <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'" class="fixed-table-cell-index">{{ r }}</span>
                           <input v-else-if="item.customProps?.firstColumnType === 'CHECKBOX'" type="checkbox" class="fixed-table-cell-check" disabled tabindex="-1" />
@@ -1977,10 +1993,11 @@ watch(
                             </a>
                           </div>
                         </template>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
               <div v-else class="component-type-text">{{ getTypeText(item.componentType) }}</div>
             </div>
@@ -2906,7 +2923,7 @@ watch(
               <span v-else class="fixed-table-def-placeholder">—</span>
             </td>
             <td class="fixed-table-def-td">
-              <a-input v-model:value="columnDefDraft[c - 1].columnWidth" placeholder="如：120px、20%" class="fixed-table-def-col-width-input" />
+              <a-input v-model:value="columnDefDraft[c - 1].columnWidth" placeholder="如：200" class="fixed-table-def-col-width-input" />
             </td>
           </tr>
         </tbody>
@@ -3328,6 +3345,11 @@ watch(
   width: 100%;
   max-width: 900px;
 }
+.fixed-table-preview-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
 .fixed-table-preview-title-row {
   display: flex;
   align-items: center;
@@ -3343,11 +3365,26 @@ watch(
   flex-shrink: 0;
 }
 .fixed-table-preview-grid {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
   background: #fff;
   font-size: 13px;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op,
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  box-shadow: -6px 0 8px -4px rgba(0, 0, 0, 0.1);
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op {
+  z-index: 3;
+  background: #fafafa;
+}
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  background: #fff;
 }
 .fixed-table-preview-grid th,
 .fixed-table-preview-grid td {
@@ -3366,6 +3403,10 @@ watch(
 .fixed-table-cell-op-btns {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+}
+.fixed-table-preview-td--op .fixed-table-cell-op-btns {
+  flex-wrap: nowrap;
   gap: 6px;
 }
 .fixed-table-cell-op-link {

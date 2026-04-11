@@ -602,6 +602,35 @@ function getWorkspaceTableOperationButtons(item: any) {
   return [];
 }
 
+function normalizeFixedTableColumnWidthCss(raw: unknown): string | undefined {
+  const s = (raw == null ? '' : String(raw)).trim();
+  if (!s) return undefined;
+  if (/^\d+(\.\d+)?$/.test(s)) return `${s}px`;
+  return s;
+}
+/** 与配置画布一致：序号 100px；数据列默认 170px；操作列按类型设宽且 sticky 右侧 */
+function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
+  if (colIndex === 1) {
+    return { width: '100px', minWidth: '100px' } as Record<string, string>;
+  }
+  if (isWorkspaceTableOperationColumn(item, colIndex)) {
+    const biz = String(item?.customProps?.tableBizType ?? '');
+    if (biz === 'FILE_COLLAB') {
+      return { width: '200px', minWidth: '200px' } as Record<string, string>;
+    }
+    if (biz === 'MODULE_LIB_READ') {
+      const n = getWorkspaceTableOperationButtons(item).length;
+      const w = Math.min(300, Math.max(88, 58 * n + 36));
+      return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
+    }
+    return { width: '96px', minWidth: '96px' } as Record<string, string>;
+  }
+  const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+  const css = normalizeFixedTableColumnWidthCss(w);
+  const width = css || '170px';
+  return { width, minWidth: width } as Record<string, string>;
+}
+
 function getUploadHint() {
   return '支持任意文件类型上传';
 }
@@ -774,33 +803,46 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                 <div v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-row">
                   <span class="fixed-table-preview-title-text">{{ item.customProps.tableTitle }}</span>
                 </div>
-                <table class="fixed-table-preview-grid">
-                  <thead>
-                    <tr>
-                      <th v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))" :key="`h-${c}`">{{ getFixedTableHeaderLabel(item, c) }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
-                      <td v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))" :key="`b-${r}-${c}`" class="fixed-table-preview-td">
-                        <template v-if="c === 1">
-                          <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</span>
-                        </template>
-                        <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
-                          <div class="fixed-table-cell-op-btns">
-                            <a
-                              v-for="btn in getWorkspaceTableOperationButtons(item)"
-                              :key="`preview-table-op-${index}-${r}-${btn}`"
-                              class="fixed-table-cell-op-link"
-                              :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }">
-                              {{ btn }}
-                            </a>
-                          </div>
-                        </template>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="fixed-table-preview-scroll">
+                  <table class="fixed-table-preview-grid">
+                    <thead>
+                      <tr>
+                        <th
+                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                          :key="`h-${c}`"
+                          :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
+                          :style="getFixedTableColumnPreviewStyle(item, c)">
+                          {{ getFixedTableHeaderLabel(item, c) }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
+                        <td
+                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                          :key="`b-${r}-${c}`"
+                          class="fixed-table-preview-td"
+                          :class="{ 'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c) }"
+                          :style="getFixedTableColumnPreviewStyle(item, c)">
+                          <template v-if="c === 1">
+                            <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</span>
+                          </template>
+                          <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
+                            <div class="fixed-table-cell-op-btns">
+                              <a
+                                v-for="btn in getWorkspaceTableOperationButtons(item)"
+                                :key="`preview-table-op-${index}-${r}-${btn}`"
+                                class="fixed-table-cell-op-link"
+                                :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }">
+                                {{ btn }}
+                              </a>
+                            </div>
+                          </template>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
@@ -1181,12 +1223,36 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .rich-preview-wrap {
   max-width: 760px;
 }
-.fixed-table-preview-grid {
+.fixed-table-preview {
   width: 100%;
+  max-width: 100%;
+}
+.fixed-table-preview-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+.fixed-table-preview-grid {
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
   background: #fff;
   font-size: 13px;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op,
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  box-shadow: -6px 0 8px -4px rgba(0, 0, 0, 0.1);
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op {
+  z-index: 3;
+  background: #fafafa;
+}
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  background: #fff;
 }
 .fixed-table-preview-grid th,
 .fixed-table-preview-grid td {
@@ -1201,6 +1267,10 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .fixed-table-cell-op-btns {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+}
+.fixed-table-preview-td--op .fixed-table-cell-op-btns {
+  flex-wrap: nowrap;
   gap: 6px;
 }
 .fixed-table-cell-op-link {
