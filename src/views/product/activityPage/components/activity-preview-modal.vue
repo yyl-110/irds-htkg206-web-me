@@ -62,13 +62,83 @@ const modulePickerVisible = ref(false);
 const modulePickerItemKey = ref('');
 const modulePickerCategoryId = ref('');
 const modulePickerMenuId = ref('');
-const modulePickerMode = ref<'dataView' | 'templateBrowse' | 'modelSelectBrowse'>('dataView');
+const modulePickerMode = ref<'dataView' | 'templateBrowse' | 'modelSelectBrowse' | 'moduleTableBrowse'>('dataView');
 const modulePickerTargetFieldKey = ref('');
+/** 模型库表格「浏览」：预览列表中的组件下标，用于确认时直接取组件 */
+const modulePickerSourceComponentIndex = ref(-1);
+/** 模型库表格「浏览」：表体行号（从 1 开始） */
+const modulePickerTableBodyRowIndex = ref(1);
+/** 预览表格单元格展示值（模型库读取等），key = getPreviewItemKey::行::列 */
+const previewTableCellMap = ref<Record<string, string>>({});
 function getPreviewItemKey(item: any, index: number) {
   return String(item?.id ?? `${item?.componentType}-${index}`);
 }
 function getPreview3dSubKey(item: any, index: number, part: 'templateName' | 'modelName' | 'modelSelectName') {
   return `${getPreviewItemKey(item, index)}::${part}`;
+}
+function getTableCellPreviewKey(item: any, componentIndex: number, bodyRow: number, col: number) {
+  return `${getPreviewItemKey(item, componentIndex)}::${bodyRow}::${col}`;
+}
+function isWorkspaceTableBizWithColDefs(item: any) {
+  if (item?.componentType !== 'TABLE') return false;
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  return ['MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'NORMAL'].includes(biz);
+}
+function getPreviewTableColDef(item: any, physicalColIndex: number) {
+  return item?.customProps?.tableColDefs?.[physicalColIndex - 1];
+}
+function getPreviewTableColDataType(item: any, physicalColIndex: number): string {
+  return String(getPreviewTableColDef(item, physicalColIndex)?.dataType ?? 'TEXT');
+}
+function parseTableDropdownOptions(raw: unknown) {
+  const s = String(raw ?? '').trim();
+  if (!s) return [];
+  return s
+    .split(/[;；]/)
+    .map(x => x.trim())
+    .filter(Boolean)
+    .map(v => ({ label: v, value: v }));
+}
+function getPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number) {
+  const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);
+  return previewTableCellMap.value[k] ?? '';
+}
+function setPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number, v: string) {
+  const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);
+  previewTableCellMap.value = { ...previewTableCellMap.value, [k]: v };
+}
+function showModuleTableBrowse(item: any, componentIndex: number, bodyRowIndex: number) {
+  const p = item?.customProps;
+  const defs = p?.tableRowDefs;
+  if (!Array.isArray(defs) || bodyRowIndex < 1 || bodyRowIndex > defs.length) {
+    message.warning('行定义数据异常');
+    return;
+  }
+  const rowDef = defs[bodyRowIndex - 1];
+  const categoryId = String(rowDef?.moduleLibCategoryId ?? '').trim();
+  const menuIdRaw = String(rowDef?.moduleLibCategoryMenuId ?? '').trim();
+  const menuId = menuIdRaw || '9';
+  if (!categoryId) {
+    message.warning('请先在活动配置中为该行选择关联模型库分类');
+    return;
+  }
+  modulePickerMode.value = 'moduleTableBrowse';
+  modulePickerSourceComponentIndex.value = componentIndex;
+  modulePickerTableBodyRowIndex.value = bodyRowIndex;
+  modulePickerItemKey.value = String(item?.id ?? '');
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = menuId;
+  modulePickerTargetFieldKey.value = '';
+  modulePickerVisible.value = true;
+}
+function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, bodyRow: number) {
+  const t = String(btn ?? '').trim();
+  if (isOutputIoType(item)) return;
+  if (String(item?.customProps?.tableBizType ?? '') === 'MODULE_LIB_READ' && t === '浏览') {
+    showModuleTableBrowse(item, componentIndex, bodyRow);
+    return;
+  }
+  message.info(`${t}（示例）`);
 }
 
 function getSelectOptions(item: any) {
@@ -178,6 +248,47 @@ function findValueByColumnKeywords(row: any, columns: any[], keywords: string[])
 }
 function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
   const list = previewList.value;
+  if (modulePickerMode.value === 'moduleTableBrowse') {
+    const idx = modulePickerSourceComponentIndex.value;
+    if (idx < 0 || idx >= list.length) return;
+    const item = list[idx] as any;
+    if (String(item?.customProps?.tableBizType ?? '') !== 'MODULE_LIB_READ') return;
+    const p = item.customProps || {};
+    const tableColDefs = Array.isArray(p.tableColDefs) ? p.tableColDefs : [];
+    const cols = Array.isArray(payload?.columns) ? payload.columns : [];
+    const dataRow = payload?.row || {};
+    const rowIdx = modulePickerTableBodyRowIndex.value;
+    const nextMap = { ...previewTableCellMap.value };
+    const partNo = findValueByColumnKeywords(dataRow, cols, ['模型件号', '件号']);
+    const modelType = findValueByColumnKeywords(dataRow, cols, ['模型类型', '类型']);
+    const mergedPart = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
+    const modelNameVal = findValueByColumnKeywords(dataRow, cols, ['模型名称']);
+    const baseKey = getPreviewItemKey(item, idx);
+    const totalCols = getWorkspaceTablePreviewColCount(item);
+    for (let c = 2; c <= totalCols; c++) {
+      if (isWorkspaceTableOperationColumn(item, c)) continue;
+      const cellKey = `${baseKey}::${rowIdx}::${c}`;
+      if (c === 2) {
+        nextMap[cellKey] = mergedPart;
+      } else if (c === 3) {
+        nextMap[cellKey] = modelNameVal;
+      } else {
+        const def = tableColDefs[c - 1];
+        const paramCode = String(def?.paramCode ?? '').trim();
+        let v = '';
+        if (paramCode) {
+          const colMeta = cols.find((col: any) => String(col?.parameterNum ?? '').trim() === paramCode);
+          if (colMeta && colMeta.dataIndex != null && String(colMeta.dataIndex) !== '') {
+            v = String(dataRow[colMeta.dataIndex] ?? '');
+          }
+        }
+        nextMap[cellKey] = v;
+      }
+    }
+    previewTableCellMap.value = nextMap;
+    modulePickerSourceComponentIndex.value = -1;
+    return;
+  }
   const idx = list.findIndex((it: any) => String(it?.id ?? '') === modulePickerItemKey.value);
   if (idx < 0) return;
   const item = list[idx] as any;
@@ -565,7 +676,12 @@ function isPreviewConstraintVisible(item: any): boolean {
 
 function getFixedTableHeaderLabel(item: any, colIndex: number) {
   if (isWorkspaceTableOperationColumn(item, colIndex)) return '操作';
-  if (String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'MODULE_LIB_READ') {
+    if (colIndex === 2) return '模型件号';
+    if (colIndex === 3) return '模型名称';
+  }
+  if (biz === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -827,13 +943,40 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                           <template v-if="c === 1">
                             <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</span>
                           </template>
+                          <template v-else-if="isWorkspaceTableBizWithColDefs(item) && !isWorkspaceTableOperationColumn(item, c)">
+                            <template v-if="getPreviewTableColDataType(item, c) === 'READONLY_TEXT'">
+                              <span class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
+                            </template>
+                            <a-input
+                              v-else-if="getPreviewTableColDataType(item, c) === 'TEXT'"
+                              :value="getPreviewTableCellValue(item, index, r, c)"
+                              size="small"
+                              placeholder="请输入"
+                              :disabled="isOutputIoType(item)"
+                              class="fixed-table-preview-cell-input"
+                              @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
+                            <a-select
+                              v-else-if="getPreviewTableColDataType(item, c) === 'DROPDOWN'"
+                              :value="getPreviewTableCellValue(item, index, r, c) || undefined"
+                              :options="parseTableDropdownOptions(getPreviewTableColDef(item, c)?.dropdownValues)"
+                              placeholder="请选择"
+                              size="small"
+                              allow-clear
+                              :disabled="isOutputIoType(item)"
+                              class="fixed-table-preview-cell-select"
+                              popup-class-name="fixed-table-preview-select-dropdown"
+                              @update:value="(v: string | undefined) => setPreviewTableCellValue(item, index, r, c, v ?? '')" />
+                            <span v-else class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
+                          </template>
                           <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
                             <div class="fixed-table-cell-op-btns">
                               <a
                                 v-for="btn in getWorkspaceTableOperationButtons(item)"
                                 :key="`preview-table-op-${index}-${r}-${btn}`"
+                                href="javascript:void(0)"
                                 class="fixed-table-cell-op-link"
-                                :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }">
+                                :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }"
+                                @click.prevent="onPreviewTableOpClick(btn, item, index, r)">
                                 {{ btn }}
                               </a>
                             </div>
@@ -1227,14 +1370,18 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   width: 100%;
   max-width: 100%;
 }
+/* 表格总宽度限制在较窄视口内，列宽仍由配置决定；总宽超出时出现横向滚动条 */
 .fixed-table-preview-scroll {
   overflow-x: auto;
-  max-width: 100%;
+  width: 100%;
+  max-width: min(100%, 960px);
+  /* 避免最右侧 1px 边框被 overflow 裁切 */
+  padding-right: 2px;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 }
 .fixed-table-preview-grid {
   width: max-content;
-  min-width: 100%;
   border-collapse: collapse;
   table-layout: auto;
   background: #fff;
@@ -1245,7 +1392,10 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   position: sticky;
   right: 0;
   z-index: 2;
-  box-shadow: -6px 0 8px -4px rgba(0, 0, 0, 0.1);
+  /* 左侧阴影 + 单元格内右侧描边，避免 sticky 与 collapse 叠加时最右竖线丢失 */
+  box-shadow:
+    -6px 0 8px -4px rgba(0, 0, 0, 0.1),
+    inset -1px 0 0 #e8e8e8;
 }
 .fixed-table-preview-grid th.fixed-table-preview-th--op {
   z-index: 3;
@@ -1263,6 +1413,23 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .fixed-table-preview-grid th {
   font-weight: 600;
   background: #fafafa;
+}
+.fixed-table-preview-cell-text {
+  display: inline-block;
+  max-width: 100%;
+  word-break: break-word;
+}
+.fixed-table-preview-cell-input,
+.fixed-table-preview-cell-select {
+  width: 100%;
+  min-width: 88px;
+  max-width: 100%;
+}
+.fixed-table-preview-td .fixed-table-preview-cell-input :deep(.ant-input) {
+  font-size: 13px;
+}
+.fixed-table-preview-td .fixed-table-preview-cell-select :deep(.ant-select-selector) {
+  font-size: 13px;
 }
 .fixed-table-cell-op-btns {
   display: flex;

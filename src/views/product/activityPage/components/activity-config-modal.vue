@@ -37,7 +37,7 @@ const ParameterGeneralRef = ref<any>(null);
 type ParameterPickTarget =
   | { type: 'component' }
   | { type: 'tableColDraft'; colIndex: number }
-  | { type: 'tableCellInherit'; field: 'cellParamCode' | 'cellTableNumber' | 'cellTableCellRef' }
+  | { type: 'tableCellInherit'; field: 'cellParamCode' | 'cellTableNumber' }
   | { type: 'formulaExpression' };
 const parameterPickTarget = ref<ParameterPickTarget>({ type: 'component' });
 const emit = defineEmits<{ close: []; save: [payload: any] }>();
@@ -135,6 +135,8 @@ const fixedTablePanelKeys = ref<string[]>(['info', 'rows', 'cols']);
 /** 画布表格预览中选中的单元格（行、列均为 1-based），用于右侧「单元格参数继承属性配置」 */
 const selectedTableCell = ref<{ row: number; col: number } | null>(null);
 const tableCellInheritPanelKeys = ref<string[]>(['cellInherit']);
+/** 文本 / 下拉值单元格：右侧「基础定义」折叠 */
+const tableCellBasicPanelKeys = ref<string[]>(['cellBasic']);
 const templateBrowse3dPanelKeys = ref<string[]>(['tpl', 'model', 'buttons']);
 const modelSelect3dPanelKeys = ref<string[]>(['model', 'buttons']);
 const fixedTemplate3dPanelKeys = ref<string[]>(['tpl', 'model', 'buttons']);
@@ -220,6 +222,7 @@ function applyColumnDefModal() {
   const p = c.customProps;
   const next = cloneFixedTableColDefsForModal(columnDefDraft.value);
   p.tableColDefs.splice(0, p.tableColDefs.length, ...next);
+  applyModuleLibReadFixedColumnNames(p);
   columnDefModalVisible.value = false;
 }
 function cancelColumnDefModal() {
@@ -319,6 +322,10 @@ function createTableComponent(tableSubtype: 'FIXED' | 'ROW_EXPAND', bodyRows: nu
       columnWidth: '',
       columnName: '',
     }));
+    if (base.tableBizType === 'MODULE_LIB_READ' && base.tableColDefs.length >= 2) {
+      base.tableColDefs[0].columnName = '模型件号';
+      base.tableColDefs[1].columnName = '模型名称';
+    }
     base.cellParamInheritMap = {};
   }
   item.customProps = { ...(item.customProps || {}), ...base };
@@ -410,12 +417,23 @@ function confirmTableSize() {
     message.warning('请输入有效的行数（≥1）');
     return;
   }
-  if (!Number.isFinite(c) || c < 1) {
-    message.warning('请输入有效的列数（≥1）');
-    return;
+  const biz = tableSizeDraft.tableBizType;
+  let colCountForCreate: number;
+  if (biz === 'MODULE_LIB_READ') {
+    if (!Number.isFinite(c) || c < 0) {
+      message.warning('请输入有效的列数（≥0）');
+      return;
+    }
+    colCountForCreate = moduleLibReadStoredColCountFromExtra(Math.max(0, Math.min(17, Math.floor(c))));
+  } else {
+    if (!Number.isFinite(c) || c < 1) {
+      message.warning('请输入有效的列数（≥1）');
+      return;
+    }
+    colCountForCreate = Math.floor(c);
   }
   const subtype = pendingTableSizeSubtype.value === 'ROW_EXPAND' ? 'ROW_EXPAND' : 'FIXED';
-  const newItem = createTableComponent(subtype, Math.floor(br), Math.floor(c), {
+  const newItem = createTableComponent(subtype, Math.floor(br), colCountForCreate, {
     tableTitle: name,
     tableBizType: tableSizeDraft.tableBizType,
   });
@@ -654,6 +672,9 @@ function handleSaveParameter(row: any) {
     if (d) {
       d.paramCode = code;
       d.parameterId = parameterId;
+      if (String(d.columnName ?? '').trim() === '' && name) {
+        d.columnName = name;
+      }
     }
   } else if (t.type === 'tableCellInherit') {
     const sel = selectedTableCell.value;
@@ -666,8 +687,6 @@ function handleSaveParameter(row: any) {
           entry.cellParameterId = parameterId;
         } else if (t.field === 'cellTableNumber') {
           entry.cellTableNumber = code;
-        } else if (t.field === 'cellTableCellRef') {
-          entry.cellTableCellRef = code;
         }
       }
     }
@@ -761,6 +780,15 @@ function onMenuCategorySelect(keys: Array<string | number>, info: any) {
   menuCategorySelectedTitle.value = String(n?.title ?? '');
   menuCategorySelectedId.value = String(n?.nodeId ?? n?.raw?.id ?? keys?.[0] ?? '');
   menuCategorySelectedMenuId.value = String(n?.menuId ?? menuCategoryActiveKey.value ?? '');
+}
+/** 行定义「浏览」：模型库读取走模块库分类树；基础资源库读取走 getMenuCategoryTrees（多菜单 Tab） */
+function onTableRowCategoryBrowse(rowIndex: number) {
+  const biz = String(selectedComponent.value?.customProps?.tableBizType ?? '');
+  if (biz === 'MODULE_LIB_READ') {
+    void selectLibraryCategoryName('tableRow', rowIndex);
+    return;
+  }
+  void selectMenuCategory(rowIndex);
 }
 async function selectMenuCategory(tableRowIndex?: number) {
   if (!selectedComponent.value) return;
@@ -1116,18 +1144,44 @@ function tableDimensionRangeFromSecond(count: number) {
   if (n <= 1) return [];
   return Array.from({ length: n - 1 }, (_, i) => i + 2);
 }
-/** 列定义中可配置列范围：文件协同类型固定第2列为「文件名称」，从第3列开始可配置 */
+/** 列定义中可配置列范围：文件协同固定第2列为「文件名称」从第3列起；模型库读取固定第2、3列为件号/名称从第4列起 */
 function getFixedTableConfigurableColRange(customProps: any) {
   const n = Math.max(0, Math.min(100, Number(customProps?.tableColCount) || 0));
   const biz = String(customProps?.tableBizType ?? '');
-  const start = biz === 'FILE_COLLAB' ? 3 : 2;
+  let start = 2;
+  if (biz === 'FILE_COLLAB') start = 3;
+  else if (biz === 'MODULE_LIB_READ') start = 4;
   if (n < start) return [];
   return Array.from({ length: n - start + 1 }, (_, i) => i + start);
+}
+/** 模型库读取：存储的 tableColCount = 3 + K（序号 + 模型件号 + 模型名称 + K 列可配置）；界面「列数」仅指 K */
+function getModuleLibReadExtraColCount(storedTableColCount: unknown): number {
+  const n = Math.max(1, Number(storedTableColCount) || 1);
+  return Math.max(0, n - 3);
+}
+function moduleLibReadStoredColCountFromExtra(k: number): number {
+  return Math.min(20, Math.max(3, 3 + Math.max(0, Math.floor(k))));
+}
+function onModuleLibReadExtraColCountChange(v: number | string | null) {
+  const c = selectedComponent.value;
+  if (!c?.customProps || c.customProps.tableBizType !== 'MODULE_LIB_READ') return;
+  const num = v === '' || v == null ? 0 : Number(v);
+  const k = !Number.isFinite(num) ? 0 : Math.max(0, Math.min(17, Math.floor(num)));
+  c.customProps.tableColCount = moduleLibReadStoredColCountFromExtra(k);
+  syncWorkspaceTableRowColDefs(c);
+}
+function getTableColCountSelectOptions(_tableBizType: string | undefined) {
+  return Array.from({ length: 20 }, (_, i) => i + 1);
 }
 /** 固定表格预览表头：首列在序号模式下为「序号」，复选/单选下留空；其余列优先 customProps.tableColDefs 中的 columnName */
 function getFixedTableHeaderLabel(item: any, colIndex: number) {
   if (isWorkspaceTableOperationColumn(item, colIndex)) return '操作';
-  if (String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'MODULE_LIB_READ') {
+    if (colIndex === 2) return '模型件号';
+    if (colIndex === 3) return '模型名称';
+  }
+  if (biz === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -1165,22 +1219,39 @@ function ensureCellParamInheritEntry(component: any, row: number, col: number) {
   }
   return p.cellParamInheritMap[k];
 }
+
+/** 文本 / 下拉值单元格：基础定义（唯一编号等），序列化在 customProps.cellBasicDefMap */
+function ensureCellBasicDefEntry(component: any, row: number, col: number) {
+  const p = component?.customProps;
+  if (!p) return null;
+  if (!p.cellBasicDefMap || typeof p.cellBasicDefMap !== 'object') p.cellBasicDefMap = {};
+  const k = cellParamInheritKey(row, col);
+  if (!p.cellBasicDefMap[k] || typeof p.cellBasicDefMap[k] !== 'object') {
+    p.cellBasicDefMap[k] = { uniqueCode: '' };
+  }
+  return p.cellBasicDefMap[k];
+}
+
 function onTablePreviewCellClick(itemIndex: number, row: number, col: number) {
   const item = componentList.value[itemIndex];
   if (!item?.customProps || !['FIXED', 'ROW_EXPAND'].includes(item.customProps.tableSubtype)) return;
-  /** 第 1 列和操作列均为展示/操作区，不参与单元格参数继承配置 */
+  /** 第 1 列和操作列均为展示/操作区，不参与单元格配置 */
   if (col === 1 || isWorkspaceTableOperationColumn(item, col)) return;
-  /** 仅「只读文本」列支持进入右侧单元格参数继承设计 */
   if (!isWorkspaceTableCellDesignable(item, col)) return;
   selectedIndex.value = itemIndex;
   syncWorkspaceTableRowColDefs(item);
-  ensureCellParamInheritEntry(item, row, col);
+  const dt = String(item.customProps?.tableColDefs?.[col - 1]?.dataType ?? 'TEXT');
+  if (dt === 'READONLY_TEXT') {
+    ensureCellParamInheritEntry(item, row, col);
+  } else if (dt === 'TEXT' || dt === 'DROPDOWN') {
+    ensureCellBasicDefEntry(item, row, col);
+  }
   selectedTableCell.value = { row, col };
 }
 function isWorkspaceTableCellDesignable(item: any, col: number) {
   if (!item?.customProps) return false;
   const dt = String(item.customProps?.tableColDefs?.[col - 1]?.dataType ?? 'TEXT');
-  return dt === 'READONLY_TEXT';
+  return dt === 'READONLY_TEXT' || dt === 'TEXT' || dt === 'DROPDOWN';
 }
 function onTablePreviewTitleClick(itemIndex: number) {
   const item = componentList.value[itemIndex];
@@ -1196,6 +1267,34 @@ const activeCellParamInherit = computed(() => {
   if (!m) return null;
   return m[cellParamInheritKey(s.row, s.col)] ?? null;
 });
+
+const activeCellBasicDef = computed(() => {
+  const c = selectedComponent.value;
+  const s = selectedTableCell.value;
+  if (!c?.customProps || !s) return null;
+  const m = c.customProps.cellBasicDefMap;
+  if (!m) return null;
+  return m[cellParamInheritKey(s.row, s.col)] ?? null;
+});
+
+/** 当前选中单元格列为「文本 / 下拉值」→ 右侧展示基础定义 */
+const selectedCellIsBasicDefMode = computed(() => {
+  const c = selectedComponent.value;
+  const s = selectedTableCell.value;
+  if (!c?.customProps || !s) return false;
+  const dt = String(c.customProps.tableColDefs?.[s.col - 1]?.dataType ?? 'TEXT');
+  return dt === 'TEXT' || dt === 'DROPDOWN';
+});
+
+/** 当前选中单元格列为「只读文本」→ 右侧展示参数继承 */
+const selectedCellIsInheritMode = computed(() => {
+  const c = selectedComponent.value;
+  const s = selectedTableCell.value;
+  if (!c?.customProps || !s) return false;
+  const dt = String(c.customProps.tableColDefs?.[s.col - 1]?.dataType ?? 'TEXT');
+  return dt === 'READONLY_TEXT';
+});
+
 const selectedTableCellDataTypeLabel = computed(() => {
   const c = selectedComponent.value;
   const s = selectedTableCell.value;
@@ -1203,6 +1302,16 @@ const selectedTableCellDataTypeLabel = computed(() => {
   const dt = c.customProps.tableColDefs?.[s.col - 1]?.dataType || 'TEXT';
   return getFixedTableColDataTypeLabel(dt);
 });
+
+/** 文本/下拉单元格：申请唯一编号（演示：前端生成 UUID） */
+function onApplyCellUniqueCode() {
+  const entry = activeCellBasicDef.value;
+  if (!entry) return;
+  const u = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `UC_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  entry.uniqueCode = u;
+  message.success('已申请编号');
+}
+
 /** 列定义中的列宽 → CSS width；纯数字按 px 处理，与占位符「120px、20%」一致 */
 function normalizeFixedTableColumnWidthCss(raw: unknown): string | undefined {
   const s = (raw == null ? '' : String(raw)).trim();
@@ -1381,11 +1490,20 @@ function ensureDataViewDefaults(component: any) {
   if (!component.knowledgeContent) component.knowledgeContent = '';
   if (!component.knowledgeId) component.knowledgeId = '';
 }
+function applyModuleLibReadFixedColumnNames(p: Record<string, any>) {
+  if (p.tableBizType !== 'MODULE_LIB_READ' || !Array.isArray(p.tableColDefs)) return;
+  if (p.tableColDefs[0]) p.tableColDefs[0].columnName = '模型件号';
+  if (p.tableColDefs[1]) p.tableColDefs[1].columnName = '模型名称';
+}
 function syncWorkspaceTableRowColDefs(component: any) {
   const p = component?.customProps;
   if (!p || (p.tableSubtype !== 'FIXED' && p.tableSubtype !== 'ROW_EXPAND')) return;
   const rows = Math.max(1, Math.min(50, Number(p.tableBodyRows) || 1));
-  const cols = Math.max(1, Math.min(20, Number(p.tableColCount) || 1));
+  let cols = Math.max(1, Math.min(20, Number(p.tableColCount) || 1));
+  if (p.tableBizType === 'MODULE_LIB_READ' && cols < 3) {
+    cols = 3;
+    p.tableColCount = 3;
+  }
   if (!Array.isArray(p.tableColDefs)) p.tableColDefs = [];
   /** 文件协同、普通表格无行定义配置，不保留 tableRowDefs */
   if (p.tableBizType === 'FILE_COLLAB' || p.tableBizType === 'NORMAL') {
@@ -1423,6 +1541,7 @@ function syncWorkspaceTableRowColDefs(component: any) {
       if (p.tableColDefs[i].columnName == null) p.tableColDefs[i].columnName = '';
     }
   }
+  applyModuleLibReadFixedColumnNames(p);
   if (p.cellParamInheritMap && typeof p.cellParamInheritMap === 'object') {
     for (const key of Object.keys(p.cellParamInheritMap)) {
       const parts = key.split('-');
@@ -1441,7 +1560,8 @@ function ensureWorkspaceTableDefaults(component: any) {
   const p = component.customProps;
   if (p.tableTitle == null) p.tableTitle = '表格标题';
   if (p.tableBodyRows == null || p.tableBodyRows < 1) p.tableBodyRows = 4;
-  if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
+    if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
+    if (p.tableBizType === 'MODULE_LIB_READ' && p.tableColCount < 3) p.tableColCount = 3;
   if (!p.firstColumnType) p.firstColumnType = 'INDEX';
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = false;
@@ -1974,25 +2094,25 @@ watch(
                           }"
                           :style="getFixedTableColumnPreviewStyle(item, c)"
                           @click.stop="onTablePreviewCellClick(index, r, c)">
-                        <template v-if="c === 1">
-                          <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'" class="fixed-table-cell-index">{{ r }}</span>
-                          <input v-else-if="item.customProps?.firstColumnType === 'CHECKBOX'" type="checkbox" class="fixed-table-cell-check" disabled tabindex="-1" />
-                          <input
-                            v-else-if="item.customProps?.firstColumnType === 'RADIO'"
-                            type="radio"
-                            class="fixed-table-cell-radio"
-                            :name="`fixed-table-radio-${index}`"
-                            :checked="r === 1"
-                            disabled
-                            tabindex="-1" />
-                        </template>
-                        <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
-                          <div class="fixed-table-cell-op-btns">
-                            <a v-for="btn in getWorkspaceTableOperationButtons(item)" :key="`table-op-${index}-${r}-${btn}`" class="fixed-table-cell-op-link">
-                              {{ btn }}
-                            </a>
-                          </div>
-                        </template>
+                          <template v-if="c === 1">
+                            <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'" class="fixed-table-cell-index">{{ r }}</span>
+                            <input v-else-if="item.customProps?.firstColumnType === 'CHECKBOX'" type="checkbox" class="fixed-table-cell-check" disabled tabindex="-1" />
+                            <input
+                              v-else-if="item.customProps?.firstColumnType === 'RADIO'"
+                              type="radio"
+                              class="fixed-table-cell-radio"
+                              :name="`fixed-table-radio-${index}`"
+                              :checked="r === 1"
+                              disabled
+                              tabindex="-1" />
+                          </template>
+                          <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
+                            <div class="fixed-table-cell-op-btns">
+                              <a v-for="btn in getWorkspaceTableOperationButtons(item)" :key="`table-op-${index}-${r}-${btn}`" class="fixed-table-cell-op-link">
+                                {{ btn }}
+                              </a>
+                            </div>
+                          </template>
                         </td>
                       </tr>
                     </tbody>
@@ -2529,9 +2649,30 @@ watch(
               <div class="divider-empty-panel"></div>
             </template>
             <template v-else-if="isWorkspaceTableComponent">
-              <p v-if="!selectedTableCell" class="table-cell-inherit-hint">点击画布中表格列为只读文本类型的单元格，可配置该单元格的参数继承属性。</p>
+              <p v-if="!selectedTableCell" class="table-cell-inherit-hint">点击画布中表格列为文本、下拉值或只读文本类型的单元格，可配置该单元格的基础定义或参数继承属性。</p>
               <a-collapse
-                v-if="selectedTableCell && activeCellParamInherit"
+                v-if="selectedTableCell && selectedCellIsBasicDefMode && activeCellBasicDef"
+                v-model:activeKey="tableCellBasicPanelKeys"
+                :bordered="false"
+                class="text-config-collapse table-cell-basic-collapse">
+                <a-collapse-panel key="cellBasic" header="基础定义">
+                  <div class="row-field">
+                    <div class="row-label">数据类型：</div>
+                    <div class="row-control">
+                      <a-input :value="selectedTableCellDataTypeLabel" disabled class="table-cell-inherit-readonly-input" />
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">申请唯一编号：</div>
+                    <div class="row-control">
+                      <a-input :value="activeCellBasicDef.uniqueCode" disabled placeholder="请点击申请编号" class="table-cell-inherit-readonly-input" />
+                      <a-button type="primary" size="small" @click="onApplyCellUniqueCode">申请编号</a-button>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+              <a-collapse
+                v-if="selectedTableCell && selectedCellIsInheritMode && activeCellParamInherit"
                 v-model:activeKey="tableCellInheritPanelKeys"
                 :bordered="false"
                 class="text-config-collapse table-cell-inherit-collapse">
@@ -2559,17 +2700,10 @@ watch(
                     </div>
                   </div>
                   <div class="row-field" v-if="activeCellParamInherit.cellInheritType === 'FIXED'">
-                    <div class="row-label">表格编号：</div>
+                    <div class="row-label">继承唯一编号：</div>
                     <div class="row-control">
                       <a-input v-model:value="activeCellParamInherit.cellTableNumber" placeholder="请输入" />
                       <a-button type="primary" size="small" @click="showParameter({ type: 'tableCellInherit', field: 'cellTableNumber' })"> 浏览 </a-button>
-                    </div>
-                  </div>
-                  <div class="row-field" v-if="activeCellParamInherit.cellInheritType === 'FIXED'">
-                    <div class="row-label">表格单元格：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="activeCellParamInherit.cellTableCellRef" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="showParameter({ type: 'tableCellInherit', field: 'cellTableCellRef' })"> 浏览 </a-button>
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -2592,8 +2726,18 @@ watch(
                     <div class="row-field">
                       <div class="row-label">表格列数：</div>
                       <div class="row-control">
-                        <a-select v-model:value="selectedComponent.customProps.tableColCount">
-                          <a-select-option v-for="n in tableDimensionRange(20)" :key="n" :value="n">{{ n }}</a-select-option>
+                        <template v-if="selectedComponent.customProps.tableBizType === 'MODULE_LIB_READ'">
+                          <a-input-number
+                            :value="getModuleLibReadExtraColCount(selectedComponent.customProps.tableColCount)"
+                            :min="0"
+                            :max="17"
+                            style="width: 100%"
+                            placeholder="不含序号、模型件号、模型名称"
+                            @update:value="onModuleLibReadExtraColCountChange" />
+                          <p class="fixed-table-col-count-hint">仅统计除序号、模型件号、模型名称外的可配置列数。</p>
+                        </template>
+                        <a-select v-else v-model:value="selectedComponent.customProps.tableColCount">
+                          <a-select-option v-for="n in getTableColCountSelectOptions(selectedComponent.customProps.tableBizType)" :key="n" :value="n">{{ n }}</a-select-option>
                         </a-select>
                       </div>
                     </div>
@@ -2608,7 +2752,7 @@ watch(
                       <div class="row-label">表格类型：</div>
                       <div class="row-control">
                         <a-select v-model:value="selectedComponent.customProps.tableBizType" placeholder="请选择">
-                          <a-select-option value="MODULE_LIB_READ">模块库读取</a-select-option>
+                          <a-select-option value="MODULE_LIB_READ">模型库读取</a-select-option>
                           <a-select-option value="BASIC_RESOURCE_LIB_READ">基础资源库读取</a-select-option>
                           <a-select-option value="FILE_COLLAB">文件协同</a-select-option>
                           <a-select-option value="NORMAL">普通表格</a-select-option>
@@ -2661,7 +2805,7 @@ watch(
                                   placeholder="请通过浏览选择"
                                   disabled
                                   class="browse-adjoined-input" />
-                                <a-button type="primary" size="small" class="fixed-table-def-browse-btn" @click="selectMenuCategory(r - 1)">浏览</a-button>
+                                <a-button type="primary" size="small" class="fixed-table-def-browse-btn" @click="onTableRowCategoryBrowse(r - 1)">浏览</a-button>
                               </div>
                             </td>
                           </tr>
@@ -2857,7 +3001,7 @@ watch(
           style="width: 100%"
           :getPopupContainer="getTableBizTypeSelectPopupContainer"
           :dropdown-style="tableBizTypeSelectDropdownStyle">
-          <a-select-option value="MODULE_LIB_READ">模块库读取</a-select-option>
+          <a-select-option value="MODULE_LIB_READ">模型库读取</a-select-option>
           <a-select-option value="BASIC_RESOURCE_LIB_READ">基础资源库读取</a-select-option>
           <a-select-option value="FILE_COLLAB">文件协同</a-select-option>
           <a-select-option value="NORMAL">普通表格</a-select-option>
@@ -2866,8 +3010,13 @@ watch(
       <a-form-item label="行数（表体数据行）" required>
         <a-input-number v-model:value="tableSizeDraft.bodyRows" :min="1" :max="100" style="width: 100%" placeholder="请输入行数" />
       </a-form-item>
-      <a-form-item label="列数" required>
-        <a-input-number v-model:value="tableSizeDraft.cols" :min="1" :max="50" style="width: 100%" placeholder="请输入列数" />
+      <a-form-item :label="tableSizeDraft.tableBizType === 'MODULE_LIB_READ' ? '列数（不含序号、模型件号、模型名称）' : '列数'" required>
+        <a-input-number
+          v-model:value="tableSizeDraft.cols"
+          :min="tableSizeDraft.tableBizType === 'MODULE_LIB_READ' ? 0 : 1"
+          :max="tableSizeDraft.tableBizType === 'MODULE_LIB_READ' ? 17 : 50"
+          style="width: 100%"
+          :placeholder="tableSizeDraft.tableBizType === 'MODULE_LIB_READ' ? '可配置列数，可为 0' : '请输入列数'" />
       </a-form-item>
     </a-form>
     <div class="table-size-modal-actions">
@@ -2953,7 +3102,13 @@ watch(
     </template>
   </a-modal>
 
-  <a-modal v-model:visible="libraryCategoryModalVisible" title="选择节点" :mask-closable="false" :width="700" :z-index="1100" @cancel="onLibraryCategoryCancel">
+  <a-modal
+    v-model:visible="libraryCategoryModalVisible"
+    :title="libraryCategoryPickTarget === 'tableRow' ? '选择模型库分类' : '选择节点'"
+    :mask-closable="false"
+    :width="700"
+    :z-index="1100"
+    @cancel="onLibraryCategoryCancel">
     <div class="library-category-tree-wrap">
       <a-tree
         :tree-data="libraryCategoryTreeData"
@@ -3581,6 +3736,12 @@ watch(
   margin: 0 0 8px;
   font-size: 12px;
   color: #8c8c8c;
+}
+.fixed-table-col-count-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.4;
 }
 .fixed-table-def-td--readonly-text {
   max-width: 220px;
