@@ -1,18 +1,35 @@
 <template>
   <div class="content-layout">
-    <draggable-modal :visible="tagDialogVisible" :title="modalType === 2 ? '编辑节点' : '添加节点'" :closable="false" centered
-      @cancel="closeFun" @ok="submitFun" :ok-text="modalType === 2 ? '确认' : '确认'" :cancel-text="'取消'" :width="550">
-
-      <a-form ref="ruleFormRef" :model="ruleForm" :rules="rules" :label-col="{ span: 5 }" :wrapper-col="{ span: 16 }">
+    <draggable-modal
+      :visible="tagDialogVisible"
+      :title="modalType === 2 ? '编辑节点' : '添加节点'"
+      :closable="false"
+      centered
+      @cancel="closeFun"
+      @ok="submitFun"
+      :ok-text="modalType === 2 ? '确认' : '确认'"
+      :cancel-text="'取消'"
+      :width="550"
+    >
+      <a-form
+        ref="ruleFormRef"
+        :model="ruleForm"
+        :rules="rules"
+        :label-col="{ span: 5 }"
+        :wrapper-col="{ span: 16 }"
+      >
         <a-form-item label="父项节点名称：">
           <a-input v-model:value="ruleForm.parentName" disabled />
         </a-form-item>
         <a-form-item label="节点名称：" name="nodeName">
-          <a-input v-model:value="ruleForm.nodeName" placeholder="请输入节点名称" />
+          <a-input
+            v-model:value="ruleForm.nodeName"
+            placeholder="请输入节点名称"
+          />
         </a-form-item>
-        <a-form-item label="URL链接：">
+        <!-- <a-form-item label="URL链接：">
           <a-input v-model:value="ruleForm.url" placeholder="请输入URL链接" />
-        </a-form-item>
+        </a-form-item> -->
       </a-form>
     </draggable-modal>
   </div>
@@ -24,8 +41,7 @@ import { message } from "ant-design-vue";
 import { saveknowledgeTree, tagSave } from "@/api/knowledge";
 import draggableModal from "@/components/DraggableModal/index.vue";
 
-const defProps = defineProps({
-});
+const defProps = defineProps({});
 const emit = defineEmits(["saveSuccess"]);
 
 const tagDialogVisible = ref(false);
@@ -36,7 +52,7 @@ const ruleFormRef = ref();
 const ruleForm = reactive({
   parentName: "",
   nodeName: null,
-  url: '',
+  // url: "",
 });
 
 // 注意：Ant Design Vue 的 rules 需配合 a-form-item 的 name 使用
@@ -62,15 +78,15 @@ const show = (node, parent, type) => {
   } else {
     ruleForm.parentName = nodeData.value.partName;
   }
-  ruleForm.url = nodeData.value.url;
+  // ruleForm.url = nodeData.value.url;
   tagDialogVisible.value = true;
 };
 
 const close = () => {
   tagDialogVisible.value = false;
   ruleForm.parentName = nodeData.value.nodeName;
-  ruleForm.nodeName = ''
-  ruleForm.url = ''
+  ruleForm.nodeName = "";
+  // ruleForm.url = "";
 };
 
 defineExpose({
@@ -101,15 +117,15 @@ const submitFun = async () => {
 
 const add = () => {
   const params = {
-    id: '',
+    id: "",
     nodeName: ruleForm.nodeName,
     parentId: Number(nodeData.value.key),
-    treeType: '1',
+    treeType: "1",
     tagType: tagsType.value,
     categoryId: nodeData.value.categoryId,
     categoryParentId: nodeData.value.categoryParentId,
     nodeLevel: Number(nodeData.value.nodeLevel) + 1,
-    url: ruleForm.url
+    // url: ruleForm.url,
   };
   saveknowledgeTree(params).then((res) => {
     if (res && res.data.code === "0") {
@@ -125,18 +141,18 @@ const edit = () => {
   const params = {
     nodeName: ruleForm.nodeName,
     id: nodeData.value.key,
-    treeType: '1',
+    treeType: "1",
     parentId: parentNode.value.id,
     tagType: tagsType.value,
     categoryId: nodeData.value.categoryId,
     categoryParentId: nodeData.value.categoryParentId,
     nodeLevel: Number(nodeData.value.nodeLevel),
-    url: ruleForm.url
+    // url: ruleForm.url,
   };
   saveknowledgeTree(params).then((res) => {
     if (res && res.data.code === "0") {
       message.success(res.data.msg);
-      close()
+      close();
       emit("saveSuccess");
     } else {
       message.warning(res.msg);

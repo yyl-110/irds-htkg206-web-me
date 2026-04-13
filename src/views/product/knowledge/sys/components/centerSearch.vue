@@ -21,7 +21,7 @@
           <div class="list overflow-y-auto wei-scrollbar h-full pt-[16px]">
             <a-spin :spinning="loading" class="h-full">
               <a-row class="w-full items-start h-full" :gutter="[16, 16]">
-                <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
+                <a-col :span="12" class="item min-w-[420px]" v-for="item in documentList" :key="item.id">
                   <div class="flex">
                     <a-checkbox :checked="item.content.isSelected" @change="val => getChangeBox(val, item.content)"
                       class="mr-[8px]" />
@@ -367,6 +367,7 @@ const handleClose = () => {
       font-weight: 600;
       font-size: 14px;
       color: var(--ant-primary-color);
+      text-shadow: none !important;
     }
   }
 

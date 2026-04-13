@@ -11,8 +11,8 @@
             <div class="tags">{{ userInfoList.expertRole }}</div>
           </div>
         </div>
-        <div class="desc">个人简介：{{ userInfoList.remarks }}</div>
-        <div class="incollect">
+        <!-- <div class="desc">个人简介：{{ userInfoList.remarks }}</div> -->
+        <div class="incollect mt-[16px]">
           <div v-for="(item, index) in myData" :key="index" class="text item" @click="sideFun(item)">
             <div class="incollectInfo" v-if="index == 0 || index == 1 || index == 4">
               <div class="incollectInfoVal">{{ item.value }}</div>
@@ -114,7 +114,7 @@ const sideFun = item => {
     border-radius: 4px;
     margin-bottom: 10px;
     width: 100%;
-    height: 245px;
+    height: 180px;
     background: linear-gradient(181deg, #fae2ab 0%, #ffffff 100%);
     border-radius: 4px 4px 4px 4px;
 

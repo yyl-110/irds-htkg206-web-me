@@ -210,11 +210,11 @@ const viewPdf = (id) => {
     id: id,
   };
   getPdfPreviewPath(params).then((res) => {
-    if (res && res.data.code === 200) {
+    if (res && res.status === 200) {
       open.value = false
       router.push({
         path: "/knowledge/pdfView",
-        query: { docId: res.data.data.fileUrl },
+        query: { docId: res.data.fileUrl },
       });
     }
   });
@@ -328,7 +328,7 @@ defineExpose({
                   <a-tooltip class="box-item" placement="top">
                     <template #title>{{
                       item.fileName + "." + item.fileType
-                    }}</template>
+                      }}</template>
                     <div class="highlightName" @click="viewPdfFun(item)">
                       {{ item.fileName }}.{{ item.fileType }}
                     </div>
@@ -337,10 +337,10 @@ defineExpose({
                     <a-breadcrumb separator="|">
                       <a-breadcrumb-item>{{
                         item.version || ""
-                      }}</a-breadcrumb-item>
+                        }}</a-breadcrumb-item>
                       <a-breadcrumb-item>{{
                         getTimes(Date.parse(item.addTime)) || ""
-                      }}</a-breadcrumb-item>
+                        }}</a-breadcrumb-item>
                       <a-breadcrumb-item>{{ confidentialLevel(item) }}</a-breadcrumb-item>
                     </a-breadcrumb>
                   </div>
@@ -365,7 +365,7 @@ defineExpose({
                   <div class="act-list elChatDotSquare" @click="commentFun(item)">
                     <message-outlined /><span>{{
                       JSON.parse(item.counting).commented
-                    }}</span>
+                      }}</span>
                   </div>
                   <div class="act-list elStarFilled icon-hanhan" @click="followFun(item)">
                     <star-outlined v-if="!item.collectedLight" />
@@ -375,12 +375,12 @@ defineExpose({
                   <div class="act-list elShare" @click="shareFun(item)">
                     <share-alt-outlined /><span>{{
                       JSON.parse(item.counting).shared
-                    }}</span>
+                      }}</span>
                   </div>
                   <div v-if="item.allowDownload !== 1" class="act-list elShare" @click="downFun(item)">
                     <download-outlined /><span>{{
                       JSON.parse(item.counting).downloaded
-                    }}</span>
+                      }}</span>
                   </div>
                 </div>
               </div>
@@ -394,13 +394,13 @@ defineExpose({
                   <span class="name">{{ allQues.userName }}</span>
                   <span class="time">{{
                     getAllTimes(Date.parse(allQues.addTime))
-                  }}</span>
+                    }}</span>
                   <span v-if="allQues.urgency === '紧急'" class="exigency">{{
                     allQues.urgency
-                  }}</span>
+                    }}</span>
                   <span v-if="allQues.urgency === '严重'" class="importance">{{
                     allQues.urgency
-                  }}</span>
+                    }}</span>
                   <!-- <span v-if="allQues.urgency === '一般'" class="normal">{{ allQues.urgency }}</span> -->
                 </div>
               </div>
@@ -440,21 +440,21 @@ defineExpose({
                       <div class="elChatDotSquare" @click="commentQuestFun(myAnser)">
                         <message-outlined class="mr-[5px]" /><span>{{
                           myAnser.discussNum
-                        }}</span>
+                          }}</span>
                       </div>
                       <div v-if="!allQues.interestLight" class="icon-hanhan elChatDotSquare" @click="starFun(allQues)">
                         <heart-outlined class="mr-[5px]" /><span>{{
                           myAnser.discussNum
-                        }}</span>
+                          }}</span>
                       </div>
                       <div v-else class="elChatDotSquare" @click="starFun(allQues)">
                         <heart-filled class="mr-[5px] text-red" :style="{ color: 'red' }" /><span>{{ myAnser.discussNum
-                        }}</span>
+                          }}</span>
                       </div>
                       <div class="elChatDotSquare" @click="shareFun(allQues)">
                         <share-alt-outlined /><span>{{
                           myAnser.discussNum
-                        }}</span>
+                          }}</span>
                       </div>
                     </div>
                   </div>
@@ -494,7 +494,7 @@ defineExpose({
                   <span class="name">{{ item.userName }}</span>
                   <span class="time">{{
                     getTimes(Date.parse(item.addTime)) || ""
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
             </div>
@@ -527,7 +527,7 @@ defineExpose({
                   <span class="name">{{ item.userName }}</span>
                   <span class="time">{{
                     getTimes(Date.parse(item.addTime)) || ""
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
             </div>
@@ -594,6 +594,7 @@ defineExpose({
       font-weight: 600;
       font-size: 14px;
       color: var(--ant-primary-color);
+      text-shadow: none !important;
     }
   }
 
@@ -709,6 +710,10 @@ defineExpose({
         overflow: hidden;
         text-overflow: ellipsis;
         cursor: pointer;
+
+        &:hover {
+          color: var(--ant-primary-color)
+        }
 
         :deep(em) {
           color: red !important;

@@ -64,62 +64,75 @@ import textCard from '../components/textCard.vue'
 import videoCard from '../components/videoCard.vue'
 import { useUserStore } from '@/store/modules/user'
 import { Empty, message } from 'ant-design-vue'
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { SearchOutlined } from '@ant-design/icons-vue'
 
-const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE);
+type TabKey = 'doc' | 'ask' | 'video' | 'pic'
 
-const activeName = ref('doc')
-const searchKey = ref('')
-const documentList = ref([])
-const spinning = ref(false)
+interface PageState {
+  pageSize: number
+  pageCount: number
+  currentPage: number
+}
 
-const hideFile = ref(true);
-const hideQuest = ref(false);
+/** Tab 名称 → attachmentType 映射（1文档 2视频 3图片 4问答） */
+const TAB_FLAG_MAP: Record<TabKey, number> = { doc: 1, video: 2, pic: 3, ask: 4 }
 
-// 点击右侧的数据
-const sideData = ref({});
+const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE)
 
-// tab标识
-const tabFlag = ref(1);
+const activeName = ref<TabKey>('doc')
+const searchKey = ref<string>('')
+const documentList = ref<any[]>([])
+const spinning = ref<boolean>(false)
+
+const hideFile = ref<boolean>(true)
+const hideQuest = ref<boolean>(false)
+
+/** 当前侧边栏选中项 */
+const sideData = ref<any>({})
+
+/** 当前 tab 对应的附件类型 */
+const tabFlag = ref<number>(1)
 
 const props = defineProps({
-  personalInfo: Object,
-});
+  personalInfo: {
+    type: Object as () => any,
+    default: () => ({}),
+  },
+})
 
-const page = ref({
+const page = ref<PageState>({
   pageSize: 10,
   pageCount: 100,
   currentPage: 1,
-});
+})
 
-// 收藏
+/** 收藏列表 */
 const myCollect = async () => {
   spinning.value = true
   const params = {
     titleOrUserName: searchKey.value || '',
     userId: useUserStore().getUser.id,
-    attachmentType: tabFlag.value, //文件类型.1,文档，2视频，3图片
+    attachmentType: tabFlag.value,
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
-  };
+  }
   try {
-    const res = await collectFileList(params);
-    if (res && res.data.code === '0') {
-      documentList.value = [];
-      documentList.value = res.data.data.result || [];
-      page.value.pageCount = res.data.data.rowCount;
+    const res = await collectFileList(params)
+    if (res?.data.code === '0') {
+      documentList.value = res.data.data.result || []
+      page.value.pageCount = res.data.data.rowCount
     } else {
-      message.error(res.data.msg);
+      message.error(res.data.msg)
     }
   } catch (error) {
-    console.log('error:', error)
+    console.error('myCollect error:', error)
   } finally {
     spinning.value = false
   }
-};
+}
 
-// 关注
+/** 关注列表 */
 const myInterestList = async () => {
   spinning.value = true
   const params = {
@@ -127,28 +140,28 @@ const myInterestList = async () => {
     userId: useUserStore().getUser.id,
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
-  };
+  }
   try {
-    const res = await interestList(params);
-    if (res && res.data.code === '0') {
-      documentList.value = [];
-      documentList.value = res.data.data.result || [];
-      page.value.pageCount = res.data.data.rowCount;
-      documentList.value.map(v => {
-        v.hidden = false;
-        v.replay = false;
-      });
+    const res = await interestList(params)
+    if (res?.data.code === '0') {
+      const result: any[] = res.data.data.result || []
+      result.forEach((v) => {
+        v.hidden = false
+        v.replay = false
+      })
+      documentList.value = result
+      page.value.pageCount = res.data.data.rowCount
     } else {
-      message.error(res.data.msg);
+      message.error(res.data.msg)
     }
   } catch (error) {
-    console.log('error:', error)
+    console.error('myInterestList error:', error)
   } finally {
     spinning.value = false
   }
-};
+}
 
-// 问题分享
+/** 分享的问答列表 */
 const myShareQuestionList = async () => {
   spinning.value = true
   const params = {
@@ -156,23 +169,23 @@ const myShareQuestionList = async () => {
     userId: useUserStore().getUser.id,
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
-  };
+  }
   try {
-    const res = await shareQuestionList(params);
-    if (res && res.data.code === '0') {
-      documentList.value = [];
-      documentList.value = res.data.data.result || [];
+    const res = await shareQuestionList(params)
+    if (res?.data.code === '0') {
+      documentList.value = res.data.data.result || []
+      page.value.pageCount = res.data.data.rowCount
     } else {
-      message.error(res.data.msg);
+      message.error(res.data.msg)
     }
   } catch (error) {
-    console.log('error:', error)
+    console.error('myShareQuestionList error:', error)
   } finally {
     spinning.value = false
   }
-};
+}
 
-// 分享
+/** 分享的文件列表 */
 const myShareFileList = async () => {
   spinning.value = true
   const params = {
@@ -181,118 +194,93 @@ const myShareFileList = async () => {
     userId: useUserStore().getUser.id,
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
-  };
+  }
   try {
     const res = await shareFileList(params)
-    if (res && res.data.code === '0') {
-      console.log(res.data.data, '我是关注列表');
-      documentList.value = [];
-      documentList.value = res.data.data.result;
-      page.value.pageCount = res.data.data.rowCount;
+    if (res?.data.code === '0') {
+      documentList.value = res.data.data.result || []
+      page.value.pageCount = res.data.data.rowCount
     } else {
-      message.error(res.data.msg);
+      message.error(res.data.msg)
     }
   } catch (error) {
-    console.log('error:', error)
+    console.error('myShareFileList error:', error)
   } finally {
     spinning.value = false
   }
-};
+}
 
-// 公共函数
+/** 根据 sideData.key 分发到对应的接口请求 */
 const publicFun = () => {
-  if ((activeName.value === 'doc' || activeName.value === 'video' || activeName.value === 'pic') && sideData.value.key === 'my-contribution') {
-    myCollect();
-  } else if (activeName.value === 'ask' && sideData.value.key === 'my-follow') {
-    activeName.value = 'ask';
-    myInterestList();
-  } else if (sideData.value.key === 'my-knowledgeShare') {
-    if (tabFlag.value === 4) {
-      myShareQuestionList();
-    } else {
-      myShareFileList();
-    }
-  } else {
-    if (sideData.value.key === 'my-contribution' || activeName.value === 'doc' || activeName.value === 'video' || activeName.value === 'pic') {
-      myCollect();
-    } else if (sideData.value.key === 'my-follow') {
-      myInterestList();
-    } else if (sideData.value.key === 'my-knowledgeShare') {
-      if (tabFlag.value === 4) {
-        myShareQuestionList();
-      } else {
-        myShareFileList();
-      }
-    }
-  }
-};
-
-// 点击右侧数据
-const sideFun = item => {
-  page.value.currentPage = 1;
-  page.value.pageSize = 10;
-  sideData.value = item;
   documentList.value = []
-  if (item.key === 'my-contribution') {
-    activeName.value = 'doc';
-    hideFile.value = true;
-    hideQuest.value = false;
-    tabFlag.value = 1;
-    myCollect();
-  } else if (item.key === 'my-follow') {
-    activeName.value = 'ask';
-    hideFile.value = false;
-    hideQuest.value = true;
-    myInterestList();
-  } else if (item.key === 'my-knowledgeShare') {
-    activeName.value = 'doc';
-    hideFile.value = true;
-    hideQuest.value = true;
-    if (tabFlag.value === 4) {
-      myShareQuestionList();
-    } else {
-      tabFlag.value = 1;
-      myShareFileList();
-    }
-  } else {
-    // emit('changetab');
-  }
-};
-const searchData = () => { }
-const handleCurrentChange = (val, size) => {
-  page.value.currentPage = val;
-  page.value.pageSize = size;
-  publicFun();
-};
+  const key = sideData.value?.key
 
-// tab 栏切换
-const handleClick = val => {
-  page.value.currentPage = 1;
-  page.value.pageSize = 10;
-  if (activeName.value === 'doc') {
-    tabFlag.value = 1;
-  } else if (activeName.value === 'video') {
-    tabFlag.value = 2;
-  } else if (activeName.value === 'pic') {
-    tabFlag.value = 3;
+  if (key === 'my-contribution') {
+    myCollect()
+  } else if (key === 'my-follow') {
+    myInterestList()
+  } else if (key === 'my-knowledgeShare') {
+    tabFlag.value === 4 ? myShareQuestionList() : myShareFileList()
   } else {
-    tabFlag.value = 4;
+    // 初始默认状态（sideData 为空时），加载收藏列表
+    myCollect()
   }
-  publicFun();
-};
+}
+
+/** 侧边栏菜单切换 */
+const sideFun = (item: any) => {
+  page.value.currentPage = 1
+  page.value.pageSize = 10
+  sideData.value = item
+  documentList.value = []
+
+  if (item.key === 'my-contribution') {
+    activeName.value = 'doc'
+    hideFile.value = true
+    hideQuest.value = false
+    tabFlag.value = 1
+    myCollect()
+  } else if (item.key === 'my-follow') {
+    activeName.value = 'ask'
+    hideFile.value = false
+    hideQuest.value = true
+    myInterestList()
+  } else if (item.key === 'my-knowledgeShare') {
+    activeName.value = 'doc'
+    hideFile.value = true
+    hideQuest.value = true
+    tabFlag.value = 1
+    myShareFileList()
+  }
+}
+
+const handleCurrentChange = (val: number, size: number) => {
+  page.value.currentPage = val
+  page.value.pageSize = size
+  publicFun()
+}
+
+/** Tab 切换：通过常量 Map 更新 tabFlag，避免冗余的 if/else 链 */
+const handleClick = (val: string) => {
+  page.value.currentPage = 1
+  page.value.pageSize = 10
+  tabFlag.value = TAB_FLAG_MAP[val as TabKey] ?? 1
+  publicFun()
+}
 
 onMounted(() => {
   publicFun()
-});
+})
 
 watch(
   () => props.personalInfo,
   (data: any) => {
-    if (data.key) {
-      sideFun(data);
+    if (data?.key) {
+      sideFun(data)
     }
-  }
-);
+  },
+  { deep: true, immediate: true }
+)
 
 </script>
 
@@ -338,6 +326,7 @@ watch(
           font-weight: 600;
           font-size: 14px;
           color: var(--ant-primary-color);
+          text-shadow: none !important;
         }
       }
 

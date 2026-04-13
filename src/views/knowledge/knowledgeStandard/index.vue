@@ -92,7 +92,7 @@ const columns: TableColumnsType = [
   { title: '标准号', dataIndex: 'bzdh', key: 'bzdh', width: 160 },
   { title: '实施日期', dataIndex: 'ssrq', key: 'ssrq' },
   { title: '标准状态', dataIndex: 'bzzt', key: 'bzzt', width: 90 },
-  { title: '新增人', dataIndex: 'userName', key: 'userName', width: 120, ...getColumnSelectProps('userName', standardData)  },
+  { title: '新增人', dataIndex: 'userName', key: 'userName', width: 120, ...getColumnSelectProps('userName', standardData) },
   { title: '新增时间', dataIndex: 'isrt_dt', key: 'isrt_dt' },
   { title: '操作', key: 'action', fixed: 'right', width: 120 },
 ];
@@ -212,6 +212,8 @@ onMounted(() => {
     overflow: hidden;
     display: flex;
     flex-shrink: 0;
+    justify-content: space-between;
+    align-items: center;
 
     .second {
       position: relative;
@@ -221,8 +223,6 @@ onMounted(() => {
       display: inline-block;
       width: 340px;
       height: 28px;
-      position: absolute;
-      margin-top: 0;
       text-align: center;
       right: 20px;
 

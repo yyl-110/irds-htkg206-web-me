@@ -280,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onActivated, onMounted } from 'vue';
+import { ref, watch, computed, onActivated, onMounted, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, EditOutlined, FileTextOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
@@ -307,44 +307,44 @@ import { WeiIcon } from '@/wei-components';
 import centerSearch from './components/centerSearch.vue'
 
 const router = useRouter();
-const route = useRoute()
+const route = useRoute();
 
-const showUpload = ref(false);
+const showUpload = ref<boolean>(false);
 
-const clickId = ref({});
+const clickId = ref<any>({});
 
-const addDataDialogVisible = ref(false);
+const addDataDialogVisible = ref<boolean>(false);
 
 // OU属性标签
-const checkOUList = ref(['新变厂', '衡变公司', '沈变公司']);
+const checkOUList = ref<string[]>(['新变厂', '衡变公司', '沈变公司']);
 
 // OU属性弹窗
-const OUDialogVisible = ref(false);
+const OUDialogVisible = ref<boolean>(false);
 
-const isIndeterminate = ref(true);
-const checkAllOU = ref(false);
+const isIndeterminate = ref<boolean>(true);
+const checkAllOU = ref<boolean>(false);
 
-const dialogAddEdit = ref(false);
+const dialogAddEdit = ref<boolean>(false);
 
-const title = ref('');
+const title = ref<string>('');
 
 // 标签属性选中得id
-const selectId = ref([]);
+const selectId = ref<any[]>([]);
 
 // OU属性所有值
-const OUData = ref([]);
+const OUData = ref<any[]>([]);
 
 // 选中标签名称
-const selectedName = ref([]);
+const selectedName = ref<any[]>([]);
 
 // 选中OU属性的值
-const selectedOU = ref([]);
+const selectedOU = ref<any[]>([]);
 
-const activeName = ref('first');
+const activeName = ref<string>('first');
 
-const imgPath = ref({});
+const imgPath = ref<any>({});
 
-const imgArr = ref([
+const imgArr = ref<any[]>([
   {
     url: 'modal1.png',
   },
@@ -353,18 +353,18 @@ const imgArr = ref([
   },
 ]);
 
-const treeMapData = ref([]);
+const treeMapData = ref<any[]>([]);
 
-const parentNode = ref({});
+const parentNode = ref<any>({});
 
-const clickNodeObj = ref({});
+const clickNodeObj = ref<any>({});
 
 const defaultProps = {
   children: 'children',
   label: 'nodeName',
 };
 const treeFieldNames = { children: 'children', title: 'nodeName', key: 'id' };
-const selectedTreeKeys = ref([]);
+const selectedTreeKeys = ref<string[]>([]);
 
 const checkOUListText = computed(() => {
   return Array.isArray(checkOUList.value) ? checkOUList.value.join(',') : (checkOUList.value || '');
@@ -375,18 +375,15 @@ const ruleForm = ref({
   search: '',
   classifyName: '',
 });
-// 名称
-// const mapName = ref();
-// // 查询对象
-// const search = ref();
-// 创建者
-const creator = ref(useUserStore().getUser.userName);
-// ou属性
-const OUProperty = ref();
-// 摘要
-const abstract = ref();
 
-const taskMapIdFlag = ref();
+// 创建者
+const creator = ref<string>(useUserStore().getUser.userName);
+// ou属性
+const OUProperty = ref<any>();
+// 摘要
+const abstract = ref<string>('');
+
+const taskMapIdFlag = ref<string | number>('');
 
 const rules = reactive({
   mapName: [{ required: true, message: '请输入地图名称', trigger: 'blur' }],
@@ -395,48 +392,44 @@ const rules = reactive({
 });
 
 // 弹窗
-const parentName = ref();
-const labelType = ref('分类节点');
-// const classifyName = ref();
+const parentName = ref<string>('');
+const labelType = ref<string>('分类节点');
 
 // 模板数据
-const templateData = ref([]);
+const templateData = ref<any[]>([]);
 
 // 标识
-const numberFlag = ref(0);
+const numberFlag = ref<number>(0);
 
 // 地图内容的三级节点
-const thirdData = ref([]);
+const thirdData = ref<any[]>([]);
 
 // 地图内容的2级节点
-const secongData = ref({});
+const secongData = ref<any>({});
 
 // 文件路径
-const filePath = ref();
+const filePath = ref<string>('');
 
 // 编辑的图片路径
-const fileEditUrl = ref();
+const fileEditUrl = ref<string>('');
 
 // 编辑当前数据的id
-const currentEditId = ref();
+const currentEditId = ref<string | number>('');
 
 // 模板数据
-const templateUrl = ref();
+const templateUrl = ref<string>('');
 
 // 模板数据
-const templateId = ref();
-
-// 标识
-// const dialogType = ref();
+const templateId = ref<string | number>('');
 
 // 详情数据
-const detailData = ref([]);
-const fileInfoList = ref({})
+const detailData = ref<any[]>([]);
+const fileInfoList = ref<any>({});
 
-const mapEditList = ref({})
+const mapEditList = ref<any>({});
 
 onMounted(() => {
-  if (route.query.id) getMapInfoData()
+  if (route.query.id) getMapInfoData();
   getId();
   getOUList();
 });
@@ -447,9 +440,9 @@ function customGetContainer() {
 }
 const getMapInfoData = async () => {
   try {
-    const res = await modifyInitMap({ id: route.query.id })
+    const res = await modifyInitMap({ id: route.query.id as string });
     if (res.data.code === '0') {
-      mapEditList.value = res.data.data
+      mapEditList.value = res.data.data;
       ruleForm.value.mapName = mapEditList.value.name;
       ruleForm.value.search = mapEditList.value.queryObj;
       creator.value = mapEditList.value.createUserName;
@@ -461,16 +454,17 @@ const getMapInfoData = async () => {
       templateId.value = mapEditList.value.templateId;
     }
   } catch (error) {
-    console.log('error:', error)
+    console.log('error:', error);
   }
-}
+};
 
-const getDataList = () => {
+const getDataList = async () => {
   const params = {
     // taskMapId: 7,
     taskMapId: taskMapIdFlag.value || '',
   };
-  queryMapNodeList(params).then(res => {
+  try {
+    const res = await queryMapNodeList(params);
     if (res && res.data.code === '0') {
       secongData.value = {};
       secongData.value = res.data.data;
@@ -478,49 +472,61 @@ const getDataList = () => {
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 // 初始化数据
-const getId = () => {
-  queryTemplate({}).then(res => {
+const getId = async () => {
+  try {
+    const res = await queryTemplate({});
     if (res && res.data.code === '0') {
       templateData.value = [];
       templateData.value = res.data.data;
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 // 获取图上的数据
-const getFileInfo = data => {
+const getFileInfo = async (data?: any) => {
   const params = {
-    id: data?.nodeId ? data?.nodeId : secongData.value.nodeList[0]?.nodeId,
+    id: data?.nodeId ? data?.nodeId : secongData.value.nodeList?.[0]?.nodeId,
     taskMapId: taskMapIdFlag.value || '',
     type: '2',
     userId: useUserStore().getUser.id,
   };
-  queryMapTaskDetail(params).then(res => {
+  if(!params.id) return;
+  try {
+    const res = await queryMapTaskDetail(params);
     if (res && res.data.code === '0') {
       detailData.value = [];
       detailData.value = res.data.data.result;
     } else {
       message.error(res.data.msg);
     }
-  });
-  secongData.value.nodeList.forEach(v => {
-    if (data?.nodeId) {
-      if (v.nodeId === data?.nodeId) {
-        v.color = true;
-      } else {
-        v.color = false;
-      }
+    
+    if (secongData.value.nodeList) {
+      secongData.value.nodeList.forEach((v: any) => {
+        if (data?.nodeId) {
+          if (v.nodeId === data?.nodeId) {
+            v.color = true;
+          } else {
+            v.color = false;
+          }
+        }
+      });
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-const handleTabChange = key => {
+const handleTabChange = (key: string) => {
   if (key === 'second') {
     getTreeList();
   }
@@ -530,27 +536,30 @@ const handleTabChange = key => {
 };
 
 // 数据树列表
-const getTreeList = () => {
+const getTreeList = async () => {
   const params = {
     // taskMapId: 7,
     taskMapId: taskMapIdFlag.value || '',
     userId: useUserStore().getUser.id,
   };
-  taskMapList(params).then(res => {
+  try {
+    const res = await taskMapList(params);
     if (res && res.data.code === '0') {
       treeMapData.value = [];
       treeMapData.value = res.data.data;
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch(error) {
+    console.error(error);
+  }
 };
 
 // 暂存
-const Staging = () => {
+const Staging = async () => {
   const params = {
     id: currentEditId.value || '',
-    templateId: imgPath.value.id || templateData.value[0].id,
+    templateId: imgPath.value.id || (templateData.value.length ? templateData.value[0].id : ''),
     userId: useUserStore().getUser.id,
     name: ruleForm.value.mapName,
     queryObj: ruleForm.value.search,
@@ -565,7 +574,8 @@ const Staging = () => {
     coverFileUrl: fileInfoList.value.fileUrl,
     taskMapId: taskMapIdFlag.value || '',
   };
-  stagSave(params).then(res => {
+  try {
+    const res = await stagSave(params);
     if (res && res.data.code === '0') {
       taskMapIdFlag.value = res.data.data.taskMapId;
       activeName.value = 'second';
@@ -574,19 +584,21 @@ const Staging = () => {
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 // 节点点击
-const handleNodeClick = node => {
+const handleNodeClick = (node: any) => {
   console.log(node, 'clickNode');
   clickNodeObj.value = node;
-  treeMapData.value.map(v => {
+  treeMapData.value.forEach((v: any) => {
     if (v.id === node.parentId) {
       parentNode.value = v;
     } else {
       if (v.children && v.children.length > 0) {
-        v.children.map(k => {
+        v.children.forEach((k: any) => {
           if (k.id === node.parentId) {
             parentNode.value = k;
           }
@@ -596,32 +608,36 @@ const handleNodeClick = node => {
   });
   if (node.nodeLevel === 2) {
     thirdData.value = [];
-    thirdData.value = node.children;
+    thirdData.value = node.children || [];
   }
 };
-const handleTreeSelect = (selectedKeys, info) => {
+
+const handleTreeSelect = (selectedKeys: string[], info: any) => {
   selectedTreeKeys.value = selectedKeys;
   const node = info?.node?.dataRef || info?.node;
   if (node) handleNodeClick(node);
 };
 
-// 查看pdf
-const viewPdf = item => {
+// 查看pdf (fix naming to match template)
+const viewPdfFun = async (item: any) => {
   const params = {
     id: item.fileId,
   };
-  getPdfPreviewPath(params).then(res => {
+  try {
+    const res = await getPdfPreviewPath(params);
     if (res && res.data.code === 200) {
       filePath.value = res.data.fileUrl;
       router.push({ path: '/knowledgeData/pdfView_index', query: { docId: filePath.value } });
     } else {
       message.error(res.data.msg);
+      router.push({ path: '/knowledgeData/pdfView_index', query: { docId: item.fileUrl, filePath: filePath.value } });
     }
-  });
-  router.push({ path: '/knowledgeData/pdfView_index', query: { docId: item.fileUrl, filePath: filePath.value } });
+  } catch(error) {
+    console.error(error);
+  }
 };
 
-const getTreeIconType = data => {
+const getTreeIconType = (data: any) => {
   if (data?.nodeLevel === 1) return 'icon-wjj';
   if (data?.nodeLevel === 2) return 'icon-wj';
   return 'icon-wj';
@@ -642,7 +658,7 @@ const addTreeFun = () => {
   }
   title.value = '添加数据';
   dialogAddEdit.value = true;
-  parentName.value = parentNode.value.nodeName;
+  parentName.value = parentNode.value.nodeName || clickNodeObj.value.nodeName;
   ruleForm.value.classifyName = '';
 };
 
@@ -661,11 +677,11 @@ const editTreeFun = () => {
   }
   title.value = '编辑数据';
   dialogAddEdit.value = true;
-  parentName.value = parentNode.value.nodeName;
+  parentName.value = parentNode.value.nodeName || '';
   ruleForm.value.classifyName = clickNodeObj.value.nodeName;
 };
 
-const upTreeFun = () => {
+const upTreeFun = async () => {
   console.log('向上');
   if (!clickNodeObj.value.id) {
     message.error('请先选择节点！');
@@ -679,7 +695,8 @@ const upTreeFun = () => {
     nodeId: clickNodeObj.value.id,
     type: '0',
   };
-  mapTreeSort(params).then(res => {
+  try {
+    const res = await mapTreeSort(params);
     if (res && res.data.code === '0') {
       console.log(res.data);
       getDataList();
@@ -687,9 +704,11 @@ const upTreeFun = () => {
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
-const downTreeFun = () => {
+const downTreeFun = async () => {
   console.log('向下');
   if (!clickNodeObj.value.id) {
     message.error('请先选择节点！');
@@ -703,7 +722,8 @@ const downTreeFun = () => {
     nodeId: clickNodeObj.value.id,
     type: '1',
   };
-  mapTreeSort(params).then(res => {
+  try {
+    const res = await mapTreeSort(params);
     if (res && res.data.code === '0') {
       console.log(res.data);
       getDataList();
@@ -711,7 +731,9 @@ const downTreeFun = () => {
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 const deleteTreeFun = () => {
@@ -724,13 +746,14 @@ const deleteTreeFun = () => {
     content: '确定要删除?',
     okText: '确定',
     cancelText: '取消',
-    onOk() {
+    async onOk() {
       const params = {
         id: clickNodeObj.value.id,
         taskMapId: taskMapIdFlag.value || '',
         userId: useUserStore().getUser.id,
       };
-      taskMapRemoveTree(params).then(res => {
+      try {
+        const res = await taskMapRemoveTree(params);
         if (res && res.data.code === '0') {
           getTreeList();
           getFileInfo();
@@ -740,7 +763,9 @@ const deleteTreeFun = () => {
         } else {
           message.error(res.data.msg);
         }
-      });
+      } catch (error) {
+        console.error(error);
+      }
     },
     onCancel() {
       message.info('取消删除');
@@ -768,14 +793,15 @@ const openFileFun = () => {
 };
 
 // 获取三级节点的数据
-const getThirdData = () => {
+const getThirdData = async () => {
   const params = {
     id: clickNodeObj.value.id,
     taskMapId: taskMapIdFlag.value || '',
     userId: useUserStore().getUser.id,
     // batch: centerDataList.value,
   };
-  saveTreeData(params).then(res => {
+  try {
+    const res = await saveTreeData(params);
     if (res && res.data.code === '0') {
       getTreeList();
       getFileInfo();
@@ -783,13 +809,15 @@ const getThirdData = () => {
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 // 弹窗添加和编辑的保存
-const dialogConfirm = () => {
+const dialogConfirm = async () => {
   dialogAddEdit.value = false;
-  let params;
+  let params: any;
   if (title.value === '添加数据') {
     params = {
       id: '',
@@ -807,7 +835,8 @@ const dialogConfirm = () => {
       nodeName: ruleForm.value.classifyName,
     };
   }
-  taskMapSaveTree(params).then(res => {
+  try {
+    const res = await taskMapSaveTree(params);
     if (res && res.data.code === '0') {
       ruleForm.value.classifyName = '';
       getTreeList();
@@ -816,14 +845,16 @@ const dialogConfirm = () => {
     } else {
       message.error(res.data.msg);
     }
-  });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 const dialogCancel = () => {
   dialogAddEdit.value = false;
 };
 
-const getImgInfo = val => {
+const getImgInfo = (val: any) => {
   console.log(templateUrl.value, 'templateUrl.value');
   console.log(val, 'valvalvla');
   if (templateUrl.value) {
@@ -859,12 +890,13 @@ const saveData = () => {
       content: '提交之后数据不可更改！',
       okText: '确定',
       cancelText: '取消',
-      onOk() {
+      async onOk() {
         const params = {
           taskMapId: taskMapIdFlag.value || '',
           userId: useUserStore().getUser.id,
         };
-        submitMap(params).then(res => {
+        try {
+          const res = await submitMap(params);
           if (res && res.data.code === '0') {
             ruleForm.value.mapName = '';
             ruleForm.value.search = '';
@@ -882,7 +914,9 @@ const saveData = () => {
           } else {
             message.error(res.data.msg);
           }
-        });
+        } catch (error) {
+          console.error(error);
+        }
       },
       onCancel() {
         message.info('取消');
@@ -897,8 +931,8 @@ const chooseOUFun = () => {
 };
 
 // OU属性事件
-const handleCheckedCitiesChange = value => {
-  selectedName.value = OUData.value.filter(v => value.includes(v.name));
+const handleCheckedCitiesChange = (value: string[]) => {
+  selectedName.value = OUData.value.filter((v: any) => value.includes(v.name));
   const checkedCount = value.length;
   // 判断选中状态
   checkAllOU.value = checkedCount === OUData.value.length;
@@ -906,25 +940,30 @@ const handleCheckedCitiesChange = value => {
 };
 
 // OU属性全选
-const handleCheckAllChange = e => {
+const handleCheckAllChange = (e: any) => {
   const checked = e?.target?.checked;
-  checkOUList.value = checked ? OUData.value.map(v => v.name) : [];
+  checkOUList.value = checked ? OUData.value.map((v: any) => v.name) : [];
   selectedName.value = checked ? [...OUData.value] : [];
   isIndeterminate.value = false;
 };
 
 // 获取OU属性的数据
-const getOUList = () => {
+const getOUList = async () => {
   const params = {
     key: 'OU',
   };
-  OuList(params).then(res => {
-    OUData.value = [];
-    selectedName.value = [];
-    OUData.value = res.data.data.slice(1);
-    selectedName.value = res.data.data.slice(1);
-    checkOUList.value = OUData.value.map(v => v.name);
-  });
+  try {
+    const res = await OuList(params);
+    if (res?.data?.data) {
+      OUData.value = [];
+      selectedName.value = [];
+      OUData.value = res.data.data.slice(1);
+      selectedName.value = res.data.data.slice(1);
+      checkOUList.value = OUData.value.map((v: any) => v.name);
+    }
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 // OU属性关闭
@@ -937,10 +976,10 @@ const uploadFile = () => {
   showUpload.value = true;
 };
 
-const hiddenUpload = data => {
+const hiddenUpload = (data: any) => {
   if (data.id) {
     showUpload.value = false;
-    fileInfoList.value = data
+    fileInfoList.value = data;
   }
 };
 
@@ -949,6 +988,7 @@ const handleSuccess = () => {
   getTreeList()
   addDataDialogVisible.value = false
 }
+
 </script>
 
 <style lang="less">

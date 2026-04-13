@@ -63,7 +63,8 @@
   </draggable-modal>
 
   <draggable-modal :maskClosable="false" class="labelModal" v-model:visible="tabStatsDialogVisible" :width="600"
-    title="标签应用" @cancel="closeTabStatsDialogFun">
+    title="标签应用" @cancel="closeTabStatsDialogFun"
+    :bodyStyle="{ maxHeight: '60vh', overflowY: 'auto', overflowX: 'hidden' }">
     <div class="group" v-for="item in labelData" :key="item.nodeName">
       <div class="titleStyle mb-[8px]">
         <div :class="{ fontStyle: item.nodeLevel === '2' }" v-if="item.nodeLevel === '2'">{{ item.nodeName }}</div>

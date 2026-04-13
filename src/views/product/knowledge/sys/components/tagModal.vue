@@ -1,6 +1,7 @@
 <template>
   <draggable-modal :maskClosable="false" class="labelModal" v-model:visible="tabStatsDialogVisible" :width="600"
-    title="标签应用" @cancel="closeTabStatsDialogFun">
+    title="标签应用" @cancel="closeTabStatsDialogFun"
+    :bodyStyle="{ maxHeight: '60vh', overflowY: 'auto', overflowX: 'hidden' }">
     <div class="h-full overflow-y-auto wei-scrollbar">
       <div class="group" v-for="item in labelData" :key="item.nodeName">
         <div class="titleStyle mb-[8px]">
@@ -179,5 +180,17 @@ defineExpose({
 .checkBox {
   margin-left: 20px;
   width: 120px;
+}
+
+.titleStyle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .fontStyle {
+    font-size: 16px;
+    font-weight: bold;
+    color: #313133;
+  }
 }
 </style>

@@ -6,24 +6,23 @@
           @keydown.enter="fetchList" />
         <a-input placeholder="请输入创建人" class="max-w-[200px]" v-model:value="searchData.dataCreate"
           @keydown.enter="fetchList" />
-
-        <a-button type="primary" @click="fetchList" class="ml-auto"> 查询 </a-button>
+        <a-button type="primary" @click="fetchList"> 查询 </a-button>
         <a-button type="primary" @click="reset"> 重置 </a-button>
-      </div>
 
-      <div class="flex items-center gap-[8px] mt-[16px]">
-        <a-button type="primary" @click="add">
-          <template #icon>
-            <PlusOutlined />
-          </template>
-          新建
-        </a-button>
-        <a-button>
-          <template #icon>
-            <CloudUploadOutlined />
-          </template>
-          批量操作
-        </a-button>
+        <div class="flex items-center gap-[8px] ml-auto">
+          <a-button type="primary" @click="add">
+            <template #icon>
+              <PlusOutlined />
+            </template>
+            新建
+          </a-button>
+          <a-button @click="batchOption">
+            <template #icon>
+              <CloudUploadOutlined />
+            </template>
+            批量操作
+          </a-button>
+        </div>
       </div>
 
       <a-tabs v-model:active-key="tabValue" class="elTabs" @change="changeType" size="small">
@@ -42,15 +41,22 @@
                 @handleEdit="() => { handleEditCard(item.id) }" />
             </div>
           </div>
-          <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 2">
+          <div class="flex flex-wrap w-full gap-[10px]" v-if="tabValue === 2">
             <div class="item" v-for="item in documentList" :key="item.id">
-              <video-card :video-data="item" @handleFetchList="fetchList"
-                @handleEdit="() => { handleEditCard(item.id) }" />
+              <video-card :video-data="item" @handleFetchList="fetchList" @handleEdit="
+                () => {
+                  handleEditCard(item.id);
+                }
+              " />
             </div>
           </div>
-          <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 3">
+          <div class="flex flex-wrap w-full gap-[10px]" v-if="tabValue === 3">
             <div class="item" v-for="item in documentList" :key="item.id">
-              <img-card :img-data="item" @handleFetchList="fetchList" @handleEdit="() => { handleEditCard(item.id) }" />
+              <img-card :img-data="item" @handleFetchList="fetchList" @handleEdit="
+                () => {
+                  handleEditCard(item.id);
+                }
+              " />
             </div>
           </div>
           <a-empty v-if="documentList.length === 0 && !loading" :image="simpleImage" />
@@ -64,24 +70,26 @@
     </footer>
     <!-- 新建编辑弹框 -->
     <knowledge-modal ref="knowledgeModalRef" :nodeData="nodeData" :parentNode="parentNode" @saveSuccess="fetchList" />
+    <batch-upload ref="batchUploadRef" :nodeData="nodeData" :parentNode="parentNode" @saveSuccess="fetchList" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { CloudUploadOutlined, PlusOutlined } from '@ant-design/icons-vue'
-import textCard from './textCard.vue';
-import videoCard from './videoCard.vue';
-import imgCard from './imgCard.vue';
-import { knowledgeFileList } from '@/api/knowledge';
-import { PaginationConfig } from 'ant-design-vue/es/pagination';
-import { useUserStore } from '@/store/modules/user';
-import { Empty } from 'ant-design-vue';
-import knowledgeModal from './knowledgeModal.vue'
+import { CloudUploadOutlined, PlusOutlined } from "@ant-design/icons-vue";
+import textCard from "./textCard.vue";
+import videoCard from "./videoCard.vue";
+import imgCard from "./imgCard.vue";
+import { knowledgeFileList } from "@/api/knowledge";
+import { PaginationConfig } from "ant-design-vue/es/pagination";
+import { useUserStore } from "@/store/modules/user";
+import { Empty, message } from "ant-design-vue";
+import knowledgeModal from "./knowledgeModal.vue";
+import batchUpload from "./batchUpload.vue";
 
 const props = defineProps({
   kldTreeId: {
     type: String,
-    default: ''
+    default: "",
   },
   nodeData: {
     type: Object,
@@ -90,20 +98,20 @@ const props = defineProps({
   parentNode: {
     type: Object,
     default: () => { },
-  }
-})
+  },
+});
 
 const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE);
 
-const addDataDialogVisible = ref(false)
 const searchData = ref({
-  dataFileName: '',
-  dataCreate: ''
-})
-const tabValue = ref(1)
-const documentList = ref([])
-const loading = ref(false)
-const knowledgeModalRef = ref(null)
+  dataFileName: "",
+  dataCreate: "",
+});
+const tabValue = ref(1);
+const documentList = ref([]);
+const loading = ref(false);
+const knowledgeModalRef = ref(null);
+const batchUploadRef = ref<any>(null);
 
 const pagination = reactive<PaginationConfig>({
   current: 1,
@@ -115,12 +123,11 @@ const pagination = reactive<PaginationConfig>({
     pagination.pageSize = pageSize;
     fetchList();
   },
-})
-
+});
 
 const fetchList = async () => {
   try {
-    loading.value = true
+    loading.value = true;
     const params = {
       fileName: searchData.value.dataFileName,
       userName: searchData.value.dataCreate,
@@ -128,48 +135,62 @@ const fetchList = async () => {
       attachmentType: tabValue.value,
       currentPage: pagination.current,
       pageSize: pagination.pageSize,
-      userId: useUserStore().getUser.id
-    }
-    const res = await knowledgeFileList(params)
-    if (res.data.code === '0') {
-      documentList.value = res.data.data?.result || []
-      pagination.total = res.data.data?.rowCount
+      userId: useUserStore().getUser.id,
+    };
+    const res = await knowledgeFileList(params);
+    if (res.data.code === "0") {
+      documentList.value = res.data.data?.result || [];
+      pagination.total = res.data.data?.rowCount;
     }
   } catch (error) {
-    console.log('error:', error)
+    console.log("error:", error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 const changeType = () => {
-  pagination.current = 1
-  pagination.pageSize = 10
-  fetchList()
-}
+  pagination.current = 1;
+  pagination.pageSize = 10;
+  fetchList();
+};
 const reset = () => {
   searchData.value = {
-    dataFileName: '',
-    dataCreate: ''
-  }
-  fetchList()
-}
+    dataFileName: "",
+    dataCreate: "",
+  };
+  fetchList();
+};
 
 const add = () => {
-  knowledgeModalRef.value && knowledgeModalRef.value.show(1)
-}
+  if (props.nodeData.key === '1') {
+    message.warning('顶层文件夹节点不能新建，请选择可以新建的节点！')
+    return;
+  }
+  knowledgeModalRef.value && knowledgeModalRef.value.show(1);
+};
 
 const handleEditCard = (id) => {
-  knowledgeModalRef.value && knowledgeModalRef.value.show(2, id)
+  knowledgeModalRef.value && knowledgeModalRef.value.show(2, id);
+};
+
+const batchOption = () => {
+  if (props.nodeData.key === '1') {
+    message.warning('顶层文件夹节点不能新建，请选择可以新建的节点！')
+    return;
+  }
+  batchUploadRef.value && batchUploadRef.value.show()
 }
 
-watch(() => props.kldTreeId, () => {
-  if (props.kldTreeId) {
-    pagination.current = 1;
-    pagination.pageSize = 10;
-    fetchList()
+watch(
+  () => props.kldTreeId,
+  () => {
+    if (props.kldTreeId) {
+      pagination.current = 1;
+      pagination.pageSize = 10;
+      fetchList();
+    }
   }
-})
-
+);
 </script>
 
 <style scoped lang="less">
@@ -212,6 +233,7 @@ watch(() => props.kldTreeId, () => {
       font-weight: 600;
       font-size: 14px;
       color: var(--ant-primary-color);
+      text-shadow: none !important;
     }
   }
 

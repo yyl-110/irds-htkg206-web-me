@@ -376,6 +376,7 @@ onMounted(() => {
       font-weight: 600;
       font-size: 14px;
       color: var(--ant-primary-color);
+      text-shadow: none !important;
     }
   }
 

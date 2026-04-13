@@ -55,8 +55,8 @@
       </div>
     </a-col>
     <a-col :span="18" class="h-full">
-      <div class="elMain">
-        <div class="mainRight">
+      <div class="elMain h-full">
+        <div class="mainRight wei-scrollbar">
           <a-card
             v-for="(item, index) in mainData"
             :key="index"
@@ -320,12 +320,12 @@ onMounted(() => {
   height: 100%;
   padding: 10px;
   background-color: #fff;
-  overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
 
   .mainRight {
+    overflow-y: auto;
     flex: 1;
     display: flex;
     flex-wrap: wrap;
@@ -399,7 +399,7 @@ onMounted(() => {
   }
 
   .elPage {
-    padding: 15px 0;
+    padding: 15px 0 0;
     text-align: right;
   }
 }

@@ -322,8 +322,8 @@ const handleNodeClick = (_keys: any, { node }: any) => {
 
 const viewPdf = async (item: any) => {
   const res = await getPdfPreviewPath({ id: item.fileId });
-  if (res && res.data.code === '0') {
-    filePath.value = res.data.data.fileUrl;
+  if (res && res.status === 200) {
+    filePath.value = res.data.fileUrl;
     router.push({ path: '/knowledgeData/pdfView_index', query: { docId: filePath.value, flag: pdfFlag.value } });
     pdfFlag.value = '1';
   } else {
