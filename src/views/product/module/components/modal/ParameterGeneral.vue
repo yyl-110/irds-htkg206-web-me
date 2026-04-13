@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { FormInstance } from 'ant-design-vue';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { TableProps, Modal, Button, Popconfirm, message } from 'ant-design-vue';
 import { getCurrentInstance } from 'vue';
 import { useUserStore } from '@/store/modules/user';
@@ -24,6 +24,11 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  /** 为 true 时表格为多选，确定时回传选中行数组 */
+  multiSelect: {
+    type: Boolean,
+    default: false,
+  },
 });
 const emit = defineEmits<{
   /** 点击取消按钮 */
@@ -32,11 +37,16 @@ const emit = defineEmits<{
   handleSave: [resource: any];
 }>();
 /** 弹窗状态 */
-const visible = computed(() => {
-  selectedRowkeys.value = [];
-  selectedRowList.value = [];
-  return props.modalVisible;
-});
+const visible = computed(() => props.modalVisible);
+watch(
+  () => props.modalVisible,
+  v => {
+    if (v) {
+      selectedRowkeys.value = [];
+      selectedRowList.value = [];
+    }
+  },
+);
 const loading = ref<boolean>(false);
 const userStore = useUserStore();
 const columns = ref([
@@ -136,21 +146,51 @@ function toUiTree(nodes: BackendTreeNode[] = []): UiTreeNode[] {
 }
 /** 表格勾选事件 */
 const rowSelection = computed(() => {
-  /**
-   * @param selectedRowKeys 选中的行数量
-   * @param selectedRows  选中的行数据
-   */
+  if (props.multiSelect) {
+    return {
+      selectedRowKeys: selectedRowkeys.value,
+      onChange: (keys: any[], rows: any[]) => {
+        selectedRowkeys.value = keys || [];
+        selectedRowList.value = rows || [];
+      },
+    };
+  }
   return {
-    // 单选模式
-    type: 'radio',
+    type: 'radio' as const,
     selectedRowKeys: selectedRowkeys.value,
     onChange: (selectedRowKeys: string[], selectedRows: any[]) => {
-      // 只保留第一条选中数据，确保单选
       selectedRowList.value = selectedRows && selectedRows.length > 0 ? [selectedRows[0]] : [];
       selectedRowkeys.value = selectedRowKeys && selectedRowKeys.length > 0 ? [selectedRowKeys[0]] : [];
     },
   };
 });
+function isTableSelectionUiClick(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  if (!el?.closest) return false;
+  return !!(
+    el.closest('.ant-table-selection-column') ||
+    el.closest('.ant-checkbox-wrapper') ||
+    el.closest('.ant-checkbox') ||
+    el.closest('.ant-radio-wrapper') ||
+    el.closest('.ant-radio')
+  );
+}
+function toggleMultiRowSelection(record: any) {
+  const key = record?.id;
+  if (key == null) return;
+  const keys = [...selectedRowkeys.value];
+  const rows = [...selectedRowList.value];
+  const idx = keys.findIndex((k: any) => k === key || String(k) === String(key));
+  if (idx >= 0) {
+    keys.splice(idx, 1);
+    rows.splice(idx, 1);
+  } else {
+    keys.push(key);
+    rows.push(record);
+  }
+  selectedRowkeys.value = keys;
+  selectedRowList.value = rows;
+}
 function customRow(record: any) {
   return {
     onClick: () => {
@@ -166,6 +206,15 @@ function customRow(record: any) {
     },
   };
 }
+function customRowMulti(record: any) {
+  return {
+    onClick: (e: MouseEvent) => {
+      if (isTableSelectionUiClick(e.target)) return;
+      toggleMultiRowSelection(record);
+    },
+  };
+}
+const tableCustomRow = computed(() => (props.multiSelect ? customRowMulti : customRow));
 function selectParameterb() {
   getListData();
 }
@@ -216,10 +265,14 @@ async function getListData() {
  * @description 点击确认
  */
 async function handleSave() {
-  if (selectedRowList.value.length > 0) {
-    emit('handleSave', selectedRowList.value[0]);
-  } else {
+  if (selectedRowList.value.length === 0) {
     message.warning('请选中要操作的数据');
+    return;
+  }
+  if (props.multiSelect) {
+    emit('handleSave', [...selectedRowList.value]);
+  } else {
+    emit('handleSave', selectedRowList.value[0]);
   }
 }
 /**
@@ -307,7 +360,7 @@ defineExpose({
       :data-source="dataSource"
       :columns="columns"
       :row-selection="rowSelection"
-      :customRow="customRow"
+      :customRow="tableCustomRow"
       :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'parameterType'">

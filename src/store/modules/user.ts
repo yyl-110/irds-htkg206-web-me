@@ -17,6 +17,7 @@ interface UserVO {
   lang: string;
   userType: string;
   type: string;
+  confidentialLevel: number;
 }
 interface UserInfoVO {
   permissions: string[];
@@ -43,6 +44,7 @@ export const useUserStore = defineStore('admin-user', {
       userCategoryName: '',
       lang: '',
       userType: '',
+      confidentialLevel: 0,
     },
   }),
   getters: {
@@ -59,8 +61,7 @@ export const useUserStore = defineStore('admin-user', {
       return this.user;
     },
     getConfidentialLevel(): Array<{ value: number; label: string }> {
-      // 可以从用户信息中获取用户权限级别，或者返回静态的密级配置
-      return [
+      const allLevels = [
         {
           value: 0,
           label: '公开',
@@ -78,6 +79,9 @@ export const useUserStore = defineStore('admin-user', {
           label: '机密',
         },
       ];
+      const rawLevel = Number(this.getUser?.confidentialLevel);
+      const confidentialLevel = Number.isFinite(rawLevel) ? rawLevel : 0;
+      return allLevels.filter((item) => item.value <= confidentialLevel);
     },
     getDocDir(): number[] {
       return this.docDir;

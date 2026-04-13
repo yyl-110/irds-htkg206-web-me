@@ -3,19 +3,38 @@ import { computed, ref, watch } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { message } from 'ant-design-vue';
-import { InboxOutlined } from '@ant-design/icons-vue';
+import { ExclamationCircleOutlined, InboxOutlined } from '@ant-design/icons-vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { downloadFileFromStream } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ModuleLibraryPickerModal from './module-library-picker-modal.vue';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
+  imageList: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits<{ close: [] }>();
 const visible = computed({ get: () => props.modalVisible, set: value => !value && emit('close') });
 const userStore = useUserStore();
+const previewImageList = computed(() => {
+  const list = Array.isArray(props.imageList) ? props.imageList : [];
+  return list
+    .filter((item: any) => String(item?.fileInfo?.filePath ?? item?.fileinfo?.filePath ?? '').trim() !== '')
+    .slice()
+    .sort((a: any, b: any) => (Number(a?.sort) || 0) - (Number(b?.sort) || 0))
+    .map((item: any) => {
+      const fileInfo = item?.fileInfo || item?.fileinfo || {};
+      return {
+        ...item,
+        marginTop: Number(item?.marginTop) || 0,
+        width: Number(item?.width) || 300,
+        filePath: String(fileInfo?.filePath ?? '').trim(),
+        fileName: String(fileInfo?.oldFileName ?? fileInfo?.fileName ?? item?.remark ?? '图片').trim(),
+      };
+    });
+});
 
 const previewList = computed(() => {
   const r = props.record || {};
@@ -50,6 +69,12 @@ function normalizeValidateRule(raw: unknown): any {
   }
   return typeof raw === 'object' ? raw : null;
 }
+function knowledgeHintText(item: any): string {
+  return String(item?.knowledgeContent ?? '').trim();
+}
+function hasKnowledgeHint(item: any): boolean {
+  return knowledgeHintText(item) !== '';
+}
 const radioPreviewValueMap = ref<Record<string, string>>({});
 /** 预览区可编辑字段本地值（与配置数据解耦，避免仅用 :value 导致无法输入） */
 const previewFieldValueMap = ref<Record<string, string>>({});
@@ -70,6 +95,10 @@ const modulePickerSourceComponentIndex = ref(-1);
 const modulePickerTableBodyRowIndex = ref(1);
 /** 预览表格单元格展示值（模型库读取等），key = getPreviewItemKey::行::列 */
 const previewTableCellMap = ref<Record<string, string>>({});
+/** 文件协同：每行已上传文件的 fileId（不落表单元格，仅用于下载） */
+const previewFileCollabFileIdMap = ref<Record<string, string>>({});
+const fileCollabUploadInputRef = ref<HTMLInputElement | null>(null);
+const fileCollabUploadTarget = ref<{ item: any; componentIndex: number; bodyRow: number } | null>(null);
 function getPreviewItemKey(item: any, index: number) {
   return String(item?.id ?? `${item?.componentType}-${index}`);
 }
@@ -78,6 +107,9 @@ function getPreview3dSubKey(item: any, index: number, part: 'templateName' | 'mo
 }
 function getTableCellPreviewKey(item: any, componentIndex: number, bodyRow: number, col: number) {
   return `${getPreviewItemKey(item, componentIndex)}::${bodyRow}::${col}`;
+}
+function getFileCollabRowKey(item: any, componentIndex: number, bodyRow: number) {
+  return `${getPreviewItemKey(item, componentIndex)}::${bodyRow}`;
 }
 function isWorkspaceTableBizWithColDefs(item: any) {
   if (item?.componentType !== 'TABLE') return false;
@@ -89,6 +121,10 @@ function getPreviewTableColDef(item: any, physicalColIndex: number) {
 }
 function getPreviewTableColDataType(item: any, physicalColIndex: number): string {
   return String(getPreviewTableColDef(item, physicalColIndex)?.dataType ?? 'TEXT');
+}
+/** 文件协同：第 2 列为「文件名称」，预览中只读不可编辑 */
+function isFileCollabFileNameReadonlyCell(item: any, physicalColIndex: number) {
+  return String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB' && physicalColIndex === 2;
 }
 function parseTableDropdownOptions(raw: unknown) {
   const s = String(raw ?? '').trim();
@@ -134,11 +170,86 @@ function showModuleTableBrowse(item: any, componentIndex: number, bodyRowIndex: 
 function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, bodyRow: number) {
   const t = String(btn ?? '').trim();
   if (isOutputIoType(item)) return;
-  if (String(item?.customProps?.tableBizType ?? '') === 'MODULE_LIB_READ' && t === '浏览') {
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB') {
+    if (t === '上传') {
+      fileCollabUploadTarget.value = { item, componentIndex, bodyRow };
+      fileCollabUploadInputRef.value?.click();
+      return;
+    }
+    if (t === '下载') {
+      void downloadFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    if (t === '清空') {
+      clearFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+  }
+  if (biz === 'MODULE_LIB_READ' && t === '浏览') {
     showModuleTableBrowse(item, componentIndex, bodyRow);
     return;
   }
   message.info(`${t}（示例）`);
+}
+async function downloadFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
+  const rowKey = getFileCollabRowKey(item, componentIndex, bodyRow);
+  const fileId = String(previewFileCollabFileIdMap.value[rowKey] ?? '').trim();
+  if (!fileId) {
+    message.warning('请先上传文件');
+    return;
+  }
+  const fileName = getPreviewTableCellValue(item, componentIndex, bodyRow, 2) || 'download';
+  try {
+    const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any);
+    const stream = (res as any)?.data !== undefined ? (res as any).data : res;
+    downloadFileFromStream(stream, fileName);
+  } catch {
+    message.error('下载失败');
+  }
+}
+function clearFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
+  const totalCols = getWorkspaceTablePreviewColCount(item);
+  const next = { ...previewTableCellMap.value };
+  for (let c = 2; c <= totalCols; c++) {
+    if (isWorkspaceTableOperationColumn(item, c)) continue;
+    const k = getTableCellPreviewKey(item, componentIndex, bodyRow, c);
+    delete next[k];
+  }
+  previewTableCellMap.value = next;
+  const fk = getFileCollabRowKey(item, componentIndex, bodyRow);
+  const nextIds = { ...previewFileCollabFileIdMap.value };
+  delete nextIds[fk];
+  previewFileCollabFileIdMap.value = nextIds;
+}
+async function onFileCollabFileInputChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  const target = fileCollabUploadTarget.value;
+  fileCollabUploadTarget.value = null;
+  if (!file || !target) return;
+  if (isOutputIoType(target.item)) return;
+  try {
+    const res = await AdminApiSystemUploadFile.uploadFile({
+      file,
+      userId: userStore.getUser.id,
+      securityLevel: 1,
+    } as any);
+    if (res?.data?.code == 0) {
+      const d: any = res.data;
+      const fileId = String(d.id ?? '').trim();
+      const displayName = String(d.oldFileName ?? d.fileName ?? file.name).trim();
+      setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 2, displayName);
+      const rowKey = getFileCollabRowKey(target.item, target.componentIndex, target.bodyRow);
+      previewFileCollabFileIdMap.value = { ...previewFileCollabFileIdMap.value, [rowKey]: fileId };
+      message.success('上传成功');
+      return;
+    }
+    message.error('上传失败');
+  } catch {
+    message.error('上传失败');
+  }
 }
 
 function getSelectOptions(item: any) {
@@ -377,6 +488,8 @@ watch(
     inputRangeBlurredMap.value = {};
     inputLastValidValueMap.value = {};
     previewUploadFileMap.value = {};
+    previewTableCellMap.value = {};
+    previewFileCollabFileIdMap.value = {};
   },
   { deep: false },
 );
@@ -800,293 +913,333 @@ function onPreviewFileChange(item: any, index: number, info: any) {
     :style="{ top: 0, paddingBottom: 0 }"
     title="页面预览">
     <div class="activity-preview-layout">
+      <input ref="fileCollabUploadInputRef" type="file" class="activity-preview-file-collab-input" tabindex="-1" aria-hidden="true" @change="onFileCollabFileInputChange" />
       <div class="activity-preview-panel-title">组件列表</div>
-      <div class="activity-preview-canvas">
-        <div v-if="previewList.length === 0" class="activity-preview-empty">暂无组件配置</div>
-        <div v-else class="component-list">
-          <div
-            v-for="(item, index) in previewList"
-            v-show="isPreviewConstraintVisible(item)"
-            :key="item.id || `${item.componentType}-${index}`"
-            class="component-card"
-            :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
-            <div class="component-preview-wrap">
+      <div class="activity-preview-content">
+        <div class="activity-preview-main-scroll">
+          <div class="activity-preview-canvas">
+            <div v-if="previewList.length === 0" class="activity-preview-empty">暂无组件配置</div>
+            <div v-else class="component-list">
               <div
-                v-if="
-                  item.componentType !== 'TITLE' &&
-                  item.componentType !== 'RADIO' &&
-                  item.componentType !== 'FILE' &&
-                  item.componentType !== 'DIVIDER' &&
-                  item.componentType !== 'DATA_VIEW' &&
-                  item.componentType !== 'TABLE' &&
-                  !isTemplateBrowse3DItem(item) &&
-                  !isFixedTemplate3DItem(item) &&
-                  !isModelSelect3DItem(item)
-                "
-                class="component-title">
-                {{ item.paramName || '未命名组件' }}
-              </div>
+                v-for="(item, index) in previewList"
+                v-show="isPreviewConstraintVisible(item)"
+                :key="item.id || `${item.componentType}-${index}`"
+                class="component-card"
+                :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
+                <div class="component-preview-wrap">
+                  <div
+                    v-if="
+                      item.componentType !== 'TITLE' &&
+                      item.componentType !== 'RADIO' &&
+                      item.componentType !== 'FILE' &&
+                      item.componentType !== 'DIVIDER' &&
+                      item.componentType !== 'DATA_VIEW' &&
+                      item.componentType !== 'TABLE' &&
+                      !isTemplateBrowse3DItem(item) &&
+                      !isFixedTemplate3DItem(item) &&
+                      !isModelSelect3DItem(item)
+                    "
+                    class="component-title">
+                    <span>{{ item.paramName || '未命名组件' }}</span>
+                    <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                      <ExclamationCircleOutlined class="component-knowledge-hint" />
+                    </a-tooltip>
+                  </div>
 
-              <template v-if="item.componentType === 'TITLE'">
-                <div class="title-preview-text">{{ item.paramName || '标题' }}</div>
-                <div v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true" class="title-divider-line"></div>
-              </template>
+                  <template v-if="item.componentType === 'TITLE'">
+                    <div class="title-preview-text">{{ item.paramName || '标题' }}</div>
+                    <div
+                      v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true"
+                      class="title-divider-line"></div>
+                  </template>
 
-              <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
-                <a-input
-                  :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                  :placeholder="item.customProps?.placeholder || '请输入'"
-                  :disabled="isOutputIoType(item)"
-                  class="preview-field"
-                  :class="{ 'preview-input-range-error': isPreviewInputRangeError(item, index) }"
-                  @update:value="(v: string) => onPreviewInputValue(item, index, v)"
-                  @blur="() => onPreviewInputBlur(item, index)" />
-                <span v-if="getInputValueRangeHint(item)" class="value-range-hint-chip">{{ getInputValueRangeHint(item) }}</span>
-              </div>
+                  <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
+                    <a-input
+                      :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                      :placeholder="item.customProps?.placeholder || '请输入'"
+                      :disabled="isOutputIoType(item)"
+                      class="preview-field"
+                      :class="{ 'preview-input-range-error': isPreviewInputRangeError(item, index) }"
+                      @update:value="(v: string) => onPreviewInputValue(item, index, v)"
+                      @blur="() => onPreviewInputBlur(item, index)" />
+                    <span v-if="getInputValueRangeHint(item)" class="value-range-hint-chip">{{ getInputValueRangeHint(item) }}</span>
+                  </div>
 
-              <a-textarea
-                v-else-if="item.componentType === 'TEXTAREA'"
-                v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                :rows="item.customProps?.rows || 4"
-                :placeholder="item.customProps?.placeholder || '请输入'"
-                :disabled="isOutputIoType(item)"
-                class="preview-field" />
-
-              <a-date-picker
-                v-else-if="item.componentType === 'DATE'"
-                :value="previewDateDisplay(item, index)"
-                :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
-                :format="normalizeDateFormatForPicker(item.customProps?.format)"
-                :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
-                :disabled="isOutputIoType(item)"
-                class="preview-field"
-                @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
-
-              <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
-
-              <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
-                <div class="component-title">{{ item.paramName || '数据浏览' }}</div>
-                <div class="data-view-preview-row">
-                  <a-input
+                  <a-textarea
+                    v-else-if="item.componentType === 'TEXTAREA'"
                     v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                    :placeholder="'请选择参数'"
-                    :disabled="true"
-                    class="data-view-preview-input browse-adjoined-input" />
-                  <a-button type="primary" class="data-view-assemble-btn" @click="showModuleInfo(item, index, 'dataView')" :disabled="isOutputIoType(item)">{{ '浏览' }}</a-button>
-                </div>
-              </div>
-
-              <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
-                <div class="component-title">{{ item.paramName || '未命名组件' }}</div>
-                <a-upload-dragger
-                  class="file-preview-dragger"
-                  :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
-                  :multiple="false"
-                  :max-count="1"
-                  :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
-                  @change="(info: any) => onPreviewFileChange(item, index, info)">
-                  <p class="ant-upload-drag-icon">
-                    <InboxOutlined />
-                  </p>
-                  <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
-                  <p class="ant-upload-hint">{{ getUploadHint() }}</p>
-                </a-upload-dragger>
-              </div>
-
-              <a-select
-                v-else-if="item.componentType === 'SELECT'"
-                v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
-                placeholder="请选择"
-                :disabled="isOutputIoType(item)"
-                class="preview-field" />
-
-              <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
-                <div class="component-title">{{ item.paramName || '单选项' }}</div>
-                <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
-                <a-radio-group v-else v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
-                  <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">
-                    {{ opt }}
-                  </a-radio>
-                </a-radio-group>
-              </div>
-
-              <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">
-                <CkeditorPlugin height="180" :disabled="isOutputIoType(item)" />
-              </div>
-
-              <div v-else-if="item.componentType === 'TABLE'" class="fixed-table-preview">
-                <div v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-row">
-                  <span class="fixed-table-preview-title-text">{{ item.customProps.tableTitle }}</span>
-                </div>
-                <div class="fixed-table-preview-scroll">
-                  <table class="fixed-table-preview-grid">
-                    <thead>
-                      <tr>
-                        <th
-                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
-                          :key="`h-${c}`"
-                          :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
-                          :style="getFixedTableColumnPreviewStyle(item, c)">
-                          {{ getFixedTableHeaderLabel(item, c) }}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
-                        <td
-                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
-                          :key="`b-${r}-${c}`"
-                          class="fixed-table-preview-td"
-                          :class="{ 'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c) }"
-                          :style="getFixedTableColumnPreviewStyle(item, c)">
-                          <template v-if="c === 1">
-                            <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</span>
-                          </template>
-                          <template v-else-if="isWorkspaceTableBizWithColDefs(item) && !isWorkspaceTableOperationColumn(item, c)">
-                            <template v-if="getPreviewTableColDataType(item, c) === 'READONLY_TEXT'">
-                              <span class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
-                            </template>
-                            <a-input
-                              v-else-if="getPreviewTableColDataType(item, c) === 'TEXT'"
-                              :value="getPreviewTableCellValue(item, index, r, c)"
-                              size="small"
-                              placeholder="请输入"
-                              :disabled="isOutputIoType(item)"
-                              class="fixed-table-preview-cell-input"
-                              @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
-                            <a-select
-                              v-else-if="getPreviewTableColDataType(item, c) === 'DROPDOWN'"
-                              :value="getPreviewTableCellValue(item, index, r, c) || undefined"
-                              :options="parseTableDropdownOptions(getPreviewTableColDef(item, c)?.dropdownValues)"
-                              placeholder="请选择"
-                              size="small"
-                              allow-clear
-                              :disabled="isOutputIoType(item)"
-                              class="fixed-table-preview-cell-select"
-                              popup-class-name="fixed-table-preview-select-dropdown"
-                              @update:value="(v: string | undefined) => setPreviewTableCellValue(item, index, r, c, v ?? '')" />
-                            <span v-else class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
-                          </template>
-                          <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
-                            <div class="fixed-table-cell-op-btns">
-                              <a
-                                v-for="btn in getWorkspaceTableOperationButtons(item)"
-                                :key="`preview-table-op-${index}-${r}-${btn}`"
-                                href="javascript:void(0)"
-                                class="fixed-table-cell-op-link"
-                                :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }"
-                                @click.prevent="onPreviewTableOpClick(btn, item, index, r)">
-                                {{ btn }}
-                              </a>
-                            </div>
-                          </template>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
-                <div class="template-browse-3d-row">
-                  <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input
-                        v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
-                        placeholder="请选择参数"
-                        :disabled="true"
-                        class="template-browse-3d-input template-browse-3d-input--grey" />
-                      <a-button type="primary" @click="showModuleInfo(item, index, 'templateBrowse')" size="small" class="template-browse-3d-action-btn">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input
-                        v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
-                        placeholder="请输入"
-                        :disabled="shouldDisable3dModelInput(item)"
-                        class="template-browse-3d-input" />
-                      <div class="three-d-preview-btn-grid">
-                        <a-button
-                          v-for="btn in get3dPreviewButtons(item)"
-                          :key="`preview-tpl-btn-${btn}`"
-                          type="primary"
-                          size="small"
-                          class="template-browse-3d-action-btn"
-                          :disabled="isOutputIoType(item)"
-                          @click="handle3dPreviewButtonClick(btn, item, index)">
-                          {{ btn }}
-                        </a-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div v-else-if="isFixedTemplate3DItem(item)" class="template-browse-3d-preview">
-                <div class="template-browse-3d-row">
-                  <div v-if="shouldShowFixedTemplateName(item)" class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input
-                        v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
-                        placeholder="请输入"
-                        :disabled="true"
-                        class="template-browse-3d-input template-browse-3d-input--grey" />
-                    </div>
-                  </div>
-                  <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input
-                        v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
-                        placeholder="请输入"
-                        :disabled="shouldDisable3dModelInput(item)"
-                        class="template-browse-3d-input" />
-                      <div class="three-d-preview-btn-grid">
-                        <a-button
-                          v-for="btn in get3dPreviewButtons(item)"
-                          :key="`preview-fixed-btn-${btn}`"
-                          type="primary"
-                          size="small"
-                          class="template-browse-3d-action-btn"
-                          :disabled="isOutputIoType(item)"
-                          @click="handle3dPreviewButtonClick(btn, item, index)">
-                          {{ btn }}
-                        </a-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
-                <div class="model-select-3d-label">{{ item.paramName || '模型名称' }}：</div>
-                <div class="model-select-3d-controls">
-                  <a-input
-                    v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')]"
-                    placeholder="请输入"
-                    disabled
-                    class="template-browse-3d-input template-browse-3d-input--grey" />
-                  <a-button type="primary" size="small" @click="showModuleInfo(item, index, 'modelSelectBrowse')" class="template-browse-3d-action-btn">浏览</a-button>
-                  <a-button
-                    v-for="btn in getModelSelectPreviewButtons(item)"
-                    :key="`preview-model-select-btn-${btn}`"
-                    type="primary"
-                    size="small"
-                    class="template-browse-3d-action-btn"
+                    :rows="item.customProps?.rows || 4"
+                    :placeholder="item.customProps?.placeholder || '请输入'"
                     :disabled="isOutputIoType(item)"
-                    @click="handle3dPreviewButtonClick(btn, item, index)">
-                    {{ btn }}
-                  </a-button>
+                    class="preview-field" />
+
+                  <a-date-picker
+                    v-else-if="item.componentType === 'DATE'"
+                    :value="previewDateDisplay(item, index)"
+                    :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
+                    :format="normalizeDateFormatForPicker(item.customProps?.format)"
+                    :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
+                    :disabled="isOutputIoType(item)"
+                    class="preview-field"
+                    @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
+
+                  <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
+
+                  <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
+                    <div class="component-title">
+                      <span>{{ item.paramName || '数据浏览' }}</span>
+                      <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                        <ExclamationCircleOutlined class="component-knowledge-hint" />
+                      </a-tooltip>
+                    </div>
+                    <div class="data-view-preview-row">
+                      <a-input
+                        v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                        :placeholder="'请选择参数'"
+                        :disabled="true"
+                        class="data-view-preview-input browse-adjoined-input" />
+                      <a-button type="primary" class="data-view-assemble-btn" @click="showModuleInfo(item, index, 'dataView')" :disabled="isOutputIoType(item)">{{
+                        '浏览'
+                      }}</a-button>
+                    </div>
+                  </div>
+
+                  <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
+                    <div class="component-title">
+                      <span>{{ item.paramName || '未命名组件' }}</span>
+                      <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                        <ExclamationCircleOutlined class="component-knowledge-hint" />
+                      </a-tooltip>
+                    </div>
+                    <a-upload-dragger
+                      class="file-preview-dragger"
+                      :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
+                      :multiple="false"
+                      :max-count="1"
+                      :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
+                      @change="(info: any) => onPreviewFileChange(item, index, info)">
+                      <p class="ant-upload-drag-icon">
+                        <InboxOutlined />
+                      </p>
+                      <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
+                      <p class="ant-upload-hint">{{ getUploadHint() }}</p>
+                    </a-upload-dragger>
+                  </div>
+
+                  <a-select
+                    v-else-if="item.componentType === 'SELECT'"
+                    v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                    :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
+                    placeholder="请选择"
+                    :disabled="isOutputIoType(item)"
+                    class="preview-field" />
+
+                  <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
+                    <div class="component-title">
+                      <span>{{ item.paramName || '单选项' }}</span>
+                      <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                        <ExclamationCircleOutlined class="component-knowledge-hint" />
+                      </a-tooltip>
+                    </div>
+                    <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
+                    <a-radio-group v-else v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
+                      <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">
+                        {{ opt }}
+                      </a-radio>
+                    </a-radio-group>
+                  </div>
+
+                  <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">
+                    <CkeditorPlugin height="180" :disabled="isOutputIoType(item)" />
+                  </div>
+
+                  <div v-else-if="item.componentType === 'TABLE'" class="fixed-table-preview">
+                    <div v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-row">
+                      <span class="fixed-table-preview-title-text">{{ item.customProps.tableTitle }}</span>
+                    </div>
+                    <div class="fixed-table-preview-scroll">
+                      <table class="fixed-table-preview-grid">
+                        <thead>
+                          <tr>
+                            <th
+                              v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                              :key="`h-${c}`"
+                              :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
+                              :style="getFixedTableColumnPreviewStyle(item, c)">
+                              {{ getFixedTableHeaderLabel(item, c) }}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
+                            <td
+                              v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                              :key="`b-${r}-${c}`"
+                              class="fixed-table-preview-td"
+                              :class="{ 'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c) }"
+                              :style="getFixedTableColumnPreviewStyle(item, c)">
+                              <template v-if="c === 1">
+                                <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</span>
+                              </template>
+                              <template v-else-if="isWorkspaceTableBizWithColDefs(item) && !isWorkspaceTableOperationColumn(item, c)">
+                                <template v-if="getPreviewTableColDataType(item, c) === 'READONLY_TEXT' || isFileCollabFileNameReadonlyCell(item, c)">
+                                  <span class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
+                                </template>
+                                <a-input
+                                  v-else-if="getPreviewTableColDataType(item, c) === 'TEXT'"
+                                  :value="getPreviewTableCellValue(item, index, r, c)"
+                                  size="small"
+                                  placeholder="请输入"
+                                  :disabled="isOutputIoType(item)"
+                                  class="fixed-table-preview-cell-input"
+                                  @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
+                                <a-select
+                                  v-else-if="getPreviewTableColDataType(item, c) === 'DROPDOWN'"
+                                  :value="getPreviewTableCellValue(item, index, r, c) || undefined"
+                                  :options="parseTableDropdownOptions(getPreviewTableColDef(item, c)?.dropdownValues)"
+                                  placeholder="请选择"
+                                  size="small"
+                                  allow-clear
+                                  :disabled="isOutputIoType(item)"
+                                  class="fixed-table-preview-cell-select"
+                                  popup-class-name="fixed-table-preview-select-dropdown"
+                                  @update:value="(v: string | undefined) => setPreviewTableCellValue(item, index, r, c, v ?? '')" />
+                                <span v-else class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
+                              </template>
+                              <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
+                                <div class="fixed-table-cell-op-btns">
+                                  <a
+                                    v-for="btn in getWorkspaceTableOperationButtons(item)"
+                                    :key="`preview-table-op-${index}-${r}-${btn}`"
+                                    href="javascript:void(0)"
+                                    class="fixed-table-cell-op-link"
+                                    :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }"
+                                    @click.prevent="onPreviewTableOpClick(btn, item, index, r)">
+                                    {{ btn }}
+                                  </a>
+                                </div>
+                              </template>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
+                    <div class="template-browse-3d-row template-browse-3d-row--stacked">
+                      <div class="template-browse-3d-group">
+                        <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
+                        <div class="template-browse-3d-controls">
+                          <a-input
+                            v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
+                            placeholder="请选择参数"
+                            :disabled="true"
+                            class="template-browse-3d-input template-browse-3d-input--grey" />
+                          <a-button type="primary" @click="showModuleInfo(item, index, 'templateBrowse')" size="small" class="template-browse-3d-action-btn">浏览</a-button>
+                        </div>
+                      </div>
+                      <div class="template-browse-3d-group">
+                        <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
+                        <div class="template-browse-3d-controls">
+                          <a-input
+                            v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
+                            placeholder="请输入"
+                            :disabled="shouldDisable3dModelInput(item)"
+                            class="template-browse-3d-input" />
+                          <div class="three-d-preview-btn-grid">
+                            <a-button
+                              v-for="btn in get3dPreviewButtons(item)"
+                              :key="`preview-tpl-btn-${btn}`"
+                              type="primary"
+                              size="small"
+                              class="template-browse-3d-action-btn"
+                              :disabled="isOutputIoType(item)"
+                              @click="handle3dPreviewButtonClick(btn, item, index)">
+                              {{ btn }}
+                            </a-button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-else-if="isFixedTemplate3DItem(item)" class="template-browse-3d-preview">
+                    <div class="template-browse-3d-row template-browse-3d-row--stacked">
+                      <div v-if="shouldShowFixedTemplateName(item)" class="template-browse-3d-group">
+                        <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
+                        <div class="template-browse-3d-controls">
+                          <a-input
+                            v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
+                            placeholder="请输入"
+                            :disabled="true"
+                            class="template-browse-3d-input template-browse-3d-input--grey" />
+                        </div>
+                      </div>
+                      <div class="template-browse-3d-group">
+                        <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
+                        <div class="template-browse-3d-controls">
+                          <a-input
+                            v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
+                            placeholder="请输入"
+                            :disabled="shouldDisable3dModelInput(item)"
+                            class="template-browse-3d-input" />
+                          <div class="three-d-preview-btn-grid">
+                            <a-button
+                              v-for="btn in get3dPreviewButtons(item)"
+                              :key="`preview-fixed-btn-${btn}`"
+                              type="primary"
+                              size="small"
+                              class="template-browse-3d-action-btn"
+                              :disabled="isOutputIoType(item)"
+                              @click="handle3dPreviewButtonClick(btn, item, index)">
+                              {{ btn }}
+                            </a-button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
+                    <div class="model-select-3d-label">{{ item.paramName || '模型名称' }}：</div>
+                    <div class="model-select-3d-controls">
+                      <a-input
+                        v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')]"
+                        placeholder="请输入"
+                        disabled
+                        class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-button type="primary" size="small" @click="showModuleInfo(item, index, 'modelSelectBrowse')" class="template-browse-3d-action-btn">浏览</a-button>
+                      <a-button
+                        v-for="btn in getModelSelectPreviewButtons(item)"
+                        :key="`preview-model-select-btn-${btn}`"
+                        type="primary"
+                        size="small"
+                        class="template-browse-3d-action-btn"
+                        :disabled="isOutputIoType(item)"
+                        @click="handle3dPreviewButtonClick(btn, item, index)">
+                        {{ btn }}
+                      </a-button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          <div class="activity-preview-image-pane">
+            <div v-if="previewImageList.length === 0" class="activity-preview-empty">暂无示意图</div>
+            <div v-else class="activity-preview-image-list">
+              <div
+                v-for="(img, idx) in previewImageList"
+                :key="img.id || img.field || idx"
+                class="activity-preview-image-item"
+                :style="{ marginTop: `${Math.max(0, Number(img.marginTop) || 0)}px` }">
+                <img :src="img.filePath" :alt="img.fileName" :style="{ width: `${Math.max(1, Number(img.width) || 300)}px` }" />
+              </div>
+            </div>
+          </div>
         </div>
+        <div class="activity-preview-knowledge-pane"></div>
       </div>
       <div class="activity-preview-footer">
         <a-button @click="emit('close')">关闭</a-button>
@@ -1128,6 +1281,14 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   display: flex;
   flex-direction: column;
 }
+.activity-preview-file-collab-input {
+  position: fixed;
+  left: -9999px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
 .activity-preview-panel-title {
   font-size: 14px;
   font-weight: 600;
@@ -1135,19 +1296,79 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   border-bottom: 1px solid #f0f0f0;
 }
 .activity-preview-canvas {
+  flex: 1.8;
+  overflow: visible;
+  padding: 28px 28px;
+  /** 预览区各组件控件统一宽度 */
+  --activity-preview-component-width: 270px;
+  /** 单选项、富文本组件宽度 */
+  --activity-preview-wide-component-width: 650px;
+  /** 上传附件组件宽度 */
+  --activity-preview-file-upload-width: 600px;
+  /** 固定表格预览区域最大宽度 */
+  --activity-preview-table-width: 700px;
+  /** 双列之间水平间距 */
+  --activity-preview-grid-column-gap: 150px;
+  /** 行与行之间垂直间距 */
+  --activity-preview-grid-row-gap: 32px;
+}
+.activity-preview-content {
   flex: 1;
-  overflow: auto;
-  padding: 12px 16px;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.activity-preview-main-scroll {
+  flex: 1.6;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.activity-preview-image-pane {
+  flex: 0 0 500px;
+  width: 500px;
+  min-width: 500px;
+  border-right: 1px solid #f0f0f0;
+  padding: 28px 20px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+.activity-preview-knowledge-pane {
+  flex: 0.4;
+  min-width: 0;
+}
+.activity-preview-image-list {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.activity-preview-image-item {
+  width: auto;
+  max-width: 100%;
+}
+.activity-preview-image-item img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #f0f0f0;
+  margin-left: auto;
 }
 .component-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  /* 与控件同宽的两列靠左排列，中间仅 column-gap；容器仍占满宽度以便全行组件（如表格）拉满 */
+  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  column-gap: var(--activity-preview-grid-column-gap);
+  row-gap: var(--activity-preview-grid-row-gap);
+  justify-content: start;
+  width: 100%;
 }
 .component-card {
   border: none;
   border-radius: 4px;
-  padding: 10px 0;
+  padding: 14px 0;
   display: block;
 }
 .component-card.full-row-item {
@@ -1160,11 +1381,16 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .component-title {
   font-size: 12px;
   color: #444;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
+}
+.component-knowledge-hint {
+  color: #1677ff;
+  font-size: 14px;
+  cursor: pointer;
 }
 .title-preview-text {
   font-size: 14px;
@@ -1190,14 +1416,17 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   padding: 40px 0;
 }
 .preview-field {
-  width: 420px;
+  width: var(--activity-preview-component-width);
   max-width: 100%;
 }
 .value-range-inline-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+.value-range-inline-row .preview-field {
+  flex: 0 0 var(--activity-preview-component-width);
 }
 .value-range-hint-chip {
   display: inline-flex;
@@ -1210,6 +1439,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   border: 1px solid #d9d9d9;
   border-radius: 6px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 /* a-input 无前后缀时，自定义 class 与 .ant-input 在同一节点，不能用「父包 .ant-input」 */
 .ant-input.preview-input-range-error {
@@ -1259,9 +1489,25 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 /* 与上方 .component-list 双列 INPUT 对齐：同栅格比例 + 与 DATA_VIEW 相同的「输入 + 按钮」行 */
 .template-browse-3d-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  column-gap: var(--activity-preview-grid-column-gap);
+  row-gap: var(--activity-preview-grid-row-gap);
   align-items: start;
+  justify-content: start;
+  width: 100%;
+}
+/** 浏览模版创建 / 固定模版创建：模板行与模型行上下排列，文本框宽度同 --activity-preview-component-width（270px） */
+.template-browse-3d-row--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--activity-preview-grid-row-gap);
+  width: 100%;
+}
+.template-browse-3d-row--stacked .template-browse-3d-group {
+  width: 100%;
+  min-width: 0;
+  /* 文本框宽度由 .template-browse-3d-input（270px）控制；整组可横向容纳「输入 + 按钮」 */
 }
 .template-browse-3d-group {
   display: flex;
@@ -1281,7 +1527,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   min-width: 0;
 }
 .template-browse-3d-input {
-  width: 420px;
+  width: var(--activity-preview-component-width);
   max-width: 100%;
 }
 .three-d-preview-btn-grid {
@@ -1308,7 +1554,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   flex-wrap: wrap;
 }
 .preview-field-join-row .preview-field {
-  flex: 0 1 420px;
+  flex: 0 1 var(--activity-preview-component-width);
 }
 .data-view-preview-row {
   display: flex;
@@ -1316,20 +1562,20 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   flex-wrap: wrap;
 }
 .data-view-preview-input {
-  width: 420px;
+  width: var(--activity-preview-component-width);
   max-width: 100%;
 }
 .file-preview-wrap {
-  width: 420px;
+  width: var(--activity-preview-file-upload-width);
   max-width: 100%;
 }
 .file-preview-dragger {
-  width: 420px !important;
+  width: var(--activity-preview-file-upload-width) !important;
   max-width: 100%;
   display: block;
 }
 .file-preview-dragger :deep(.ant-upload-drag) {
-  width: 420px !important;
+  width: var(--activity-preview-file-upload-width) !important;
   max-width: 100%;
   margin: 0;
 }
@@ -1348,11 +1594,17 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   color: #999;
   font-size: 12px;
 }
+.radio-preview-wrap {
+  width: var(--activity-preview-wide-component-width);
+  max-width: 100%;
+  box-sizing: border-box;
+}
 .radio-preview-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  max-width: 520px;
+  width: 100%;
+  max-width: 100%;
 }
 .radio-preview-item {
   display: flex;
@@ -1364,19 +1616,22 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   font-size: 12px;
 }
 .rich-preview-wrap {
-  max-width: 760px;
+  width: var(--activity-preview-wide-component-width);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .fixed-table-preview {
   width: 100%;
   max-width: 100%;
 }
-/* 表格总宽度限制在较窄视口内，列宽仍由配置决定；总宽超出时出现横向滚动条 */
+/* 表格总宽度限制，列宽仍由配置决定；总宽超出时出现横向滚动条 */
 .fixed-table-preview-scroll {
   overflow-x: auto;
+  overflow-y: hidden;
   width: 100%;
-  max-width: min(100%, 960px);
-  /* 避免最右侧 1px 边框被 overflow 裁切 */
-  padding-right: 2px;
+  max-width: min(100%, var(--activity-preview-table-width));
+  /* 避免表格 sticky 列视觉越界到右侧区域 */
+  padding-right: 0;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 }
@@ -1392,10 +1647,9 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   position: sticky;
   right: 0;
   z-index: 2;
-  /* 左侧阴影 + 单元格内右侧描边，避免 sticky 与 collapse 叠加时最右竖线丢失 */
-  box-shadow:
-    -6px 0 8px -4px rgba(0, 0, 0, 0.1),
-    inset -1px 0 0 #e8e8e8;
+  /* 去掉阴影，避免在预览中出现“露出边界”的视觉残影 */
+  box-shadow: none;
+  border-right: 1px solid #e8e8e8;
 }
 .fixed-table-preview-grid th.fixed-table-preview-th--op {
   z-index: 3;

@@ -2,6 +2,7 @@
 import type { Component } from 'vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
+import dayjs from 'dayjs';
 import {
   AimOutlined,
   BorderOutlined,
@@ -24,6 +25,8 @@ import { businessApiLibrary } from '@/api/tags/library/基础资源库';
 import { LibraryPageRequestDTOModel } from '@/api/models/library/LibraryPageRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
@@ -31,6 +34,8 @@ const props = defineProps({
 });
 
 const ParameterGeneralVisible = ref<boolean>(false);
+/** 为 true 时参数字典为多选，用于「批量选取参数」 */
+const parameterDictionaryMultiSelect = ref(false);
 const ParameterGeneralRef = ref<any>(null);
 
 /** 参数字典选择回填目标：组件 paramCode、列定义草稿或表格单元格继承配置 */
@@ -185,6 +190,30 @@ const menuCategorySelectedId = ref('');
 const menuCategorySelectedMenuId = ref('');
 /** 行定义「浏览菜单分类」时写入 `tableRowDefs` 的下标（0-based） */
 const menuCategoryTableRowIndex = ref(0);
+function getSketchSecuritySelectPopupContainer() {
+  return document.body;
+}
+const sketchSecuritySelectDropdownStyle = { zIndex: 1300 };
+const sketchConfigModalVisible = ref(false);
+const sketchEditModalVisible = ref(false);
+const sketchEditMode = ref<'add' | 'edit'>('add');
+const sketchConfigList = ref<any[]>([]);
+const sketchEditingRowId = ref<string>('');
+const sketchUploadFileList = ref<any[]>([]);
+const sketchUploading = ref(false);
+const sketchForm = reactive({
+  id: '',
+  sketchName: '',
+  sketchWidth: 300 as number | null,
+  topDistance: 30 as number | null,
+  sortIndex: 1 as number | null,
+  fileId: '',
+  filePath: '',
+  securityLevel: undefined as string | undefined,
+  createTime: '',
+  createUserName: '',
+});
+const fileConfidentialLevel = ref<string | undefined>('0');
 
 function cloneFixedTableColDefsForModal(defs: any[] | undefined) {
   return (defs || []).map(d => ({
@@ -662,6 +691,77 @@ function pickParameterIdFromDictionaryRow(row: any): number | string | null {
   if (row.id != null) return row.id;
   return null;
 }
+/** 非表格组件是否已占用该参数（按代号或参数 id） */
+function collectNonTableParamBindings(list: any[]) {
+  const codes = new Set<string>();
+  const ids = new Set<string>();
+  for (const c of list) {
+    if (c?.componentType === 'TABLE') continue;
+    const code = String(c?.paramCode ?? '').trim();
+    if (code) codes.add(code);
+    if (c?.parameterId != null && String(c.parameterId).trim() !== '') {
+      ids.add(String(c.parameterId).trim());
+    }
+  }
+  return { codes, ids };
+}
+function isDictionaryRowBoundToNonTable(row: any, codes: Set<string>, ids: Set<string>) {
+  const num = String(row?.parameterNum ?? '').trim();
+  const pid = pickParameterIdFromDictionaryRow(row);
+  const pidStr = pid != null ? String(pid).trim() : '';
+  if (num && codes.has(num)) return true;
+  if (pidStr && ids.has(pidStr)) return true;
+  return false;
+}
+/** 批量选取参数：按勾选顺序追加单行输入，跳过已在非表格组件绑定的参数 */
+function applyBatchParametersAsInputComponents(rows: any[]) {
+  if (!Array.isArray(rows) || rows.length === 0) return;
+  const { codes, ids } = collectNonTableParamBindings(componentList.value);
+  const skipped: string[] = [];
+  let added = 0;
+  let insertAt = componentList.value.length;
+  for (const row of rows) {
+    if (isDictionaryRowBoundToNonTable(row, codes, ids)) {
+      skipped.push(String(row?.parameterName ?? row?.parameterNum ?? '').trim() || '未命名参数');
+      continue;
+    }
+    const newItem = createDefaultComponent('INPUT');
+    newItem.paramCode = String(row?.parameterNum ?? '');
+    newItem.paramName = String(row?.parameterName ?? '');
+    newItem.parameterId = pickParameterIdFromDictionaryRow(row);
+    newItem.ioType = 'INPUT';
+    ensureTextLikeDefaults(newItem);
+    if (!newItem.customProps.placeholder) newItem.customProps.placeholder = '请输入';
+    if (insertComponentItem(newItem, insertAt)) {
+      added += 1;
+      insertAt += 1;
+      const code = String(row?.parameterNum ?? '').trim();
+      const pid = pickParameterIdFromDictionaryRow(row);
+      if (code) codes.add(code);
+      if (pid != null && String(pid).trim() !== '') ids.add(String(pid).trim());
+    }
+  }
+  if (added > 0) {
+    message.success(`已添加 ${added} 个单行输入组件`);
+  }
+  if (skipped.length) {
+    message.warning(`以下参数已在非表格组件中绑定，已跳过：${skipped.join('、')}`);
+  }
+  if (added === 0 && skipped.length === 0) {
+    message.info('未选择有效参数');
+  }
+}
+function handleParameterDictionarySave(payload: any) {
+  if (parameterDictionaryMultiSelect.value) {
+    const rows = Array.isArray(payload) ? payload : [];
+    applyBatchParametersAsInputComponents(rows);
+    ParameterGeneralVisible.value = false;
+    parameterDictionaryMultiSelect.value = false;
+    parameterPickTarget.value = { type: 'component' };
+    return;
+  }
+  handleSaveParameter(payload);
+}
 function handleSaveParameter(row: any) {
   const code = row?.parameterNum != null ? String(row.parameterNum) : '';
   const name = row?.parameterName != null ? String(row.parameterName) : '';
@@ -712,10 +812,12 @@ function handleSaveParameter(row: any) {
 }
 function onParameterGeneralClose() {
   ParameterGeneralVisible.value = false;
+  parameterDictionaryMultiSelect.value = false;
   parameterPickTarget.value = { type: 'component' };
 }
 function showParameter(target?: ParameterPickTarget) {
   parameterPickTarget.value = target ?? { type: 'component' };
+  parameterDictionaryMultiSelect.value = false;
   ParameterGeneralVisible.value = true;
   nextTick(() => {
     ParameterGeneralRef.value?.handlegetData?.('');
@@ -945,11 +1047,210 @@ function parseList(raw: any) {
   }
   return [];
 }
-function handleBatchSelectParam() {
-  addComponent('INPUT');
+function generateSketchRowId() {
+  return `sketch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
-function handleSketchConfig() {
-  addComponent('DATA_VIEW');
+function getSketchListRowKey(row: any) {
+  return `${row?.formId ?? ''}-${row?.field ?? ''}`;
+}
+function createEmptySketchForm() {
+  return {
+    id: '',
+    sketchName: '',
+    sketchWidth: 300 as number | null,
+    topDistance: 30 as number | null,
+    sortIndex: 1 as number | null,
+    fileId: '',
+    filePath: '',
+    securityLevel: undefined as string | undefined,
+    createTime: '',
+    createUserName: '',
+  };
+}
+function resetSketchForm() {
+  Object.assign(sketchForm, createEmptySketchForm());
+  fileConfidentialLevel.value = '0';
+  sketchUploadFileList.value = [];
+  sketchUploading.value = false;
+}
+function normalizeSketchItem(raw: any, idx: number) {
+  return {
+    id: String(raw?.id ?? generateSketchRowId()),
+    sketchName: String(raw?.sketchName ?? raw?.fileName ?? raw?.oldFileName ?? ''),
+    sketchWidth: raw?.sketchWidth != null ? Number(raw.sketchWidth) : 300,
+    topDistance: raw?.topDistance != null ? Number(raw.topDistance) : 30,
+    sortIndex: raw?.sortIndex != null ? Number(raw.sortIndex) : idx + 1,
+    fileId: String(raw?.fileId ?? ''),
+    filePath: String(raw?.filePath ?? ''),
+    securityLevel: raw?.securityLevel != null ? String(raw.securityLevel) : undefined,
+    createTime: String(raw?.createTime ?? ''),
+    createUserName: String(raw?.createUserName ?? raw?.uploadUserName ?? raw?.creatorName ?? ''),
+  };
+}
+function getCurrentSketchConfigSeed() {
+  return props.record?.sketchConfigList ?? props.record?.sketchList ?? props.record?.schematicConfigList ?? props.record?.imageConfigList ?? [];
+}
+async function loadSketchConfigList() {
+  const seed = parseList(getCurrentSketchConfigSeed());
+  const params = { activityPageId: props.record?.id };
+  try {
+    const res = await AdminApiActivityPage.activityImageList(params);
+    const apiList = parseList(res?.data?.data);
+    if (apiList.length > 0) {
+      sketchConfigList.value = apiList;
+      return;
+    }
+  } catch (_e) {
+    // 查询失败时回退到本地 seed，保证弹窗可用
+  }
+  sketchConfigList.value = seed.map((item: any, idx: number) => normalizeSketchItem(item, idx));
+}
+function normalizeSketchSortIndex() {
+  sketchConfigList.value = sketchConfigList.value.map((item: any, idx: number) => ({
+    ...item,
+    sort: idx + 1,
+  }));
+}
+async function handleSketchConfig() {
+  await loadSketchConfigList();
+  sketchConfigModalVisible.value = true;
+}
+function openSketchEditModal(mode: 'add' | 'edit', row?: any) {
+  sketchEditMode.value = mode;
+  resetSketchForm();
+  if (mode === 'edit' && row) {
+    const fileInfo = row?.fileInfo || row?.fileinfo || {};
+    Object.assign(sketchForm, {
+      ...createEmptySketchForm(),
+      id: String(row?.id ?? ''),
+      sketchName: String(row?.remark ?? fileInfo?.oldFileName ?? fileInfo?.fileName ?? ''),
+      sketchWidth: row?.width != null ? Number(row.width) : 300,
+      topDistance: row?.marginTop != null ? Number(row.marginTop) : 30,
+      sortIndex: row?.sort != null ? Number(row.sort) : 1,
+      fileId: String(fileInfo?.fileId ?? ''),
+      filePath: String(fileInfo?.filePath ?? ''),
+      securityLevel: row?.confidentialLevel != null ? String(row.confidentialLevel) : '0',
+    });
+    sketchEditingRowId.value = getSketchListRowKey(row);
+    fileConfidentialLevel.value = sketchForm.securityLevel || '0';
+    if (sketchForm.sketchName) {
+      sketchUploadFileList.value = [
+        {
+          uid: String(fileInfo?.fileId || row?.id || Date.now()),
+          name: sketchForm.sketchName,
+          status: 'done',
+          id: fileInfo?.fileId || '',
+          url: fileInfo?.filePath || '',
+        },
+      ];
+    }
+  } else {
+    sketchEditingRowId.value = '';
+    fileConfidentialLevel.value = '0';
+    sketchForm.sortIndex = sketchConfigList.value.length + 1;
+    sketchForm.createUserName = String(userStore.getUser.userName ?? '');
+    sketchForm.createTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  }
+  sketchEditModalVisible.value = true;
+}
+function cancelSketchEditModal() {
+  sketchEditModalVisible.value = false;
+  sketchEditingRowId.value = '';
+  resetSketchForm();
+}
+async function customRequestSketchUpload(options: any) {
+  try {
+    sketchUploading.value = true;
+    const res = await AdminApiSystemUploadFile.uploadFile({
+      file: options.file as File,
+      userId: userStore.getUser.id,
+      securityLevel: fileConfidentialLevel.value,
+    } as any);
+    if (res?.data?.code == 0) {
+      const data: any = res.data;
+      sketchForm.fileId = String(data.id ?? '');
+      sketchForm.filePath = String(data.filePath ?? '');
+      sketchForm.sketchName = String(data.oldFileName ?? data.fileName ?? options.file?.name ?? '');
+      sketchUploadFileList.value = [
+        {
+          uid: String(data.id || options.file?.uid || Date.now()),
+          name: sketchForm.sketchName,
+          status: 'done',
+          id: data.id || '',
+          url: data.filePath || '',
+        },
+      ];
+      options?.onSuccess?.(data, options.file);
+      message.success('图片上传成功');
+      return;
+    }
+    options?.onError?.(new Error('upload failed'));
+    message.error('图片上传失败');
+  } catch (e: any) {
+    options?.onError?.(e instanceof Error ? e : new Error('upload failed'));
+    message.error('图片上传失败');
+  } finally {
+    sketchUploading.value = false;
+  }
+}
+function onSketchUploadChange(info: any) {
+  sketchUploadFileList.value = Array.isArray(info?.fileList) ? info.fileList.slice(-1) : [];
+}
+function validateSketchForm() {
+  if (!sketchForm.sketchWidth || Number(sketchForm.sketchWidth) <= 0) {
+    message.warning('请输入示意图宽度');
+    return false;
+  }
+  if (sketchForm.topDistance == null || Number(sketchForm.topDistance) < 0) {
+    message.warning('请输入与上方距离');
+    return false;
+  }
+  if (!sketchForm.sortIndex || Number(sketchForm.sortIndex) <= 0) {
+    message.warning('请输入排序索引');
+    return false;
+  }
+  if (!String(sketchForm.fileId ?? '').trim()) {
+    message.warning('请先上传图片');
+    return false;
+  }
+  return true;
+}
+async function submitSketchEditModal() {
+  if (!validateSketchForm()) return;
+  const editingRow = sketchConfigList.value.find((item: any) => getSketchListRowKey(item) === sketchEditingRowId.value);
+  const fileName = String(sketchForm.sketchName || '').trim();
+  const uploadedFileId = String(sketchForm.fileId ?? '').trim();
+  const payload = {
+    id: sketchEditMode.value === 'edit' ? String(editingRow?.id ?? sketchForm.id ?? '') : undefined,
+    activityPageId: String(props.record?.id ?? ''),
+    formId: String(editingRow?.formId ?? props.record?.formId ?? '20001'),
+    field: uploadedFileId,
+    remark: fileName,
+    width: Number(sketchForm.sketchWidth) || 0,
+    marginTop: Number(sketchForm.topDistance) || 0,
+    sort: Number(sketchForm.sortIndex) || sketchConfigList.value.length + 1,
+    confidentialLevel: String(fileConfidentialLevel.value ?? sketchForm.securityLevel ?? '0'),
+  };
+  await AdminApiActivityPage.activityImageSave(payload as any);
+  await loadSketchConfigList();
+  message.success(sketchEditMode.value === 'edit' ? '修改成功' : '添加成功');
+  sketchEditModalVisible.value = false;
+}
+async function removeSketchRow(row: any) {
+  const deletePayload = {
+    id: row?.id,
+  };
+  const res = await AdminApiActivityPage.activityImageDelete(deletePayload as any);
+  await loadSketchConfigList();
+  message.success('删除成功');
+}
+function handleBatchSelectParam() {
+  parameterDictionaryMultiSelect.value = true;
+  parameterPickTarget.value = { type: 'component' };
+  ParameterGeneralVisible.value = true;
+  nextTick(() => {
+    ParameterGeneralRef.value?.handlegetData?.('');
+  });
 }
 function handleDragStart(item: { type: string; tableSubtype?: string; threeDSubtype?: string }, event: DragEvent) {
   draggingType.value = item.type;
@@ -1560,8 +1861,8 @@ function ensureWorkspaceTableDefaults(component: any) {
   const p = component.customProps;
   if (p.tableTitle == null) p.tableTitle = '表格标题';
   if (p.tableBodyRows == null || p.tableBodyRows < 1) p.tableBodyRows = 4;
-    if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
-    if (p.tableBizType === 'MODULE_LIB_READ' && p.tableColCount < 3) p.tableColCount = 3;
+  if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
+  if (p.tableBizType === 'MODULE_LIB_READ' && p.tableColCount < 3) p.tableColCount = 3;
   if (!p.firstColumnType) p.firstColumnType = 'INDEX';
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = false;
@@ -1821,6 +2122,7 @@ watch(
       return av - bv;
     });
     selectedIndex.value = componentList.value.length > 0 ? 0 : -1;
+    sketchConfigList.value = parseList(getCurrentSketchConfigSeed()).map((item: any, idx: number) => normalizeSketchItem(item, idx));
   },
   { immediate: true },
 );
@@ -3123,6 +3425,82 @@ watch(
     </template>
   </a-modal>
 
+  <a-modal v-model:visible="sketchConfigModalVisible" title="示意图配置" :mask-closable="false" :width="980" :footer="null" :z-index="1100">
+    <div class="sketch-config-toolbar">
+      <a-button type="primary" @click="openSketchEditModal('add')">添加</a-button>
+    </div>
+    <a-table :data-source="sketchConfigList" :pagination="false" :row-key="(record: any) => `${record.formId || ''}-${record.field || ''}`" bordered class="sketch-config-table">
+      <a-table-column title="文件名" key="fileName" :width="240">
+        <template #default="{ record }">
+          {{ record?.fileInfo?.oldFileName || '—' }}
+        </template>
+      </a-table-column>
+      <a-table-column title="示意图宽度" data-index="width" key="width" :width="130" />
+      <a-table-column title="与上方距离" data-index="marginTop" key="marginTop" :width="130" />
+      <a-table-column title="排序索引" data-index="sort" key="sort" :width="120" />
+      <a-table-column title="创建时间" data-index="createTime" key="createTime" :width="240" />
+      <a-table-column title="操作" key="action" :width="220" fixed="right">
+        <template #default="{ record, index }">
+          <div class="sketch-table-actions">
+            <a-button type="link" size="small" @click="openSketchEditModal('edit', record)">编辑</a-button>
+            <a-popconfirm
+              title="确认删除该示意图吗？"
+              :get-popup-container="getSketchSecuritySelectPopupContainer"
+              :overlay-style="{ zIndex: 1300 }"
+              @confirm="removeSketchRow(record)">
+              <a-button type="link" size="small" danger>删除</a-button>
+            </a-popconfirm>
+          </div>
+        </template>
+      </a-table-column>
+      <template #emptyText>暂无示意图配置</template>
+    </a-table>
+    <div class="sketch-config-footer">
+      <a-button @click="sketchConfigModalVisible = false">关闭</a-button>
+    </div>
+  </a-modal>
+
+  <a-modal
+    v-model:visible="sketchEditModalVisible"
+    :title="sketchEditMode === 'edit' ? '编辑图片' : '上传图片'"
+    :mask-closable="false"
+    :width="760"
+    :footer="null"
+    :z-index="1110"
+    @cancel="cancelSketchEditModal">
+    <a-form layout="vertical" class="sketch-upload-form">
+      <a-form-item label="示意图宽度" required>
+        <a-input-number v-model:value="sketchForm.sketchWidth" :min="1" style="width: 100%" placeholder="请输入" />
+      </a-form-item>
+      <a-form-item label="与上方距离" required>
+        <a-input-number v-model:value="sketchForm.topDistance" :min="0" style="width: 100%" placeholder="请输入" />
+      </a-form-item>
+      <a-form-item label="排序索引" required>
+        <a-input-number v-model:value="sketchForm.sortIndex" :min="1" style="width: 100%" placeholder="请输入" />
+      </a-form-item>
+      <a-form-item label="密级">
+        <a-select
+          v-model:value="fileConfidentialLevel"
+          placeholder="请选择密级"
+          :get-popup-container="getSketchSecuritySelectPopupContainer"
+          :dropdown-style="sketchSecuritySelectDropdownStyle">
+          <a-select-option v-for="item in userStore.getConfidentialLevel" :key="item.value" :value="String(item.value)">
+            {{ item.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="请选择附件" required>
+        <a-upload accept="image/*" :max-count="1" :multiple="false" :file-list="sketchUploadFileList" :custom-request="customRequestSketchUpload" @change="onSketchUploadChange">
+          <a-button :loading="sketchUploading">上传图片</a-button>
+        </a-upload>
+      </a-form-item>
+    </a-form>
+    <div class="sketch-config-footer">
+      <a-button type="primary" @click="submitSketchEditModal">确定</a-button>
+      <a-button @click="cancelSketchEditModal">关闭</a-button>
+    </div>
+  </a-modal>
+
   <FormulaEditorModal
     ref="formulaEditorRef"
     :visible="formulaEditorVisible"
@@ -3136,8 +3514,9 @@ watch(
     ref="ParameterGeneralRef"
     :modalVisible="ParameterGeneralVisible"
     :modal-z-index="parameterDictionaryModalZIndex"
+    :multi-select="parameterDictionaryMultiSelect"
     @onClose="onParameterGeneralClose"
-    @handleSave="handleSaveParameter"></ParameterGeneral>
+    @handleSave="handleParameterDictionarySave"></ParameterGeneral>
 </template>
 
 <style lang="less">
@@ -3995,5 +4374,27 @@ watch(
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+.sketch-config-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+.sketch-config-table {
+  margin-bottom: 16px;
+}
+.sketch-table-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+.sketch-config-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sketch-upload-form {
+  padding-top: 8px;
 }
 </style>

@@ -257,4 +257,67 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 设计活动示意图管理列表查看
+   *
+   * @tags 管理后台 - 设计活动示意图管理列表查看
+   * @name activityImageList
+   * @summary 设计活动示意图管理列表查看
+   * @request /business-service/business/activity-image/list
+   * @secure
+   */
+  static activityImageList = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-image/list`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 设计活动示意图管理新增/编辑
+   *
+   * @tags 管理后台 - 设计活动示意图管理新增/编辑
+   * @name activityImageSave
+   * @summary 设计活动示意图管理新增/编辑
+   * @request /business-service/business/activity-image/save
+   * @secure
+   */
+  static activityImageSave = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-image/save`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 设计活动示意图管理删除
+   *
+   * @tags 管理后台 - 设计活动示意图管理删除
+   * @name activityImageDelete
+   * @summary 设计活动示意图管理删除/编辑
+   * @request /business-service/business/activity-image/delete
+   * @secure
+   */
+  static activityImageDelete = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-image/delete`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

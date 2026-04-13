@@ -695,6 +695,7 @@ const currentConfigRecord = ref<any>({});
 const activityConfigSaving = ref(false);
 const activityPreviewVisible = ref(false);
 const currentPreviewRecord = ref<any>({});
+const previewImageList = ref<any[]>([]);
 function toNumOrFallback(v: any, fallback = Number.MIN_SAFE_INTEGER) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
@@ -737,6 +738,9 @@ async function priviewPageConfigModal(record: any) {
     const res = await AdminApiActivityPage.pageConfigList({ activityPageId: record.id });
     const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
     currentPreviewRecord.value = normalizePageConfigResponseToRecord(record, rows);
+    const params = { activityPageId: record.id };
+    const data = await AdminApiActivityPage.activityImageList(params);
+    previewImageList.value = Array.isArray(data?.data?.data) ? data.data.data : [];
     activityPreviewVisible.value = true;
   } catch (error) {
     console.error('preview activity config failed:', error);
@@ -747,6 +751,7 @@ async function priviewPageConfigModal(record: any) {
 function closeActivityPreviewModal() {
   activityPreviewVisible.value = false;
   currentPreviewRecord.value = {};
+  previewImageList.value = [];
 }
 
 function closeActivityConfigModal() {
@@ -930,7 +935,7 @@ function closeShareModal() {
       :save-loading="activityConfigSaving"
       @close="closeActivityConfigModal"
       @save="saveActivityConfig" />
-    <ActivityPreviewModal :modal-visible="activityPreviewVisible" :record="currentPreviewRecord" @close="closeActivityPreviewModal" />
+    <ActivityPreviewModal :modal-visible="activityPreviewVisible" :record="currentPreviewRecord" :image-list="previewImageList" @close="closeActivityPreviewModal" />
   </div>
 </template>
 
@@ -999,5 +1004,4 @@ function closeShareModal() {
     }
   }
 }
-
 </style>
