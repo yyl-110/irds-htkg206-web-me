@@ -340,12 +340,12 @@ async function onRefreshTableData(record: DeptCreateRequestDTOModel) {
   background-color: #ffffff !important;
 }
 
-:deep(.vxe-table--header-wrapper) {
-  height: 50px !important; /* 强制设置表头高度 */
-}
-:deep(.vxe-header--row .vxe-cell) {
-  margin-top: -13px !important;
-  background-color: #ededed;
-  height: 48px;
-}
+// :deep(.vxe-table--header-wrapper) {
+//   height: 50px !important; /* 强制设置表头高度 */
+// }
+// :deep(.vxe-header--row .vxe-cell) {
+//   margin-top: -13px !important;
+//   background-color: #ededed;
+//   height: 48px;
+// }
 </style>

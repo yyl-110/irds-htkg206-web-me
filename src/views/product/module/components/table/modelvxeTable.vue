@@ -282,7 +282,6 @@ defineExpose({
         v-model:page-size="page.pageSize"
         :page-size-options="pageSizeOptions"
         :total="page.pageCount"
-        size="small"
         show-size-changer
         @change="change"
         @showSizeChange="onShowSizeChange">
@@ -317,16 +316,6 @@ defineExpose({
   position: relative;
   :deep(.vxe-table--filter-wrapper.is--active) {
     text-align: left !important;
-  }
-  :deep(.vxe-header--column) {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-  :deep(.vxe-header--column .vxe-cell) {
-    height: 36px !important;
-    line-height: 36px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
   }
 }
 .cells {

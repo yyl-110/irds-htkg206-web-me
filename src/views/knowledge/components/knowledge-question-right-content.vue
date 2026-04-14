@@ -137,7 +137,7 @@ const viewMoreFun = (type) => {
   }
 };
 //分页
-const handleCurrentChange = (val,size) => {
+const handleCurrentChange = (val, size) => {
   page.value.currentPage = val;
   page.value.pageSize = size;
   if (typeData.value == "hot") {
@@ -244,7 +244,7 @@ const closeDialog = () => {
         </div>
       </a-card>
       <a-card v-if="dialogTit === '热评问题'" class="box-card" :bordered="false">
-        <div v-for="art in articList" :key="art.id" style="border-bottom: 1px solid #E7EAEE" class="py-[8px]">
+        <div v-for="art in articList" :key="art.id" class="py-[8px] card-item">
           <div class="text item text-list flex justify-between">
             <span class="tit">{{ art.fileName }}</span>
             <div>
@@ -257,11 +257,13 @@ const closeDialog = () => {
           </div>
         </div>
       </a-card>
+     <div class="flex justify-end pb-[16px] pr-[16px]">
+       <a-pagination v-model:current="page.currentPage" class="elPage" :total="page.pageCount"
+        :default-page-size="page.pageSize" show-less-items show-size-changer :show-total="(total) => `共${total}条`"
+        @change="handleCurrentChange" />
+     </div>
       <template #footer>
-        <div class="footer flex justify-between items-center">
-          <a-pagination v-model:current="page.currentPage" class="elPage" :total="page.pageCount"
-            :default-page-size="page.pageSize" show-less-items show-size-changer :show-total="(total) => `共${total}条`"
-            @change="handleCurrentChange" />
+        <div class="footer flex justify-end items-center">
           <span class="dialog-footer">
             <a-button type="primary" @click="closeFun">关闭</a-button>
           </span>
@@ -311,6 +313,11 @@ const closeDialog = () => {
   background: #ffffff;
   border-radius: 4px;
   border: none;
+  .card-item {
+    &:not(:last-child) {
+      border-bottom: 1px solid #E7EAEE
+    }
+  }
 
   :deep(.ant-card-head) {
     padding: 16px;
@@ -464,9 +471,7 @@ const closeDialog = () => {
       font-weight: 500;
       color: #646566;
       flex-wrap: wrap;
-      border-bottom: 1px solid #E7EAEE;
       justify-content: space-between;
-
       &:hover {
         cursor: pointer;
         color: var(--ant-primary-color);

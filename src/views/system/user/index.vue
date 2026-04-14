@@ -140,6 +140,7 @@ const columns: VxeGridPropTypes.Columns<UserPageItemResponseDTOModel> = [
   {
     title: WeiI18n.t('创建时间').value,
     field: 'createTime',
+    width: 200,
     formatter: params => {
       const date = new Date(params.row.createTime);
       return useRender.renderDateNoTime(date); // 格式化日期为年月日
@@ -549,14 +550,14 @@ async function exportData() {
   flex-direction: column;
   width: 370px;
 }
-:deep(.vxe-table--header-wrapper) {
-  height: 50px !important; /* 强制设置表头高度 */
-}
-:deep(.vxe-header--row .vxe-cell) {
-  margin-top: -15px !important;
-  background-color: #ededed;
-  height: 48px;
-}
+// :deep(.vxe-table--header-wrapper) {
+//   height: 50px !important; /* 强制设置表头高度 */
+// }
+// :deep(.vxe-header--row .vxe-cell) {
+//   margin-top: -15px !important;
+//   background-color: #ededed;
+//   height: 48px;
+// }
 :deep(.ant-upload-list) {
   display: none;
 }

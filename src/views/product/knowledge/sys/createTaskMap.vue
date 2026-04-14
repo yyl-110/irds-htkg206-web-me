@@ -6,19 +6,19 @@
     <div class="main flex-1 h-0">
       <!-- 左边儿地图 -->
       <div class="mainCenter wei-scrollbar">
-        <div v-if="imgPath.id === 1 || templateId === 1" class="totalFirst mb-[16px]">
-          <div class="mainCenterTop" v-if="imgPath.id === 1 || templateId === 1">
+        <div v-if="imgPath.id === 1 || templateId == 1" class="totalFirst mb-[16px]">
+          <div class="mainCenterTop" v-if="imgPath.id === 1 || templateId == 1">
             <img v-if="imgPath.fileUrl" class="mainCenterTopImg" :src="imgPath.fileUrl" alt="" />
             <img v-else class="mainCenterTopImg" :src="templateUrl" alt="" />
-            <div v-if="imgPath.id === 1 || templateId === 1" class="mainCenterTopTitle">{{ secongData.name }}</div>
-            <div v-if="imgPath.id === 1 || templateId === 1" class="mainCenterTopQuery">{{ secongData.queryObj }}</div>
-            <div v-if="imgPath.id === 1 || templateId === 1" class="mainCenterTopTotal">
+            <div v-if="imgPath.id === 1 || templateId == 1" class="mainCenterTopTitle">{{ secongData.name }}</div>
+            <div v-if="imgPath.id === 1 || templateId == 1" class="mainCenterTopQuery">{{ secongData.queryObj }}</div>
+            <div v-if="imgPath.id === 1 || templateId == 1" class="mainCenterTopTotal">
               <div class="mainCenterTopSide" v-for="item in secongData.nodeList" :key="item.id">
                 <div :class="item.color === true ? 'fontColor' : 'mainCenterTopSideText'" @click="getFileInfo(item)">{{
                   item.nodeName }}</div>
               </div>
             </div>
-            <div v-if="imgPath.id === 1 || templateId === 1">
+            <div v-if="imgPath.id === 1 || templateId == 1">
               <div v-for="data in detailData" :key="data.id">
                 <div v-if="data.location === 1">
                   <img class="imagesModal1" src="@/assets/images/modal3.png" alt="" />
@@ -84,20 +84,20 @@
             </div>
           </div>
         </div>
-        <div v-if="imgPath.id === 2 || templateId === 2" class="totalSecond mb-[16px]">
-          <div class="mainCenterTop8" v-if="imgPath.id === 2 || templateId === 2">
+        <div v-if="imgPath.id === 2 || templateId == 2" class="totalSecond mb-[16px]">
+          <div class="mainCenterTop8" v-if="imgPath.id === 2 || templateId == 2">
             <img class="mainCenterTopImg8" v-if="imgPath.fileUrl" :src="imgPath.fileUrl" alt="" />
             <img class="mainCenterTopImg8" v-else :src="templateUrl" alt="" />
-            <div v-if="imgPath.id === 2 || templateId === 2" class="mainCenterTopTitle8">{{ secongData.name }}</div>
-            <div v-if="imgPath.id === 2 || templateId === 2" class="mainCenterTopQuery8" :content="secongData.queryObj">
+            <div v-if="imgPath.id === 2 || templateId == 2" class="mainCenterTopTitle8">{{ secongData.name }}</div>
+            <div v-if="imgPath.id === 2 || templateId == 2" class="mainCenterTopQuery8" :content="secongData.queryObj">
               {{ secongData.queryObj }}</div>
-            <div v-if="imgPath.id === 2 || templateId === 2" class="mainCenterTopTotal8">
+            <div v-if="imgPath.id === 2 || templateId == 2" class="mainCenterTopTotal8">
               <div class="mainCenterTopSide8" v-for="item in secongData.nodeList" :key="item.id">
                 <div :class="item.color === true ? 'fontColor' : 'mainCenterTopSideText8'" @click="getFileInfo(item)"
                   :content="item.nodeName">{{ item.nodeName }}</div>
               </div>
             </div>
-            <div v-if="imgPath.id === 2 || templateId === 2">
+            <div v-if="imgPath.id === 2 || templateId == 2">
               <div v-for="data in detailData" :key="data.id">
                 <div v-if="data.location === 1">
                   <a-tooltip :mouseEnterDelay="0.5" :title="data.nodeName" placement="top">

@@ -215,14 +215,14 @@ function handleResizeColumn(w, col) {
   background: #fff;
 }
 
-:deep(.ant-table-column-sorters) {
-  justify-content: center;
-  align-items: flex-end;
-}
+// :deep(.ant-table-column-sorters) {
+//   justify-content: center;
+//   align-items: flex-end;
+// }
 
-:deep(.ant-table-column-title) {
-  flex: none;
-}
+// :deep(.ant-table-column-title) {
+//   flex: none;
+// }
 
 /* 保底：确保 form_css 不换行（跟上面 inline style 双保险） */
 .form_css {

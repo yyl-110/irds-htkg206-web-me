@@ -207,7 +207,7 @@ const getVideoHide = (val) => {
 // 查看pdf
 const viewPdf = (id) => {
   const params = {
-    id: id,
+    id,
   };
   getPdfPreviewPath(params).then((res) => {
     if (res && res.status === 200) {
@@ -324,7 +324,7 @@ defineExpose({
                       text-transform: none;
                     ">{{ item.fileType[0] }}</span>
                 </div>
-                <div style="width: 100%">
+                <div class="flex-1 w-0">
                   <a-tooltip class="box-item" placement="top">
                     <template #title>{{
                       item.fileName + "." + item.fileType
@@ -606,8 +606,16 @@ defineExpose({
     display: none;
   }
 }
+:deep(.ant-spin-nested-loading) {
+  height: 100%;
+
+  .ant-spin-container {
+    height: 100%;
+  }
+}
 
 .drawerMain {
+  flex: 1;
   .doc-wrap {
     background: #ffffff;
     border-radius: 4px;

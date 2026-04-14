@@ -74,6 +74,7 @@ const initDiscuss = () => {
 
 // 发布
 const release = () => {
+  if(!commentText.value) return message.warning('请输入评论内容');
   const params = {
     kldId: props.commonDeail?.kldFileId
       ? props.commonDeail?.kldFileId
@@ -176,7 +177,6 @@ const likeComment = (item) => {
 };
 
 const likeCommentDetail = (item) => {
-  console.log(item, "评论的评论点赞  commentLike");
   if (commentData.value && commentData.value.length > 0) {
     commentData.value.map((v) => {
       // 里层的评论
@@ -215,7 +215,7 @@ const handleClose = () => {
 
 <template>
   <div class="comment-dialog-layout">
-    <draggable-modal v-model:visible="visible" centered title="评论" :width="1000" @cancel="handleClose" :footer="null">
+    <draggable-modal v-model:visible="visible" centered :maskClosable="false" title="评论" :width="1000" @cancel="handleClose" :footer="null">
       <div class="comment-wrap">
         <a-textarea v-model:value="commentText" :rows="4" maxlength="200" placeholder="请输入评论，最多200字" />
         <div class="elrow flex justify-end mt-[16px]">

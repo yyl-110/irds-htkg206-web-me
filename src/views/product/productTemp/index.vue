@@ -92,6 +92,7 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     title: WeiI18n.$t('操作'),
     dataIndex: 'operation',
     align: 'left',
+    fixed: 'right',
     width: 250,
   },
   {},
@@ -383,9 +384,6 @@ function customGetContainer() {
   display: none !important;
 }
 
-:deep(.ant-table-tbody > tr > td) {
-  padding: 5px;
-}
 
 :deep(.ant-table-column-sorters) {
   justify-content: center;

@@ -309,9 +309,11 @@ const getDes = () => {
         height: 24px;
         width: 24px;
         margin-right: 5px;
+        flex-shrink: 0;
       }
-
+      
       span {
+        flex-shrink: 0;
         height: 22px;
         font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;

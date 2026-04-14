@@ -1,14 +1,18 @@
 /// vxe-table 相关样式
 /// 已在 `src/plugins/vxe/index.ts` 中增加每个部分的 class, 在此文件中增加样式, 详见 https://vxetable.cn/#/table/api?q=style
 
-[data-vxe-ui-theme='light'] {
-  --vxe-ui-font-color: rgba(0, 0, 0, 0.85) !important;
-  --vxe-ui-table-row-height-default: 65px !important;
+[data-vxe-ui-theme="light"] {
+  --vxe-ui-font-color: #313133 !important;
+  --vxe-ui-table-row-height-default: 36px !important;
+  --vxe-ui-table-row-height-mini: 36px !important;
+  --vxe-ui-table-row-striped-background-color: #F7F8FB!important;
 }
 
-[data-vxe-ui-theme='dark'] {
-  --vxe-ui-font-color: rgba(255, 255, 255, 0.85) !important;
-  --vxe-ui-table-row-height-default: 65px !important;
+[data-vxe-ui-theme="dark"] {
+  --vxe-ui-font-color: #313133 !important;
+  --vxe-ui-table-row-height-default: 36px !important;
+  --vxe-ui-table-row-height-mini: 36px !important;
+  --vxe-ui-table-row-striped-background-color: #F7F8FB!important;
 }
 
 @thead-cell-padding-y: 16px;
@@ -28,6 +32,24 @@
   //   padding-top: @cell-padding-y !important;
   //   padding-bottom: @cell-padding-y !important;
   // }
+}
+
+.vxe-header--column .vxe-cell {
+  height: 36px !important;
+  line-height: 36px !important;
+}
+
+// mini size 列 padding 直接覆盖（CSS变量对已有 !important 声明无效）
+.vxe-table.size--mini .vxe-body--column,
+.vxe-table.size--mini .vxe-header--column {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.vxe-table .vxe-body--column,
+.vxe-table .vxe-header--column {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 36px !important;
 }
 
 // header column

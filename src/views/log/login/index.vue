@@ -211,12 +211,12 @@ function handleFinish() {
   background: #fff;
 }
 
-:deep(.ant-table-column-sorters) {
-  justify-content: center;
-  align-items: flex-end;
-}
+// :deep(.ant-table-column-sorters) {
+//   justify-content: center;
+//   align-items: flex-end;
+// }
 
-:deep(.ant-table-column-title) {
-  flex: none;
-}
+// :deep(.ant-table-column-title) {
+//   flex: none;
+// }
 </style>

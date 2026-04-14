@@ -596,14 +596,14 @@ function handleFinish() {
   padding: 5px;
 }
 
-:deep(.ant-table-column-sorters) {
-  justify-content: center;
-  align-items: flex-end;
-}
+// :deep(.ant-table-column-sorters) {
+//   justify-content: center;
+//   align-items: flex-end;
+// }
 
-:deep(.ant-table-column-title) {
-  flex: none;
-}
+// :deep(.ant-table-column-title) {
+//   flex: none;
+// }
 
 .property-config-wrap {
   .property-config-toolbar {

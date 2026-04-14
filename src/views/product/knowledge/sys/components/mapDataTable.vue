@@ -281,6 +281,6 @@ watch(() => props.kldTreeId, () => {
 
 <style scoped lang="less">
 .table-striped {
-  background-color: #f7f8fb;
+  background-color: #f7f8fb!important;
 }
 </style>

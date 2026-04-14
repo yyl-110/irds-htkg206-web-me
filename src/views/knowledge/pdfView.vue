@@ -12,17 +12,6 @@ const pdfViewerSrc = computed(() => {
   if (!fileDataUrl.value) return '';
   return `/pdfjs-2.12.313/web/viewer.html?file=${encodeURIComponent(fileDataUrl.value)}`;
 });
-/** 跨域地址在 pdf.js 里常因 CORS 被拦，优先直接 iframe 打开 */
-const directPdfSrc = computed(() => fileDataUrl.value || '');
-const usePdfJsViewer = computed(() => {
-  if (!fileDataUrl.value) return false;
-  try {
-    const u = new URL(fileDataUrl.value, window.location.origin);
-    return u.origin === window.location.origin;
-  } catch {
-    return false;
-  }
-});
 
 const hidden = ref(false);
 
@@ -74,8 +63,7 @@ watch(
 <template>
   <div class="pdf-layout">
     <div class="content">
-      <iframe v-if="usePdfJsViewer && pdfViewerSrc" :src="pdfViewerSrc" />
-      <iframe v-else-if="directPdfSrc" :src="directPdfSrc" />
+      <iframe v-if="pdfViewerSrc" :src="pdfViewerSrc" />
       <div v-else class="empty-tip">未获取到可预览的文件地址</div>
     </div>
     <a-button type="primary" class="goback" @click="goback">返回</a-button>

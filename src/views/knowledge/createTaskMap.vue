@@ -3,7 +3,7 @@
     <div class="main">
       <!-- 左边儿地图 -->
       <div class="mainCenter">
-        <div v-if="detail.templateId === 1" class="totalFirst">
+        <div v-if="detail.templateId === '1'" class="totalFirst">
           <div class="mainCenterTop">
             <img class="mainCenterTopImg" :src="detail.templateUrl" alt="" />
             <div class="mainCenterTopTitle">{{ secongData.name }}</div>
@@ -113,7 +113,7 @@
             </div>
           </div>
         </div>
-        <div v-if="detail.templateId === 2" class="totalSecond">
+        <div v-if="detail.templateId === '2'" class="totalSecond">
           <div class="mainCenterTop8">
             <img class="mainCenterTopImg8" :src="detail.templateUrl" alt="" />
             <div class="mainCenterTopTitle8">{{ secongData.name }}</div>
@@ -376,7 +376,7 @@ const goBack = () => {
             font-size: 20px;
             color: #fff;
             position: absolute;
-            top: 50px;
+            top: 46px;
             left: 345px;
             width: 450px;
             text-align: center;

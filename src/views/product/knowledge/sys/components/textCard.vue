@@ -58,13 +58,6 @@ const viewPdf = async (id: string) => {
     console.log('res:', res);
     const filePath = res.data.fileUrl;
     router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
-    // if (res.data.fileUrl) {
-    //   const filePath = res.data.fileUrl;
-    //   router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
-    // } else {
-    //   message.error('文件不存在');
-    //   getList();
-    // }
   } catch (error) {
     console.log('error:', error);
   }

@@ -51,6 +51,7 @@ const upData = () => {
 };
 
 const confirmAnswer = () => {
+  if(!answer.value) return message.warning('请输入回答内容');
   answerQuestion({
     questionId: flagId.value,
     userId: userId.value,

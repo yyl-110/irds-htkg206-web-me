@@ -7,11 +7,14 @@ import imgCard from '../components/imgCard.vue';
 import { SearchOutlined } from '@ant-design/icons-vue';
 import { useUserStore } from '@/store/modules/user';
 import searchTag from '../components/search-tag.vue';
+import { Empty } from 'ant-design-vue';
 const userStore = useUserStore();
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 
 const tabValue = ref(1);
 const searchType = ref([]);
 const searchValue = ref('');
+const loading = ref(false)
 
 // 所属类目1
 const elTagcheckedOneData = ref([]);
@@ -77,20 +80,22 @@ const publicFun = () => {
 };
 
 // 搜索数据按钮接口
-const searchData = () => {
+const searchData = async () => {
+  loading.value = true
   publicFun();
-  const params = {
-    kldType: tabValue.value,
-    keyWords: searchType.value[0] === '1' ? searchValue.value : '', // 判断点没点关键字
-    userName: userStore.getUser.userName,
-    allowDownload: searchType.value[0] === '2' ? '0' : '',
-    all: searchValue.value || '',
-    kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : '',
-    currentPage: page.value.currentPage,
-    pageSize: page.value.pageSize,
-    userId: userStore.getUser.id,
-  };
-  knowledgeQueryPage(params).then(res => {
+  try {
+    const params = {
+      kldType: tabValue.value,
+      keyWords: searchType.value[0] === '1' ? searchValue.value : '', // 判断点没点关键字
+      userName: userStore.getUser.userName,
+      allowDownload: searchType.value[0] === '2' ? '0' : '',
+      all: searchValue.value || '',
+      kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : '',
+      currentPage: page.value.currentPage,
+      pageSize: page.value.pageSize,
+      userId: userStore.getUser.id,
+    };
+    const res = await knowledgeQueryPage(params)
     if (res && res.data.code === '0') {
       changeTabFlag.value = 3;
       documentList.value = [];
@@ -99,11 +104,17 @@ const searchData = () => {
       // viewHistory();
       // hotArticle();
     }
-  });
+  } catch (error) {
+    console.log('error', error)
+  } finally {
+    loading.value = false
+  }
 };
 
 // 获取问答列表
 const getQuestList = () => {
+  documentList.value = [];
+  loading.value = true
   publicFun();
   const params = {
     all: keyWord.value || '',
@@ -115,13 +126,14 @@ const getQuestList = () => {
   queryPageQuestion(params).then(res => {
     if (res && res.data.code === '0') {
       changeTabFlag.value = 3;
-      documentList.value = [];
       documentList.value = res.data.data.data;
       page.value.pageCount = res.data.data.total;
       // viewHistory();
       // hotArticle();
     }
-  });
+  }).finally(() => {
+    loading.value = false
+  })
 };
 
 // 切换标识
@@ -268,7 +280,8 @@ onMounted(() => {
         <a-tab-pane tab="图片" :key="3" />
         <template #rightExtra>
           <div class="flex items-center">
-            <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch" class="max-w-[300px]">
+            <a-input-search v-model:value="searchValue" placeholder="输入关键字进行搜索" @search="onSearch"
+              class="max-w-[300px]">
               <template #enterButton>
                 <div class="flex items-center">
                   <SearchOutlined />
@@ -281,54 +294,54 @@ onMounted(() => {
         </template>
       </a-tabs>
     </div>
-    <searchTag
-      :elTagcheckedOneData="elTagcheckedOneData"
-      :hiddenStatus="hiddenStatus"
-      :elTagcheckedOneStatus="elTagcheckedOneStatus"
-      :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
-      :elTagcheckedTwoData="elTagcheckedTwoData"
-      @onChangeElCheckTagOne="onChangeElCheckTagOne"
-      @onChangeElCheckTagTwo="onChangeElCheckTagTwo"
-      class="mt-[16px]" />
+    <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
+      :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
+      :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
+      @onChangeElCheckTagTwo="onChangeElCheckTagTwo" class="mt-[16px]" />
     <main class="flex-1 h-0">
-      <div class="list wei-scrollbar h-full overflow-y-auto pt-[16px]">
-        <a-row class="w-full items-start" v-if="tabValue === 1" :gutter="[16, 16]">
-          <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
-            <text-card :text-data="item" @handleFetchList="searchData" />
-          </a-col>
-        </a-row>
+      <a-spin :spinning="loading">
+        <div class="list wei-scrollbar h-full overflow-y-auto pt-[16px]">
+          <a-empty v-if="!loading && !documentList.length" :image="simpleImage" />
+          <a-row class="w-full items-start" v-if="tabValue === 1" :gutter="[16, 16]">
+            <a-col :span="12" class="item" v-for="item in documentList" :key="item.id">
+              <text-card :text-data="item" @handleFetchList="searchData" />
+            </a-col>
+          </a-row>
 
-        <div class="w-full h-full" v-if="tabValue === 4">
-          <div class="item" v-for="item in documentList" :key="item.id">
-            <ask-card :ask-data="item" @handleFetchList="getQuestList" />
+          <div class="w-full h-full" v-if="tabValue === 4">
+            <div class="item" v-for="item in documentList" :key="item.id">
+              <ask-card :ask-data="item" @handleFetchList="getQuestList" />
+            </div>
+          </div>
+          <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 2">
+            <div class="item" v-for="item in documentList" :key="item.id">
+              <video-card :video-data="item" @handleFetchList="searchData" />
+            </div>
+          </div>
+          <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 3">
+            <div class="item" v-for="item in documentList" :key="item.id">
+              <img-card :img-data="item" @handleFetchList="searchData" />
+            </div>
           </div>
         </div>
-        <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 2">
-          <div class="item" v-for="item in documentList" :key="item.id">
-            <video-card :video-data="item" @handleFetchList="searchData" />
-          </div>
-        </div>
-        <div class="flex flex-wrap w-full h-full gap-[10px]" v-if="tabValue === 3">
-          <div class="item" v-for="item in documentList" :key="item.id">
-            <img-card :img-data="item" @handleFetchList="searchData" />
-          </div>
-        </div>
-      </div>
+      </a-spin>
     </main>
     <footer class="flex justify-end pt-[16px]">
-      <a-pagination
-        v-model:current="page.currentPage"
-        :total="page.pageCount"
-        :default-page-size="page.pageSize"
-        show-less-items
-        show-size-changer
-        :show-total="total => `共${total}条`"
-        @change="handleCurrentChange" />
+      <a-pagination v-model:current="page.currentPage" :total="page.pageCount" :default-page-size="page.pageSize"
+        show-less-items show-size-changer :show-total="total => `共${total}条`" @change="handleCurrentChange" />
     </footer>
   </div>
 </template>
 
 <style lang="less" scoped>
+:deep(.ant-spin-nested-loading) {
+  height: 100%;
+
+  .ant-spin-container {
+    height: 100%;
+  }
+}
+
 .knowledge-tab {
   :deep(.ant-radio-group) {
     display: inline-flex;
@@ -343,9 +356,11 @@ onMounted(() => {
     border-bottom: 1px solid #eaeaf1;
   }
 }
+
 :deep(.ant-tabs-tab + .ant-tabs-tab) {
   margin-left: 0px;
 }
+
 .elTabs {
   border-radius: 4px;
   width: 100%;

@@ -97,7 +97,7 @@ const getInfo = (item) => {
 // 查看pdf
 const viewPdf = async (id) => {
   const params = {
-    id: id,
+    id,
   };
   try {
     const res = await getPdfPreviewPath(params);
