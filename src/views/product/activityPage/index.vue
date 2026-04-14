@@ -18,6 +18,8 @@ import ActivityAdd from './components/activity-add.vue';
 import ActivityUpdate from './components/activity-update.vue';
 import ActivityConfigModal from './components/activity-config-modal.vue';
 import ActivityPreviewModal from './components/activity-preview-modal.vue';
+import ActivityCheckConfigModal from './components/activity-check-config-modal.vue';
+import ActivityCheckPreviewModal from './components/activity-check-preview-modal.vue';
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
@@ -692,10 +694,15 @@ async function importSuccessfulFun() {
 // 打开知识配置弹窗，带入当前行 id 与 knowledge 字段
 const activityConfigVisible = ref(false);
 const currentConfigRecord = ref<any>({});
+const activityCheckConfigVisible = ref(false);
+const currentCheckConfigRecord = ref<any>({});
 const activityConfigSaving = ref(false);
 const activityPreviewVisible = ref(false);
 const currentPreviewRecord = ref<any>({});
 const previewImageList = ref<any[]>([]);
+const activityCheckPreviewVisible = ref(false);
+const currentCheckPreviewRecord = ref<any>({});
+const previewCheckImageList = ref<any[]>([]);
 function toNumOrFallback(v: any, fallback = Number.MIN_SAFE_INTEGER) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
@@ -726,10 +733,15 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   };
 }
 async function showPageConfigModal(record: any) {
-  currentConfigRecord.value = record || {};
   const res = await AdminApiActivityPage.pageConfigList({ activityPageId: record.id });
   const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
-  currentConfigRecord.value = normalizePageConfigResponseToRecord(record, rows);
+  const normalizedRecord = normalizePageConfigResponseToRecord(record, rows);
+  if (String(record?.pageType ?? '') === '2') {
+    currentCheckConfigRecord.value = normalizedRecord;
+    activityCheckConfigVisible.value = true;
+    return;
+  }
+  currentConfigRecord.value = normalizedRecord;
   activityConfigVisible.value = true;
 }
 
@@ -737,10 +749,18 @@ async function priviewPageConfigModal(record: any) {
   try {
     const res = await AdminApiActivityPage.pageConfigList({ activityPageId: record.id });
     const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
-    currentPreviewRecord.value = normalizePageConfigResponseToRecord(record, rows);
+    const normalizedRecord = normalizePageConfigResponseToRecord(record, rows);
     const params = { activityPageId: record.id };
     const data = await AdminApiActivityPage.activityImageList(params);
-    previewImageList.value = Array.isArray(data?.data?.data) ? data.data.data : [];
+    const images = Array.isArray(data?.data?.data) ? data.data.data : [];
+    if (String(record?.pageType ?? '') === '2') {
+      currentCheckPreviewRecord.value = normalizedRecord;
+      previewCheckImageList.value = images;
+      activityCheckPreviewVisible.value = true;
+      return;
+    }
+    currentPreviewRecord.value = normalizedRecord;
+    previewImageList.value = images;
     activityPreviewVisible.value = true;
   } catch (error) {
     console.error('preview activity config failed:', error);
@@ -753,9 +773,17 @@ function closeActivityPreviewModal() {
   currentPreviewRecord.value = {};
   previewImageList.value = [];
 }
+function closeActivityCheckPreviewModal() {
+  activityCheckPreviewVisible.value = false;
+  currentCheckPreviewRecord.value = {};
+  previewCheckImageList.value = [];
+}
 
 function closeActivityConfigModal() {
   activityConfigVisible.value = false;
+}
+function closeActivityCheckConfigModal() {
+  activityCheckConfigVisible.value = false;
 }
 
 async function saveActivityConfig(payload: any) {
@@ -936,6 +964,17 @@ function closeShareModal() {
       @close="closeActivityConfigModal"
       @save="saveActivityConfig" />
     <ActivityPreviewModal :modal-visible="activityPreviewVisible" :record="currentPreviewRecord" :image-list="previewImageList" @close="closeActivityPreviewModal" />
+    <ActivityCheckConfigModal
+      :modal-visible="activityCheckConfigVisible"
+      :record="currentCheckConfigRecord"
+      :save-loading="activityConfigSaving"
+      @close="closeActivityCheckConfigModal"
+      @save="saveActivityConfig" />
+    <ActivityCheckPreviewModal
+      :modal-visible="activityCheckPreviewVisible"
+      :record="currentCheckPreviewRecord"
+      :image-list="previewCheckImageList"
+      @close="closeActivityCheckPreviewModal" />
   </div>
 </template>
 
