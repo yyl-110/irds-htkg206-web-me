@@ -697,6 +697,7 @@ const currentConfigRecord = ref<any>({});
 const activityCheckConfigVisible = ref(false);
 const currentCheckConfigRecord = ref<any>({});
 const activityConfigSaving = ref(false);
+const activityCheckConfigSaving = ref(false);
 const activityPreviewVisible = ref(false);
 const currentPreviewRecord = ref<any>({});
 const previewImageList = ref<any[]>([]);
@@ -716,10 +717,13 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const filtered = list.filter(item => toNumOrFallback(item?.formId) === latestFormId);
   const finalList = filtered.length ? filtered : list;
   const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, Number.MAX_SAFE_INTEGER) - toNumOrFallback(b?.sortNo, Number.MAX_SAFE_INTEGER));
-  const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
-  const uploadTypes = ['FILE'];
-  const tableTypes = ['TABLE'];
-  const threeDTypes = ['3D_VIEW'];
+  const isCalcPage = String(baseRecord?.pageType ?? '') === '2';
+  const basicTypes = isCalcPage
+    ? ['INPUT', 'TEXTAREA', 'SELECT', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']
+    : ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+  const uploadTypes = isCalcPage ? [] : ['FILE'];
+  const tableTypes = isCalcPage ? [] : ['TABLE'];
+  const threeDTypes = isCalcPage ? [] : ['3D_VIEW'];
   const pick = (types: string[]) => sorted.filter(item => types.includes(String(item?.componentType || '')));
   return {
     ...(baseRecord || {}),
@@ -738,10 +742,12 @@ async function showPageConfigModal(record: any) {
   const normalizedRecord = normalizePageConfigResponseToRecord(record, rows);
   if (String(record?.pageType ?? '') === '2') {
     currentCheckConfigRecord.value = normalizedRecord;
+    activityConfigVisible.value = false;
     activityCheckConfigVisible.value = true;
     return;
   }
   currentConfigRecord.value = normalizedRecord;
+  activityCheckConfigVisible.value = false;
   activityConfigVisible.value = true;
 }
 
@@ -801,6 +807,25 @@ async function saveActivityConfig(payload: any) {
     message.error('配置保存失败');
   } finally {
     activityConfigSaving.value = false;
+  }
+}
+
+/** 计算页面配置：保存成功后关闭弹窗 */
+async function saveActivityCheckConfig(payload: any) {
+  activityCheckConfigSaving.value = true;
+  try {
+    const res = await AdminApiActivityPage.saveActivityPageFormComponent(payload);
+    if (res?.data?.code === 0 || res?.data?.code === 200) {
+      message.success('配置保存成功');
+      activityCheckConfigVisible.value = false;
+    } else {
+      message.error(res?.data?.msg || '配置保存失败');
+    }
+  } catch (error) {
+    console.error('save activity check config failed:', error);
+    message.error('配置保存失败');
+  } finally {
+    activityCheckConfigSaving.value = false;
   }
 }
 
@@ -967,9 +992,9 @@ function closeShareModal() {
     <ActivityCheckConfigModal
       :modal-visible="activityCheckConfigVisible"
       :record="currentCheckConfigRecord"
-      :save-loading="activityConfigSaving"
+      :save-loading="activityCheckConfigSaving"
       @close="closeActivityCheckConfigModal"
-      @save="saveActivityConfig" />
+      @save="saveActivityCheckConfig" />
     <ActivityCheckPreviewModal
       :modal-visible="activityCheckPreviewVisible"
       :record="currentCheckPreviewRecord"
