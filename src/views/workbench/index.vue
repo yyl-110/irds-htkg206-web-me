@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/modules/user';
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
+import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import * as echarts from 'echarts';
 import { message, Modal } from 'ant-design-vue';
@@ -38,6 +38,87 @@ const taskIndex = ref('1');
 const greetingText = ref('');
 // 定时器标识，用于清除定时器
 let timer = null;
+
+// 待办任务统计 mock 数据
+const todoChartData = ref({
+  delay: 2,    // 延期
+  todo: 4,     // 待办
+  done: 7,     // 已办
+  total: 13,   // 参与项目
+});
+
+let todoChartInstance: echarts.ECharts | null = null;
+
+function initTodoChart() {
+  const el = document.getElementById('eachart-main');
+  if (!el) return;
+  if (todoChartInstance) {
+    todoChartInstance.dispose();
+  }
+  todoChartInstance = echarts.init(el);
+  const { delay, todo, done, total } = todoChartData.value;
+  const option: echarts.EChartsOption = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
+    },
+    legend: {
+      bottom: 12,
+      left: 'center',
+      itemWidth: 10,
+      itemHeight: 10,
+      borderRadius: 5,
+      icon: 'circle',
+      textStyle: {
+        fontSize: 13,
+        color: '#313133',
+      },
+      formatter: (name: string) => {
+        const map: Record<string, number> = { '延期': delay, '待办': todo, '已办': done };
+        return `${name}  ${map[name] ?? ''}`;
+      },
+    },
+    series: [
+      {
+        name: '待办任务统计',
+        type: 'pie',
+        radius: ['48%', '70%'],
+        center: ['50%', '44%'],
+        avoidLabelOverlap: false,
+        label: {
+          show: true,
+          position: 'center',
+          formatter: () => `{total|${total}}\n{sub|参与项目}`,
+          rich: {
+            total: {
+              fontSize: 28,
+              fontWeight: 'bold',
+              color: '#313133',
+              fontFamily: 'DIN Alternate, DIN Alternate',
+              lineHeight: 36,
+            },
+            sub: {
+              fontSize: 13,
+              color: '#6A696E',
+              lineHeight: 22,
+            },
+          },
+        },
+        emphasis: {
+          label: { show: true },
+          scaleSize: 5,
+        },
+        labelLine: { show: false },
+        data: [
+          { value: delay, name: '延期', itemStyle: { color: '#FF7C7C' } },
+          { value: todo, name: '待办', itemStyle: { color: '#FFBA18' } },
+          { value: done, name: '已办', itemStyle: { color: '#2B5FD9' } },
+        ],
+      },
+    ],
+  };
+  todoChartInstance.setOption(option);
+}
 
 const tabList = reactive([
   {
@@ -121,18 +202,25 @@ onMounted(() => {
   getGreeting();
   // 每分钟更新一次，确保时间准确
   timer = setInterval(getGreeting, 60 * 1000);
+  nextTick(() => {
+    initTodoChart();
+  });
 });
 
 // 页面卸载时清除定时器，避免内存泄漏
 onUnmounted(() => {
   //clearInterval(timer);
+  if (todoChartInstance) {
+    todoChartInstance.dispose();
+    todoChartInstance = null;
+  }
 });
 </script>
 
 <template>
-  <div class="layout" :style="{ height: viewTypeName == '任务列表' ? 'calc(100vh - 60px)' : 'calc(100vh - 60px)' }">
-    <div class="layout-content">
-      <div class="lf-cont" :style="{ marginRight: isShowRigth == '展开' ? '0' : '10px' }">
+  <div class="layout h-full">
+    <div class="layout-content h-full">
+      <div class="lf-cont" :style="{ marginRight: isShowRigth == '展开' ? '0' : '16px' }">
         <div class="top-wrap">
           <a-row style="height: 100%; width: 100%">
             <a-col :span="7">
@@ -164,7 +252,8 @@ onUnmounted(() => {
                   <a-card-grid style="width: 20%; text-align: center; height: 108px">
                     <div class="sta-list">
                       <div class="num">
-                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.participatedPlanProjectCount }}6</span>
+                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.participatedPlanProjectCount
+                        }}6</span>
                       </div>
                       <div class="type" style="margin-top: 20px; color: #6a696e">审批待办</div>
                     </div>
@@ -206,11 +295,9 @@ onUnmounted(() => {
             <a-tab-pane key="myWork">
               <template #tab>
                 产品设计任务<span v-if="projectStatistics.todoNum > 0">&nbsp;&nbsp;&nbsp;</span>
-                <a-badge
-                  v-if="projectStatistics.todoNum > 0"
+                <a-badge v-if="projectStatistics.todoNum > 0"
                   style="position: absolute; left: 43px; top: -0px; display: flex; justify-content: center"
-                  :count="projectStatistics.todoNum"
-                  :overflow-count="99">
+                  :count="projectStatistics.todoNum" :overflow-count="99">
                 </a-badge>
               </template>
               <a-tabs v-model="taskIndex" class="body_box"> </a-tabs>
@@ -218,18 +305,16 @@ onUnmounted(() => {
             <a-tab-pane key="processtask">
               <template #tab>
                 审批 / 打分任务<span v-if="projectStatistics.flowNum > 0">&nbsp;&nbsp;&nbsp;</span>
-                <a-badge
-                  v-if="projectStatistics.flowNum > 0"
+                <a-badge v-if="projectStatistics.flowNum > 0"
                   style="position: absolute; left: 50px; top: -0px; display: flex; justify-content: center"
-                  :count="projectStatistics.flowNum"
-                  :overflow-count="99">
+                  :count="projectStatistics.flowNum" :overflow-count="99">
                 </a-badge>
               </template>
             </a-tab-pane>
           </a-tabs>
         </div>
       </div>
-      <div class="rt-cont" :style="{ display: isShowRigth == '展开' ? 'none' : 'block' }">
+      <div class="rt-cont" :style="{ display: isShowRigth == '展开' ? 'none' : 'flex' }">
         <div class="rt-cont-list quick-entry">
           <div class="rt-cont-title">系统快速入口</div>
           <div class="cont-list">
@@ -259,7 +344,7 @@ onUnmounted(() => {
         </div>
         <div class="rt-cont-list announcement">
           <div class="rt-cont-title">通知公告</div>
-          <div class="cont-list">
+          <div class="cont-list wei-scrollbar">
             <div class="news-list" v-for="(i, idx) in tabList[0].list" :key="idx">
               <img v-if="idx > 2" src="../../assets/workbench/news.png" />
               <img v-else src="../../assets/workbench/act-news.png" />
@@ -282,6 +367,7 @@ onUnmounted(() => {
 
 <style lang="less" scoped>
 @import '../../assets/css/workbench/workbench.less';
+
 // :deep()
 .box {
   height: 100%;
@@ -480,26 +566,31 @@ onUnmounted(() => {
 :deep(.el-collapse-item__header) {
   background: #f5f7fa;
 }
+
 .mg10 {
   margin-top: 10px;
 }
+
 .fast-wrap {
   padding: 10px 0;
   display: flex;
   flex-wrap: wrap;
   height: 156px;
   overflow: hidden;
+
   .fast-list {
     width: 25%;
     overflow: hidden;
     cursor: pointer;
     margin-bottom: 10px;
     flex: 0 0 25%;
+
     &:hover {
       .tit {
         color: #1971ff;
       }
     }
+
     img {
       display: block;
       width: 40px;
@@ -510,6 +601,7 @@ onUnmounted(() => {
       margin: 0 auto;
       overflow: hidden;
     }
+
     .tit {
       font-size: 12px;
       color: #0c1116;
@@ -521,6 +613,7 @@ onUnmounted(() => {
     }
   }
 }
+
 :deep(.layout) {
   padding: 0 0px 0px 0px !important;
 }
@@ -559,9 +652,11 @@ onUnmounted(() => {
   background: #124dd6;
   z-index: 10;
 }
+
 :deep(.ant-tabs-nav::before) {
   border-bottom: 0px solid #f0f0f0 !important;
 }
+
 :deep(.ant-tabs-tab) {
   margin-right: 0px !important;
 }
@@ -576,6 +671,7 @@ onUnmounted(() => {
   /* 固定高度，可根据需要调整 */
   height: 520px;
 }
+
 .member-search-row {
   padding: 12px 0;
   flex: 0 0 auto;
@@ -584,6 +680,7 @@ onUnmounted(() => {
   background: #fff;
   z-index: 3;
 }
+
 .member-table-wrap {
   flex: 1 1 auto;
   overflow-y: auto;

@@ -250,7 +250,7 @@ const getVideoHide = val => {
 const deleteProject = (row) => {
   try {
     Modal.confirm({
-      title: '',
+      title: '温馨提示',
       content: '是否确认删除',
       okText: '确定',
       cancelText: '取消',

@@ -78,18 +78,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onActivated, computed } from 'vue';
+import { ref, onActivated, computed, watch } from 'vue';
 import { Empty, message } from 'ant-design-vue';
 import { SearchOutlined } from '@ant-design/icons-vue';
 import searchTag from './search-tag.vue';
-import { useRoute } from 'vue-router';
-import { knowledgeQueryPage, queryPageQuestion, getNodeByLevel, querySecondTagNode, queryThreeTagNode, saveFieMap, saveTreeData } from '@/api/knowledge/index';
+import { knowledgeQueryPage, queryPageQuestion, querySecondTagNode, queryThreeTagNode, saveFieMap } from '@/api/knowledge/index';
 import TextCard from '@/views/knowledge/components/textCard.vue';
 import AskCard from '@/views/knowledge/components/askCard.vue';
 import VideoCard from '@/views/knowledge/components/videoCard.vue';
 import ImgCard from '@/views/knowledge/components/imgCard.vue';
 import { useUserStore } from '@/store/modules/user';
 import draggableModal from '@/components/DraggableModal/index.vue'
+
+// 类型定义
+interface DocumentItem {
+  id: string;
+  content: {
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileId: string;
+    attachmentType?: string;
+    kldTageNames?: string;
+    kldTagName?: string;
+    isSelected?: boolean;
+  };
+  highlightFields?: {
+    id: string;
+    content?: {
+      isSelected?: boolean;
+    };
+  };
+}
+
+interface TagNode {
+  id: string;
+  check?: boolean;
+}
+
+interface PageInfo {
+  pageSize: number;
+  pageCount: number;
+  currentPage: number;
+}
 
 const simpleImage = computed(() => Empty.PRESENTED_IMAGE_SIMPLE);
 
@@ -102,65 +133,56 @@ const props = defineProps({
 const customGetContainer = () => document.querySelector('.centerSearch');
 
 const emit = defineEmits(['closeCenterDia', 'handleSuccess']);
-const route = useRoute();
 
-// 文档列表页数据
-const documentList = ref([]);
-
+// 状态管理
+const documentList = ref<DocumentItem[]>([]);
 const loading = ref(false);
 const searchValue = ref('');
-const selectedCheckArr = ref([]);
-const activeKey = ref(1)
+const selectedCheckArr = ref<DocumentItem['content'][]>([]);
+const activeKey = ref<1 | 2 | 3 | 4>(1);
 
-const visible = ref(false);
-
-const page = ref({
+const page = ref<PageInfo>({
   pageSize: 10,
   pageCount: 100,
   currentPage: 1,
 });
 
-// 所属类目1
-const elTagcheckedOneData = ref([]);
-// 所属类目2
-const elTagcheckedTwoData = ref([]);
-
-// 三级节点选中的数据
-const thirdData = ref([]);
-
-// 所有三级节点的id
-const arrayData = ref([]);
-
-// 所属类目1的id
-const firstId = ref();
-
-// 操作所属类目2数据
-const flagSecondData = ref([]);
+// 标签相关
+const elTagcheckedOneData = ref<TagNode[]>([]);
+const elTagcheckedTwoData = ref<TagNode[]>([]);
+const arrayData = ref<string[]>([]);
+const firstId = ref<string>();
+const flagSecondData = ref<TagNode[]>([]);
 
 // 展开收藏的控制
 const elTagcheckedOneStatus = ref(false);
 const elTagcheckedTwoStatus = ref(false);
-
 const hiddenStatus = ref(false);
 
-onActivated(() => {
+// 统一的数据加载函数，避免重复的三元表达式
+const fetchDataByActiveKey = () => {
   activeKey.value === 4 ? getQuestList() : searchData();
+};
+
+onActivated(() => {
+  fetchDataByActiveKey();
   getTaglist();
 });
 
 watch(
   () => props.addDataDialogVisible,
-  val => {
-    visible.value = val;
+  (val) => {
     if (val) {
-      activeKey.value === 4 ? getQuestList() : searchData();
+      fetchDataByActiveKey();
       getTaglist();
     }
   },
 );
 
-const getChangeBox = (val, data) => {
-  if (val.target?.checked) {
+const getChangeBox = (val: any, data: DocumentItem['content']) => {
+  const isChecked = val.target?.checked;
+
+  if (isChecked) {
     selectedCheckArr.value.push(data);
   } else {
     const idx = selectedCheckArr.value.findIndex(v => v.id === data.id);
@@ -168,35 +190,31 @@ const getChangeBox = (val, data) => {
       selectedCheckArr.value.splice(idx, 1);
     }
   }
-  if (documentList.value && documentList.value.length > 0) {
-    documentList.value.map(v => {
-      if (v.highlightFields?.id === data.id && v.highlightFields?.content) {
-        v.highlightFields.content.isSelected = val.target?.checked;
-      }
-      if (v.content.id === data.id) {
-        v.content.isSelected = val.target?.checked;
-      }
-    });
-  }
+
+  // 更新列表中的选中状态
+  documentList.value.forEach(v => {
+    if (v.highlightFields?.id === data.id && v.highlightFields?.content) {
+      v.highlightFields.content.isSelected = isChecked;
+    }
+    if (v.content.id === data.id) {
+      v.content.isSelected = isChecked;
+    }
+  });
 };
 const confirmDialog = () => {
   const filterData = selectedCheckArr.value.map(v => ({
     title: v.fileName,
-    kldTreeId: props.nodeId, //treeId
-    type: v.attachmentType || '4', //知识类型：1文档，2视频，3图片，4问答，
+    kldTreeId: props.nodeId,
+    type: v.attachmentType || '4',
     source: v.attachmentType ? '知识中心' : '知识问答',
     url: v.fileUrl,
-    kldFileId: v.id, //要存储的文件Id
-    fileId: v.fileId, // 文件位置id,
+    kldFileId: v.id,
+    fileId: v.fileId,
     kldTagName: v?.kldTageNames || v.kldTagName,
   }));
 
-  const params = {
-    data: filterData
-  };
-
-  saveFieMap(params).then(res => {
-    if (res && res.data.code === '0') {
+  saveFieMap({ data: filterData }).then(res => {
+    if (res?.data.code === '0') {
       emit('handleSuccess');
       selectedCheckArr.value = [];
       message.success(res.data.msg);
@@ -213,111 +231,109 @@ const initPage = () => {
 
 const onSearch = () => {
   initPage();
-  activeKey.value === 4 ? getQuestList() : searchData();
+  fetchDataByActiveKey();
 };
 
 // 获取二级节点数据
 const getTaglist = () => {
   const params = {
-    // menuId: itemObj.value.id,
-    // menuParentId: itemObj.value.categoryID,
     tagType: 1,
     nodeLevel: '2',
     fileType: activeKey.value,
   };
+
   querySecondTagNode(params).then(res => {
-    if (res && res.data.code === '0') {
-      // 二级节点
-      elTagcheckedOneData.value = [];
-      elTagcheckedOneData.value = res.data.data.result;
-      if (res.data.data.result.length > 12 && elTagcheckedOneStatus.value === false) {
-        elTagcheckedOneData.value = [];
-        elTagcheckedOneData.value = res.data.data.result.splice(0, 13);
-      } else if (res.data.data.result.length > 12 && elTagcheckedOneStatus.value === true) {
-        elTagcheckedOneData.value = [];
-        elTagcheckedOneData.value = res.data.data.result;
-      }
+    if (res?.data.code === '0') {
+      const result = res.data.data.result;
+      const shouldSlice = result.length > 12 && !elTagcheckedOneStatus.value;
+      elTagcheckedOneData.value = shouldSlice ? result.slice(0, 13) : result;
     }
   });
 };
 
 // 获取三级节点数据
-const getThirdData = id => {
+const getThirdData = (id: string) => {
   const params = {
     tagType: 1,
     id,
     fileType: activeKey.value,
   };
+
   queryThreeTagNode(params).then(res => {
-    if (res && res.data.code === '0') {
-      arrayData.value = [];
-      elTagcheckedTwoData.value = [];
-      flagSecondData.value = [];
-      // 三级节点
-      flagSecondData.value = JSON.parse(JSON.stringify(res.data.data.result));
-      elTagcheckedTwoData.value = res.data.data.result;
+    if (res?.data.code === '0') {
+      const result = res.data.data.result;
 
-      res.data.data.result.map(v => {
-        arrayData.value.push(v.id);
-      });
+      arrayData.value = result.map(v => v.id);
+      flagSecondData.value = JSON.parse(JSON.stringify(result));
 
-      if (elTagcheckedTwoData.value.length > 12 && elTagcheckedTwoStatus.value === false) {
-        elTagcheckedTwoData.value = elTagcheckedTwoData.value.splice(0, 13);
-      } else if (elTagcheckedTwoData.value.length > 12 && elTagcheckedTwoStatus.value === true) {
-        elTagcheckedTwoData.value = [];
-        elTagcheckedTwoData.value = flagSecondData.value;
-      }
-      activeKey.value === 4 ? getQuestList() : searchData();
+      const shouldSlice = result.length > 12 && !elTagcheckedTwoStatus.value;
+      elTagcheckedTwoData.value = shouldSlice ? result.slice(0, 13) : result;
+
+      fetchDataByActiveKey();
     }
   });
 };
+
 // 所属类目1切换
-const onChangeElCheckTagOne = (val, item, index) => {
+const onChangeElCheckTagOne = (val: boolean, item: TagNode, index: number) => {
   elTagcheckedTwoData.value = [];
+
   if (item.id && val) {
     hiddenStatus.value = true;
     getThirdData(item.id);
   }
-  // 保存类目1的id
+
   firstId.value = item.id;
-  elTagcheckedOneData.value.forEach((item: any) => {
+
+  elTagcheckedOneData.value.forEach((item) => {
     item.check = false;
   });
   elTagcheckedOneData.value[index].check = val;
 
-  if (val === false) {
+  if (!val) {
     arrayData.value = [];
-    activeKey.value === 4 ? getQuestList() : searchData();
+    fetchDataByActiveKey();
     hiddenStatus.value = false;
   }
-  thirdData.value = [];
 };
 
-//所属类目2切换
-const onChangeElCheckTagTwo = val => {
+// 所属类目2切换
+const onChangeElCheckTagTwo = (val: string[]) => {
   arrayData.value = val;
-  activeKey.value === 4 ? getQuestList() : searchData();
+  fetchDataByActiveKey();
 };
 
-const searchData = async () => {
+// 统一的数据加载逻辑，合并searchData和getQuestList
+const loadDocumentList = async (isQuestion: boolean) => {
   try {
     loading.value = true;
     documentList.value = [];
-    const params = {
-      kldType: activeKey.value,
-      keyWords: searchValue.value || '', // 判断点没点关键字
-      userName: useUserStore().getUser.userName,
-      allowDownload: '',
+
+    const userStore = useUserStore();
+    const baseParams = {
       all: searchValue.value || '',
       kldTagIds: arrayData.value.toString() || '',
+      userId: userStore.getUser.id,
       currentPage: page.value.currentPage,
       pageSize: page.value.pageSize,
-      userId: useUserStore().getUser.id,
     };
-    const res = await knowledgeQueryPage(params);
-    if (res && res.data.code === '0') {
+
+    const params = isQuestion
+      ? baseParams
+      : {
+          ...baseParams,
+          kldType: activeKey.value,
+          keyWords: searchValue.value || '',
+          userName: userStore.getUser.userName,
+          allowDownload: '',
+        };
+
+    const apiCall = isQuestion ? queryPageQuestion : knowledgeQueryPage;
+    const res = await apiCall(params);
+
+    if (res?.data.code === '0') {
       const respData = res.data.data.data || [];
-      respData.forEach(item => {
+      respData.forEach((item: DocumentItem) => {
         if (item.content?.id && selectedCheckArr.value.some(v => v.id === item.content.id)) {
           item.content.isSelected = true;
         }
@@ -332,65 +348,34 @@ const searchData = async () => {
   }
 };
 
-// 获取问答列表
-const getQuestList = async () => {
-  try {
-    loading.value = true;
-    documentList.value = [];
-    const params = {
-      all: searchValue.value || '',
-      kldTagIds: arrayData.value.toString() || '',
-      userId: useUserStore().getUser.id,
-      currentPage: page.value.currentPage,
-      pageSize: page.value.pageSize,
-    };
-    const res = await queryPageQuestion(params);
-    if (res && res.data.code === '0') {
-      const respData = res.data.data.data || [];
-      respData.forEach(item => {
-        if (item.content?.id && selectedCheckArr.value.some(v => v.id === item.content.id)) {
-          item.content.isSelected = true;
-        }
-      });
-      documentList.value = respData;
-      page.value.pageCount = res.data.data.total;
-    }
-  } catch (error) {
-    console.log('error:', error);
-  } finally {
-    loading.value = false;
-  }
-};
+const searchData = () => loadDocumentList(false);
+const getQuestList = () => loadDocumentList(true);
 
 // 切换文件类型
 const handleClick = (val: number) => {
-  console.log('val:', val);
   initPage();
-  if (val === 4) {
-    getQuestList();
-  } else {
-    searchData();
-  }
+  fetchDataByActiveKey();
   getTaglist();
   hiddenStatus.value = false;
-}
+};
 
-//分页
-const handleSizeChange = val => {
+// 分页
+const handleSizeChange = (val: number) => {
   page.value.pageSize = val;
-  activeKey.value === 4 ? getQuestList() : searchData();
+  fetchDataByActiveKey();
 };
-//分页
-const handleCurrentChange = val => {
+
+const handleCurrentChange = (val: number) => {
   page.value.currentPage = val;
-  activeKey.value === 4 ? getQuestList() : searchData();
+  fetchDataByActiveKey();
 };
+
 const handleClose = () => {
   initPage();
-  activeKey.value = 1
+  activeKey.value = 1;
   searchValue.value = '';
-  elTagcheckedOneData.value = []
-  elTagcheckedTwoData.value = []
+  elTagcheckedOneData.value = [];
+  elTagcheckedTwoData.value = [];
   emit('closeCenterDia');
 };
 </script>
