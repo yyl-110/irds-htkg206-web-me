@@ -217,6 +217,48 @@ export class AdminApiActivityPage {
     );
 
   /**
+   * Excel 公式计算（按单元格写入输入并重算后读取输出）
+   *
+   * @tags 管理后台 - Excel 公式计算（按单元格写入输入并重算后读取输出）
+   * @name calculateExcel
+   * @summary Excel 公式计算（按单元格写入输入并重算后读取输出）
+   * @request /business-service/business/activity-basic-info/calculateExcel
+   * @secure
+   */
+  static calculateExcel = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/calculateExcel`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 输出报告
+   *
+   * @tags 输出报告
+   * @name generateReport
+   * @summary 输出报告
+   * @request /business-service/business/activity-basic-info/generateReport
+   * @secure
+   */
+  static generateReport = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/generateReport`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 设计活动页面组件（整页保存/更新）
    *
    * @tags 管理后台 - 设计活动页面组件

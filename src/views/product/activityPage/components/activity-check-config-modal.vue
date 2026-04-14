@@ -4,22 +4,15 @@ import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
 import {
-  AimOutlined,
   BorderOutlined,
-  CalendarOutlined,
+  CalculatorOutlined,
   CheckCircleOutlined,
-  CodeSandboxOutlined,
   FileImageOutlined,
-  FileOutlined,
   DesktopOutlined,
-  FileTextOutlined,
-  InboxOutlined,
   MinusOutlined,
   ExclamationCircleOutlined,
-  TableOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons-vue';
-import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue';
 import FormulaEditorModal from './formula-editor-modal.vue';
 import { businessApiLibrary } from '@/api/tags/library/基础资源库';
@@ -28,6 +21,7 @@ import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
+import { handleEpcDownload } from '@/utils/file';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
@@ -51,19 +45,14 @@ const visible = computed({ get: () => props.modalVisible, set: value => !value &
 const userStore = useUserStore();
 /** 左侧组件库每项前的蓝色图标（与示意图一致：输入框/列表/文档/表格/立方体等） */
 function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDSubtype?: string }): Component {
-  if (item.type === 'TABLE') return TableOutlined;
-  if (item.type === '3D_VIEW') return CodeSandboxOutlined;
   const map: Record<string, Component> = {
     INPUT: BorderOutlined,
     TEXTAREA: BorderOutlined,
     TITLE: CheckCircleOutlined,
     SELECT: UnorderedListOutlined,
-    RADIO: AimOutlined,
-    RICH_TEXT: FileTextOutlined,
-    DATE: CalendarOutlined,
-    FILE: FileOutlined,
     DIVIDER: MinusOutlined,
     DATA_VIEW: DesktopOutlined,
+    CALC_BUTTON: CalculatorOutlined,
   };
   return map[item.type] || BorderOutlined;
 }
@@ -80,35 +69,20 @@ const paletteGroups = [
       { label: '多行输入', type: 'TEXTAREA' },
       { label: '标题', type: 'TITLE' },
       { label: '下拉选项', type: 'SELECT' },
-      { label: '单选项', type: 'RADIO' },
-      { label: '富文本', type: 'RICH_TEXT' },
-      { label: '日期', type: 'DATE' },
-      { label: '附件', type: 'FILE' },
       { label: '分隔线', type: 'DIVIDER' },
       { label: '数据浏览', type: 'DATA_VIEW' },
-    ],
-  },
-  {
-    title: '表格组件',
-    items: [
-      { label: '固定表格', type: 'TABLE', tableSubtype: 'FIXED' },
-      { label: '行扩展表格', type: 'TABLE', tableSubtype: 'ROW_EXPAND' },
-    ],
-  },
-  {
-    title: '三维组件',
-    items: [
-      { label: '浏览模版创建', type: '3D_VIEW', threeDSubtype: 'TEMPLATE_BROWSE' },
-      { label: '模型选装选配', type: '3D_VIEW', threeDSubtype: 'MODEL_SELECT' },
-      { label: '固定模版创建', type: '3D_VIEW', threeDSubtype: 'FIXED_TEMPLATE' },
+      { label: '计算按钮', type: 'CALC_BUTTON' },
     ],
   },
 ];
 
-const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
-const uploadTypes = ['FILE'];
-const tableTypes = ['TABLE'];
-const threeDTypes = ['3D_VIEW'];
+/** 计算页面仅保留的基础组件类型（加载配置时丢弃其它类型，避免误配） */
+const checkPageAllowedComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']);
+
+const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'];
+const uploadTypes: string[] = [];
+const tableTypes: string[] = [];
+const threeDTypes: string[] = [];
 const selectedIndex = ref(-1);
 const componentList = ref<any[]>([]);
 const draggingType = ref('');
@@ -126,6 +100,38 @@ const isRadioComponent = computed(() => selectedComponent.value?.componentType =
 const isTitleComponent = computed(() => selectedComponent.value?.componentType === 'TITLE');
 const isDividerComponent = computed(() => selectedComponent.value?.componentType === 'DIVIDER');
 const isDataViewComponent = computed(() => selectedComponent.value?.componentType === 'DATA_VIEW');
+const isCalcButtonComponent = computed(() => selectedComponent.value?.componentType === 'CALC_BUTTON');
+
+const reportDownloading = ref(false);
+/** 画布已配置计算按钮且列表行 reportFileInfo.fileId 有值时，在计算旁展示「输出报告」 */
+const showReportOutputButton = computed(() => {
+  const r = props.record || {};
+  const fileId = String(r?.reportFileInfo?.fileId ?? r?.reportFileId ?? '').trim();
+  if (!fileId) return false;
+  return componentList.value.some((c: any) => String(c?.componentType) === 'CALC_BUTTON');
+});
+
+function onReportOutputClick() {
+  const r = props.record || {};
+  const info = r.reportFileInfo || {};
+  const fileId = String(info?.fileId ?? r?.reportFileId ?? '').trim();
+  const fileName = String(info?.oldFileName ?? info?.fileName ?? '报告.docx').trim() || '报告.docx';
+  if (!fileId) {
+    message.warning('未配置报告模板');
+    return;
+  }
+  const path = String(info?.filePath ?? '').trim();
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    window.open(path, '_blank');
+    return;
+  }
+  reportDownloading.value = true;
+  try {
+    handleEpcDownload({ fileId }, fileName);
+  } finally {
+    reportDownloading.value = false;
+  }
+}
 const isWorkspaceTableComponent = computed(() => {
   const t = selectedComponent.value?.customProps?.tableSubtype;
   return selectedComponent.value?.componentType === 'TABLE' && (t === 'FIXED' || t === 'ROW_EXPAND');
@@ -264,7 +270,12 @@ function cancelColumnDefModal() {
 }
 
 function createDefaultComponent(componentType: string) {
-  const customProps = componentType === 'DATA_VIEW' ? { inputPlaceholder: '请输入设计参数', assembleButtonText: '浏览', libraryCategory: '', libraryCategoryId: '' } : {};
+  const customProps =
+    componentType === 'DATA_VIEW'
+      ? { inputPlaceholder: '请输入设计参数', assembleButtonText: '浏览', libraryCategory: '', libraryCategoryId: '' }
+      : componentType === 'CALC_BUTTON'
+        ? { buttonText: '计算' }
+        : {};
   return {
     id: null,
     parentId: 0,
@@ -272,7 +283,7 @@ function createDefaultComponent(componentType: string) {
     paramCode: '',
     /** 参数字典选中行的主键，与 paramCode / paramName 一并保存 */
     parameterId: null,
-    paramName: componentType === 'RADIO' ? '单选项' : '',
+    paramName: '',
     ioType: 'INPUT',
     isRequired: 0,
     customProps,
@@ -288,13 +299,7 @@ function createDefaultComponent(componentType: string) {
     knowledgeId: null,
   };
 }
-function canAddComponent(componentType: string) {
-  if (componentType !== 'FILE') return true;
-  const existsFileUpload = componentList.value.some((item: any) => item.componentType === 'FILE');
-  if (existsFileUpload) {
-    message.warning('当前活动页面最多只能有一个附件上传组件');
-    return false;
-  }
+function canAddComponent(_componentType: string) {
   return true;
 }
 function parsePalettePayload(raw: string) {
@@ -405,35 +410,13 @@ function createThreeDViewComponent(threeDSubtype: string) {
   return item;
 }
 function handleIncomingAdd(payload: string, insertIndex?: number | null) {
-  const { type, tableSubtype, threeDSubtype } = parsePalettePayload(payload);
+  const { type } = parsePalettePayload(payload);
   if (!type) return;
-  if (type === 'TABLE' && (tableSubtype === 'FIXED' || tableSubtype === 'ROW_EXPAND')) {
-    pendingInsertIndex.value = insertIndex == null ? null : insertIndex;
-    pendingTableSizeSubtype.value = tableSubtype === 'ROW_EXPAND' ? 'ROW_EXPAND' : 'FIXED';
-    tableSizeDraft.tableTitle = '表格标题';
-    tableSizeDraft.tableBizType = 'MODULE_LIB_READ';
-    tableSizeDraft.bodyRows = 4;
-    tableSizeDraft.cols = 3;
-    tableSizeModalVisible.value = true;
-    return;
-  }
-  if (type === 'TABLE') {
-    const t = createTableComponent('ROW_EXPAND', 4, 3);
-    insertComponentItem(t, insertIndex);
-    return;
-  }
-  if (type === '3D_VIEW') {
-    const t = createThreeDViewComponent(threeDSubtype || 'DEFAULT');
-    insertComponentItem(t, insertIndex);
-    return;
-  }
+  if (type === 'TABLE' || type === '3D_VIEW') return;
   addComponent(type, insertIndex ?? undefined);
 }
 function handlePaletteClick(item: { type: string; tableSubtype?: string; threeDSubtype?: string }) {
-  let payload = item.type;
-  if (item.type === 'TABLE') payload = `TABLE:${item.tableSubtype || 'ROW_EXPAND'}`;
-  else if (item.type === '3D_VIEW') payload = `3D_VIEW:${item.threeDSubtype || 'DEFAULT'}`;
-  handleIncomingAdd(payload, componentList.value.length);
+  handleIncomingAdd(item.type, componentList.value.length);
 }
 function confirmTableSize() {
   const name = String(tableSizeDraft.tableTitle || '').trim();
@@ -1412,7 +1395,7 @@ function getModelSelectPreviewButtons(item: any) {
   return buttons;
 }
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'].includes(type);
 }
 function tableDimensionRange(count: number) {
   const n = Math.max(0, Math.min(100, Number(count) || 0));
@@ -1654,12 +1637,9 @@ function getTypeText(type: string) {
     TEXTAREA: '多行输入',
     TITLE: '标题',
     SELECT: '下拉选项',
-    RADIO: '单选项',
-    RICH_TEXT: '富文本',
-    DATE: '日期',
-    FILE: '附件',
     DIVIDER: '分隔线',
     DATA_VIEW: '数据浏览',
+    CALC_BUTTON: '',
     TABLE: '表格',
     '3D_VIEW': '三维',
   };
@@ -1716,6 +1696,8 @@ function ensureTextareaDefaults(component: any) {
 }
 function ensureTextLikeDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
+  if (component.customProps.sheetNumber == null) component.customProps.sheetNumber = '';
+  if (component.customProps.cellNumber == null) component.customProps.cellNumber = '';
   if (!Array.isArray(component.constraintRules)) component.constraintRules = [];
   if (!component.validateRule || typeof component.validateRule !== 'object') component.validateRule = {};
   if (!component.validateRule.valueRange || typeof component.validateRule.valueRange !== 'object') {
@@ -1731,6 +1713,8 @@ function ensureTextLikeDefaults(component: any) {
 }
 function ensureSelectDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
+  if (component.customProps.sheetNumber == null) component.customProps.sheetNumber = '';
+  if (component.customProps.cellNumber == null) component.customProps.cellNumber = '';
   if (!Array.isArray(component.customProps.sequenceValues)) {
     component.customProps.sequenceValues = [''];
   }
@@ -1795,6 +1779,12 @@ function ensureDataViewDefaults(component: any) {
   if (component.customProps.libraryCategoryId == null) component.customProps.libraryCategoryId = '';
   if (!component.knowledgeContent) component.knowledgeContent = '';
   if (!component.knowledgeId) component.knowledgeId = '';
+}
+function ensureCalcButtonDefaults(component: any) {
+  if (!component?.customProps) component.customProps = {};
+  if (component.customProps.buttonText == null || String(component.customProps.buttonText).trim() === '') {
+    component.customProps.buttonText = '计算';
+  }
 }
 function applyModuleLibReadFixedColumnNames(p: Record<string, any>) {
   if (p.tableBizType !== 'MODULE_LIB_READ' || !Array.isArray(p.tableColDefs)) return;
@@ -2013,6 +2003,7 @@ watch(
     if (component.componentType === 'TITLE') ensureTitleDefaults(component);
     if (component.componentType === 'FILE') ensureFileDefaults(component);
     if (component.componentType === 'DATA_VIEW') ensureDataViewDefaults(component);
+    if (component.componentType === 'CALC_BUTTON') ensureCalcButtonDefaults(component);
     if (component.componentType === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(component.customProps?.tableSubtype)) {
       ensureWorkspaceTableDefaults(component);
     }
@@ -2119,13 +2110,14 @@ watch(
       ...parseList(props.record?.uploadComponentList),
       ...parseList(props.record?.tableComponentList),
     ];
-    componentList.value = mergedList.slice().sort((a: any, b: any) => {
+    const sorted = mergedList.slice().sort((a: any, b: any) => {
       const sa = Number(a?.sortNo);
       const sb = Number(b?.sortNo);
       const av = Number.isFinite(sa) ? sa : Number.MAX_SAFE_INTEGER;
       const bv = Number.isFinite(sb) ? sb : Number.MAX_SAFE_INTEGER;
       return av - bv;
     });
+    componentList.value = sorted.filter((a: any) => checkPageAllowedComponentTypes.has(String(a?.componentType || '')));
     selectedIndex.value = componentList.value.length > 0 ? 0 : -1;
     sketchConfigList.value = parseList(getCurrentSketchConfigSeed()).map((item: any, idx: number) => normalizeSketchItem(item, idx));
   },
@@ -2143,7 +2135,7 @@ watch(
     :mask-closable="false"
     width="100%"
     :style="{ top: 0, paddingBottom: 0 }"
-    title="活动页面配置">
+    title="计算页面配置">
     <div class="config-layout">
       <div class="left-palette">
         <div class="panel-title">页面配置</div>
@@ -2204,14 +2196,9 @@ watch(
               <div
                 v-if="
                   item.componentType !== 'TITLE' &&
-                  item.componentType !== 'RADIO' &&
-                  item.componentType !== 'FILE' &&
                   item.componentType !== 'DIVIDER' &&
                   item.componentType !== 'DATA_VIEW' &&
-                  !isWorkspaceTableItem(item) &&
-                  !isTemplateBrowse3DItem(item) &&
-                  !isFixedTemplate3DItem(item) &&
-                  !isModelSelect3DItem(item)
+                  item.componentType !== 'CALC_BUTTON'
                 "
                 class="component-title">
                 <span>{{ item.paramName || '未命名组件' }}</span>
@@ -2239,13 +2226,6 @@ watch(
                 :placeholder="item.customProps?.placeholder || '请输入'"
                 disabled
                 class="preview-field" />
-              <a-date-picker
-                v-else-if="item.componentType === 'DATE'"
-                :show-time="item.customProps?.format === 'yyyy-MM-dd HH:mm:ss'"
-                :format="item.customProps?.format || 'yyyy-MM-dd'"
-                :placeholder="item.customProps?.format === 'yyyy-MM-dd HH:mm:ss' ? '请选择日期时间' : '请选择日期'"
-                disabled
-                class="preview-field" />
               <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
               <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
                 <div class="data-view-preview-title">
@@ -2265,21 +2245,6 @@ watch(
                   </a-button>
                 </div>
               </div>
-              <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
-                <div class="file-preview-title">
-                  <span>{{ item.paramName || '附件上传' }}</span>
-                  <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
-                    <ExclamationCircleOutlined class="component-knowledge-hint" />
-                  </a-tooltip>
-                </div>
-                <a-upload-dragger :disabled="true" class="file-preview-dragger">
-                  <p class="ant-upload-drag-icon">
-                    <InboxOutlined />
-                  </p>
-                  <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
-                  <p class="ant-upload-hint">支持任意文件类型上传</p>
-                </a-upload-dragger>
-              </div>
               <a-select
                 v-else-if="item.componentType === 'SELECT'"
                 :value="getSelectPreviewValue(item)"
@@ -2287,150 +2252,16 @@ watch(
                 placeholder="请选择"
                 disabled
                 class="preview-field" />
-              <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">
-                <CkeditorPlugin height="180" />
-              </div>
-              <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
-                <div class="radio-preview-title">
-                  <span>{{ item.paramName || '单选项' }}</span>
-                  <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
-                    <ExclamationCircleOutlined class="component-knowledge-hint" />
-                  </a-tooltip>
-                </div>
-                <div class="radio-preview-grid">
-                  <label v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" class="radio-preview-item">
-                    <input type="radio" :checked="isRadioPreviewChecked(item, opt, optIdx)" disabled />
-                    <span>{{ opt }}</span>
-                  </label>
-                </div>
-              </div>
-              <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
-                <div class="template-browse-3d-row">
-                  <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
-                      <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.modelValue" placeholder="请输入" disabled class="template-browse-3d-input" />
-                      <div class="three-d-preview-btn-grid">
-                        <a-button v-for="btn in get3dPreviewButtons(item)" :key="`tpl-btn-${btn}`" type="primary" size="small" class="template-browse-3d-action-btn" disabled>
-                          {{ btn }}
-                        </a-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div v-else-if="isFixedTemplate3DItem(item)" class="template-browse-3d-preview">
-                <div class="template-browse-3d-row">
-                  <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
-                    </div>
-                  </div>
-                  <div class="template-browse-3d-group">
-                    <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
-                    <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.modelValue" placeholder="请输入" disabled class="template-browse-3d-input" />
-                      <div class="three-d-preview-btn-grid">
-                        <a-button v-for="btn in get3dPreviewButtons(item)" :key="`fixed-btn-${btn}`" type="primary" size="small" class="template-browse-3d-action-btn" disabled>
-                          {{ btn }}
-                        </a-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
-                <div class="model-select-3d-label">{{ item.paramName || '模型名称' }}：</div>
-                <div class="model-select-3d-controls">
-                  <a-input :value="item.customProps?.modelSelectName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
-                  <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
-                  <a-button
-                    v-for="btn in getModelSelectPreviewButtons(item)"
-                    :key="`model-select-btn-${btn}`"
-                    type="primary"
-                    size="small"
-                    class="template-browse-3d-action-btn"
-                    disabled>
-                    {{ btn }}
-                  </a-button>
-                </div>
-              </div>
-              <div v-else-if="isWorkspaceTableItem(item)" class="fixed-table-preview">
-                <div
-                  v-if="(item.customProps?.tableTitle || '').trim() !== '' || item.customProps?.tableSubtype === 'ROW_EXPAND'"
-                  class="fixed-table-preview-title-row"
-                  @click.stop="onTablePreviewTitleClick(index)">
-                  <span v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-text">
-                    {{ item.customProps.tableTitle }}
-                  </span>
-                  <a-button
-                    v-if="item.customProps?.tableSubtype === 'ROW_EXPAND'"
-                    type="primary"
-                    size="small"
-                    class="fixed-table-preview-add-btn"
-                    @click.stop="handleExpandTableAddRowForItem(item)">
-                    添加
-                  </a-button>
-                </div>
-                <div class="fixed-table-preview-scroll">
-                  <table class="fixed-table-preview-grid">
-                    <thead>
-                      <tr>
-                        <th
-                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
-                          :key="`h-${c}`"
-                          :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
-                          :style="getFixedTableColumnPreviewStyle(item, c)">
-                          {{ getFixedTableHeaderLabel(item, c) }}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
-                        <td
-                          v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
-                          :key="`b-${r}-${c}`"
-                          class="fixed-table-preview-td"
-                          :class="{
-                            'fixed-table-preview-td--first': c === 1,
-                            'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c),
-                            'fixed-table-preview-td--clickable': isWorkspaceTableCellDesignable(item, c),
-                            'fixed-table-preview-td--selected': selectedIndex === index && selectedTableCell?.row === r && selectedTableCell?.col === c,
-                          }"
-                          :style="getFixedTableColumnPreviewStyle(item, c)"
-                          @click.stop="onTablePreviewCellClick(index, r, c)">
-                          <template v-if="c === 1">
-                            <span v-if="(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'" class="fixed-table-cell-index">{{ r }}</span>
-                            <input v-else-if="item.customProps?.firstColumnType === 'CHECKBOX'" type="checkbox" class="fixed-table-cell-check" disabled tabindex="-1" />
-                            <input
-                              v-else-if="item.customProps?.firstColumnType === 'RADIO'"
-                              type="radio"
-                              class="fixed-table-cell-radio"
-                              :name="`fixed-table-radio-${index}`"
-                              :checked="r === 1"
-                              disabled
-                              tabindex="-1" />
-                          </template>
-                          <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
-                            <div class="fixed-table-cell-op-btns">
-                              <a v-for="btn in getWorkspaceTableOperationButtons(item)" :key="`table-op-${index}-${r}-${btn}`" class="fixed-table-cell-op-link">
-                                {{ btn }}
-                              </a>
-                            </div>
-                          </template>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div v-else-if="item.componentType === 'CALC_BUTTON'" class="calc-button-component-preview">
+                <a-button type="primary" disabled class="data-view-assemble-btn">{{ item.customProps?.buttonText || '计算' }}</a-button>
+                <a-button
+                  v-if="showReportOutputButton"
+                  type="primary"
+                  class="data-view-assemble-btn"
+                  :loading="reportDownloading"
+                  @click="onReportOutputClick">
+                  输出报告
+                </a-button>
               </div>
               <div v-else class="component-type-text">{{ getTypeText(item.componentType) }}</div>
             </div>
@@ -2455,6 +2286,14 @@ watch(
                   <div class="row-field">
                     <div class="row-label">参数名称：</div>
                     <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">sheet页面：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.sheetNumber" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">单元格编码：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.cellNumber" placeholder="请输入" /></div>
                   </div>
                   <div class="row-field">
                     <div class="row-label">输入输出类型：</div>
@@ -2559,66 +2398,6 @@ watch(
                 </a-collapse-panel>
               </a-collapse>
             </template>
-            <template v-else-if="isDateComponent">
-              <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="basic" header="基础信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">输入输出类型：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.ioType">
-                        <a-select-option value="INPUT">输入</a-select-option>
-                        <a-select-option value="OUTPUT">输出</a-select-option>
-                      </a-select>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">格式：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.customProps.format">
-                        <a-select-option value="yyyy-MM-dd">yyyy-MM-dd</a-select-option>
-                        <a-select-option value="yyyy-MM-dd HH:mm:ss">yyyy-MM-dd HH:mm:ss</a-select-option>
-                      </a-select>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">限制关系：</div>
-                    <div class="row-control row-control-full">
-                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
-                      </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="knowledge" header="知识配置">
-                  <div class="row-field">
-                    <div class="row-label">提示知识：</div>
-                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-            </template>
             <template v-else-if="isSelectComponent">
               <a-collapse v-model:activeKey="selectPanelKeys" :bordered="false" class="text-config-collapse">
                 <a-collapse-panel key="basic" header="基础信息">
@@ -2632,6 +2411,14 @@ watch(
                   <div class="row-field">
                     <div class="row-label">参数名称：</div>
                     <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">sheet页面：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.sheetNumber" placeholder="请输入" /></div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">单元格编码：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.cellNumber" placeholder="请输入" /></div>
                   </div>
                   <div class="row-field">
                     <div class="row-label">输入输出类型：</div>
@@ -2731,126 +2518,6 @@ watch(
                 </a-collapse-panel>
               </a-collapse>
             </template>
-            <template v-else-if="isRadioComponent">
-              <a-collapse v-model:activeKey="radioPanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="basic" header="基础信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">输入输出类型：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.ioType">
-                        <a-select-option value="INPUT">输入</a-select-option>
-                        <a-select-option value="OUTPUT">输出</a-select-option>
-                      </a-select>
-                    </div>
-                  </div>
-                  <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
-                    <div class="row-label">默认值：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">限制关系：</div>
-                    <div class="row-control row-control-full">
-                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
-                      </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-
-                <a-collapse-panel key="knowledge" header="知识配置">
-                  <div class="row-field">
-                    <div class="row-label">提示知识：</div>
-                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-
-                <a-collapse-panel key="options" header="选项配置">
-                  <div class="row-field align-top">
-                    <div class="row-label">序列值配置：</div>
-                    <div class="row-control row-control-full">
-                      <div class="sequence-row" v-for="(option, optionIdx) in selectedComponent.customProps.radioOptions" :key="optionIdx">
-                        <a-input v-model:value="selectedComponent.customProps.radioOptions[optionIdx]" placeholder="请输入" style="width: 210px" />
-                        <a-button type="link" class="icon-btn" @click="addRadioOption">+</a-button>
-                        <a-button type="link" danger class="icon-btn" @click="removeRadioOption(optionIdx)">x</a-button>
-                      </div>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-            </template>
-            <template v-else-if="isRichTextComponent">
-              <a-collapse v-model:activeKey="textPanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="basic" header="基础信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">输入输出类型：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.ioType">
-                        <a-select-option value="INPUT">输入</a-select-option>
-                        <a-select-option value="OUTPUT">输出</a-select-option>
-                      </a-select>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">限制关系：</div>
-                    <div class="row-control row-control-full">
-                      <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
-                      </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="knowledge" header="知识配置">
-                  <div class="row-field">
-                    <div class="row-label">提示知识：</div>
-                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-            </template>
             <template v-else-if="isDataViewComponent">
               <a-collapse v-model:activeKey="dataViewPanelKeys" :bordered="false" class="text-config-collapse">
                 <a-collapse-panel key="basic" header="基础信息">
@@ -2909,29 +2576,11 @@ watch(
                 </a-collapse-panel>
               </a-collapse>
             </template>
-            <template v-else-if="isFileComponent">
-              <a-collapse v-model:activeKey="filePanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="basic" header="基础信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="knowledge" header="知识配置">
-                  <div class="row-field">
-                    <div class="row-label">提示知识：</div>
-                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-              <div class="single-upload-note">每个活动页面最多只能有一个上传组件</div>
+            <template v-else-if="isCalcButtonComponent">
+              <div class="row-field">
+                <div class="row-label">按钮文案：</div>
+                <div class="row-control"><a-input v-model:value="selectedComponent.customProps.buttonText" placeholder="如：计算" /></div>
+              </div>
             </template>
             <template v-else-if="isTitleComponent">
               <a-collapse v-model:activeKey="titlePanelKeys" :bordered="false" class="text-config-collapse">
@@ -2960,317 +2609,6 @@ watch(
             </template>
             <template v-else-if="isDividerComponent">
               <div class="divider-empty-panel"></div>
-            </template>
-            <template v-else-if="isWorkspaceTableComponent">
-              <p v-if="!selectedTableCell" class="table-cell-inherit-hint">点击画布中表格列为文本、下拉值或只读文本类型的单元格，可配置该单元格的基础定义或参数继承属性。</p>
-              <a-collapse
-                v-if="selectedTableCell && selectedCellIsBasicDefMode && activeCellBasicDef"
-                v-model:activeKey="tableCellBasicPanelKeys"
-                :bordered="false"
-                class="text-config-collapse table-cell-basic-collapse">
-                <a-collapse-panel key="cellBasic" header="基础定义">
-                  <div class="row-field">
-                    <div class="row-label">数据类型：</div>
-                    <div class="row-control">
-                      <a-input :value="selectedTableCellDataTypeLabel" disabled class="table-cell-inherit-readonly-input" />
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">申请唯一编号：</div>
-                    <div class="row-control">
-                      <a-input :value="activeCellBasicDef.uniqueCode" disabled placeholder="请点击申请编号" class="table-cell-inherit-readonly-input" />
-                      <a-button type="primary" size="small" @click="onApplyCellUniqueCode">申请编号</a-button>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-              <a-collapse
-                v-if="selectedTableCell && selectedCellIsInheritMode && activeCellParamInherit"
-                v-model:activeKey="tableCellInheritPanelKeys"
-                :bordered="false"
-                class="text-config-collapse table-cell-inherit-collapse">
-                <a-collapse-panel key="cellInherit" header="单元格参数继承属性配置">
-                  <div class="row-field">
-                    <div class="row-label">数据类型：</div>
-                    <div class="row-control">
-                      <a-input :value="selectedTableCellDataTypeLabel" disabled class="table-cell-inherit-readonly-input" />
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">参数继承型式：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="activeCellParamInherit.cellInheritType" placeholder="请选择">
-                        <a-select-option value="FROM_PARAM">从参数继承</a-select-option>
-                        <a-select-option value="FIXED">从其他表格继承</a-select-option>
-                      </a-select>
-                    </div>
-                  </div>
-                  <div class="row-field" v-if="activeCellParamInherit.cellInheritType === 'FROM_PARAM'">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="activeCellParamInherit.cellParamCode" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="showParameter({ type: 'tableCellInherit', field: 'cellParamCode' })"> 浏览 </a-button>
-                    </div>
-                  </div>
-                  <div class="row-field" v-if="activeCellParamInherit.cellInheritType === 'FIXED'">
-                    <div class="row-label">继承唯一编号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="activeCellParamInherit.cellTableNumber" placeholder="请输入" />
-                      <a-button type="primary" size="small" @click="showParameter({ type: 'tableCellInherit', field: 'cellTableNumber' })"> 浏览 </a-button>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-              <a-collapse v-if="!selectedTableCell" v-model:activeKey="fixedTablePanelKeys" :bordered="false" class="text-config-collapse">
-                <template v-if="['FIXED', 'ROW_EXPAND'].includes(selectedComponent.customProps.tableSubtype)">
-                  <a-collapse-panel key="info" header="表格基本信息">
-                    <div class="row-field">
-                      <div class="row-label">表格标题：</div>
-                      <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
-                    </div>
-                    <div class="row-field">
-                      <div class="row-label">表格行数：</div>
-                      <div class="row-control">
-                        <a-select v-model:value="selectedComponent.customProps.tableBodyRows">
-                          <a-select-option v-for="n in tableDimensionRange(50)" :key="n" :value="n">{{ n }}</a-select-option>
-                        </a-select>
-                      </div>
-                    </div>
-                    <div class="row-field">
-                      <div class="row-label">表格列数：</div>
-                      <div class="row-control">
-                        <template v-if="selectedComponent.customProps.tableBizType === 'MODULE_LIB_READ'">
-                          <a-input-number
-                            :value="getModuleLibReadExtraColCount(selectedComponent.customProps.tableColCount)"
-                            :min="0"
-                            :max="17"
-                            style="width: 100%"
-                            placeholder="不含序号、模型件号、模型名称"
-                            @update:value="onModuleLibReadExtraColCountChange" />
-                          <p class="fixed-table-col-count-hint">仅统计除序号、模型件号、模型名称外的可配置列数。</p>
-                        </template>
-                        <a-select v-else v-model:value="selectedComponent.customProps.tableColCount">
-                          <a-select-option v-for="n in getTableColCountSelectOptions(selectedComponent.customProps.tableBizType)" :key="n" :value="n">{{ n }}</a-select-option>
-                        </a-select>
-                      </div>
-                    </div>
-                    <!-- <div class="row-field"  暂定表格编号由后端生成>
-                      <div class="row-label">表格编号：</div>
-                      <div class="row-control">
-                        <a-input v-model:value="selectedComponent.customProps.tableNumber" placeholder="请输入" class="browse-adjoined-input" />
-                        <a-button type="primary" size="small">浏览</a-button>
-                      </div>
-                    </div> -->
-                    <div class="row-field">
-                      <div class="row-label">表格类型：</div>
-                      <div class="row-control">
-                        <a-select v-model:value="selectedComponent.customProps.tableBizType" placeholder="请选择">
-                          <a-select-option value="MODULE_LIB_READ">模型库读取</a-select-option>
-                          <a-select-option value="BASIC_RESOURCE_LIB_READ">基础资源库读取</a-select-option>
-                          <a-select-option value="FILE_COLLAB">文件协同</a-select-option>
-                          <a-select-option value="NORMAL">普通表格</a-select-option>
-                        </a-select>
-                      </div>
-                    </div>
-                    <div v-if="selectedComponent.customProps.tableBizType === 'BASIC_RESOURCE_LIB_READ'" class="row-field">
-                      <div class="row-label">基础资源库类型：</div>
-                      <div class="row-control">
-                        <a-select v-model:value="selectedComponent.customProps.basicResourceLibType" placeholder="请选择">
-                          <a-select-option value="MODEL_LIB">模型库</a-select-option>
-                          <a-select-option value="PLATFORM_LIB">平台库</a-select-option>
-                          <a-select-option value="STD_LIB">标准件库</a-select-option>
-                          <a-select-option value="MATERIAL_LIB">材料库</a-select-option>
-                        </a-select>
-                      </div>
-                    </div>
-                    <div v-if="!['BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'NORMAL'].includes(selectedComponent.customProps.tableBizType)" class="row-field">
-                      <div class="row-label">操作列按钮：</div>
-                      <div class="row-control row-control-full">
-                        <div class="fixed-table-btn-checks fixed-table-btn-checks--col">
-                          <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenDrawing">打开图纸</a-checkbox>
-                          <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                          <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                        </div>
-                      </div>
-                    </div>
-                  </a-collapse-panel>
-                  <a-collapse-panel
-                    v-if="selectedComponent.customProps.tableBizType !== 'FILE_COLLAB' && selectedComponent.customProps.tableBizType !== 'NORMAL'"
-                    key="rows"
-                    header="行定义">
-                    <div class="fixed-table-def-scroll">
-                      <table class="fixed-table-def-table">
-                        <thead>
-                          <tr>
-                            <th class="fixed-table-def-th fixed-table-def-th--narrow">行名称</th>
-                            <th class="fixed-table-def-th">
-                              {{ getTableRowDefCategoryColumnLabel(selectedComponent.customProps.tableBizType) }}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="r in tableDimensionRange(selectedComponent.customProps.tableBodyRows)" :key="`row-${r}`">
-                            <td class="fixed-table-def-td">第{{ r }}行</td>
-                            <td class="fixed-table-def-td">
-                              <div class="fixed-table-def-cell fixed-table-def-cell--browse">
-                                <a-input
-                                  v-model:value="selectedComponent.customProps.tableRowDefs[r - 1].moduleLibCategory"
-                                  placeholder="请通过浏览选择"
-                                  disabled
-                                  class="browse-adjoined-input" />
-                                <a-button type="primary" size="small" class="fixed-table-def-browse-btn" @click="onTableRowCategoryBrowse(r - 1)">浏览</a-button>
-                              </div>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </a-collapse-panel>
-                  <a-collapse-panel key="cols">
-                    <template #header>
-                      <div class="fixed-table-col-def-collapse-header">
-                        <span>列定义</span>
-                        <a-button type="link" size="small" class="fixed-table-col-def-config-btn" @click.stop="openColumnDefModal">配置</a-button>
-                      </div>
-                    </template>
-                    <p class="fixed-table-col-def-view-hint">以下为当前列配置概览，完整编辑请点「配置」在弹窗中操作。</p>
-                    <div class="fixed-table-def-scroll fixed-table-def-scroll--readonly-summary">
-                      <table class="fixed-table-def-table fixed-table-def-table--cols fixed-table-def-table--readonly-summary">
-                        <thead>
-                          <tr>
-                            <th class="fixed-table-def-th fixed-table-def-th--col-name">列名称</th>
-                            <th class="fixed-table-def-th">关联参数代号</th>
-                            <th class="fixed-table-def-th fixed-table-def-th--dtype">数据类型</th>
-                            <th class="fixed-table-def-th fixed-table-def-th--width">列宽</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="c in getFixedTableConfigurableColRange(selectedComponent.customProps)" :key="`col-view-${c}`">
-                            <td class="fixed-table-def-td">{{ getFixedTableColDisplayName(selectedComponent.customProps, c) }}</td>
-                            <td class="fixed-table-def-td fixed-table-def-td--readonly-text">
-                              {{ selectedComponent.customProps.tableColDefs[c - 1]?.paramCode || '—' }}
-                            </td>
-                            <td class="fixed-table-def-td">{{ getFixedTableColDataTypeLabel(selectedComponent.customProps.tableColDefs[c - 1]?.dataType) }}</td>
-                            <td class="fixed-table-def-td">{{ selectedComponent.customProps.tableColDefs[c - 1]?.columnWidth || '—' }}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </a-collapse-panel>
-                </template>
-              </a-collapse>
-            </template>
-            <template v-else-if="isFixedTemplate3DComponent">
-              <a-collapse v-model:activeKey="fixedTemplate3dPanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="tpl" header="模板信息">
-                  <div class="row-field">
-                    <div class="row-label">模板名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">模板编号：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.templateValue" placeholder="请输入模板编号" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">是否显示：</div>
-                    <div class="row-control">
-                      <a-select v-model:value="selectedComponent.customProps.fixedTemplateDisplay">
-                        <a-select-option :value="1">是</a-select-option>
-                        <a-select-option :value="0">否</a-select-option>
-                      </a-select>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="model" header="模型信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" />
-                      <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">模型名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="buttons" header="按钮定义">
-                  <div class="three-d-config-btn-checks">
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-            </template>
-            <template v-else-if="isModelSelect3DComponent">
-              <a-collapse v-model:activeKey="modelSelect3dPanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="model" header="模型信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" />
-                      <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">参数名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">关联模型库分类：</div>
-                    <!--模型选装选配-->
-                    <div class="row-control">
-                      <a-input disabled v-model:value="selectedComponent.customProps.relatedModelLib" placeholder="请输入" class="browse-adjoined-input" />
-                      <a-button type="primary" @click="selectLibraryCategoryName('modelSelect3d')" size="small">浏览</a-button>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="buttons" header="按钮定义">
-                  <div class="three-d-config-btn-checks">
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
-            </template>
-            <template v-else-if="isTemplateBrowse3DComponent">
-              <a-collapse v-model:activeKey="templateBrowse3dPanelKeys" :bordered="false" class="text-config-collapse">
-                <a-collapse-panel key="tpl" header="模板信息">
-                  <div class="row-field">
-                    <div class="row-label">模板名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">关联模型库分类：</div>
-                    <!--浏览模板创建-->
-                    <div class="row-control">
-                      <a-input disabled v-model:value="selectedComponent.customProps.relatedTemplateLib" placeholder="请输入" class="browse-adjoined-input" />
-                      <a-button type="primary" size="small" @click="selectLibraryCategoryName('template3d')">浏览</a-button>
-                    </div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="model" header="模型信息">
-                  <div class="row-field">
-                    <div class="row-label">参数代号：</div>
-                    <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" class="browse-adjoined-input" />
-                      <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
-                    </div>
-                  </div>
-                  <div class="row-field">
-                    <div class="row-label">模型名称：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.customProps.modelName" placeholder="请输入" /></div>
-                  </div>
-                </a-collapse-panel>
-                <a-collapse-panel key="buttons" header="按钮定义">
-                  <div class="three-d-config-btn-checks">
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
-                    <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
-                  </div>
-                </a-collapse-panel>
-              </a-collapse>
             </template>
             <template v-else>
               <a-form-item label="参数代号">
@@ -4158,6 +3496,14 @@ watch(
 .data-view-preview {
   width: 100%;
   max-width: 900px;
+}
+.calc-button-component-preview {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .data-view-preview-title {
   font-size: 14px;
