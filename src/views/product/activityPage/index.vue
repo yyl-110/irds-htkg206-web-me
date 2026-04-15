@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -839,13 +840,59 @@ function closeShareModal() {
   shareContent.value = '';
   shareModalTitle.value = '';
 }
+
+/** 左侧分类树折叠：与 splitpanes 左侧 Pane 宽度联动 */
+const leftTreeCollapsed = ref(false);
+const treePaneSize = ref(20);
+const treePaneSizeBeforeCollapse = ref(20);
+const leftTreePaneSize = computed(() => (leftTreeCollapsed.value ? 0 : treePaneSize.value));
+const rightTreePaneSize = computed(() => (leftTreeCollapsed.value ? 100 : Math.max(0, 100 - treePaneSize.value)));
+
+function onSplitpanesResized(panes: any[]) {
+  if (leftTreeCollapsed.value) return;
+  const p0 = panes?.[0];
+  if (!p0) return;
+  const raw = p0.size;
+  const n = typeof raw === 'string' ? parseFloat(raw) : Number(raw);
+  if (Number.isFinite(n) && n >= 5) {
+    treePaneSize.value = n;
+  }
+}
+
+function toggleLeftTreePanel() {
+  if (!leftTreeCollapsed.value) {
+    treePaneSizeBeforeCollapse.value = treePaneSize.value > 0 ? treePaneSize.value : 20;
+    leftTreeCollapsed.value = true;
+  } else {
+    leftTreeCollapsed.value = false;
+    treePaneSize.value = treePaneSizeBeforeCollapse.value || 20;
+  }
+}
+
+/** 按钮叠在 splitpanes 竖向分隔条上：水平对齐分隔线，竖向略低于内置拖动手柄 */
+const splitToggleStyle = computed(() => {
+  const top = 'calc(50% + 32px)';
+  if (leftTreeCollapsed.value) {
+    return {
+      left: '2px',
+      top,
+      transform: 'translateY(-50%)',
+    };
+  }
+  return {
+    left: `${treePaneSize.value}%`,
+    top,
+    transform: 'translate(-50%, -50%)',
+  };
+});
 </script>
 
 <template>
   <div class="drawerContent">
+    <div class="activity-splitpanes-wrap">
     <!-- 左侧树结构 -->
-    <Splitpanes class="default-theme sbom">
-      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+      <Pane :min-size="leftTreeCollapsed ? 0 : 15" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
         <a-spin :spinning="loadingTree" tip="加载中...">
           <Tree
             ref="treePage"
@@ -869,7 +916,7 @@ function closeShareModal() {
       </Pane>
 
       <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls">
+      <Pane class="splitpane-cls" :size="rightTreePaneSize">
         <a-card>
           <a-form layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
             <a-form-item name="pageName">
@@ -948,6 +995,20 @@ function closeShareModal() {
       </Pane>
     </Splitpanes>
 
+    <!-- 叠在分隔条上的折叠/展开（略低于中线拖动手柄，避免抢拖动） -->
+    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+      <button
+        type="button"
+        class="activity-splitpanes-wrap__toggle"
+        :style="splitToggleStyle"
+        @click="toggleLeftTreePanel"
+        @mousedown.stop>
+        <LeftOutlined v-if="!leftTreeCollapsed" />
+        <RightOutlined v-else />
+      </button>
+    </Tooltip>
+    </div>
+
     <!-- 分享知识弹窗：展示富文本内容 -->
     <a-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="800px" @cancel="closeShareModal">
       <div style="min-height: 320px">
@@ -1004,13 +1065,6 @@ function closeShareModal() {
 </template>
 
 <style lang="less" scoped>
-::v-deep(.splitpanes__splitter:after),
-::v-deep(.splitpanes__splitter:before) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.sbom > .splitpanes__splitter) {
-  border-left: 1px solid #e6e7e9 !important;
-}
 ::v-deep(.splitpanes.default-theme .splitpanes__pane) {
   background-color: #fff;
 }
@@ -1027,6 +1081,54 @@ function closeShareModal() {
   bottom: 20px !important;
   display: flex;
   background-color: #ffffff !important;
+}
+
+.activity-splitpanes-wrap {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.activity-splitpanes-wrap > :deep(.splitpanes) {
+  flex: 1;
+  min-height: 0;
+}
+/* splitpanes default-theme 在中部用 ::before/::after 画两根拖动手柄竖线；去掉后只保留 splitter 本体一条分隔线 */
+.activity-splitpanes-wrap :deep(.splitpanes__splitter::before),
+.activity-splitpanes-wrap :deep(.splitpanes__splitter::after) {
+  display: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.activity-splitpanes-wrap :deep(.splitpanes__splitter) {
+  border-left: 1px solid #e6e7e9 !important;
+}
+.activity-splitpanes-wrap__toggle {
+  position: absolute;
+  z-index: 6;
+  width: 18px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #e6e7e9;
+  border-radius: 3px;
+  background: #f5f5f5;
+  color: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.activity-splitpanes-wrap__toggle:hover {
+  color: #1890ff;
+  background: #f0f7ff;
+  border-color: #91d5ff;
 }
 
 .version-history-modal {
