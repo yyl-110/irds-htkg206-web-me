@@ -506,7 +506,7 @@ watch(
     list.forEach((item: any, index: number) => {
       const key = getPreviewItemKey(item, index);
       const t = item?.componentType;
-      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'DATE' || t === 'DATA_VIEW') {
+      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'AUTO_COMPLETE' || t === 'DATE' || t === 'DATA_VIEW') {
         const paramVal = item?.paramValue != null ? String(item.paramValue) : '';
         if (!(key in next)) next[key] = paramVal;
       } else if (t === '3D_VIEW') {
@@ -527,7 +527,7 @@ watch(
     list.forEach((item: any, index: number) => {
       const key = getPreviewItemKey(item, index);
       const t = item?.componentType;
-      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'DATE' || t === 'DATA_VIEW') valid.add(key);
+      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'AUTO_COMPLETE' || t === 'DATE' || t === 'DATA_VIEW') valid.add(key);
       else if (t === '3D_VIEW') {
         if (isTemplateBrowse3DItem(item) || isFixedTemplate3DItem(item)) {
           valid.add(getPreview3dSubKey(item, index, 'templateName'));
@@ -763,7 +763,7 @@ function getRefParamCurrentValueForPreview(refParamCode: string): string {
     if (String(it?.paramCode ?? '').trim() !== code) continue;
     const key = getPreviewItemKey(it, i);
     const t = it?.componentType;
-    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'DATE' || t === 'DATA_VIEW') {
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'AUTO_COMPLETE' || t === 'DATE' || t === 'DATA_VIEW') {
       return String(previewFieldValueMap.value[key] ?? it?.paramValue ?? '');
     }
     if (t === 'RADIO') {
@@ -1031,6 +1031,13 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                     v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
                     :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
                     placeholder="请选择"
+                    :disabled="isOutputIoType(item)"
+                    class="preview-field" />
+                  <a-auto-complete
+                    v-else-if="item.componentType === 'AUTO_COMPLETE'"
+                    v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                    :options="getSelectOptions(item).map(v => ({ value: v }))"
+                    placeholder="请选择或输入"
                     :disabled="isOutputIoType(item)"
                     class="preview-field" />
 

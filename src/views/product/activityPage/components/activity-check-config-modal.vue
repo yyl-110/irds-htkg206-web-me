@@ -50,6 +50,7 @@ function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDS
     TEXTAREA: BorderOutlined,
     TITLE: CheckCircleOutlined,
     SELECT: UnorderedListOutlined,
+    AUTO_COMPLETE: UnorderedListOutlined,
     DIVIDER: MinusOutlined,
     DATA_VIEW: DesktopOutlined,
     CALC_BUTTON: CalculatorOutlined,
@@ -69,6 +70,7 @@ const paletteGroups = [
       { label: '多行输入', type: 'TEXTAREA' },
       { label: '标题', type: 'TITLE' },
       { label: '下拉选项', type: 'SELECT' },
+      { label: '可编辑下拉', type: 'AUTO_COMPLETE' },
       { label: '分隔线', type: 'DIVIDER' },
       { label: '数据浏览', type: 'DATA_VIEW' },
       { label: '计算按钮', type: 'CALC_BUTTON' },
@@ -77,9 +79,9 @@ const paletteGroups = [
 ];
 
 /** 计算页面仅保留的基础组件类型（加载配置时丢弃其它类型，避免误配） */
-const checkPageAllowedComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']);
+const checkPageAllowedComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']);
 
-const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'];
+const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'];
 const uploadTypes: string[] = [];
 const tableTypes: string[] = [];
 const threeDTypes: string[] = [];
@@ -95,7 +97,7 @@ const isTextLikeComponent = computed(() => ['INPUT', 'TEXTAREA'].includes(select
 const isDateComponent = computed(() => selectedComponent.value?.componentType === 'DATE');
 const isRichTextComponent = computed(() => selectedComponent.value?.componentType === 'RICH_TEXT');
 const isFileComponent = computed(() => selectedComponent.value?.componentType === 'FILE');
-const isSelectComponent = computed(() => selectedComponent.value?.componentType === 'SELECT');
+const isSelectComponent = computed(() => ['SELECT', 'AUTO_COMPLETE'].includes(selectedComponent.value?.componentType));
 const isRadioComponent = computed(() => selectedComponent.value?.componentType === 'RADIO');
 const isTitleComponent = computed(() => selectedComponent.value?.componentType === 'TITLE');
 const isDividerComponent = computed(() => selectedComponent.value?.componentType === 'DIVIDER');
@@ -1637,6 +1639,7 @@ function getTypeText(type: string) {
     TEXTAREA: '多行输入',
     TITLE: '标题',
     SELECT: '下拉选项',
+    AUTO_COMPLETE: '可编辑下拉',
     DIVIDER: '分隔线',
     DATA_VIEW: '数据浏览',
     CALC_BUTTON: '',
@@ -1998,7 +2001,7 @@ watch(
     if (['INPUT', 'TEXTAREA'].includes(component.componentType)) ensureTextLikeDefaults(component);
     if (component.componentType === 'DATE') ensureDateDefaults(component);
     if (component.componentType === 'RICH_TEXT') ensureRichTextDefaults(component);
-    if (component.componentType === 'SELECT') ensureSelectDefaults(component);
+    if (component.componentType === 'SELECT' || component.componentType === 'AUTO_COMPLETE') ensureSelectDefaults(component);
     if (component.componentType === 'RADIO') ensureRadioDefaults(component);
     if (component.componentType === 'TITLE') ensureTitleDefaults(component);
     if (component.componentType === 'FILE') ensureFileDefaults(component);
@@ -2025,7 +2028,7 @@ watch(
     if (type === 'INPUT' || type === 'TEXTAREA') {
       textPanelKeys.value = ['basic'];
     }
-    if (type === 'SELECT') {
+    if (type === 'SELECT' || type === 'AUTO_COMPLETE') {
       selectPanelKeys.value = ['basic'];
     }
     if (type === 'RADIO') {
@@ -2194,12 +2197,7 @@ watch(
             @dragend="handleItemDragEnd">
             <div class="component-preview-wrap">
               <div
-                v-if="
-                  item.componentType !== 'TITLE' &&
-                  item.componentType !== 'DIVIDER' &&
-                  item.componentType !== 'DATA_VIEW' &&
-                  item.componentType !== 'CALC_BUTTON'
-                "
+                v-if="item.componentType !== 'TITLE' && item.componentType !== 'DIVIDER' && item.componentType !== 'DATA_VIEW' && item.componentType !== 'CALC_BUTTON'"
                 class="component-title">
                 <span>{{ item.paramName || '未命名组件' }}</span>
                 <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
@@ -2252,14 +2250,16 @@ watch(
                 placeholder="请选择"
                 disabled
                 class="preview-field" />
+              <a-auto-complete
+                v-else-if="item.componentType === 'AUTO_COMPLETE'"
+                :value="getSelectPreviewValue(item)"
+                :options="getSelectOptions(item).map(v => ({ value: v }))"
+                placeholder="请选择或输入"
+                disabled
+                class="preview-field" />
               <div v-else-if="item.componentType === 'CALC_BUTTON'" class="calc-button-component-preview">
                 <a-button type="primary" disabled class="data-view-assemble-btn">{{ item.customProps?.buttonText || '计算' }}</a-button>
-                <a-button
-                  v-if="showReportOutputButton"
-                  type="primary"
-                  class="data-view-assemble-btn"
-                  :loading="reportDownloading"
-                  @click="onReportOutputClick">
+                <a-button v-if="showReportOutputButton" type="primary" class="data-view-assemble-btn" :loading="reportDownloading" @click="onReportOutputClick">
                   输出报告
                 </a-button>
               </div>

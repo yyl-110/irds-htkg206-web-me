@@ -58,6 +58,7 @@ function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDS
     TEXTAREA: BorderOutlined,
     TITLE: CheckCircleOutlined,
     SELECT: UnorderedListOutlined,
+    AUTO_COMPLETE: UnorderedListOutlined,
     RADIO: AimOutlined,
     RICH_TEXT: FileTextOutlined,
     DATE: CalendarOutlined,
@@ -80,6 +81,7 @@ const paletteGroups = [
       { label: '多行输入', type: 'TEXTAREA' },
       { label: '标题', type: 'TITLE' },
       { label: '下拉选项', type: 'SELECT' },
+      { label: '可编辑下拉', type: 'AUTO_COMPLETE' },
       { label: '单选项', type: 'RADIO' },
       { label: '富文本', type: 'RICH_TEXT' },
       { label: '日期', type: 'DATE' },
@@ -105,7 +107,7 @@ const paletteGroups = [
   },
 ];
 
-const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
 const uploadTypes = ['FILE'];
 const tableTypes = ['TABLE'];
 const threeDTypes = ['3D_VIEW'];
@@ -121,7 +123,7 @@ const isTextLikeComponent = computed(() => ['INPUT', 'TEXTAREA'].includes(select
 const isDateComponent = computed(() => selectedComponent.value?.componentType === 'DATE');
 const isRichTextComponent = computed(() => selectedComponent.value?.componentType === 'RICH_TEXT');
 const isFileComponent = computed(() => selectedComponent.value?.componentType === 'FILE');
-const isSelectComponent = computed(() => selectedComponent.value?.componentType === 'SELECT');
+const isSelectComponent = computed(() => ['SELECT', 'AUTO_COMPLETE'].includes(selectedComponent.value?.componentType));
 const isRadioComponent = computed(() => selectedComponent.value?.componentType === 'RADIO');
 const isTitleComponent = computed(() => selectedComponent.value?.componentType === 'TITLE');
 const isDividerComponent = computed(() => selectedComponent.value?.componentType === 'DIVIDER');
@@ -1654,6 +1656,7 @@ function getTypeText(type: string) {
     TEXTAREA: '多行输入',
     TITLE: '标题',
     SELECT: '下拉选项',
+    AUTO_COMPLETE: '可编辑下拉',
     RADIO: '单选项',
     RICH_TEXT: '富文本',
     DATE: '日期',
@@ -2008,7 +2011,7 @@ watch(
     if (['INPUT', 'TEXTAREA'].includes(component.componentType)) ensureTextLikeDefaults(component);
     if (component.componentType === 'DATE') ensureDateDefaults(component);
     if (component.componentType === 'RICH_TEXT') ensureRichTextDefaults(component);
-    if (component.componentType === 'SELECT') ensureSelectDefaults(component);
+    if (component.componentType === 'SELECT' || component.componentType === 'AUTO_COMPLETE') ensureSelectDefaults(component);
     if (component.componentType === 'RADIO') ensureRadioDefaults(component);
     if (component.componentType === 'TITLE') ensureTitleDefaults(component);
     if (component.componentType === 'FILE') ensureFileDefaults(component);
@@ -2034,7 +2037,7 @@ watch(
     if (type === 'INPUT' || type === 'TEXTAREA') {
       textPanelKeys.value = ['basic'];
     }
-    if (type === 'SELECT') {
+    if (type === 'SELECT' || type === 'AUTO_COMPLETE') {
       selectPanelKeys.value = ['basic'];
     }
     if (type === 'RADIO') {
@@ -2285,6 +2288,13 @@ watch(
                 :value="getSelectPreviewValue(item)"
                 :options="getSelectOptions(item)"
                 placeholder="请选择"
+                disabled
+                class="preview-field" />
+              <a-auto-complete
+                v-else-if="item.componentType === 'AUTO_COMPLETE'"
+                :value="getSelectPreviewValue(item)"
+                :options="getSelectOptions(item).map(v => ({ value: v }))"
+                placeholder="请选择或输入"
                 disabled
                 class="preview-field" />
               <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">

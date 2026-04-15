@@ -719,8 +719,8 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, Number.MAX_SAFE_INTEGER) - toNumOrFallback(b?.sortNo, Number.MAX_SAFE_INTEGER));
   const isCalcPage = String(baseRecord?.pageType ?? '') === '2';
   const basicTypes = isCalcPage
-    ? ['INPUT', 'TEXTAREA', 'SELECT', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']
-    : ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+    ? ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']
+    : ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
   const uploadTypes = isCalcPage ? [] : ['FILE'];
   const tableTypes = isCalcPage ? [] : ['TABLE'];
   const threeDTypes = isCalcPage ? [] : ['3D_VIEW'];
