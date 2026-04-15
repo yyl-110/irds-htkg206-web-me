@@ -452,7 +452,7 @@ async function exportData() {
       </a-form>
     </a-card>
     <a-card v-if="!modalVisible && !modalVisibledetail" style="margin-top: 10px" class="b-body">
-      <VxeGrid :columns="columns" :loading="loading" :data="resources" :empty-text="$t('暂无数据')" :cell-config="{ height: 45 }" :header-cell-config="{ height: 45 }">
+      <VxeGrid :columns="columns" :loading="loading" :loading-config="{text: '加载中...'}" :data="resources" :empty-text="$t('暂无数据')" :cell-config="{ height: 45 }" :header-cell-config="{ height: 45 }">
         <template #operation_default="{ row }">
           <!-- @click="handleClick" -->
 
@@ -487,6 +487,13 @@ async function exportData() {
         </template>
         <template #pager>
           <a-pagination v-bind="pagination" class="ant-table-pagination ant-table-pagination-right" />
+        </template>
+           <!-- 空数据插槽 -->
+        <template #empty>
+          <div class="mx-auto pt-[40px] w-[235px] h-[235px]">
+            <img width="100%" height="auto" src="@/assets/images/empty.png" alt="暂无数据" />
+            <div>数据为空</div>
+          </div>
         </template>
       </VxeGrid>
     </a-card>

@@ -29,6 +29,18 @@ const formInline = ref<Record<string, any>>({});
 const videoHide = ref(false);
 const fileUrlPlay = ref<string>();
 
+const confidentialLevel = computed(() => {
+  if (props.videoData?.content.confidential_level === 0)
+    return '公开';
+  if (props.videoData?.content.confidential_level === 1)
+    return '内部';
+  if (props.videoData?.content.confidential_level === 2)
+    return '秘密';
+  if (props.videoData?.content.confidential_level === 3)
+    return '机密';
+  return '公开';
+})
+
 const viewPdfFun = () => {
   const item = props.videoData.content;
   const logParams = {
@@ -128,9 +140,10 @@ const getDes = () => {
         </div>
       </a-tooltip>
     </div>
-    <div class="author" style="display: flex">
+    <div class="author pr-[16px]" style="display: flex">
       <span class="name">{{ videoData.content.userName }}</span>
       <span class="time">{{ getTimes(Date.parse(videoData.content.addTime)) || '' }}</span>
+      <span class="level ml-auto">{{ confidentialLevel }}</span>
     </div>
 
     <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="1" :tab-flag="1"

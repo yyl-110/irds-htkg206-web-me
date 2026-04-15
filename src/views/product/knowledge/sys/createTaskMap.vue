@@ -173,6 +173,14 @@
                     <a-input :value="checkOUListText" disabled />
                     <span class="elBtn" @click="chooseOUFun">浏览</span>
                   </a-form-item>
+                  <a-form-item label="密级">
+                    <a-select class="elInput" v-model:value="ruleForm.confidentialLevel" placeholder="请选择密级">
+                      <a-select-option value="0">公开</a-select-option>
+                      <a-select-option value="1">内部</a-select-option>
+                      <a-select-option value="2">秘密</a-select-option>
+                      <a-select-option value="3">机密</a-select-option>
+                    </a-select>
+                  </a-form-item>
                   <a-form-item label="摘要">
                     <a-textarea v-model:value="abstract" placeholder="请填写摘要" />
                   </a-form-item>
@@ -374,6 +382,7 @@ const ruleForm = ref({
   mapName: '',
   search: '',
   classifyName: '',
+  confidentialLevel: null,
 });
 
 // 创建者
@@ -389,6 +398,7 @@ const rules = reactive({
   mapName: [{ required: true, message: '请输入地图名称', trigger: 'blur' }],
   search: [{ required: true, message: '请输入查询对象', trigger: 'blur' }],
   classifyName: [{ required: true, message: '分类名称', trigger: 'blur' }],
+  confidentialLevel: [{ required: true, message: '请选择密级', trigger: 'blur' }],
 });
 
 // 弹窗
@@ -445,6 +455,7 @@ const getMapInfoData = async () => {
       mapEditList.value = res.data.data;
       ruleForm.value.mapName = mapEditList.value.name;
       ruleForm.value.search = mapEditList.value.queryObj;
+      ruleForm.value.confidentialLevel = mapEditList.value.confidentialLevel
       creator.value = mapEditList.value.createUserName;
       abstract.value = mapEditList.value.summary;
       fileEditUrl.value = mapEditList.value.coverFileUrl;
@@ -500,7 +511,7 @@ const getFileInfo = async (data?: any) => {
     type: '2',
     userId: useUserStore().getUser.id,
   };
-  if(!params.id) return;
+  if (!params.id) return;
   try {
     const res = await queryMapTaskDetail(params);
     if (res && res.data.code === '0') {
@@ -509,7 +520,7 @@ const getFileInfo = async (data?: any) => {
     } else {
       message.error(res.data.msg);
     }
-    
+
     if (secongData.value.nodeList) {
       secongData.value.nodeList.forEach((v: any) => {
         if (data?.nodeId) {
@@ -550,7 +561,7 @@ const getTreeList = async () => {
     } else {
       message.error(res.data.msg);
     }
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 };
@@ -562,6 +573,7 @@ const Staging = async () => {
     templateId: imgPath.value.id || (templateData.value.length ? templateData.value[0].id : ''),
     userId: useUserStore().getUser.id,
     name: ruleForm.value.mapName,
+    confidentialLevel: ruleForm.value.confidentialLevel,
     queryObj: ruleForm.value.search,
     oU1Id: selectedName.value[0]?.value ? selectedName.value[0]?.value : '',
     oU1Name: selectedName.value[0]?.name ? selectedName.value[0]?.name : '',
@@ -632,7 +644,7 @@ const viewPdfFun = async (item: any) => {
       message.error(res.data.msg);
       router.push({ path: '/knowledgeData/pdfView_index', query: { docId: item.fileUrl, filePath: filePath.value } });
     }
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 };
@@ -867,6 +879,7 @@ const getImgInfo = (val: any) => {
 const goBack = () => {
   ruleForm.value.mapName = '';
   ruleForm.value.search = '';
+  ruleForm.value.confidentialLevel = null;
   abstract.value = '';
   treeMapData.value = [];
   activeName.value = 'first';
@@ -900,6 +913,7 @@ const saveData = () => {
           if (res && res.data.code === '0') {
             ruleForm.value.mapName = '';
             ruleForm.value.search = '';
+            ruleForm.value.confidentialLevel = null
             abstract.value = '';
             treeMapData.value = [];
             activeName.value = 'first';
@@ -1350,7 +1364,6 @@ const handleSuccess = () => {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            pointer-events: none;
           }
 
           .mainCenterTopTotal8 {
@@ -1365,7 +1378,6 @@ const handleSuccess = () => {
             overflow: auto;
             white-space: nowrap;
             text-overflow: ellipsis;
-            pointer-events: none;
 
             .mainCenterTopSide8 {
               .fontColor {
@@ -1375,7 +1387,6 @@ const handleSuccess = () => {
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                pointer-events: none;
               }
 
               .mainCenterTopSideText8 {
@@ -1384,7 +1395,6 @@ const handleSuccess = () => {
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                pointer-events: none;
               }
             }
           }

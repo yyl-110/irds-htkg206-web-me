@@ -305,7 +305,7 @@ async function onRefreshTableData(record: DeptCreateRequestDTOModel) {
     </a-card>
 
     <a-card style="margin-top: 10px" class="b-body">
-      <VxeGrid v-bind="gridOptions" :loading="loading" :columns="columns" :data="resources" :cell-config="{ height: 45 }" :header-cell-config="{ height: 45 }">
+      <VxeGrid v-bind="gridOptions" :loading="loading" :loading-config="{text: '加载中...'}" :columns="columns" :data="resources" :cell-config="{ height: 45 }" :header-cell-config="{ height: 45 }">
         <template #status_default="{ row }">
           <span>
             <a-tag v-if="row.status === 0" color="blue">{{ $t('开启') }}</a-tag>
@@ -325,6 +325,13 @@ async function onRefreshTableData(record: DeptCreateRequestDTOModel) {
               </a-button>
             </a-popconfirm>
           </section>
+        </template>
+        <!-- 空数据插槽 -->
+        <template #empty>
+          <div class="mx-auto pt-[40px] w-[235px] h-[235px]">
+            <img width="100%" height="auto" src="@/assets/images/empty.png" alt="暂无数据" />
+            <div>数据为空</div>
+          </div>
         </template>
       </VxeGrid>
 

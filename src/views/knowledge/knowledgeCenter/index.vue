@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { fileList, getNodeByLevel, knowledgeQueryPage, queryPageQuestion, querySecondTagNode, queryThreeTagNode } from '@/api/knowledge';
+import { knowledgeQueryPage, queryPageQuestion, querySecondTagNode, queryThreeTagNode } from '@/api/knowledge';
 import textCard from '../components/textCard.vue';
 import askCard from '../components/askCard.vue';
 import videoCard from '../components/videoCard.vue';
@@ -8,60 +8,58 @@ import { SearchOutlined } from '@ant-design/icons-vue';
 import { useUserStore } from '@/store/modules/user';
 import searchTag from '../components/search-tag.vue';
 import { Empty } from 'ant-design-vue';
+
+interface TagNode {
+  id: string;
+  check?: boolean;
+  [key: string]: any;
+}
+
+interface PageState {
+  pageSize: number;
+  pageCount: number;
+  currentPage: number;
+}
+
 const userStore = useUserStore();
-const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 
-const tabValue = ref(1);
-const searchType = ref([]);
+// Tab：1=文档 2=视频 3=图片 4=问答
+const tabValue = ref<number>(1);
+const searchType = ref<string[]>([]);
 const searchValue = ref('');
-const loading = ref(false)
+const loading = ref(false);
 
-// 所属类目1
-const elTagcheckedOneData = ref([]);
-// 所属类目2
-const elTagcheckedTwoData = ref([]);
+// 竞态防护
+let abortController: AbortController | null = null;
+let currentRequestId = 0;
 
+// 标签数据
+const elTagcheckedOneData = ref<TagNode[]>([]);
+const elTagcheckedTwoData = ref<TagNode[]>([]);
 const hiddenStatus = ref(false);
-
-// 展开收藏的控制
 const elTagcheckedOneStatus = ref(false);
 const elTagcheckedTwoStatus = ref(false);
 
-const keyWord = ref('');
-const isDownload = ref(false);
+// 当前选中的三级节点 id 列表
+const arrayData = ref<string[]>([]);
+// 三级节点完整数据（用于展开/收起）
+const flagSecondData = ref<TagNode[]>([]);
 
-// 所有三级节点的id
-const arrayData = ref([]);
+const documentList = ref<any[]>([]);
 
-const thirdData = ref([]);
-const changeTabFlag = ref(1);
-
-const documentList = ref([]);
-
-const flagSecondData = ref([]);
-
-const firstId = ref('');
-
-const page = ref({
+const page = ref<PageState>({
   pageSize: 10,
   pageCount: 100,
   currentPage: 1,
 });
 
-const currentPageData = ref(1);
-
 const searchOptions = [
-  {
-    label: '关键字',
-    value: '1',
-  },
-  // {
-  //   label: "下载项",
-  //   value: "2",
-  // },
+  { label: '关键字', value: '1' },
 ];
-const onSearch = () => {
-  initPage();
+
+// ── 统一调度：根据当前 tab 发起对应请求 ──────────────────
+const fetchList = () => {
   if (tabValue.value === 4) {
     getQuestList();
   } else {
@@ -69,199 +67,158 @@ const onSearch = () => {
   }
 };
 
-// 公共函数
-const publicFun = () => {
-  if (changeTabFlag.value === 2) {
-    arrayData.value = [];
-    thirdData.value = [];
-  } else {
-    arrayData.value = [...new Set(arrayData.value)];
-  }
-};
-
-// 搜索数据按钮接口
+// ── 搜索（文档 / 视频 / 图片）────────────────────────────
 const searchData = async () => {
-  loading.value = true
-  publicFun();
+  abortController?.abort();
+  abortController = new AbortController();
+  const requestId = ++currentRequestId;
+
+  loading.value = true;
+  arrayData.value = [...new Set(arrayData.value)];
+
   try {
     const params = {
       kldType: tabValue.value,
-      keyWords: searchType.value[0] === '1' ? searchValue.value : '', // 判断点没点关键字
+      keyWords: searchType.value[0] === '1' ? searchValue.value : '',
       userName: userStore.getUser.userName,
       allowDownload: searchType.value[0] === '2' ? '0' : '',
       all: searchValue.value || '',
-      kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : '',
+      kldTagIds: arrayData.value.toString(),
       currentPage: page.value.currentPage,
       pageSize: page.value.pageSize,
       userId: userStore.getUser.id,
     };
-    const res = await knowledgeQueryPage(params)
-    if (res && res.data.code === '0') {
-      changeTabFlag.value = 3;
-      documentList.value = [];
+    const res = await knowledgeQueryPage(params);
+    if (requestId !== currentRequestId) return;
+    if (res?.data.code === '0') {
       documentList.value = res.data.data.data;
       page.value.pageCount = res.data.data.total;
-      // viewHistory();
-      // hotArticle();
     }
   } catch (error) {
-    console.log('error', error)
+    if (requestId !== currentRequestId) return;
+    console.error('searchData error:', error);
   } finally {
-    loading.value = false
+    if (requestId === currentRequestId) {
+      loading.value = false;
+    }
   }
 };
 
-// 获取问答列表
+// ── 问答列表 ──────────────────────────────────────────────
 const getQuestList = () => {
+  abortController?.abort();
+  abortController = new AbortController();
+  const requestId = ++currentRequestId;
+
   documentList.value = [];
-  loading.value = true
-  publicFun();
+  loading.value = true;
+  arrayData.value = [...new Set(arrayData.value)];
+
   const params = {
-    all: keyWord.value || '',
-    kldTagIds: Array.isArray(arrayData.value) ? arrayData.value.toString() : '',
+    all: searchValue.value || '',
+    kldTagIds: arrayData.value.toString(),
     userId: userStore.getUser.id,
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
   };
-  queryPageQuestion(params).then(res => {
-    if (res && res.data.code === '0') {
-      changeTabFlag.value = 3;
-      documentList.value = res.data.data.data;
-      page.value.pageCount = res.data.data.total;
-      // viewHistory();
-      // hotArticle();
-    }
-  }).finally(() => {
-    loading.value = false
-  })
+  queryPageQuestion(params)
+    .then(res => {
+      if (requestId !== currentRequestId) return;
+      if (res?.data.code === '0') {
+        documentList.value = res.data.data.data;
+        page.value.pageCount = res.data.data.total;
+      }
+    })
+    .finally(() => {
+      if (requestId === currentRequestId) {
+        loading.value = false;
+      }
+    });
 };
 
-// 切换标识
+// ── Tab 切换 ──────────────────────────────────────────────
 const changeType = () => {
-  initPage();
-  initSearch();
+  abortController?.abort();
+  abortController = null;
   documentList.value = [];
-  if (tabValue.value === 4) {
-    getQuestList();
-  } else {
-    searchData();
-  }
+  loading.value = false;
+
+  page.value.currentPage = 1;
+  page.value.pageSize = 10;
+  arrayData.value = [];
+
+  fetchList();
   getTaglist();
   hiddenStatus.value = false;
 };
 
-// 获取二级节点数据
+// ── 搜索框回车 / 点击 ────────────────────────────────────
+const onSearch = () => {
+  page.value.currentPage = 1;
+  fetchList();
+};
+
+// ── 获取二级节点 ──────────────────────────────────────────
 const getTaglist = () => {
-  const params = {
-    tagType: 1,
-    nodeLevel: '2',
-    fileType: tabValue.value,
-  };
+  const params = { tagType: 1, nodeLevel: '2', fileType: tabValue.value };
   querySecondTagNode(params).then(res => {
-    if (res && res.data.code === '0') {
-      // 二级节点
-      elTagcheckedOneData.value = [];
-      elTagcheckedOneData.value = res.data.data.result;
-      if (res.data.data.result.length > 12 && elTagcheckedOneStatus.value === false) {
-        elTagcheckedOneData.value = [];
-        elTagcheckedOneData.value = res.data.data.result.splice(0, 13);
-      } else if (res.data.data.result.length > 12 && elTagcheckedOneStatus.value === true) {
-        elTagcheckedOneData.value = [];
-        elTagcheckedOneData.value = res.data.data.result;
-      }
+    if (res?.data.code === '0') {
+      const result: TagNode[] = res.data.data.result;
+      elTagcheckedOneData.value =
+        result.length > 12 && !elTagcheckedOneStatus.value
+          ? result.slice(0, 13)
+          : result;
     }
   });
 };
 
-// 获取三级节点数据
-const getThirdData = id => {
-  const params = {
-    tagType: 1,
-    id,
-    fileType: tabValue.value,
-  };
+// ── 获取三级节点 ──────────────────────────────────────────
+const getThirdData = (id: string) => {
+  const params = { tagType: 1, id, fileType: tabValue.value };
   queryThreeTagNode(params).then(res => {
-    if (res && res.data.code === '0') {
-      arrayData.value = [];
-      elTagcheckedTwoData.value = [];
-      flagSecondData.value = [];
-      // 三级节点
-      flagSecondData.value = JSON.parse(JSON.stringify(res.data.data.result));
-      elTagcheckedTwoData.value = res.data.data.result;
-
-      res.data.data.result.map(v => {
-        arrayData.value.push(v.id);
-      });
-
-      if (elTagcheckedTwoData.value.length > 12 && elTagcheckedTwoStatus.value === false) {
-        elTagcheckedTwoData.value = elTagcheckedTwoData.value.splice(0, 13);
-      } else if (elTagcheckedTwoData.value.length > 12 && elTagcheckedTwoStatus.value === true) {
-        elTagcheckedTwoData.value = [];
-        elTagcheckedTwoData.value = flagSecondData.value;
-      }
-      if (tabValue.value === 4) {
-        getQuestList();
-      } else {
-        searchData();
-      }
+    if (res?.data.code === '0') {
+      const result: TagNode[] = res.data.data.result;
+      flagSecondData.value = JSON.parse(JSON.stringify(result));
+      arrayData.value = result.map(v => v.id);
+      elTagcheckedTwoData.value =
+        result.length > 12 && !elTagcheckedTwoStatus.value
+          ? result.slice(0, 13)
+          : result.length > 12 && elTagcheckedTwoStatus.value
+            ? flagSecondData.value
+            : result;
+      fetchList();
     }
   });
 };
 
-// 所属类目1切换
-const onChangeElCheckTagOne = (val, item, index) => {
+// ── 类目一切换 ────────────────────────────────────────────
+const onChangeElCheckTagOne = (val: boolean, item: TagNode, index: number) => {
   elTagcheckedTwoData.value = [];
-  if (item.id && val) {
+  elTagcheckedOneData.value.forEach(i => { i.check = false; });
+  elTagcheckedOneData.value[index].check = val;
+
+  if (val && item.id) {
     hiddenStatus.value = true;
     getThirdData(item.id);
-  }
-  // 保存类目1的id
-  firstId.value = item.id;
-  elTagcheckedOneData.value.forEach((item: any) => {
-    item.check = false;
-  });
-  elTagcheckedOneData.value[index].check = val;
-  if (val === false && tabValue.value === 4) {
-    arrayData.value = [];
-    getQuestList();
-    hiddenStatus.value = false;
-  } else if (val === false && tabValue.value !== 4) {
-    arrayData.value = [];
-    searchData();
-    hiddenStatus.value = false;
-  }
-  thirdData.value = [];
-};
-
-//所属类目2切换
-const onChangeElCheckTagTwo = val => {
-  initPage();
-  arrayData.value = val;
-  if (tabValue.value === 4) {
-    getQuestList();
   } else {
-    searchData();
+    arrayData.value = [];
+    hiddenStatus.value = false;
+    fetchList();
   }
-  // 把需要的三级节点id传给父级
 };
 
-const initPage = () => {
-  page.value.pageSize = 10;
+// ── 类目二切换 ────────────────────────────────────────────
+const onChangeElCheckTagTwo = (val: string[]) => {
   page.value.currentPage = 1;
+  arrayData.value = val;
+  fetchList();
 };
-const initSearch = () => {
-  arrayData.value = [];
-  thirdData.value = [];
-};
-// 分页
-const handleCurrentChange = (val, size) => {
+
+// ── 分页 ──────────────────────────────────────────────────
+const handleCurrentChange = (val: number, size: number) => {
   page.value.currentPage = val;
   page.value.pageSize = size;
-  if (tabValue.value === 4) {
-    getQuestList();
-  } else {
-    searchData();
-  }
+  fetchList();
 };
 
 onMounted(() => {

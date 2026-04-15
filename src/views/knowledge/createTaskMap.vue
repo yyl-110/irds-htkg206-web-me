@@ -7,7 +7,7 @@
           <div class="mainCenterTop">
             <img class="mainCenterTopImg" :src="detail.templateUrl" alt="" />
             <div class="mainCenterTopTitle">{{ secongData.name }}</div>
-            <a-tooltip :title="secongData.queryObj" placement="top" :mouse-enter-delay="0.5" :open="false">
+            <a-tooltip :title="secongData.queryObj" placement="top" :mouse-enter-delay="0.5">
               <div class="mainCenterTopQuery">{{ secongData.queryObj }}</div>
             </a-tooltip>
             <div class="mainCenterTopTotal">
@@ -19,94 +19,74 @@
             </div>
             <div v-if="detailData.length > 0">
               <div v-for="data in detailData" :key="data.id">
-                <div v-if="data.location === 1">
+                <div v-if="data.location == 1">
                   <img class="imagesModal1" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile1" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis1">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile1" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis1">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 2">
+                <div v-if="data.location == 2">
                   <img class="imagesModal2" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile2" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis2">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile2" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis2">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 3">
+                <div v-if="data.location == 3">
                   <img class="imagesModal3" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile3" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis3">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile3" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis3">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 4">
+                <div v-if="data.location == 4">
                   <img class="imagesModal4" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile4" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis4">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile4" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis4">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 5">
+                <div v-if="data.location == 5">
                   <img class="imagesModal5" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile5" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis5">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile5" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis5">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 6">
+                <div v-if="data.location == 6">
                   <img class="imagesModal6" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile6" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis6">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile6" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis6">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 7">
+                <div v-if="data.location == 7">
                   <img class="imagesModal7" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile7" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis7">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile7" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis7">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 8">
+                <div v-if="data.location == 8">
                   <img class="imagesModal8" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile8" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis8">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile8" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis8">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 9">
+                <div v-if="data.location == 9">
                   <img class="imagesModal9" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile9" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis9">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile9" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis9">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 10">
+                <div v-if="data.location == 10">
                   <img class="imagesModal10" src="@/assets/images/modal3.png" alt="" />
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile10" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFileDis10">{{ data.nodeName }}</div>
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile10" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopFileDis10">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
               </div>
@@ -125,68 +105,52 @@
             </div>
             <div v-if="detailData.length > 0">
               <div v-for="data in detailData" :key="data.id">
-                <div v-if="data.location === 1">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile18" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis1">{{ data.nodeName }}</div>
+                <div v-if="data.location == 1">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile18" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis1">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 2">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile28" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis2">{{ data.nodeName }}</div>
+                <div v-if="data.location == 2">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile28" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis2">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 3">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile38" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis3">{{ data.nodeName }}</div>
+                <div v-if="data.location == 3">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile38" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis3">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 4">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile48" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis4">{{ data.nodeName }}</div>
+                <div v-if="data.location == 4">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile48" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis4">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 5">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile58" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis5">{{ data.nodeName }}</div>
+                <div v-if="data.location == 5">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile58" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis5">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 6">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile68" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis6">{{ data.nodeName }}</div>
+                <div v-if="data.location == 6">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile68" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis6">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 7">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile78" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis7">{{ data.nodeName }}</div>
+                <div v-if="data.location == 7">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile78" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis7">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
-                <div v-if="data.location === 8">
-                  <a-tooltip v-if="data.status === 1 || data.isNextOne === 1" :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopFile88" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
-                  </a-tooltip>
-                  <a-tooltip v-else :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
-                    <div class="mainCenterTopDis8">{{ data.nodeName }}</div>
+                <div v-if="data.location == 8">
+                  <a-tooltip :title="data.nodeName" placement="top" :mouse-enter-delay="0.5">
+                    <div v-if="data.status === 1 || data.isNextOne === 1" class="mainCenterTopFile88" @click="viewPdfFun(data)">{{ data.nodeName }}</div>
+                    <div v-else class="mainCenterTopDis8">{{ data.nodeName }}</div>
                   </a-tooltip>
                 </div>
               </div>
@@ -429,34 +393,34 @@ const goBack = () => {
           }
           .imagesModal1 { width: 115px; position: absolute; top: 420px; left: 30px; }
           .mainCenterTopFile1 { color: #fff; position: absolute; top: 448px; left: 45px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis1 { color: #333; position: absolute; top: 448px; left: 45px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis1 { color: #333; position: absolute; top: 448px; left: 45px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal2 { width: 115px; position: absolute; top: 250px; left: 150px; }
           .mainCenterTopFile2 { color: #fff; position: absolute; top: 277px; left: 170px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis2 { color: #333; position: absolute; top: 277px; left: 170px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis2 { color: #333; position: absolute; top: 277px; left: 170px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal3 { width: 115px; position: absolute; top: 167px; left: 275px; }
           .mainCenterTopFile3 { color: #fff; position: absolute; top: 195px; left: 295px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis3 { color: #333; position: absolute; top: 195px; left: 295px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis3 { color: #333; position: absolute; top: 195px; left: 295px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal4 { width: 115px; position: absolute; top: 337px; left: 338px; }
           .mainCenterTopFile4 { color: #fff; position: absolute; top: 365px; left: 355px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis4 { color: #333; position: absolute; top: 365px; left: 355px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis4 { color: #333; position: absolute; top: 365px; left: 355px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal5 { width: 115px; position: absolute; top: 421px; left: 459px; }
           .mainCenterTopFile5 { color: #fff; position: absolute; top: 448px; left: 480px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis5 { color: #333; position: absolute; top: 448px; left: 480px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis5 { color: #333; position: absolute; top: 448px; left: 480px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal6 { width: 115px; position: absolute; top: 251px; left: 520px; }
           .mainCenterTopFile6 { color: #fff; position: absolute; top: 280px; left: 540px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis6 { color: #333; position: absolute; top: 280px; left: 540px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis6 { color: #333; position: absolute; top: 280px; left: 540px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal7 { width: 115px; position: absolute; top: 165px; left: 641px; }
           .mainCenterTopFile7 { color: #fff; position: absolute; top: 195px; left: 660px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis7 { color: #333; position: absolute; top: 195px; left: 660px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis7 { color: #333; position: absolute; top: 195px; left: 660px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal8 { width: 115px; position: absolute; top: 338px; left: 700px; }
           .mainCenterTopFile8 { color: #fff; position: absolute; top: 365px; left: 720px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis8 { color: #333; position: absolute; top: 365px; left: 720px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis8 { color: #333; position: absolute; top: 365px; left: 720px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal9 { width: 115px; position: absolute; top: 421px; left: 823px; }
           .mainCenterTopFile9 { color: #fff; position: absolute; top: 448px; left: 840px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis9 { color: #333; position: absolute; top: 448px; left: 840px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis9 { color: #333; position: absolute; top: 448px; left: 840px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .imagesModal10 { width: 115px; position: absolute; top: 165px; left: 945px; }
           .mainCenterTopFile10 { color: #fff; position: absolute; top: 195px; left: 965px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-          .mainCenterTopFileDis10 { color: #333; position: absolute; top: 195px; left: 965px; font-size: 14px; cursor: pointer; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+          .mainCenterTopFileDis10 { color: #333; position: absolute; top: 195px; left: 965px; font-size: 14px; cursor: default; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         }
       }
       .totalSecond {
@@ -478,21 +442,21 @@ const goBack = () => {
             }
           }
           .mainCenterTopFile18 { color: green; position: absolute; top: 475px; left: 165px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis1 { color: #176dfc; position: absolute; top: 475px; left: 165px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis1 { color: #176dfc; position: absolute; top: 475px; left: 165px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
           .mainCenterTopFile28 { color: green; position: absolute; top: 150px; left: 200px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis2 { color: #176dfc; position: absolute; top: 150px; left: 200px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis2 { color: #176dfc; position: absolute; top: 150px; left: 200px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
           .mainCenterTopFile38 { color: green; position: absolute; top: 140px; left: 675px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis3 { color: #176dfc; position: absolute; top: 140px; left: 675px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis3 { color: #176dfc; position: absolute; top: 140px; left: 675px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
           .mainCenterTopFile48 { color: green; position: absolute; top: 155px; left: 890px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis4 { color: #176dfc; position: absolute; top: 155px; left: 890px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis4 { color: #176dfc; position: absolute; top: 155px; left: 890px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
           .mainCenterTopFile58 { color: green; position: absolute; top: 490px; left: 550px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis5 { color: #176dfc; position: absolute; top: 490px; left: 550px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis5 { color: #176dfc; position: absolute; top: 490px; left: 550px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
           .mainCenterTopFile68 { color: green; position: absolute; top: 300px; left: 430px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis6 { color: #176dfc; position: absolute; top: 300px; left: 430px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis6 { color: #176dfc; position: absolute; top: 300px; left: 430px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
           .mainCenterTopFile78 { color: green; position: absolute; top: 290px; left: 640px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis7 { color: #176dfc; position: absolute; top: 290px; left: 640px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis7 { color: #176dfc; position: absolute; top: 290px; left: 640px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
           .mainCenterTopFile88 { color: green; position: absolute; top: 380px; left: 980px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-          .mainCenterTopDis8 { color: #176dfc; position: absolute; top: 380px; left: 980px; font-size: 14px; cursor: pointer; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-weight: 600; }
+          .mainCenterTopDis8 { color: #176dfc; position: absolute; top: 380px; left: 980px; font-size: 14px; cursor: default; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
         }
       }
     }

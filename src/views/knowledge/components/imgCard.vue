@@ -43,6 +43,19 @@ const viewPdfFun = () => {
   updateKldCounting({ kldFileId: item.kldFileId, countingType: 1 });
 };
 
+const confidentialLevel = computed(() => {
+  if (props.imgData?.content.confidential_level === 0)
+    return '公开';
+  if (props.imgData?.content.confidential_level === 1)
+    return '内部';
+  if (props.imgData?.content.confidential_level === 2)
+    return '秘密';
+  if (props.imgData?.content.confidential_level === 3)
+    return '机密';
+  return '公开';
+})
+    
+
 const getImgHide = (val: boolean) => {
   imgHide.value = val;
 };
@@ -139,9 +152,10 @@ const getDes = () => {
         </div>
       </a-tooltip>
     </div>
-    <div class="author" style="display: flex">
+    <div class="author pr-[16px]" style="display: flex">
       <span class="name">{{ imgData.content.userName }}</span>
       <span class="time">{{ getTimes(Date.parse(imgData.content.addTime)) || '' }}</span>
+      <span class="level ml-auto">{{ confidentialLevel }}</span>
     </div>
 
     <shareCell

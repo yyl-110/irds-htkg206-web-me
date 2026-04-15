@@ -52,6 +52,13 @@
           <template v-if="column.key === 'operation'">
             <span class="handle_btn text-primary cursor-pointer" @click="deleteProject(record)">删除</span>
           </template>
+          <template v-if="column.key === 'confidential_level'">
+            <a-tag v-if="record.confidential_level === 0 || record.confidential_level === null" color="default">公开</a-tag>
+            <a-tag v-else-if="record.confidential_level === 1" color="blue">内部</a-tag>
+            <a-tag v-else-if="record.confidential_level === 2" color="orange">秘密</a-tag>
+            <a-tag v-else-if="record.confidential_level === 3" color="red">机密</a-tag>
+            <a-tag v-else color="default">公开</a-tag>
+          </template>
         </template>
       </a-table>
     </main>
@@ -202,6 +209,14 @@ const columns = computed<TableColumnsType>(() => [
     key: "source",
     width: 120,
     ...getColumnSelectProps("source", tableData),
+  },
+  {
+    title: '密级',
+    dataIndex: 'confidential_level',
+    key: 'confidential_level',
+    width: 90,
+    align: 'center',
+     ...getColumnSelectProps("confidential_level", tableData),
   },
   {
     title: "创建时间",

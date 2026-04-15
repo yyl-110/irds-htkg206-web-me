@@ -109,6 +109,11 @@ function initTodoChart() {
           scaleSize: 5,
         },
         labelLine: { show: false },
+        itemStyle: {
+          borderRadius: 6,
+          borderColor: '#fff',
+          borderWidth: 3
+        },
         data: [
           { value: delay, name: '延期', itemStyle: { color: '#FF7C7C' } },
           { value: todo, name: '待办', itemStyle: { color: '#FFBA18' } },

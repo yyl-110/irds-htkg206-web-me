@@ -57,6 +57,18 @@ const deleteData = async () => {
   }
 }
 
+const confidentialLevel = computed(() => {
+  if (props.videoData.confidential_level === 0)
+    return '公开';
+  if (props.videoData.confidential_level === 1)
+    return '内部';
+  if (props.videoData.confidential_level === 2)
+    return '秘密';
+  if (props.videoData.confidential_level === 3)
+    return '机密';
+  return '公开';
+})
+
 const handleEditCard = () => {
   emits('handleEdit');
 }
@@ -80,9 +92,11 @@ const handleEditCard = () => {
       <span v-if="videoData.releaseStatus === 0">【已发布】</span>
       <span v-else-if="videoData.releaseStatus === 1">【未发布】</span>
     </div>
-    <div class="author" style="display: flex">
+    <div class="author pr-[16px]" style="display: flex">
       <span class="name">{{ videoData.userName }}</span>
       <span class="time">{{ getTimes(Date.parse(videoData.addTime)) || '' }}</span>
+      <span class="level ml-auto">{{ confidentialLevel }}</span>
+      <span></span>
     </div>
 
     <div class="flex items-center px-[16px] justify-end mt-[6px]">

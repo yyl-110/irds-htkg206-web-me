@@ -1,23 +1,8 @@
 <template>
   <div class="content-layout">
-    <a-modal
-      :visible="tagDialogVisible"
-      :title="modalType === 2 ? '修改标签' : '添加标签'"
-      :closable="false"
-      centered
-      @cancel="closeFun"
-      @ok="submitFun"
-      :ok-text="modalType === 2 ? '确认' : '确认'"
-      :cancel-text="'取消'"
-      :width="650"
-    >
-      <a-form
-        ref="ruleFormRef"
-        :model="ruleForm"
-        :rules="rules"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
-      >
+    <a-modal :visible="tagDialogVisible" :title="modalType === 2 ? '修改标签' : '添加标签'" :closable="false" centered
+      @cancel="closeFun" @ok="submitFun" :ok-text="modalType === 2 ? '确认' : '确认'" :cancel-text="'取消'" :width="650">
+      <a-form ref="ruleFormRef" :model="ruleForm" :rules="rules" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
         <a-form-item label="父项名称：">
           <a-input v-model:value="ruleForm.parentName" disabled />
         </a-form-item>
@@ -25,21 +10,19 @@
         <a-form-item label="标签名称：" name="labelName">
           <a-input v-model:value="ruleForm.labelName" />
         </a-form-item>
-        <a-form-item label="URL链接：" name="url">
+        <!-- <a-form-item label="URL链接：" name="url">
           <a-input v-model:value="ruleForm.url" />
-        </a-form-item>
-
-        <!-- <a-form-item label="选择类型">
-          <a-select
-            v-model:value="ruleForm.region"
-            :disabled="desabledRegin"
-            placeholder="请选择类型"
-            allow-clear
-          >
-            <a-select-option value="1">复选框</a-select-option>
-            <a-select-option value="0">单选按钮</a-select-option>
-          </a-select>
         </a-form-item> -->
+
+        <a-form-item label="密级">
+          <a-select v-model:value="ruleForm.confidentialLevel" placeholder="请选择密级"
+            allow-clear>
+            <a-select-option :value="0">公开</a-select-option>
+            <a-select-option :value="1">内部</a-select-option>
+            <a-select-option :value="2">秘密</a-select-option>
+            <a-select-option :value="3">机密</a-select-option>
+          </a-select>
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -65,6 +48,7 @@ const ruleForm = reactive({
   labelName: "",
   level: "",
   region: "",
+  confidentialLevel: null,
 });
 
 // 注意：Ant Design Vue 的 rules 需配合 a-form-item 的 name 使用
@@ -74,7 +58,6 @@ const rules = {
 
 const tagsType = ref("1");
 
-const desabledRegin = computed(() => nodeData.value.level === 2 || nodeData.value.level === 3)
 /**
  * 显示标签弹窗
  * @param {Object} node 当前节点
@@ -82,8 +65,6 @@ const desabledRegin = computed(() => nodeData.value.level === 2 || nodeData.valu
  * @param {String} modalType 弹窗类型 1 新增 2 修改
  */
 const show = (node, parent, type) => {
-  console.log('parent:', parent)
-  console.log('node:', node)
   nodeData.value = node;
   parentNode.value = parent;
   modalType.value = type;
@@ -93,6 +74,7 @@ const show = (node, parent, type) => {
     ruleForm.labelName = nodeData.value.partName;
     ruleForm.level = nodeData.value.level;
     ruleForm.region = nodeData.value.selectType;
+    ruleForm.confidentialLevel = nodeData.value.confidentialLevel;
   }
 };
 
@@ -102,6 +84,7 @@ const close = () => {
   ruleForm.labelName = "";
   ruleForm.level = "";
   ruleForm.region = "";
+  ruleForm.confidentialLevel = null
 };
 
 defineExpose({
@@ -120,7 +103,7 @@ const closeFun = () => {
 const submitFun = async () => {
   try {
     await ruleFormRef.value.validateFields();
-    if (modalType.value ===  1) {
+    if (modalType.value === 1) {
       add();
     } else {
       edit();
@@ -143,6 +126,7 @@ const add = () => {
     selectType: ruleForm.region || 0,
     tageLevel: '',
     nodeLevel: nodeData.value.level === 1 ? 2 : 3,
+    confidentialLevel: ruleForm.confidentialLevel,
   };
   tagSave(params).then((res) => {
     if (res && res.data.code === "0") {
@@ -165,6 +149,7 @@ const edit = () => {
     style: "teststyle",
     selectType: ruleForm.region || 0,
     tageLevel: ruleForm.level,
+    confidentialLevel: ruleForm.confidentialLevel,
   };
   tagSave(params).then((res) => {
     if (res && res.data.code === "0") {

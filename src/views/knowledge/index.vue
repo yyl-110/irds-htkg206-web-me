@@ -141,6 +141,9 @@ watch(
                 :personalInfo="personalInfo" />
             </keep-alive>
           </a-tab-pane>
+          <template #rightExtra>
+            <div>密级：公开</div>
+          </template>
         </a-tabs>
       </a-col>
       <a-col v-if="hasRightPanel" :span="5" class="h-full pl-[16px]">

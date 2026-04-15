@@ -32,7 +32,7 @@
           <a-input class="elInput" v-model:value="ruleForm.annexName" disabled />
         </a-form-item>
         <a-form-item label="标签属性" name="checkTabList" class="position-el-form-item">
-          <a-input class="elInput" :value="ruleForm.checkTabList.join(',')" disabled />
+          <a-input class="elInput" :value="ruleForm.checkTabList.join(',')" disabled placeholder="请选择标签属性" />
           <div class="elBtn text-primary" @click="editTabStatsFun">浏览</div>
         </a-form-item>
 
@@ -43,14 +43,22 @@
             <a-select-option value="docx">.docx</a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item label="密级">
+          <a-select class="elInput" v-model:value="ruleForm.confidentialLevel" placeholder="请选择密级">
+            <a-select-option value="0">公开</a-select-option>
+            <a-select-option value="1">内部</a-select-option>
+            <a-select-option value="2">秘密</a-select-option>
+            <a-select-option value="3">机密</a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item label="发布状态" name="releaseStatus">
-          <a-select class="elInput" v-model:value="ruleForm.releaseStatus">
+          <a-select class="elInput" v-model:value="ruleForm.releaseStatus" placeholder="请选择发布状态">
             <a-select-option value="0">已发布</a-select-option>
             <a-select-option value="1">未发布</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="关键字" class="position-el-form-item">
-          <a-input class="elInput" v-model:value="ruleForm.keywords" />
+          <a-input class="elInput" v-model:value="ruleForm.keywords" placeholder="请输入关键字" />
           <a-tooltip placement="topRight" title="使用英文逗号,分隔">
             <InfoCircleFilled class="infoFilled-ico text-primary" />
           </a-tooltip>
@@ -141,6 +149,7 @@ const ruleForm = reactive({
   isDown: "1",
   annexType: "",
   isAnnex: "1",
+  confidentialLevel: null,
   desc: "",
   classification: "非密",
   checkTabList: [],
@@ -182,8 +191,8 @@ const fetchDetail = async () => {
 
       ruleForm.annexName = val.fileName;
       ruleForm.codeNumber = val.standardNo;
-      ruleForm.isDown = val.allowDownload === 1 ? "1" : "0";
-      ruleForm.isAnnex = val.isTextAttachment === 1 ? "1" : "0";
+      ruleForm.isDown = val.allowDownload == 1 ? "1" : "0";
+      ruleForm.isAnnex = val.isTextAttachment == 1 ? "1" : "0";
       ruleForm.keywords = val.keywords;
       ruleForm.annexType = val.fileType;
       ruleForm.desc = val.summary;
@@ -221,6 +230,7 @@ const resetClose = () => {
     desc: "",
     classification: "非密",
     checkTabList: [],
+    confidentialLevel: null
   });
 
   fileList.value = [];
@@ -345,7 +355,7 @@ const submit = async () => {
       kldTagIds: Array.from(extractedIds).join(","),
       kldTageNames: ruleForm.checkTabList,
       allowDownload: ruleForm.isDown === "1" ? "1" : "0",
-
+      confidentialLevel: ruleForm.confidentialLevel,
       isTextAttachment: ruleForm.isAnnex === "1" ? "1" : "0",
       attachmentType: "",
       releaseStatus: ruleForm.releaseStatus,
