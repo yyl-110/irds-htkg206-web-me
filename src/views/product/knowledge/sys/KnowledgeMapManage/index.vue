@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { knowledgeTree, queryByKey, removeTree, sortTree } from "@/api/knowledge";
 import { useUserStore } from "@/store/modules/user";
-import { message, Spin } from "ant-design-vue";
+import { message, Spin, Tooltip } from "ant-design-vue";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons-vue";
 import { Pane, Splitpanes } from "splitpanes";
 import { findNodeByIdFromKey } from "@/utils/tools";
 import Tree from "@/components/tree/tree.vue";
+import { useSplitpanesTreeCollapse } from "@/composables/useSplitpanesTreeCollapse";
 import mapDataTable from '../components/mapDataTable.vue'
 import mapTreeModal from '../components/mapTreeModal.vue'
 
@@ -308,15 +310,23 @@ onMounted(() => {
   fetchTagList();
 });
 
-
+const {
+  leftTreeCollapsed,
+  leftTreePaneSize,
+  rightTreePaneSize,
+  minExpanded,
+  onSplitpanesResized,
+  toggleLeftTreePanel,
+  splitToggleStyle,
+} = useSplitpanesTreeCollapse();
 
 </script>
 
 <template>
   <div class="drawerContent">
-    <!-- 左侧树结构 -->
-    <Splitpanes class="default-theme sbom">
-      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+    <div class="splitpanes-tree-collapse-wrap">
+    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
         <a-spin :spinning="loadingTree" tip="加载中...">
           <Tree ref="treePage" :operate-flag="true" :tree-data="treeData" bomType="unBom" :selected-keys="selectedKeys"
             :expanded-keys="expandedKeys" @select-node="selectNode" @up-Node="upNode" @down-Node="downNode"
@@ -325,28 +335,27 @@ onMounted(() => {
         </a-spin>
       </Pane>
       <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls">
+      <Pane class="splitpane-cls" :size="rightTreePaneSize">
         <mapDataTable :kldTreeId="kldTreeIds" :tagList="tagList" :nodeId="currentNode?.key" />
       </Pane>
     </Splitpanes>
+    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+      <button
+        type="button"
+        class="splitpanes-tree-collapse-wrap__toggle"
+        :style="splitToggleStyle"
+        @click="toggleLeftTreePanel"
+        @mousedown.stop>
+        <LeftOutlined v-if="!leftTreeCollapsed" />
+        <RightOutlined v-else />
+      </button>
+    </Tooltip>
+    </div>
     <mapTreeModal ref="addAndEditTreeRef" :tagList="tagList" @saveSuccess="saveSuccess" />
   </div>
 </template>
 
 <style lang="less" scoped>
-::v-deep(.splitpanes__splitter:after),
-::v-deep(.splitpanes__splitter:before) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-
-::v-deep(.sbom > .splitpanes__splitter) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-
-::v-deep(.splitpanes.default-theme .splitpanes__pane) {
-  background-color: #fff;
-}
-
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
 }

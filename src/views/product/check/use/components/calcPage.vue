@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Pane, Splitpanes } from 'splitpanes';
+import { Tooltip } from 'ant-design-vue';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { useRoute } from 'vue-router';
 import { decryptValue } from '@/utils';
 import { AdminApiSystemCheckFlowInfoApi } from '@/api/tags/check/计算流程后台';
@@ -502,11 +505,22 @@ const getStatusClass = (pageStatus: any) => {
   // alert(pageStatus);
   return `status-${pageStatus}`;
 };
+
+const {
+  leftTreeCollapsed,
+  leftTreePaneSize,
+  rightTreePaneSize,
+  minExpanded,
+  onSplitpanesResized,
+  toggleLeftTreePanel,
+  splitToggleStyle,
+} = useSplitpanesTreeCollapse();
 </script>
 <template>
   <div class="drawerContent">
-    <Splitpanes class="default-theme sbom">
-      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+    <div class="splitpanes-tree-collapse-wrap">
+    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
         <a-tree
           ref="treeRef"
           :highlight-current="true"
@@ -529,7 +543,7 @@ const getStatusClass = (pageStatus: any) => {
           </template>
         </a-tree>
       </Pane>
-      <Pane class="splitpane-cls">
+      <Pane class="splitpane-cls" :size="rightTreePaneSize">
         <div class="splitCenter">
           <PageTemplateInfo
             :objdata="objdata"
@@ -566,6 +580,18 @@ const getStatusClass = (pageStatus: any) => {
         </div>
       </Pane>
     </Splitpanes>
+    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+      <button
+        type="button"
+        class="splitpanes-tree-collapse-wrap__toggle"
+        :style="splitToggleStyle"
+        @click="toggleLeftTreePanel"
+        @mousedown.stop>
+        <LeftOutlined v-if="!leftTreeCollapsed" />
+        <RightOutlined v-else />
+      </button>
+    </Tooltip>
+    </div>
   </div>
 </template>
 <style lang="less" scoped>
@@ -574,16 +600,6 @@ const getStatusClass = (pageStatus: any) => {
   bottom: 20px !important;
   display: flex;
   background-color: #ffffff !important;
-}
-::v-deep(.splitpanes__splitter:after),
-::v-deep(.splitpanes__splitter:before) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.sbom > .splitpanes__splitter) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.splitpanes.default-theme .splitpanes__pane) {
-  background-color: #fff;
 }
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;

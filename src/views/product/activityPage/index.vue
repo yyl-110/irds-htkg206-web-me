@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -20,6 +21,7 @@ import ActivityConfigModal from './components/activity-config-modal.vue';
 import ActivityPreviewModal from './components/activity-preview-modal.vue';
 import ActivityCheckConfigModal from './components/activity-check-config-modal.vue';
 import ActivityCheckPreviewModal from './components/activity-check-preview-modal.vue';
+import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
@@ -719,8 +721,8 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, Number.MAX_SAFE_INTEGER) - toNumOrFallback(b?.sortNo, Number.MAX_SAFE_INTEGER));
   const isCalcPage = String(baseRecord?.pageType ?? '') === '2';
   const basicTypes = isCalcPage
-    ? ['INPUT', 'TEXTAREA', 'SELECT', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']
-    : ['INPUT', 'TEXTAREA', 'SELECT', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+    ? ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']
+    : ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
   const uploadTypes = isCalcPage ? [] : ['FILE'];
   const tableTypes = isCalcPage ? [] : ['TABLE'];
   const threeDTypes = isCalcPage ? [] : ['3D_VIEW'];
@@ -839,13 +841,24 @@ function closeShareModal() {
   shareContent.value = '';
   shareModalTitle.value = '';
 }
+
+const {
+  leftTreeCollapsed,
+  leftTreePaneSize,
+  rightTreePaneSize,
+  minExpanded,
+  onSplitpanesResized,
+  toggleLeftTreePanel,
+  splitToggleStyle,
+} = useSplitpanesTreeCollapse();
 </script>
 
 <template>
   <div class="drawerContent">
+    <div class="splitpanes-tree-collapse-wrap">
     <!-- 左侧树结构 -->
-    <Splitpanes class="default-theme sbom">
-      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
         <a-spin :spinning="loadingTree" tip="加载中...">
           <Tree
             ref="treePage"
@@ -869,7 +882,7 @@ function closeShareModal() {
       </Pane>
 
       <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls">
+      <Pane class="splitpane-cls" :size="rightTreePaneSize">
         <a-card>
           <a-form layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
             <a-form-item name="pageName">
@@ -948,6 +961,20 @@ function closeShareModal() {
       </Pane>
     </Splitpanes>
 
+    <!-- 叠在分隔条上的折叠/展开（略低于中线拖动手柄，避免抢拖动） -->
+    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+      <button
+        type="button"
+        class="splitpanes-tree-collapse-wrap__toggle"
+        :style="splitToggleStyle"
+        @click="toggleLeftTreePanel"
+        @mousedown.stop>
+        <LeftOutlined v-if="!leftTreeCollapsed" />
+        <RightOutlined v-else />
+      </button>
+    </Tooltip>
+    </div>
+
     <!-- 分享知识弹窗：展示富文本内容 -->
     <a-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="800px" @cancel="closeShareModal">
       <div style="min-height: 320px">
@@ -1004,16 +1031,6 @@ function closeShareModal() {
 </template>
 
 <style lang="less" scoped>
-::v-deep(.splitpanes__splitter:after),
-::v-deep(.splitpanes__splitter:before) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.sbom > .splitpanes__splitter) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.splitpanes.default-theme .splitpanes__pane) {
-  background-color: #fff;
-}
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
 }
