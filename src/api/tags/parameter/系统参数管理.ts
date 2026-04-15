@@ -306,4 +306,127 @@ export class AdminApiSystemParameter {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 计算树功能查询
+   *
+   * @tags 管理后台 - 计算树功能查询
+   * @name checkTreeList
+   * @summary 计算树功能查询
+   * @request POST:/business-service/business/check-tree/check-tree-list
+   * @secure
+   */
+  static checkTreeList = <Req extends ParameterPageRequestDTOModel = ParameterPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/check-tree/check-tree-list`,
+        method: 'GET',
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 计算树创建功能
+   *
+   * @tags 管理后台 - 计算树创建功能
+   * @name createCheckTree
+   * @summary 计算树创建功能
+   * @request POST:/business-service/business/check-tree/create
+   * @secure
+   */
+  static createCheckTree = <Req extends ParameterCheckRequestDTOModel = ParameterCheckRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/check-tree/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 计算树编辑功能
+   *
+   * @tags 管理后台 - 计算树编辑功能
+   * @name updateCheckTree
+   * @summary 计算树编辑功能
+   * @request POST:/business-service/business/check-tree/update
+   * @secure
+   */
+  static updateCheckTree = <Req extends ParameterCheckRequestDTOModel = ParameterCheckRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/check-tree/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 计算树删除功能
+   *
+   * @tags 管理后台 - 计算树删除功能
+   * @name deleteCheckTree
+   * @summary 计算树删除功能
+   * @request POST:/business-service/business/check-tree/delete
+   * @secure
+   */
+  static deleteCheckTree = <Req extends ParameterCheckRequestDTOModel = ParameterCheckRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/check-tree/delete`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  /**
+   * 计算树向上排序
+   *
+   * @tags 管理后台 - 计算树向上排序
+   * @name sortUpCheckTree
+   * @summary 计算树向上排序
+   * @request POST:/business-service/business/sort/up
+   * @secure
+   */
+  static sortUpCheckTree = <Req extends ParameterCheckRequestDTOModel = ParameterCheckRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/check-tree/sort/up`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 计算树向下排序
+   *
+   * @tags 管理后台 - 计算树向下排序
+   * @name sortDownCheckTree
+   * @summary 计算树向下排序
+   * @request POST:/business-service/business/sort/down
+   * @secure
+   */
+  static sortDownCheckTree = <Req extends ParameterCheckRequestDTOModel = ParameterCheckRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/check-tree/sort/down`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
