@@ -95,6 +95,7 @@ const paletteGroups = [
     items: [
       { label: '固定表格', type: 'TABLE', tableSubtype: 'FIXED' },
       { label: '行扩展表格', type: 'TABLE', tableSubtype: 'ROW_EXPAND' },
+      { label: '文件协同表格', type: 'TABLE', tableSubtype: 'FILE_COLLAB' },
     ],
   },
   {
@@ -221,6 +222,65 @@ const sketchForm = reactive({
   createUserName: '',
 });
 const fileConfidentialLevel = ref<string | undefined>('0');
+/** 配置画布：文件协同表格「浏览」上传 */
+const fileCollabConfigUploadInputRef = ref<HTMLInputElement | null>(null);
+const fileCollabConfigUploadCtx = ref<{ item: any; bodyRow: number } | null>(null);
+
+function onConfigCanvasFileCollabOp(btn: string, item: any, _componentIndex: number, bodyRow: number) {
+  const t = String(btn ?? '').trim();
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz !== 'FILE_COLLAB') return;
+  if (t === '浏览') {
+    fileCollabConfigUploadCtx.value = { item, bodyRow };
+    nextTick(() => fileCollabConfigUploadInputRef.value?.click());
+    return;
+  }
+  if (t === '删除行') {
+    const p = item?.customProps;
+    if (!p) return;
+    const cur = Number(p.tableBodyRows) || 1;
+    if (cur <= 1) {
+      message.warning('至少保留一行');
+      return;
+    }
+    p.tableBodyRows = cur - 1;
+    syncWorkspaceTableRowColDefs(item);
+    message.success('已删除一行');
+    return;
+  }
+  if (t === '分配') {
+    message.info('分配（待实现）');
+    return;
+  }
+  if (t === '发布') {
+    message.info('发布（待实现）');
+    return;
+  }
+}
+async function onConfigFileCollabFileChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  const ctx = fileCollabConfigUploadCtx.value;
+  fileCollabConfigUploadCtx.value = null;
+  if (!file || !ctx?.item) return;
+  try {
+    const res = await AdminApiSystemUploadFile.uploadFile({
+      file,
+      userId: userStore.getUser.id,
+      securityLevel: fileConfidentialLevel.value ?? '0',
+    } as any);
+    if (res?.data?.code == 0) {
+      const d: any = res.data;
+      const name = String(d.oldFileName ?? d.fileName ?? file.name).trim();
+      message.success(`已上传：${name || file.name}`);
+      return;
+    }
+    message.error('上传失败');
+  } catch {
+    message.error('上传失败');
+  }
+}
 
 function cloneFixedTableColDefsForModal(defs: any[] | undefined) {
   return (defs || []).map(d => ({
@@ -248,6 +308,7 @@ function getTableRowDefCategoryColumnLabel(tableBizType: string | undefined) {
 function openColumnDefModal() {
   const c = selectedComponent.value;
   if (!c?.customProps || !['FIXED', 'ROW_EXPAND'].includes(c.customProps.tableSubtype)) return;
+  if (c.customProps.tableBizType === 'FILE_COLLAB') return;
   syncWorkspaceTableRowColDefs(c);
   columnDefDraft.value = cloneFixedTableColDefsForModal(c.customProps.tableColDefs);
   columnDefModalVisible.value = true;
@@ -367,6 +428,37 @@ function createTableComponent(tableSubtype: 'FIXED' | 'ROW_EXPAND', bodyRows: nu
   item.customProps = { ...(item.customProps || {}), ...base };
   return item;
 }
+/** 文件协同固定列：序号 + 8 数据列（文档名称…备注，defs[1]-[8]）+ 操作列；defs[0] 预留占位与历史数据对齐 */
+function applyFileCollabFixedColumnSchema(p: Record<string, any>) {
+  if (p.tableBizType !== 'FILE_COLLAB' || !Array.isArray(p.tableColDefs)) return;
+  const specs: { idx: number; name: string; dataType: string }[] = [
+    { idx: 1, name: '文档名称', dataType: 'READONLY_TEXT' },
+    { idx: 2, name: '密级', dataType: 'TEXT' },
+    /** 上传日期/创建人/状态/发布日期/分发：预览中只读，由上传或规则回填；仅备注可编辑 */
+    { idx: 3, name: '上传日期', dataType: 'READONLY_TEXT' },
+    { idx: 4, name: '创建人', dataType: 'READONLY_TEXT' },
+    { idx: 5, name: '状态', dataType: 'READONLY_TEXT' },
+    { idx: 6, name: '发布日期', dataType: 'READONLY_TEXT' },
+    { idx: 7, name: '分发', dataType: 'READONLY_TEXT' },
+    { idx: 8, name: '备注', dataType: 'TEXT' },
+  ];
+  for (const { idx, name, dataType } of specs) {
+    const def = p.tableColDefs[idx];
+    if (!def || typeof def !== 'object') continue;
+    def.columnName = name;
+    def.dataType = dataType;
+  }
+}
+function createFileCollabTablePreset() {
+  const item = createTableComponent('FIXED', 1, 9, {
+    tableTitle: '文件协同表格',
+    tableBizType: 'FILE_COLLAB',
+  });
+  const defs = item.customProps?.tableColDefs;
+  if (!Array.isArray(defs)) return item;
+  applyFileCollabFixedColumnSchema(item.customProps);
+  return item;
+}
 function createThreeDViewComponent(threeDSubtype: string) {
   const item = createDefaultComponent('3D_VIEW');
   if (!item.customProps) item.customProps = {};
@@ -409,6 +501,10 @@ function createThreeDViewComponent(threeDSubtype: string) {
 function handleIncomingAdd(payload: string, insertIndex?: number | null) {
   const { type, tableSubtype, threeDSubtype } = parsePalettePayload(payload);
   if (!type) return;
+  if (type === 'TABLE' && tableSubtype === 'FILE_COLLAB') {
+    insertComponentItem(createFileCollabTablePreset(), insertIndex);
+    return;
+  }
   if (type === 'TABLE' && (tableSubtype === 'FIXED' || tableSubtype === 'ROW_EXPAND')) {
     pendingInsertIndex.value = insertIndex == null ? null : insertIndex;
     pendingTableSizeSubtype.value = tableSubtype === 'ROW_EXPAND' ? 'ROW_EXPAND' : 'FIXED';
@@ -1435,7 +1531,7 @@ function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
 function getWorkspaceTableOperationButtons(item: any) {
   const p = item?.customProps || {};
   const biz = String(p.tableBizType ?? '');
-  if (biz === 'FILE_COLLAB') return ['上传', '下载', '清空'];
+  if (biz === 'FILE_COLLAB') return ['浏览', '删除行', '分配', '发布'];
   if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
   if (biz === 'MODULE_LIB_READ') {
     const buttons = ['浏览'];
@@ -1452,13 +1548,13 @@ function tableDimensionRangeFromSecond(count: number) {
   if (n <= 1) return [];
   return Array.from({ length: n - 1 }, (_, i) => i + 2);
 }
-/** 列定义中可配置列范围：文件协同固定第2列为「文件名称」从第3列起；模型库读取固定第2、3列为件号/名称从第4列起 */
+/** 列定义中可配置列范围：文件协同列全部固定，不进入列定义；模型库读取固定第2、3列为件号/名称从第4列起 */
 function getFixedTableConfigurableColRange(customProps: any) {
-  const n = Math.max(0, Math.min(100, Number(customProps?.tableColCount) || 0));
   const biz = String(customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB') return [];
+  const n = Math.max(0, Math.min(100, Number(customProps?.tableColCount) || 0));
   let start = 2;
-  if (biz === 'FILE_COLLAB') start = 3;
-  else if (biz === 'MODULE_LIB_READ') start = 4;
+  if (biz === 'MODULE_LIB_READ') start = 4;
   if (n < start) return [];
   return Array.from({ length: n - start + 1 }, (_, i) => i + start);
 }
@@ -1489,7 +1585,6 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
     if (colIndex === 2) return '模型件号';
     if (colIndex === 3) return '模型名称';
   }
-  if (biz === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -1543,6 +1638,7 @@ function ensureCellBasicDefEntry(component: any, row: number, col: number) {
 function onTablePreviewCellClick(itemIndex: number, row: number, col: number) {
   const item = componentList.value[itemIndex];
   if (!item?.customProps || !['FIXED', 'ROW_EXPAND'].includes(item.customProps.tableSubtype)) return;
+  if (String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB') return;
   /** 第 1 列和操作列均为展示/操作区，不参与单元格配置 */
   if (col === 1 || isWorkspaceTableOperationColumn(item, col)) return;
   if (!isWorkspaceTableCellDesignable(item, col)) return;
@@ -1558,6 +1654,7 @@ function onTablePreviewCellClick(itemIndex: number, row: number, col: number) {
 }
 function isWorkspaceTableCellDesignable(item: any, col: number) {
   if (!item?.customProps) return false;
+  if (String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB') return false;
   const dt = String(item.customProps?.tableColDefs?.[col - 1]?.dataType ?? 'TEXT');
   return dt === 'READONLY_TEXT' || dt === 'TEXT' || dt === 'DROPDOWN';
 }
@@ -1635,7 +1732,7 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
   if (isWorkspaceTableOperationColumn(item, colIndex)) {
     const biz = String(item?.customProps?.tableBizType ?? '');
     if (biz === 'FILE_COLLAB') {
-      return { width: '200px', minWidth: '200px' } as Record<string, string>;
+      return { width: '216px', minWidth: '216px' } as Record<string, string>;
     }
     if (biz === 'MODULE_LIB_READ') {
       const n = getWorkspaceTableOperationButtons(item).length;
@@ -1644,6 +1741,13 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
       return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
     }
     return { width: '96px', minWidth: '96px' } as Record<string, string>;
+  }
+  const bizData = String(item?.customProps?.tableBizType ?? '');
+  if (bizData === 'FILE_COLLAB') {
+    const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+    const css = normalizeFixedTableColumnWidthCss(w);
+    const width = css || '180px';
+    return { width, minWidth: width } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
   const css = normalizeFixedTableColumnWidthCss(w);
@@ -1851,6 +1955,7 @@ function syncWorkspaceTableRowColDefs(component: any) {
     }
   }
   applyModuleLibReadFixedColumnNames(p);
+  applyFileCollabFixedColumnSchema(p);
   if (p.cellParamInheritMap && typeof p.cellParamInheritMap === 'object') {
     for (const key of Object.keys(p.cellParamInheritMap)) {
       const parts = key.split('-');
@@ -1868,7 +1973,12 @@ function ensureWorkspaceTableDefaults(component: any) {
   if (st !== 'FIXED' && st !== 'ROW_EXPAND') return;
   const p = component.customProps;
   if (p.tableTitle == null) p.tableTitle = '表格标题';
-  if (p.tableBodyRows == null || p.tableBodyRows < 1) p.tableBodyRows = 4;
+  if (p.tableBizType === 'FILE_COLLAB') {
+    p.tableBodyRows = 1;
+    p.tableColCount = 9;
+  } else if (p.tableBodyRows == null || p.tableBodyRows < 1) {
+    p.tableBodyRows = 4;
+  }
   if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
   if (p.tableBizType === 'MODULE_LIB_READ' && p.tableColCount < 3) p.tableColCount = 3;
   if (!p.firstColumnType) p.firstColumnType = 'INDEX';
@@ -2147,6 +2257,13 @@ watch(
     width="100%"
     :style="{ top: 0, paddingBottom: 0 }"
     title="活动页面配置">
+    <input
+      ref="fileCollabConfigUploadInputRef"
+      type="file"
+      class="activity-config-file-collab-input"
+      tabindex="-1"
+      aria-hidden="true"
+      @change="onConfigFileCollabFileChange" />
     <div class="config-layout">
       <div class="left-palette">
         <div class="panel-title">页面配置</div>
@@ -2373,7 +2490,10 @@ watch(
                   </a-button>
                 </div>
               </div>
-              <div v-else-if="isWorkspaceTableItem(item)" class="fixed-table-preview">
+              <div
+                v-else-if="isWorkspaceTableItem(item)"
+                class="fixed-table-preview"
+                :class="{ 'fixed-table-preview--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB' }">
                 <div
                   v-if="(item.customProps?.tableTitle || '').trim() !== '' || item.customProps?.tableSubtype === 'ROW_EXPAND'"
                   class="fixed-table-preview-title-row"
@@ -2431,9 +2551,21 @@ watch(
                           </template>
                           <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
                             <div class="fixed-table-cell-op-btns">
-                              <a v-for="btn in getWorkspaceTableOperationButtons(item)" :key="`table-op-${index}-${r}-${btn}`" class="fixed-table-cell-op-link">
-                                {{ btn }}
-                              </a>
+                              <template v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'">
+                                <a
+                                  v-for="btn in getWorkspaceTableOperationButtons(item)"
+                                  :key="`table-op-${index}-${r}-${btn}`"
+                                  href="javascript:void(0)"
+                                  class="fixed-table-cell-op-link fixed-table-cell-op-link--clickable"
+                                  @click.prevent="onConfigCanvasFileCollabOp(btn, item, index, r)">
+                                  {{ btn }}
+                                </a>
+                              </template>
+                              <template v-else>
+                                <a v-for="btn in getWorkspaceTableOperationButtons(item)" :key="`table-op-${index}-${r}-${btn}`" class="fixed-table-cell-op-link">
+                                  {{ btn }}
+                                </a>
+                              </template>
                             </div>
                           </template>
                         </td>
@@ -2972,6 +3104,10 @@ watch(
               <div class="divider-empty-panel"></div>
             </template>
             <template v-else-if="isWorkspaceTableComponent">
+              <template v-if="selectedComponent.customProps?.tableBizType === 'FILE_COLLAB'">
+                <!-- 文件协同表格行列固定，不在此配置 -->
+              </template>
+              <template v-else>
               <p v-if="!selectedTableCell" class="table-cell-inherit-hint">点击画布中表格列为文本、下拉值或只读文本类型的单元格，可配置该单元格的基础定义或参数继承属性。</p>
               <a-collapse
                 v-if="selectedTableCell && selectedCellIsBasicDefMode && activeCellBasicDef"
@@ -3169,6 +3305,7 @@ watch(
                   </a-collapse-panel>
                 </template>
               </a-collapse>
+              </template>
             </template>
             <template v-else-if="isFixedTemplate3DComponent">
               <a-collapse v-model:activeKey="fixedTemplate3dPanelKeys" :bordered="false" class="text-config-collapse">
@@ -3898,6 +4035,13 @@ watch(
   width: 100%;
   max-width: 900px;
 }
+.fixed-table-preview--file-collab {
+  max-width: 1080px;
+}
+.fixed-table-preview--file-collab .fixed-table-preview-td--op .fixed-table-cell-op-btns {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
 .fixed-table-preview-scroll {
   overflow-x: auto;
   max-width: 100%;
@@ -3967,6 +4111,16 @@ watch(
   text-decoration: underline;
   cursor: default;
   line-height: 22px;
+}
+.fixed-table-cell-op-link--clickable {
+  cursor: pointer;
+}
+.activity-config-file-collab-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 .fixed-table-preview-td--first {
   text-align: center;

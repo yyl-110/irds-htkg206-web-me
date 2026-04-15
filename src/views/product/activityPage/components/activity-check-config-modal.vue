@@ -1435,13 +1435,13 @@ function tableDimensionRangeFromSecond(count: number) {
   if (n <= 1) return [];
   return Array.from({ length: n - 1 }, (_, i) => i + 2);
 }
-/** 列定义中可配置列范围：文件协同固定第2列为「文件名称」从第3列起；模型库读取固定第2、3列为件号/名称从第4列起 */
+/** 列定义中可配置列范围：文件协同列全部固定；模型库读取固定第2、3列为件号/名称从第4列起 */
 function getFixedTableConfigurableColRange(customProps: any) {
-  const n = Math.max(0, Math.min(100, Number(customProps?.tableColCount) || 0));
   const biz = String(customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB') return [];
+  const n = Math.max(0, Math.min(100, Number(customProps?.tableColCount) || 0));
   let start = 2;
-  if (biz === 'FILE_COLLAB') start = 3;
-  else if (biz === 'MODULE_LIB_READ') start = 4;
+  if (biz === 'MODULE_LIB_READ') start = 4;
   if (n < start) return [];
   return Array.from({ length: n - start + 1 }, (_, i) => i + start);
 }
@@ -1472,7 +1472,6 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
     if (colIndex === 2) return '模型件号';
     if (colIndex === 3) return '模型名称';
   }
-  if (biz === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -1618,7 +1617,7 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
   if (isWorkspaceTableOperationColumn(item, colIndex)) {
     const biz = String(item?.customProps?.tableBizType ?? '');
     if (biz === 'FILE_COLLAB') {
-      return { width: '200px', minWidth: '200px' } as Record<string, string>;
+      return { width: '216px', minWidth: '216px' } as Record<string, string>;
     }
     if (biz === 'MODULE_LIB_READ') {
       const n = getWorkspaceTableOperationButtons(item).length;
@@ -1627,6 +1626,13 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
       return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
     }
     return { width: '96px', minWidth: '96px' } as Record<string, string>;
+  }
+  const bizData = String(item?.customProps?.tableBizType ?? '');
+  if (bizData === 'FILE_COLLAB') {
+    const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+    const css = normalizeFixedTableColumnWidthCss(w);
+    const width = css || '180px';
+    return { width, minWidth: width } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
   const css = normalizeFixedTableColumnWidthCss(w);
@@ -1794,6 +1800,26 @@ function applyModuleLibReadFixedColumnNames(p: Record<string, any>) {
   if (p.tableColDefs[0]) p.tableColDefs[0].columnName = '模型件号';
   if (p.tableColDefs[1]) p.tableColDefs[1].columnName = '模型名称';
 }
+/** 与活动配置一致：序号 + 8 列 + 操作；defs[1]-[8] 为业务字段 */
+function applyFileCollabFixedColumnSchema(p: Record<string, any>) {
+  if (p.tableBizType !== 'FILE_COLLAB' || !Array.isArray(p.tableColDefs)) return;
+  const specs: { idx: number; name: string; dataType: string }[] = [
+    { idx: 1, name: '文档名称', dataType: 'READONLY_TEXT' },
+    { idx: 2, name: '密级', dataType: 'TEXT' },
+    { idx: 3, name: '上传日期', dataType: 'READONLY_TEXT' },
+    { idx: 4, name: '创建人', dataType: 'READONLY_TEXT' },
+    { idx: 5, name: '状态', dataType: 'READONLY_TEXT' },
+    { idx: 6, name: '发布日期', dataType: 'READONLY_TEXT' },
+    { idx: 7, name: '分发', dataType: 'READONLY_TEXT' },
+    { idx: 8, name: '备注', dataType: 'TEXT' },
+  ];
+  for (const { idx, name, dataType } of specs) {
+    const def = p.tableColDefs[idx];
+    if (!def || typeof def !== 'object') continue;
+    def.columnName = name;
+    def.dataType = dataType;
+  }
+}
 function syncWorkspaceTableRowColDefs(component: any) {
   const p = component?.customProps;
   if (!p || (p.tableSubtype !== 'FIXED' && p.tableSubtype !== 'ROW_EXPAND')) return;
@@ -1841,6 +1867,7 @@ function syncWorkspaceTableRowColDefs(component: any) {
     }
   }
   applyModuleLibReadFixedColumnNames(p);
+  applyFileCollabFixedColumnSchema(p);
   if (p.cellParamInheritMap && typeof p.cellParamInheritMap === 'object') {
     for (const key of Object.keys(p.cellParamInheritMap)) {
       const parts = key.split('-');
@@ -1858,7 +1885,12 @@ function ensureWorkspaceTableDefaults(component: any) {
   if (st !== 'FIXED' && st !== 'ROW_EXPAND') return;
   const p = component.customProps;
   if (p.tableTitle == null) p.tableTitle = '表格标题';
-  if (p.tableBodyRows == null || p.tableBodyRows < 1) p.tableBodyRows = 4;
+  if (p.tableBizType === 'FILE_COLLAB') {
+    p.tableBodyRows = 1;
+    p.tableColCount = 9;
+  } else if (p.tableBodyRows == null || p.tableBodyRows < 1) {
+    p.tableBodyRows = 4;
+  }
   if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
   if (p.tableBizType === 'MODULE_LIB_READ' && p.tableColCount < 3) p.tableColCount = 3;
   if (!p.firstColumnType) p.firstColumnType = 'INDEX';

@@ -97,10 +97,35 @@ const modulePickerTableBodyRowIndex = ref(1);
 const previewTableCellMap = ref<Record<string, string>>({});
 /** 文件协同：每行已上传文件的 fileId（不落表单元格，仅用于下载） */
 const previewFileCollabFileIdMap = ref<Record<string, string>>({});
+/** 预览：文件协同表格在配置为 1 行基础上动态增加的行数（不落库） */
+const fileCollabPreviewRowCountMap = ref<Record<string, number>>({});
 const fileCollabUploadInputRef = ref<HTMLInputElement | null>(null);
 const fileCollabUploadTarget = ref<{ item: any; componentIndex: number; bodyRow: number } | null>(null);
 function getPreviewItemKey(item: any, index: number) {
   return String(item?.id ?? `${item?.componentType}-${index}`);
+}
+function getPreviewTableBodyRowCountForTable(item: any, componentIndex: number) {
+  if (String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB') {
+    const key = getPreviewItemKey(item, componentIndex);
+    const o = fileCollabPreviewRowCountMap.value[key];
+    const base = Math.max(1, Number(item?.customProps?.tableBodyRows) || 1);
+    if (o != null && Number.isFinite(o) && o >= 1) return Math.min(50, o);
+    return base;
+  }
+  return Math.max(1, Number(item?.customProps?.tableBodyRows) || 1);
+}
+function onFileCollabPreviewAddRow(item: any, componentIndex: number) {
+  if (isOutputIoType(item)) return;
+  const key = getPreviewItemKey(item, componentIndex);
+  const cur = getPreviewTableBodyRowCountForTable(item, componentIndex);
+  if (cur >= 50) {
+    message.warning('表格行数最多为 50');
+    return;
+  }
+  fileCollabPreviewRowCountMap.value = { ...fileCollabPreviewRowCountMap.value, [key]: cur + 1 };
+}
+function onFileCollabPreviewUpdate(_item: any, _componentIndex: number) {
+  message.success('已更新');
 }
 function getPreview3dSubKey(item: any, index: number, part: 'templateName' | 'modelName' | 'modelSelectName') {
   return `${getPreviewItemKey(item, index)}::${part}`;
@@ -122,9 +147,47 @@ function getPreviewTableColDef(item: any, physicalColIndex: number) {
 function getPreviewTableColDataType(item: any, physicalColIndex: number): string {
   return String(getPreviewTableColDef(item, physicalColIndex)?.dataType ?? 'TEXT');
 }
-/** 文件协同：第 2 列为「文件名称」，预览中只读不可编辑 */
+/** 文件协同：第 2 列为「文档名称」，预览中只读不可编辑（一般由「浏览」上传回填） */
 function isFileCollabFileNameReadonlyCell(item: any, physicalColIndex: number) {
   return String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB' && physicalColIndex === 2;
+}
+/** 文件协同表格 */
+function isWorkspaceTableFileCollab(item: any) {
+  return item?.componentType === 'TABLE' && String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB';
+}
+/** 文件协同：仅第 9 列「备注」使用文本输入框 */
+function isFileCollabRemarkTextInputCell(item: any, physicalColIndex: number) {
+  return isWorkspaceTableFileCollab(item) && physicalColIndex === 9;
+}
+/** 文件协同：第 3 列为「密级」，下拉选项取自当前用户可访问密级（userStore.getConfidentialLevel） */
+function isFileCollabConfidentialLevelCell(item: any, physicalColIndex: number) {
+  return String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB' && physicalColIndex === 3;
+}
+function getFileCollabConfidentialLevelSelectOptions() {
+  const list = userStore.getConfidentialLevel as Array<{ value: number; label: string }> | undefined;
+  if (!Array.isArray(list)) return [];
+  return list.map(x => ({ label: x.label, value: String(x.value) }));
+}
+/** 密级默认「公开」(0)，无键或空串时视为 0 */
+function getFileCollabConfidentialLevelValue(item: any, componentIndex: number, bodyRow: number, col: number): string {
+  const v = String(getPreviewTableCellValue(item, componentIndex, bodyRow, col) ?? '').trim();
+  return v === '' ? '0' : v;
+}
+/** 上传接口返回中解析文件密级（兼容多种字段/嵌套） */
+function pickConfidentialLevelFromUploadResponse(raw: any): string | null {
+  if (raw == null || typeof raw !== 'object') return null;
+  const inner = (raw as any).data != null && typeof (raw as any).data === 'object' ? (raw as any).data : raw;
+  const lv = inner?.confidentialLevel ?? inner?.securityLevel ?? (raw as any).confidentialLevel ?? (raw as any).securityLevel;
+  if (lv == null) return null;
+  const s = String(lv).trim();
+  return s === '' ? null : s;
+}
+/** 文件协同只读列展示：第 4～8 列无内容时显示「—」 */
+function fileCollabReadonlySpanText(item: any, componentIndex: number, bodyRow: number, col: number): string {
+  const v = String(getPreviewTableCellValue(item, componentIndex, bodyRow, col) ?? '');
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB' && col >= 4 && col <= 8 && !v.trim()) return '—';
+  return v;
 }
 function parseTableDropdownOptions(raw: unknown) {
   const s = String(raw ?? '').trim();
@@ -172,7 +235,7 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
   if (isOutputIoType(item)) return;
   const biz = String(item?.customProps?.tableBizType ?? '');
   if (biz === 'FILE_COLLAB') {
-    if (t === '上传') {
+    if (t === '浏览' || t === '上传') {
       fileCollabUploadTarget.value = { item, componentIndex, bodyRow };
       fileCollabUploadInputRef.value?.click();
       return;
@@ -183,6 +246,24 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
     }
     if (t === '清空') {
       clearFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    if (t === '删除行') {
+      clearFileCollabRow(item, componentIndex, bodyRow);
+      const key = getPreviewItemKey(item, componentIndex);
+      const cur = getPreviewTableBodyRowCountForTable(item, componentIndex);
+      if (cur > 1) {
+        fileCollabPreviewRowCountMap.value = { ...fileCollabPreviewRowCountMap.value, [key]: cur - 1 };
+      }
+      message.success('已删除该行');
+      return;
+    }
+    if (t === '分配') {
+      message.info('分配（待实现）');
+      return;
+    }
+    if (t === '发布') {
+      message.info('发布（待实现）');
       return;
     }
   }
@@ -231,16 +312,29 @@ async function onFileCollabFileInputChange(e: Event) {
   if (!file || !target) return;
   if (isOutputIoType(target.item)) return;
   try {
+    const securityLevel = getFileCollabConfidentialLevelValue(target.item, target.componentIndex, target.bodyRow, 3);
     const res = await AdminApiSystemUploadFile.uploadFile({
       file,
       userId: userStore.getUser.id,
-      securityLevel: 1,
+      securityLevel,
     } as any);
     if (res?.data?.code == 0) {
       const d: any = res.data;
-      const fileId = String(d.id ?? '').trim();
-      const displayName = String(d.oldFileName ?? d.fileName ?? file.name).trim();
+      const fileId = String(d.id ?? d.data?.id ?? '').trim();
+      const displayName = String(d.oldFileName ?? d.fileName ?? d.data?.oldFileName ?? d.data?.fileName ?? file.name).trim();
       setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 2, displayName);
+      const levelFromApi = pickConfidentialLevelFromUploadResponse(d);
+      if (levelFromApi != null) {
+        setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 3, levelFromApi);
+      }
+      const dayStr = dayjs().format('YYYY/MM/DD');
+      setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 4, dayStr);
+      const u = userStore.getUser;
+      const creator = String(u?.nickname ?? u?.userName ?? '').trim();
+      setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 5, creator || '—');
+      setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 6, '待分发');
+      setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 7, '');
+      setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 8, '');
       const rowKey = getFileCollabRowKey(target.item, target.componentIndex, target.bodyRow);
       previewFileCollabFileIdMap.value = { ...previewFileCollabFileIdMap.value, [rowKey]: fileId };
       message.success('上传成功');
@@ -490,6 +584,7 @@ watch(
     previewUploadFileMap.value = {};
     previewTableCellMap.value = {};
     previewFileCollabFileIdMap.value = {};
+    fileCollabPreviewRowCountMap.value = {};
   },
   { deep: false },
 );
@@ -794,7 +889,6 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
     if (colIndex === 2) return '模型件号';
     if (colIndex === 3) return '模型名称';
   }
-  if (biz === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -819,7 +913,7 @@ function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
 function getWorkspaceTableOperationButtons(item: any) {
   const p = item?.customProps || {};
   const biz = String(p.tableBizType ?? '');
-  if (biz === 'FILE_COLLAB') return ['上传', '下载', '清空'];
+  if (biz === 'FILE_COLLAB') return ['浏览', '删除行', '分配', '发布'];
   if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
   if (biz === 'MODULE_LIB_READ') {
     const buttons = ['浏览'];
@@ -845,7 +939,7 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
   if (isWorkspaceTableOperationColumn(item, colIndex)) {
     const biz = String(item?.customProps?.tableBizType ?? '');
     if (biz === 'FILE_COLLAB') {
-      return { width: '200px', minWidth: '200px' } as Record<string, string>;
+      return { width: '216px', minWidth: '216px' } as Record<string, string>;
     }
     if (biz === 'MODULE_LIB_READ') {
       const n = getWorkspaceTableOperationButtons(item).length;
@@ -853,6 +947,13 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
       return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
     }
     return { width: '96px', minWidth: '96px' } as Record<string, string>;
+  }
+  const bizData = String(item?.customProps?.tableBizType ?? '');
+  if (bizData === 'FILE_COLLAB') {
+    const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+    const css = normalizeFixedTableColumnWidthCss(w);
+    const width = css || '180px';
+    return { width, minWidth: width } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
   const css = normalizeFixedTableColumnWidthCss(w);
@@ -1060,9 +1161,21 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                     <CkeditorPlugin height="180" :disabled="isOutputIoType(item)" />
                   </div>
 
-                  <div v-else-if="item.componentType === 'TABLE'" class="fixed-table-preview">
-                    <div v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-row">
-                      <span class="fixed-table-preview-title-text">{{ item.customProps.tableTitle }}</span>
+                  <div
+                    v-else-if="item.componentType === 'TABLE'"
+                    class="fixed-table-preview"
+                    :class="{ 'fixed-table-preview--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB' }">
+                    <div
+                      v-if="(item.customProps?.tableTitle || '').trim() !== '' || String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'"
+                      class="fixed-table-preview-title-row"
+                      :class="{ 'fixed-table-preview-title-row--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB' }">
+                      <span v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-text">{{
+                        item.customProps.tableTitle
+                      }}</span>
+                      <div v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
+                        <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
+                        <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
+                      </div>
                     </div>
                     <div class="fixed-table-preview-scroll">
                       <table class="fixed-table-preview-grid">
@@ -1078,7 +1191,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="r in tableDimensionRange(item.customProps?.tableBodyRows || 1)" :key="`b-${r}`">
+                          <tr v-for="r in tableDimensionRange(getPreviewTableBodyRowCountForTable(item, index))" :key="`b-${r}`">
                             <td
                               v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
                               :key="`b-${r}-${c}`"
@@ -1090,10 +1203,26 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                               </template>
                               <template v-else-if="isWorkspaceTableBizWithColDefs(item) && !isWorkspaceTableOperationColumn(item, c)">
                                 <template v-if="getPreviewTableColDataType(item, c) === 'READONLY_TEXT' || isFileCollabFileNameReadonlyCell(item, c)">
-                                  <span class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
+                                  <span class="fixed-table-preview-cell-text">{{ fileCollabReadonlySpanText(item, index, r, c) }}</span>
                                 </template>
+                                <a-select
+                                  v-else-if="isFileCollabConfidentialLevelCell(item, c)"
+                                  :value="getFileCollabConfidentialLevelValue(item, index, r, c)"
+                                  :options="getFileCollabConfidentialLevelSelectOptions()"
+                                  placeholder="请选择"
+                                  size="small"
+                                  :disabled="isOutputIoType(item)"
+                                  class="fixed-table-preview-cell-select"
+                                  popup-class-name="fixed-table-preview-select-dropdown"
+                                  @update:value="
+                                    (v: string | undefined) =>
+                                      setPreviewTableCellValue(item, index, r, c, v != null && String(v).trim() !== '' ? String(v).trim() : '0')
+                                  " />
                                 <a-input
-                                  v-else-if="getPreviewTableColDataType(item, c) === 'TEXT'"
+                                  v-else-if="
+                                    getPreviewTableColDataType(item, c) === 'TEXT' &&
+                                    (!isWorkspaceTableFileCollab(item) || isFileCollabRemarkTextInputCell(item, c))
+                                  "
                                   :value="getPreviewTableCellValue(item, index, r, c)"
                                   size="small"
                                   placeholder="请输入"
@@ -1101,7 +1230,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                                   class="fixed-table-preview-cell-input"
                                   @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
                                 <a-select
-                                  v-else-if="getPreviewTableColDataType(item, c) === 'DROPDOWN'"
+                                  v-else-if="getPreviewTableColDataType(item, c) === 'DROPDOWN' && !isWorkspaceTableFileCollab(item)"
                                   :value="getPreviewTableCellValue(item, index, r, c) || undefined"
                                   :options="parseTableDropdownOptions(getPreviewTableColDef(item, c)?.dropdownValues)"
                                   placeholder="请选择"
@@ -1111,6 +1240,11 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                                   class="fixed-table-preview-cell-select"
                                   popup-class-name="fixed-table-preview-select-dropdown"
                                   @update:value="(v: string | undefined) => setPreviewTableCellValue(item, index, r, c, v ?? '')" />
+                                <span
+                                  v-else-if="isWorkspaceTableFileCollab(item)"
+                                  class="fixed-table-preview-cell-text">
+                                  {{ fileCollabReadonlySpanText(item, index, r, c) }}
+                                </span>
                                 <span v-else class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
                               </template>
                               <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
@@ -1631,6 +1765,33 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   width: 100%;
   max-width: 100%;
 }
+/** 文件协同：拉长可视区域，列宽由 getFixedTableColumnPreviewStyle 控制 */
+.fixed-table-preview--file-collab {
+  --activity-preview-table-width: 1080px;
+}
+.fixed-table-preview-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+.fixed-table-preview-title-row--file-collab {
+  justify-content: space-between;
+}
+.fixed-table-preview-title-text {
+  font-size: 14px;
+  color: #333;
+}
+.file-collab-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.file-collab-preview-toolbar :deep(.ant-btn) {
+  padding: 0 6px;
+}
 /* 表格总宽度限制，列宽仍由配置决定；总宽超出时出现横向滚动条 */
 .fixed-table-preview-scroll {
   overflow-x: auto;
@@ -1696,6 +1857,10 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+.fixed-table-preview--file-collab .fixed-table-preview-td--op .fixed-table-cell-op-btns {
+  flex-wrap: wrap;
+  gap: 4px 8px;
 }
 .fixed-table-preview-td--op .fixed-table-cell-op-btns {
   flex-wrap: nowrap;

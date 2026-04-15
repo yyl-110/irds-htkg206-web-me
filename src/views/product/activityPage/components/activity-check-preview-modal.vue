@@ -173,7 +173,7 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
   if (isOutputIoType(item)) return;
   const biz = String(item?.customProps?.tableBizType ?? '');
   if (biz === 'FILE_COLLAB') {
-    if (t === '上传') {
+    if (t === '浏览' || t === '上传') {
       fileCollabUploadTarget.value = { item, componentIndex, bodyRow };
       fileCollabUploadInputRef.value?.click();
       return;
@@ -184,6 +184,19 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
     }
     if (t === '清空') {
       clearFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    if (t === '删除行') {
+      clearFileCollabRow(item, componentIndex, bodyRow);
+      message.success('已删除该行');
+      return;
+    }
+    if (t === '分配') {
+      message.info('分配（待实现）');
+      return;
+    }
+    if (t === '发布') {
+      message.info('发布（待实现）');
       return;
     }
   }
@@ -796,7 +809,6 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
     if (colIndex === 2) return '模型件号';
     if (colIndex === 3) return '模型名称';
   }
-  if (biz === 'FILE_COLLAB' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -821,7 +833,7 @@ function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
 function getWorkspaceTableOperationButtons(item: any) {
   const p = item?.customProps || {};
   const biz = String(p.tableBizType ?? '');
-  if (biz === 'FILE_COLLAB') return ['上传', '下载', '清空'];
+  if (biz === 'FILE_COLLAB') return ['浏览', '删除行', '分配', '发布'];
   if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
   if (biz === 'MODULE_LIB_READ') {
     const buttons = ['浏览'];
@@ -847,7 +859,7 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
   if (isWorkspaceTableOperationColumn(item, colIndex)) {
     const biz = String(item?.customProps?.tableBizType ?? '');
     if (biz === 'FILE_COLLAB') {
-      return { width: '200px', minWidth: '200px' } as Record<string, string>;
+      return { width: '216px', minWidth: '216px' } as Record<string, string>;
     }
     if (biz === 'MODULE_LIB_READ') {
       const n = getWorkspaceTableOperationButtons(item).length;
@@ -855,6 +867,13 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
       return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
     }
     return { width: '96px', minWidth: '96px' } as Record<string, string>;
+  }
+  const bizData = String(item?.customProps?.tableBizType ?? '');
+  if (bizData === 'FILE_COLLAB') {
+    const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+    const css = normalizeFixedTableColumnWidthCss(w);
+    const width = css || '180px';
+    return { width, minWidth: width } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
   const css = normalizeFixedTableColumnWidthCss(w);
