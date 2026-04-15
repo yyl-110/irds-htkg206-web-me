@@ -254,8 +254,13 @@ function getTableRowDefCategoryColumnLabel(tableBizType: string | undefined) {
 function openColumnDefModal() {
   const c = selectedComponent.value;
   if (!c?.customProps || !['FIXED', 'ROW_EXPAND'].includes(c.customProps.tableSubtype)) return;
+  if (c.customProps.tableBizType === 'FILE_COLLAB') return;
   syncWorkspaceTableRowColDefs(c);
-  columnDefDraft.value = cloneFixedTableColDefsForModal(c.customProps.tableColDefs);
+  if (c.customProps.tableBizType === 'FILE_COLLAB_SIMPLE') {
+    columnDefDraft.value = cloneFixedTableColDefsForModal((c.customProps.tableColDefs || []).slice(2));
+  } else {
+    columnDefDraft.value = cloneFixedTableColDefsForModal(c.customProps.tableColDefs);
+  }
   columnDefModalVisible.value = true;
 }
 function applyColumnDefModal() {
@@ -263,12 +268,24 @@ function applyColumnDefModal() {
   if (!c?.customProps) return;
   const p = c.customProps;
   const next = cloneFixedTableColDefsForModal(columnDefDraft.value);
-  p.tableColDefs.splice(0, p.tableColDefs.length, ...next);
+  if (p.tableBizType === 'FILE_COLLAB_SIMPLE') {
+    const head = p.tableColDefs.slice(0, 2);
+    p.tableColDefs.splice(0, p.tableColDefs.length, ...head, ...next);
+  } else {
+    p.tableColDefs.splice(0, p.tableColDefs.length, ...next);
+  }
   applyModuleLibReadFixedColumnNames(p);
+  applyFileCollabSimpleColumnSchema(p);
   columnDefModalVisible.value = false;
 }
 function cancelColumnDefModal() {
   columnDefModalVisible.value = false;
+}
+/** 列定义弹窗：物理列号 → columnDefDraft 下标（简易文件协同的 draft 仅含第 3 列起的自定义列） */
+function getColumnDefModalDraftIndex(physicalCol: number, tableBizType: string | undefined): number {
+  const biz = String(tableBizType ?? '');
+  if (biz === 'FILE_COLLAB_SIMPLE') return physicalCol - 3;
+  return physicalCol - 1;
 }
 
 function createDefaultComponent(componentType: string) {
@@ -345,14 +362,14 @@ function createTableComponent(tableSubtype: 'FIXED' | 'ROW_EXPAND', bodyRows: nu
   }
   if (tableSubtype === 'FIXED' || tableSubtype === 'ROW_EXPAND') {
     const biz = opts?.tableBizType || 'NORMAL';
-    base.tableBizType = ['MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'NORMAL'].includes(biz) ? biz : 'NORMAL';
+    base.tableBizType = ['MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'FILE_COLLAB_SIMPLE', 'NORMAL'].includes(biz) ? biz : 'NORMAL';
     base.tableNumber = '';
     base.btnOpenDrawing = true;
     if (base.tableBizType === 'BASIC_RESOURCE_LIB_READ') {
       base.basicResourceLibType = 'MODEL_LIB';
     }
     base.tableRowDefs =
-      base.tableBizType === 'FILE_COLLAB' || base.tableBizType === 'NORMAL'
+      base.tableBizType === 'FILE_COLLAB' || base.tableBizType === 'FILE_COLLAB_SIMPLE' || base.tableBizType === 'NORMAL'
         ? []
         : Array.from({ length: br }, () => ({ moduleLibCategory: '', moduleLibCategoryId: '', moduleLibCategoryMenuId: '' }));
     base.tableColDefs = Array.from({ length: cc }, () => ({
@@ -444,6 +461,12 @@ function confirmTableSize() {
       return;
     }
     colCountForCreate = moduleLibReadStoredColCountFromExtra(Math.max(0, Math.min(17, Math.floor(c))));
+  } else if (biz === 'FILE_COLLAB_SIMPLE') {
+    if (!Number.isFinite(c) || c < 1) {
+      message.warning('请输入有效的列数（≥1）');
+      return;
+    }
+    colCountForCreate = 2 + Math.floor(c);
   } else {
     if (!Number.isFinite(c) || c < 1) {
       message.warning('请输入有效的列数（≥1）');
@@ -1411,7 +1434,7 @@ function tableDimensionRange(count: number) {
 }
 function shouldShowWorkspaceTableOperationColumn(item: any) {
   const biz = String(item?.customProps?.tableBizType ?? '');
-  return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB';
+  return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB' || biz === 'FILE_COLLAB_SIMPLE';
 }
 function getWorkspaceTablePreviewColCount(item: any) {
   const base = Math.max(1, Number(item?.customProps?.tableColCount) || 1);
@@ -1424,7 +1447,8 @@ function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
 function getWorkspaceTableOperationButtons(item: any) {
   const p = item?.customProps || {};
   const biz = String(p.tableBizType ?? '');
-  if (biz === 'FILE_COLLAB') return ['上传', '下载', '清空'];
+  if (biz === 'FILE_COLLAB') return ['浏览', '删除行', '分配', '发布'];
+  if (biz === 'FILE_COLLAB_SIMPLE') return ['上传', '下载', '清空'];
   if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
   if (biz === 'MODULE_LIB_READ') {
     const buttons = ['浏览'];
@@ -1448,6 +1472,7 @@ function getFixedTableConfigurableColRange(customProps: any) {
   const n = Math.max(0, Math.min(100, Number(customProps?.tableColCount) || 0));
   let start = 2;
   if (biz === 'MODULE_LIB_READ') start = 4;
+  if (biz === 'FILE_COLLAB_SIMPLE') start = 3;
   if (n < start) return [];
   return Array.from({ length: n - start + 1 }, (_, i) => i + start);
 }
@@ -1467,7 +1492,10 @@ function onModuleLibReadExtraColCountChange(v: number | string | null) {
   c.customProps.tableColCount = moduleLibReadStoredColCountFromExtra(k);
   syncWorkspaceTableRowColDefs(c);
 }
-function getTableColCountSelectOptions(_tableBizType: string | undefined) {
+function getTableColCountSelectOptions(tableBizType: string | undefined) {
+  if (tableBizType === 'FILE_COLLAB_SIMPLE') {
+    return Array.from({ length: 18 }, (_, i) => i + 3);
+  }
   return Array.from({ length: 20 }, (_, i) => i + 1);
 }
 /** 固定表格预览表头：首列在序号模式下为「序号」，复选/单选下留空；其余列优先 customProps.tableColDefs 中的 columnName */
@@ -1478,6 +1506,7 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
     if (colIndex === 2) return '模型件号';
     if (colIndex === 3) return '模型名称';
   }
+  if (biz === 'FILE_COLLAB_SIMPLE' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -1489,6 +1518,8 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
 }
 /** 列定义概览 / 弹窗：第 physicalColIndex 列的展示名（未填则「第N列」） */
 function getFixedTableColDisplayName(customProps: any, physicalColIndex: number) {
+  const biz = String(customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB_SIMPLE' && physicalColIndex === 2) return '文件名称';
   const raw = customProps?.tableColDefs?.[physicalColIndex - 1]?.columnName;
   if (raw != null && String(raw).trim() !== '') return String(raw).trim();
   return `第${physicalColIndex}列`;
@@ -1533,6 +1564,7 @@ function onTablePreviewCellClick(itemIndex: number, row: number, col: number) {
   if (!item?.customProps || !['FIXED', 'ROW_EXPAND'].includes(item.customProps.tableSubtype)) return;
   /** 第 1 列和操作列均为展示/操作区，不参与单元格配置 */
   if (col === 1 || isWorkspaceTableOperationColumn(item, col)) return;
+  if (String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE' && col === 2) return;
   if (!isWorkspaceTableCellDesignable(item, col)) return;
   selectedIndex.value = itemIndex;
   syncWorkspaceTableRowColDefs(item);
@@ -1546,6 +1578,7 @@ function onTablePreviewCellClick(itemIndex: number, row: number, col: number) {
 }
 function isWorkspaceTableCellDesignable(item: any, col: number) {
   if (!item?.customProps) return false;
+  if (String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE' && col === 2) return false;
   const dt = String(item.customProps?.tableColDefs?.[col - 1]?.dataType ?? 'TEXT');
   return dt === 'READONLY_TEXT' || dt === 'TEXT' || dt === 'DROPDOWN';
 }
@@ -1625,6 +1658,11 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
     if (biz === 'FILE_COLLAB') {
       return { width: '216px', minWidth: '216px' } as Record<string, string>;
     }
+    if (biz === 'FILE_COLLAB_SIMPLE') {
+      const n = getWorkspaceTableOperationButtons(item).length;
+      const w = Math.min(300, Math.max(88, 58 * n + 36));
+      return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
+    }
     if (biz === 'MODULE_LIB_READ') {
       const n = getWorkspaceTableOperationButtons(item).length;
       /** 按链接条数收紧宽度，避免操作列右侧大块留白 */
@@ -1638,6 +1676,12 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
     const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
     const css = normalizeFixedTableColumnWidthCss(w);
     const width = css || '180px';
+    return { width, minWidth: width } as Record<string, string>;
+  }
+  if (bizData === 'FILE_COLLAB_SIMPLE') {
+    const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+    const css = normalizeFixedTableColumnWidthCss(w);
+    const width = css || '170px';
     return { width, minWidth: width } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
@@ -1810,6 +1854,48 @@ function applyModuleLibReadFixedColumnNames(p: Record<string, any>) {
   if (p.tableColDefs[0]) p.tableColDefs[0].columnName = '模型件号';
   if (p.tableColDefs[1]) p.tableColDefs[1].columnName = '模型名称';
 }
+function normalizeFileCollabSimpleFixedFileColumn(p: Record<string, any>) {
+  if (p.tableBizType !== 'FILE_COLLAB_SIMPLE' || !Array.isArray(p.tableColDefs)) return;
+  const d = p.tableColDefs;
+  if (d.length < 2) return;
+  const at1 = d[1];
+  const isFixed =
+    String(at1?.columnName ?? '').trim() === '文件名称' && String(at1?.dataType ?? '') === 'READONLY_TEXT';
+  if (isFixed) return;
+  d.splice(1, 0, {
+    paramCode: '',
+    parameterId: null,
+    dataType: 'READONLY_TEXT',
+    dropdownValues: '',
+    columnWidth: '',
+    columnName: '文件名称',
+  });
+  p.tableColCount = Math.min(20, d.length);
+}
+function applyFileCollabSimpleColumnSchema(p: Record<string, any>) {
+  if (p.tableBizType !== 'FILE_COLLAB_SIMPLE' || !Array.isArray(p.tableColDefs)) return;
+  const defs = p.tableColDefs;
+  if (defs[0] && typeof defs[0] === 'object') {
+    if (defs[0].paramCode == null) defs[0].paramCode = '';
+    if (defs[0].parameterId === undefined) defs[0].parameterId = null;
+    if (!defs[0].dataType) defs[0].dataType = 'TEXT';
+  }
+  if (!defs[1] || typeof defs[1] !== 'object') defs[1] = {};
+  defs[1].columnName = '文件名称';
+  defs[1].dataType = 'READONLY_TEXT';
+  if (defs[1].paramCode == null) defs[1].paramCode = '';
+  if (defs[1].parameterId === undefined) defs[1].parameterId = null;
+  if (defs[1].dropdownValues == null) defs[1].dropdownValues = '';
+  if (defs[1].columnWidth == null) defs[1].columnWidth = '';
+  for (let i = 2; i < defs.length; i++) {
+    const def = defs[i];
+    if (!def || typeof def !== 'object') continue;
+    if (!String(def.columnName || '').trim()) {
+      def.columnName = i === 2 ? '列名2' : `列名${i}`;
+    }
+    if (!def.dataType) def.dataType = 'TEXT';
+  }
+}
 /** 与活动配置一致：序号 + 8 列 + 操作；defs[1]-[8] 为业务字段 */
 function applyFileCollabFixedColumnSchema(p: Record<string, any>) {
   if (p.tableBizType !== 'FILE_COLLAB' || !Array.isArray(p.tableColDefs)) return;
@@ -1833,15 +1919,22 @@ function applyFileCollabFixedColumnSchema(p: Record<string, any>) {
 function syncWorkspaceTableRowColDefs(component: any) {
   const p = component?.customProps;
   if (!p || (p.tableSubtype !== 'FIXED' && p.tableSubtype !== 'ROW_EXPAND')) return;
+  if (p.tableBizType === 'FILE_COLLAB_SIMPLE') {
+    normalizeFileCollabSimpleFixedFileColumn(p);
+  }
   const rows = Math.max(1, Math.min(50, Number(p.tableBodyRows) || 1));
   let cols = Math.max(1, Math.min(20, Number(p.tableColCount) || 1));
+  if (p.tableBizType === 'FILE_COLLAB_SIMPLE' && cols < 3) {
+    cols = 3;
+    p.tableColCount = 3;
+  }
   if (p.tableBizType === 'MODULE_LIB_READ' && cols < 3) {
     cols = 3;
     p.tableColCount = 3;
   }
   if (!Array.isArray(p.tableColDefs)) p.tableColDefs = [];
   /** 文件协同、普通表格无行定义配置，不保留 tableRowDefs */
-  if (p.tableBizType === 'FILE_COLLAB' || p.tableBizType === 'NORMAL') {
+  if (p.tableBizType === 'FILE_COLLAB' || p.tableBizType === 'FILE_COLLAB_SIMPLE' || p.tableBizType === 'NORMAL') {
     p.tableRowDefs = [];
   } else {
     if (!Array.isArray(p.tableRowDefs)) p.tableRowDefs = [];
@@ -1878,6 +1971,7 @@ function syncWorkspaceTableRowColDefs(component: any) {
   }
   applyModuleLibReadFixedColumnNames(p);
   applyFileCollabFixedColumnSchema(p);
+  applyFileCollabSimpleColumnSchema(p);
   if (p.cellParamInheritMap && typeof p.cellParamInheritMap === 'object') {
     for (const key of Object.keys(p.cellParamInheritMap)) {
       const parts = key.split('-');
@@ -1902,6 +1996,7 @@ function ensureWorkspaceTableDefaults(component: any) {
     p.tableBodyRows = 4;
   }
   if (p.tableColCount == null || p.tableColCount < 1) p.tableColCount = 3;
+  if (p.tableBizType === 'FILE_COLLAB_SIMPLE' && p.tableColCount < 3) p.tableColCount = 3;
   if (p.tableBizType === 'MODULE_LIB_READ' && p.tableColCount < 3) p.tableColCount = 3;
   if (!p.firstColumnType) p.firstColumnType = 'INDEX';
   if (p.btnOpenModel == null) p.btnOpenModel = false;
@@ -2090,7 +2185,7 @@ watch(
     }
     if (type === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(selectedComponent.value?.customProps?.tableSubtype)) {
       const biz = selectedComponent.value?.customProps?.tableBizType;
-      fixedTablePanelKeys.value = biz === 'FILE_COLLAB' || biz === 'NORMAL' ? ['info', 'cols'] : ['info', 'rows', 'cols'];
+      fixedTablePanelKeys.value = biz === 'FILE_COLLAB' || biz === 'FILE_COLLAB_SIMPLE' || biz === 'NORMAL' ? ['info', 'cols'] : ['info', 'rows', 'cols'];
     }
     if (type === '3D_VIEW' && selectedComponent.value?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE') {
       templateBrowse3dPanelKeys.value = ['tpl', 'model', 'buttons'];
@@ -2110,7 +2205,7 @@ watch(
     if (selectedComponent.value?.componentType !== 'TABLE') return;
     if (st === 'FIXED' || st === 'ROW_EXPAND') {
       const biz = selectedComponent.value?.customProps?.tableBizType;
-      fixedTablePanelKeys.value = biz === 'FILE_COLLAB' || biz === 'NORMAL' ? ['info', 'cols'] : ['info', 'rows', 'cols'];
+      fixedTablePanelKeys.value = biz === 'FILE_COLLAB' || biz === 'FILE_COLLAB_SIMPLE' || biz === 'NORMAL' ? ['info', 'cols'] : ['info', 'rows', 'cols'];
       syncWorkspaceTableRowColDefs(selectedComponent.value);
     }
   },
@@ -2122,7 +2217,7 @@ watch(
     const c = selectedComponent.value;
     if (c?.componentType !== 'TABLE' || !['FIXED', 'ROW_EXPAND'].includes(c.customProps?.tableSubtype || '')) return;
     const biz = c.customProps?.tableBizType;
-    fixedTablePanelKeys.value = biz === 'FILE_COLLAB' || biz === 'NORMAL' ? ['info', 'cols'] : ['info', 'rows', 'cols'];
+    fixedTablePanelKeys.value = biz === 'FILE_COLLAB' || biz === 'FILE_COLLAB_SIMPLE' || biz === 'NORMAL' ? ['info', 'cols'] : ['info', 'rows', 'cols'];
     if (biz === 'BASIC_RESOURCE_LIB_READ' && c.customProps.basicResourceLibType == null) {
       c.customProps.basicResourceLibType = 'MODEL_LIB';
     }
@@ -2705,7 +2800,7 @@ watch(
           :dropdown-style="tableBizTypeSelectDropdownStyle">
           <a-select-option value="MODULE_LIB_READ">模型库读取</a-select-option>
           <a-select-option value="BASIC_RESOURCE_LIB_READ">基础资源库读取</a-select-option>
-          <a-select-option value="FILE_COLLAB">文件协同</a-select-option>
+          <a-select-option value="FILE_COLLAB_SIMPLE">简易文件协同</a-select-option>
           <a-select-option value="NORMAL">普通表格</a-select-option>
         </a-select>
       </a-form-item>
@@ -2750,17 +2845,36 @@ watch(
         <tbody>
           <tr v-for="c in getFixedTableConfigurableColRange(selectedComponent?.customProps)" :key="`col-edit-${c}`">
             <td class="fixed-table-def-td">
-              <a-input v-model:value="columnDefDraft[c - 1].columnName" :placeholder="`第${c}列`" allow-clear class="fixed-table-def-col-name-input" />
+              <a-input
+                v-model:value="columnDefDraft[getColumnDefModalDraftIndex(c, selectedComponent?.customProps?.tableBizType)].columnName"
+                :placeholder="`第${c}列`"
+                allow-clear
+                class="fixed-table-def-col-name-input" />
             </td>
             <td class="fixed-table-def-td">
               <div class="fixed-table-def-cell fixed-table-def-cell--browse">
-                <a-input v-model:value="columnDefDraft[c - 1].paramCode" placeholder="请通过浏览选择" disabled class="browse-adjoined-input" />
-                <a-button type="primary" size="small" class="fixed-table-def-browse-btn" @click="showParameter({ type: 'tableColDraft', colIndex: c - 1 })"> 浏览 </a-button>
+                <a-input
+                  v-model:value="columnDefDraft[getColumnDefModalDraftIndex(c, selectedComponent?.customProps?.tableBizType)].paramCode"
+                  placeholder="请通过浏览选择"
+                  disabled
+                  class="browse-adjoined-input" />
+                <a-button
+                  type="primary"
+                  size="small"
+                  class="fixed-table-def-browse-btn"
+                  @click="
+                    showParameter({
+                      type: 'tableColDraft',
+                      colIndex: getColumnDefModalDraftIndex(c, selectedComponent?.customProps?.tableBizType),
+                    })
+                  ">
+                  浏览
+                </a-button>
               </div>
             </td>
             <td class="fixed-table-def-td">
               <a-select
-                v-model:value="columnDefDraft[c - 1].dataType"
+                v-model:value="columnDefDraft[getColumnDefModalDraftIndex(c, selectedComponent?.customProps?.tableBizType)].dataType"
                 class="fixed-table-def-select"
                 :getPopupContainer="getTableBizTypeSelectPopupContainer"
                 :dropdown-style="tableBizTypeSelectDropdownStyle">
@@ -2770,11 +2884,17 @@ watch(
               </a-select>
             </td>
             <td class="fixed-table-def-td">
-              <a-input v-if="columnDefDraft[c - 1].dataType === 'DROPDOWN'" v-model:value="columnDefDraft[c - 1].dropdownValues" placeholder="如：2;4;6;8;10" />
+              <a-input
+                v-if="columnDefDraft[getColumnDefModalDraftIndex(c, selectedComponent?.customProps?.tableBizType)].dataType === 'DROPDOWN'"
+                v-model:value="columnDefDraft[getColumnDefModalDraftIndex(c, selectedComponent?.customProps?.tableBizType)].dropdownValues"
+                placeholder="如：2;4;6;8;10" />
               <span v-else class="fixed-table-def-placeholder">—</span>
             </td>
             <td class="fixed-table-def-td">
-              <a-input v-model:value="columnDefDraft[c - 1].columnWidth" placeholder="如：200" class="fixed-table-def-col-width-input" />
+              <a-input
+                v-model:value="columnDefDraft[getColumnDefModalDraftIndex(c, selectedComponent?.customProps?.tableBizType)].columnWidth"
+                placeholder="如：200"
+                class="fixed-table-def-col-width-input" />
             </td>
           </tr>
         </tbody>

@@ -139,7 +139,7 @@ function getFileCollabRowKey(item: any, componentIndex: number, bodyRow: number)
 function isWorkspaceTableBizWithColDefs(item: any) {
   if (item?.componentType !== 'TABLE') return false;
   const biz = String(item?.customProps?.tableBizType ?? '');
-  return ['MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'NORMAL'].includes(biz);
+  return ['MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'FILE_COLLAB_SIMPLE', 'NORMAL'].includes(biz);
 }
 function getPreviewTableColDef(item: any, physicalColIndex: number) {
   return item?.customProps?.tableColDefs?.[physicalColIndex - 1];
@@ -234,6 +234,22 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
   const t = String(btn ?? '').trim();
   if (isOutputIoType(item)) return;
   const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB_SIMPLE') {
+    if (t === '上传') {
+      fileCollabUploadTarget.value = { item, componentIndex, bodyRow };
+      fileCollabUploadInputRef.value?.click();
+      return;
+    }
+    if (t === '下载') {
+      void downloadFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    if (t === '清空') {
+      clearFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    return;
+  }
   if (biz === 'FILE_COLLAB') {
     if (t === '浏览' || t === '上传') {
       fileCollabUploadTarget.value = { item, componentIndex, bodyRow };
@@ -889,6 +905,7 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
     if (colIndex === 2) return '模型件号';
     if (colIndex === 3) return '模型名称';
   }
+  if (biz === 'FILE_COLLAB_SIMPLE' && colIndex === 2) return '文件名称';
   const firstType = item?.customProps?.firstColumnType || 'INDEX';
   if (colIndex === 1) {
     if (firstType === 'INDEX') return '序号';
@@ -900,7 +917,7 @@ function getFixedTableHeaderLabel(item: any, colIndex: number) {
 }
 function shouldShowWorkspaceTableOperationColumn(item: any) {
   const biz = String(item?.customProps?.tableBizType ?? '');
-  return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB';
+  return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB' || biz === 'FILE_COLLAB_SIMPLE';
 }
 function getWorkspaceTablePreviewColCount(item: any) {
   const base = Math.max(1, Number(item?.customProps?.tableColCount) || 1);
@@ -914,6 +931,7 @@ function getWorkspaceTableOperationButtons(item: any) {
   const p = item?.customProps || {};
   const biz = String(p.tableBizType ?? '');
   if (biz === 'FILE_COLLAB') return ['浏览', '删除行', '分配', '发布'];
+  if (biz === 'FILE_COLLAB_SIMPLE') return ['上传', '下载', '清空'];
   if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
   if (biz === 'MODULE_LIB_READ') {
     const buttons = ['浏览'];
@@ -941,6 +959,11 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
     if (biz === 'FILE_COLLAB') {
       return { width: '216px', minWidth: '216px' } as Record<string, string>;
     }
+    if (biz === 'FILE_COLLAB_SIMPLE') {
+      const n = getWorkspaceTableOperationButtons(item).length;
+      const w = Math.min(300, Math.max(88, 58 * n + 36));
+      return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
+    }
     if (biz === 'MODULE_LIB_READ') {
       const n = getWorkspaceTableOperationButtons(item).length;
       const w = Math.min(300, Math.max(88, 58 * n + 36));
@@ -953,6 +976,12 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
     const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
     const css = normalizeFixedTableColumnWidthCss(w);
     const width = css || '180px';
+    return { width, minWidth: width } as Record<string, string>;
+  }
+  if (bizData === 'FILE_COLLAB_SIMPLE') {
+    const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+    const css = normalizeFixedTableColumnWidthCss(w);
+    const width = css || '170px';
     return { width, minWidth: width } as Record<string, string>;
   }
   const w = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
@@ -1164,14 +1193,29 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                   <div
                     v-else-if="item.componentType === 'TABLE'"
                     class="fixed-table-preview"
-                    :class="{ 'fixed-table-preview--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB' }">
+                    :class="{
+                      'fixed-table-preview--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB',
+                      'fixed-table-preview--simple-file': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE',
+                    }">
                     <div
-                      v-if="(item.customProps?.tableTitle || '').trim() !== '' || String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'"
+                      v-if="
+                        (item.customProps?.tableTitle || '').trim() !== '' ||
+                        String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB' ||
+                        String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE'
+                      "
                       class="fixed-table-preview-title-row"
-                      :class="{ 'fixed-table-preview-title-row--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB' }">
+                      :class="{
+                        'fixed-table-preview-title-row--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB',
+                        'fixed-table-preview-title-row--simple-file': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE',
+                      }">
                       <span v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-text">{{
                         item.customProps.tableTitle
                       }}</span>
+                      <span
+                        v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE'"
+                        class="fixed-table-preview-kind-badge">
+                        简易文件协同
+                      </span>
                       <div v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
                         <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
                         <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
@@ -1769,6 +1813,11 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 .fixed-table-preview--file-collab {
   --activity-preview-table-width: 1080px;
 }
+/** 简易文件协同：可配置行列，与协同表格视觉区分，不拉满超宽表 */
+.fixed-table-preview--simple-file {
+  --activity-preview-table-width: 100%;
+  max-width: 100%;
+}
 .fixed-table-preview-title-row {
   display: flex;
   align-items: center;
@@ -1778,6 +1827,19 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 }
 .fixed-table-preview-title-row--file-collab {
   justify-content: space-between;
+}
+.fixed-table-preview-title-row--simple-file {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.fixed-table-preview-kind-badge {
+  font-size: 12px;
+  color: #666;
+  font-weight: normal;
+  padding: 2px 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  line-height: 1.4;
 }
 .fixed-table-preview-title-text {
   font-size: 14px;
