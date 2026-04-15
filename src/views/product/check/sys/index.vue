@@ -2,7 +2,6 @@
 import { inject, nextTick, reactive, ref, h } from 'vue';
 import { computed } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
-import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { useForm } from 'ant-design-vue/es/form';
@@ -16,6 +15,7 @@ import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollap
 import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/ProductModuleTreeInfoRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
 import SelectBoomTree from './components/selectBoomTree.vue';
+import ExeConfigTab from './components/exeConfigTab.vue';
 // 树结构相关属性
 const treeData = ref<any[]>([]);
 const selectedKeys = ref<string>('');
@@ -488,6 +488,24 @@ const {
   toggleLeftTreePanel,
   splitToggleStyle,
 } = useSplitpanesTreeCollapse();
+
+/** 右侧计算配置页签：excel / matlab / exe */
+const calcConfigActiveKey = ref('excel');
+
+function handleExeSearch(keyword: string) {
+  parameterName.value = keyword;
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  loadParameterListData();
+}
+
+function handleExeAdd() {
+  loadParameterListData();
+}
+
+function handleExeAction(action: string) {
+  message.info(`${action}功能待实现`);
+}
 </script>
 
 <template>
@@ -518,8 +536,30 @@ const {
       </Pane>
 
       <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls" :size="rightTreePaneSize">
-        <a-card> </a-card>
+      <Pane class="splitpane-cls splitpane-cls--right" :size="rightTreePaneSize">
+        <a-card :bordered="false" class="calc-config-card">
+          <a-tabs v-model:activeKey="calcConfigActiveKey" class="calc-config-tabs">
+            <a-tab-pane key="excel">
+              <template #tab>excel计算配置</template>
+              <div class="calc-config-pane" />
+            </a-tab-pane>
+            <a-tab-pane key="matlab">
+              <template #tab>matlab计算配置</template>
+              <div class="calc-config-pane" />
+            </a-tab-pane>
+            <a-tab-pane key="exe">
+              <template #tab>exe计算配置</template>
+              <ExeConfigTab
+                :datasource="datasource"
+                :loading="loading"
+                :pagination="pagination"
+                :current-node-name="currentNode?.partName"
+                @search="handleExeSearch"
+                @add="handleExeAdd"
+                @action="handleExeAction" />
+            </a-tab-pane>
+          </a-tabs>
+        </a-card>
       </Pane>
     </Splitpanes>
     <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
@@ -551,6 +591,46 @@ const {
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
 }
+
+.splitpane-cls--right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.calc-config-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  :deep(.ant-card-body) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    //padding: 12px 10px;
+  }
+}
+
+.calc-config-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  :deep(.ant-tabs-nav) {
+    margin-bottom: 12px;
+  }
+
+  :deep(.ant-tabs-content),
+  :deep(.ant-tabs-tabpane) {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
 :deep(.marginstyle) {
   padding: 10px !important;
   padding-right: 5px !important;

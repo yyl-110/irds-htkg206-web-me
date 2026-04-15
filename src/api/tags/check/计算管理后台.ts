@@ -563,4 +563,47 @@ export class AdminApiSystemCheckInfoApi {
       },
       CommonResultListDeptResponseDTOModel
     );
+  
+  
+  
+   /**
+   * exe计算列表信息
+   *
+   * @tags exe计算列表信息
+   * @name checkPageParamExeList
+   * @request /business/check-exe-info/page
+   * @secure
+   */
+  static checkPageParamExeList = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business/check-exe-info/page`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel
+    );
+  
+  
+   /**
+   * exe计算添加
+   *
+   * @tags exe计算添加
+   * @name addCheckExeInfo
+   * @request /business/check-exe-info/create
+   * @secure
+   */
+  static addCheckExeInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business/check-exe-info/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel
+    );
 }
