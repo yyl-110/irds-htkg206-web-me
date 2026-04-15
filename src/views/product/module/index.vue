@@ -2,12 +2,14 @@
 import { reactive, ref } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { message, Tooltip } from 'ant-design-vue';
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { PermissionAssignUsersRoleRequestDTOmenuModel } from '@/api/models/menu/PermissionAssignUsersRoleRequestDTOmenuModel';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import Tree from '@/components/tree/tree.vue';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/ProductModuleTreeInfoRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
@@ -906,6 +908,16 @@ watch(
   },
   { immediate: true },
 );
+
+const {
+  leftTreeCollapsed,
+  leftTreePaneSize,
+  rightTreePaneSize,
+  minExpanded,
+  onSplitpanesResized,
+  toggleLeftTreePanel,
+  splitToggleStyle,
+} = useSplitpanesTreeCollapse();
 </script>
 
 <template>
@@ -928,9 +940,9 @@ watch(
     @cancel-select-tree-node="cancelSelectTreeNode1"
     @handle-select-tree-node="handleSelectTreeNode1" />
   <div class="drawerContent">
-    <!-- 左侧树结构 -->
-    <Splitpanes class="default-theme sbom">
-      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+    <div class="splitpanes-tree-collapse-wrap">
+    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
         <a-spin :spinning="loadingTree" tip="加载中...">
           <Tree
             ref="treePage"
@@ -954,13 +966,25 @@ watch(
         </a-spin>
       </Pane>
       <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls">
+      <Pane class="splitpane-cls" :size="rightTreePaneSize">
         <div v-if="!loading">
           <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
           <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
         </div>
       </Pane>
     </Splitpanes>
+    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+      <button
+        type="button"
+        class="splitpanes-tree-collapse-wrap__toggle"
+        :style="splitToggleStyle"
+        @click="toggleLeftTreePanel"
+        @mousedown.stop>
+        <LeftOutlined v-if="!leftTreeCollapsed" />
+        <RightOutlined v-else />
+      </button>
+    </Tooltip>
+    </div>
   </div>
   <a-drawer
     :title="`模型库管理`"
@@ -996,16 +1020,6 @@ watch(
   position: absolute;
   top: 50%;
   left: 60%;
-}
-::v-deep(.splitpanes__splitter:after),
-::v-deep(.splitpanes__splitter:before) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.sbom > .splitpanes__splitter) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.splitpanes.default-theme .splitpanes__pane) {
-  background-color: #fff;
 }
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;

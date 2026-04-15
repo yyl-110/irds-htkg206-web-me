@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
-import { message } from 'ant-design-vue';
+import { message, Tooltip } from 'ant-design-vue';
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { WeiI18n } from '@/utils/WeiI18n';
 import Tree from '@/components/tree/tree.vue';
+import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { findNodeByIdFromKey } from '@/utils/tools';
 import { ProductTreeInfoRequestDTOModel } from '@/api/models/product/ProductTreeInfoRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
@@ -564,13 +566,23 @@ function handleChange(nextTargetKeys: any, direction: any, moveKeys: any) {
 function handleClose() {
   grpuVisible.value = false;
 }
+
+const {
+  leftTreeCollapsed,
+  leftTreePaneSize,
+  rightTreePaneSize,
+  minExpanded,
+  onSplitpanesResized,
+  toggleLeftTreePanel,
+  splitToggleStyle,
+} = useSplitpanesTreeCollapse();
 </script>
 
 <template>
   <div class="drawerContent">
-    <!-- 左侧树结构 -->
-    <Splitpanes class="default-theme sbom">
-      <Pane min-size="15" :size="20" class="splitpane-cls marginstyle">
+    <div class="splitpanes-tree-collapse-wrap">
+    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
         <a-spin :spinning="loadingTree" tip="加载中...">
           <Tree
             ref="treePage"
@@ -593,7 +605,7 @@ function handleClose() {
         </a-spin>
       </Pane>
       <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls">
+      <Pane class="splitpane-cls" :size="rightTreePaneSize">
         <!-- 当level等于1时显示的界面 -->
         <div v-if="currentNodeLevel === 1" class="level-1-content">
           <a-card>
@@ -644,6 +656,18 @@ function handleClose() {
         </div>
       </Pane>
     </Splitpanes>
+    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+      <button
+        type="button"
+        class="splitpanes-tree-collapse-wrap__toggle"
+        :style="splitToggleStyle"
+        @click="toggleLeftTreePanel"
+        @mousedown.stop>
+        <LeftOutlined v-if="!leftTreeCollapsed" />
+        <RightOutlined v-else />
+      </button>
+    </Tooltip>
+    </div>
   </div>
   <addGBOMParameterInfoModule ref="updateParameterInfoModuleRef" :modal-visible="updateParameterVisible" :resource="resource" @close="updateParameterVisibleCanel" />
   <MemberAuthModal
@@ -658,16 +682,6 @@ function handleClose() {
 </template>
 
 <style lang="less" scoped>
-::v-deep(.splitpanes__splitter:after),
-::v-deep(.splitpanes__splitter:before) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.sbom > .splitpanes__splitter) {
-  border-left: 1px solid #e6e7e9 !important;
-}
-::v-deep(.splitpanes.default-theme .splitpanes__pane) {
-  background-color: #fff;
-}
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
 }
