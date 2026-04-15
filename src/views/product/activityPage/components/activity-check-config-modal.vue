@@ -537,6 +537,11 @@ function hydrateValueRangeCompareSemicolon(vr: any) {
   vr.compareValue = raw.slice(0, idx).trim();
   vr.compareValue2 = raw.slice(idx + 1).trim();
 }
+/** 公式定义：是否允许修改（'1' 是 / '0' 否），兼容旧数据 */
+function normalizeFormulaFields(formula: any) {
+  if (!formula || typeof formula !== 'object') return;
+  if (formula.allowModify !== '0' && formula.allowModify !== '1') formula.allowModify = '1';
+}
 function mapValidateRule(rule: any) {
   if (!rule || typeof rule !== 'object') return null;
   return {
@@ -546,6 +551,7 @@ function mapValidateRule(rule: any) {
           mode: rule.formula.mode ?? 'FORMULA',
           expression: rule.formula.expression ?? null,
           jsMethodName: rule.formula.jsMethodName ?? null,
+          allowModify: rule.formula.allowModify != null && rule.formula.allowModify !== '' ? String(rule.formula.allowModify) : null,
         }
       : null,
     regex: rule?.regex ?? null,
@@ -1717,8 +1723,9 @@ function ensureTextLikeDefaults(component: any) {
   }
   hydrateValueRangeCompareSemicolon(component.validateRule.valueRange);
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
-    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
+    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '', allowModify: '1' };
   }
+  normalizeFormulaFields(component.validateRule.formula);
 }
 function ensureSelectDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
@@ -1737,8 +1744,9 @@ function ensureSelectDefaults(component: any) {
   }
   hydrateValueRangeCompareSemicolon(component.validateRule.valueRange);
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
-    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
+    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '', allowModify: '1' };
   }
+  normalizeFormulaFields(component.validateRule.formula);
 }
 function ensureRadioDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
@@ -1748,8 +1756,9 @@ function ensureRadioDefaults(component: any) {
   if (!Array.isArray(component.constraintRules)) component.constraintRules = [];
   if (!component.validateRule || typeof component.validateRule !== 'object') component.validateRule = {};
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
-    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
+    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '', allowModify: '1' };
   }
+  normalizeFormulaFields(component.validateRule.formula);
 }
 function ensureTitleDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
@@ -1761,8 +1770,9 @@ function ensureRichTextDefaults(component: any) {
   if (!Array.isArray(component.constraintRules)) component.constraintRules = [];
   if (!component.validateRule || typeof component.validateRule !== 'object') component.validateRule = {};
   if (!component.validateRule.formula || typeof component.validateRule.formula !== 'object') {
-    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '' };
+    component.validateRule.formula = { mode: 'FORMULA', expression: '', jsMethodName: '', allowModify: '1' };
   }
+  normalizeFormulaFields(component.validateRule.formula);
   if (!component.knowledgeContent) component.knowledgeContent = '';
   if (!component.knowledgeId) component.knowledgeId = '';
 }
@@ -2311,7 +2321,7 @@ watch(
                   <div class="row-field">
                     <div class="row-label">参数代号：</div>
                     <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" disabled />
                       <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
                     </div>
                   </div>
@@ -2424,6 +2434,15 @@ watch(
                     </div>
                   </div>
                   <div class="row-field">
+                    <div class="row-label">是否允许修改：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.validateRule.formula.allowModify" style="width: 120px" placeholder="请选择">
+                        <a-select-option value="1">是</a-select-option>
+                        <a-select-option value="0">否</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field">
                     <div class="row-label">调用JS：</div>
                     <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" /></div>
                   </div>
@@ -2436,7 +2455,7 @@ watch(
                   <div class="row-field">
                     <div class="row-label">参数代号：</div>
                     <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" disabled />
                       <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
                     </div>
                   </div>
@@ -2556,7 +2575,7 @@ watch(
                   <div class="row-field">
                     <div class="row-label">参数代号：</div>
                     <div class="row-control">
-                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                      <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" disabled />
                       <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
                     </div>
                   </div>
@@ -2645,7 +2664,7 @@ watch(
             <template v-else>
               <a-form-item label="参数代号">
                 <div class="row-control">
-                  <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" />
+                  <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" disabled />
                   <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
                 </div>
               </a-form-item>
