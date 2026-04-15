@@ -239,6 +239,17 @@ async function downloadFileCollabRow(item: any, componentIndex: number, bodyRow:
   }
 }
 function clearFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB_SIMPLE') {
+    const next = { ...previewTableCellMap.value };
+    delete next[getTableCellPreviewKey(item, componentIndex, bodyRow, 2)];
+    previewTableCellMap.value = next;
+    const fk = getFileCollabRowKey(item, componentIndex, bodyRow);
+    const nextIds = { ...previewFileCollabFileIdMap.value };
+    delete nextIds[fk];
+    previewFileCollabFileIdMap.value = nextIds;
+    return;
+  }
   const totalCols = getWorkspaceTablePreviewColCount(item);
   const next = { ...previewTableCellMap.value };
   for (let c = 2; c <= totalCols; c++) {

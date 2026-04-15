@@ -306,6 +306,18 @@ async function downloadFileCollabRow(item: any, componentIndex: number, bodyRow:
   }
 }
 function clearFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  /** 简易文件协同：仅清空「文件名称」与已上传文件引用，不动自定义列 */
+  if (biz === 'FILE_COLLAB_SIMPLE') {
+    const next = { ...previewTableCellMap.value };
+    delete next[getTableCellPreviewKey(item, componentIndex, bodyRow, 2)];
+    previewTableCellMap.value = next;
+    const fk = getFileCollabRowKey(item, componentIndex, bodyRow);
+    const nextIds = { ...previewFileCollabFileIdMap.value };
+    delete nextIds[fk];
+    previewFileCollabFileIdMap.value = nextIds;
+    return;
+  }
   const totalCols = getWorkspaceTablePreviewColCount(item);
   const next = { ...previewTableCellMap.value };
   for (let c = 2; c <= totalCols; c++) {
@@ -327,18 +339,28 @@ async function onFileCollabFileInputChange(e: Event) {
   fileCollabUploadTarget.value = null;
   if (!file || !target) return;
   if (isOutputIoType(target.item)) return;
+  const biz = String(target.item?.customProps?.tableBizType ?? '');
   try {
-    const securityLevel = getFileCollabConfidentialLevelValue(target.item, target.componentIndex, target.bodyRow, 3);
     const res = await AdminApiSystemUploadFile.uploadFile({
       file,
       userId: userStore.getUser.id,
-      securityLevel,
+      securityLevel:
+        biz === 'FILE_COLLAB_SIMPLE'
+          ? 1
+          : getFileCollabConfidentialLevelValue(target.item, target.componentIndex, target.bodyRow, 3),
     } as any);
     if (res?.data?.code == 0) {
       const d: any = res.data;
       const fileId = String(d.id ?? d.data?.id ?? '').trim();
       const displayName = String(d.oldFileName ?? d.fileName ?? d.data?.oldFileName ?? d.data?.fileName ?? file.name).trim();
       setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 2, displayName);
+      const rowKey = getFileCollabRowKey(target.item, target.componentIndex, target.bodyRow);
+      previewFileCollabFileIdMap.value = { ...previewFileCollabFileIdMap.value, [rowKey]: fileId };
+      /** 简易文件协同：仅回填第 2 列文件名，自定义列由用户填写，不从上传接口写入 */
+      if (biz === 'FILE_COLLAB_SIMPLE') {
+        message.success('上传成功');
+        return;
+      }
       const levelFromApi = pickConfidentialLevelFromUploadResponse(d);
       if (levelFromApi != null) {
         setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 3, levelFromApi);
@@ -351,8 +373,6 @@ async function onFileCollabFileInputChange(e: Event) {
       setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 6, '待分发');
       setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 7, '');
       setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 8, '');
-      const rowKey = getFileCollabRowKey(target.item, target.componentIndex, target.bodyRow);
-      previewFileCollabFileIdMap.value = { ...previewFileCollabFileIdMap.value, [rowKey]: fileId };
       message.success('上传成功');
       return;
     }
