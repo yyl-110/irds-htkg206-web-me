@@ -637,12 +637,12 @@ const viewPdfFun = async (item: any) => {
   };
   try {
     const res = await getPdfPreviewPath(params);
-    if (res && res.data.code === 200) {
+    if (res && res.status === 200) {
       filePath.value = res.data.fileUrl;
-      router.push({ path: '/knowledgeData/pdfView_index', query: { docId: filePath.value } });
+      router.push({ path: '/knowledge/pdfView', query: { docId: filePath.value } });
     } else {
       message.error(res.data.msg);
-      router.push({ path: '/knowledgeData/pdfView_index', query: { docId: item.fileUrl, filePath: filePath.value } });
+      router.push({ path: '/knowledge/pdfView', query: { docId: item.fileUrl, filePath: filePath.value } });
     }
   } catch (error) {
     console.error(error);

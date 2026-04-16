@@ -24,8 +24,10 @@ const openInNewTab = () => {
 };
 
 const completed = () => {
+  const stateData = history.state.itemData || window.history.state;
+  const learnNodeId = stateData?.id || stateData?.nodeId || route.query.learnNodeId;
   const params = {
-    id: route.query.learnNodeId,
+    id: learnNodeId,
   };
   LearningCompleted(params).then(res => {
     if (res && res.data.code === '0') {
@@ -43,8 +45,9 @@ watch(
   (newVal, oldVal) => {
     if (newVal.query.docId) {
       nextTick(() => {
-        docId.value = newVal.query.docId;
-        if (newVal.query.flag === '1' && newVal.query.learnNodeId) {
+        docId.value = newVal.query.docId as string;
+        const stateData = history.state.itemData || window.history.state;
+        if (newVal.query.flag === '1' && stateData?.status == 0) {
           hidden.value = true;
         } else {
           hidden.value = false;
@@ -67,7 +70,7 @@ watch(
       <div v-else class="empty-tip">未获取到可预览的文件地址</div>
     </div>
     <a-button type="primary" class="goback" @click="goback">返回</a-button>
-    <a-button v-if="fileDataUrl" class="open-link" @click="openInNewTab">新窗<br/>打开</a-button>
+    <!-- <a-button v-if="fileDataUrl" class="open-link" @click="openInNewTab">新窗<br/>打开</a-button> -->
     <a-button v-if="hidden" class="buttn" type="primary" @click="completed">学习<br/>完成</a-button>
   </div>
 </template>

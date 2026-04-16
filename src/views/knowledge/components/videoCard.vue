@@ -30,13 +30,13 @@ const videoHide = ref(false);
 const fileUrlPlay = ref<string>();
 
 const confidentialLevel = computed(() => {
-  if (props.videoData?.content.confidential_level === 0)
+  if (props.videoData?.content.confidential_level === '0')
     return '公开';
-  if (props.videoData?.content.confidential_level === 1)
+  if (props.videoData?.content.confidential_level === '1')
     return '内部';
-  if (props.videoData?.content.confidential_level === 2)
+  if (props.videoData?.content.confidential_level === '2')
     return '秘密';
-  if (props.videoData?.content.confidential_level === 3)
+  if (props.videoData?.content.confidential_level === '3')
     return '机密';
   return '公开';
 })

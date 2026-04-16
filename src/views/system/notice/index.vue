@@ -26,7 +26,7 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     title: WeiI18n.$t('公告名称'),
     dataIndex: 'title',
     key: 'title',
-    align: 'left',
+    align: 'center',
     resizable: true,
     sorter: (a: any, b: any) => sortermethod(a.title, b.title),
     width: 490,

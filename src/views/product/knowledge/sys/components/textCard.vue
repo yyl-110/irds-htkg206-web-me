@@ -28,13 +28,13 @@ const docId = ref('');
 const formInline = ref({});
 
 const confidentialLevel = computed(() => {
-  if (props.textData.confidential_level === 0)
+  if (props.textData.confidential_level === '0')
     return '公开';
-  if (props.textData.confidential_level === 1)
+  if (props.textData.confidential_level === '1')
     return '内部';
-  if (props.textData.confidential_level === 2)
+  if (props.textData.confidential_level === '2')
     return '秘密';
-  if (props.textData.confidential_level === 3)
+  if (props.textData.confidential_level === '3')
     return '机密';
   return '公开';
 })
