@@ -1,61 +1,135 @@
-import { ContentType, httpClient, type RequestParams } from "../http-client";
-import { CommonResultBooleanModulemanaGementModel } from "@/api/models/ModulemanaGement/CommonResultBooleanModulemanaGementModel";
-import { processTaskPage } from "@/api/models/processTask/processTaskPage";
+import { ContentType, httpClient, type RequestParams } from '../http-client';
+import { CommonResultListDeptResponseDTOModel } from '../../models/CommonResultListDeptResponseDTOModel';
 /**
  * 管理后台流程任务
  */
 export class AdminApiSystemProcessTask {
   /** `OpenApi` 中的 `tag` 名称, 作为默认的资源名称 */
   static $tagName: string = `管理后台流程任务`;
+
   /**
-   * @description 用于【流程任务管理】界面
+   * 获取设计任务树
    *
-   * @tags 管理后台 - 流程任务
-   * @name getpackageList
-   * @summary 获取流程任务列表
-   * @request GET:/cirpoint-demand-api/process-task/page
+   * @tags 管理后台 - 获取设计任务树
+   * @name getDesignTaskTreeList
+   * @summary 获取设计任务树
+   * @request POST:/business-service/business/task-category-tree/task-tree-list
    * @secure
    */
-  static getProcessTaskList = <Req extends processTaskPage = processTaskPage>(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
-    httpClient.request<CommonResultBooleanModulemanaGementModel, any>(
+  static getDesignTaskTreeList = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/cirpoint-demand-api/process-task/page`,
-        method: "GET",
-        query: query,
-        secure: true,
-        ...params,
-      },
-      CommonResultBooleanModulemanaGementModel
-    );
-  /**
-   * @description 更新流程状态
-   *
-   * @tags 管理后台 - 更新流程状态
-   * @name updateStatus
-   * @summary 更新流程状态
-   * @request GET:/cirpoint-demand-api/process-task/updateStatus
-   * @secure
-   */
-  static updateStatus = <
-    Req extends { id: string; processStatus: string } = {
-      id: string;
-      processStatus: string;
-    },
-  >(
-    query: Req,
-    params: RequestParams = {}
-  ) =>
-    httpClient.request<CommonResultBooleanModulemanaGementModel, any>(
-      {
-        path: `/cirpoint-demand-api/process-task/updateStatus`,
-        method: "POST",
+        path: `/business-service/business/task-category-tree/task-tree-list`,
+        method: 'POST',
         body: query,
         secure: true,
         ...params,
       },
-      CommonResultBooleanModulemanaGementModel
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 创建设计任务树
+   *
+   * @tags 管理后台 - 创建设计任务树
+   * @name createDesignTaskTree
+   * @summary 创建设计任务树
+   * @request POST:/business-service/business/task-category-tree/create
+   * @secure
+   */
+  static createDesignTaskTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-category-tree/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 修改设计任务树
+   *
+   * @tags 管理后台 - 修改设计任务树
+   * @name updateDesignTaskTree
+   * @summary 修改设计任务树
+   * @request POST:/business-service/business/task-category-tree/update
+   * @secure
+   */
+  static updateDesignTaskTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-category-tree/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 删除设计任务树
+   *
+   * @tags 管理后台 - 删除设计任务树
+   * @name deleteDesignTaskTree
+   * @summary 删除设计任务树
+   * @request POST:/business-service/business/task-category-tree/delete
+   * @secure
+   */
+  static deleteDesignTaskTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-category-tree/delete`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 上移设计任务树
+   *
+   * @tags 管理后台 - 上移设计任务树
+   * @name sortUpDesignTaskTree
+   * @summary 上移设计任务树
+   * @request POST:/business-service/business/task-category-tree/sort/up
+   * @secure
+   */
+  static sortUpDesignTaskTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-category-tree/sort/up`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 下移设计任务树
+   *
+   * @tags 管理后台 - 下移设计任务树
+   * @name sortDownDesignTaskTree
+   * @summary 下移设计任务树
+   * @request POST:/business-service/business/task-category-tree/sort/down
+   * @secure
+   */
+  static sortDownDesignTaskTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-category-tree/sort/down`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
     );
 }

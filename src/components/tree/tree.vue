@@ -310,8 +310,13 @@ function onOk() {
         selectedNode.value = props.treeData[0];
       }
       if (title.value == '新增节点') {
-        formData.value.parentId = selectedNode.value.key;
-        formData.value.level = selectedNode.value.level;
+        if (selectedNode.value == undefined) {
+          formData.value.parentId = 0;
+          formData.value.level = 0;
+        } else {
+          formData.value.parentId = selectedNode.value.key;
+          formData.value.level = selectedNode.value.level;
+        }
         if (fileList.value.length > 0) {
           formData.value.fileId = fileList.value[0].id;
           formData.value.fileUrl = fileList.value[0].fileUrl;
@@ -502,8 +507,8 @@ function DisplayPersonnel(key: string, names: any, ids: string) {
 function initializationassignment(node: any) {
   selectedNode.value = node;
 }
-function getExpandedKeys () {
-  return newExpandedKeys.value
+function getExpandedKeys() {
+  return newExpandedKeys.value;
 }
 defineExpose({
   reloadTableStyle,
@@ -511,7 +516,7 @@ defineExpose({
   onTreeNodeSelected,
   DisplayPersonnel,
   initializationassignment,
-  getExpandedKeys
+  getExpandedKeys,
 });
 </script>
 
@@ -583,7 +588,7 @@ defineExpose({
           <WeiIcon icon="icon-wj" :size="16" v-else-if="item.type === 'category' && item.level == '3'" />
           <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'param' && item.categoryType == 0" />
           <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'param' && item.level == '2'" />
-          <WeiIcon icon="icon-wj" :size="16" v-else-if="item.type === 'param' && item.level == '3'"/>
+          <WeiIcon icon="icon-wj" :size="16" v-else-if="item.type === 'param' && item.level == '3'" />
           <!-- <EpcIcon v-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" type="icon-wenjianjia" />
            <EpcIcon v-else-if="item.type === 'category' && item.level == '2'" type="icon-wenjianjia" />
            <EpcIcon v-else-if="item.type === 'category' && item.level == '3'" type="icon-a-xiangmu1" />
@@ -724,7 +729,7 @@ defineExpose({
 :deep(.ant-tree-switcher-noop) {
   width: 16px; /* 控制空白开关的宽度 */
   margin-right: 0 !important;
-  display: none!important;
+  display: none !important;
 }
 
 .operate-tree {
