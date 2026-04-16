@@ -132,4 +132,88 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 获取任务基础信息
+   *
+   * @tags 管理后台 - 获取任务基础信息
+   * @name taskBasicInfoPage
+   * @summary 获取任务基础信息
+   * @request POST:/business-service/business/task-basic-info/page
+   * @secure
+   */
+  static taskBasicInfoPage = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/page`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 创建taskBasicInfo
+   *
+   * @tags 管理后台 - 创建taskBasicInfo
+   * @name createTaskBasicInfo
+   * @summary 创建taskBasicInfo
+   * @request POST:/business-service/business/task-basic-info/create
+   * @secure
+   */
+  static createTaskBasicInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 更新taskBasicInfo
+   *
+   * @tags 管理后台 - 更新taskBasicInfo
+   * @name updateTaskBasicInfo
+   * @summary 更新taskBasicInfo
+   * @request POST:/business-service/business/task-basic-info/update
+   * @secure
+   */
+  static updateTaskBasicInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 删除
+   *
+   * @tags 管理后台 - 删除
+   * @name deleteTaskBasicInfo
+   * @summary 删除
+   * @request POST:/business-service/business/task-basic-info/delete
+   * @secure
+   */
+  static deleteTaskBasicInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/delete`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
