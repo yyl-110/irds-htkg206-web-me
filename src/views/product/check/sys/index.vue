@@ -492,17 +492,6 @@ const {
 /** 右侧计算配置页签：excel / matlab / exe */
 const calcConfigActiveKey = ref('excel');
 
-function handleExeSearch(keyword: string) {
-  parameterName.value = keyword;
-  requestParams.pageNo = 1;
-  pagination.current = 1;
-  loadParameterListData();
-}
-
-function handleExeAdd() {
-  loadParameterListData();
-}
-
 function handleExeAction(action: string) {
   message.info(`${action}功能待实现`);
 }
@@ -550,12 +539,8 @@ function handleExeAction(action: string) {
             <a-tab-pane key="exe">
               <template #tab>exe计算配置</template>
               <ExeConfigTab
-                :datasource="datasource"
-                :loading="loading"
-                :pagination="pagination"
+                :tree-id="String(selectNodeKeys || selectedKeys || '')"
                 :current-node-name="currentNode?.partName"
-                @search="handleExeSearch"
-                @add="handleExeAdd"
                 @action="handleExeAction" />
             </a-tab-pane>
           </a-tabs>
