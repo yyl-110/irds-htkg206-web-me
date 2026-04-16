@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { doCollectFile, getPdfPreviewPath, modifyInit, saveLookFileLog } from '@/api/knowledge';
+import { doCollectFile, getPdfPreviewPath, modifyInit, saveLookFileLog, updateKldCounting } from '@/api/knowledge';
 import comment from '@/components/Comment/index.vue';
 import { useUserStore } from '@/store/modules/user';
 import { getTimes } from '@/utils/dateUtils';
@@ -49,13 +49,14 @@ const viewPdfFun = async () => {
   };
   await saveLookFileLog(params);
 
-  viewPdf(props.textData.content.fileId);
+  viewPdf(props.textData.content);
 };
 
 // 查看pdf
-const viewPdf = async (id: string) => {
+const viewPdf = async (item) => {
   try {
-    const res = await getPdfPreviewPath({ id });
+    updateKldCounting({ kldFileId: item.id, countingType: 1 });
+    const res = await getPdfPreviewPath({ id: item.fileId });
     console.log('res:', res);
     const filePath = res.data.fileUrl;
     router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });

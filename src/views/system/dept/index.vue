@@ -320,7 +320,7 @@ async function onRefreshTableData(record: DeptCreateRequestDTOModel) {
             <a-divider type="vertical" />
             <a-popconfirm :title="$t('确定要删除吗？')" :ok-text="$t('确定')" :cancel-text="$t('取消')" :disabled="$isPending('delete', row.id)" @confirm="handleDelete(row)">
               <!-- v-hasPermi="['system:dept:delete']" -->
-              <a-button type="link" danger :disabled="$isPending('delete', row.id)" class="p-0">
+              <a-button type="link" danger :disabled="$isPending('delete', row.id)" class="p-0 text-[12px]">
                 {{ $t('删除') }}
               </a-button>
             </a-popconfirm>

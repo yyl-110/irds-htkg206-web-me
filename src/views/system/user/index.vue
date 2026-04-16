@@ -462,7 +462,7 @@ async function exportData() {
           <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
           <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(row.id)">
             <!-- v-hasPermi="['system:role:delete']" -->
-            <a-button type="link" danger class="p-0" v-if="userStore.getUser.userType != '4'">
+            <a-button type="link" danger class="p-0 text-[12px]" v-if="userStore.getUser.userType != '4'">
               {{ $t('删除') }}
             </a-button>
           </a-popconfirm>

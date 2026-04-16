@@ -44,7 +44,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingBottom: '50px' },
+    style: { paddingTop: '50px' },
   }),
 });
 
@@ -152,6 +152,7 @@ export default defineComponent({
         title: WeiI18n.t('操作').value,
         dataIndex: 'operation',
         align: 'left',
+        fixed: 'right',
         width: operationWidth.value,
       },
     ]);
@@ -303,9 +304,9 @@ export default defineComponent({
 <template>
   <a-card v-if="!dictTypeDataflag">
     <a-form ref="formRef" class="form_css" layout="inline" :label-col="labelCol" :wrapper-col="wrapperCol" :model="formData" @finish="handleFinish">
-      <a-input v-model:value="formData.name" style="width: 240px" :placeholder="$t('请输入字典名称')" allow-clear />
-      <a-input v-model:value="formData.type" style="width: 240px; margin-left: 15px" :placeholder="$t('请输入字典类型')" allow-clear />
-      <a-select v-model:value="formData.status" style="width: 240px; margin-left: 15px; text-align: left" :placeholder="$t('请选择字典状态')" allow-clear>
+      <a-input v-model:value="formData.name" style="width: 200px" :placeholder="$t('请输入字典名称')" allow-clear />
+      <a-input v-model:value="formData.type" style="width: 200px; margin-left: 15px" :placeholder="$t('请输入字典类型')" allow-clear />
+      <a-select v-model:value="formData.status" style="width: 200px; margin-left: 15px; text-align: left" :placeholder="$t('请选择字典状态')" allow-clear>
         <a-select-option value="0">
           {{ $t('开启') }}
         </a-select-option>
@@ -313,7 +314,7 @@ export default defineComponent({
           {{ $t('关闭') }}
         </a-select-option>
       </a-select>
-      <a-range-picker v-model:value="formData.createTime" style="width: 240px; text-align: left; margin-left: 15px" :placeholder="[$t('开始日期'), $t('结束日期')]" />
+      <a-range-picker v-model:value="formData.createTime" style="width: 200px; text-align: left; margin-left: 15px" :placeholder="[$t('开始日期'), $t('结束日期')]" />
       <a-form-item>
         <a-button type="primary" html-type="submit" style="margin-left: 30px">
           <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
@@ -365,7 +366,7 @@ export default defineComponent({
           <a-divider type="vertical" />
           <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="$isPending('delete', record.id)" @confirm="handleDelete(record.id)">
             <!-- v-hasPermi="['system:dict:delete']" -->
-            <a-button type="link" danger :disabled="$isPending('delete', record.id)" class="p-0">
+            <a-button type="link" danger :disabled="$isPending('delete', record.id)" class="p-0 text-[12px]">
               {{ $t('删除') }}
             </a-button>
           </a-popconfirm>

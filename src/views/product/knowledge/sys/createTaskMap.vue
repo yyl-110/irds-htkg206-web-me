@@ -305,6 +305,7 @@ import {
   getPdfPreviewPath,
   submitMap,
   mapTreeSort,
+  updateKldCounting,
 } from '@/api/knowledge';
 import { useUserStore } from '@/store/modules/user';
 import { EpcIcon } from '@/components/icon/EpcIcon';
@@ -636,6 +637,7 @@ const viewPdfFun = async (item: any) => {
     id: item.fileId,
   };
   try {
+    updateKldCounting({ kldFileId: item.id, countingType: 1 });
     const res = await getPdfPreviewPath(params);
     if (res && res.status === 200) {
       filePath.value = res.data.fileUrl;

@@ -3,7 +3,7 @@ import { ref, watch } from "vue";
 import { UserOutlined, EyeOutlined } from "@ant-design/icons-vue";
 import { useRouter } from "vue-router";
 import { getTimes } from "@/utils/dateUtils.js";
-import { getPdfPreviewPath } from "@/api/knowledge";
+import { getPdfPreviewPath, updateKldCounting } from "@/api/knowledge";
 import { useUserStore } from "@/store/modules/user";
 // import { getPdfPreviewPath } from "@/api/knowledgeBaseManagment";
 import draggableModal from "@/components/DraggableModal/index.vue";
@@ -95,11 +95,12 @@ const getInfo = (item) => {
 };
 
 // 查看pdf
-const viewPdf = async (id) => {
+const viewPdf = async (item) => {
   const params = {
-    id,
+    id: item.fileId,
   };
   try {
+    updateKldCounting({ kldFileId: item.id, countingType: 1 });
     const res = await getPdfPreviewPath(params);
     router.push({
       path: "/knowledge/pdfView",
@@ -124,7 +125,7 @@ const viewPdfFun = (item) => {
     item.fileType === "xls" ||
     item.fileType === "xlsx"
   ) {
-    viewPdf(item.fileId);
+    viewPdf(item);
   }
 };
 

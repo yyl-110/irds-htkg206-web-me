@@ -42,7 +42,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingBottom: '50px' },
+    style: { paddingTop: '50px' },
   }),
 });
 // 声明表格类型
@@ -109,7 +109,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     dataIndex: 'component',
     key: 'component',
     resizable: true,
-    width: 130,
+    width: 230,
   },
   {
     title: WeiI18n.t('组件名称').value,
@@ -131,6 +131,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'left',
+    fixed: 'right',
     width: operationWidth.value,
   },
   {},

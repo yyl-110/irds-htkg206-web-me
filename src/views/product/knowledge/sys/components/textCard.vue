@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { doCollectFile, getPdfPreviewPath, modifyInit, removeFile, saveLookFileLog } from '@/api/knowledge';
+import { doCollectFile, getPdfPreviewPath, modifyInit, removeFile, saveLookFileLog, updateKldCounting } from '@/api/knowledge';
 import comment from '@/components/Comment/index.vue';
 import { useUserStore } from '@/store/modules/user';
 import { getTimes } from '@/utils/dateUtils';
@@ -48,13 +48,14 @@ const viewPdfFun = async () => {
   };
   await saveLookFileLog(params);
 
-  viewPdf(props.textData.fileId);
+  viewPdf(props.textData);
 };
 
 // 查看pdf
-const viewPdf = async (id: string) => {
+const viewPdf = async (item) => {
   try {
-    const res = await getPdfPreviewPath({ id });
+    updateKldCounting({ kldFileId: item.id, countingType: 1 });
+    const res = await getPdfPreviewPath({ id: item.fileId });
     console.log('res:', res);
     const filePath = res.data.fileUrl;
     router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
@@ -142,7 +143,7 @@ const handleEditCard = () => {
         </div>
         <div v-else class="box-item">
           <div class="highlightName" @click="viewPdfFun">{{ textData.fileName }}.{{ textData.fileType
-          }}【{{ textData.version || '' }}】 <span v-if="textData.releaseStatus === 0">【已发布】</span>
+            }}【{{ textData.version || '' }}】 <span v-if="textData.releaseStatus === 0">【已发布】</span>
             <span v-else-if="textData.releaseStatus === 1">【未发布】</span>
           </div>
         </div>

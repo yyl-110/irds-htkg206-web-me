@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { getPdfPreviewPath, knowledgeFileMapData, queryByKey, removeMapData } from '@/api/knowledge'
+import { getPdfPreviewPath, knowledgeFileMapData, queryByKey, removeMapData, updateKldCounting } from '@/api/knowledge'
 import { useTableFilter } from '@/hooks/useTableFilter';
 import { message, Modal, TableColumnsType } from 'ant-design-vue';
 import { usePagination } from "@/hooks/usePagination";
@@ -153,8 +153,9 @@ async function fetchProductList() {
 }
 
 // 查看pdf
-const viewPdf = (id) => {
-  getPdfPreviewPath({ id }).then((res) => {
+const viewPdf = (item) => {
+  updateKldCounting({ kldFileId: item.id, countingType: 1 });
+  getPdfPreviewPath({ id: item.fileId }).then((res) => {
     if (res && res.status === 200) {
       router.push({
         path: "/knowledge/pdfView",
@@ -167,7 +168,7 @@ const viewPdf = (id) => {
 const viewPdfFun = (item) => {
   dialogType.value = item.type;
   if (item.type === '1') {
-    viewPdf(item.id);
+    viewPdf(item);
   } else if (item.type === '2') {
     fileUrlPlay.value = item?.fileUrl;
     videoHide.value = true;

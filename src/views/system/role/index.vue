@@ -311,7 +311,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingBottom: '50px' },
+    style: { paddingTop: '50px' },
   }),
 });
 
@@ -431,7 +431,7 @@ function customGetContainer() {
             <a-divider type="vertical" />
             <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="record.type === 1" @confirm="handleDelete(record.id)">
               <!-- v-hasPermi="['system:role:delete']" -->
-              <a-button type="link" danger :disabled="record.type === 1" class="p-0">
+              <a-button type="link" danger :disabled="record.type === 1" class="p-0 text-[12px]">
                 {{ $t('删除') }}
               </a-button>
             </a-popconfirm>

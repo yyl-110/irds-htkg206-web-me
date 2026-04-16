@@ -101,7 +101,7 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     title: WeiI18n.$t('基础库名称'),
     dataIndex: 'menuName',
     key: 'menuName',
-    align: 'left',
+    align: 'center',
     resizable: true,
     sorter: (a: any, b: any) => sortermethod(a.menuName, b.menuName),
     width: 290,
@@ -439,7 +439,7 @@ function handleFinish() {
             <a @click="libraryAdd(record)">{{ $t('编辑') }}</a>
             <a-divider type="vertical" />
             <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
-              <a-button type="link" danger class="p-0">
+              <a-button type="link" danger class="p-0 text-[12px]">
                 {{ $t('删除') }}
               </a-button>
             </a-popconfirm>

@@ -77,7 +77,6 @@ async function getListData(type?: string) {
       const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
       dataSource.value = rawData[0];
       const treeNodes = convertToTreeNodes(rawData);
-      debugger;
       treeData.value = treeNodes;
       // 默认选中第一个节点
       if (treeNodes.length > 0) {
@@ -1009,8 +1008,8 @@ const {
 }
 :deep(.marginstyle) {
   padding: 10px !important;
-  padding-right: 5px !important;
   padding-bottom: 5px !important;
+  padding-left: 0;
 }
 
 :deep(.ant-drawer-content-wrapper) {

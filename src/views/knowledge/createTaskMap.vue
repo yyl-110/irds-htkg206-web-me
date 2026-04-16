@@ -204,7 +204,7 @@
 import { ref, watch, onActivated } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
-import { taskMapList, queryMapNodeList, queryMapTaskDetail, getPdfPreviewPath } from '@/api/knowledge';
+import { taskMapList, queryMapNodeList, queryMapTaskDetail, getPdfPreviewPath, updateKldCounting } from '@/api/knowledge';
 import { useUserStore } from '@/store/modules/user';
 
 const router = useRouter();
@@ -303,6 +303,7 @@ const handleNodeClick = (_keys: any, { node }: any) => {
 };
 
 const viewPdf = async (item: any) => {
+  updateKldCounting({ kldFileId: item.id, countingType: 1 });
   const res = await getPdfPreviewPath({ id: item.fileId });
   if (res && res.status === 200) {
     filePath.value = res.data.fileUrl;

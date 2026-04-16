@@ -72,6 +72,7 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     dataIndex: 'operation',
     align: 'left',
     width: 220,
+    fixed: 'right',
   },
   {},
 ]);
@@ -179,7 +180,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingBottom: '50px' },
+    style: { paddingTop: '50px' },
   }),
 });
 
@@ -269,7 +270,7 @@ function handleReset() {
 
             <a-divider type="vertical" />
             <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
-              <a-button type="link" danger class="p-0">
+              <a-button type="link" danger class="p-0 text-[12px]">
                 {{ $t('删除') }}
               </a-button>
             </a-popconfirm>

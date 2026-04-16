@@ -205,11 +205,13 @@ const getVideoHide = (val) => {
 };
 
 // 查看pdf
-const viewPdf = (id) => {
+const viewPdf = async (item) => {
   const params = {
-    id,
+    id: item.fileId,
   };
-  getPdfPreviewPath(params).then((res) => {
+  try {
+    updateKldCounting({ kldFileId: item.kldFileId, countingType: 1 });
+    const res = await getPdfPreviewPath(params)
     if (res && res.status === 200) {
       open.value = false
       router.push({
@@ -217,7 +219,9 @@ const viewPdf = (id) => {
         query: { docId: res.data.fileUrl },
       });
     }
-  });
+  } catch (error) {
+    console.log('error', error)
+  }
 };
 
 //查看pdf
@@ -237,7 +241,7 @@ const viewPdfFun = (item) => {
 
   // store.commit("SET_OBJECTITEM", item);
   if (tabValue.value === 1) {
-    viewPdf(item.fileId);
+    viewPdf(item);
   }
   if (tabValue.value === 2) {
     fileUrlPlay.value = item.fileUrl;

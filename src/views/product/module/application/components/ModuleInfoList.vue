@@ -2,7 +2,7 @@
 import { defineEmits, getCurrentInstance, reactive, ref } from 'vue';
 import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue';
 import _ from 'lodash-es';
-import { DownOutlined } from '@ant-design/icons-vue';
+import { DownOutlined, CheckCircleFilled } from '@ant-design/icons-vue';
 import * as echarts from 'echarts';
 import modelvxeTable from '../../components/table/modelvxeTable.vue';
 import addModule from '../../components/modal/addModule.vue';
@@ -746,7 +746,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingBottom: '50px' },
+    style: { paddingTop: '50px' },
   }),
 });
 const option = ref({
@@ -865,25 +865,45 @@ async function compareData() {
   const list = [];
   parmList = res.data.data.listPropertyName;
   const strlist = res.data.data.listModule;
+  
+  // 动态找出“模型名称”对应的字段名
+  let modelNameKey = '';
+  for (let i = 0; i < parmList.length; i++) {
+    const key = Object.keys(parmList[i])[0];
+    if (parmList[i][key] === '模型名称') {
+      modelNameKey = key;
+      break;
+    }
+  }
+
   let str: any = { A: '选择' };
   parm.push({
     id: '数据',
-    title: '列名',
+    title: '类别',
     key: '数据',
     dataIndex: '数据',
     align: 'center',
-    minWidth: 100,
+    width: 150,
+    customHeaderCell: () => ({ style: { backgroundColor: '#f9f9f9', color: '#313133', maxWidth: '150px' } }),
+    customCell: () => ({
+      style: {
+        maxWidth: '150px',
+        whiteSpace: 'normal',
+        wordBreak: 'break-word',
+      },
+    }),
   });
   for (let j = 0; j < strlist.length; j++) {
     if (list.length == 0) {
-      // str['A' + j] = false;
       parm.push({
         id: strlist[j].id, // 缺少id
-        title: '数据',
+        title: (modelNameKey && strlist[j][modelNameKey]) ? strlist[j][modelNameKey] : '数据',
         key: `数据${j}`,
         dataIndex: `数据${j}`,
         align: 'center',
-        minWidth: 100,
+        width: 200,
+        minWidth: 200,
+        customHeaderCell: () => ({ style: { backgroundColor: j % 2 === 0 ? '#188EFE' : '#FE7C5B', color: '#fff' } }),
       });
     }
   }
@@ -903,21 +923,16 @@ async function compareData() {
   }
   tabularColumn.value = parm;
   tabularData.value = list;
-  const arr: any = [];
-  for (let i = 0; i < tabularColumn.value.length; i++) {
-    arr.push(i);
-  }
   tabularData.value.forEach((item: any) => {
     const brr: any = [];
-    arr.map(i => {
+    for (let i = 0; i < strlist.length; i++) {
       if (item[`数据${i}`]) {
         brr.push(item[`数据${i}`]);
       }
-    });
-    if (brr.length === arr.length - 1 && brr.every(item => item === brr[0])) {
-      arr.map(i => {
-        item[`数据${i}`] = item[`数据${i}`] ? `${item[`数据${i}`]} ✅` : '';
-      });
+    }
+    if (brr.length === strlist.length && brr.every(val => val === brr[0])) {
+      // 如果所有模型在该项上都有值并且完全相同，给行数据注入标识供展示 ✅ 图标
+      item.isSame = true;
     }
   });
   if (!tabularflag.value) {
@@ -1128,7 +1143,7 @@ defineExpose({ initData, selectAllModuleInfo });
 </script>
 
 <template>
-  <div class="module-body">
+  <div class="module-body h-full p-[16px]">
     <div class="selectLeft">
       <div class="btn-box">
         <div class="top-right-actions">
@@ -1322,13 +1337,24 @@ defineExpose({ initData, selectAllModuleInfo });
   </div>
   <a-modal
     v-model:visible="tabularflag"
-    style="width: 60%"
-    :title="$t('模块数据比较')"
+    style="width: 80%"
     :confirm-loading="$isPending()"
     :ok-text="$t('确定')"
     :cancel-text="$t('取消')"
     :mask-closable="false">
-    <div style="margin-bottom: 10px">
+    <template #title>
+      <div v-if="tabularColumn.length > 1" style="font-size: 18px; font-weight: bold; background: #f4f8ff; padding: 16px 24px; margin: -16px -24px; display: flex; align-items: center; border-radius: 8px 8px 0 0;">
+        <template v-for="(col, index) in tabularColumn.slice(1)" :key="col.key">
+          <span style="color: #313133; margin: 0 4px;">{{ col.title }}</span>
+          <span v-if="index !== tabularColumn.length - 2" style="margin: 0 16px; display: inline-flex; align-items: center;">
+            <img src="@/assets/images/vs.png" alt="VS" style="height: 24px;" />
+          </span>
+        </template>
+      </div>
+      <div v-else>{{ $t('模块数据比较') }}</div>
+    </template>
+    
+    <div style="margin: 16px 0 16px 12px;">
       <a-checkbox-group v-model:value="checkParmList" style="width: 100%" @change="tabularCheckList">
         <a-checkbox value="隐藏相同项">
           {{ '隐藏相同项' }}
@@ -1341,12 +1367,29 @@ defineExpose({ initData, selectAllModuleInfo });
 
     <a-table
       ref="elementTable"
+      bordered
       :scroll="{ x: 'max-content', y: 500 }"
       :pagination="false"
       :columns="tabularColumn"
       :data-source="tabularData"
       style="overflow-y: hidden"
-      :row-class-name="setFixedRowClass" />
+      :row-class-name="setFixedRowClass"
+    >
+      <template #bodyCell="{ column, record, text }">
+        <template v-if="column.dataIndex === '数据'">
+          <div class="flex items-center w-full">
+            <span class="flex-1"></span>
+            <span class="shrink-0 text-center">{{ text }}</span>
+            <span class="flex-1 text-right">
+              <CheckCircleFilled v-if="record.isSame" class="align-middle" style="color: #52c41a; font-size: 15px;" />
+            </span>
+          </div>
+        </template>
+        <template v-else>
+          {{ text }}
+        </template>
+      </template>
+    </a-table>
     <template #footer>
       <a-button type="primary" @click="handlefileSave"> 确定 </a-button>
       <a-button type="text" @click="tabularflag = false"> 取消 </a-button>
@@ -1361,123 +1404,118 @@ defineExpose({ initData, selectAllModuleInfo });
     @import-successful-fun="importSuccessfulFun"
     @close="batchflag = false" />
   <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="800">
-    <!--    详情页面 -->
-    <div class="dalIconList2" style="margin-top: 0">
-      <div :class="{ seDalIcon: parmType == 0, dalIcon: parmType != 0 }" @click="toParm(0)">
-        <EpcIcon type="icon-a-xiangmu1" />
-        <span>分类参数</span>
-      </div>
-      <div :class="{ seDalIcon: parmType == 1, dalIcon: parmType != 1 }" @click="toParm(1)">
-        <EpcIcon type="icon-a-xiangmu1" />
-        <span>常规属性</span>
-      </div>
-      <div :class="{ seDalIcon: parmType == 3, dalIcon: parmType != 3 }" @click="toParm(3)">
-        <EpcIcon type="icon-a-xiangmu1" />
-        <span>知识文档</span>
-      </div>
-      <div :class="{ seDalIcon: parmType == 5, dalIcon: parmType != 5 }" @click="toParm(5)">
-        <EpcIcon type="icon-a-xiangmu1" />
-        <span>历史文档</span>
-      </div>
-    </div>
-    <!--  -->
-    <div ref="udfBoxRef" :style="udfBoxStyle()" class="udfPage_style">
-      <div v-if="parmType == 0">
-        <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-top: 20px" size="small" bordered>
-          <a-descriptions-item :label="item.name" style="width: 200px">
-            {{ item.val }}
-          </a-descriptions-item>
-        </a-descriptions>
-      </div>
-      <div v-if="parmType == 1">
-        <div v-if="pdmDataFlag">
-          <a-descriptions style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item label="名称：" style="width: 200px">
-              {{ pdmData.name }}
-            </a-descriptions-item>
-          </a-descriptions>
-        </div>
-        <div v-if="pdmDataFlag">
-          <a-descriptions style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item label="编码：" style="width: 200px">
-              {{ pdmData.number }}
-            </a-descriptions-item>
-          </a-descriptions>
-        </div>
-        <div v-if="pdmDataFlag">
-          <a-descriptions style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item label="版本：" style="width: 200px">
-              {{ pdmData.version }}
-            </a-descriptions-item>
-          </a-descriptions>
-        </div>
-        <div>
-          <a-descriptions v-for="item in attributeParmList" :key="item.id" style="margin-top: 20px" size="small" bordered>
-            <a-descriptions-item :label="item.name" style="width: 200px">
-              {{ item.val }}
-            </a-descriptions-item>
-          </a-descriptions>
-        </div>
-      </div>
+    <div ref="udfBoxRef" class="px-[16px] h-full wei-scrollbar overflow-y-auto flex flex-col" :style="udfBoxStyle()">
+      <a-tabs v-model:activeKey="parmType" @change="toParm" :animated="false" style="flex: 1; min-height: 0;">
+        <a-tab-pane :key="0" tab="分类参数">
+          <div class="udfPage_style" style="height: 100%;">
+            <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-bottom: 20px" size="small" bordered>
+              <a-descriptions-item :label="item.name" style="width: 150px">
+                {{ item.val }}
+              </a-descriptions-item>
+            </a-descriptions>
+          </div>
+        </a-tab-pane>
+        
+        <a-tab-pane :key="1" tab="常规属性">
+          <div class="udfPage_style" style="height: 100%;">
+            <div v-if="pdmDataFlag">
+              <a-descriptions style="margin-top: 20px" size="small" bordered>
+                <a-descriptions-item label="名称：" style="width: 200px">
+                  {{ pdmData.name }}
+                </a-descriptions-item>
+              </a-descriptions>
+            </div>
+            <div v-if="pdmDataFlag">
+              <a-descriptions style="margin-top: 20px" size="small" bordered>
+                <a-descriptions-item label="编码：" style="width: 200px">
+                  {{ pdmData.number }}
+                </a-descriptions-item>
+              </a-descriptions>
+            </div>
+            <div v-if="pdmDataFlag">
+              <a-descriptions style="margin-top: 20px" size="small" bordered>
+                <a-descriptions-item label="版本：" style="width: 200px">
+                  {{ pdmData.version }}
+                </a-descriptions-item>
+              </a-descriptions>
+            </div>
+            <div>
+              <a-descriptions v-for="item in attributeParmList" :key="item.id" style="margin-top: 20px" size="small" bordered>
+                <a-descriptions-item :label="item.name" style="width: 200px">
+                  {{ item.val }}
+                </a-descriptions-item>
+              </a-descriptions>
+            </div>
+          </div>
+        </a-tab-pane>
 
-      <div v-if="parmType == 3">
-        <div style="width: 100%; height: 30px; text-align: left; margin-top: 10px">模块库知识:</div>
-        <div style="width: 100%">
-          <a-table
-            :scroll="{ x: 400, y: 400 }"
-            row-key="id"
-            :loading="loading"
-            :locale="locale"
-            :pagination="false"
-            default-expand-all
-            :data-source="fileData1"
-            :columns="fileColumns1"
-            :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'oldFileName'">
-                <a class="action-btn" @click.stop="downloadPDF(record.fileId, record.documentName)">下载</a>
-              </template>
-            </template>
-          </a-table>
-        </div>
+        <a-tab-pane :key="3" tab="知识文档">
+          <div class="udfPage_style" style="height: 100%;">
+            <div style="width: 100%; height: 30px; text-align: left; margin-top: 10px">模块库知识:</div>
+            <div style="width: 100%">
+              <a-table
+                :scroll="{ x: 400, y: 400 }"
+                row-key="id"
+                :loading="loading"
+                :locale="locale"
+                :pagination="false"
+                default-expand-all
+                :data-source="fileData1"
+                :columns="fileColumns1"
+                :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.dataIndex === 'oldFileName'">
+                    <a class="action-btn" @click.stop="downloadPDF(record.fileId, record.documentName)">下载</a>
+                  </template>
+                </template>
+              </a-table>
+            </div>
 
-        <div style="width: 100%; height: 30px; text-align: left; margin-top: 20px">PDM知识:</div>
-        <div style="width: 100%">
-          <a-table
-            :scroll="{ x: 400, y: 400 }"
-            row-key="id"
-            :locale="locale"
-            :loading="loading"
-            :pagination="false"
-            default-expand-all
-            :data-source="fileData2"
-            :columns="fileColumns2"
-            :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'docnumber'">
-                <a @click.stop="handleNameClick(record)">{{ record.docnumber }}</a>
-              </template>
-            </template>
-          </a-table>
-        </div>
-      </div>
-      <div v-if="parmType == 5" class="history-doc-table-wrap">
-        <a-table
-          :scroll="{ x: 1200, y: 400 }"
-          row-key="id"
-          :loading="loading"
-          :locale="locale"
-          :pagination="false"
-          default-expand-all
-          :data-source="doudata"
-          :columns="supGbomcolumns"
-          :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')" />
-      </div>
+            <div style="width: 100%; height: 30px; text-align: left; margin-top: 20px">PDM知识:</div>
+            <div style="width: 100%">
+              <a-table
+                :scroll="{ x: 400, y: 400 }"
+                row-key="id"
+                :locale="locale"
+                :loading="loading"
+                :pagination="false"
+                default-expand-all
+                :data-source="fileData2"
+                :columns="fileColumns2"
+                :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.dataIndex === 'docnumber'">
+                    <a @click.stop="handleNameClick(record)">{{ record.docnumber }}</a>
+                  </template>
+                </template>
+              </a-table>
+            </div>
+          </div>
+        </a-tab-pane>
+
+        <a-tab-pane :key="5" tab="历史文档">
+          <div class="udfPage_style history-doc-table-wrap" style="height: 100%;">
+            <a-table
+              :scroll="{ x: 1200, y: 400 }"
+              row-key="id"
+              :loading="loading"
+              :locale="locale"
+              :pagination="false"
+              default-expand-all
+              :data-source="doudata"
+              :columns="supGbomcolumns"
+              :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')" />
+          </div>
+        </a-tab-pane>
+      </a-tabs>
     </div>
   </a-drawer>
 </template>
 
 <style lang="less" scoped>
+:deep(.ant-tabs-content) {
+  height: 100%;
+}
 .module-body {
   padding-right: 20px;
 }
@@ -1542,6 +1580,7 @@ defineExpose({ initData, selectAllModuleInfo });
   min-width: 0;
   height: 78px;
   overflow: hidden;
+  margin-bottom: 16px;
 }
 .query-scroll {
   flex: 1;
@@ -1572,7 +1611,7 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 :deep(.query-item .ant-form-item-label > label) {
   font-size: 14px;
-  color: #333;
+  color: #313133;
   display: inline-block;
   width: 100%;
   line-height: 26px;
@@ -1681,14 +1720,14 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 :deep(.ant-table-body .fixed-row-1) {
   position: sticky !important;
-  top: 40px; /* 需根据第一行高度调整（假设行高40px） */
+  top: 35px; /* 需根据第一行高度调整（假设行高40px） */
   background: #fff !important;
   z-index: 2;
   border-bottom: 1px solid #f0f0f0;
 }
 :deep(.ant-table-body .fixed-row-2) {
   position: sticky !important;
-  top: 80px; /* 第一行高度×2 */
+  top: 70px; /* 第一行高度×2 */
   background: #fff !important;
   z-index: 1;
   border-bottom: 1px solid #f0f0f0;
@@ -1702,7 +1741,7 @@ defineExpose({ initData, selectAllModuleInfo });
 
 .top-right-actions {
   position: absolute;
-  top: 1px;
+  top: 16px;
   right: 12px;
   z-index: 10;
 }
