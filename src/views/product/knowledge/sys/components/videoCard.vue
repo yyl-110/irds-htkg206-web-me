@@ -32,13 +32,13 @@ const viewPdfFun = () => {
   const logParams = {
     name: useUserStore().getUser.userName,
     userId: useUserStore().getUser.id,
-    kldId: item.kldFileId,
+    kldId: item.id,
     type: "1",
   };
   saveLookFileLog(logParams);
   fileUrlPlay.value = item.fileUrl;
   videoHide.value = true;
-  updateKldCounting({ kldFileId: item.kldFileId, countingType: 1 });
+  updateKldCounting({ kldFileId: item.id, countingType: 1 });
 };
 
 const getVideoHide = (val: boolean) => {
@@ -201,7 +201,7 @@ const handleEditCard = () => {
     font-size: 14px;
     font-family: PingFang-SC, PingFang-SC;
     font-weight: 400;
-    color: var(--ant-primary-color);
+    // color: var(--ant-primary-color);
     line-height: 22px;
     display: inline-block;
     cursor: pointer;

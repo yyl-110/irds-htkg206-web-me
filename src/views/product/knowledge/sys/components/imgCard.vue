@@ -175,7 +175,7 @@ const handleEditCard = () => {
     font-size: 14px;
     font-family: PingFang-SC, PingFang-SC;
     font-weight: 400;
-    color: var(--ant-primary-color);
+    // color: var(--ant-primary-color);
     line-height: 22px;
     display: inline-block;
     cursor: pointer;
