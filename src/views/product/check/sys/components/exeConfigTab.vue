@@ -387,6 +387,7 @@ async function requestPublishExe(record: ExeConfigRecord) {
   const treeName = String(row.treeName ?? props.currentNodeName ?? '');
   const treeId = String(props.treeId ?? row.treeId ?? '').trim();
   const remarks = String(row.remarks ?? '');
+  const checkType = 3;
 
   publishBusyId.value = record.id;
   try {
@@ -394,9 +395,10 @@ async function requestPublishExe(record: ExeConfigRecord) {
       userId: userStore.getUser.id,
       exeCheckId: id,
       checkName,
-      checkType: 'exe计算',
+      checkType,
       status: 3,
       remarks,
+      operation: 'ADD',
       confidentialLevel,
       ...(treeId ? { treeId } : {}),
     });
@@ -453,14 +455,22 @@ async function requestUnpublishExe(record: ExeConfigRecord) {
   const useType = String(row.useType ?? 'exe计算');
   const confidentialLevel = resolveConfidentialLevelFromRow(row);
   const treeName = String(row.treeName ?? props.currentNodeName ?? '');
+  const treeId = String(props.treeId ?? row.treeId ?? '').trim();
+  const remarks = String(row.remarks ?? '');
+  const checkType = 3;
+  
 
   publishBusyId.value = record.id;
   try {
     const summarRes = await AdminApiSystemCheckInfoApi.saveCheckSummar({
       userId: userStore.getUser.id,
-      id,
       checkExeInfoId: id,
       operation: 'DELETE',
+      checkName,
+      checkType,
+      remarks,
+      confidentialLevel,
+      ...(treeId ? { treeId } : {}),
     });
     if (!isApiOk(summarRes)) {
       message.error(String(summarRes?.data?.msg || '取消发布失败：从计算清单移除失败'));
@@ -628,7 +638,11 @@ watch(editModalVisible, v => {
         </template>
       </a-table>
     </a-card>
-    <ExeConfigAddModal v-model:visible="addModalVisible" :current-node-name="currentNodeName" @success="handleAddSuccess" />
+    <ExeConfigAddModal
+      v-model:visible="addModalVisible"
+      :tree-id="treeId"
+      :current-node-name="currentNodeName"
+      @success="handleAddSuccess" />
     <ExeConfigEditModal v-model:visible="editModalVisible" :record="editRow" :current-node-name="currentNodeName" @success="handleAddSuccess" />
   </div>
 </template>

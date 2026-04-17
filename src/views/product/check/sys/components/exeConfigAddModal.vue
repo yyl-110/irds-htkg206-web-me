@@ -12,6 +12,8 @@ import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台'
 
 const props = defineProps<{
   visible: boolean;
+  /** 左侧分类树当前节点 id，与列表、保存接口 treeId 一致 */
+  treeId?: string;
   currentNodeName?: string;
 }>();
 
@@ -186,6 +188,7 @@ async function submitAddForm() {
     }
 
     const securityLevelLabel = userStore.getConfidentialLevel.find(item => item.value === addForm.value.confidentialLevel)?.label;
+    const tid = String(props.treeId ?? '').trim();
     const payload = {
       checkName: addForm.value.calcName,
       // 后端字段要求包含 checkNum，当前页面无单独输入项，先沿用计算名称
@@ -196,6 +199,7 @@ async function submitAddForm() {
       confidentialLevel: addForm.value.confidentialLevel,
       treeName: props.currentNodeName || '',
       userId: userStore.getUser.id,
+      ...(tid ? { treeId: tid } : {}),
     };
     const addRes = await AdminApiSystemCheckInfoApi.addCheckExeInfo(payload);
     if (addRes?.data?.code !== 0 && addRes?.data?.code !== 200) {
