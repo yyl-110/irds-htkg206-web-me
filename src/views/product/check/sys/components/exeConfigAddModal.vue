@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { InboxOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
 import type { UploadFile } from 'ant-design-vue/es/upload/interface';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { downloadFileFromStream } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
@@ -23,20 +24,18 @@ const emit = defineEmits<{
 const addSubmitting = ref(false);
 const userStore = useUserStore();
 const addFormRef = ref();
+/** 选择文件后立即上传得到的文件 ID，提交时直接关联 */
+const uploadedFileId = ref('');
 const addForm = ref({
   calcName: '',
-  securityLevel: undefined as string | undefined,
+  securityLevel: 0,
   fileList: [] as UploadFile[],
 });
-const levelOptions = [
-  { label: '公开', value: '公开' },
-  { label: '内部', value: '内部' },
-  { label: '秘密', value: '秘密' },
-];
+const levelOptions = computed(() => userStore.getConfidentialLevel);
 const addRules = {
   calcName: [{ required: true, message: '请输入计算名称', trigger: 'blur' }],
   securityLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
-  fileList: [{ required: true, validator: validateFileRequired, trigger: 'change' }],
+  // fileList: [{ required: true, validator: validateFileRequired, trigger: 'change' }],
 };
 
 const modalVisible = computed({
@@ -44,9 +43,26 @@ const modalVisible = computed({
   set: (value: boolean) => emit('update:visible', value),
 });
 
-function validateFileRequired() {
-  if (addForm.value.fileList.length > 0) return Promise.resolve();
-  return Promise.reject('请上传exe文件');
+// function validateFileRequired() {
+//   if (uploadedFileId.value) return Promise.resolve();
+//   return Promise.reject('请上传exe文件');
+// }
+
+async function handleUploadPreview(file: UploadFile) {
+  const fid = String(uploadedFileId.value || (file.response as any)?.id || '').trim();
+  if (!fid) {
+    message.warning('无法下载：缺少文件ID');
+    return;
+  }
+  const saveName =
+    String((file.response as any)?.oldFileName ?? file.name ?? 'download.exe').trim() || 'download.exe';
+  try {
+    const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: fid } as any);
+    const stream = (res as any)?.data !== undefined ? (res as any).data : res;
+    downloadFileFromStream(stream, saveName);
+  } catch {
+    message.error('下载失败');
+  }
 }
 
 function beforeUpload(file: File) {
@@ -55,21 +71,109 @@ function beforeUpload(file: File) {
     message.warning('仅支持上传 .exe 文件');
     return false;
   }
-  return false;
+  if (file.size > 104857600) {
+    message.error('文件不能大于 100M');
+    return false;
+  }
+  return true;
+}
+
+/** 兼容 upload.json：① 直接返回文件 DTO；② CommonResult { code, data, msg } */
+function parseUploadFileResult(raw: unknown): { ok: boolean; fileId: string; record: Record<string, unknown>; errMsg?: string } {
+  if (!raw || typeof raw !== 'object') {
+    return { ok: false, fileId: '', record: {}, errMsg: '响应为空' };
+  }
+  const body = raw as Record<string, unknown>;
+  const code = body.code;
+  const successCodes: Array<number | string> = [0, 200, '0'];
+  if (code !== undefined && code !== null && !successCodes.includes(code as number | string)) {
+    return { ok: false, fileId: '', record: {}, errMsg: String(body.msg ?? '上传失败') };
+  }
+  let record: Record<string, unknown> = body;
+  const nested = body.data;
+  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) {
+    record = nested as Record<string, unknown>;
+  } else if ((body.id == null && body.queryId == null) && nested && typeof nested === 'object') {
+    record = nested as Record<string, unknown>;
+  }
+  const fileId = String(record.id ?? record.queryId ?? '');
+  if (!fileId) {
+    return { ok: false, fileId: '', record: {}, errMsg: '未获取到上传文件ID' };
+  }
+  return { ok: true, fileId, record };
+}
+
+async function customRequest(options: { file: File | Blob; onSuccess?: (body: unknown, file?: File) => void; onError?: (e: Error) => void }) {
+  const { file, onSuccess, onError } = options;
+  try {
+    const uploadRes = await AdminApiSystemUploadFile.uploadFile({
+      file: file as File,
+      userId: userStore.getUser.id,
+      securityLevel: addForm.value.securityLevel,
+    });
+
+    const { ok, fileId, record, errMsg } = parseUploadFileResult(uploadRes?.data);
+    if (!ok) {
+      message.error(errMsg || 'exe文件上传失败');
+      onError?.(new Error(errMsg || 'exe文件上传失败'));
+      return;
+    }
+    uploadedFileId.value = fileId;
+
+    const serverLevel = record.confidentialLevel;
+    if (typeof serverLevel === 'number' && Number.isFinite(serverLevel)) {
+      const allowed = userStore.getConfidentialLevel.some((item) => item.value === serverLevel);
+      if (allowed) {
+        addForm.value.securityLevel = serverLevel;
+        await nextTick();
+        addFormRef.value?.validateFields(['securityLevel']).catch(() => {});
+      }
+    }
+
+    const docName = record.documentName != null ? String(record.documentName).trim() : '';
+    if (!String(addForm.value.calcName || '').trim() && docName) {
+      addForm.value.calcName = docName;
+      await nextTick();
+      addFormRef.value?.validateFields(['calcName']).catch(() => {});
+    }
+
+    message.success('上传成功');
+    onSuccess?.(uploadRes.data, file as File);
+    await nextTick();
+    const displayName = String(record.oldFileName ?? (file as File).name ?? '').trim() || (file as File).name;
+    const rows = addForm.value.fileList.slice(-1);
+    if (rows[0]) {
+      rows[0].name = displayName;
+      if (!rows[0].response) rows[0].response = uploadRes.data as any;
+      addForm.value.fileList = [...rows];
+    }
+    addFormRef.value?.validateFields(['fileList']).catch(() => {});
+  } catch (err) {
+    message.error('exe文件上传失败，请重试');
+    onError?.(err instanceof Error ? err : new Error(String(err)));
+  }
 }
 
 function onUploadChange(info: UploadChangeParam) {
   addForm.value.fileList = info.fileList.slice(-1);
+  if (info.file.status === 'error') {
+    message.error(`${info.file.name} 上传失败`);
+  }
+  if (info.file.status === 'removed') {
+    uploadedFileId.value = '';
+  }
 }
 
 function removeUploadFile() {
   addForm.value.fileList = [];
+  uploadedFileId.value = '';
 }
 
 function closeAddModal() {
   modalVisible.value = false;
   addFormRef.value?.resetFields();
   addForm.value.fileList = [];
+  uploadedFileId.value = '';
 }
 
 async function submitAddForm() {
@@ -77,29 +181,15 @@ async function submitAddForm() {
     await addFormRef.value?.validate();
     addSubmitting.value = true;
 
-    const fileItem = addForm.value.fileList[0] as any;
-    const rawFile = (fileItem?.originFileObj || fileItem) as File | undefined;
-    if (!rawFile) {
-      message.warning('请先选择exe文件');
-      return;
-    }
-
-    const uploadRes = await AdminApiSystemUploadFile.uploadFile({
-      file: rawFile,
-      userId: userStore.getUser.id,
-    });
-    if (uploadRes?.data?.code !== 0 && uploadRes?.data?.code !== 200) {
-      message.error(uploadRes?.data?.msg || 'exe文件上传失败');
-      return;
-    }
-
-    const uploadData: any = uploadRes?.data?.data || {};
-    const fileId = String(uploadData?.id ?? uploadData?.queryId ?? '');
+    const fileId = uploadedFileId.value;
     if (!fileId) {
-      message.error('未获取到上传文件ID');
+      message.warning('请先上传exe文件');
       return;
     }
 
+    const securityLevelLabel = userStore.getConfidentialLevel.find(
+      (item) => item.value === addForm.value.securityLevel,
+    )?.label;
     const payload = {
       checkName: addForm.value.calcName,
       // 后端字段要求包含 checkNum，当前页面无单独输入项，先沿用计算名称
@@ -107,7 +197,7 @@ async function submitAddForm() {
       fileId,
       useType: 'exe计算',
       status: 0,
-      securityLevel: addForm.value.securityLevel,
+      confidentialLevel: addForm.value.securityLevel,
       treeName: props.currentNodeName || '',
       userId: userStore.getUser.id,
     };
@@ -151,8 +241,12 @@ async function submitAddForm() {
         <a-upload-dragger
           accept=".exe"
           :multiple="false"
+          :max-count="1"
+          :show-upload-list="{ showPreviewIcon: true, showRemoveIcon: true }"
           :file-list="addForm.fileList"
           :before-upload="beforeUpload"
+          :custom-request="customRequest"
+          @preview="handleUploadPreview"
           @change="onUploadChange"
           @remove="removeUploadFile">
           <p class="ant-upload-drag-icon">
