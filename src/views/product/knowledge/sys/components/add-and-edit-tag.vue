@@ -14,7 +14,7 @@
           <a-input v-model:value="ruleForm.url" />
         </a-form-item> -->
 
-        <a-form-item label="密级">
+        <!-- <a-form-item label="密级">
           <a-select v-model:value="ruleForm.confidentialLevel" placeholder="请选择密级"
             allow-clear>
             <a-select-option :value="0">公开</a-select-option>
@@ -22,7 +22,7 @@
             <a-select-option :value="2">秘密</a-select-option>
             <a-select-option :value="3">机密</a-select-option>
           </a-select>
-        </a-form-item>
+        </a-form-item> -->
       </a-form>
     </a-modal>
   </div>
@@ -48,7 +48,6 @@ const ruleForm = reactive({
   labelName: "",
   level: "",
   region: "",
-  confidentialLevel: null,
 });
 
 // 注意：Ant Design Vue 的 rules 需配合 a-form-item 的 name 使用
@@ -74,7 +73,6 @@ const show = (node, parent, type) => {
     ruleForm.labelName = nodeData.value.partName;
     ruleForm.level = nodeData.value.level;
     ruleForm.region = nodeData.value.selectType;
-    ruleForm.confidentialLevel = nodeData.value.confidentialLevel;
   }
 };
 
@@ -84,7 +82,6 @@ const close = () => {
   ruleForm.labelName = "";
   ruleForm.level = "";
   ruleForm.region = "";
-  ruleForm.confidentialLevel = null
 };
 
 defineExpose({
@@ -126,7 +123,6 @@ const add = () => {
     selectType: ruleForm.region || 0,
     tageLevel: '',
     nodeLevel: nodeData.value.level === 1 ? 2 : 3,
-    confidentialLevel: ruleForm.confidentialLevel,
   };
   tagSave(params).then((res) => {
     if (res && res.data.code === "0") {
@@ -149,7 +145,6 @@ const edit = () => {
     style: "teststyle",
     selectType: ruleForm.region || 0,
     tageLevel: ruleForm.level,
-    confidentialLevel: ruleForm.confidentialLevel,
   };
   tagSave(params).then((res) => {
     if (res && res.data.code === "0") {

@@ -175,10 +175,9 @@
                   </a-form-item>
                   <a-form-item label="密级">
                     <a-select class="elInput" v-model:value="ruleForm.confidentialLevel" placeholder="请选择密级">
-                      <a-select-option value="0">公开</a-select-option>
-                      <a-select-option value="1">内部</a-select-option>
-                      <a-select-option value="2">秘密</a-select-option>
-                      <a-select-option value="3">机密</a-select-option>
+                      <a-select-option :value="item.value" v-for="item in confidentialLevelList" :key="item.value">{{
+                        item.label
+                        }}</a-select-option>
                     </a-select>
                   </a-form-item>
                   <a-form-item label="摘要">
@@ -378,6 +377,8 @@ const selectedTreeKeys = ref<string[]>([]);
 const checkOUListText = computed(() => {
   return Array.isArray(checkOUList.value) ? checkOUList.value.join(',') : (checkOUList.value || '');
 });
+
+const confidentialLevelList = computed(() => useUserStore().getConfidentialLevel.map((item: any) => ({ ...item, value: String(item.value) })))
 
 const ruleForm = ref({
   mapName: '',

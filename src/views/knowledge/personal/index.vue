@@ -64,10 +64,22 @@ import textCard from '../components/textCard.vue'
 import videoCard from '../components/videoCard.vue'
 import { useUserStore } from '@/store/modules/user'
 import { Empty, message } from 'ant-design-vue'
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue'
 import { SearchOutlined } from '@ant-design/icons-vue'
 
 type TabKey = 'doc' | 'ask' | 'video' | 'pic'
+
+/** 用于取消请求的 AbortController */
+let abortController: AbortController | null = null
+
+/** 取消上一个请求并创建新的 AbortController */
+const cancelPreviousRequest = () => {
+  if (abortController) {
+    abortController.abort()
+  }
+  abortController = new AbortController()
+  return abortController.signal
+}
 
 interface PageState {
   pageSize: number
@@ -109,6 +121,7 @@ const page = ref<PageState>({
 
 /** 收藏列表 */
 const myCollect = async () => {
+  const signal = cancelPreviousRequest()
   spinning.value = true
   const params = {
     titleOrUserName: searchKey.value || '',
@@ -118,15 +131,18 @@ const myCollect = async () => {
     pageSize: page.value.pageSize,
   }
   try {
-    const res = await collectFileList(params)
+    const res = await collectFileList(params, { signal })
     if (res?.data.code === '0') {
       documentList.value = res.data.data.result || []
       page.value.pageCount = res.data.data.rowCount
     } else {
       message.error(res.data.msg)
     }
-  } catch (error) {
-    console.error('myCollect error:', error)
+  } catch (error: any) {
+    // 请求被取消时不报错
+    if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+      console.error('myCollect error:', error)
+    }
   } finally {
     spinning.value = false
   }
@@ -134,6 +150,7 @@ const myCollect = async () => {
 
 /** 关注列表 */
 const myInterestList = async () => {
+  const signal = cancelPreviousRequest()
   spinning.value = true
   const params = {
     titleOrUserName: searchKey.value || '',
@@ -142,7 +159,7 @@ const myInterestList = async () => {
     pageSize: page.value.pageSize,
   }
   try {
-    const res = await interestList(params)
+    const res = await interestList(params, { signal })
     if (res?.data.code === '0') {
       const result: any[] = res.data.data.result || []
       result.forEach((v) => {
@@ -154,8 +171,11 @@ const myInterestList = async () => {
     } else {
       message.error(res.data.msg)
     }
-  } catch (error) {
-    console.error('myInterestList error:', error)
+  } catch (error: any) {
+    // 请求被取消时不报错
+    if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+      console.error('myInterestList error:', error)
+    }
   } finally {
     spinning.value = false
   }
@@ -163,6 +183,7 @@ const myInterestList = async () => {
 
 /** 分享的问答列表 */
 const myShareQuestionList = async () => {
+  const signal = cancelPreviousRequest()
   spinning.value = true
   const params = {
     titleOrUserName: searchKey.value || '',
@@ -171,15 +192,18 @@ const myShareQuestionList = async () => {
     pageSize: page.value.pageSize,
   }
   try {
-    const res = await shareQuestionList(params)
+    const res = await shareQuestionList(params, { signal })
     if (res?.data.code === '0') {
       documentList.value = res.data.data.result || []
       page.value.pageCount = res.data.data.rowCount
     } else {
       message.error(res.data.msg)
     }
-  } catch (error) {
-    console.error('myShareQuestionList error:', error)
+  } catch (error: any) {
+    // 请求被取消时不报错
+    if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+      console.error('myShareQuestionList error:', error)
+    }
   } finally {
     spinning.value = false
   }
@@ -187,6 +211,7 @@ const myShareQuestionList = async () => {
 
 /** 分享的文件列表 */
 const myShareFileList = async () => {
+  const signal = cancelPreviousRequest()
   spinning.value = true
   const params = {
     titleOrUserName: searchKey.value || '',
@@ -196,15 +221,18 @@ const myShareFileList = async () => {
     pageSize: page.value.pageSize,
   }
   try {
-    const res = await shareFileList(params)
+    const res = await shareFileList(params, { signal })
     if (res?.data.code === '0') {
       documentList.value = res.data.data.result || []
       page.value.pageCount = res.data.data.rowCount
     } else {
       message.error(res.data.msg)
     }
-  } catch (error) {
-    console.error('myShareFileList error:', error)
+  } catch (error: any) {
+    // 请求被取消时不报错
+    if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+      console.error('myShareFileList error:', error)
+    }
   } finally {
     spinning.value = false
   }
@@ -270,6 +298,14 @@ const handleClick = (val: string) => {
 
 onMounted(() => {
   publicFun()
+})
+
+onBeforeUnmount(() => {
+  // 组件卸载时取消所有未完成的请求
+  if (abortController) {
+    abortController.abort()
+    abortController = null
+  }
 })
 
 watch(

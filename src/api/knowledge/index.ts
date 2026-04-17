@@ -404,45 +404,53 @@ export function queryExpertInformationList(data: any) {
 /**
  * 个人主页-收藏列表
  * @param data {"titleOrUserName":"","userId":"582","attachmentType":1,"currentPage":1,"pageSize":10}
+ * @param config axios config (可选，用于传递 signal 等)
  */
-export function collectFileList(data: any) {
+export function collectFileList(data: any, config?: any) {
   return httpRequest({
     url: '/knowledge-service/knowledgePersonal/collectFileList',
     data,
     method: "POST",
+    ...config,
   });
 }
 /**
  * 个人主页-关注列表
- * @param data 
+ * @param data
+ * @param config axios config (可选，用于传递 signal 等)
  */
-export function interestList(data: any) {
+export function interestList(data: any, config?: any) {
   return httpRequest({
     url: '/knowledge-service/knowledgePersonal/interestList',
     data,
     method: "POST",
+    ...config,
   });
 }
 /**
  * 个人主页-分享问题列表
  * @param data
+ * @param config axios config (可选，用于传递 signal 等)
  */
-export function shareQuestionList(data: any) {
+export function shareQuestionList(data: any, config?: any) {
   return httpRequest({
     url: '/knowledge-service/knowledgePersonal/shareQuestionList',
     data,
     method: "POST",
+    ...config,
   });
 }
 /**
  * 个人主页-分享文档列表
  * @param data
+ * @param config axios config (可选，用于传递 signal 等)
  */
-export function shareFileList(data: any) {
+export function shareFileList(data: any, config?: any) {
   return httpRequest({
     url: '/knowledge-service/knowledgePersonal/shareFileList',
     data,
     method: "POST",
+    ...config,
   });
 }
 /**

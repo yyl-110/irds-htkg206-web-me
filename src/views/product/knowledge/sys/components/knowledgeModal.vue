@@ -45,10 +45,8 @@
         </a-form-item>
         <a-form-item label="密级">
           <a-select class="elInput" v-model:value="ruleForm.confidentialLevel" placeholder="请选择密级">
-            <a-select-option value="0">公开</a-select-option>
-            <a-select-option value="1">内部</a-select-option>
-            <a-select-option value="2">秘密</a-select-option>
-            <a-select-option value="3">机密</a-select-option>
+            <a-select-option :value="item.value" v-for="item in confidentialLevelList" :key="item.value">{{ item.label
+              }}</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="发布状态" name="releaseStatus">
@@ -117,6 +115,8 @@ const props = defineProps({
   },
 });
 const emit = defineEmits(["saveSuccess"]);
+
+const confidentialLevelList = computed(() => useUserStore().getConfidentialLevel.map((item: any) => ({ ...item, value: String(item.value) })))
 
 const modalVisible = ref(false);
 const modalType = ref(1);
@@ -197,6 +197,7 @@ const fetchDetail = async () => {
       ruleForm.annexType = val.fileType;
       ruleForm.desc = val.summary;
       ruleForm.releaseStatus = val.releaseStatus;
+      ruleForm.confidentialLevel = val.confidentialLevel;
       // 标签属性
       ruleForm.checkTabList = val.kldTageNames.split("[")[1]?.split("]")[0]?.split(", ")
         ?? val.kldTageNames.split(",");
@@ -359,7 +360,6 @@ const submit = async () => {
       isTextAttachment: ruleForm.isAnnex === "1" ? "1" : "0",
       attachmentType: "",
       releaseStatus: ruleForm.releaseStatus,
-      securityLevel: ruleForm.classification === "非密" ? "2" : "1",
       kldTreeId: props.nodeData.key || editData.value.kldTreeId,
       kldTreeNodeId: props.parentNode?.id || editData.value.kldTreeNodeId,
       keywords: ruleForm.keywords,

@@ -47,6 +47,21 @@ const page = ref({
 });
 
 const myData = ref([]);
+
+/** 浏览记录表格列配置 */
+const viewHistoryColumns = [
+  { title: '项目名', dataIndex: 'fileName', key: 'fileName', ellipsis: true },
+  { title: '创建者', dataIndex: 'userName', key: 'userName', width: 100 },
+  { title: '创建时间', dataIndex: 'addTime', key: 'addTime', width: 160 },
+];
+
+/** 热点文档表格列配置 */
+const hotArticleColumns = [
+  { title: '项目名', dataIndex: 'fileName', key: 'fileName', ellipsis: true },
+  { title: '创建者', dataIndex: 'userName', key: 'userName', width: 100 },
+  { title: '创建时间', dataIndex: 'addTime', key: 'addTime', width: 160 },
+  { title: '浏览次数', dataIndex: 'lookUpNum', key: 'lookUpNum', width: 100 },
+];
 // 用户信息
 const userInfoList = ref({});
 const roleName = ref();
@@ -258,40 +273,56 @@ const closeFun = () => {
     <div class="rightDialog">
       <draggable-modal v-model:visible="dialogVisible" :title="dialogTit" width="50%" cancel-text="关闭"
         @cancel="closeFun" class="record-modal">
-        <a-card v-if="dialogTit === '浏览记录'" class="box-card2 wei-scrollbar" style="height: 18.75rem; overflow-y: auto"
-          :bordered="false">
-          <div v-for="(item, index) in viewHistoryData" :key="item.id"
-            class="text item text-list flex justify-between py-[8px] mb-[8px]" @click="viewPdfFun(item)"
-            style="border-bottom: 1px solid #E7EAEE">
-            <div class="box-item pr-[32px]">
-              <div class="tit">{{ item.fileName }}</div>
-            </div>
-            <div class="flex-shrink-0">
-              <span class="name">{{ item.userName }}</span>
-              <span class="time ml-[6px]">{{ getTimes(Date.parse(item.addTime)) }}</span>
-            </div>
-          </div>
-        </a-card>
-        <a-card v-else class="box-card1 wei-scrollbar" :bordered="false" style="height: 18.75rem; overflow-y: auto">
-          <div v-for="(item, index) in hotArticleData" :key="item.id" @click="viewPdfFun(item)"
-            style="border-bottom: 1px solid #E7EAEE" class="py-[8px]">
-            <div class="text item text-list flex justify-between">
-              <div class="box-item pr-[32px]">
-                <div class="tit">{{ item.fileName }}</div>
-              </div>
-              <div class="flex-shrink-0">
-                <span class="name">{{ item.userName }}</span>
-                <span class="time ml-[6px]">{{
-                  getTimes(Date.parse(item.addTime))
-                }}</span>
-              </div>
-            </div>
-            <div style="line-height: 22px;" class="mt-[4px] flex items-center">
-              <eye-outlined class="mr-[2px]" />
-              {{ item.lookUpNum || item.num }}次
-            </div>
-          </div>
-        </a-card>
+        <div v-if="dialogTit === '浏览记录'" class="p-[16px]">
+          <a-table
+            :columns="viewHistoryColumns"
+            :data-source="viewHistoryData"
+            :pagination="false"
+            :scroll="{ y: 400 }"
+            row-key="id"
+            size="small"
+            :custom-row="(record) => ({ onClick: () => viewPdfFun(record) })"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'fileName'">
+                <a-tooltip :title="record.fileName" placement="topLeft">
+                  <span class="cursor-pointer hover:text-[var(--ant-primary-color)]" style="color: var(--ant-primary-color)">{{ record.fileName }}</span>
+                </a-tooltip>
+              </template>
+              <template v-if="column.key === 'addTime'">
+                {{ getTimes(Date.parse(record.addTime)) }}
+              </template>
+            </template>
+          </a-table>
+        </div>
+        <div v-else class="p-[16px]">
+          <a-table
+            :columns="hotArticleColumns"
+            :data-source="hotArticleData"
+            :pagination="false"
+            :scroll="{ y: 400 }"
+            row-key="id"
+            size="small"
+            :custom-row="(record) => ({ onClick: () => viewPdfFun(record) })"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'fileName'">
+                <a-tooltip :title="record.fileName" placement="topLeft">
+                  <span class="cursor-pointer hover:text-[var(--ant-primary-color)]" style="color: var(--ant-primary-color)">{{ record.fileName }}</span>
+                </a-tooltip>
+              </template>
+              <template v-if="column.key === 'addTime'">
+                {{ getTimes(Date.parse(record.addTime)) }}
+              </template>
+              <template v-if="column.key === 'lookUpNum'">
+                <span class="flex items-center">
+                  <eye-outlined class="mr-[2px]" />
+                  {{ record.lookUpNum || record.num }}次
+                </span>
+              </template>
+            </template>
+          </a-table>
+        </div>
         <template #footer>
           <div class="footer">
             <span class="dialog-footer">
@@ -619,179 +650,31 @@ const closeFun = () => {
     width: 20px;
     margin-top: 10px;
   }
+}
 
-  .rightDialog {
-    :deep(.el-dialog > .el-dialog__body) {
-      padding: 0;
+:deep(.ant-table-body) {
+  overflow-y: auto !important;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.3);
     }
+  }
 
-    .view-more-dialog {
-      .box-card1 {
-        overflow: auto;
-        padding: 0 10px;
-        background: #ffffff;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        border: none;
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: #333;
-
-          .more {
-            cursor: pointer;
-            color: var(--ant-primary-color);
-          }
-        }
-
-        :deep(.el-card__body) {
-          padding: 0 !important;
-
-          .item {
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            font-family: PingFang-SC, PingFang-SC;
-            font-weight: 500;
-            color: #646566;
-
-            &:hover {
-              cursor: pointer;
-              color: var(--ant-primary-color);
-            }
-
-            .elTag {
-              margin-right: 8px;
-              color: var(--ant-primary-color) !important;
-              background: #edf4ff !important;
-            }
-
-            .el-tag--light {
-              margin-right: 8px;
-            }
-          }
-        }
-      }
-
-      .box-card2 {
-        overflow: auto;
-        padding: 0 10px;
-        background: #ffffff;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        border: none;
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: #333;
-
-          .more {
-            cursor: pointer;
-            color: var(--ant-primary-color);
-          }
-        }
-
-        :deep(.el-card__body) {
-          padding: 0 !important;
-
-          .item {
-            display: flex;
-            align-items: center;
-            height: 32px;
-            line-height: 32px;
-            font-size: 14px;
-            font-family: PingFang-SC, PingFang-SC;
-            font-weight: 500;
-            color: #646566;
-            margin: 5px 0;
-            border-bottom: 1px solid #f0f0f0;
-
-            &:hover {
-              cursor: pointer;
-              color: var(--ant-primary-color);
-            }
-
-            .elTag {
-              margin-right: 8px;
-              color: var(--ant-primary-color) !important;
-              background: #edf4ff !important;
-            }
-
-            .el-tag--light {
-              margin-right: 8px;
-            }
-          }
-        }
-      }
-
-      .el-dialog__body {
-        margin: 0;
-      }
-
-      .text-list {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: nowrap;
-        height: 32px;
-        line-height: 32px;
-
-        .tit {
-          width: 32.5rem;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          height: 32px;
-          font-size: 14px;
-          font-family: PingFang-SC, PingFang-SC;
-          font-weight: 500;
-          // color: var(--ant-primary-color);
-          line-height: 32px;
-          justify-content: flex-start;
-          cursor: pointer;
-
-          &:hover {
-            color: #409eff;
-          }
-        }
-
-        .name {
-          height: 22px;
-          font-size: 12px;
-          font-weight: 500;
-          color: rgba(51, 51, 51, 0.8);
-          line-height: 22px;
-          text-align: right;
-          cursor: default;
-          margin-right: 10px;
-        }
-
-        .time {
-          height: 22px;
-          font-size: 12px;
-          font-weight: 500;
-          color: rgba(51, 51, 51, 0.8);
-          line-height: 22px;
-          margin-left: 8px;
-          cursor: default;
-        }
-      }
-
-      .box-card .el-card__body {
-        padding: 5px 0 0 0;
-      }
-    }
+  &::-webkit-scrollbar-track {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
   }
 }
 
-:deep(.box-card > .el-card__header) {
-  padding: 0 20px 0 20px !important;
-  border-bottom: none;
-}
 </style>
 
 <style lang="less">
