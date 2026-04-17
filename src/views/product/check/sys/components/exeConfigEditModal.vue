@@ -31,7 +31,7 @@ const uploadedFileId = ref('');
 const initialFileId = ref('');
 const editForm = ref({
   calcName: '',
-  securityLevel: 0,
+  confidentialLevel: 0,
   fileList: [] as UploadFile[],
 });
 
@@ -54,7 +54,7 @@ const FILE_INFO_ROW_KEYS = [
 const levelOptions = computed(() => userStore.getConfidentialLevel);
 const editRules = {
   calcName: [{ required: true, message: '请输入计算名称', trigger: 'blur' }],
-  securityLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
+  confidentialLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
 };
 
 const modalVisible = computed({
@@ -69,12 +69,12 @@ function parseLevelNum(v: unknown): number | undefined {
 }
 
 function resolveSecurityLevel(row: Record<string, unknown>): number {
-  const sl = parseLevelNum(row.securityLevel);
+  const sl = parseLevelNum(row.confidentialLevel);
   if (sl !== undefined) return sl;
   const cl = parseLevelNum(row.confidentialLevel);
   if (cl !== undefined) return cl;
-  const label = String(row.securityLevel ?? row.levelName ?? '').trim();
-  const found = userStore.getConfidentialLevel.find((item) => item.label === label);
+  const label = String(row.confidentialLevel ?? row.levelName ?? '').trim();
+  const found = userStore.getConfidentialLevel.find(item => item.label === label);
   return found?.value ?? 0;
 }
 
@@ -104,7 +104,7 @@ function parseUploadFileResult(raw: unknown): { ok: boolean; fileId: string; rec
   const nested = body.data;
   if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) {
     record = nested as Record<string, unknown>;
-  } else if ((body.id == null && body.queryId == null) && nested && typeof nested === 'object') {
+  } else if (body.id == null && body.queryId == null && nested && typeof nested === 'object') {
     record = nested as Record<string, unknown>;
   }
   const fileId = String(record.id ?? record.queryId ?? '');
@@ -117,21 +117,13 @@ function parseUploadFileResult(raw: unknown): { ok: boolean; fileId: string; rec
 async function handleUploadPreview(file: UploadFile) {
   const uid = String(file.uid ?? '');
   const fromUid = uid.startsWith('-existing-') ? uid.slice('-existing-'.length) : '';
-  const fid = String(
-    uploadedFileId.value || initialFileId.value || fromUid || (file.response as any)?.id || '',
-  ).trim();
+  const fid = String(uploadedFileId.value || initialFileId.value || fromUid || (file.response as any)?.id || '').trim();
   if (!fid) {
     message.warning('无法下载：缺少文件ID');
     return;
   }
   const row = props.record ? getPrimaryFileRow(props.record as Record<string, unknown>) : {};
-  const saveName =
-    String(
-      row.oldFileName ??
-        (file.response as Record<string, unknown>)?.oldFileName ??
-        file.name ??
-        'download.exe',
-    ).trim() || 'download.exe';
+  const saveName = String(row.oldFileName ?? (file.response as Record<string, unknown>)?.oldFileName ?? file.name ?? 'download.exe').trim() || 'download.exe';
   try {
     const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: fid } as any);
     const stream = (res as any)?.data !== undefined ? (res as any).data : res;
@@ -160,7 +152,7 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
     const uploadRes = await AdminApiSystemUploadFile.uploadFile({
       file: file as File,
       userId: userStore.getUser.id,
-      securityLevel: editForm.value.securityLevel,
+      confidentialLevel: editForm.value.confidentialLevel,
     });
 
     const { ok, fileId, record, errMsg } = parseUploadFileResult(uploadRes?.data);
@@ -173,11 +165,11 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
 
     const serverLevel = record.confidentialLevel;
     if (typeof serverLevel === 'number' && Number.isFinite(serverLevel)) {
-      const allowed = userStore.getConfidentialLevel.some((item) => item.value === serverLevel);
+      const allowed = userStore.getConfidentialLevel.some(item => item.value === serverLevel);
       if (allowed) {
-        editForm.value.securityLevel = serverLevel;
+        editForm.value.confidentialLevel = serverLevel;
         await nextTick();
-        editFormRef.value?.validateFields(['securityLevel']).catch(() => {});
+        editFormRef.value?.validateFields(['confidentialLevel']).catch(() => {});
       }
     }
 
@@ -302,7 +294,7 @@ async function loadExistingUploadedFile(row: Record<string, unknown>) {
 async function initFromRecord(row: Record<string, unknown>) {
   editId.value = String(row.id ?? '');
   editForm.value.calcName = String(row.checkName ?? row.parameterName ?? row.calcName ?? '');
-  editForm.value.securityLevel = resolveSecurityLevel(row);
+  editForm.value.confidentialLevel = resolveSecurityLevel(row);
   const fileRow = getPrimaryFileRow(row);
   const fid = String(fileRow.fileId ?? fileRow.queryId ?? row.fileId ?? row.queryId ?? '').trim();
   initialFileId.value = fid;
@@ -340,7 +332,7 @@ async function submitEditForm() {
       fileId,
       useType: String(row.useType ?? 'exe计算'),
       status: row.status ?? 0,
-      confidentialLevel: editForm.value.securityLevel,
+      confidentialLevel: editForm.value.confidentialLevel,
       treeName: String(row.treeName ?? props.currentNodeName ?? ''),
       userId: userStore.getUser.id,
     };
@@ -361,13 +353,7 @@ async function submitEditForm() {
 </script>
 
 <template>
-  <a-modal
-    v-model:visible="modalVisible"
-    title="编辑exe计算"
-    width="760px"
-    :confirm-loading="editSubmitting"
-    @ok="submitEditForm"
-    @cancel="closeEditModal">
+  <a-modal v-model:visible="modalVisible" title="编辑exe计算" width="760px" :confirm-loading="editSubmitting" @ok="submitEditForm" @cancel="closeEditModal">
     <a-form v-if="record" ref="editFormRef" :model="editForm" :rules="editRules" :label-col="{ style: { width: '90px' } }">
       <a-form-item label="计算名称" name="calcName">
         <a-input v-model:value="editForm.calcName" placeholder="请输入" />
@@ -378,8 +364,8 @@ async function submitEditForm() {
       <a-form-item label="计算类型">
         <a-input value="exe计算" disabled />
       </a-form-item>
-      <a-form-item label="密级" name="securityLevel">
-        <a-select v-model:value="editForm.securityLevel" :options="levelOptions" placeholder="请选择密级" />
+      <a-form-item label="密级" name="confidentialLevel">
+        <a-select v-model:value="editForm.confidentialLevel" :options="levelOptions" placeholder="请选择密级" />
       </a-form-item>
       <a-form-item label="上传文件" name="fileList">
         <a-upload-dragger

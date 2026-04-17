@@ -126,7 +126,7 @@ async function customRequest(options: any, type: any) {
   let data: any = {};
   data.userId = userStore.getUser.id;
   data.file = options.file as File;
-  data.securityLevel = '1';
+  data.confidentialLevel = '1';
   fileloading.value = true;
   try {
     const res = await AdminApiSystemUploadFile.uploadWordToPDF(data);

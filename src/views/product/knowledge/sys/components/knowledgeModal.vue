@@ -1,12 +1,27 @@
 <template>
   <div class="content-layout">
-    <draggable-modal :visible="modalVisible" :title="modalType === 2 ? '编辑知识' : '知识上传'" :closable="false" centered
-      :maskClosable="false" @cancel="closeFun" @ok="submitFun" :ok-text="modalType === 2 ? '确认' : '确认'"
-      :cancel-text="'取消'" :width="900" :bodyStyle="{ maxHeight: '80vh', overflowY: 'auto', overflowX: 'hidden' }">
+    <draggable-modal
+      :visible="modalVisible"
+      :title="modalType === 2 ? '编辑知识' : '知识上传'"
+      :closable="false"
+      centered
+      :maskClosable="false"
+      @cancel="closeFun"
+      @ok="submitFun"
+      :ok-text="modalType === 2 ? '确认' : '确认'"
+      :cancel-text="'取消'"
+      :width="900"
+      :bodyStyle="{ maxHeight: '80vh', overflowY: 'auto', overflowX: 'hidden' }">
       <a-form ref="ruleFormRef" :model="ruleForm" :rules="rules" :label-col="{ span: 5 }" :wrapper-col="{ span: 16 }">
         <a-form-item label="上传文件">
-          <a-upload v-model:fileList="fileList" class="upload-demo" :max-count="limit" :accept="accept"
-            :show-upload-list="true" :before-upload="handleBeforeUpload" :custom-request="customRequest"
+          <a-upload
+            v-model:fileList="fileList"
+            class="upload-demo"
+            :max-count="limit"
+            :accept="accept"
+            :show-upload-list="true"
+            :before-upload="handleBeforeUpload"
+            :custom-request="customRequest"
             @change="handleUploadChange">
             <div style="display: flex">
               <div class="upBtn">
@@ -15,15 +30,9 @@
               </div>
               <div class="upRight">
                 <div class="fileRequest">文件要求</div>
-                <div class="fileImport">
-                  格式：支持格式pdf,docx,doc,mp4,jpg,wmv,avi,bmp,png,ppt,pptx,jpeg,xlsx,xls
-                </div>
-                <div class="fileImport">
-                  文件大小限制：对单个文件大小有限制，每个文档不超过100M!
-                </div>
-                <div class="fileImport">
-                  超过5M的文件，预览功能上传成功后一分钟后可以使用
-                </div>
+                <div class="fileImport">格式：支持格式pdf,docx,doc,mp4,jpg,wmv,avi,bmp,png,ppt,pptx,jpeg,xlsx,xls</div>
+                <div class="fileImport">文件大小限制：对单个文件大小有限制，每个文档不超过100M!</div>
+                <div class="fileImport">超过5M的文件，预览功能上传成功后一分钟后可以使用</div>
               </div>
             </div>
           </a-upload>
@@ -87,36 +96,31 @@
       </a-form>
     </draggable-modal>
 
-
     <tag-modal ref="tagModalRef" @closeModal="saveTag" :listData="labelData" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive } from "vue";
-import { message } from "ant-design-vue";
-import { InfoCircleFilled } from "@ant-design/icons-vue";
-import draggableModal from "@/components/DraggableModal/index.vue";
-import {
-  getTreeNodeByNodeLevel,
-  modifyInit,
-  saveKnowledgeFile,
-} from "@/api/knowledge";
-import tagModal from "./tagModal.vue";
-import { AdminApiSystemUploadFile } from "@/api/tags/文件上传";
-import { useUserStore } from "@/store/modules/user";
+import { ref, watch, reactive } from 'vue';
+import { message } from 'ant-design-vue';
+import { InfoCircleFilled } from '@ant-design/icons-vue';
+import draggableModal from '@/components/DraggableModal/index.vue';
+import { getTreeNodeByNodeLevel, modifyInit, saveKnowledgeFile } from '@/api/knowledge';
+import tagModal from './tagModal.vue';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { useUserStore } from '@/store/modules/user';
 
 const props = defineProps({
   nodeData: {
     type: Object,
-    default: () => { },
+    default: () => {},
   },
   parentNode: {
     type: Object,
-    default: () => { },
+    default: () => {},
   },
 });
-const emit = defineEmits(["saveSuccess"]);
+const emit = defineEmits(['saveSuccess']);
 
 const modalVisible = ref(false);
 const modalType = ref(1);
@@ -127,84 +131,77 @@ const editData = ref({});
 /* 文件上传 */
 const fileList = ref([]);
 const limit = ref(1);
-const accept = ref(
-  ".pdf, .docx, .doc, .mp4, .MP4, .JPG, .wmv, .avi, .bmp, .png, .ppt, .pptx,.jpeg, .xlsx, .xls"
-);
+const accept = ref('.pdf, .docx, .doc, .mp4, .MP4, .JPG, .wmv, .avi, .bmp, .png, .ppt, .pptx,.jpeg, .xlsx, .xls');
 // 标准代号禁用
 const codeNumber = ref(false);
 // 文件对象参数
 const fileObjParams = ref([]);
 
-
-const kldFileId = ref("");
+const kldFileId = ref('');
 
 const labelData = ref([]);
 
 // 新建知识上传数据
 const ruleForm = reactive({
-  annexName: "",
-  codeNumber: "",
-  keywords: "",
-  releaseStatus: "0", // 默认发布
-  isDown: "1",
-  annexType: "",
-  isAnnex: "1",
+  annexName: '',
+  codeNumber: '',
+  keywords: '',
+  releaseStatus: '0', // 默认发布
+  isDown: '1',
+  annexType: '',
+  isAnnex: '1',
   confidentialLevel: null,
-  desc: "",
-  classification: "非密",
+  desc: '',
+  classification: '非密',
   checkTabList: [],
 });
 
 const rules = {
-  checkTabList: [
-    { required: true, message: "请选择分类属性", trigger: "blur" },
-  ],
-  releaseStatus: [
-    { required: true, message: "请选择发布状态", trigger: "change" },
-  ],
-  isDown: [{ required: true, message: "请选择分类属性", trigger: "change" }],
+  checkTabList: [{ required: true, message: '请选择分类属性', trigger: 'blur' }],
+  releaseStatus: [{ required: true, message: '请选择发布状态', trigger: 'change' }],
+  isDown: [{ required: true, message: '请选择分类属性', trigger: 'change' }],
 };
-
 
 const editTabStatsFun = () => {
   tagModalRef.value.show(ruleForm.checkTabList);
 };
 
-const saveTag = (data) => {
+const saveTag = data => {
   ruleForm.checkTabList = data;
 };
 
 const fetchDetail = async () => {
   try {
     const res = await modifyInit({ kldFileId: kldFileId.value });
-    if (res.data.code === "0") {
+    if (res.data.code === '0') {
       editData.value = res.data.data;
       const val = res.data.data;
 
       // 组装文件对象参数
-      fileObjParams.value = [{
-        fileId: String(val.fileId),
-        fileName: val.fileName,
-        fileType: val.fileType,
-        fileUrl: val.fileUrl,
-      }];
+      fileObjParams.value = [
+        {
+          fileId: String(val.fileId),
+          fileName: val.fileName,
+          fileType: val.fileType,
+          fileUrl: val.fileUrl,
+        },
+      ];
 
       ruleForm.annexName = val.fileName;
       ruleForm.codeNumber = val.standardNo;
-      ruleForm.isDown = val.allowDownload == 1 ? "1" : "0";
-      ruleForm.isAnnex = val.isTextAttachment == 1 ? "1" : "0";
+      ruleForm.isDown = val.allowDownload == 1 ? '1' : '0';
+      ruleForm.isAnnex = val.isTextAttachment == 1 ? '1' : '0';
       ruleForm.keywords = val.keywords;
       ruleForm.annexType = val.fileType;
       ruleForm.desc = val.summary;
       ruleForm.releaseStatus = val.releaseStatus;
       // 标签属性
-      ruleForm.checkTabList = val.kldTageNames.split("[")[1]?.split("]")[0]?.split(", ")
-        ?? val.kldTageNames.split(",");
+      ruleForm.checkTabList = val.kldTageNames.split('[')[1]?.split(']')[0]?.split(', ') ?? val.kldTageNames.split(',');
 
-      fileList.value = [{ name: val.fileName + "" + val.fileType }];
+      fileList.value = [{ name: val.fileName + '' + val.fileType }];
     }
   } catch (error) {
-    console.log("error:", error);
+    console.log('error:', error);
   }
 };
 
@@ -220,24 +217,24 @@ const show = (type, id) => {
 
 const resetClose = () => {
   Object.assign(ruleForm, {
-    annexName: "",
-    codeNumber: "",
-    keywords: "",
-    releaseStatus: "0",
-    isDown: "1",
-    annexType: "",
-    isAnnex: "1",
-    desc: "",
-    classification: "非密",
+    annexName: '',
+    codeNumber: '',
+    keywords: '',
+    releaseStatus: '0',
+    isDown: '1',
+    annexType: '',
+    isAnnex: '1',
+    desc: '',
+    classification: '非密',
     checkTabList: [],
-    confidentialLevel: null
+    confidentialLevel: null,
   });
 
   fileList.value = [];
   fileObjParams.value = [];
   codeNumber.value = false;
 
-  kldFileId.value = "";
+  kldFileId.value = '';
   modalType.value = 1;
   modalVisible.value = false;
 };
@@ -252,13 +249,13 @@ const closeFun = () => {
   resetClose();
 };
 
-const handleBeforeUpload = (file) => {
+const handleBeforeUpload = file => {
   if (fileList.value.length >= limit.value) {
     message.error(`只能上传${limit.value}个附件`);
     return false;
   }
   if (file.size && file.size > 104857600) {
-    message.error("文件不能大于 100M!");
+    message.error('文件不能大于 100M!');
     return false;
   }
   return true;
@@ -271,55 +268,57 @@ const customRequest = async (options: any) => {
     const res = await AdminApiSystemUploadFile.uploadWordToPDF({
       file: file as File,
       userId: useUserStore().getUser.id,
-      securityLevel: props.nodeData.level,
+      confidentialLevel: props.nodeData.level,
     });
-    if (res?.data?.code === "0" || res?.data?.code === 0) {
+    if (res?.data?.code === '0' || res?.data?.code === 0) {
       handleUploadSuccess(res.data);
       onSuccess(res.data, file);
     } else {
-      message.error(res?.data?.msg || "上传失败");
-      onError(new Error(res?.data?.msg || "上传失败"));
+      message.error(res?.data?.msg || '上传失败');
+      onError(new Error(res?.data?.msg || '上传失败'));
     }
   } catch (err) {
-    console.error("上传失败:", err);
-    message.error("上传失败，请重试");
+    console.error('上传失败:', err);
+    message.error('上传失败，请重试');
     onError(err);
   }
 };
 
 // 文件上传成功：处理文件信息并回显表单
-const handleUploadSuccess = (data) => {
+const handleUploadSuccess = data => {
   if (!data?.id) return;
 
-  fileObjParams.value = [{
-    fileId: String(data.id),
-    fileName: data.documentName,
-    fileType: data.fileType,
-    fileUrl: data.fileUrl,
-  }];
+  fileObjParams.value = [
+    {
+      fileId: String(data.id),
+      fileName: data.documentName,
+      fileType: data.fileType,
+      fileUrl: data.fileUrl,
+    },
+  ];
 
   // 回显表单字段
   ruleForm.annexName = data.documentName;
   ruleForm.annexType = data.fileType;
 
-  const mediaTypes = ["JPG", "jpg", "png", "avi", "mp4", "wmv"];
+  const mediaTypes = ['JPG', 'jpg', 'png', 'avi', 'mp4', 'wmv'];
   if (mediaTypes.includes(data.fileType)) {
-    ruleForm.codeNumber = "";
+    ruleForm.codeNumber = '';
     codeNumber.value = true;
   } else {
     codeNumber.value = false;
   }
 
-  message.success("上传成功");
+  message.success('上传成功');
 };
 
 // Upload Change Handler：仅负责同步 fileList 和处理异常状态
-const handleUploadChange = (info) => {
+const handleUploadChange = info => {
   fileList.value = [...info.fileList];
 
-  if (info.file.status === "error") {
+  if (info.file.status === 'error') {
     message.error(`${info.file.name} 上传失败.`);
-  } else if (info.file.status === "removed") {
+  } else if (info.file.status === 'removed') {
     fileObjParams.value = [];
   }
 };
@@ -329,7 +328,7 @@ const submitFun = async () => {
     await ruleFormRef.value.validateFields();
     submit();
   } catch (error) {
-    console.warn("Validation failed:", error);
+    console.warn('Validation failed:', error);
   }
 };
 
@@ -339,8 +338,8 @@ const submit = async () => {
     const extractedIds = new Set();
     const selectedLabel = [];
 
-    labelData.value.forEach((group) => {
-      group.children?.forEach((child) => {
+    labelData.value.forEach(group => {
+      group.children?.forEach(child => {
         if (checkTabNames.has(child.nodeName)) {
           selectedLabel.push(child);
           extractedIds.add(child.id);
@@ -349,17 +348,17 @@ const submit = async () => {
     });
 
     const params = {
-      id: kldFileId.value || "",
+      id: kldFileId.value || '',
       userId: useUserStore().getUser.id,
       standardNo: ruleForm.codeNumber,
-      kldTagIds: Array.from(extractedIds).join(","),
+      kldTagIds: Array.from(extractedIds).join(','),
       kldTageNames: ruleForm.checkTabList,
-      allowDownload: ruleForm.isDown === "1" ? "1" : "0",
+      allowDownload: ruleForm.isDown === '1' ? '1' : '0',
       confidentialLevel: ruleForm.confidentialLevel,
-      isTextAttachment: ruleForm.isAnnex === "1" ? "1" : "0",
-      attachmentType: "",
+      isTextAttachment: ruleForm.isAnnex === '1' ? '1' : '0',
+      attachmentType: '',
       releaseStatus: ruleForm.releaseStatus,
-      securityLevel: ruleForm.classification === "非密" ? "2" : "1",
+      confidentialLevel: ruleForm.classification === '非密' ? '2' : '1',
       kldTreeId: props.nodeData.key || editData.value.kldTreeId,
       kldTreeNodeId: props.parentNode?.id || editData.value.kldTreeNodeId,
       keywords: ruleForm.keywords,
@@ -369,27 +368,27 @@ const submit = async () => {
       batch: fileObjParams.value,
     };
     const res = await saveKnowledgeFile(params);
-    if (res?.data?.code === "0") {
-      message.success("保存成功");
-      emit("saveSuccess");
+    if (res?.data?.code === '0') {
+      message.success('保存成功');
+      emit('saveSuccess');
       resetClose();
     } else {
-      message.warning(res?.data?.msg || "保存失败");
+      message.warning(res?.data?.msg || '保存失败');
     }
   } catch (error) {
-    console.error("提交知识文件失败:", error);
-    message.error("系统异常，请稍后重试");
+    console.error('提交知识文件失败:', error);
+    message.error('系统异常，请稍后重试');
   }
 };
 
 const fetchTagList = async () => {
   try {
-    const res = await getTreeNodeByNodeLevel({ nodeLevel: "2", tagType: "1" });
-    if (res.data.code === "0") {
+    const res = await getTreeNodeByNodeLevel({ nodeLevel: '2', tagType: '1' });
+    if (res.data.code === '0') {
       labelData.value = res.data.data.result || [];
     }
   } catch (error) {
-    console.log("error:", error);
+    console.log('error:', error);
   }
 };
 </script>
@@ -425,7 +424,9 @@ const fetchTagList = async () => {
   flex-direction: column;
 
   .upBtnText {
-    font-family: Source Sans 3, Source Sans 3;
+    font-family:
+      Source Sans 3,
+      Source Sans 3;
     font-weight: 400;
     font-size: 14px;
     color: var(--ant-primary-color);
@@ -434,7 +435,9 @@ const fetchTagList = async () => {
 
 .upRight {
   .fileRequest {
-    font-family: Source Sans 3, Source Sans 3;
+    font-family:
+      Source Sans 3,
+      Source Sans 3;
     font-weight: 400;
     font-size: 14px;
     color: #6a696e;
@@ -442,7 +445,9 @@ const fetchTagList = async () => {
   }
 
   .fileImport {
-    font-family: Source Sans 3, Source Sans 3;
+    font-family:
+      Source Sans 3,
+      Source Sans 3;
     font-weight: 400;
     font-size: 12px;
     color: #a2a1a6;

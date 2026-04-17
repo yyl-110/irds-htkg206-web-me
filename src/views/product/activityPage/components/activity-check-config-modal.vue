@@ -222,7 +222,7 @@ const sketchForm = reactive({
   sortIndex: 1 as number | null,
   fileId: '',
   filePath: '',
-  securityLevel: undefined as string | undefined,
+  confidentialLevel: undefined as string | undefined,
   createTime: '',
   createUserName: '',
 });
@@ -1081,7 +1081,7 @@ function createEmptySketchForm() {
     sortIndex: 1 as number | null,
     fileId: '',
     filePath: '',
-    securityLevel: undefined as string | undefined,
+    confidentialLevel: undefined as string | undefined,
     createTime: '',
     createUserName: '',
   };
@@ -1101,7 +1101,7 @@ function normalizeSketchItem(raw: any, idx: number) {
     sortIndex: raw?.sortIndex != null ? Number(raw.sortIndex) : idx + 1,
     fileId: String(raw?.fileId ?? ''),
     filePath: String(raw?.filePath ?? ''),
-    securityLevel: raw?.securityLevel != null ? String(raw.securityLevel) : undefined,
+    confidentialLevel: raw?.confidentialLevel != null ? String(raw.confidentialLevel) : undefined,
     createTime: String(raw?.createTime ?? ''),
     createUserName: String(raw?.createUserName ?? raw?.uploadUserName ?? raw?.creatorName ?? ''),
   };
@@ -1148,10 +1148,10 @@ function openSketchEditModal(mode: 'add' | 'edit', row?: any) {
       sortIndex: row?.sort != null ? Number(row.sort) : 1,
       fileId: String(fileInfo?.fileId ?? ''),
       filePath: String(fileInfo?.filePath ?? ''),
-      securityLevel: row?.confidentialLevel != null ? String(row.confidentialLevel) : '0',
+      confidentialLevel: row?.confidentialLevel != null ? String(row.confidentialLevel) : '0',
     });
     sketchEditingRowId.value = getSketchListRowKey(row);
-    fileConfidentialLevel.value = sketchForm.securityLevel || '0';
+    fileConfidentialLevel.value = sketchForm.confidentialLevel || '0';
     if (sketchForm.sketchName) {
       sketchUploadFileList.value = [
         {
@@ -1183,7 +1183,7 @@ async function customRequestSketchUpload(options: any) {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
-      securityLevel: fileConfidentialLevel.value,
+      confidentialLevel: fileConfidentialLevel.value,
     } as any);
     if (res?.data?.code == 0) {
       const data: any = res.data;
@@ -1248,7 +1248,7 @@ async function submitSketchEditModal() {
     width: Number(sketchForm.sketchWidth) || 0,
     marginTop: Number(sketchForm.topDistance) || 0,
     sort: Number(sketchForm.sortIndex) || sketchConfigList.value.length + 1,
-    confidentialLevel: String(fileConfidentialLevel.value ?? sketchForm.securityLevel ?? '0'),
+    confidentialLevel: String(fileConfidentialLevel.value ?? sketchForm.confidentialLevel ?? '0'),
   };
   await AdminApiActivityPage.activityImageSave(payload as any);
   await loadSketchConfigList();
@@ -1859,8 +1859,7 @@ function normalizeFileCollabSimpleFixedFileColumn(p: Record<string, any>) {
   const d = p.tableColDefs;
   if (d.length < 2) return;
   const at1 = d[1];
-  const isFixed =
-    String(at1?.columnName ?? '').trim() === '文件名称' && String(at1?.dataType ?? '') === 'READONLY_TEXT';
+  const isFixed = String(at1?.columnName ?? '').trim() === '文件名称' && String(at1?.dataType ?? '') === 'READONLY_TEXT';
   if (isFixed) return;
   d.splice(1, 0, {
     paramCode: '',

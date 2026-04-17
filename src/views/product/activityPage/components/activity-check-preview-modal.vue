@@ -275,7 +275,7 @@ async function onFileCollabFileInputChange(e: Event) {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file,
       userId: userStore.getUser.id,
-      securityLevel: 1,
+      confidentialLevel: 1,
     } as any);
     if (res?.data?.code == 0) {
       const d: any = res.data;
@@ -929,7 +929,7 @@ async function customRequestPreviewUpload(item: any, index: number, options: any
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
-      securityLevel: 1,
+      confidentialLevel: 1,
     });
     if (res?.data?.code == 0) {
       const uploaded = {

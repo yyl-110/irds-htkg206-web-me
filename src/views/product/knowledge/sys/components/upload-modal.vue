@@ -4,9 +4,8 @@ import type { UploadChangeParam } from 'ant-design-vue';
 import { ref } from 'vue';
 import { Button, Popconfirm, message } from 'ant-design-vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-import draggableModal from '@/components/DraggableModal/index.vue'
+import draggableModal from '@/components/DraggableModal/index.vue';
 import { useUserStore } from '@/store/modules/user';
-
 
 const props = defineProps({
   /** 弹窗状态 */
@@ -50,8 +49,8 @@ async function onOk() {
   }
   const file = fileList.value[0];
   // if (props.activeKey == '1') {
-  const res = await AdminApiSystemUploadFile.uploadFile({ file, userId: useUserStore().getUser.id,securityLevel:1 });
-  console.log('res:', res)
+  const res = await AdminApiSystemUploadFile.uploadFile({ file, userId: useUserStore().getUser.id, confidentialLevel: 1 });
+  console.log('res:', res);
   if (res.data.code === 0) {
     message.success(WeiI18n.t('上传成功').value);
     emit('importSuccess', res.data);
@@ -77,8 +76,17 @@ function filechange(file: any) {
 </script>
 
 <template>
-  <draggable-modal v-model:visible="visible" style="width: 40%" :title="$t('附件上传')" :confirm-loading="$isPending()"
-    :ok-text="$t('确定')" :cancel-text="$t('取消')" :mask-closable="false" @ok="onOk" @cancel="cancel" draggable>
+  <draggable-modal
+    v-model:visible="visible"
+    style="width: 40%"
+    :title="$t('附件上传')"
+    :confirm-loading="$isPending()"
+    :ok-text="$t('确定')"
+    :cancel-text="$t('取消')"
+    :mask-closable="false"
+    @ok="onOk"
+    @cancel="cancel"
+    draggable>
     <UploadFile :fileList="fileList" @change="filechange" @customRequest="customRequest" />
   </draggable-modal>
 </template>

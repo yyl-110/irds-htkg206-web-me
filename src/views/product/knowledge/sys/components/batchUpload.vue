@@ -1,8 +1,25 @@
 <template>
-  <draggable-modal :visible="modalVisible" title="批量上传" :closable="false" centered :maskClosable="false" :width="600"
-    @cancel="closeFun" @ok="submitFun" ok-text="确定" cancel-text="取消">
-    <a-upload-dragger v-model:fileList="fileList" class="upload-demo" drag multiple :max-count="limit" :accept="accept"
-      :show-upload-list="true" :before-upload="handleBeforeUpload" :custom-request="customRequest"
+  <draggable-modal
+    :visible="modalVisible"
+    title="批量上传"
+    :closable="false"
+    centered
+    :maskClosable="false"
+    :width="600"
+    @cancel="closeFun"
+    @ok="submitFun"
+    ok-text="确定"
+    cancel-text="取消">
+    <a-upload-dragger
+      v-model:fileList="fileList"
+      class="upload-demo"
+      drag
+      multiple
+      :max-count="limit"
+      :accept="accept"
+      :show-upload-list="true"
+      :before-upload="handleBeforeUpload"
+      :custom-request="customRequest"
       @change="handleUploadChange">
       <p class="ant-upload-drag-icon">
         <inbox-outlined />
@@ -65,7 +82,7 @@ const customRequest = async (options: any) => {
     const res = await AdminApiSystemUploadFile.uploadWordToPDF({
       file: file as File,
       userId: useUserStore().getUser.id,
-      securityLevel: props.nodeData?.level,
+      confidentialLevel: props.nodeData?.level,
     });
     if (res?.data?.code === '0' || res?.data?.code === 0) {
       handleUploadSuccess(res.data);
@@ -103,7 +120,7 @@ const handleUploadChange = (info: any) => {
     // 从 dataList 中移除对应文件
     const removedId = info.file.response?.id;
     if (removedId) {
-      dataList.value = dataList.value.filter((v) => v.fileId !== String(removedId));
+      dataList.value = dataList.value.filter(v => v.fileId !== String(removedId));
     }
   }
 };
@@ -124,7 +141,7 @@ const submitFun = async () => {
       allowDownload: '1',
       isTextAttachment: '1',
       attachmentType: '',
-      securityLevel: '2',
+      confidentialLevel: '2',
       kldTreeId: props.nodeData?.key || '',
       kldTreeNodeId: props.parentNode?.id || '',
       keywords: '',

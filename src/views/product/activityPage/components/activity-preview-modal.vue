@@ -177,7 +177,7 @@ function getFileCollabConfidentialLevelValue(item: any, componentIndex: number, 
 function pickConfidentialLevelFromUploadResponse(raw: any): string | null {
   if (raw == null || typeof raw !== 'object') return null;
   const inner = (raw as any).data != null && typeof (raw as any).data === 'object' ? (raw as any).data : raw;
-  const lv = inner?.confidentialLevel ?? inner?.securityLevel ?? (raw as any).confidentialLevel ?? (raw as any).securityLevel;
+  const lv = inner?.confidentialLevel ?? inner?.confidentialLevel ?? (raw as any).confidentialLevel ?? (raw as any).confidentialLevel;
   if (lv == null) return null;
   const s = String(lv).trim();
   return s === '' ? null : s;
@@ -344,10 +344,7 @@ async function onFileCollabFileInputChange(e: Event) {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file,
       userId: userStore.getUser.id,
-      securityLevel:
-        biz === 'FILE_COLLAB_SIMPLE'
-          ? 1
-          : getFileCollabConfidentialLevelValue(target.item, target.componentIndex, target.bodyRow, 3),
+      confidentialLevel: biz === 'FILE_COLLAB_SIMPLE' ? 1 : getFileCollabConfidentialLevelValue(target.item, target.componentIndex, target.bodyRow, 3),
     } as any);
     if (res?.data?.code == 0) {
       const d: any = res.data;
@@ -1018,7 +1015,7 @@ async function customRequestPreviewUpload(item: any, index: number, options: any
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
-      securityLevel: 1,
+      confidentialLevel: 1,
     });
     if (res?.data?.code == 0) {
       const uploaded = {
@@ -1228,14 +1225,8 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                         'fixed-table-preview-title-row--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB',
                         'fixed-table-preview-title-row--simple-file': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE',
                       }">
-                      <span v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-text">{{
-                        item.customProps.tableTitle
-                      }}</span>
-                      <span
-                        v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE'"
-                        class="fixed-table-preview-kind-badge">
-                        简易文件协同
-                      </span>
+                      <span v-if="(item.customProps?.tableTitle || '').trim() !== ''" class="fixed-table-preview-title-text">{{ item.customProps.tableTitle }}</span>
+                      <span v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE'" class="fixed-table-preview-kind-badge"> 简易文件协同 </span>
                       <div v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
                         <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
                         <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
@@ -1279,14 +1270,10 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                                   class="fixed-table-preview-cell-select"
                                   popup-class-name="fixed-table-preview-select-dropdown"
                                   @update:value="
-                                    (v: string | undefined) =>
-                                      setPreviewTableCellValue(item, index, r, c, v != null && String(v).trim() !== '' ? String(v).trim() : '0')
+                                    (v: string | undefined) => setPreviewTableCellValue(item, index, r, c, v != null && String(v).trim() !== '' ? String(v).trim() : '0')
                                   " />
                                 <a-input
-                                  v-else-if="
-                                    getPreviewTableColDataType(item, c) === 'TEXT' &&
-                                    (!isWorkspaceTableFileCollab(item) || isFileCollabRemarkTextInputCell(item, c))
-                                  "
+                                  v-else-if="getPreviewTableColDataType(item, c) === 'TEXT' && (!isWorkspaceTableFileCollab(item) || isFileCollabRemarkTextInputCell(item, c))"
                                   :value="getPreviewTableCellValue(item, index, r, c)"
                                   size="small"
                                   placeholder="请输入"
@@ -1304,9 +1291,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                                   class="fixed-table-preview-cell-select"
                                   popup-class-name="fixed-table-preview-select-dropdown"
                                   @update:value="(v: string | undefined) => setPreviewTableCellValue(item, index, r, c, v ?? '')" />
-                                <span
-                                  v-else-if="isWorkspaceTableFileCollab(item)"
-                                  class="fixed-table-preview-cell-text">
+                                <span v-else-if="isWorkspaceTableFileCollab(item)" class="fixed-table-preview-cell-text">
                                   {{ fileCollabReadonlySpanText(item, index, r, c) }}
                                 </span>
                                 <span v-else class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
