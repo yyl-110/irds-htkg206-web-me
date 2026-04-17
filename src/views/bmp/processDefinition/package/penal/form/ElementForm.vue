@@ -11,14 +11,15 @@
         表单字段
       </a-divider>
 
-      <a-table v-if="fieldList.length" :data-source="fieldList" size="small" :scroll="{ y: 240 }" bordered :pagination="false">
-        <a-table-column key="pageName" title="活动名称" data-index="pageName" align="center" :width="80" :ellipsis="true" />
-        <a-table-column key="pageType" title="活动类型" data-index="pageType" align="center" :width="80" :ellipsis="true">
+      <a-table v-if="formFieldDisplayRows.length" :data-source="formFieldDisplayRows" size="small" :scroll="{ y: 240 }" bordered :pagination="false">
+        <a-table-column key="displayPageName" title="活动名称" data-index="displayPageName" align="center" :width="80" :ellipsis="true" />
+        <a-table-column key="displayPageType" title="活动类型" align="center" :width="100" :ellipsis="true">
           <template #default="{ record }">
-            <span v-if="String(record.pageType) === '1'">{{ $t('设计配置页面') }}</span>
-            <span v-else-if="String(record.pageType) === '2'">{{ $t('计算集成页面') }}</span>
-            <span v-else-if="String(record.pageType) === '3'">{{ $t('自定义页面') }}</span>
-            <span v-else>{{ record.pageType }}</span>
+            <span v-if="String(record.displayPageType) === '1'">{{ $t('设计配置页面') }}</span>
+            <span v-else-if="String(record.displayPageType) === '2'">{{ $t('计算集成页面') }}</span>
+            <span v-else-if="String(record.displayPageType) === '3'">{{ $t('自定义页面') }}</span>
+            <span v-else-if="record.displayPageType != null && String(record.displayPageType).trim() !== ''">{{ record.displayPageType }}</span>
+            <span v-else class="form-field-page-type-empty">—</span>
           </template>
         </a-table-column>
       </a-table>
@@ -107,7 +108,7 @@ const props = defineProps({
     type: Object,
     default: () => {},
   },
-  /** 与流程配置路由上的 taskId 一致，隔离 localStorage 绑定表 */
+  /** 与路由 taskId 一致，隔离 localStorage，避免不同流程里 BPMN 元素 id 复用串数据 */
   taskId: {
     type: [String, Number],
     default: '',
@@ -133,7 +134,6 @@ const tableRef = ref();
 const FORM_BINDING_MAP_PREFIX = 'activityFormBindingMap';
 const FORM_BINDING_BY_FORMKEY_PREFIX = 'activityFormBindingByFormKey';
 
-/** 有 taskId 时分桶，避免不同设计任务里 BPMN 元素 id 撞车；无 taskId 时用历史全局 key 以兼容旧数据 */
 function bindingMapStorageKey() {
   const t = props.taskId != null ? String(props.taskId).trim() : '';
   return t ? `${FORM_BINDING_MAP_PREFIX}:${t}` : FORM_BINDING_MAP_PREFIX;
@@ -144,13 +144,47 @@ function formKeyMapStorageKey() {
   return t ? `${FORM_BINDING_BY_FORMKEY_PREFIX}:${t}` : FORM_BINDING_BY_FORMKEY_PREFIX;
 }
 
-/** 切换节点或重新同步时递增，用于丢弃过期的 tryHydrateFieldByFormKey 异步结果（避免表格显示成其它任务的关联活动） */
+/** 切换节点或重新同步时递增，丢弃过期的异步回查结果 */
 let fieldListHydrateGeneration = 0;
 
-// 计算属性
-// const flowImg = computed(() => store.getters.flowImg);
-// const setName = computed(() => store.getters.setName);
-// const nameFlag = computed(() => store.getters.nameFlag);
+/** 表格行：活动名称与节点「名称」一致；活动类型优先节点 pageType，否则用关联活动数据 */
+const formFieldDisplayRows = computed(() => {
+  const bo = props.elementBusinessObject || {};
+  const nodeName = bo.name != null && String(bo.name).trim() !== '' ? String(bo.name) : '';
+  const nodePt = getNodePageTypeFromBo(bo);
+  return fieldList.value.map(row => {
+    const rowPt = pickPageTypeFromActivityRow(row);
+    // 节点未写 pageType 时，必须用关联活动行上的类型（勿用错误的 `!= null` 判断漏掉 undefined）
+    const displayPt = nodePt !== '' ? nodePt : rowPt;
+    return {
+      ...row,
+      displayPageName: nodeName || row.pageName || '',
+      displayPageType: displayPt,
+    };
+  });
+});
+
+function getNodePageTypeFromBo(bo) {
+  if (!bo) return '';
+  const v = bo.pageType ?? bo['flowable:pageType'] ?? bo.pageTypeName;
+  if (v === undefined || v === null || v === '') return '';
+  return String(v).trim();
+}
+
+/** 从活动列表/缓存行解析页面类型（兼容数字、多种字段名） */
+function pickPageTypeFromActivityRow(row) {
+  if (!row || typeof row !== 'object') return '';
+  const v = row.pageType ?? row.page_type ?? row.activityPageType;
+  if (v === undefined || v === null || v === '') return '';
+  return String(v).trim();
+}
+
+function getFormKeyFromBusinessObject(bo) {
+  if (!bo) return '';
+  const fk = bo.formKey ?? bo['flowable:formKey'];
+  if (fk === undefined || fk === null || fk === '') return '';
+  return String(fk);
+}
 
 // 生命周期
 onMounted(() => {
@@ -321,19 +355,22 @@ function syncFieldListFromCurrentElement() {
   const hydrateToken = fieldListHydrateGeneration;
   const cur = props.elementBusinessObject || {};
   const elementId = getCurrentElementId();
+  const formKey = getFormKeyFromBusinessObject(cur);
+
   if (!elementId) {
     fieldList.value = [];
     return;
   }
+
   const map = getBindingMap();
   const keyMap = getFormKeyBindingMap();
 
-  // 1. 以 BPMN/XML 中的 formKey（关联活动主键）为准，优先于仅按元素 id 的缓存（Activity_xxx 在不同流程中易复用导致串数据）
-  if (cur.formKey) {
-    const byFormKey = keyMap[String(cur.formKey)];
+  // 1. 以 XML 中的 formKey（关联活动 id）为准，优先于仅按图形 id 的缓存
+  if (formKey) {
+    const byFormKey = keyMap[formKey];
     if (byFormKey) {
       fieldList.value = [byFormKey];
-      if (String(byFormKey.id) === String(cur.formKey)) {
+      if (String(byFormKey.id) === formKey) {
         map[elementId] = byFormKey;
         setBindingMap(map);
       }
@@ -341,26 +378,26 @@ function syncFieldListFromCurrentElement() {
     }
   }
 
-  // 2. 元素级缓存：仅在无 formKey，或缓存行的 id 与当前 formKey 一致时使用
+  // 2. 图形 id 缓存：仅当无 formKey，或与当前 formKey 对应活动 id 一致时采用
   if (map[elementId]) {
     const cached = map[elementId];
-    if (!cur.formKey || String(cached.id) === String(cur.formKey)) {
+    if (!formKey || String(cached.id) === formKey) {
       fieldList.value = [cached];
       return;
     }
   }
 
-  // 3. 兜底：至少把已保存到 bpmn 的字段展示出来，并按 formKey 异步补全 pageType
-  if (cur.formKey || cur.name) {
+  // 3. 兜底：用节点已保存字段，并按 formKey 异步补全 pageType
+  if (formKey || cur.name) {
     fieldList.value = [
       {
-        id: cur.formKey || '',
+        id: formKey || '',
         pageName: cur.name || '',
-        pageType: cur.pageType || cur.pageTypeName || '',
+        pageType: getNodePageTypeFromBo(cur) || cur.pageTypeName || '',
       },
     ];
-    if (!fieldList.value[0].pageType && cur.formKey) {
-      void tryHydrateFieldByFormKey(String(cur.formKey), elementId, hydrateToken);
+    if (!fieldList.value[0].pageType && formKey) {
+      void tryHydrateFieldByFormKey(formKey, elementId, hydrateToken);
     }
     return;
   }

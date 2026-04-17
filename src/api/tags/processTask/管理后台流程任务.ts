@@ -29,6 +29,27 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 获取应用端独立应用任务树
+   *
+   * @tags 管理后台 - 获取应用端独立应用任务树
+   * @name getDesignTaskAppTreeList
+   * @summary 获取应用端独立应用任务树
+   * @request POST:/business-service/business/standalone-app-browse/category-tree
+   * @secure
+   */
+  static getDesignTaskAppTreeList = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app-browse/category-tree`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 创建设计任务树
    *
    * @tags 管理后台 - 创建设计任务树
