@@ -8,7 +8,7 @@
             常规
           </div>
         </template>
-        <ElementBaseInfoCalc :id-edit-disabled="idEditDisabled" :business-object="elementBusinessObject" :type="elementType" @on-click="getType" />
+        <ElementBaseInfoCalc :id-edit-disabled="idEditDisabled" :flag="flag" :business-object="elementBusinessObject" :type="elementType" @on-click="getType" />
       </a-collapse-panel>
       <a-collapse-panel v-if="formVisible && flag == 1 && obj.$type !== 'bpmn:StartEvent'" key="form">
         <template #header>
@@ -17,7 +17,7 @@
             表单
           </div>
         </template>
-        <ElementForm :id="elementId" :type="elementType" :elementBusinessObject="elementBusinessObject" :currentNode="currentNode" />
+        <ElementForm :id="elementId" :type="elementType" :task-id="taskId" :elementBusinessObject="elementBusinessObject" :currentNode="currentNode" />
       </a-collapse-panel>
     </a-collapse>
   </div>
@@ -54,6 +54,11 @@ const props = defineProps({
   currentNode: {
     type: Object,
     default: () => {},
+  },
+  /** 设计任务 id，用于隔离「活动关联」本地缓存，避免不同流程里 BPMN 元素 id（如 Activity_1）复用导致串数据 */
+  taskId: {
+    type: [String, Number],
+    default: '',
   },
 });
 

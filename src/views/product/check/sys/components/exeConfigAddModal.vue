@@ -10,9 +10,10 @@ import { useUserStore } from '@/store/modules/user';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
 
-
 const props = defineProps<{
   visible: boolean;
+  /** 左侧分类树当前节点 id，与列表、保存接口 treeId 一致 */
+  treeId?: string;
   currentNodeName?: string;
 }>();
 
@@ -28,13 +29,13 @@ const addFormRef = ref();
 const uploadedFileId = ref('');
 const addForm = ref({
   calcName: '',
-  securityLevel: 0,
+  confidentialLevel: 0,
   fileList: [] as UploadFile[],
 });
 const levelOptions = computed(() => userStore.getConfidentialLevel);
 const addRules = {
   calcName: [{ required: true, message: '请输入计算名称', trigger: 'blur' }],
-  securityLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
+  confidentialLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
   // fileList: [{ required: true, validator: validateFileRequired, trigger: 'change' }],
 };
 
@@ -54,8 +55,7 @@ async function handleUploadPreview(file: UploadFile) {
     message.warning('无法下载：缺少文件ID');
     return;
   }
-  const saveName =
-    String((file.response as any)?.oldFileName ?? file.name ?? 'download.exe').trim() || 'download.exe';
+  const saveName = String((file.response as any)?.oldFileName ?? file.name ?? 'download.exe').trim() || 'download.exe';
   try {
     const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: fid } as any);
     const stream = (res as any)?.data !== undefined ? (res as any).data : res;
@@ -93,7 +93,7 @@ function parseUploadFileResult(raw: unknown): { ok: boolean; fileId: string; rec
   const nested = body.data;
   if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) {
     record = nested as Record<string, unknown>;
-  } else if ((body.id == null && body.queryId == null) && nested && typeof nested === 'object') {
+  } else if (body.id == null && body.queryId == null && nested && typeof nested === 'object') {
     record = nested as Record<string, unknown>;
   }
   const fileId = String(record.id ?? record.queryId ?? '');
@@ -109,7 +109,7 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
     const uploadRes = await AdminApiSystemUploadFile.uploadFile({
       file: file as File,
       userId: userStore.getUser.id,
-      securityLevel: addForm.value.securityLevel,
+      confidentialLevel: addForm.value.confidentialLevel,
     });
 
     const { ok, fileId, record, errMsg } = parseUploadFileResult(uploadRes?.data);
@@ -122,11 +122,11 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
 
     const serverLevel = record.confidentialLevel;
     if (typeof serverLevel === 'number' && Number.isFinite(serverLevel)) {
-      const allowed = userStore.getConfidentialLevel.some((item) => item.value === serverLevel);
+      const allowed = userStore.getConfidentialLevel.some(item => item.value === serverLevel);
       if (allowed) {
-        addForm.value.securityLevel = serverLevel;
+        addForm.value.confidentialLevel = serverLevel;
         await nextTick();
-        addFormRef.value?.validateFields(['securityLevel']).catch(() => {});
+        addFormRef.value?.validateFields(['confidentialLevel']).catch(() => {});
       }
     }
 
@@ -187,9 +187,8 @@ async function submitAddForm() {
       return;
     }
 
-    const securityLevelLabel = userStore.getConfidentialLevel.find(
-      (item) => item.value === addForm.value.securityLevel,
-    )?.label;
+    const securityLevelLabel = userStore.getConfidentialLevel.find(item => item.value === addForm.value.confidentialLevel)?.label;
+    const tid = String(props.treeId ?? '').trim();
     const payload = {
       checkName: addForm.value.calcName,
       // 后端字段要求包含 checkNum，当前页面无单独输入项，先沿用计算名称
@@ -197,9 +196,10 @@ async function submitAddForm() {
       fileId,
       useType: 'exe计算',
       status: 0,
-      confidentialLevel: addForm.value.securityLevel,
+      confidentialLevel: addForm.value.confidentialLevel,
       treeName: props.currentNodeName || '',
       userId: userStore.getUser.id,
+      ...(tid ? { treeId: tid } : {}),
     };
     const addRes = await AdminApiSystemCheckInfoApi.addCheckExeInfo(payload);
     if (addRes?.data?.code !== 0 && addRes?.data?.code !== 200) {
@@ -217,13 +217,7 @@ async function submitAddForm() {
 </script>
 
 <template>
-  <a-modal
-    v-model:visible="modalVisible"
-    title="添加exe计算"
-    width="760px"
-    :confirm-loading="addSubmitting"
-    @ok="submitAddForm"
-    @cancel="closeAddModal">
+  <a-modal v-model:visible="modalVisible" title="添加exe计算" width="760px" :confirm-loading="addSubmitting" @ok="submitAddForm" @cancel="closeAddModal">
     <a-form ref="addFormRef" :model="addForm" :rules="addRules" :label-col="{ style: { width: '90px' } }">
       <a-form-item label="计算名称" name="calcName">
         <a-input v-model:value="addForm.calcName" placeholder="请输入" />
@@ -234,8 +228,8 @@ async function submitAddForm() {
       <a-form-item label="计算类型">
         <a-input value="exe计算" disabled />
       </a-form-item>
-      <a-form-item label="密级" name="securityLevel">
-        <a-select v-model:value="addForm.securityLevel" :options="levelOptions" placeholder="请选择密级" />
+      <a-form-item label="密级" name="confidentialLevel">
+        <a-select v-model:value="addForm.confidentialLevel" :options="levelOptions" placeholder="请选择密级" />
       </a-form-item>
       <a-form-item label="上传文件" name="fileList">
         <a-upload-dragger

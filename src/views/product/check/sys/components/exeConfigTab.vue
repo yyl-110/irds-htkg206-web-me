@@ -42,7 +42,7 @@ function getPrimaryFileEntry(item: any): any {
 }
 
 function formatConfidentialLevelLabel(item: any): string {
-  const raw = item?.confidentialLevel ?? item?.securityLevel;
+  const raw = item?.confidentialLevel ?? item?.confidentialLevel;
   const n = Number(raw);
   if (Number.isFinite(n) && CONFIDENTIAL_LEVEL_LABELS[n]) {
     return CONFIDENTIAL_LEVEL_LABELS[n];
@@ -209,9 +209,15 @@ const exeConfigList = computed<ExeConfigRecord[]>(() => {
   let list = [...sourceList.value];
 
   Object.keys(filterValueMap.value).forEach((key: string) => {
-    const filterValue = String(filterValueMap.value[key] ?? '').trim().toLowerCase();
+    const filterValue = String(filterValueMap.value[key] ?? '')
+      .trim()
+      .toLowerCase();
     if (!filterValue) return;
-    list = list.filter((item: any) => String(item?.[key] ?? '').toLowerCase().includes(filterValue));
+    list = list.filter((item: any) =>
+      String(item?.[key] ?? '')
+        .toLowerCase()
+        .includes(filterValue),
+    );
   });
 
   if (!sortState.value.key || !sortState.value.order) return list;
@@ -346,7 +352,7 @@ function getExeRawByRecord(record: ExeConfigRecord): Record<string, unknown> | n
 }
 
 function resolveConfidentialLevelFromRow(row: Record<string, unknown>): number {
-  const n = Number(row.confidentialLevel ?? row.securityLevel);
+  const n = Number(row.confidentialLevel ?? row.confidentialLevel);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -381,6 +387,7 @@ async function requestPublishExe(record: ExeConfigRecord) {
   const treeName = String(row.treeName ?? props.currentNodeName ?? '');
   const treeId = String(props.treeId ?? row.treeId ?? '').trim();
   const remarks = String(row.remarks ?? '');
+  const checkType = 3;
 
   publishBusyId.value = record.id;
   try {
@@ -388,9 +395,10 @@ async function requestPublishExe(record: ExeConfigRecord) {
       userId: userStore.getUser.id,
       exeCheckId: id,
       checkName,
-      checkType: 'exe计算',
+      checkType,
       status: 3,
       remarks,
+      operation: 'ADD',
       confidentialLevel,
       ...(treeId ? { treeId } : {}),
     });
@@ -447,14 +455,22 @@ async function requestUnpublishExe(record: ExeConfigRecord) {
   const useType = String(row.useType ?? 'exe计算');
   const confidentialLevel = resolveConfidentialLevelFromRow(row);
   const treeName = String(row.treeName ?? props.currentNodeName ?? '');
+  const treeId = String(props.treeId ?? row.treeId ?? '').trim();
+  const remarks = String(row.remarks ?? '');
+  const checkType = 3;
+  
 
   publishBusyId.value = record.id;
   try {
     const summarRes = await AdminApiSystemCheckInfoApi.saveCheckSummar({
       userId: userStore.getUser.id,
-      id,
       checkExeInfoId: id,
       operation: 'DELETE',
+      checkName,
+      checkType,
+      remarks,
+      confidentialLevel,
+      ...(treeId ? { treeId } : {}),
     });
     if (!isApiOk(summarRes)) {
       message.error(String(summarRes?.data?.msg || '取消发布失败：从计算清单移除失败'));
@@ -523,7 +539,7 @@ function handleAddSuccess() {
   void fetchExeList();
 }
 
-watch(editModalVisible, (v) => {
+watch(editModalVisible, v => {
   if (!v) editRow.value = null;
 });
 </script>
@@ -563,10 +579,7 @@ watch(editModalVisible, (v) => {
         :row-class-name="getRowClassName">
         <template #headerCell="{ column }">
           <div class="header-cell-main" :class="{ 'header-cell-main--center': isHeaderCenterColumn(column) }">
-            <span
-              class="header-title-sort"
-              :class="{ 'header-title-sort--disabled': !isSortableColumn(column) }"
-              @click.stop="toggleColumnSort(column)">
+            <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableColumn(column) }" @click.stop="toggleColumnSort(column)">
               <span>{{ column.title }}</span>
               <span v-if="isSortableColumn(column)" class="header-sort-icon">
                 <CaretUpOutlined v-if="getSortOrder(String(column.dataIndex)) === 'ascend'" />
@@ -582,10 +595,7 @@ watch(editModalVisible, (v) => {
               @openChange="handleFilterOpenChange(String(column.dataIndex), $event)">
               <template #content>
                 <div class="header-filter-pop">
-                  <a-input
-                    v-model:value="filterValueMap[String(column.dataIndex)]"
-                    :placeholder="`搜索 ${column.title}`"
-                    allow-clear />
+                  <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`搜索 ${column.title}`" allow-clear />
                   <div class="header-filter-actions">
                     <a-button type="primary" size="small" @click="applyColumnFilter(String(column.dataIndex))">
                       <SearchOutlined />
@@ -602,11 +612,7 @@ watch(editModalVisible, (v) => {
         <template #bodyCell="{ column, record, text }">
           <template v-if="column.dataIndex === 'statusDisplay'">
             <a-tooltip :title="record.statusDisplay">
-              <a-tag
-                :class="[
-                  'exe-status-tag',
-                  isStatusPublished(record.statusDisplay) ? 'exe-status-tag--on' : 'exe-status-tag--off',
-                ]">
+              <a-tag :class="['exe-status-tag', isStatusPublished(record.statusDisplay) ? 'exe-status-tag--on' : 'exe-status-tag--off']">
                 {{ record.statusDisplay }}
               </a-tag>
             </a-tooltip>
@@ -615,16 +621,10 @@ watch(editModalVisible, (v) => {
             <div class="calc-operation-links">
               <a @click.stop.prevent="onAction('编辑', record)">编辑</a>
               <a @click.stop.prevent="onAction('删除', record)" style="color: #ff4d4f">删除</a>
-              <a
-                v-if="isRecordPublished(record)"
-                :class="{ 'calc-operation-links--disabled': publishBusyId === record.id }"
-                @click.stop.prevent="onAction('取消发布', record)">
+              <a v-if="isRecordPublished(record)" :class="{ 'calc-operation-links--disabled': publishBusyId === record.id }" @click.stop.prevent="onAction('取消发布', record)">
                 {{ publishBusyId === record.id ? '处理中…' : '取消发布' }}
               </a>
-              <a
-                v-else
-                :class="{ 'calc-operation-links--disabled': publishBusyId === record.id }"
-                @click.stop.prevent="onAction('发布', record)">
+              <a v-else :class="{ 'calc-operation-links--disabled': publishBusyId === record.id }" @click.stop.prevent="onAction('发布', record)">
                 {{ publishBusyId === record.id ? '处理中…' : '发布' }}
               </a>
             </div>
@@ -640,13 +640,10 @@ watch(editModalVisible, (v) => {
     </a-card>
     <ExeConfigAddModal
       v-model:visible="addModalVisible"
+      :tree-id="treeId"
       :current-node-name="currentNodeName"
       @success="handleAddSuccess" />
-    <ExeConfigEditModal
-      v-model:visible="editModalVisible"
-      :record="editRow"
-      :current-node-name="currentNodeName"
-      @success="handleAddSuccess" />
+    <ExeConfigEditModal v-model:visible="editModalVisible" :record="editRow" :current-node-name="currentNodeName" @success="handleAddSuccess" />
   </div>
 </template>
 

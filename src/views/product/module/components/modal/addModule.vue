@@ -350,7 +350,7 @@ async function datacustomRequest(options: any) {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
-      securityLevel: 1,
+      confidentialLevel: 1,
     });
     if (res.data.code === 0) {
       const file: any = { ...res.data, name: res.data?.oldFileName };

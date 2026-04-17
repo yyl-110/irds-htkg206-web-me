@@ -100,7 +100,7 @@ async function customRequest(options: any) {
   const data = new FormData();
   data.append('file', options.file);
   try {
-    const res = await AdminApiSystemUploadFile.uploadWordToPDF({ file: options.file as File, userId: userStore.getUser.id, securityLevel: confidentialLevel.value + '' });
+    const res = await AdminApiSystemUploadFile.uploadWordToPDF({ file: options.file as File, userId: userStore.getUser.id, confidentialLevel: confidentialLevel.value + '' });
     console.log(res);
     if (res.data.code === 0) {
       const file: any = { ...res.data, name: res.data?.oldFileName };

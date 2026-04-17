@@ -147,6 +147,7 @@ import camundaModdleExtension from './plugins/extension-moddle/camunda';
 import activitiModdleExtension from './plugins/extension-moddle/activiti';
 import flowableModdleExtension from './plugins/extension-moddle/flowable';
 import { AdminApiSystemCheckFlowInfoApi } from '@/api/tags/check/计算流程后台';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 // 引入 CodeMirror (需要确保有 Vue 3 版本)
 import CodeMirror from 'codemirror-editor-vue3';
 import 'codemirror/theme/monokai.css';
@@ -163,6 +164,7 @@ const props = defineProps({
   currentNode: String,
   modelValue: String,
   processId: String,
+  taskId: String,
   processName: String,
   translations: Object,
   options: {
@@ -435,29 +437,16 @@ const saveXML = async () => {
   loading.value = true;
   const categoryName = localStorage.getItem('categoryName');
   const params = {
-    name: categoryName,
-    category: routeTag && routeTag == 1 ? flowCategory.value || rowEdit.value?.category : '计算工具',
-    xml: previewResult.value,
-    checkTreeId: props.currentNode ? Number(props.currentNode.id) : null,
-    userId: userStore.getUser.id,
+    bpmnXml: previewResult.value,
+    taskId: String(props.taskId || route.query?.taskId || ''),
   };
   try {
-    const res = await AdminApiSystemCheckFlowInfoApi.saveflowable(params);
+    const res = await AdminApiSystemProcessTask.bpmnSaveXmlTree(params);
     if (res && res.data.code == 200) {
       localStorage.removeItem('categoryCalc');
-      // store.dispatch("flow/editRow", {});
-      if (props.flag == 1) {
-        router.push({
-          path: '/business/check',
-          query: { t: Date.now(), activKey: 2, currentNodeId: props.currentNode.id },
-        });
-        message.success(res.data.msg);
-      } else {
-        router.push({
-          path: '/business/processFormdefinition',
-          query: { t: Date.now() },
-        });
-      }
+      // 保存后返回上一个页面（设计任务列表页）
+      message.success(res.data.msg || '保存成功');
+      router.back();
 
       localStorage.removeItem('category');
       localStorage.removeItem('queryList');
@@ -505,11 +494,14 @@ const getXMLNode = str => {
 };
 
 const goBack = () => {
-  if (props.flag == 1) {
-    router.push({ path: '/business/check', query: { activKey: 2, currentNodeId: props.currentNode.id } });
-  } else {
-    router.push({ path: '/business/processFormdefinition' });
+  // 与保存后的行为保持一致：返回上一个页面（设计任务列表页）
+  if (window.history.length > 1) {
+    router.back();
+    return;
   }
+  // 无历史记录时兜底到首页，避免停留当前页
+  message.warning('未找到可返回的上一页，已跳转首页');
+  router.push({ path: '/home/workbench' });
 };
 
 const downloadProcess = async (type, name = 'diagram') => {

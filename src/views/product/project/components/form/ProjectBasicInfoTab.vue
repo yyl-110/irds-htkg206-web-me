@@ -114,7 +114,7 @@ const materialCustomRequest: UploadProps['customRequest'] = async options => {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
-      securityLevel: props.projectForm.confidentialLevel,
+      confidentialLevel: props.projectForm.confidentialLevel,
     });
     if (res.data.code === 0) {
       options.onSuccess?.(res.data, options.file);

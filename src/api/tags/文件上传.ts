@@ -107,12 +107,12 @@ export class AdminApiSystemUploadFile {
       /** @format binary */
       file?: File;
       userId?: number;
-      securityLevel?: string;
+      confidentialLevel?: string;
     } = {
       /** @format binary */
       file?: File;
       userId?: number;
-      securityLevel?: string;
+      confidentialLevel?: string;
     },
   >(
     data: Req,

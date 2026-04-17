@@ -5,7 +5,7 @@
         <a-input v-model:value="elementBaseInfo.id" :disabled="true" allowClear @change="updateBaseInfo('id')" />
       </a-form-item>
       <a-form-item label="名称" name="name">
-        <a-input v-model:value="elementBaseInfo.name" placeholder="请输入名称" @change="updateBaseInfo('name')" />
+        <a-input v-model:value="elementBaseInfo.name" placeholder="请输入名称" :disabled="isProcessNameReadonly" @change="updateBaseInfo('name')" />
       </a-form-item>
 
       <!-- 流程的基础属性 -->
@@ -15,13 +15,6 @@
         </a-form-item>
         <a-form-item v-if="false" label="可执行">
           <a-switch v-model:checked="elementBaseInfo.isExecutable" active-text="是" inactive-text="否" @change="updateBaseInfo('isExecutable')" />
-        </a-form-item>
-        <a-form-item label="流程分类" name="category" :rules="[{ required: true, message: '请选择流程分类' }]">
-          <a-select v-model:value="formState.category" placeholder="请选择流程分类" @change="handleCategoryChange">
-            <a-select-option v-for="item in categoryList" :key="item.value" :value="item.value">
-              {{ item.label }}
-            </a-select-option>
-          </a-select>
         </a-form-item>
       </template>
 
@@ -34,11 +27,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, onBeforeUnmount, computed } from 'vue';
+import { ref, reactive, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
 // Props
 const props = defineProps({
   businessObject: Object,
   type: String,
+  /** 设计任务「配置」进入时为 1，流程根节点名称只读 */
+  flag: {
+    type: Number,
+    default: 0,
+  },
   idEditDisabled: {
     type: Boolean,
     default: true,
@@ -58,6 +56,9 @@ const elementBaseInfo = ref({
   isExecutable: '',
   isExpanded: '',
 });
+
+/** 从任务列表「配置」进入（flag=1）时，流程根节点(Process)名称只读置灰 */
+const isProcessNameReadonly = computed(() => Number(props.flag) === 1 && elementBaseInfo.value.$type === 'bpmn:Process');
 // Reactive data
 const formState = reactive({
   category: '计算工具',
@@ -95,7 +96,7 @@ watch(
       // }
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 watch(
@@ -106,7 +107,7 @@ watch(
       emit('on-click', val);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 watch(
   () => pageName.value,
@@ -115,7 +116,7 @@ watch(
       elementBaseInfo.value.name = val;
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // Methods

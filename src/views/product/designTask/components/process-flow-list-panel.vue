@@ -9,14 +9,17 @@ import { ProcessFlowListPageRequestDTOModel } from '@/api/models/processTask/Pro
 import { sortermethod } from '@/utils/tools';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import Empty from '@/components/Empty/index.vue';
+import FlowView from '@/components/flowview/index.vue';
 import { useUserStore } from '@/store/modules/user';
+import { useRouter } from 'vue-router';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 const props = defineProps<{
   menuId?: string | number;
   treeNodeKey?: string | number;
 }>();
 
 const userStore = useUserStore();
-
+const router = useRouter();
 /** 与后端流程基础信息字段一致的驼峰结构 */
 type FlowRow = {
   id: number | string;
@@ -131,15 +134,6 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     },
   },
   {
-    title: '流程标识',
-    dataIndex: 'processKey',
-    key: 'processKey',
-    align: 'left',
-    resizable: true,
-    sorter: (a: FlowRow, b: FlowRow) => sortermethod(a.processKey, b.processKey),
-    width: 180,
-  },
-  {
     title: '任务名称',
     dataIndex: 'processName',
     key: 'processName',
@@ -198,7 +192,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'center',
-    width: 380,
+    width: 260,
     fixed: 'right',
   },
   { fixed: 'right', width: 1 },
@@ -233,13 +227,28 @@ function handleQuerySearch() {
   resetAndReload();
 }
 
-function handleActionClick(action: string) {
-  message.info(`${action}（待接后端）`);
+async function handleDeleteClick(taskId: string) {
+  await AdminApiSystemProcessTask.deleteTaskBasicInfo({ id: taskId });
+  await loadFlowListData();
 }
 
-async function handleDeleteClick(taskId: string) {
-  const res = await AdminApiSystemProcessTask.deleteTaskBasicInfo({ id: taskId });
-  loadFlowListData();
+type PublishType = 'COLLAB' | 'APP';
+
+async function handlePublishAction(record: FlowRow, publishType: PublishType) {
+  const taskId = record.id;
+  const isPublished = publishType === 'COLLAB' ? isCollabPublished(record) : isAppPublished(record);
+  try {
+    if (isPublished) {
+      await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
+      message.success(publishType === 'COLLAB' ? '撤回发布协同成功' : '撤回发布独立应用成功');
+    } else {
+      await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
+      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布独立应用成功');
+    }
+    await loadFlowListData();
+  } catch (error) {
+    message.error(isPublished ? '撤回发布失败' : '发布失败');
+  }
 }
 
 /** 发布协同状态：1 / 已发布 视为已发布 */
@@ -252,7 +261,12 @@ function isAppPublished(record: FlowRow) {
   return String(record.appStatus) === '1' || record.appStatus === '已发布';
 }
 
-const selectedFlowRows = computed(() => selectedRowList.value as FlowRow[]);
+const selectedFlowRows = computed(() => {
+  const rows = selectedRowList.value as FlowRow[];
+  if (rows.length) return rows;
+  const keySet = new Set((selectedRowkeys.value || []).map(k => String(k)));
+  return (tableData.value || []).filter(item => keySet.has(String(item.id)));
+});
 
 /** 勾选一条且未发布协同时可查看、编辑 */
 const canToolbarViewOrEdit = computed(() => {
@@ -261,16 +275,36 @@ const canToolbarViewOrEdit = computed(() => {
   return !isCollabPublished(rows[0]);
 });
 
-/** 勾选一条时可配置 */
-const canToolbarConfig = computed(() => selectedFlowRows.value.length == 1);
+const flowViewVisible = ref(false);
+const flowViewData = ref<{ xmlData?: string }>({});
 
-function handleToolbarView() {
+function closeFlowView() {
+  flowViewVisible.value = false;
+  flowViewData.value = {};
+}
+
+async function handleToolbarView() {
   const rows = selectedFlowRows.value;
   if (rows.length !== 1) {
     message.warning('请勾选一条流程');
     return;
   }
-  handleActionClick(`查看-${rows[0].id}`);
+  let hideLoading: (() => void) | undefined;
+  try {
+    hideLoading = message.loading('加载中...', 0);
+    const res = await AdminApiSystemProcessTask.getXmlInfo({ id: rows[0].id });
+    const xml = String(res?.data?.data?.bpmnXml ?? '').trim();
+    if (!xml) {
+      message.warning('暂无流程图数据');
+      return;
+    }
+    flowViewData.value = { xmlData: xml };
+    flowViewVisible.value = true;
+  } catch {
+    message.error('获取流程图失败');
+  } finally {
+    hideLoading?.();
+  }
 }
 
 /** 密级默认取当前用户可选列表第一项（一般为「公开」） */
@@ -384,13 +418,35 @@ function handleToolbarEdit() {
   openFlowFormEdit();
 }
 
-function handleToolbarConfig() {
-  const rows = selectedFlowRows.value;
-  if (rows.length !== 1) {
-    message.warning('请勾选一条流程');
+async function handleToolbarConfig(record?: FlowRow) {
+  const row = record ?? selectedFlowRows.value[0];
+  if (!row) {
+    message.warning('请选择一条任务');
     return;
   }
-  handleActionClick(`配置-${rows[0].id}`);
+  const taskName = String(row.processName ?? '').trim();
+  const taskId = String(row.id ?? '').trim();
+  try {
+    const res = await AdminApiSystemProcessTask.getXmlInfo({ id: taskId });
+    const xml = String(res?.data?.data?.bpmnXml ?? '').trim();
+    const cacheKey = `designTaskBpmnXml:${taskId}`;
+    if (xml) {
+      sessionStorage.setItem(cacheKey, xml);
+    } else {
+      sessionStorage.removeItem(cacheKey);
+    }
+  } catch (error) {
+    // 查询 XML 失败不阻断进入配置页，交由配置页按新建流程处理
+    sessionStorage.removeItem(`designTaskBpmnXml:${taskId}`);
+  }
+  router.push({
+    path: '/business/processFormdefinition',
+    query: {
+      flag: 1,
+      ...(taskName ? { processName: taskName } : {}),
+      ...(taskId ? { taskId } : {}),
+    },
+  });
 }
 
 watch(
@@ -417,11 +473,10 @@ defineExpose({
     <div class="process-panel__search">
       <a-input v-model:value="requestParams.processName" allow-clear placeholder="请输入流程名称" class="process-panel__search-input" @pressEnter="handleQuerySearch" />
       <a-input v-model:value="requestParams.processCode" allow-clear placeholder="请输入流程标识" class="process-panel__search-input" @pressEnter="handleQuerySearch" />
-      <a-button type="primary" class="process-panel__search-btn" @click="handleQuerySearch"> 查询 </a-button>
-      <a-button type="primary" @click="openFlowFormAdd">添加</a-button>
-      <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarView">查看</a-button>
-      <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarEdit">编辑</a-button>
-      <a-button type="primary" :disabled="!canToolbarConfig" @click="handleToolbarConfig">配置</a-button>
+      <a-button type="primary" @click="handleQuerySearch"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询 </a-button>
+      <a-button type="primary" @click="openFlowFormAdd"><EpcIcon type="icon-tianjia1" style="font-size: 12px" /> 添加</a-button>
+      <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarView"><EpcIcon type="icon-liulan" style="font-size: 12px" />查看</a-button>
+      <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarEdit"><EpcIcon type="icon-bianji" style="font-size: 12px" />编辑</a-button>
     </div>
 
     <a-table
@@ -439,6 +494,14 @@ defineExpose({
       :sticky="true"
       :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
       <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'appStatus'">
+          <span v-if="record.appStatus == 1">已发布</span>
+          <span v-else>未发布</span>
+        </template>
+        <template v-if="column.dataIndex === 'collabStatus'">
+          <span v-if="record.collabStatus == 1">已发布</span>
+          <span v-else>未发布</span>
+        </template>
         <template v-if="column.dataIndex === 'confidentialLevel'">
           <span v-if="record.confidentialLevel == 0">公开</span>
           <span v-if="record.confidentialLevel == 1">内部</span>
@@ -448,33 +511,15 @@ defineExpose({
         <template v-if="column.dataIndex === 'operation'">
           <div class="process-panel__ops">
             <div class="process-panel__ops-line">
-              <template v-if="!isCollabPublished(record)">
-                <a @click="handleActionClick(`发布协同-${record.id}`)">发布协同</a>
-              </template>
-              <template v-else>
-                <span class="operation-disabled">发布协同</span>
-              </template>
+              <a @click="handlePublishAction(record, 'COLLAB')">
+                {{ isCollabPublished(record) ? '撤回发布协同' : '发布协同' }}
+              </a>
               <a-divider type="vertical" />
-              <template v-if="isCollabPublished(record)">
-                <a @click="handleActionClick(`撤回协同-${record.id}`)">撤回协同</a>
-              </template>
-              <template v-else>
-                <span class="operation-disabled">撤回协同</span>
-              </template>
+              <a @click="handlePublishAction(record, 'APP')">
+                {{ isAppPublished(record) ? '取消独立应用' : '发布独立应用' }}
+              </a>
               <a-divider type="vertical" />
-              <template v-if="!isAppPublished(record)">
-                <a @click="handleActionClick(`发布独立应用-${record.id}`)">发布独立应用</a>
-              </template>
-              <template v-else>
-                <span class="operation-disabled">发布独立应用</span>
-              </template>
-              <a-divider type="vertical" />
-              <template v-if="isAppPublished(record)">
-                <a @click="handleActionClick(`取消独立应用-${record.id}`)">取消独立应用</a>
-              </template>
-              <template v-else>
-                <span class="operation-disabled">取消独立应用</span>
-              </template>
+              <a @click="handleToolbarConfig(record)">配置</a>
               <a-divider type="vertical" />
               <template v-if="!isCollabPublished(record)">
                 <a-popconfirm title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record.id)">
@@ -519,6 +564,26 @@ defineExpose({
       <template #footer>
         <a-button type="primary" :loading="flowFormSubmitting" @click="handleFlowFormOk">确定</a-button>
         <a-button @click="handleFlowFormCancel">取消</a-button>
+      </template>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="flowViewVisible"
+      title="流程图"
+      :width="1000"
+      centered
+      destroy-on-close
+      :mask-closable="true"
+      @cancel="closeFlowView">
+      <div class="process-panel__flow-view-wrap">
+        <FlowView :flow-data="flowViewData" />
+      </div>
+      <template #footer>
+        <div class="process-panel__flow-view-footer">
+          <a-button type="primary" @click="closeFlowView">
+            <EpcIcon type="icon-quxiao" style="font-size: 14px" /> 关闭
+          </a-button>
+        </div>
       </template>
     </a-modal>
   </div>
@@ -601,5 +666,16 @@ defineExpose({
 
 .process-panel__flow-form-select {
   width: 100%;
+}
+
+.process-panel__flow-view-wrap {
+  height: 560px;
+  min-height: 480px;
+  box-sizing: border-box;
+}
+
+.process-panel__flow-view-footer {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
