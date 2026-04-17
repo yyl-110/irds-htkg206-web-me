@@ -2,58 +2,27 @@
   <div class="panel-tab__content">
     <el-form size="small" label-width="90px" @submit.prevent>
       <el-form-item v-if="false" label="ID">
-        <el-input
-          v-model="elementBaseInfo.id"
-          :disabled="true"
-          clearable
-          @change="updateBaseInfo('id')"
-        />
+        <el-input v-model="elementBaseInfo.id" :disabled="true" clearable @change="updateBaseInfo('id')" />
       </el-form-item>
       <el-form-item label="名称">
-        <el-input
-          v-model="elementBaseInfo.name"
-          clearable
-          @change="updateBaseInfo('name')"
-        />
+        <el-input v-model="elementBaseInfo.name" clearable @change="updateBaseInfo('name')" />
       </el-form-item>
       <!--流程的基础属性-->
       <template v-if="elementBaseInfo.$type === 'bpmn:Process'">
         <el-form-item v-if="false" label="版本标签">
-          <el-input
-            v-model="elementBaseInfo.versionTag"
-            clearable
-            @change="updateBaseInfo('versionTag')"
-          />
+          <el-input v-model="elementBaseInfo.versionTag" clearable @change="updateBaseInfo('versionTag')" />
         </el-form-item>
         <el-form-item v-if="false" label="可执行">
-          <el-switch
-            v-model="elementBaseInfo.isExecutable"
-            active-text="是"
-            inactive-text="否"
-            @change="updateBaseInfo('isExecutable')"
-          />
+          <el-switch v-model="elementBaseInfo.isExecutable" active-text="是" inactive-text="否" @change="updateBaseInfo('isExecutable')" />
         </el-form-item>
         <el-form-item label="流程分类">
           <el-select v-model="categoryInfo" clearable @change="categoryChange">
-            <el-option
-              v-for="item in categoryList"
-              :key="item.name"
-              :label="item.name"
-              :value="item.value"
-            ></el-option>
+            <el-option v-for="item in categoryList" :key="item.name" :label="item.name" :value="item.value"></el-option>
           </el-select>
         </el-form-item>
       </template>
-      <el-form-item
-        v-if="elementBaseInfo.$type === 'bpmn:SubProcess'"
-        label="状态"
-      >
-        <el-switch
-          v-model="elementBaseInfo.isExpanded"
-          active-text="展开"
-          inactive-text="折叠"
-          @change="updateBaseInfo('isExpanded')"
-        />
+      <el-form-item v-if="elementBaseInfo.$type === 'bpmn:SubProcess'" label="状态">
+        <el-switch v-model="elementBaseInfo.isExpanded" active-text="展开" inactive-text="折叠" @change="updateBaseInfo('isExpanded')" />
       </el-form-item>
     </el-form>
   </div>
@@ -61,7 +30,7 @@
 <script>
 // import { category } from "@/api/bpm/definition";
 export default {
-  name: "ElementBaseInfo",
+  name: 'ElementBaseInfo',
   props: {
     businessObject: Object,
     type: String,
@@ -73,13 +42,13 @@ export default {
   data() {
     return {
       elementBaseInfo: {
-        id: "",
-        name: "",
-        versionTag: "",
-        isExecutable: "",
-        isExpanded: "",
+        id: '',
+        name: '',
+        versionTag: '',
+        isExecutable: '',
+        isExpanded: '',
       },
-      categoryInfo: "",
+      categoryInfo: '',
       categoryList: [],
     };
   },
@@ -87,7 +56,7 @@ export default {
     //console.log(this.rowEdit, 'this.rowEdit');
     this.elementBaseInfo.name = this.rowEdit.name;
     this.categoryInfo = this.rowEdit.category;
-    this.$store.dispatch("flow/setCategory", this.categoryInfo);
+    this.$store.dispatch('flow/setCategory', this.categoryInfo);
   },
   mounted() {
     this.getCategory();
@@ -104,7 +73,7 @@ export default {
     elementBaseInfo: {
       handler: function (val) {
         if (val) {
-          localStorage.setItem("categoryName", val.name);
+          localStorage.setItem('categoryName', val.name);
         }
       },
       deep: true,
@@ -124,11 +93,11 @@ export default {
   methods: {
     // 获取流程类型
     getCategory() {
-      category().then((res) => {
-        res.data.map((v) => {
+      category().then(res => {
+        res.data.map(v => {
           const obj = {
-            name: v.categoryName + "-" + v.content,
-            value: v.categoryName + "-" + v.content,
+            name: v.categoryName + '-' + v.content,
+            value: v.categoryName + '-' + v.content,
           };
           this.categoryList.push(obj);
         });
@@ -136,26 +105,20 @@ export default {
     },
     resetBaseInfo() {
       this.bpmnElement = window.bpmnInstances?.bpmnElement || {};
-      this.elementBaseInfo = JSON.parse(
-        JSON.stringify(this.bpmnElement?.businessObject)
-      );
-      if (
-        this.elementBaseInfo &&
-        this.elementBaseInfo.$type === "bpmn:SubProcess"
-      ) {
-        this.elementBaseInfo["isExpanded"] =
-          this.elementBaseInfo.di?.isExpanded;
+      this.elementBaseInfo = JSON.parse(JSON.stringify(this.bpmnElement?.businessObject));
+      if (this.elementBaseInfo && this.elementBaseInfo.$type === 'bpmn:SubProcess') {
+        this.elementBaseInfo['isExpanded'] = this.elementBaseInfo.di?.isExpanded;
       }
     },
     updateBaseInfo(key) {
-      if (key === "id") {
+      if (key === 'id') {
         window.bpmnInstances.modeling.updateProperties(this.bpmnElement, {
           id: this.elementBaseInfo[key],
           di: { id: `${this.elementBaseInfo[key]}_di` },
         });
         return;
       }
-      if (key === "isExpanded") {
+      if (key === 'isExpanded') {
         window?.bpmnInstances?.modeling.toggleCollapse(this.bpmnElement);
         return;
       }
@@ -167,9 +130,9 @@ export default {
     categoryChange(val) {
       //console.log(val, 'valvalvalvlalvlavlavlav');
       if (val) {
-        localStorage.setItem("categoryId", val);
+        localStorage.setItem('categoryId', val);
         // 保存流程定义的流程分类
-        this.$store.dispatch("flow/setCategory", val);
+        this.$store.dispatch('flow/setCategory', val);
       }
     },
   },

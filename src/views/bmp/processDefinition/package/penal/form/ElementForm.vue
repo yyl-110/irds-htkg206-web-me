@@ -4,7 +4,7 @@
     <div class="element-property list-property">
       <a-button type="primary" size="small" @click="addForm()">
         <template #icon><plus-outlined /></template>
-        添加表单
+        关联活动
       </a-button>
       <a-divider>
         <template #icon><wallet-outlined /></template>
@@ -12,30 +12,65 @@
       </a-divider>
 
       <a-table v-if="fieldList.length" :data-source="fieldList" size="small" :scroll="{ y: 240 }" bordered :pagination="false">
-        <a-table-column key="pageName" title="页面名称" data-index="pageName" align="center" :width="80" :ellipsis="true" />
-        <a-table-column key="pageType" title="页面类型" data-index="pageType" align="center" :width="80" :ellipsis="true" />
+        <a-table-column key="pageName" title="活动名称" data-index="pageName" align="center" :width="80" :ellipsis="true" />
+        <a-table-column key="pageType" title="活动类型" data-index="pageType" align="center" :width="80" :ellipsis="true">
+          <template #default="{ record }">
+            <span v-if="String(record.pageType) === '1'">{{ $t('设计配置页面') }}</span>
+            <span v-else-if="String(record.pageType) === '2'">{{ $t('计算集成页面') }}</span>
+            <span v-else-if="String(record.pageType) === '3'">{{ $t('自定义页面') }}</span>
+            <span v-else>{{ record.pageType }}</span>
+          </template>
+        </a-table-column>
       </a-table>
     </div>
 
     <!-- 添加表单抽屉 -->
-    <a-drawer v-model:visible="drawer" title="添加表单" placement="right" width="600">
-      <a-table
-        ref="tableRef"
-        :data-source="formList"
-        size="small"
-        :pagination="false"
-        :scroll="{ y: 'calc(85vh - 200px)' }"
-        row-key="id"
-        :row-selection="{
-          type: 'radio',
-          selectedRowKeys: selectedRowKeys,
-          onChange: onSelectionChange,
-          columnWidth: 40,
-        }">
-        <!-- :customRow="customRow" -->
-        <a-table-column key="pageName" title="页面名称" data-index="pageName" align="center" :width="100" :ellipsis="true" />
-        <a-table-column key="pageType" title="页面类型" data-index="pageType" align="center" :width="100" :ellipsis="true" />
-      </a-table>
+    <a-drawer v-model:visible="drawer" title="添加表单" placement="right" width="920">
+      <div class="selector-layout">
+        <div class="selector-layout__left">
+          <div class="selector-layout__title">活动分类</div>
+          <a-tree
+            v-if="activityTreeData.length"
+            block-node
+            :tree-data="activityTreeData"
+            :field-names="{ title: 'name', key: 'id', children: 'children' }"
+            :selectedKeys="treeSelectedKeys"
+            :defaultExpandAll="true"
+            @select="onTreeSelect" />
+          <a-empty v-else description="暂无分类数据" />
+        </div>
+        <div class="selector-layout__right">
+          <a-table
+            ref="tableRef"
+            :data-source="formList"
+            size="small"
+            :loading="loading"
+            :pagination="false"
+            :scroll="{ y: 'calc(85vh - 250px)' }"
+            row-key="id"
+            :customRow="customRow"
+            :row-selection="{
+              type: 'radio',
+              selectedRowKeys: selectedRowKeys,
+              onChange: onSelectionChange,
+              columnWidth: 40,
+            }">
+            <a-table-column key="pageName" title="活动名称" data-index="pageName" align="center" :width="130" :ellipsis="true" />
+            <a-table-column key="pageType" title="活动类型" data-index="pageType" align="center" :width="120" :ellipsis="true">
+              <template #default="{ record }">
+                <span v-if="String(record.pageType) === '1'">{{ $t('设计配置页面') }}</span>
+                <span v-else-if="String(record.pageType) === '2'">{{ $t('计算集成页面') }}</span>
+                <span v-else-if="String(record.pageType) === '3'">{{ $t('自定义页面') }}</span>
+                <span v-else>{{ record.pageType }}</span>
+              </template>
+            </a-table-column>
+            <a-table-column key="treeName" title="所属分类" data-index="treeName" align="center" :width="110" :ellipsis="true" />
+            <a-table-column key="groupName" title="组名称" data-index="groupName" align="center" :width="110" :ellipsis="true" />
+            <a-table-column key="remark" title="备注" data-index="remark" align="center" :width="140" :ellipsis="true" />
+            <a-table-column key="createTime" title="创建时间" data-index="createTime" align="center" :width="120" :ellipsis="true" />
+          </a-table>
+        </div>
+      </div>
       <div class="pagination-wrapper">
         <a-pagination
           size="small"
@@ -60,11 +95,9 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, onBeforeUnmount, toRaw } from 'vue';
-import { useRouter } from 'vue-router';
 import { PlusOutlined, WalletOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
-import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
-const router = useRouter();
+import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 const props = defineProps({
   elementBusinessObject: {
     type: Object,
@@ -74,6 +107,11 @@ const props = defineProps({
     type: Object,
     default: () => {},
   },
+  /** 与流程配置路由上的 taskId 一致，隔离 localStorage 绑定表 */
+  taskId: {
+    type: [String, Number],
+    default: '',
+  },
 });
 // 响应式数据
 const bpmnElement = ref(null);
@@ -81,6 +119,9 @@ const loading = ref(false);
 const drawer = ref(false);
 const fieldList = ref([]);
 const formList = ref([]);
+const activityTreeData = ref([]);
+const treeSelectedKeys = ref([]);
+const currentTreeId = ref('');
 const selectedRowKeys = ref([]);
 const selectedRow = ref({});
 const pageSize = ref(10);
@@ -89,6 +130,22 @@ const total = ref(0);
 const deepCope = ref([]);
 const arrData = ref([]);
 const tableRef = ref();
+const FORM_BINDING_MAP_PREFIX = 'activityFormBindingMap';
+const FORM_BINDING_BY_FORMKEY_PREFIX = 'activityFormBindingByFormKey';
+
+/** 有 taskId 时分桶，避免不同设计任务里 BPMN 元素 id 撞车；无 taskId 时用历史全局 key 以兼容旧数据 */
+function bindingMapStorageKey() {
+  const t = props.taskId != null ? String(props.taskId).trim() : '';
+  return t ? `${FORM_BINDING_MAP_PREFIX}:${t}` : FORM_BINDING_MAP_PREFIX;
+}
+
+function formKeyMapStorageKey() {
+  const t = props.taskId != null ? String(props.taskId).trim() : '';
+  return t ? `${FORM_BINDING_BY_FORMKEY_PREFIX}:${t}` : FORM_BINDING_BY_FORMKEY_PREFIX;
+}
+
+/** 切换节点或重新同步时递增，用于丢弃过期的 tryHydrateFieldByFormKey 异步结果（避免表格显示成其它任务的关联活动） */
+let fieldListHydrateGeneration = 0;
 
 // 计算属性
 // const flowImg = computed(() => store.getters.flowImg);
@@ -98,15 +155,7 @@ const tableRef = ref();
 // 生命周期
 onMounted(() => {
   bpmnElement.value = window.bpmnInstances?.bpmnElement || null;
-  const savedData = localStorage.getItem('selecData');
-  if (savedData) {
-    try {
-      fieldList.value = [JSON.parse(savedData)];
-    } catch (error) {
-      console.error('解析本地存储数据失败:', error);
-    }
-  }
-
+  syncFieldListFromCurrentElement();
   getList();
   // store.dispatch("dict/setFolwjudge", true);
 });
@@ -116,6 +165,25 @@ onBeforeUnmount(() => {
 });
 
 // 监听器
+watch(
+  () => props.elementBusinessObject,
+  val => {
+    if (val) {
+      // 属性面板切换到不同任务节点时，同步当前 bpmnElement 引用
+      bpmnElement.value = window.bpmnInstances?.bpmnElement || val;
+      syncFieldListFromCurrentElement();
+    }
+  },
+  { immediate: true, deep: true },
+);
+
+watch(
+  () => props.taskId,
+  () => {
+    bpmnElement.value = window.bpmnInstances?.bpmnElement || null;
+    syncFieldListFromCurrentElement();
+  },
+);
 // watch(nameFlag, val => {
 //   if (val === false) {
 //     fieldList.value = [];
@@ -137,41 +205,64 @@ onBeforeUnmount(() => {
 // });
 
 // 方法
-const addForm = () => {
+const addForm = async () => {
+  await loadActivityTree();
+  pageNum.value = 1;
   selectedRowKeys.value = [];
   selectedRow.value = {};
   drawer.value = true;
 };
 
+function getFirstNodeId(nodes) {
+  if (!Array.isArray(nodes) || !nodes.length) return '';
+  const first = nodes[0];
+  if (!first) return '';
+  return String(first.id ?? '');
+}
+
+const loadActivityTree = async () => {
+  try {
+    const res = await AdminApiActivityPage.getActivityTree({});
+    const treeData = Array.isArray(res?.data?.data) ? res.data.data : [];
+    activityTreeData.value = treeData;
+    const firstId = getFirstNodeId(treeData);
+    currentTreeId.value = firstId;
+    treeSelectedKeys.value = firstId ? [firstId] : [];
+    await getList();
+  } catch (error) {
+    activityTreeData.value = [];
+    treeSelectedKeys.value = [];
+    currentTreeId.value = '';
+    formList.value = [];
+    total.value = 0;
+    message.error('获取活动分类失败');
+  }
+};
+
 const getList = async () => {
+  if (!currentTreeId.value) {
+    formList.value = [];
+    total.value = 0;
+    return;
+  }
   const params = {
-    treeId: props.currentNode?.id || '',
-    pageNum: pageNum.value,
+    pageName: '',
+    treeId: currentTreeId.value,
+    pageNo: pageNum.value,
     pageSize: pageSize.value,
   };
   try {
-    const res = await AdminApiSystemCheckInfoApi.checkPageInfoNewPageList(params);
-    if (res && res.data.code == '0') {
-      formList.value = res.data.data.data || [];
-      total.value = res.data.data.pageCount || 0;
-      deepCope.value = JSON.parse(JSON.stringify(formList.value));
-      // 如果有设置名称，过滤显示
-      if (props.elementBusinessObject.name && formList.value.length > 0) {
-        const filtered = formList.value.filter(v => v.pageName === props.elementBusinessObject.name);
-        if (filtered.length > 0) {
-          fieldList.value = filtered;
-        } else {
-          fieldList.value = [];
-        }
-      } else {
-        fieldList.value = [];
-      }
-    } else {
-      message.error(res?.data?.msg || '获取表单列表失败');
-    }
+    loading.value = true;
+    const res = await AdminApiActivityPage.getActivityPage(params);
+    const pageData = res?.data?.data || {};
+    formList.value = Array.isArray(pageData.list) ? pageData.list : [];
+    total.value = Number(pageData.total ?? 0);
+    deepCope.value = JSON.parse(JSON.stringify(formList.value));
   } catch (error) {
     console.error('获取表单列表失败:', error);
     message.error('获取表单列表失败，请重试');
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -180,8 +271,165 @@ const onSelectionChange = (selectedKeys, selectedRows) => {
   if (selectedRows.length > 0) {
     selectedRow.value = selectedRows[0];
   }
-  localStorage.setItem('selecData', JSON.stringify(selectedRow.value));
 };
+
+/** 点击整行时，联动单选框选中效果 */
+const customRow = record => {
+  return {
+    onClick: () => {
+      selectedRowKeys.value = [record.id];
+      selectedRow.value = record;
+    },
+  };
+};
+
+function getCurrentElementId() {
+  const cur = window.bpmnInstances?.bpmnElement || bpmnElement.value || props.elementBusinessObject;
+  return cur?.id ? String(cur.id) : '';
+}
+
+function getBindingMap() {
+  const raw = localStorage.getItem(bindingMapStorageKey());
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function setBindingMap(map) {
+  localStorage.setItem(bindingMapStorageKey(), JSON.stringify(map));
+}
+
+function getFormKeyBindingMap() {
+  const raw = localStorage.getItem(formKeyMapStorageKey());
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function setFormKeyBindingMap(map) {
+  localStorage.setItem(formKeyMapStorageKey(), JSON.stringify(map));
+}
+
+function syncFieldListFromCurrentElement() {
+  fieldListHydrateGeneration += 1;
+  const hydrateToken = fieldListHydrateGeneration;
+  const cur = props.elementBusinessObject || {};
+  const elementId = getCurrentElementId();
+  if (!elementId) {
+    fieldList.value = [];
+    return;
+  }
+  const map = getBindingMap();
+  const keyMap = getFormKeyBindingMap();
+
+  // 1. 以 BPMN/XML 中的 formKey（关联活动主键）为准，优先于仅按元素 id 的缓存（Activity_xxx 在不同流程中易复用导致串数据）
+  if (cur.formKey) {
+    const byFormKey = keyMap[String(cur.formKey)];
+    if (byFormKey) {
+      fieldList.value = [byFormKey];
+      if (String(byFormKey.id) === String(cur.formKey)) {
+        map[elementId] = byFormKey;
+        setBindingMap(map);
+      }
+      return;
+    }
+  }
+
+  // 2. 元素级缓存：仅在无 formKey，或缓存行的 id 与当前 formKey 一致时使用
+  if (map[elementId]) {
+    const cached = map[elementId];
+    if (!cur.formKey || String(cached.id) === String(cur.formKey)) {
+      fieldList.value = [cached];
+      return;
+    }
+  }
+
+  // 3. 兜底：至少把已保存到 bpmn 的字段展示出来，并按 formKey 异步补全 pageType
+  if (cur.formKey || cur.name) {
+    fieldList.value = [
+      {
+        id: cur.formKey || '',
+        pageName: cur.name || '',
+        pageType: cur.pageType || cur.pageTypeName || '',
+      },
+    ];
+    if (!fieldList.value[0].pageType && cur.formKey) {
+      void tryHydrateFieldByFormKey(String(cur.formKey), elementId, hydrateToken);
+    }
+    return;
+  }
+  fieldList.value = [];
+}
+
+function flattenTreeNodes(nodes, acc = []) {
+  if (!Array.isArray(nodes)) return acc;
+  nodes.forEach(node => {
+    acc.push(node);
+    if (Array.isArray(node.children) && node.children.length) {
+      flattenTreeNodes(node.children, acc);
+    }
+  });
+  return acc;
+}
+
+async function tryHydrateFieldByFormKey(formKey, requestElementId, hydrateToken) {
+  if (!formKey) return;
+  try {
+    const treeRes = await AdminApiActivityPage.getActivityTree({});
+    if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
+      return;
+    }
+    const treeData = Array.isArray(treeRes?.data?.data) ? treeRes.data.data : [];
+    const allNodes = flattenTreeNodes(treeData, []);
+    for (const node of allNodes) {
+      if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
+        return;
+      }
+      const treeId = String(node?.id ?? '').trim();
+      if (!treeId) continue;
+      const pageRes = await AdminApiActivityPage.getActivityPage({
+        pageName: '',
+        treeId,
+        pageNo: 1,
+        pageSize: 200,
+      });
+      if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
+        return;
+      }
+      const list = Array.isArray(pageRes?.data?.data?.list) ? pageRes.data.data.list : [];
+      const matched = list.find(item => String(item.id) === String(formKey));
+      if (!matched) continue;
+
+      if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
+        return;
+      }
+
+      fieldList.value = [matched];
+      if (requestElementId) {
+        const map = getBindingMap();
+        map[requestElementId] = matched;
+        setBindingMap(map);
+      }
+      const keyMap = getFormKeyBindingMap();
+      keyMap[String(formKey)] = matched;
+      setFormKeyBindingMap(keyMap);
+
+      const registryEl = window.bpmnInstances?.elementRegistry?.get(requestElementId);
+      if (registryEl && window.bpmnInstances?.modeling && String(registryEl.id) === String(requestElementId)) {
+        window.bpmnInstances.modeling.updateProperties(toRaw(registryEl), toRaw({ pageType: matched.pageType }));
+      }
+      return;
+    }
+  } catch (error) {
+    // 回查失败时保持现有展示，不阻断配置页使用
+  }
+}
 
 // const customRow = record => {
 //   // 单选逻辑
@@ -207,6 +455,17 @@ const onPageChange = (page, pageSize) => {
   getList();
 };
 
+const onTreeSelect = selectedKeys => {
+  const selectedId = selectedKeys?.[0] ? String(selectedKeys[0]) : '';
+  if (!selectedId) return;
+  currentTreeId.value = selectedId;
+  treeSelectedKeys.value = [selectedId];
+  pageNum.value = 1;
+  selectedRowKeys.value = [];
+  selectedRow.value = {};
+  getList();
+};
+
 const confirm = () => {
   if (!selectedRow.value || !selectedRow.value.id) {
     message.warning('请选择表单');
@@ -214,13 +473,26 @@ const confirm = () => {
   }
 
   fieldList.value = [selectedRow.value];
+  const elementId = getCurrentElementId();
+  if (elementId) {
+    const map = getBindingMap();
+    map[elementId] = selectedRow.value;
+    setBindingMap(map);
+  }
+  if (selectedRow.value.id) {
+    const formKeyMap = getFormKeyBindingMap();
+    formKeyMap[String(selectedRow.value.id)] = selectedRow.value;
+    setFormKeyBindingMap(formKeyMap);
+  }
   // 更新 BPMN 属性
-  if (window.bpmnInstances?.modeling && bpmnElement.value) {
+  const currentElement = window.bpmnInstances?.bpmnElement || bpmnElement.value || props.elementBusinessObject;
+  if (window.bpmnInstances?.modeling && currentElement) {
     window.bpmnInstances.modeling.updateProperties(
-      toRaw(bpmnElement.value),
+      toRaw(currentElement),
       toRaw({
         formKey: selectedRow.value.id,
         name: selectedRow.value.pageName,
+        pageType: selectedRow.value.pageType,
       }),
     );
   }
@@ -244,17 +516,7 @@ const cancel = () => {
 
 const cleanUp = () => {
   fieldList.value = [];
-  localStorage.removeItem('selecData');
 };
-
-// 路由离开前的处理
-router.beforeEach((to, from, next) => {
-  if (from.name === 'currentRouteName') {
-    // 替换为实际的路由名称
-    cleanUp();
-  }
-  next();
-});
 </script>
 
 <style lang="less" scoped>
@@ -274,6 +536,31 @@ router.beforeEach((to, from, next) => {
       }
     }
   }
+}
+
+.selector-layout {
+  display: flex;
+  gap: 12px;
+  height: calc(100% - 110px);
+}
+
+.selector-layout__left {
+  width: 240px;
+  border: 1px solid #f0f0f0;
+  border-radius: 2px;
+  padding: 10px 8px;
+  overflow: auto;
+}
+
+.selector-layout__right {
+  flex: 1;
+  min-width: 0;
+}
+
+.selector-layout__title {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
 }
 .action-buttons {
   margin-top: 50px;

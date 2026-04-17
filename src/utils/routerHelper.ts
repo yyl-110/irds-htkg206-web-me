@@ -192,13 +192,35 @@ export function generateRoute(routes: AppCustomRouteRecordRaw[]): AppRouteRecord
  * @param children
  */
 export function getRedirect(parentPath: string, children: AppCustomRouteRecordRaw[]): string | undefined {
-  if (!children || children.length === 0) return parentPath;
+  if (!children || children.length === 0) return undefined;
 
-  const path = generateRoutePath(parentPath, children[0].path);
-  // 递归子节点
-  if (children[0].children) return getRedirect(path, children[0].children);
+  const normalizePath = (p: string) => p.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+  const normalizedParent = normalizePath(parentPath);
 
-  return path;
+  for (const child of children) {
+    const currentPath = generateRoutePath(parentPath, child.path || '');
+    const normalizedCurrent = normalizePath(currentPath);
+
+    // 防止 redirect 指向自己导致 pushWithRedirect 递归
+    if (normalizedCurrent === normalizedParent) {
+      if (child.children?.length) {
+        const nested = getRedirect(currentPath, child.children);
+        if (nested && normalizePath(nested) !== normalizedParent) return nested;
+      }
+      continue;
+    }
+
+    // 递归优先拿到真正可落地的子路由
+    if (child.children?.length) {
+      const nested = getRedirect(currentPath, child.children);
+      if (nested && normalizePath(nested) !== normalizedParent) return nested;
+    }
+
+    return currentPath;
+  }
+
+  // 找不到有效子路由时，不设置 redirect，避免死循环
+  return undefined;
 }
 /**
  * generateRoutePath

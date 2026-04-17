@@ -216,4 +216,88 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 设计任务配置可视化流程功能
+   *
+   * @tags 管理后台 - 设计任务配置可视化流程功能
+   * @name bpmnSaveXmlTree
+   * @summary 设计任务配置可视化流程功能
+   * @request POST:/business-service/business/task-basic-info/bpmn-node/save-tree
+   * @secure
+   */
+  static bpmnSaveXmlTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/bpmn-node/save-tree`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 设计任务发布功能
+   *
+   * @tags 管理后台 - 设计任务发布功能
+   * @name taskPublish
+   * @summary 设计任务发布功能
+   * @request POST:/business-service/business/task-basic-info/publish
+   * @secure
+   */
+  static taskPublish = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/publish`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 设计任务撤销发布功能
+   *
+   * @tags 管理后台 - 设计任务撤销发布功能
+   * @name taskRevokePublish
+   * @summary 设计任务撤销发布功能
+   * @request POST:/business-service/business/task-basic-info/revoke-publish
+   * @secure
+   */
+  static taskRevokePublish = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/revoke-publish`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 配置可视化流程初始化功能
+   *
+   * @tags 管理后台 - 配置可视化流程初始化功能
+   * @name getXmlInfo
+   * @summary 配置可视化流程初始化功能
+   * @request GET:/business-service/business/task-basic-info/get
+   * @secure
+   */
+  static getXmlInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/get`,
+        method: 'GET',
+        query: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

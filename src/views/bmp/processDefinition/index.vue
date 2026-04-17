@@ -16,12 +16,19 @@
       @element-click="elementClick"
       @element-contextmenu="elementContextmenu"
       @init-finished="initModeler" />
-    <propertiesPanel :key="`penal-${reloadIndex}`" :bpmn-modeler="modeler" :currentNode="currentNode" :prefix="controlForm.prefix" :flag="flag" class="process-panel" />
+    <propertiesPanel
+      :key="`penal-${reloadIndex}`"
+      :bpmn-modeler="modeler"
+      :currentNode="currentNode"
+      :task-id="controlForm.taskId"
+      :prefix="controlForm.prefix"
+      :flag="flag"
+      class="process-panel" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, onActivated } from 'vue';
+import { ref, reactive, watch, onMounted, onActivated, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 // 自定义渲染（隐藏了 label 标签）
 import CustomRenderer from './modules/custom-renderer';
@@ -41,6 +48,17 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css';
 import { AdminApiSystemCheckFlowInfoApi } from '@/api/tags/check/计算流程后台';
+
+function safeDecodeQueryParam(val) {
+  const s = String(val ?? '').trim();
+  if (!s) return '';
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 const route = useRoute();
 const router = useRouter();
 // 响应式数据
@@ -53,6 +71,7 @@ const element = ref(null);
 const processDesigner = ref(null);
 const controlForm = reactive({
   processId: '',
+  taskId: '',
   processName: '',
   simulation: true,
   labelEditing: false,
@@ -67,10 +86,25 @@ onActivated(async () => {
   xmlString.value = '';
   const deployId = route.query?.deployId;
   flag.value = route.query?.flag || 0;
+  /** 从设计任务列表「配置」携带的任务名称，用于流程根节点「名称」 */
+  const qName = route.query?.processName;
+  if (qName != null && String(qName).trim() !== '') {
+    controlForm.processName = safeDecodeQueryParam(qName);
+  } else {
+    controlForm.processName = '';
+  }
+  const qTaskId = route.query?.taskId;
+  controlForm.taskId = qTaskId != null ? String(qTaskId).trim() : '';
+  const cachedXml = controlForm.taskId ? sessionStorage.getItem(`designTaskBpmnXml:${controlForm.taskId}`) || '' : '';
   if (route.query?.currentNode) {
     currentNode.value = JSON.parse(route.query?.currentNode) || null;
   }
-  if (deployId) {
+  if (cachedXml) {
+    xmlString.value = cachedXml;
+    nextTick(() => {
+      processDesigner.value.createNewDiagram(xmlString.value);
+    });
+  } else if (deployId) {
     await getXmlData(deployId);
     nextTick(() => {
       processDesigner.value.createNewDiagram(xmlString.value);

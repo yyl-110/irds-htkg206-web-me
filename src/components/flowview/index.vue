@@ -1,15 +1,15 @@
 <template>
   <div class="containers main-box">
-    <a-button-group key="scale-control" style="display: flex; align-items: center">
+    <a-button-group key="scale-control" class="flowview-toolbar">
       <a-button type="primary" size="small" @click="zoomViewport(true)">
-        <EpcIcon type="icon-suoxiao" style="font-size: 13px" />
+        <EpcIcon type="icon-fangda" style="font-size: 13px" />
         放大</a-button
       >
-      <a-button type="primary" size="small" @click="zoomViewport(false)">
+      <a-button type="primary" size="small" @click="zoomViewport(false)" style="margin-left: 5px">
         <EpcIcon type="icon-suoxiao" style="font-size: 13px" />
         缩小</a-button
       >
-      <a-button type="primary" size="small" @click="fitViewport">
+      <a-button type="primary" size="small" @click="fitViewport" style="margin-left: 5px">
         <EpcIcon type="icon-zhongzhibingjuzhong" style="font-size: 13px" />
         适中</a-button
       >
@@ -19,7 +19,10 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted } from 'vue';
+import { ref, watch, onUnmounted, nextTick } from 'vue';
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css';
 import { CustomViewer as BpmnViewer } from '@/utils/customBpmn';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 // 1. 响应式变量声明（替代Vue2的data）
@@ -35,40 +38,45 @@ const props = defineProps({
   },
 });
 
-// 3. 监听flowData变化（替代Vue2的watch选项）
+// 3. 监听 flowData（含 xmlData），容器挂载后再创建 Viewer
 watch(
-  () => props.flowData, // 监听props的flowData
-  newVal => {
-    if (Object.keys(newVal).length > 0) {
-      // 销毁旧实例
+  () => props.flowData,
+  async newVal => {
+    const xml = newVal?.xmlData;
+    if (!xml || typeof xml !== 'string') {
       bpmnViewer.value?.destroy();
-      // 创建新实例
-      bpmnViewer.value = new BpmnViewer({
-        container: flowCanvas.value,
-        height: 'calc(100vh - 350px)',
-      });
-      // 加载BPMN数据
-      loadFlowCanvas(newVal);
+      bpmnViewer.value = null;
+      return;
     }
+    await nextTick();
+    if (!flowCanvas.value) return;
+    bpmnViewer.value?.destroy();
+    bpmnViewer.value = new BpmnViewer({
+      container: flowCanvas.value,
+    });
+    await loadFlowCanvas(xml);
   },
-  { immediate: true, deep: true } // 立即执行+深度监听
+  { immediate: true, deep: true, flush: 'post' },
 );
 
 // 4. 方法定义（替代Vue2的methods）
-const loadFlowCanvas = async flowData => {
+const loadFlowCanvas = async xmlString => {
+  if (!bpmnViewer.value) return;
   try {
-    await bpmnViewer.value.importXML(flowData.xmlData);
-    fitViewport(); // 加载完成后自适应
+    await bpmnViewer.value.importXML(xmlString);
+    fitViewport();
   } catch (err) {
     console.error('BPMN加载失败:', err.message, err.warnings);
   }
 };
 
 const fitViewport = () => {
+  if (!bpmnViewer.value) return;
   zoom.value = bpmnViewer.value.get('canvas').zoom('fit-viewport', 'auto');
 };
 
 const zoomViewport = (zoomIn = true) => {
+  if (!bpmnViewer.value) return;
   zoom.value = bpmnViewer.value.get('canvas').zoom();
   zoom.value += zoomIn ? 0.1 : -0.1;
   if (zoom.value >= 0.2) {
@@ -83,9 +91,10 @@ onUnmounted(() => {
 </script>
 
 <style lang="less" scoped>
-/* 保留原样式，仅调整Element Plus的适配（若需） */
-.bjs-powered-by {
-  display: none;
+.flowview-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 .view-mode {
   .el-header,
@@ -102,11 +111,22 @@ onUnmounted(() => {
   }
 }
 .containers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
   height: 100%;
+  min-height: 480px;
+  /* bpmn-js 右下角 BPMN.IO 水印 */
+  :deep(.bjs-powered-by) {
+    display: none !important;
+  }
   .canvas {
+    flex: 1;
     width: 100%;
-    height: 100%;
+    min-height: 440px;
+    border: 1px solid #f0f0f0;
+    background: #fafafa;
   }
   .panel {
     position: absolute;
@@ -124,9 +144,6 @@ onUnmounted(() => {
     left: 0px !important;
     top: 0px;
     border-top: none;
-  }
-  .djs-container svg {
-    min-height: 650px;
   }
   .overlays-div {
     font-size: 10px;
