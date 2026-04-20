@@ -42,6 +42,37 @@ function getCardBackground(index: number) {
   return bgImages[index % bgImages.length];
 }
 
+function getConfidentialLevelText(level: unknown) {
+  const map: Record<string, string> = {
+    '0': '公开',
+    '1': '内部',
+    '2': '秘密',
+    '3': '机密',
+  };
+  const key = String(level ?? '');
+  if (!key) return '--';
+  return map[key] ?? key;
+}
+
+function formatDateYMD(value: unknown) {
+  if (!value) return '--';
+  const str = String(value).trim();
+  if (!str) return '--';
+
+  const matched = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (matched) {
+    const [, y, m, d] = matched;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  const date = new Date(str);
+  if (Number.isNaN(date.getTime())) return str;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function actionNode(item: any) {
   emit('actionNode', item);
 }
@@ -98,24 +129,41 @@ defineExpose({
       </a-input>
     </div>
 
-    <a-spin :spinning="loading" tip="加载中...">
-      <div class="process-panel__cards">
-        <div v-for="(item, idx) in filteredData" :key="item.id" class="calculateItem" @click="actionNode(item)">
-          <div class="Img-box" :style="{ backgroundImage: `url('${getCardBackground(idx)}')` }">
-            <div class="img-mask"></div>
-            <div class="img-title">{{ getItemTitle(item) }}</div>
+    <div class="process-panel__content">
+      <a-spin :spinning="loading" tip="加载中...">
+        <div class="process-panel__cards">
+          <div v-for="(item, idx) in filteredData" :key="item.id" class="calculateItem" @click="actionNode(item)">
+            <div class="Img-box" :style="{ backgroundImage: `url('${getCardBackground(idx)}')` }">
+              <div class="img-mask"></div>
+              <div class="img-title">{{ getItemTitle(item) }}</div>
+            </div>
+            <div class="item-info">
+              <div class="item-info__inline">
+                <div class="item-info__group">
+                  <span class="item-info__value">{{ item?.ownerName || '--' }}</span>
+                </div>
+                <div class="item-info__group item-info__group--date">
+                  <span class="item-info__value item-info__value--date">{{ formatDateYMD(item?.createTime) }}</span>
+                </div>
+                <div class="item-info__group item-info__group--right">
+                  <span class="item-info__value">{{ getConfidentialLevelText(item?.confidentialLevel) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <a-empty v-if="!loading && filteredData.length === 0" description="暂无数据" />
-    </a-spin>
+        <a-empty v-if="!loading && filteredData.length === 0" description="暂无数据" />
+      </a-spin>
+    </div>
   </div>
 </template>
 
 <style lang="less" scoped>
 .process-panel {
   width: 100%;
-  min-height: calc(100vh - 180px);
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
   padding: 12px 10px;
   box-sizing: border-box;
 }
@@ -125,6 +173,14 @@ defineExpose({
   align-items: center;
   gap: 14px;
   margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.process-panel__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .process-panel__search-input {
@@ -201,5 +257,70 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.item-info {
+  padding: 8px 12px 10px;
+  background: #f4f8ff;
+  border-top: 1px solid rgba(18, 77, 214, 0.12);
+  border-radius: 0 0 10px 10px;
+}
+
+.item-info__inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.item-info__group {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.item-info__group--version {
+  flex: 0 0 auto;
+}
+
+.item-info__group--right {
+  justify-content: flex-end;
+}
+
+.item-info__group--date {
+  flex: 0 0 auto;
+}
+
+.item-info__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #1f7dff;
+  color: #fff;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.item-info__value {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: #1f2d3d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-info__value--date {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
 }
 </style>
