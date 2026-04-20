@@ -490,7 +490,7 @@ const {
                     <div class="checklist-card__hero-stack">
                       <span class="checklist-card__hero-title" :title="card.title">{{ card.title }}</span>
                       <div class="checklist-card__hero-meta" :title="`类型：${card.typeLabel}${card.infoLine ? ' · ' + card.infoLine : ''}`">
-                        <span class="checklist-card__hero-meta-type">类型：{{ card.typeLabel }}</span>
+                        
                         <span v-if="card.infoLine" class="checklist-card__hero-meta-info">{{ card.infoLine }}</span>
                       </div>
                     </div>
