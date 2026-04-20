@@ -6,12 +6,13 @@ import * as echarts from 'echarts';
 import { message, Modal } from 'ant-design-vue';
 import { sortermethod } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon';
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { ReloadOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined } from '@ant-design/icons-vue';
 import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
 import { encryptValue } from '@/utils';
 import Empty from '@/components/Empty/index.vue';
 import NoticeDetail from './components/notice-detail.vue';
+import { WORKBENCH_TABS, MOCK_TODO_LIST } from './data';
 /** 列表请求参数 */
 const requestNoticeParams = reactive(new NoticePageRequestDTOModel());
 const router = useRouter();
@@ -32,8 +33,14 @@ const userInfoObj = ref<any>({
   departName: '',
 });
 const projectStatistics = ref<any>({});
-const activeName = ref('myWork');
+const activeName = ref('todo');
 const taskIndex = ref('1');
+
+const searchQuery = ref('');
+const secondaryFilter = ref('');
+const viewMode = ref('grid'); // 'grid' | 'list'
+
+const mockTodoList = ref(MOCK_TODO_LIST);
 // 定义问候语文本
 const greetingText = ref('');
 // 定时器标识，用于清除定时器
@@ -132,6 +139,15 @@ const tabList = reactive([
     list: [],
   },
 ]);
+
+const tabs = reactive(WORKBENCH_TABS);
+
+const getTagClass = (tag: string) => {
+  if (tag === '延') return 'tag-red';
+  if (tag === '转') return 'tag-blue';
+  if (tag === '待办') return 'tag-yellow';
+  return 'tag-default';
+}
 
 /** 列表请求参数 */
 const requestParams = reactive(new NoticePageRequestDTOModel());
@@ -258,7 +274,7 @@ onUnmounted(() => {
                     <div class="sta-list">
                       <div class="num">
                         <span class="num-num" style="color: #124dd6">{{ projectStatistics.participatedPlanProjectCount
-                        }}6</span>
+                          }}6</span>
                       </div>
                       <div class="type" style="margin-top: 20px; color: #6a696e">审批待办</div>
                     </div>
@@ -295,26 +311,114 @@ onUnmounted(() => {
           </a-row>
         </div>
         <div class="work-wrap">
-          <div class="onoff-btn" v-if="activeName != 'processtask'">{{ viewTypeName }}</div>
-          <a-tabs v-model="activeName" class="work_nav_top">
-            <a-tab-pane key="myWork">
+          <a-tabs v-model:activeKey="activeName" class="work_nav_top">
+            <template #rightExtra>
+              <a-input v-model:value="searchQuery" placeholder="请输入项目名称/项目编号" style="width: 240px; border-radius: 4px;">
+                <template #suffix>
+                  <search-outlined style="color: rgba(0,0,0,.45)" />
+                </template>
+              </a-input>
+            </template>
+            <a-tab-pane v-for="item in tabs" :key="item.name">
               <template #tab>
-                产品设计任务<span v-if="projectStatistics.todoNum > 0">&nbsp;&nbsp;&nbsp;</span>
-                <a-badge v-if="projectStatistics.todoNum > 0"
-                  style="position: absolute; left: 43px; top: -0px; display: flex; justify-content: center"
-                  :count="projectStatistics.todoNum" :overflow-count="99">
-                </a-badge>
+                <div :class="['text-[18px]', { 'font-bold': activeName === item.name }]"
+                  :style="{ color: activeName === item.name ? '#124dd6' : '' }">
+                  {{ item.title }}<span
+                    v-if="item.name === 'todo' && projectStatistics.todoNum > 0">&nbsp;&nbsp;&nbsp;</span>
+                  <a-badge v-if="item.name === 'todo' && projectStatistics.todoNum > 0"
+                    style="position: absolute; left: 43px; top: -0px; display: flex; justify-content: center"
+                    :count="projectStatistics.todoNum" :overflow-count="99">
+                  </a-badge>
+                </div>
               </template>
-              <a-tabs v-model="taskIndex" class="body_box"> </a-tabs>
-            </a-tab-pane>
-            <a-tab-pane key="processtask">
-              <template #tab>
-                审批 / 打分任务<span v-if="projectStatistics.flowNum > 0">&nbsp;&nbsp;&nbsp;</span>
-                <a-badge v-if="projectStatistics.flowNum > 0"
-                  style="position: absolute; left: 50px; top: -0px; display: flex; justify-content: center"
-                  :count="projectStatistics.flowNum" :overflow-count="99">
-                </a-badge>
-              </template>
+
+              <div class="task-content h-full flex flex-col" v-if="item.name === 'todo'">
+                <div class="filter-bar flex justify-between items-center mb-[16px] mt-[8px]">
+                  <div class="capsule-group flex gap-[12px]">
+                    <div class="capsule" :class="{ active: secondaryFilter === '' }" @click="secondaryFilter = ''">全部
+                    </div>
+                    <div class="capsule" :class="{ active: secondaryFilter === 'delay' }"
+                      @click="secondaryFilter = 'delay'">延期待办
+                    </div>
+                    <div class="capsule" :class="{ active: secondaryFilter === 'transfer' }"
+                      @click="secondaryFilter = 'transfer'">
+                      转办待办</div>
+                    <div class="capsule" :class="{ active: secondaryFilter === '5days' }"
+                      @click="secondaryFilter = '5days'">近5日待办
+                    </div>
+                    <div class="capsule" :class="{ active: secondaryFilter === '15days' }"
+                      @click="secondaryFilter = '15days'">
+                      近15日待办
+                    </div>
+                  </div>
+                  <div class="view-toggles flex gap-[16px] text-[18px]">
+                    <appstore-outlined
+                      :class="{ 'text-[var(--ant-primary-color)]': viewMode === 'grid', 'text-[#999]': viewMode !== 'grid' }"
+                      class="cursor-pointer" @click="viewMode = 'grid'" />
+                    <unordered-list-outlined
+                      :class="{ 'text-[var(--ant-primary-color)]': viewMode === 'list', 'text-[#999]': viewMode !== 'list' }"
+                      class="cursor-pointer" @click="viewMode = 'list'" />
+                  </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
+                  <a-row :gutter="[16, 16]">
+                    <a-col :span="viewMode === 'list' ? 24 : 12" v-for="item in mockTodoList" :key="item.id">
+                      <div class="task-card">
+                        <div class="tc-header flex justify-between items-start">
+                          <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">
+                            <span class="title-text truncate font-bold text-[16px] text-[#313133]"
+                              :title="item.title">{{
+                                item.title
+                              }}</span>
+                            <span v-for="tag in item.tags" :key="tag" class="tc-tag flex-shrink-0"
+                              :class="getTagClass(tag)">{{ tag
+                              }}</span>
+                          </div>
+                          <ellipsis-outlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
+                        </div>
+
+                        <div class="tc-body mt-[16px] space-y-[12px] text-[14px] text-[#6A696E]">
+                          <div class="flex">
+                            <span class="w-[75px] flex-shrink-0">项目时间：</span>
+                            <span>{{ item.startTime }} ~ {{ item.endTime }}</span>
+                          </div>
+                          <div class="flex">
+                            <span class="w-[75px] flex-shrink-0">任务类型：</span>
+                            <span>{{ item.type }}</span>
+                          </div>
+                          <div class="flex justify-between items-center pr-[10px]">
+                            <div class="flex">
+                              <span class="w-[75px] flex-shrink-0">当前进度：</span>
+                              <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
+                            </div>
+                            <span v-if="item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
+                            <span v-else-if="item.remainDays" class="text-[#6A696E]">距截止还剩 {{ item.remainDays }}
+                              天</span>
+                          </div>
+                          <a-progress :percent="item.progress" :show-info="false" :stroke-width="8"
+                            :trail-color="'#F0F0F0'"
+                            :class="['mt-[8px]', '!mb-0', item.delayDays ? 'delay-progress' : 'normal-progress']" />
+                        </div>
+
+                        <div class="tc-footer mt-[12px] flex items-center text-[14px] text-[#6A696E]">
+                          <span class="w-[60px] flex-shrink-0">创建人：</span>
+                          <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[14px] px-[8px] py-[3px]">
+                            <img v-if="item.creatorAvatar" :src="item.creatorAvatar"
+                              class="w-[20px] h-[20px] rounded-full mr-[6px]" />
+                            <img v-else src="../../assets/workbench/people.png"
+                              class="w-[20px] h-[20px] rounded-full mr-[6px]" />
+                            <span>{{ item.creatorName }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </a-col>
+                  </a-row>
+
+                </div>
+
+
+              </div>
             </a-tab-pane>
           </a-tabs>
         </div>
@@ -689,5 +793,74 @@ onUnmounted(() => {
 .member-table-wrap {
   flex: 1 1 auto;
   overflow-y: auto;
+}
+
+.capsule {
+  padding: 4px 16px;
+  background: #F4F4F5;
+  border-radius: 16px;
+  font-size: 14px;
+  color: #6A696E;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    color: var(--ant-primary-color, #124dd6);
+  }
+
+  &.active {
+    background: #E6EAFF;
+    color: var(--ant-primary-color, #124dd6);
+    font-weight: 500;
+  }
+}
+
+.task-card {
+  background: #FFFFFF;
+  border: 1px solid #EAEAF1;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: var(--ant-primary-color, #124dd6);
+  }
+}
+
+.tc-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  line-height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 8px;
+
+  &.tag-red {
+    background: #FF4D4F;
+    color: #FFF;
+  }
+
+  &.tag-blue {
+    background: #2B5FD9;
+    color: #FFF;
+  }
+
+  &.tag-yellow {
+    border: 1px solid #FAAD14;
+    color: #FAAD14;
+    background: #FFFBE6;
+  }
+}
+
+.delay-progress :deep(.ant-progress-bg) {
+  background: linear-gradient(270deg, #FF7864 2.51%, #FF584B 72.46%) !important;
+}
+
+.normal-progress :deep(.ant-progress-bg) {
+  background: linear-gradient(270deg, #6F86FA 2.51%, #1A58E8 72.46%) !important;
 }
 </style>
