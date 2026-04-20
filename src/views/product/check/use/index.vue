@@ -1,71 +1,273 @@
 <script setup lang="ts">
-import { inject, nextTick, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
-import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
-import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
-import { AdminApiSystemCheckFlowInfoApi } from '@/api/tags/check/计算流程后台';
-import Tree from '@/components/tree/checkTree.vue';
-import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
+import { LeftOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import dayjs from 'dayjs';
+import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
+import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
+import { WeiI18n } from '@/utils/WeiI18n';
 import { findNodeByIdFromKey } from '@/utils/tools';
-import { EpcIcon } from '@/components/icon/EpcIcon';
-import Select from './components/select.vue';
-const currentNodeLevel = ref<number>();
-// 树结构相关属性
+import { ParameterPageRequestDTOModel } from '@/api/models/parameter/ParameterPageRequestDTOModel';
+import Tree from '@/components/tree/tree.vue';
+import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
+import { useUserStore } from '@/store/modules/user';
+import checkExeBg from '@/assets/images/check-exe.png';
+import checkMatlabBg from '@/assets/images/check-matlab.png';
+import checkExcelBg from '@/assets/images/check-excel.png';
+
+import {
+  download,
+} from '@/libs/webSocketNew';
+
+
+const userStore = useUserStore();
 const treeData = ref<any[]>([]);
 const selectedKeys = ref<string>('');
 const expandedKeys = ref<any>();
-const treePage = ref<any>(null);
-const selectNodeKeys = ref<string>('');
 const loadingTree = ref<boolean>(false);
-/** 列表数据 */
+const currentNode = ref<any>();
 const dataSource = ref<Array<any>>([]);
-const categoryId = ref<string>('');
-const imageArr = ref<any>([]);
-const pageName = ref<string>('');
-const modelHeightContent = ref<any>(500);
+const treeParameterParams = reactive(new ParameterPageRequestDTOModel());
+const rawTreeData = ref<Array<any>>([]);
 
-function imgSrc() {
-  return new URL(`@/assets/images/noimg.jpg`, import.meta.url).href;
-}
-/**
- * 获取图片区域高度
- */
-const getWindowHeight = () => {
-  modelHeightContent.value = 'calc(' + 100 + 'vh - 225px)';
+/** 右侧计算清单 */
+const checklistKeyword = ref('');
+const checklistRaw = ref<any[]>([]);
+const checklistLoading = ref(false);
+let fetchChecklistSeq = 0;
+
+/** 点击 exe 卡片后，getCheckExeInfoById 返回的数据（可接弹窗/路由） */
+const lastCheckExeDetail = ref<any>(null);
+
+const CONFIDENTIAL_LEVEL_LABELS: Record<number, string> = {
+  0: '公开',
+  1: '内部',
+  2: '秘密',
+  3: '机密',
 };
+
+type ChecklistCard = {
+  id: string | number;
+  title: string;
+  authorText: string;
+  dateText: string;
+  statusTag: string;
+  /** 计算类型文案：exe / matlab / excel */
+  typeLabel: string;
+  /** 编号、用途、分类等合并展示与检索 */
+  infoLine: string;
+  /** 顶部背景：checkType 3/2/其它 对应 exe / matlab / excel 图 */
+  heroBgUrl: string;
+  /** 原始行数据，供点击跳转等使用 */
+  raw: Record<string, unknown>;
+};
+
+function pickFirstText(item: any, keys: string[]): string {
+  for (const k of keys) {
+    const v = item?.[k];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+  }
+  return '--';
+}
+
+function formatConfidentialTag(item: any): string {
+  const raw = item?.confidentialLevel;
+  const n = Number(raw);
+  if (Number.isFinite(n) && CONFIDENTIAL_LEVEL_LABELS[n]) {
+    return CONFIDENTIAL_LEVEL_LABELS[n];
+  }
+  const text = String(raw ?? item?.levelName ?? item?.secretLevel ?? '').trim();
+  if (['公开', '内部', '秘密', '机密'].includes(text)) return text;
+  return text || '公开';
+}
+
+/** checkType：3 → exe 图，2 → matlab 图，其它 → excel 图 */
+function heroBgUrlForCheckType(item: any): string {
+  const ct = Number(item?.checkType);
+  if (Number.isFinite(ct) && ct === 3) return checkExeBg;
+  if (Number.isFinite(ct) && ct === 2) return checkMatlabBg;
+  return checkExcelBg;
+}
+
+/** 类型展示文案 */
+function checkTypeLabel(item: any): string {
+  const ct = Number(item?.checkType);
+  if (Number.isFinite(ct) && ct === 3) return 'exe计算';
+  if (Number.isFinite(ct) && ct === 2) return 'matlab计算';
+  return 'excel计算';
+}
+
+/** 编号、用途、分类、发布状态等，用于副标题与关键字搜索 */
+function buildInfoLine(item: any): string {
+  const parts: string[] = [];
+  const num = pickFirstText(item, ['checkNum', 'parameterNum', 'checkCode', 'code']);
+  if (num && num !== '--') parts.push(`编号 ${num}`);
+  const useType = String(item?.useType ?? '').trim();
+  if (useType) parts.push(useType);
+  const tree = String(item?.treeName ?? item?.categoryName ?? '').trim();
+  if (tree) parts.push(tree);
+  const st = item?.status;
+  if (st === 1 || st === '1') parts.push('已发布');
+  else if (st === 0 || st === '0') parts.push('未发布');
+  const rem = String(item?.remarks ?? '').trim();
+  if (rem) parts.push(rem.length > 36 ? `${rem.slice(0, 36)}…` : rem);
+  return parts.join(' · ');
+}
+
+/** checkType：3 → (exe)，2 → (matlab)，其它 → (excel) */
+function appendCheckTypeSuffix(baseTitle: string, item: any): string {
+  const base = baseTitle.trim() || '--';
+  if (base === '--') return base;
+  if (/\((exe|matlab|excel)\)$/i.test(base)) return base;
+  const ct = Number(item?.checkType);
+  const tag = Number.isFinite(ct) && ct === 3 ? '(exe)' : Number.isFinite(ct) && ct === 2 ? '(matlab)' : '(excel)';
+  return `${base}${tag}`;
+}
+
+function mapItemToCard(item: any, index: number): ChecklistCard {
+  const rawTitle =
+    String(
+      item?.checkName ??
+        item?.checkTitle ??
+        item?.summarName ??
+        item?.applicationName ??
+        item?.parameterName ??
+        item?.calcName ??
+        item?.name ??
+        item?.title ??
+        '--',
+    ).trim() || '--';
+  const title = appendCheckTypeSuffix(rawTitle, item);
+  const authorText = pickFirstText(item, [
+    'createName',
+    'createUserName',
+    'createByName',
+    'createUser',
+    'creatorName',
+    'creator',
+    'userName',
+    'nickName',
+    'updateName',
+    'updateUserName',
+  ]);
+  const t = item?.createTime ?? item?.createData ?? item?.updateTime ?? item?.editTime ?? item?.gmtCreate;
+  const dateText = t ? dayjs(t).format('YYYY-MM-DD') : '--';
+  const id = item?.id ?? item?.exeCheckId ?? item?.summarId ?? `row-${index}`;
+  const typeLabel = checkTypeLabel(item);
+  const infoLine = buildInfoLine(item);
+  return {
+    id,
+    title,
+    authorText,
+    dateText,
+    statusTag: formatConfidentialTag(item),
+    typeLabel,
+    infoLine,
+    heroBgUrl: heroBgUrlForCheckType(item),
+    raw: { ...(item as Record<string, unknown>) },
+  };
+}
+
+const checklistCards = computed<ChecklistCard[]>(() => {
+  const kw = checklistKeyword.value.trim().toLowerCase();
+  const rows = checklistRaw.value || [];
+  const mapped = rows.map((item, i) => mapItemToCard(item, i));
+  if (!kw) return mapped;
+  return mapped.filter(
+    c =>
+      c.title.toLowerCase().includes(kw) ||
+      c.typeLabel.toLowerCase().includes(kw) ||
+      c.infoLine.toLowerCase().includes(kw) ||
+      c.authorText.toLowerCase().includes(kw) ||
+      c.statusTag.toLowerCase().includes(kw) ||
+      c.dateText.includes(kw),
+  );
+});
+
+async function fetchChecklist(options?: { serverSearch?: boolean }) {
+  const treeId = String(currentNode.value?.key ?? '').trim();
+  if (!treeId) {
+    checklistRaw.value = [];
+    return;
+  }
+
+  const seq = ++fetchChecklistSeq;
+  checklistLoading.value = true;
+  try {
+    const query: Record<string, unknown> = {
+      userId: userStore.getUser.id,
+      treeId,
+    };
+    const kw = checklistKeyword.value.trim();
+    if (options?.serverSearch && kw) {
+      query.checkName = kw;
+    }
+
+    const res = await AdminApiSystemCheckInfoApi.getCheckSummarListByTreeId(query);
+    if (seq !== fetchChecklistSeq) return;
+
+    const code = res?.data?.code as number | string | undefined;
+    const ok = code === 0 || code === 200 || code === '0' || code === '200';
+    const raw = res?.data?.data;
+    let list: any[] = [];
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      if (Array.isArray((raw as any).list)) {
+        list = (raw as any).list;
+      } else if (Array.isArray((raw as any).records)) {
+        list = (raw as any).records;
+      }
+    } else if (Array.isArray(raw)) {
+      list = raw;
+    }
+    checklistRaw.value = ok ? list : [];
+    if (!ok && res?.data?.msg) message.error(String(res.data.msg));
+  } catch {
+    if (seq !== fetchChecklistSeq) return;
+    checklistRaw.value = [];
+    message.error('获取计算清单失败');
+  } finally {
+    if (seq === fetchChecklistSeq) {
+      checklistLoading.value = false;
+    }
+  }
+}
+
+function onChecklistSearch() {
+  void fetchChecklist({ serverSearch: true });
+}
+
 /** 获取分类数据 */
 async function getListData(type?: string) {
   loadingTree.value = true;
   try {
-    // 使用正确的API获取产品树数据
-    let data: any = {};
-    data.productType = '17';
-    data.toolType = '1';
-    const res = await AdminApiSystemCheckFlowInfoApi.checkGetAllCheckTreeData(data);
-    console.log(res);
-    // 处理返回的数据格式
-    if (res.data.code == 200 && res.data.data) {
-      loadingTree.value = false;
+    const res = await AdminApiSystemParameter.checkTreeAppList(treeParameterParams);
+    loadingTree.value = false;
+    if ((res.data.code == 0 || res.data.code == 200) && res.data.data) {
       const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
-      dataSource.value = rawData;
-      const treeNodes = convertToTreeNodes(rawData);
+      dataSource.value = rawData[0];
+      rawTreeData.value = rawData;
+      const treeNodes = convertToTreeNodes(rawTreeData.value);
       treeData.value = treeNodes;
-      // 默认选中第一个节点
       if (treeNodes.length > 0) {
-        // 侦听器监听选中节点
         selectedKeys.value = '';
         nextTick(() => {
           if (type) {
             if (currentNode.value.key) {
-              let rootNode = findNodeByIdFromKey(treeData.value, currentNode.value.key, 'key');
+              const rootNode = findNodeByIdFromKey(treeData.value, currentNode.value.key, 'key');
+              const pathNodes = findNodePathByKey(treeNodes, String(currentNode.value.key));
+              if (pathNodes && pathNodes.length) {
+                expandedKeys.value = pathNodes
+                  .filter(n => Array.isArray(n?.children) && n.children.length > 0)
+                  .map(n => n.key)
+                  .join(',');
+              }
               selectNode(rootNode);
             }
           } else {
             selectedKeys.value = treeNodes[0].key;
             expandedKeys.value = treeNodes[0].key;
             selectNode(treeNodes[0]);
-            getPic();
           }
         });
       }
@@ -78,173 +280,161 @@ async function getListData(type?: string) {
   }
 }
 
-async function getPic() {
-  let data: any = {
-    pageNum: 1,
-    pageSize: 20000,
-    productType: '17',
-    proname: pageName.value,
-    toolType: '1',
-  };
-  const res = await AdminApiSystemCheckFlowInfoApi.checkGetAllActDesignData(data);
-  imageArr.value = res.data.data.records;
-}
+onMounted(() => {
+  getListData();
+});
 
-async function czPic() {
-  pageName.value = '';
-  getPic();
-}
-
-/** 将数据转换为树结构所需格式 */
 function convertToTreeNodes(data: any[]): any[] {
-  return data.map(item => {
-    // 判断是否为根节点：pid不存在、为0或为空字符串通常表示根节点
-    const isRootNode = item.parentId === 0;
-    // 判断是否有子节点
-    const hasChildren = item.childrenList && Array.isArray(item.childrenList) && item.childrenList.length > 0;
+  if (!data || !Array.isArray(data)) return [];
 
-    // 根据规则设置level值
-    let level = 3; // 默认值为3（没有子节点的情况）
-    if (isRootNode) {
-      level = 1; // 根节点level为1
-    } else if (hasChildren) {
-      level = 2; // 有子节点的非根节点level为2
+  return data.map(item => {
+    const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
+    let level = 3;
+    if (hasChildren) {
+      level = 2;
     }
     return {
+      key: item.id?.toString() || item.tid?.toString() || '',
+      partName: item.categoryName || '',
+      type: 'param',
+      categoryType: item.type,
+      parentId: item.parentId,
       level: level,
-      key: item.nodeId?.toString() || item.tid?.toString() || '',
-      partName: item.nodeName,
-      type: 'category', // 对于产品平台管理，所有节点都视为分类节点
-      parentId: item.nodeParentId,
-      children: hasChildren ? convertToTreeNodes(item.childrenList) : [],
-      id: item.nodeId,
-      toolType: item.toolType,
-      isActDesignPd: item.isActDesignPd,
-      proId: item.proId,
-      proname: item.proname,
-      version: item.version,
-      createTime: item.createTime,
-      coverImagePath: item.coverImagePath,
-      coverImageName: item.coverImageName,
+      children: hasChildren ? convertToTreeNodes(item.children) : [],
     };
   });
 }
 
-/** 处理搜索功能 */
-async function handleChangeSelectKey(searchValue: string, languageSel: string) {
-  // 当搜索值为空时，显示完整树结构
-  if (!searchValue) {
-    // 重新获取数据
-    await getListData();
-    return;
-  }
-
-  // 根据搜索值过滤树节点
-  const filteredData = filterTreeNodes(dataSource.value, searchValue);
-  console.log(filteredData);
-  const treeNodes = convertToTreeNodes(filteredData);
-  treeData.value = treeNodes;
-}
-
-/** 递归过滤树节点 */
 function filterTreeNodes(nodes: any[], searchValue: string): any[] {
+  if (!nodes || !Array.isArray(nodes)) return [];
+
   return nodes
     .map(node => {
-      // 检查当前节点是否匹配搜索值
-      const isMatch = node.nodeName && node.nodeName.toLowerCase().includes(searchValue.toLowerCase());
-
-      // 递归检查子节点
+      const isMatch = node.categoryName && node.categoryName.toLowerCase().includes(searchValue.toLowerCase());
       let matchingChildren = [];
-      if (node.childrenList && node.childrenList.length > 0) {
-        matchingChildren = filterTreeNodes(node.childrenList, searchValue);
+      if (node.children && Array.isArray(node.children) && node.children.length > 0) {
+        matchingChildren = filterTreeNodes(node.children, searchValue);
       }
-
-      // 如果当前节点匹配或有匹配的子节点，则保留该节点
       if (isMatch || matchingChildren.length > 0) {
         return {
           ...node,
-          childrenList: matchingChildren,
+          children: matchingChildren,
         };
       }
       return null;
     })
-    .filter(Boolean); // 过滤掉null值
+    .filter(Boolean);
 }
-const formKeyData = ref<any>([]);
-const hidden = ref(true);
-const showHide = ref(false);
-const currentNode = ref();
-const auditId = ref<string>('');
-async function selectNode(node: any) {
-  imageArr.value = [];
+
+function Selectafterchanges() {
+  selectedKeys.value = currentNode.value.key;
+}
+
+function selectNode(node: any) {
+  if (!node) return;
   currentNode.value = node;
-  currentNodeLevel.value = node.level;
-  auditId.value = node.key;
-  selectNodeKeys.value = node.key;
-  categoryId.value = node.key;
-  if (node.isActDesignPd === '3') {
-    hidden.value = false;
-    showHide.value = true;
-    getProId(node);
-  } else {
-    if (node.isActDesignPd === '1') {
-      hidden.value = true;
-      showHide.value = false;
-    } else {
-      getPic();
-      hidden.value = true;
-      showHide.value = false;
+  selectedKeys.value = String(node.key ?? '');
+  checklistKeyword.value = '';
+  void fetchChecklist();
+}
+
+function findNodePathByKey(nodes: any[], targetKey: string, path: any[] = []): any[] | null {
+  for (const node of nodes || []) {
+    const nextPath = [...path, node];
+    if (String(node?.key ?? '') === String(targetKey ?? '')) {
+      return nextPath;
+    }
+    if (Array.isArray(node?.children) && node.children.length > 0) {
+      const childPath = findNodePathByKey(node.children, targetKey, nextPath);
+      if (childPath) return childPath;
     }
   }
-  // 收集图片集合
-  debugger;
-  if (node.children && node.children.length > 0) {
-    node.children.forEach((v: any) => {
-      debugger;
-      if (v.proId && v.proId !== null) {
-        imageArr.value.push(v);
-      }
-      if (v.children && v.children.length > 0) {
-        // 递归找到需要的图片
-        recursion(v.children);
-      }
+  return null;
+}
+
+async function submitTreeData(nodeList: any) {
+  const data: any = {};
+  data.categoryName = nodeList.categoryName;
+  data.parentId = nodeList.pid;
+  await AdminApiSystemParameter.createCheckTree(data);
+  await getListData();
+  message.success(WeiI18n.t('保存成功').value);
+}
+
+async function editTreeData(nodeList: any, _selectedKeys: any) {
+  const data: any = {};
+  data.categoryName = nodeList.categoryName;
+  data.parentId = nodeList.pid;
+  data.id = nodeList.id;
+  await AdminApiSystemParameter.updateCheckTree(data);
+  await getListData('change');
+  message.success(WeiI18n.t('修改成功').value);
+  Selectafterchanges();
+}
+
+async function reloadTree() {
+  await getListData();
+}
+
+async function handleChangeSelectKey(searchValue: string) {
+  if (!searchValue) {
+    await getListData();
+    return;
+  }
+  const filteredData = filterTreeNodes([dataSource.value], searchValue);
+  const treeNodes = convertToTreeNodes(filteredData);
+  treeData.value = treeNodes;
+}
+
+async function checkContentStart(card: ChecklistCard) {
+  const raw = card.raw as Record<string, unknown>;
+  const ct = Number(raw?.checkType);
+  if (ct !== 3 && raw?.checkType !== '3') {
+    message.info('当前类型暂未配置详情请求');
+    return;
+  }
+  const exeId = raw?.exeCheckId ?? raw?.id;
+  if (exeId == null || String(exeId).trim() === '') {
+    message.warning('缺少 exeCheckId，无法获取 exe 详情');
+    return;
+  }
+  const hide = message.loading('正在获取 exe 信息…', 0);
+  try {
+    const res = await AdminApiSystemCheckInfoApi.getCheckExeInfoById({
+      id: exeId,
+      userId: userStore.getUser.id,
     });
+    const code = res?.data?.code as number | string | undefined;
+    const ok = code === 0 || code === 200 || code === '0' || code === '200';
+    if (!ok) {
+      message.error(String(res?.data?.msg ?? '获取 exe 信息失败'));
+      lastCheckExeDetail.value = null;
+      return;
+    }
+    const detail = res?.data?.data ?? null;
+    lastCheckExeDetail.value = detail;
+    const fileList = detail?.fileList as unknown[] | undefined;
+    const first = Array.isArray(fileList) && fileList[0] != null && typeof fileList[0] === 'object' ? (fileList[0] as Record<string, unknown>) : null;
+    const filePath = String(first?.filePath ?? (detail as Record<string, unknown> | null)?.filePath ?? '').trim();
+    if (filePath) {
+      const downloadDir = (import.meta.env.VITE_BASE_FILE_DOWNLOAD_URL ?? '').trim();
+      if (!downloadDir) {
+        message.warning('未配置本地下载目录（VITE_BASE_FILE_DOWNLOAD_URL）');
+        return;
+      }
+      download(filePath, downloadDir, String(first?.oldFileName), true);
+      //调用下载接口
+    } else {
+      message.warning('未返回 filePath');
+    }
+  } catch (e) {
+    console.error(e);
+    message.error('获取 exe 信息失败');
+    lastCheckExeDetail.value = null;
+  } finally {
+    hide();
   }
 }
-
-const recursion = (data: any) => {
-  // 递归找到需要的图片
-  data.map((v: any) => {
-    imageArr.value.push(v);
-  });
-};
-
-// 图片
-const imgList = ref({});
-async function getProId(item: any) {
-  hidden.value = false;
-  showHide.value = true;
-  imgList.value = item;
-  let data: any = {
-    processDefinitionId: item.proId,
-  };
-  const res = await AdminApiSystemCheckFlowInfoApi.allTasksForDefinitionProcess(data);
-  formKeyData.value = [];
-  res.data.data.map((v: any) => {
-    formKeyData.value.push(v.formKey);
-  });
-}
-
-async function backFun() {
-  selectedKeys.value = selectNodeKeys.value;
-  hidden.value = true;
-  showHide.value = false;
-}
-
-onMounted(() => {
-  getListData();
-  getWindowHeight();
-});
 
 const {
   leftTreeCollapsed,
@@ -258,374 +448,336 @@ const {
 </script>
 
 <template>
-  <div class="drawerContent" v-if="hidden">
+  <div class="drawerContent">
     <div class="splitpanes-tree-collapse-wrap">
-    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
-      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
-        <a-spin :spinning="loadingTree" tip="加载中...">
-          <Tree
-            ref="treePage"
-            :operate-flag="false"
-            :tree-data="treeData"
-            bomType="unBom"
-            :selected-keys="selectedKeys"
-            :expanded-keys="expandedKeys"
-            :current-node="currentNode"
-            @select-node="selectNode"
-            @change-select-key="handleChangeSelectKey" />
-        </a-spin>
-      </Pane>
-      <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls" :size="rightTreePaneSize">
-        <div class="calclationCheck-splitPane">
-          <div class="calclationCheck-splitPane-search">
-            <a-form class="calclationCheck-splitPane-search-form">
-              <a-form-item>
-                <a-input v-model:value="pageName" style="width: 220px" placeholder="请输入关键字搜索" />
-              </a-form-item>
-            </a-form>
-            <a-button class="calclationCheck-splitPane-search-btn" type="primary" @click="getPic">
-              <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-              查询
-            </a-button>
-            <a-button class="calclationCheck-splitPane-search-btn" @click="czPic">
-              <EpcIcon type="icon-zhongzhi" style="font-size: 12px" />
-              重置
-            </a-button>
-          </div>
-          <div :style="'height:' + modelHeightContent" class="calclationCheck-content">
-            <div class="calculateItem" v-for="item in imageArr" @click="getProId(item)">
-              <div class="Img-box">
-                <img v-if="item.coverImagePath" class="calclationCheckImg" :src="item.coverImagePath" alt="" />
-                <img v-if="!item.coverImagePath" :src="imgSrc()" alt="" />
-              </div>
-              <div class="calclation-content">
-                <h3>{{ item.proname }}</h3>
-                <div style="display: flex; justify-content: space-between; height: 40px">
-                  <div class="vserion">
-                    <span>
-                      <EpcIcon type="icon-xiangqingon" style="font-size: 16px" class="infoFilled-ico" />
-                    </span>
-                    <span class="iconText">V{{ item.version == undefined ? 1 : item.version }}.0</span>
+      <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+        <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
+          <a-spin :spinning="loadingTree" tip="加载中...">
+            <Tree
+              :operate-flag="false"
+              :tree-data="treeData"
+              bom-type="unBom"
+              :selected-keys="selectedKeys"
+              :expanded-keys="expandedKeys"
+              @select-node="selectNode"
+              @submit="submitTreeData"
+              @edit="editTreeData"
+              @reload-tree="reloadTree"
+              @change-select-key="handleChangeSelectKey" />
+          </a-spin>
+        </Pane>
+
+        <Pane class="splitpane-cls splitpane-cls--right" :size="rightTreePaneSize">
+          <div class="checklist-pane">
+            <div class="checklist-toolbar">
+              <a-input
+                v-model:value="checklistKeyword"
+                placeholder="请输入查询条件"
+                allow-clear
+                class="checklist-toolbar__input"
+                @pressEnter="onChecklistSearch">
+                <template #prefix>
+                  <SearchOutlined class="checklist-toolbar__search-icon" />
+                </template>
+              </a-input>
+            </div>
+            <a-spin :spinning="checklistLoading" class="checklist-spin">
+              <div v-if="checklistCards.length" class="checklist-grid">
+                <div v-for="card in checklistCards" :key="String(card.id)" class="checklist-card" @click="checkContentStart(card)">
+                  <div
+                    class="checklist-card__hero"
+                    :style="{ backgroundImage: `url(${card.heroBgUrl})` }">
+                    <div class="checklist-card__hero-stack">
+                      <span class="checklist-card__hero-title" :title="card.title">{{ card.title }}</span>
+                      <div class="checklist-card__hero-meta" :title="`类型：${card.typeLabel}${card.infoLine ? ' · ' + card.infoLine : ''}`">
+                        <span class="checklist-card__hero-meta-type">类型：{{ card.typeLabel }}</span>
+                        <span v-if="card.infoLine" class="checklist-card__hero-meta-info">{{ card.infoLine }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style="margin-left: 70px" v-if="item.createTime != undefined">
-                    <span class="iconText">王文华</span>
-                  </div>
-                  <div class="time" v-if="item.createTime != undefined">
-                    <span class="iconText">{{ item.createTime.split(' ')[0] }}</span>
+                  <div class="checklist-card__footer">
+                    <span class="checklist-card__footer-left" :title="card.authorText">{{ card.authorText }}</span>
+                    <span class="checklist-card__footer-center">{{ card.dateText }}</span>
+                    <span class="checklist-card__footer-right">{{ card.statusTag }}</span>
                   </div>
                 </div>
               </div>
-            </div>
+              <a-empty v-else class="checklist-empty" description="暂无计算工具" />
+            </a-spin>
           </div>
-        </div>
-      </Pane>
-    </Splitpanes>
-    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-      <button
-        type="button"
-        class="splitpanes-tree-collapse-wrap__toggle"
-        :style="splitToggleStyle"
-        @click="toggleLeftTreePanel"
-        @mousedown.stop>
-        <LeftOutlined v-if="!leftTreeCollapsed" />
-        <RightOutlined v-else />
-      </button>
-    </Tooltip>
+        </Pane>
+      </Splitpanes>
+      <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+        <button
+          type="button"
+          class="splitpanes-tree-collapse-wrap__toggle"
+          :style="splitToggleStyle"
+          @click="toggleLeftTreePanel"
+          @mousedown.stop>
+          <LeftOutlined v-if="!leftTreeCollapsed" />
+          <RightOutlined v-else />
+        </button>
+      </Tooltip>
     </div>
   </div>
-  <Select ref="selectPage" :showHide="showHide" :imgList="imgList" :formKeyData="formKeyData" @OnBackFun="backFun"></Select>
 </template>
 
 <style lang="less" scoped>
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
 }
-.drawerContent {
-  position: sticky;
-  bottom: 20px !important;
+
+.splitpane-cls--right {
   display: flex;
-  background-color: #ffffff !important;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
 }
+
+.checklist-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.checklist-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-shrink: 0;
+}
+
+.checklist-toolbar__input {
+  width: 260px;
+  max-width: 260px;
+  flex-shrink: 0;
+}
+
+.checklist-toolbar__input :deep(.ant-input-affix-wrapper) {
+  width: 260px;
+  max-width: 260px;
+  border-radius: 10px;
+  padding: 6px 14px;
+  min-height: 40px;
+  font-size: 14px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checklist-toolbar__input :deep(.ant-input-affix-wrapper:hover) {
+  border-color: #69b1ff;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.08);
+}
+
+.checklist-toolbar__input :deep(.ant-input-affix-wrapper-focused),
+.checklist-toolbar__input :deep(.ant-input-affix-wrapper:focus-within) {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+.checklist-toolbar__search-icon {
+  color: #8c8c8c;
+  font-size: 15px;
+  transition: color 0.2s ease;
+}
+
+.checklist-toolbar__input :deep(.ant-input-affix-wrapper-focused) .checklist-toolbar__search-icon,
+.checklist-toolbar__input :deep(.ant-input-affix-wrapper:focus-within) .checklist-toolbar__search-icon {
+  color: #1677ff;
+}
+
+.checklist-spin {
+  flex: 1;
+  min-height: 0;
+}
+
+.checklist-spin :deep(.ant-spin-container) {
+  min-height: 200px;
+  height: 100%;
+  overflow: auto;
+}
+
+.checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 256px);
+  gap: 18px 20px;
+  align-content: start;
+  justify-content: start;
+  padding-bottom: 8px;
+}
+
+.checklist-card {
+  box-sizing: border-box;
+  width: 256px;
+  height: 223px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+  will-change: transform;
+}
+
+.checklist-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.checklist-card__hero {
+  position: relative;
+  box-sizing: border-box;
+  height: 179px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  background-color: #1a6bb8;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+.checklist-card__hero-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-height: 100%;
+}
+
+.checklist-card__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 40, 90, 0.35) 0%, rgba(0, 0, 0, 0.12) 100%);
+  pointer-events: none;
+  transition: opacity 0.28s ease, background 0.28s ease;
+}
+
+.checklist-card:hover .checklist-card__hero::before {
+  opacity: 0.55;
+  background: linear-gradient(135deg, rgba(0, 40, 90, 0.18) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.checklist-card__hero-title {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  transition: color 0.28s ease, text-shadow 0.28s ease;
+  width: 100%;
+}
+
+.checklist-card:hover .checklist-card__hero-title {
+  color: #0052d9;
+  text-shadow: none;
+}
+
+.checklist-card__hero-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: color 0.28s ease;
+}
+
+.checklist-card__hero-meta-type {
+  flex-shrink: 0;
+}
+
+.checklist-card__hero-meta-info {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  opacity: 0.95;
+}
+
+.checklist-card:hover .checklist-card__hero-meta {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.checklist-card:hover .checklist-card__hero-meta-type {
+  color: #7eb6ff;
+}
+
+.checklist-card__footer {
+  box-sizing: border-box;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 10px;
+  background: #fff;
+  font-size: 12px;
+  color: #262626;
+}
+
+.checklist-card__footer-left {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checklist-card__footer-center {
+  flex-shrink: 0;
+  color: #595959;
+}
+
+.checklist-card__footer-right {
+  flex-shrink: 0;
+  color: #262626;
+}
+
+.checklist-empty {
+  margin-top: 48px;
+}
+
 :deep(.marginstyle) {
   padding: 10px !important;
   padding-right: 5px !important;
   padding-bottom: 5px !important;
 }
-
-:deep(.ant-tabs-tab .ant-tabs-nav-wrap) {
-  display: none !important;
-}
-
-:deep(.ant-table-tbody > tr > td) {
-  padding: 5px;
-}
-
-:deep(.ant-table-column-sorters) {
-  justify-content: center;
-  align-items: flex-end;
-}
-
-:deep(.ant-table-column-title) {
-  flex: none;
-}
-.tab-container {
-  height: calc(100vh - 150px);
-}
-//表格里的适用阶段样式
-.status-tags {
-  span {
-    font-family:
-      Source Sans 3,
-      Source Sans 3;
-    font-weight: 400;
-    font-size: 12px;
-    color: #6a696e;
-    line-height: 12px;
-    font-style: normal;
-    text-transform: none;
-    min-width: 64px;
-    height: 20px;
-    background: #eaeaf1;
-    border-radius: 13px 13px 13px 13px;
-    text-align: center;
-    padding: 4px 8px;
-    margin-right: 4px;
-  }
-}
-
-.calclationCheck {
-  background-color: #fff;
-  height: 100%;
-  border: 1px solid #dcdee2;
-
-  &-splitPane {
-    height: calc(100vh - 10px);
-    margin: 20px 0px 0px 20px;
-
-    &-search {
-      display: flex;
-      height: 35px;
-
-      &-btn {
-        margin-left: 20px;
-      }
-    }
-
-    &-content {
-      width: 100%;
-      height: calc(100vh - 20px);
-      display: flex;
-      overflow: auto;
-      flex-wrap: wrap;
-      margin-top: 5px;
-
-      &-outer {
-        position: relative;
-        width: 280px;
-        height: 280px;
-        margin-right: 20px;
-        margin-top: 20px;
-      }
-
-      &-shadow {
-        position: absolute;
-        top: 0px;
-        left: 0;
-        background: rgba(0, 0, 0, 0.2);
-        width: 280px;
-        height: 240px;
-      }
-
-      &-img {
-        width: 280px;
-        height: 240px;
-        background: rgba(51, 55, 82, 0.7);
-      }
-
-      &-desc {
-        width: 280px;
-        background-color: #fff;
-        line-height: 40px;
-        text-align: center;
-        color: #222222;
-        margin-top: -6px;
-        box-shadow: 0px 1px 4px rgba(21, 34, 50, 0.08);
-      }
-    }
-
-    &-pagetion {
-      margin-top: 20px;
-      margin-right: 20px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    &-center {
-      height: calc(100vh - 24px);
-      display: flex;
-      background-color: #fff;
-
-      &-steps {
-        width: 20%;
-        margin: 20px 0px 0px 20px;
-        cursor: pointer;
-      }
-
-      &-divider {
-        width: 10px;
-        background-color: #f7f8fa;
-        height: 100vh;
-      }
-
-      &-right {
-        width: 100%;
-
-        &-name {
-          margin-top: 30px;
-        }
-
-        &-result {
-          margin-top: 20px;
-        }
-
-        &-topLine {
-          height: 2px;
-          margin: 10px 0px;
-        }
-
-        &-input {
-          display: flex;
-          flex-wrap: wrap;
-        }
-
-        &-botLine {
-          height: 2px;
-          margin: 10px 0px;
-        }
-      }
-
-      &-form {
-        margin: 20px 0px 0px 20px;
-        width: 80%;
-        height: 32px;
-        display: flex;
-
-        &-btn {
-          margin-left: 20px;
-        }
-      }
-    }
-  }
-
-  &-tree {
-    height: calc(100vh - 15px);
-    margin: 20px 10px 0 10px;
-    overflow-y: auto;
-  }
-
-  .changInput {
-    border: 1px solid #dcdfe6;
-    color: #606266;
-    margin-top: 5px;
-    margin-bottom: 30px;
-    height: 32px;
-    border-radius: 4px;
-    padding-left: 10px;
-  }
-
-  .changInput:focus {
-    outline: 1px solid #1971ff !important;
-  }
-
-  // ::-webkit-scrollbar {
-  //   // display: none
-  // }
-}
-
-.calclationCheck-splitPane-content-desc {
-  color: #333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-radius: 0 0 10px 10px;
-  border: 1px solid #ebeef5;
-}
-
-.calclationCheck-content {
-  align-content: flex-start;
-  width: 100%;
+.drawerContent {
+  position: sticky;
+  bottom: 20px !important;
   display: flex;
-  overflow: auto;
-  flex-wrap: wrap;
-  margin-top: 5px;
-  padding-top: 18px;
-  cursor: pointer;
-}
-
-.calclationCheck-splitPane-content-shadow,
-.calclationCheck-splitPane-content-img {
-  border-radius: 10px 10px 0 0;
-}
-.calculateItem {
-  position: relative;
-  // width: 21.8%;
-  width: 256px;
-  float: left;
-  margin-bottom: 25px;
-  margin-right: 25px;
-  transition: all 0.3s ease;
-  overflow: hidden;
-  display: block;
-  background: #cbdcf5;
-  box-shadow: 0 0 15px 6px rgba(0, 0, 0, 0.08);
-  border-radius: 5px;
-  text-decoration: none;
-  outline: 0;
-}
-.calculateItem:hover {
-  transform: translateY(-10px);
-  background: #1971ff;
-  color: #fff;
-  .vserion,
-  .time {
-    color: #fff;
-  }
-
-  .calclation-content {
-    h3 {
-      color: #fff;
-    }
-  }
-
-  .imgItemHover {
-    display: inline;
-  }
-
-  .imgItem {
-    display: none;
-  }
-}
-
-.Img-box {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 192px;
-  overflow: hidden;
-  border-radius: 5px 5px 0 0;
-  img {
-    width: 100%;
-    height: 100%;
-  }
-}
-
-.iconText {
-  margin-left: 5px;
-}
-.infoFilled-ico {
-  color: #1971ff;
-  font-size: 18px;
-  cursor: pointer;
+  background-color: #ffffff !important;
 }
 </style>

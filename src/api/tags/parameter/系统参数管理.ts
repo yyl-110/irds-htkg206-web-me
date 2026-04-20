@@ -325,6 +325,25 @@ export class AdminApiSystemParameter {
       },
       CommonResultListDeptResponseDTOModel,
     );
+  
+    /**
+   * 计算树功能查询
+   *
+   * @tags 计算应用 - 计算树功能查询
+   * @name checkTreeAppList
+   * @summary 计算应用功能查询
+   * @request POST:/business-service/business/check-tree/check-tree-list
+   * @secure
+   */
+  static checkTreeAppList = <Req extends ParameterPageRequestDTOModel = ParameterPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/check-tree/check-tree-app-list`,
+        method: 'GET',
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 
   /**
    * 计算树创建功能
