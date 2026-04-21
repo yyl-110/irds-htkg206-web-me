@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { SearchOutlined } from '@ant-design/icons-vue';
+import { useRouter } from 'vue-router';
 import { ProcessFlowListPageRequestDTOModel } from '@/api/models/processTask/ProcessFlowListPageRequestDTOModel';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 
@@ -18,6 +19,7 @@ const loading = ref(false);
 const keyword = ref('');
 const listData = ref<any[]>([]);
 const requestParams = reactive(new ProcessFlowListPageRequestDTOModel());
+const router = useRouter();
 const bgImages = [
   new URL('@/assets/images/process-bg-1.png', import.meta.url).href,
   new URL('@/assets/images/process-bg-2.png', import.meta.url).href,
@@ -74,6 +76,15 @@ function formatDateYMD(value: unknown) {
 }
 
 function actionNode(item: any) {
+  const cacheKey = `designTaskAppDetail:${String(item?.id ?? Date.now())}:${Date.now()}`;
+  sessionStorage.setItem(cacheKey, JSON.stringify(item ?? {}));
+
+  router.push({
+    path: '/internal/design-task-app-detail',
+    query: {
+      cacheKey,
+    },
+  });
   emit('actionNode', item);
 }
 
@@ -196,6 +207,7 @@ defineExpose({
   display: flex;
   flex-wrap: wrap;
   gap: 0;
+  margin-top: 10px;
 }
 
 .calculateItem {

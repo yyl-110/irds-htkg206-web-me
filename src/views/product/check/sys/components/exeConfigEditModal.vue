@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { InboxOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
 import type { UploadFile } from 'ant-design-vue/es/upload/interface';
@@ -9,6 +8,7 @@ import { downloadFileFromStream } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
+import UploadModal from '@/views/product/components/upload-modal.vue';
 
 const props = defineProps<{
   visible: boolean;
@@ -23,6 +23,7 @@ const emit = defineEmits<{
 }>();
 
 const editSubmitting = ref(false);
+const uploadModalVisible = ref(false);
 const userStore = useUserStore();
 const editFormRef = ref();
 const editId = ref('');
@@ -32,6 +33,7 @@ const initialFileId = ref('');
 const editForm = ref({
   calcName: '',
   confidentialLevel: 0,
+  attachmentConfidentialLevel: 0,
   fileList: [] as UploadFile[],
 });
 
@@ -52,6 +54,10 @@ const FILE_INFO_ROW_KEYS = [
 ];
 
 const levelOptions = computed(() => userStore.getConfidentialLevel);
+const attachmentLevelOptions = computed(() => {
+  const outer = Number(editForm.value.confidentialLevel);
+  return levelOptions.value.filter(option => Number(option.value) <= outer);
+});
 const editRules = {
   calcName: [{ required: true, message: '请输入计算名称', trigger: 'blur' }],
   confidentialLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
@@ -66,6 +72,19 @@ function parseLevelNum(v: unknown): number | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
+}
+
+function normalizeLevel(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function handleOuterLevelChange(value: number) {
+  const outer = normalizeLevel(value);
+  const attachment = normalizeLevel(editForm.value.attachmentConfidentialLevel);
+  if (attachment > outer) {
+    editForm.value.attachmentConfidentialLevel = outer;
+  }
 }
 
 function resolveSecurityLevel(row: Record<string, unknown>): number {
@@ -152,7 +171,7 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
     const uploadRes = await AdminApiSystemUploadFile.uploadFile({
       file: file as File,
       userId: userStore.getUser.id,
-      confidentialLevel: editForm.value.confidentialLevel,
+      confidentialLevel: editForm.value.attachmentConfidentialLevel,
     });
 
     const { ok, fileId, record, errMsg } = parseUploadFileResult(uploadRes?.data);
@@ -167,9 +186,8 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
     if (typeof serverLevel === 'number' && Number.isFinite(serverLevel)) {
       const allowed = userStore.getConfidentialLevel.some(item => item.value === serverLevel);
       if (allowed) {
-        editForm.value.confidentialLevel = serverLevel;
+        editForm.value.attachmentConfidentialLevel = serverLevel > editForm.value.confidentialLevel ? editForm.value.confidentialLevel : serverLevel;
         await nextTick();
-        editFormRef.value?.validateFields(['confidentialLevel']).catch(() => {});
       }
     }
 
@@ -215,10 +233,17 @@ function removeUploadFile() {
 function closeEditModal() {
   editFormRef.value?.resetFields();
   editForm.value.fileList = [];
+  editForm.value.attachmentConfidentialLevel = editForm.value.confidentialLevel;
   uploadedFileId.value = '';
   initialFileId.value = '';
   editId.value = '';
+  uploadModalVisible.value = false;
   modalVisible.value = false;
+}
+
+function getCurrentFileName() {
+  const first = editForm.value.fileList?.[0];
+  return String(first?.name ?? '').trim();
 }
 
 function pickFileFieldsFromRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -296,6 +321,8 @@ async function initFromRecord(row: Record<string, unknown>) {
   editForm.value.calcName = String(row.checkName ?? row.parameterName ?? row.calcName ?? '');
   editForm.value.confidentialLevel = resolveSecurityLevel(row);
   const fileRow = getPrimaryFileRow(row);
+  const attachmentLevel = parseLevelNum(fileRow.confidentialLevel);
+  editForm.value.attachmentConfidentialLevel = attachmentLevel !== undefined ? Math.min(attachmentLevel, editForm.value.confidentialLevel) : editForm.value.confidentialLevel;
   const fid = String(fileRow.fileId ?? fileRow.queryId ?? row.fileId ?? row.queryId ?? '').trim();
   initialFileId.value = fid;
   uploadedFileId.value = fid;
@@ -321,6 +348,10 @@ async function submitEditForm() {
     const fileId = uploadedFileId.value || initialFileId.value;
     if (!fileId) {
       message.warning('请上传exe文件或保留原文件');
+      return;
+    }
+    if (normalizeLevel(editForm.value.attachmentConfidentialLevel) > normalizeLevel(editForm.value.confidentialLevel)) {
+      message.warning('附件密级不能高于外层密级');
       return;
     }
 
@@ -365,31 +396,41 @@ async function submitEditForm() {
         <a-input value="exe计算" disabled />
       </a-form-item>
       <a-form-item label="密级" name="confidentialLevel">
-        <a-select v-model:value="editForm.confidentialLevel" :options="levelOptions" placeholder="请选择密级" />
+        <a-select v-model:value="editForm.confidentialLevel" :options="levelOptions" placeholder="请选择密级" @change="handleOuterLevelChange" />
       </a-form-item>
-      <a-form-item label="上传文件" name="fileList">
-        <a-upload-dragger
-          accept=".exe"
-          :multiple="false"
-          :max-count="1"
-          :show-upload-list="{ showPreviewIcon: true, showRemoveIcon: true }"
-          :file-list="editForm.fileList"
-          :before-upload="beforeUpload"
-          :custom-request="customRequest"
-          @preview="handleUploadPreview"
-          @change="onUploadChange"
-          @remove="removeUploadFile">
-          <p class="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
-          <p class="ant-upload-hint">支持扩展名：.exe；不更换文件可直接保存；</p>
-        </a-upload-dragger>
+      <a-form-item label="附件">
+        <div class="edit-upload-trigger">
+          <a-button type="primary" @click="uploadModalVisible = true">上传附件</a-button>
+          <span v-if="getCurrentFileName()" class="edit-upload-trigger__name">{{ getCurrentFileName() }}</span>
+        </div>
       </a-form-item>
     </a-form>
+    <UploadModal
+      v-model:visible="uploadModalVisible"
+      v-model:confidential-level="editForm.attachmentConfidentialLevel"
+      accept=".exe"
+      :level-options="attachmentLevelOptions"
+      :file-list="editForm.fileList"
+      :before-upload="beforeUpload"
+      :custom-request="customRequest"
+      @upload-change="onUploadChange"
+      @upload-preview="handleUploadPreview"
+      @remove-file="removeUploadFile" />
     <template #footer>
       <a-button type="primary" :loading="editSubmitting" @click="submitEditForm">确定</a-button>
       <a-button @click="closeEditModal">取消</a-button>
     </template>
   </a-modal>
 </template>
+
+<style scoped>
+.edit-upload-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-upload-trigger__name {
+  color: rgba(0, 0, 0, 0.65);
+}
+</style>

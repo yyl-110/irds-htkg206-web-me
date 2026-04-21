@@ -89,6 +89,25 @@ export class AdminApiSystemCheckInfoApi {
       CommonResultListDeptResponseDTOModel
     );
   
+  /**
+   * 根据ID获取对象
+   *
+   * @tags 根据ID获取对象
+   * @name getCheckExeInfoById
+   * @request business-service/business/check-exe-info/delete
+   * @secure
+   */
+   static getCheckExeInfoById = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `business-service/business/check-exe-info/getCheckExeInfoById`,
+        method: 'GET',
+        query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel
+    );
   
      /**
    * 发布exe计算到计算清单表
@@ -109,6 +128,27 @@ export class AdminApiSystemCheckInfoApi {
       },
       CommonResultListDeptResponseDTOModel
     );
+  
+  /**
+   * 根据TreeID获取计算清单信息
+   *
+   * @tags exe计算添加
+   * @name getCheckSummarListByTreeId
+   * @request business-service/business/check-summar-list/applist
+   * @secure
+   */
+  static getCheckSummarListByTreeId = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `business-service/business/check-summar-list/applist`,
+        method: 'GET',
+        query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel
+    );
+  
 }
 
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
-import { InboxOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
 import type { UploadFile } from 'ant-design-vue/es/upload/interface';
@@ -9,6 +8,7 @@ import { downloadFileFromStream } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
+import UploadModal from '@/views/product/components/upload-modal.vue';
 
 const props = defineProps<{
   visible: boolean;
@@ -17,6 +17,7 @@ const props = defineProps<{
   currentNodeName?: string;
 }>();
 
+const uploadModalVisible = ref(false);
 const emit = defineEmits<{
   'update:visible': [visible: boolean];
   success: [];
@@ -30,9 +31,14 @@ const uploadedFileId = ref('');
 const addForm = ref({
   calcName: '',
   confidentialLevel: 0,
+  attachmentConfidentialLevel: 0,
   fileList: [] as UploadFile[],
 });
 const levelOptions = computed(() => userStore.getConfidentialLevel);
+const attachmentLevelOptions = computed(() => {
+  const outer = Number(addForm.value.confidentialLevel);
+  return levelOptions.value.filter(option => Number(option.value) <= outer);
+});
 const addRules = {
   calcName: [{ required: true, message: '请输入计算名称', trigger: 'blur' }],
   confidentialLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
@@ -43,6 +49,19 @@ const modalVisible = computed({
   get: () => props.visible,
   set: (value: boolean) => emit('update:visible', value),
 });
+
+function normalizeLevel(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function handleOuterLevelChange(value: number) {
+  const outer = normalizeLevel(value);
+  const attachment = normalizeLevel(addForm.value.attachmentConfidentialLevel);
+  if (attachment > outer) {
+    addForm.value.attachmentConfidentialLevel = outer;
+  }
+}
 
 // function validateFileRequired() {
 //   if (uploadedFileId.value) return Promise.resolve();
@@ -109,7 +128,7 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
     const uploadRes = await AdminApiSystemUploadFile.uploadFile({
       file: file as File,
       userId: userStore.getUser.id,
-      confidentialLevel: addForm.value.confidentialLevel,
+      confidentialLevel: addForm.value.attachmentConfidentialLevel,
     });
 
     const { ok, fileId, record, errMsg } = parseUploadFileResult(uploadRes?.data);
@@ -124,9 +143,8 @@ async function customRequest(options: { file: File | Blob; onSuccess?: (body: un
     if (typeof serverLevel === 'number' && Number.isFinite(serverLevel)) {
       const allowed = userStore.getConfidentialLevel.some(item => item.value === serverLevel);
       if (allowed) {
-        addForm.value.confidentialLevel = serverLevel;
+        addForm.value.attachmentConfidentialLevel = serverLevel > addForm.value.confidentialLevel ? addForm.value.confidentialLevel : serverLevel;
         await nextTick();
-        addFormRef.value?.validateFields(['confidentialLevel']).catch(() => {});
       }
     }
 
@@ -171,8 +189,10 @@ function removeUploadFile() {
 
 function closeAddModal() {
   modalVisible.value = false;
+  uploadModalVisible.value = false;
   addFormRef.value?.resetFields();
   addForm.value.fileList = [];
+  addForm.value.attachmentConfidentialLevel = addForm.value.confidentialLevel;
   uploadedFileId.value = '';
 }
 
@@ -186,8 +206,11 @@ async function submitAddForm() {
       message.warning('请先上传exe文件');
       return;
     }
+    if (normalizeLevel(addForm.value.attachmentConfidentialLevel) > normalizeLevel(addForm.value.confidentialLevel)) {
+      message.warning('附件密级不能高于外层密级');
+      return;
+    }
 
-    const securityLevelLabel = userStore.getConfidentialLevel.find(item => item.value === addForm.value.confidentialLevel)?.label;
     const tid = String(props.treeId ?? '').trim();
     const payload = {
       checkName: addForm.value.calcName,
@@ -214,6 +237,10 @@ async function submitAddForm() {
     addSubmitting.value = false;
   }
 }
+function getCurrentFileName() {
+  const first = addForm.value.fileList?.[0];
+  return String(first?.name ?? '').trim();
+}
 </script>
 
 <template>
@@ -229,31 +256,41 @@ async function submitAddForm() {
         <a-input value="exe计算" disabled />
       </a-form-item>
       <a-form-item label="密级" name="confidentialLevel">
-        <a-select v-model:value="addForm.confidentialLevel" :options="levelOptions" placeholder="请选择密级" />
+        <a-select v-model:value="addForm.confidentialLevel" :options="levelOptions" placeholder="请选择密级" @change="handleOuterLevelChange" />
       </a-form-item>
       <a-form-item label="上传文件" name="fileList">
-        <a-upload-dragger
-          accept=".exe"
-          :multiple="false"
-          :max-count="1"
-          :show-upload-list="{ showPreviewIcon: true, showRemoveIcon: true }"
-          :file-list="addForm.fileList"
-          :before-upload="beforeUpload"
-          :custom-request="customRequest"
-          @preview="handleUploadPreview"
-          @change="onUploadChange"
-          @remove="removeUploadFile">
-          <p class="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
-          <p class="ant-upload-hint">支持扩展名：.exe，仅能上传一个文件</p>
-        </a-upload-dragger>
+        <div class="edit-upload-trigger">
+          <a-button type="primary" @click="uploadModalVisible = true">上传附件</a-button>
+          <span v-if="getCurrentFileName()" class="edit-upload-trigger__name">{{ getCurrentFileName() }}</span>
+        </div>
       </a-form-item>
     </a-form>
+    <UploadModal
+      v-model:visible="uploadModalVisible"
+      v-model:confidential-level="addForm.attachmentConfidentialLevel"
+      accept=".exe"
+      :level-options="attachmentLevelOptions"
+      :file-list="addForm.fileList"
+      :before-upload="beforeUpload"
+      :custom-request="customRequest"
+      @upload-change="onUploadChange"
+      @upload-preview="handleUploadPreview"
+      @remove-file="removeUploadFile" />
     <template #footer>
       <a-button type="primary" :loading="addSubmitting" @click="submitAddForm">确定</a-button>
       <a-button @click="closeAddModal">取消</a-button>
     </template>
   </a-modal>
 </template>
+
+<style scoped>
+.edit-upload-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-upload-trigger__name {
+  color: rgba(0, 0, 0, 0.65);
+}
+</style>

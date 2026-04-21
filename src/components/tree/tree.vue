@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, FormOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
@@ -120,34 +120,49 @@ const selectedNode = ref<any>();
 const newExpandedKeys = ref<any>([]);
 const btnReadOnly = ref<string>('0');
 const formRef = ref<any>(null);
-function initMenuState() {
-  newExpandedKeys.value = [];
-  // 获取初始化选中节点
-  if (props.selectedKeys != null) {
+/** 仅从父级同步选中；勿清空展开，否则点击节点会把用户已展开的枝折叠掉 */
+function applySelectedKeysFromProps() {
+  if (props.selectedKeys != null && props.selectedKeys !== '') {
     selectedKeys.value = [props.selectedKeys];
     selectedKey.value = props.selectedKeys;
   }
-  // 获取初始化展开节点数据
-  if (props.expandedKeys != null) {
-    const list = props.expandedKeys as Array<any>;
-    if (list.includes(',')) {
-      list
-        .toString()
-        .split(',')
-        .forEach((item: any) => {
-          newExpandedKeys.value.push(item);
-        });
-    } else if (list && !list.includes(',')) {
-      newExpandedKeys.value.push(list);
-    }
+}
+
+/** 仅在父级 expandedKeys 变化时同步展开（如整树刷新），与选中解耦 */
+function applyExpandedKeysFromProps() {
+  newExpandedKeys.value = [];
+  const ek = props.expandedKeys as any;
+  if (ek == null) return;
+  const str = Array.isArray(ek) ? ek.filter(Boolean).join(',') : String(ek);
+  if (!str) return;
+  if (str.includes(',')) {
+    str
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+      .forEach((item: string) => {
+        newExpandedKeys.value.push(item);
+      });
+  } else {
+    newExpandedKeys.value.push(str);
   }
 }
-// initMenuState()
+
 watch(
-  () => props.selectedKeys || props.expandedKeys,
+  () => props.selectedKeys,
   () => {
     nextTick(() => {
-      initMenuState();
+      applySelectedKeysFromProps();
+    });
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.expandedKeys,
+  () => {
+    nextTick(() => {
+      applyExpandedKeysFromProps();
     });
   },
   { immediate: true, deep: true },

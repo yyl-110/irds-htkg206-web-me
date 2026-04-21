@@ -107,7 +107,11 @@ const { pagination } = usePagination(requestParams as any, () => {
   void fetchExeList();
 });
 
+/** 防止切换树节点/分页时旧请求晚到覆盖新结果（例如新节点返回空列表后被上一节点数据盖住） */
+let fetchExeListSeq = 0;
+
 async function fetchExeList() {
+  const seq = ++fetchExeListSeq;
   loading.value = true;
   try {
     const body: Record<string, unknown> = {
@@ -121,8 +125,10 @@ async function fetchExeList() {
     if (name) body.checkName = name;
 
     const res = await AdminApiSystemCheckInfoApi.checkPageParamExeList(body);
+    if (seq !== fetchExeListSeq) return;
+
     const code = res?.data?.code as number | string | undefined;
-    const ok = code === 0 || code === 200 || code === '0';
+    const ok = code === 0 || code === 200 || code === '0' || code === '200';
     const raw = res?.data?.data;
     let list: any[] = [];
     let total = 0;
@@ -142,10 +148,13 @@ async function fetchExeList() {
     pagination.total = total;
     if (!ok && res?.data?.msg) message.error(String(res.data.msg));
   } catch {
+    if (seq !== fetchExeListSeq) return;
     exeListRaw.value = [];
     message.error('获取exe计算列表失败');
   } finally {
-    loading.value = false;
+    if (seq === fetchExeListSeq) {
+      loading.value = false;
+    }
   }
 }
 

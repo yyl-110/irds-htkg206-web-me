@@ -31,6 +31,8 @@ interface ImportMetaEnv {
   readonly VITE_APP_ICONIFY_RESOURCES: string | undefined
   /** 下载文件路径 */
   readonly VITE_BASE_PREVIEW_URL: string | undefined
+  /** 本地下载落地目录（WebSocket ApiDownload 的 dir 参数） */
+  readonly VITE_BASE_FILE_DOWNLOAD_URL: string | undefined
 
 }
 

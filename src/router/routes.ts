@@ -204,6 +204,16 @@ export const routes: RouteRecordRaw[] = [
           noCache: true,
         },
       },
+      {
+        path: 'design-task-app-detail',
+        name: 'DesignTaskAppDetail',
+        component: () => import('@/views/product/designTaskApplication/components/components/process-flow-app-detail.vue'),
+        meta: {
+          hidden: true,
+          title: '设计任务应用',
+          noCache: true,
+        },
+      },
     ],
   },
 ];

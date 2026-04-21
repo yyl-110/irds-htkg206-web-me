@@ -321,4 +321,24 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 申请独立应用编码
+   *
+   * @tags 管理后台 - 申请独立应用编码
+   * @name nextAppCode
+   * @summary 申请独立应用编码
+   * @request GET:/business-service/business/standalone-app/next-app-code
+   * @secure
+   */
+  static nextAppCode = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/next-app-code`,
+        method: 'GET',
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
