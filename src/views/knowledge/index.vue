@@ -29,9 +29,9 @@ type ComponentKey = keyof typeof componentsMap; // 推导出 0 | 1
 const tabList = [
   "知识中心",
   "知识地图",
-  "知识学习",
+  // "知识学习",
   "知识问答",
-  "技术标准",
+  // "技术标准",
   "个人主页",
 ];
 const activeKey = ref(1);
