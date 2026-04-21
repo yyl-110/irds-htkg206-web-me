@@ -27,7 +27,8 @@ import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
-import { ShareAltOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
+import TableCellOverflowTooltip from './components/TableCellOverflowTooltip.vue';
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -147,14 +148,16 @@ const addModel = ref<InstanceType<typeof ParameterInfoRequestDTOModel>>();
 const updateModel = ref<InstanceType<typeof ParameterInfoRequestDTOModel>>();
 const treeDataTranslate: any = inject('treeDataTranslate');
 const columns = ref<TableColumnType<Menus>[]>([
+  /** 左侧固定列不设 resizable；排序/筛选由表头插槽控制（与 exeConfigTab 一致） */
   {
     title: WeiI18n.$t('参数名称'),
     dataIndex: 'parameterName',
     key: 'parameterName',
     align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.parameterName, b.parameterName),
-    width: 230,
+    fixed: 'left',
+    resizable: false,
+    width: 200,
+    ellipsis: true,
   },
   {
     title: WeiI18n.$t('参数代号'),
@@ -162,8 +165,8 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'parameterNum',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.parameterNum, b.parameterNum),
-    width: 260,
+    ellipsis: true,
+    width: 200,
   },
   {
     title: WeiI18n.$t('参数类型'),
@@ -171,7 +174,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'parameterTypeName',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.parameterTypeName, b.parameterTypeName),
+    ellipsis: true,
     width: 100,
   },
   {
@@ -180,7 +183,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'unitName',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.unitName, b.unitName),
+    ellipsis: true,
     width: 130,
   },
   {
@@ -189,7 +192,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'dimenSion',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.dimenSion, b.dimenSion),
+    ellipsis: true,
     width: 100,
   },
   {
@@ -198,8 +201,8 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'treeName',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.treeName, b.treeName),
-    width: 150,
+    ellipsis: true,
+    width: 130,
   },
   {
     title: WeiI18n.$t('创建人'),
@@ -207,8 +210,8 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'createUserName',
     align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.createUserName, b.createUserName),
-    width: 150,
+    ellipsis: true,
+    width: 120,
   },
   {
     title: WeiI18n.$t('创建时间'),
@@ -216,8 +219,8 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'createTime',
     align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
-    width: 230,
+    ellipsis: true,
+    width: 220,
   },
   {
     title: WeiI18n.$t('备注'),
@@ -225,29 +228,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'remark',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.remark, b.remark),
-    width: 180,
-    customRender: ({ text }: { text: string }) => {
-      const display = text ?? '';
-      return h(Tooltip, { title: display, placement: 'topLeft' }, () =>
-        h(
-          'div',
-          {
-            style: {
-              maxHeight: '48px',
-              overflow: 'hidden',
-              whiteSpace: 'normal',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: '3',
-              WebkitBoxOrient: 'vertical',
-              wordBreak: 'break-word',
-            },
-          },
-          display,
-        ),
-      );
-    },
+    width: 130,
   },
   // {
   //   title: WeiI18n.$t('版本'),
@@ -284,32 +265,8 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'knowledge_share',
     align: 'center',
     width: 80,
-    customRender: ({ record }: any) =>
-      h(
-        'a',
-        {
-          style: {
-            cursor: record?.knowledge ? 'pointer' : 'not-allowed',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          onClick: (e: Event) => {
-            e && (e as Event).stopPropagation();
-            if (record?.knowledge) showShareModal(record);
-          },
-          title: record?.knowledge ? '查看知识' : '暂无知识',
-        },
-        // 使用已有图标组件，若图标名不同可替换为其他 icon 类型或文案
-        h(EpcIcon, {
-          type: 'icon-fenxiang',
-          style: {
-            fontSize: '16px',
-            color: record?.knowledge ? '#1890ff' : '#bfbfbf',
-          },
-        }),
-      ),
   },
+  /** 固定右侧列不建议 resizable（与 exeConfigTab 一致） */
   {
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
@@ -318,8 +275,125 @@ const columns = ref<TableColumnType<Menus>[]>([
     width: 200,
     fixed: 'right',
   },
-  { fixed: 'right', width: 1 },
 ]);
+
+/** 横向滚动宽度：列 width 之和 + 勾选列约宽 + 极小缓冲（与 exeConfigTab 思路一致） */
+const SCROLL_X_BUFFER_PX = 2;
+/** ant-table rowSelection 预留列宽约值，未计入 columns[].width */
+const TABLE_SELECTION_COL_WIDTH_PX = 60;
+const parameterTableScrollX = computed(() => {
+  const sum = columns.value.reduce((acc, col) => {
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + TABLE_SELECTION_COL_WIDTH_PX + SCROLL_X_BUFFER_PX;
+});
+
+/** 表头排序（当前页数据，与 exeConfigTab 一致） */
+type ParameterSortOrder = 'ascend' | 'descend' | '';
+const sortState = ref<{ key: string; order: ParameterSortOrder }>({ key: '', order: '' });
+/** 表头筛选弹层输入草稿（确定后写入查询条件并请求接口） */
+const filterValueMap = ref<Record<string, string>>({ parameterName: '', parameterNum: '' });
+const filterOpenMap = ref<Record<string, boolean>>({});
+
+const parameterTableDisplayList = computed(() => {
+  let list = [...datasource.value];
+  if (!sortState.value.key || !sortState.value.order) return list;
+  const key = sortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+function isParameterTableSelectionColumn(column: any) {
+  const c = column?.className;
+  if (typeof c === 'string') return c.includes('selection-column');
+  if (Array.isArray(c)) return c.some((x: unknown) => String(x).includes('selection-column'));
+  return false;
+}
+
+function isSortableParameterColumn(column: any) {
+  const di = column?.dataIndex;
+  if (!di || di === 'operation') return false;
+  if (di === 'knowledge') return false;
+  return true;
+}
+
+function isFilterableParameterColumn(column: any) {
+  const di = column?.dataIndex;
+  return di === 'parameterName' || di === 'parameterNum';
+}
+
+function toggleParameterColumnSort(column: any) {
+  if (!isSortableParameterColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (sortState.value.key !== key) {
+    sortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (sortState.value.order === 'ascend') {
+    sortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (sortState.value.order === 'descend') {
+    sortState.value = { key: '', order: '' };
+    return;
+  }
+  sortState.value = { key, order: 'ascend' };
+}
+
+function getParameterSortOrder(key: string): ParameterSortOrder {
+  return sortState.value.key === key ? sortState.value.order : '';
+}
+
+function setParameterFilterOpen(key: string, open: boolean) {
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: open };
+}
+
+function handleParameterFilterOpenChange(key: string, open: boolean) {
+  if (open) {
+    if (key === 'parameterName') {
+      filterValueMap.value = { ...filterValueMap.value, parameterName: parameterName.value ?? '' };
+    }
+    if (key === 'parameterNum') {
+      filterValueMap.value = { ...filterValueMap.value, parameterNum: parameterNum.value ?? '' };
+    }
+  }
+  setParameterFilterOpen(key, open);
+}
+
+function getParameterFilterOpen(key: string) {
+  return Boolean(filterOpenMap.value[key]);
+}
+
+function applyParameterColumnFilter(key: string) {
+  const v = String(filterValueMap.value[key] ?? '').trim();
+  if (key === 'parameterName') parameterName.value = v;
+  if (key === 'parameterNum') parameterNum.value = v;
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  setParameterFilterOpen(key, false);
+  void loadParameterListData();
+}
+
+function resetParameterColumnFilter(key: string) {
+  filterValueMap.value = { ...filterValueMap.value, [key]: '' };
+  if (key === 'parameterName') parameterName.value = '';
+  if (key === 'parameterNum') parameterNum.value = '';
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  setParameterFilterOpen(key, false);
+  void loadParameterListData();
+}
+
+/** 默认单元格展示文案（对象列不转字符串，避免 [object Object]） */
+function formatParameterCellText(record: Record<string, unknown>, column: { dataIndex?: string | number }) {
+  const key = column?.dataIndex;
+  if (key === undefined || key === null || key === '') return '';
+  const v = (record as Record<string, unknown>)[String(key)];
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object') return '';
+  return String(v);
+}
 
 /** 获取分类数据 */
 async function getListData(type?: string) {
@@ -501,6 +575,8 @@ async function selectNode(node: any) {
   currentNode.value = node;
   parameterName.value = '';
   parameterNum.value = '';
+  filterValueMap.value = { ...filterValueMap.value, parameterName: '', parameterNum: '' };
+  sortState.value = { key: '', order: '' };
   selectNodeKeys.value = node.key;
   if (node.parentId == 0 || node.parentId == 1) {
     currentNodeLevel.value = 2;
@@ -782,8 +858,16 @@ function handleFinish() {
   getListData();
 }
 
-function handleResizeColumn(w, col) {
+function handleResizeColumn(w: number, col: TableColumnType<Menus>) {
   col.width = w;
+}
+
+function getParameterRowKey(record: ParameterInfoRequestDTOModel) {
+  return record.id;
+}
+
+function getParameterTableRowClassName(_record: ParameterInfoRequestDTOModel, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
 }
 
 function handleCloseAddModal() {
@@ -1014,120 +1098,180 @@ const {
         </a-spin>
       </Pane>
 
-      <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls" :size="rightTreePaneSize">
-        <a-card>
-          <a-form layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
-            <a-form-item name="parameterName">
-              <a-input v-model:value="parameterName" style="width: 220px" allow-clear :placeholder="$t('请输入参数名称')" />
-            </a-form-item>
-            <a-form-item name="parameterNum">
-              <a-input v-model:value="parameterNum" style="width: 220px" allow-clear :placeholder="$t('请输入参数代号')" />
-            </a-form-item>
-            <a-form-item>
-              <a-button type="primary" @click="loadParameterListData">
-                <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-                {{ $t('查询') }}
-              </a-button>
-              <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleAddOrUpdate(undefined)" style="margin-left: 15px">
-                <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-                {{ $t('添加') }}
-              </a-button>
-              <!--删除按钮（批量删除需二次确认）-->
-              <a-popconfirm
-                v-if="currentNodeLevel != 2"
-                placement="topLeft"
-                :title="`${$t('确定要删除吗')}?`"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handleParameterDelete(undefined)">
-                <a-button type="primary" danger :disabled="deleteFlag" style="margin-left: 15px">
-                  <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
-                  {{ $t('删除') }}
+      <!-- 右侧内容区域（列表卡片布局与 exeConfigTab 一致） -->
+      <Pane class="splitpane-cls parameter-right-pane" :size="rightTreePaneSize">
+        <div class="calc-config-pane">
+          <a-card class="calc-toolbar-card">
+            <a-form layout="inline" class="form_main calc-toolbar-form" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
+              <a-form-item name="parameterName">
+                <a-input v-model:value="parameterName" style="width: 220px" allow-clear :placeholder="$t('请输入参数名称')" />
+              </a-form-item>
+              <a-form-item name="parameterNum">
+                <a-input v-model:value="parameterNum" style="width: 220px" allow-clear :placeholder="$t('请输入参数代号')" />
+              </a-form-item>
+              <a-form-item class="parameter-toolbar-btns">
+                <a-button type="primary" @click="loadParameterListData">
+                  <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+                  {{ $t('查询') }}
                 </a-button>
-              </a-popconfirm>
-              <!--导入数据按钮-->
-              <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleUploadFile()" style="margin-left: 15px">
-                <EpcIcon type="icon-daoru1" style="font-size: 12px" />
-                {{ $t('导入') }}
-              </a-button>
-              <!--导出数据按钮-->
-              <a-button type="primary" :loading="exportLoading" @click="exportParameData()" style="margin-left: 15px">
-                <EpcIcon type="icon-daochu" style="font-size: 12px" />
-                {{ $t('导出') }}
-              </a-button>
-            </a-form-item>
-          </a-form>
-        </a-card>
+                <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleAddOrUpdate(undefined)">
+                  <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+                  {{ $t('添加') }}
+                </a-button>
+                <!--删除按钮（批量删除需二次确认）-->
+                <a-popconfirm
+                  v-if="currentNodeLevel != 2"
+                  placement="topLeft"
+                  :title="`${$t('确定要删除吗')}?`"
+                  ok-text="确定"
+                  cancel-text="取消"
+                  @confirm.stop.prevent="handleParameterDelete(undefined)">
+                  <a-button type="primary" danger :disabled="deleteFlag">
+                    <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+                    {{ $t('删除') }}
+                  </a-button>
+                </a-popconfirm>
+                <!--导入数据按钮-->
+                <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleUploadFile()">
+                  <EpcIcon type="icon-daoru1" style="font-size: 12px" />
+                  {{ $t('导入') }}
+                </a-button>
+                <!--导出数据按钮-->
+                <a-button type="primary" :loading="exportLoading" @click="exportParameData()">
+                  <EpcIcon type="icon-daochu" style="font-size: 12px" />
+                  {{ $t('导出') }}
+                </a-button>
+              </a-form-item>
+            </a-form>
+          </a-card>
 
-        <a-card style="margin-top: 10px">
-          <!-- 表格 -->
-          <a-table
-            :scroll="{ x: 1200, y: 500 }"
-            :row-key="(record: any) => record.id"
-            :columns="columns"
-            :data-source="datasource"
-            :pagination="pagination"
-            :row-selection="rowSelection"
-            :customRow="customRow"
-            @resizeColumn="handleResizeColumn"
-            :locale="locale"
-            :loading="loading"
-            :sticky="true"
-            :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-            <template #bodyCell="{ column, record }">
-              <!-- 参数名称 -->
-              <template v-if="column.dataIndex === 'parameterName'">
-                <sapn>{{ record.parameterName }}</sapn>
+          <a-card class="calc-table-card">
+            <a-table
+              class="exe-config-table"
+              :scroll="{ x: parameterTableScrollX, y: 500 }"
+              :row-key="getParameterRowKey"
+              :columns="columns"
+              :data-source="parameterTableDisplayList"
+              :pagination="pagination"
+              :row-selection="rowSelection"
+              :customRow="customRow"
+              bordered
+              table-layout="fixed"
+              :locale="locale"
+              :loading="loading"
+              :row-class-name="getParameterTableRowClassName"
+              @resize-column="handleResizeColumn">
+              <template #headerCell="{ column }">
+                <template v-if="isParameterTableSelectionColumn(column)">
+                  <span />
+                </template>
+                <template v-else-if="isSortableParameterColumn(column) || isFilterableParameterColumn(column)">
+                  <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableParameterColumn(column) }">
+                    <span
+                      class="header-title-sort"
+                      :class="{ 'header-title-sort--disabled': !isSortableParameterColumn(column) }"
+                      @click.stop="toggleParameterColumnSort(column)">
+                      <span>{{ column.title }}</span>
+                      <span v-if="isSortableParameterColumn(column)" class="header-sort-icon">
+                        <CaretUpOutlined v-if="getParameterSortOrder(String(column.dataIndex)) === 'ascend'" />
+                        <CaretDownOutlined v-else-if="getParameterSortOrder(String(column.dataIndex)) === 'descend'" />
+                        <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                      </span>
+                    </span>
+                    <span v-if="isFilterableParameterColumn(column)" class="header-filter-anchor">
+                      <a-popover
+                        trigger="click"
+                        placement="bottomRight"
+                        :open="getParameterFilterOpen(String(column.dataIndex))"
+                        @openChange="handleParameterFilterOpenChange(String(column.dataIndex), $event)">
+                        <template #content>
+                          <div class="header-filter-pop">
+                            <a-input
+                              v-model:value="filterValueMap[String(column.dataIndex)]"
+                              :placeholder="`${$t('搜索')} ${column.title}`"
+                              allow-clear />
+                            <div class="header-filter-actions">
+                              <a-button type="primary" size="small" @click="applyParameterColumnFilter(String(column.dataIndex))">
+                                <SearchOutlined />
+                                {{ $t('确定') }}
+                              </a-button>
+                              <a-button size="small" @click="resetParameterColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                            </div>
+                          </div>
+                        </template>
+                        <FilterOutlined class="header-query-icon" />
+                      </a-popover>
+                    </span>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="header-cell-main header-cell-main--static">
+                    <span class="header-title-sort header-title-sort--disabled">
+                      <span>{{ column.title }}</span>
+                    </span>
+                  </div>
+                </template>
               </template>
+              <template #bodyCell="{ column, record, text }">
+                <!-- 参数名称：仅溢出时悬停提示 -->
+                <template v-if="column.dataIndex === 'parameterName'">
+                  <TableCellOverflowTooltip :text="String(record.parameterName ?? '')" />
+                </template>
 
-              <!-- 参数知识列：用图标代替，不直接渲染内容 -->
-              <template v-else-if="column.dataIndex === 'knowledge'">
-                <span style="display: flex; justify-content: center; align-items: center">
-                  <a v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: #1890ff" title="查看知识">
-                    <ShareAltOutlined style="font-size: 16px" />
-                  </a>
-                  <span v-else style="color: #bfbfbf">—</span>
-                </span>
-              </template>
+                <!-- 参数知识列：用图标代替，不直接渲染内容 -->
+                <template v-else-if="column.dataIndex === 'knowledge'">
+                  <span style="display: flex; justify-content: center; align-items: center">
+                    <a v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: #1890ff" title="查看知识">
+                      <ShareAltOutlined style="font-size: 16px" />
+                    </a>
+                    <span v-else style="color: #bfbfbf">—</span>
+                  </span>
+                </template>
 
-              <!-- 版本列：已存在的图标触发历史，版本显示为 V{n}.0 -->
-              <template v-else-if="column.dataIndex === 'version'">
-                <span style="display: flex; align-items: center">
-                  <span style="margin-right: 6px">{{ record.version != null ? 'V' + record.version + '.0' : 'V1.0' }}</span>
-                  <a @click.stop.prevent="showVersionHistory(record)" style="cursor: pointer" title="查看版本历史">
-                    <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
-                  </a>
-                </span>
-              </template>
+                <!-- 版本列：已存在的图标触发历史，版本显示为 V{n}.0 -->
+                <template v-else-if="column.dataIndex === 'version'">
+                  <span style="display: flex; align-items: center">
+                    <span style="margin-right: 6px">{{ record.version != null ? 'V' + record.version + '.0' : 'V1.0' }}</span>
+                    <a @click.stop.prevent="showVersionHistory(record)" style="cursor: pointer" title="查看版本历史">
+                      <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
+                    </a>
+                  </span>
+                </template>
 
-              <!-- 状态列示例（如有） -->
-              <template v-else-if="column.dataIndex === 'status'">
-                <span>
-                  <a-tag v-if="record.status === '0'">{{ $t('未发布') }}</a-tag>
-                  <a-tag v-else-if="record.status === '1'" color="blue">{{ $t('已发布') }}</a-tag>
-                </span>
-              </template>
+                <!-- 状态列示例（如有） -->
+                <template v-else-if="column.dataIndex === 'status'">
+                  <span>
+                    <a-tag v-if="record.status === '0'" :class="['exe-status-tag', 'exe-status-tag--off']">{{ $t('未发布') }}</a-tag>
+                    <a-tag v-else-if="record.status === '1'" :class="['exe-status-tag', 'exe-status-tag--on']">{{ $t('已发布') }}</a-tag>
+                  </span>
+                </template>
 
-              <!-- 操作列：编辑/删除 等，阻止事件冒泡 -->
-              <template v-else-if="column.dataIndex === 'operation'">
-                <div style="display: flex; justify-content: space-around; align-items: center">
-                  <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
-                  <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
-                  <!-- <a-divider type="vertical" /> -->
-                  <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                    <a @click.stop style="color: #ff4d4f; cursor: pointer">{{ $t('删除') }}</a>
-                  </a-popconfirm>
-                </div>
-              </template>
+                <template v-else-if="column.dataIndex === 'remark'">
+                  <TableCellOverflowTooltip :text="String(record.remark ?? '')" variant="clamp" />
+                </template>
 
-              <!-- 默认渲染：按列 dataIndex 输出 -->
-              <template v-else>
-                {{ record[column.dataIndex] }}
+                <!-- 操作列（与 exeConfigTab 链接区一致） -->
+                <template v-else-if="column.dataIndex === 'operation'">
+                  <div class="calc-operation-links" @click.stop>
+                    <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
+                    <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
+                    <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
+                      <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                    </a-popconfirm>
+                  </div>
+                </template>
+
+                <template v-else-if="column.ellipsis">
+                  <TableCellOverflowTooltip :text="String(text ?? '')" />
+                </template>
+
+                <template v-else>
+                  <TableCellOverflowTooltip :text="formatParameterCellText(record, column)" />
+                </template>
               </template>
-            </template>
-          </a-table>
-        </a-card>
+            </a-table>
+          </a-card>
+        </div>
       </Pane>
     </Splitpanes>
     <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
@@ -1227,6 +1371,261 @@ const {
   bottom: 20px !important;
   display: flex;
   background-color: #ffffff !important;
+}
+
+/* ---------- 以下与 src/views/product/check/sys/components/exeConfigTab.vue 列表区一致 ---------- */
+.parameter-right-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  /* 与左侧树、与视口右缘各留 10px */
+  padding: 0 10px;
+}
+
+.parameter-toolbar-btns :deep(.ant-form-item-control-input-content) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.calc-config-pane {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.calc-toolbar-card {
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    padding: 12px 0;
+  }
+}
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.calc-table-card {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    height: 100%;
+    padding: 0;
+  }
+
+  :deep(.ant-table-wrapper) {
+    height: 100%;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    border-right: none !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+}
+
+.exe-config-table {
+  :deep(.ant-table-cell-ellipsis .ant-typography) {
+    margin-bottom: 0;
+  }
+
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  /*
+   * 固定列分界：用单元格 **inset** 内阴影，阴影完全落在锁定列内，
+   * 避免外扩 box-shadow 被滚动区域裁剪成底部一截“断线”。
+   */
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+.exe-config-cell-ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+@exe-op-links-divider: #e0e0e0;
+@exe-op-links-line-gap: 8px;
+@exe-op-links-divider-h: 1em;
+
+.calc-operation-links {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @exe-op-links-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child) {
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: @exe-op-links-divider-h;
+        margin-left: -0.5px;
+        background: @exe-op-links-divider;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+.exe-status-tag {
+  margin: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0 10px;
+  border-style: solid;
+  border-width: 1px;
+}
+
+.exe-status-tag--on {
+  color: #1677ff;
+  background: #e6f4ff;
+  border-color: #91caff;
+}
+
+.exe-status-tag--off {
+  color: rgba(0, 0, 0, 0.65);
+  background: #fafafa;
+  border-color: #d9d9d9;
+}
+
+/* 表头：标题+排序+筛选（与 exeConfigTab 一致） */
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  padding-right: 22px;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 
 .version-history-modal {

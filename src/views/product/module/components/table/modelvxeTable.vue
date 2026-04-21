@@ -178,10 +178,10 @@ defineExpose({
 });
 </script>
 <template>
-  <div style="margin-top: 10px; position: relative; overflow: hidden">
+  <div class="model-vxe-table-root">
     <div class="tabBox" :style="{ height: height }">
       <vxe-table
-        size="mini"
+        size="small"
         stripe
         border
         :filter-config="{ confirmButtonText: '确定', resetButtonText: '取消', showIcon: false }"
@@ -194,7 +194,7 @@ defineExpose({
         @cell-dblclick="dblclick"
         :column-config="{ resizable: true }"
         :cell-config="{ height: 45 }"
-        :header-cell-config="{ height: 36 }"
+        :header-cell-config="{ height: 45 }"
         :edit-config="{ trigger: dblclick }"
         :checkbox-config="{
           labelField: '',
@@ -245,9 +245,9 @@ defineExpose({
             >
           </template>
         </vxe-table-column>
-        <vxe-table-column title="操作" align="left" width="155" fixed="right" v-if="isAction">
+        <vxe-table-column title="操作" align="center" width="168" fixed="right" v-if="isAction">
           <template #default="{ row }">
-            <div class="cells">
+            <div class="cells model-vxe-op-icons">
               <!-- <a @click="openMx(row)">{{ $t('打开模型') }}</a>
               <a-divider type="vertical" />
               <a @click="fitoutMx(row)">{{ $t('装配模型') }}</a>
@@ -294,6 +294,16 @@ defineExpose({
 </template>
 
 <style lang="less" scoped>
+@model-vxe-op-divider: #e0e0e0;
+@model-vxe-op-line-gap: 8px;
+@model-vxe-op-divider-h: 1em;
+
+.model-vxe-table-root {
+  margin-top: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
 .rx-page {
   padding: 10px 0px 10px 0px;
   margin: 0 auto;
@@ -312,19 +322,92 @@ defineExpose({
   text-overflow: ellipsis;
 }
 .tabBox {
-  margin-top: 10px;
+  margin-top: 0;
   position: relative;
   :deep(.vxe-table--filter-wrapper.is--active) {
     text-align: left !important;
   }
+
+  /* 与参数列表 ant 表格视觉对齐：14px、表头 #fafafa、边框 #e8e8e8、斑马行 */
+  :deep(.vxe-table) {
+    font-size: 14px !important;
+  }
+
+  :deep(.vxe-header--column .vxe-cell) {
+    background: #fafafa;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.85);
+    text-align: center;
+  }
+
+  :deep(.vxe-table--border .vxe-body--column),
+  :deep(.vxe-table--border .vxe-footer--column),
+  :deep(.vxe-table--border .vxe-header--column) {
+    background-image: linear-gradient(#e8e8e8, #e8e8e8), linear-gradient(#e8e8e8, #e8e8e8) !important;
+  }
+
+  :deep(.vxe-table--border .vxe-table--header-wrapper .vxe-body--column),
+  :deep(.vxe-table--border .vxe-table--body-wrapper .vxe-body--column) {
+    border-right-color: #e8e8e8;
+  }
+
+  :deep(.vxe-body--row.row--stripe > .vxe-body--column) {
+    background-color: #f7f8fb;
+  }
+
+  :deep(.vxe-table--body-wrapper) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
 }
-.cells {
-  margin-left: -5px;
+
+/* 操作列图标区：与参数页 calc-operation-links 一致的短竖线分隔 */
+.model-vxe-op-icons {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @model-vxe-op-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child)::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 1px;
+      height: @model-vxe-op-divider-h;
+      margin-left: -0.5px;
+      background: @model-vxe-op-divider;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+  }
+
   .act-btns {
-    margin-left: 10px;
     font-size: 15px;
     cursor: pointer;
-    :hover {
+
+    &:hover {
       color: #0d53e2;
       transform: translateY(-2px);
       transition: all 0.3s ease;

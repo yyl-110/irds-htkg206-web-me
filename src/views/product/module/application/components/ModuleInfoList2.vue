@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reactive, ref } from 'vue';
-import type { TableColumnType } from 'ant-design-vue';
+import { defineEmits, getCurrentInstance, reactive, ref } from 'vue';
 import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue';
 import _ from 'lodash-es';
-import { CaretDownOutlined, CaretUpOutlined, CheckCircleFilled, DownOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { DownOutlined, CheckCircleFilled } from '@ant-design/icons-vue';
 import * as echarts from 'echarts';
+import modelvxeTable from '../../components/table/modelvxeTable.vue';
 import addModule from '../../components/modal/addModule.vue';
 import applicationModule from '../../components/modal/applicationModule.vue';
 import parametricdesign from '../../components/modal/parametricdesign.vue';
@@ -12,7 +12,7 @@ import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequest
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
 import { useUserStore } from '@/store/modules/user';
-import { characterToList, sortermethod } from '@/utils/tools';
+import { characterToList } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon.js';
 import Empty from '@/components/Empty/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
@@ -30,7 +30,6 @@ import {
 } from '@/libs/webSocket';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
-import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
 
 defineProps({
   /** 反馈详情 id */
@@ -42,10 +41,14 @@ defineProps({
 });
 const emit = defineEmits(['nodeListInfo', 'getCategory']);
 const instance = getCurrentInstance();
+const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
 const categoryid = ref('');
 const permissionTypes = ref<any>();
 const menuId = ref<any>(null);
+const tabHeight = ref<any>(`${(window.innerHeight - 380) / 16}rem`);
+const initSelect = ref(false);
+const isArgs = ref<boolean>(false);
 const pageFlagDrawer = ref<boolean>(false);
 const modulePropertyInfo = ref<any>([]);
 const AddVisible = ref<boolean>(false);
@@ -59,7 +62,7 @@ const page = reactive({
   pageCount: 0,
   currentPage: 1,
 });
-const columns = ref<TableColumnType<any>[]>([]);
+const columns = ref<any>([]);
 const queryColumns = ref<any>([]);
 const dropdownList = ref<any>([
   { id: 1, name: '导入' },
@@ -68,7 +71,7 @@ const dropdownList = ref<any>([
 ]);
 const parmDesignData = ref<any>([]);
 const loading = ref(false);
-const selectModelList = ref<any[]>([]);
+const selectModelList = ref([]);
 const queryForm = reactive<Record<string, any>>({});
 
 const {
@@ -96,194 +99,6 @@ onMounted(() => {
 });
 
 const dataSource = ref<any>([]);
-
-const selectedRowkeys = ref<any[]>([]);
-type ModuleSortOrder = 'ascend' | 'descend' | '';
-const sortState = ref<{ key: string, order: ModuleSortOrder }>({ key: '', order: '' });
-const moduleFilterableColumnKeys = ref<string[]>([]);
-const moduleTableColumnFilter = ref<Record<string, string>>({});
-const moduleTableFilterOpenMap = ref<Record<string, boolean>>({});
-const SCROLL_X_BUFFER_PX = 2;
-const TABLE_SELECTION_COL_WIDTH_PX = 60;
-
-const moduleTableScrollX = computed(() => {
-  const sum = columns.value.reduce((acc, col) => {
-    const w = col.width;
-    return acc + (typeof w === 'number' ? w : Number(w) || 0);
-  }, 0);
-  return sum + TABLE_SELECTION_COL_WIDTH_PX + SCROLL_X_BUFFER_PX;
-});
-
-const moduleTableDisplayList = computed(() => {
-  let list = [...dataSource.value];
-  moduleFilterableColumnKeys.value.forEach((key: string) => {
-    const filterValue = String(moduleTableColumnFilter.value[key] ?? '')
-      .trim()
-      .toLowerCase();
-    if (!filterValue)
-      return;
-    list = list.filter((item: any) =>
-      String(item?.[key] ?? '')
-        .toLowerCase()
-        .includes(filterValue),
-    );
-  });
-  if (!sortState.value.key || !sortState.value.order)
-    return list;
-  const key = sortState.value.key;
-  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
-  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
-});
-
-const moduleTablePagination = computed(() => ({
-  current: page.currentPage,
-  pageSize: page.pageSize,
-  total: page.pageCount,
-  showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '30', '40', '50'],
-  showQuickJumper: false,
-  showTotal: (total: number) => `共 ${total} 条`,
-}));
-
-function applyModuleSelection(selection: any[]) {
-  selectModelList.value = selection;
-  if (selection.length == 1) {
-    btnType.value = false;
-  } else {
-    btnType.value = true;
-  }
-  if (selection.length == 0) {
-    delBtnType.value = true;
-  } else {
-    delBtnType.value = false;
-  }
-  if (selection.length == 0 || selection.length == 1) {
-    compareBtnType.value = true;
-  }
-  if (selection.length >= 2) {
-    compareBtnType.value = false;
-  }
-}
-
-const rowSelection = computed(() => ({
-  selectedRowKeys: selectedRowkeys.value,
-  onChange: (selectedRowKeys: any[], selectedRows: any[]) => {
-    selectedRowkeys.value = selectedRowKeys;
-    applyModuleSelection(selectedRows);
-  },
-}));
-
-function customRow(record: any) {
-  return {
-    onClick: () => {
-      const selectedRowKeys = [...selectedRowkeys.value];
-      const selectedRows = [...selectModelList.value];
-      const key = record.id;
-      if (selectedRowKeys.includes(key)) {
-        selectedRowkeys.value = selectedRowKeys.filter((k: any) => k !== key);
-        selectModelList.value = selectedRows.filter((item: any) => item.id !== key);
-      } else {
-        selectedRowkeys.value = [...selectedRowKeys, key];
-        selectModelList.value = [...selectedRows, record];
-      }
-      applyModuleSelection(selectModelList.value);
-    },
-  };
-}
-
-function isModuleTableSelectionColumn(column: any) {
-  const c = column?.className;
-  if (typeof c === 'string') return c.includes('selection-column');
-  if (Array.isArray(c)) return c.some((x: unknown) => String(x).includes('selection-column'));
-  return false;
-}
-
-function isSortableModuleColumn(column: any) {
-  const di = column?.dataIndex;
-  if (!di || di === 'operation') return false;
-  return true;
-}
-
-function isModuleFilterableColumn(column: any) {
-  const di = column?.dataIndex;
-  if (!di) return false;
-  return moduleFilterableColumnKeys.value.includes(String(di));
-}
-
-function setModuleFilterOpen(key: string, open: boolean) {
-  moduleTableFilterOpenMap.value = { ...moduleTableFilterOpenMap.value, [key]: open };
-}
-
-function handleModuleFilterOpenChange(key: string, open: boolean) {
-  setModuleFilterOpen(key, open);
-}
-
-function getModuleFilterOpen(key: string) {
-  return Boolean(moduleTableFilterOpenMap.value[key]);
-}
-
-function applyModuleColumnFilter(key: string) {
-  setModuleFilterOpen(key, false);
-}
-
-function resetModuleColumnFilter(key: string) {
-  moduleTableColumnFilter.value = { ...moduleTableColumnFilter.value, [key]: '' };
-  setModuleFilterOpen(key, false);
-}
-
-function toggleModuleColumnSort(column: any) {
-  if (!isSortableModuleColumn(column)) return;
-  const key = String(column.dataIndex);
-  if (sortState.value.key !== key) {
-    sortState.value = { key, order: 'ascend' };
-    return;
-  }
-  if (sortState.value.order === 'ascend') {
-    sortState.value = { key, order: 'descend' };
-    return;
-  }
-  if (sortState.value.order === 'descend') {
-    sortState.value = { key: '', order: '' };
-    return;
-  }
-  sortState.value = { key, order: 'ascend' };
-}
-
-function getModuleSortOrder(key: string): ModuleSortOrder {
-  return sortState.value.key === key ? sortState.value.order : '';
-}
-
-function handleModuleTableChange(pag: any) {
-  if (!pag) return;
-  if (pag.current !== page.currentPage || pag.pageSize !== page.pageSize) {
-    page.currentPage = pag.current;
-    page.pageSize = pag.pageSize;
-    selectedRowkeys.value = [];
-    selectModelList.value = [];
-    btnType.value = true;
-    delBtnType.value = true;
-    compareBtnType.value = true;
-    const hasFilter = queryColumns.value.some((c: any) => {
-      const v = queryForm[c.key];
-      return v !== undefined && v !== null && String(v).trim() !== '';
-    });
-    if (hasFilter) void handleQuery(false);
-    else void fetchModuleList();
-  }
-}
-
-function handleResizeColumn(w: number, col: TableColumnType<any>) {
-  col.width = w;
-}
-
-function getModuleRowKey(record: any) {
-  return record.id;
-}
-
-function getModuleTableRowClassName(_record: any, index: number) {
-  return index % 2 === 0 ? 'odd' : 'even';
-}
-
 function handleAddOrUpdate() {
   AddVisible.value = true;
   nextTick(() => {
@@ -322,14 +137,34 @@ function updModule() {
     addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0], menuId.value);
   });
 }
+function selectModelListCheck2(selection: any) {
+  selectModelList.value = selection;
+  if (selection.length == 1) {
+    btnType.value = false;
+  } else {
+    btnType.value = true;
+  }
+
+  if (selection.length == 0) {
+    delBtnType.value = true;
+  } else {
+    delBtnType.value = false;
+  }
+
+  if (selection.length == 0 || selection.length == 1) {
+    compareBtnType.value = true;
+  }
+
+  if (selection.length >= 2) {
+    compareBtnType.value = false;
+  }
+}
 const pdmType = ref<string>('');
 async function initData(categoryidStr: string, menuid: any, permissionType: any) {
   permissionTypes.value = permissionType;
   categoryid.value = categoryidStr;
   menuId.value = menuid;
   selectModelList.value = [];
-  selectedRowkeys.value = [];
-  sortState.value = { key: '', order: '' };
   modalInit();
 }
 // 列表初始化
@@ -338,9 +173,6 @@ async function modalInit() {
   delBtnType.value = true;
   btnType.value = true;
   compareBtnType.value = true;
-  selectedRowkeys.value = [];
-  selectModelList.value = [];
-  sortState.value = { key: '', order: '' };
   columns.value = [];
   queryColumns.value = [];
   dataSource.value = [];
@@ -363,11 +195,7 @@ async function modalInit() {
   if (libRes.data.code == 200) {
     modulePropertyInfo.value = libRes.data.data;
     const resData: any = libRes.data.data;
-    const parm: TableColumnType<any>[] = [];
-    const filterKeys: string[] = [];
-    let moduleDataColIndex = 0;
-    moduleTableColumnFilter.value = {};
-    moduleTableFilterOpenMap.value = {};
+    const parm: any = [];
     for (let i = 0; i < resData.length; i++) {
       // 动态查询条件：searchFlag == 0（默认查询）
       if (resData[i].searchFlag == 0) {
@@ -383,55 +211,30 @@ async function modalInit() {
           inputType: 'select',
           options,
         });
-        if (!(key in queryForm)) queryForm[key] = undefined;
+        if (!(key in queryForm)) queryForm[key] = '';
       }
 
       if (resData[i].showFlag == 0) {
-        const dataKey = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
-        const w = resData[i].colWidth == undefined ? 70 : resData[i].colWidth;
-        const col: TableColumnType<any> = {
+        parm.push({
+          id: resData[i].id,
           title: resData[i].propertyName,
-          dataIndex: dataKey,
-          key: String(dataKey),
-          align: 'left',
+          key: resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp,
+          align: 'center',
           resizable: true,
-          width: w,
-          ellipsis: dataKey !== 'para2' && dataKey !== 'status',
-        };
-        if (moduleDataColIndex < 2) {
-          col.fixed = 'left';
-          col.resizable = moduleDataColIndex !== 0;
-        }
-        if (moduleDataColIndex < 3)
-          filterKeys.push(String(dataKey));
-        (col as any).metaId = resData[i].id;
-        parm.push(col);
-        moduleDataColIndex++;
+          filters: [],
+          width: resData[i].colWidth == undefined ? 70 : resData[i].colWidth,
+          sortable: true,
+          render: resData[i].dataProp == 'para2' ? renderFunTiele(resData[i].dataProp) : renderFunTiele3(resData[i].dataProp),
+        });
       }
     }
-    queryColumns.value.forEach((c: any) => {
-      if (c.inputType === 'select') {
-        const v = queryForm[c.key];
-        if (v === '' || v === null) queryForm[c.key] = undefined;
-      }
-    });
-    moduleFilterableColumnKeys.value = filterKeys;
-    parm.push({
-      title: '操作',
-      dataIndex: 'operation',
-      key: 'operation',
+    parm.unshift({
+      fixed: 'left',
+      type: 'checkbox',
       align: 'left',
-      width: 168,
-      fixed: 'right',
-      resizable: false,
-      ellipsis: false,
+      width: '60',
     });
     columns.value = parm;
-  }
-  else {
-    moduleFilterableColumnKeys.value = [];
-    moduleTableColumnFilter.value = {};
-    moduleTableFilterOpenMap.value = {};
   }
   if (res.data.code == 200) {
     const resData: any = res.data.data;
@@ -491,6 +294,31 @@ function delModule() {
   });
 }
 
+function renderFunTiele(key: any) {
+  const render = (h: any, params: any) => {
+    return h(
+      'div',
+      {
+        props: {
+          type: 'text', // 类型
+        },
+        style: {
+          color: '#1979e0',
+          'text-decoration': 'underline',
+          cursor: 'pointer',
+        },
+        on: {
+          click: () => {
+            pdmModuleCode.value = params.row[key];
+            PDMid.value = params.row.id;
+          },
+        },
+      },
+      params.row[key],
+    );
+  };
+  return render;
+}
 async function moduleDetails(rowRecord: any) {
   pageFlagDrawer.value = true;
   parmType.value == 0;
@@ -500,6 +328,42 @@ async function moduleDetails(rowRecord: any) {
     str: item.dataProp,
     val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
   }));
+}
+
+// 超出宽度隐藏字符串 。。。代替
+function renderFunTiele3(key: any) {
+  const render = (h: any, params: any) => {
+    return h('div', [
+      h(
+        'span',
+        {
+          style: {
+            display: 'inline-block',
+            width: `${params.column._width * 0.8}px`,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          },
+        },
+        params.row[key],
+      ),
+    ]);
+  };
+  return render;
+}
+function onShowSizeChange(current: number, pageSize: number) {
+  page.currentPage = current;
+  page.pageSize = pageSize;
+  // 分页变化：若当前存在筛选条件，走筛选接口；否则走普通列表接口
+  const hasFilter = queryColumns.value.some((c: any) => {
+    const v = queryForm[c.key];
+    return v !== undefined && v !== null && String(v).trim() !== '';
+  });
+  if (hasFilter) {
+    handleQuery(false);
+  } else {
+    fetchModuleList();
+  }
 }
 
 function buildFilterArr() {
@@ -517,14 +381,7 @@ function buildFilterArr() {
 }
 
 function handleQuery(resetPage = true) {
-  if (resetPage) {
-    page.currentPage = 1;
-    selectedRowkeys.value = [];
-    selectModelList.value = [];
-    btnType.value = true;
-    delBtnType.value = true;
-    compareBtnType.value = true;
-  }
+  if (resetPage) page.currentPage = 1;
   const filterArr = buildFilterArr();
   if (filterArr.length > 0) {
     queryModuleLibrary(filterArr);
@@ -535,16 +392,12 @@ function handleQuery(resetPage = true) {
 
 function handleQueryReset() {
   queryColumns.value.forEach((c: any) => {
-    queryForm[c.key] = c.inputType === 'select' ? undefined : '';
+    queryForm[c.key] = '';
   });
   page.currentPage = 1;
-  selectedRowkeys.value = [];
-  selectModelList.value = [];
-  btnType.value = true;
-  delBtnType.value = true;
-  compareBtnType.value = true;
   fetchModuleList();
 }
+function filterChange() {}
 // 打开模型
 function openMx(data: any) {
   if (data.length == 1) {
@@ -820,14 +673,13 @@ async function importSuccessfulFun() {
 }
 // 列宽保存
 function cWidth() {
-  const columnList: any[] = [];
-  for (const col of columns.value) {
-    const metaId = (col as any).metaId;
-    const w = col.width;
-    if (metaId != null && w != null) {
+  const columnList = [];
+  const list = modelvxeTableref.value.vxeTable1.getTableColumn().tableColumn;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].params) {
       columnList.push({
-        id: metaId,
-        colWidth: typeof w === 'number' ? w : Number(w) || 0,
+        id: list[i].params,
+        colWidth: list[i].renderWidth,
       });
     }
   }
@@ -1013,7 +865,7 @@ async function compareData() {
   const list = [];
   parmList = res.data.data.listPropertyName;
   const strlist = res.data.data.listModule;
-  
+
   // 动态找出“模型名称”对应的字段名
   let modelNameKey = '';
   for (let i = 0; i < parmList.length; i++) {
@@ -1045,7 +897,7 @@ async function compareData() {
     if (list.length == 0) {
       parm.push({
         id: strlist[j].id, // 缺少id
-        title: (modelNameKey && strlist[j][modelNameKey]) ? strlist[j][modelNameKey] : '数据',
+        title: modelNameKey && strlist[j][modelNameKey] ? strlist[j][modelNameKey] : '数据',
         key: `数据${j}`,
         dataIndex: `数据${j}`,
         align: 'center',
@@ -1301,7 +1153,7 @@ defineExpose({ initData, selectAllModuleInfo });
           <div class="query-scroll">
             <a-row :gutter="[12, 6]">
               <a-col v-for="item in queryColumns" :key="item.key" :span="8">
-                <a-form-item class="query-item">
+                <a-form-item :label="item.title" class="query-item">
                   <a-select
                     v-if="item.inputType === 'select'"
                     v-model:value="queryForm[item.key]"
@@ -1315,7 +1167,7 @@ defineExpose({ initData, selectAllModuleInfo });
                     "
                     size="middle"
                     style="width: 100%"
-                    :placeholder="'请选择' + item.title">
+                    placeholder="请选择">
                     <a-select-option v-for="opt in item.options" :key="opt" :value="opt">
                       {{ opt }}
                     </a-select-option>
@@ -1383,105 +1235,31 @@ defineExpose({ initData, selectAllModuleInfo });
         </div>
       </div>
     </div>
-    <div class="module-info-table-wrap module-info-table-shell" style="width: 100%">
-      <a-card class="calc-table-card module-info-list-table-card">
-        <a-table
-          class="exe-config-table"
-          :scroll="{ x: moduleTableScrollX, y: 500 }"
-          :row-key="getModuleRowKey"
-          :columns="columns"
-          :data-source="moduleTableDisplayList"
-          :pagination="moduleTablePagination"
-          :row-selection="rowSelection"
-          :custom-row="customRow"
-          bordered
-          table-layout="fixed"
-          :locale="locale"
-          :loading="loading"
-          :row-class-name="getModuleTableRowClassName"
-          @resize-column="handleResizeColumn"
-          @change="handleModuleTableChange">
-          <template #headerCell="{ column }">
-            <template v-if="isModuleTableSelectionColumn(column)">
-              <span />
-            </template>
-            <template v-else>
-              <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isModuleFilterableColumn(column) }">
-                <span
-                  class="header-title-sort"
-                  :class="{ 'header-title-sort--disabled': !isSortableModuleColumn(column) }"
-                  @click.stop="toggleModuleColumnSort(column)">
-                  <span>{{ column.title }}</span>
-                  <span v-if="isSortableModuleColumn(column)" class="header-sort-icon">
-                    <CaretUpOutlined v-if="getModuleSortOrder(String(column.dataIndex)) === 'ascend'" />
-                    <CaretDownOutlined v-else-if="getModuleSortOrder(String(column.dataIndex)) === 'descend'" />
-                    <CaretUpOutlined v-else class="header-sort-icon--muted" />
-                  </span>
-                </span>
-                <span v-if="isModuleFilterableColumn(column)" class="header-filter-anchor">
-                  <a-popover
-                    trigger="click"
-                    placement="bottomRight"
-                    :open="getModuleFilterOpen(String(column.dataIndex))"
-                    @openChange="handleModuleFilterOpenChange(String(column.dataIndex), $event)">
-                    <template #content>
-                      <div class="header-filter-pop">
-                        <a-input
-                          v-model:value="moduleTableColumnFilter[String(column.dataIndex)]"
-                          :placeholder="`搜索 ${column.title}`"
-                          allow-clear />
-                        <div class="header-filter-actions">
-                          <a-button type="primary" size="small" @click="applyModuleColumnFilter(String(column.dataIndex))">
-                            <SearchOutlined />
-                            确定
-                          </a-button>
-                          <a-button size="small" @click="resetModuleColumnFilter(String(column.dataIndex))">重置</a-button>
-                        </div>
-                      </div>
-                    </template>
-                    <FilterOutlined class="header-query-icon" />
-                  </a-popover>
-                </span>
-              </div>
-            </template>
-          </template>
-          <template #bodyCell="{ column, record, text }">
-            <template v-if="column.dataIndex === 'status'">
-              <span>
-                <span v-if="record.status === 0" style="color: rgba(80, 188, 109, 1)">已发布</span>
-                <span v-else-if="record.status === 1" style="color: rgb(83, 112, 199)">设计中</span>
-                <span v-else-if="record.status === 2" style="color: #a2a1a6">已停用</span>
-                <span v-else-if="record.status === 3" style="color: rgb(240, 231, 73)">审核中</span>
-              </span>
-            </template>
-            <template v-else-if="column.dataIndex === 'para2'">
-              <a style="color: #1979e0; text-decoration: underline; cursor: pointer" @click.stop="clickEvent(record, 'para2')">{{ record.para2 }}</a>
-            </template>
-            <template v-else-if="column.dataIndex === 'operation'">
-              <div class="model-vxe-op-icons" @click.stop>
-                <a-tooltip title="打开模型" placement="topLeft">
-                  <EpcIcon class="act-btns" type="icon-folder-opened" @click="openMx([record])" />
-                </a-tooltip>
-                <a-tooltip title="装配模型" placement="topLeft">
-                  <EpcIcon class="act-btns" style="font-size: 17px" type="icon-element-plus" @click="fitoutMx([record])" />
-                </a-tooltip>
-                <a-tooltip title="打开二维图" placement="topLeft">
-                  <EpcIcon class="act-btns" type="icon-picture" @click="openEwt([record])" />
-                </a-tooltip>
-                <a-tooltip title="参数化设计" placement="topLeft">
-                  <EpcIcon class="act-btns" type="icon-a-3Dbeifen" @click="argsMx([record])" />
-                </a-tooltip>
-              </div>
-            </template>
-            <template v-else-if="column.ellipsis">
-              <TableCellOverflowTooltip :text="String(text ?? '')" />
-            </template>
-            <template v-else>
-              {{ text ?? '' }}
-            </template>
-          </template>
-        </a-table>
-      </a-card>
+    <div v-if="!loading" style="width: 100%">
+      <modelvxeTable
+        ref="modelvxeTableref"
+        :loading="loading"
+        :init-select="initSelect"
+        :is-args="isArgs"
+        :columns="columns"
+        :data="dataSource"
+        :height="tabHeight"
+        :page="page"
+        :page-flag="true"
+        :model-type="0"
+        :categoryid="categoryid"
+        @select-model-list-check="selectModelListCheck2"
+        @click-event="clickEvent"
+        @on-show-size-change="onShowSizeChange"
+        @filter-change="filterChange"
+        @open-mx="openMx"
+        @fitout-mx="fitoutMx"
+        @edit-mx="editMx"
+        @open-ewt="openEwt"
+        @args-mx="argsMx" />
+    </div>
+    <div v-else class="example">
+      <a-spin tip="加载中..." />
     </div>
   </div>
   <addModule ref="addOrUpdate" :modal-visible="AddVisible" @handle-save="handleSave" @modal-init="modalInit" @on-close="AddVisible = false" />
@@ -1557,26 +1335,22 @@ defineExpose({ initData, selectAllModuleInfo });
       </template>
     </a-modal>
   </div>
-  <a-modal
-    v-model:visible="tabularflag"
-    style="width: 80%"
-    :confirm-loading="$isPending()"
-    :ok-text="$t('确定')"
-    :cancel-text="$t('取消')"
-    :mask-closable="false">
+  <a-modal v-model:visible="tabularflag" style="width: 80%" :confirm-loading="$isPending()" :ok-text="$t('确定')" :cancel-text="$t('取消')" :mask-closable="false">
     <template #title>
-      <div v-if="tabularColumn.length > 1" style="font-size: 18px; font-weight: bold; background: #f4f8ff; padding: 16px 24px; margin: -16px -24px; display: flex; align-items: center; border-radius: 8px 8px 0 0;">
+      <div
+        v-if="tabularColumn.length > 1"
+        style="font-size: 18px; font-weight: bold; background: #f4f8ff; padding: 16px 24px; margin: -16px -24px; display: flex; align-items: center; border-radius: 8px 8px 0 0">
         <template v-for="(col, index) in tabularColumn.slice(1)" :key="col.key">
-          <span style="color: #313133; margin: 0 4px;">{{ col.title }}</span>
-          <span v-if="index !== tabularColumn.length - 2" style="margin: 0 16px; display: inline-flex; align-items: center;">
-            <img src="@/assets/images/vs.png" alt="VS" style="height: 24px;" />
+          <span style="color: #313133; margin: 0 4px">{{ col.title }}</span>
+          <span v-if="index !== tabularColumn.length - 2" style="margin: 0 16px; display: inline-flex; align-items: center">
+            <img src="@/assets/images/vs.png" alt="VS" style="height: 24px" />
           </span>
         </template>
       </div>
       <div v-else>{{ $t('模块数据比较') }}</div>
     </template>
-    
-    <div style="margin: 16px 0 16px 12px;">
+
+    <div style="margin: 16px 0 16px 12px">
       <a-checkbox-group v-model:value="checkParmList" style="width: 100%" @change="tabularCheckList">
         <a-checkbox value="隐藏相同项">
           {{ '隐藏相同项' }}
@@ -1595,15 +1369,14 @@ defineExpose({ initData, selectAllModuleInfo });
       :columns="tabularColumn"
       :data-source="tabularData"
       style="overflow-y: hidden"
-      :row-class-name="setFixedRowClass"
-    >
+      :row-class-name="setFixedRowClass">
       <template #bodyCell="{ column, record, text }">
         <template v-if="column.dataIndex === '数据'">
           <div class="flex items-center w-full">
             <span class="flex-1"></span>
             <span class="shrink-0 text-center">{{ text }}</span>
             <span class="flex-1 text-right">
-              <CheckCircleFilled v-if="record.isSame" class="align-middle" style="color: #52c41a; font-size: 15px;" />
+              <CheckCircleFilled v-if="record.isSame" class="align-middle" style="color: #52c41a; font-size: 15px" />
             </span>
           </div>
         </template>
@@ -1627,9 +1400,9 @@ defineExpose({ initData, selectAllModuleInfo });
     @close="batchflag = false" />
   <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="800">
     <div ref="udfBoxRef" class="px-[16px] h-full wei-scrollbar overflow-y-auto flex flex-col" :style="udfBoxStyle()">
-      <a-tabs v-model:activeKey="parmType" @change="toParm" :animated="false" style="flex: 1; min-height: 0;">
+      <a-tabs v-model:activeKey="parmType" @change="toParm" :animated="false" style="flex: 1; min-height: 0">
         <a-tab-pane :key="0" tab="分类参数">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style" style="height: 100%">
             <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-bottom: 20px" size="small" bordered>
               <a-descriptions-item :label="item.name" style="width: 150px">
                 {{ item.val }}
@@ -1637,9 +1410,9 @@ defineExpose({ initData, selectAllModuleInfo });
             </a-descriptions>
           </div>
         </a-tab-pane>
-        
+
         <a-tab-pane :key="1" tab="常规属性">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style" style="height: 100%">
             <div v-if="pdmDataFlag">
               <a-descriptions style="margin-top: 20px" size="small" bordered>
                 <a-descriptions-item label="名称：" style="width: 200px">
@@ -1672,7 +1445,7 @@ defineExpose({ initData, selectAllModuleInfo });
         </a-tab-pane>
 
         <a-tab-pane :key="3" tab="知识文档">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style" style="height: 100%">
             <div style="width: 100%; height: 30px; text-align: left; margin-top: 10px">模块库知识:</div>
             <div style="width: 100%">
               <a-table
@@ -1716,7 +1489,7 @@ defineExpose({ initData, selectAllModuleInfo });
         </a-tab-pane>
 
         <a-tab-pane :key="5" tab="历史文档">
-          <div class="udfPage_style history-doc-table-wrap" style="height: 100%;">
+          <div class="udfPage_style history-doc-table-wrap" style="height: 100%">
             <a-table
               :scroll="{ x: 1200, y: 400 }"
               row-key="id"
@@ -1795,7 +1568,7 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 .btn-box-middle {
   flex: 1;
-  padding: 4px 0;
+  padding: 4px 10px;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1810,7 +1583,7 @@ defineExpose({ initData, selectAllModuleInfo });
   max-height: 78px; /* 默认最多两行，超出滚动 */
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0;
+  padding: 0 6px; /* 抵消 a-row gutter 的负 margin，避免横向滚动条 */
 }
 .query-actions {
   display: flex;
@@ -1824,12 +1597,27 @@ defineExpose({ initData, selectAllModuleInfo });
   align-items: center;
 }
 :deep(.query-item .ant-form-item-label) {
-  display: none !important;
+  flex: 0 0 96px; /* 固定 label 宽度，保证对齐 */
+  text-align: right;
+  padding-right: 8px;
+  padding-top: 0 !important;
+  display: flex;
+  align-items: center;
+}
+:deep(.query-item .ant-form-item-label > label) {
+  font-size: 14px;
+  color: #313133;
+  display: inline-block;
+  width: 100%;
+  line-height: 26px;
+  transform: translateY(1px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 :deep(.query-item .ant-form-item-control) {
   min-width: 0;
   flex: 1;
-  max-width: 100%;
 }
 
 :deep(.query-item .ant-input-affix-wrapper),
@@ -1954,201 +1742,5 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 :deep(.ant-drawer-body) {
   padding: 10px !important;
-}
-
-/* 模块主表：与 exeConfigTab 列表区一致 */
-.module-info-table-wrap {
-  margin-top: 10px;
-}
-
-.module-info-list-table-card {
-  flex: 1;
-  min-height: 0;
-  border: none;
-  box-shadow: none;
-
-  :deep(.ant-card-body) {
-    height: 100%;
-    padding: 0;
-  }
-
-  :deep(.ant-table-wrapper) {
-    height: 100%;
-  }
-
-  :deep(.ant-table-thead > tr > th) {
-    border-right: 1px solid #e8e8e8;
-    text-align: center;
-  }
-
-  :deep(.ant-table-tbody > tr > td) {
-    border-right: none !important;
-    text-align: left !important;
-  }
-
-  :deep(.ant-table-tbody > tr > td.ant-table-selection-column) {
-    text-align: center !important;
-  }
-
-  :deep(.ant-table-tbody > tr > td:last-child) {
-    border-right: 1px solid #e8e8e8 !important;
-  }
-
-  :deep(.ant-table-tbody > tr:last-child > td) {
-    border-bottom: 1px solid #e8e8e8 !important;
-  }
-}
-
-.exe-config-table {
-  :deep(.ant-table-cell-ellipsis .ant-typography) {
-    margin-bottom: 0;
-  }
-
-  :deep(.ant-table-content),
-  :deep(.ant-table-body) {
-    padding-bottom: 14px;
-    box-sizing: border-box;
-  }
-
-  :deep(.ant-table-bordered > .ant-table-container) {
-    border-left: none !important;
-  }
-
-  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
-  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
-    border-left: 1px solid #e8e8e8 !important;
-  }
-
-  :deep(.ant-table-cell-fix-left-last::after),
-  :deep(.ant-table-cell-fix-right-first::after),
-  :deep(.ant-table-cell-fix-left-first::after) {
-    display: none !important;
-  }
-
-  :deep(.ant-table-cell-fix-left-last) {
-    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
-  }
-
-  :deep(.ant-table-cell-fix-right-first) {
-    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
-  }
-}
-
-.header-query-icon {
-  font-size: 12px;
-  color: #8c8c8c;
-  cursor: pointer;
-}
-
-.header-cell-main {
-  position: relative;
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.header-cell-main--has-filter {
-  padding-right: 22px;
-}
-
-.header-filter-anchor {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-}
-
-.header-title-sort {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-}
-
-.header-title-sort--disabled {
-  cursor: default;
-}
-
-.header-sort-icon {
-  font-size: 11px;
-  color: #595959;
-  display: inline-flex;
-}
-
-.header-sort-icon--muted {
-  color: #bfbfbf;
-}
-
-.header-filter-pop {
-  width: 220px;
-}
-
-.header-filter-actions {
-  margin-top: 10px;
-  display: flex;
-  gap: 8px;
-}
-
-@model-vxe-op-divider: #e0e0e0;
-@model-vxe-op-line-gap: 8px;
-@model-vxe-op-divider-h: 1em;
-
-.model-vxe-op-icons {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  row-gap: 6px;
-  column-gap: 0;
-
-  > * {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    margin: 0;
-    padding: 2px @model-vxe-op-line-gap;
-    line-height: inherit;
-    font-size: inherit;
-    border: none;
-    border-radius: 0;
-
-    &:first-child {
-      padding-left: 0;
-    }
-
-    &:last-child {
-      padding-right: 0;
-    }
-
-    &:not(:first-child)::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      width: 1px;
-      height: @model-vxe-op-divider-h;
-      margin-left: -0.5px;
-      background: @model-vxe-op-divider;
-      transform: translateY(-50%);
-      pointer-events: none;
-    }
-  }
-
-  .act-btns {
-    font-size: 15px;
-    cursor: pointer;
-
-    &:hover {
-      color: #0d53e2;
-      transform: translateY(-2px);
-      transition: all 0.3s ease;
-    }
-  }
 }
 </style>

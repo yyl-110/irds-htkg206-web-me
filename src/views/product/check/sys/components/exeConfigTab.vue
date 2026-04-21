@@ -748,11 +748,18 @@ watch(editModalVisible, v => {
     border-left: 1px solid #e8e8e8 !important;
   }
 
-  /* 去掉固定列 inset 阴影，减轻横向滚动在 ping 边界时的抖动观感 */
-  :deep(.ant-table-cell-fix-left-first::after),
   :deep(.ant-table-cell-fix-left-last::after),
-  :deep(.ant-table-cell-fix-right-first::after) {
-    display: none;
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
   }
 }
 
@@ -765,11 +772,54 @@ watch(editModalVisible, v => {
   vertical-align: bottom;
 }
 
+/* 操作列：项间短竖线（垂直居中、约 1em 高），竖线与左右文案各距 8px */
+@exe-op-links-divider: #e0e0e0;
+@exe-op-links-line-gap: 8px;
+@exe-op-links-divider-h: 1em;
+
 .calc-operation-links {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: flex-start;
-  gap: 10px;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @exe-op-links-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child) {
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: @exe-op-links-divider-h;
+        margin-left: -0.5px;
+        background: @exe-op-links-divider;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+    }
+  }
 }
 
 .calc-operation-links--disabled {
