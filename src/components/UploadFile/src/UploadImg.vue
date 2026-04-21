@@ -1,36 +1,25 @@
 <script setup lang="ts" name="UploadImg">
 import { ref } from 'vue';
-import type { UploadFile, UploadProps } from 'ant-design-vue';
+import type { UploadChangeParam, UploadFile, UploadProps } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
-import { LoadingOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined } from '@ant-design/icons-vue';
 import { getAccessToken } from '@/utils/auth';
 import { service } from '@/httpRequest/service';
 import { generateUUID } from '@/utils/GenerateUUID';
+import UploadModal from '@/views/product/components/upload-modal.vue';
+import { useUserStore } from '@/store/modules/user';
 
 type FileTypes = 'image/apng' | 'image/bmp' | 'image/gif' | 'image/jpeg' | 'image/pjpeg' | 'image/png' | 'image/svg+xml' | 'image/tiff' | 'image/webp' | 'image/x-icon';
 
-/** 定义 props 的类型 */
 interface Props {
-  /**
-   * 文件的 queryId / queryId 列表
-   * @example `'queryId1'` / `['queryId1', 'queryId2']`
-   */
   modelValue: string;
-  /** 上传请求地址 */
   updateUrl?: string;
-  /** 是否支持拖拽上传 */
   drag?: boolean;
-  /** 是否禁用上传组件 */
   disabled?: boolean;
-  /** 图片大小限制, 默认为 5M */
   fileSize?: number;
-  /** 文件类型 */
   fileType?: string[];
-  /** 组件高度 */
   height?: string;
-  /** 组件宽度 */
   width?: string;
-  /** 组件边框圆角 */
   borderRadius?: string;
 }
 
@@ -39,7 +28,6 @@ const props = withDefaults(defineProps<Props>(), {
   drag: true,
   disabled: false,
   fileSize: 5,
-  /** 文件类型 */
   fileType: () => ['image/jpeg', 'image/png', 'image/gif'],
   height: '150px',
   width: '150px',
@@ -49,9 +37,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   change: [fileList: Array<UploadFile>];
 }>();
-const loading = ref(false);
 
-const fileList = ref<Array<UploadFile>>([]);
+const userStore = useUserStore();
+const uploadModalVisible = ref(false);
+const attachmentLevel = ref(Number(userStore.getConfidentialLevel[0]?.value ?? 0));
+const innerFileList = ref<Array<UploadFile>>([]);
 
 if (props.modelValue) {
   const file: UploadFile = {
@@ -59,13 +49,22 @@ if (props.modelValue) {
     name: props.modelValue,
     url: props.modelValue,
   };
-  updateFileUrl(file, props.modelValue).then(() => fileList.value.push(file));
+  void updateFileUrl(file, props.modelValue).then(() => innerFileList.value.push(file));
 }
 
-/**
- * before upload file
- * @param file file
- */
+async function updateFileUrl(file: UploadFile, queryId?: string) {
+  const r = file.response as { data?: { queryId?: string } } | undefined;
+  const qid = r?.data?.queryId;
+  if (queryId || (file.status === 'done' && !file.url && qid)) {
+    const _queryId = queryId ?? qid;
+    const res = await service({
+      url: '/admin-api/system/demo/showByQueryId',
+      params: { token: getAccessToken(), queryId: _queryId },
+    });
+    file.url = res.data.data;
+  }
+}
+
 const beforeUpload: UploadProps['beforeUpload'] = file => {
   const imgSize = file.size / 1024 / 1024 < props.fileSize;
   const imgType = props.fileType;
@@ -74,71 +73,80 @@ const beforeUpload: UploadProps['beforeUpload'] = file => {
   return imgType.includes(file.type as FileTypes) && imgSize;
 };
 
-/**
- * 更新 file url
- * @param file
- * @param queryId
- */
-async function updateFileUrl(file: UploadFile, queryId?: string) {
-  if (queryId || (file.status === 'done' && !file.url && file.response && file.response.data && file.response.data.queryId)) {
-    const _queryId = queryId || file.response.data.queryId;
+/** 与历史一致：走 demo 保存文件接口（路径若与后端不一致可调整） */
+async function imgDemoCustomRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0]) {
+  const formData = new FormData();
+  formData.append('file', options.file as File);
+  try {
     const res = await service({
-      url: '/admin-api/system/demo/showByQueryId',
-      params: { token: getAccessToken(), queryId: _queryId },
+      url: '/admin-api/system/demo/saveFile',
+      method: 'POST',
+      data: formData,
     });
-    // file.url = 'https://ss2.bdstatic.com/lfoZeXSm1A5BphGlnYG/skin/22.jpg'
-    file.url = res.data.data;
+    const payload = res.data?.data ?? res.data;
+    options.onSuccess?.(payload);
+  } catch (err) {
+    options.onError?.(err as Error);
   }
 }
 
-/**
- * handle file change
- * @param evt event
- */
-const onFileChange: UploadProps['onChange'] = async evt => {
-  await Promise.all(evt.fileList.map(item => updateFileUrl(item)));
-  fileList.value = [...evt.fileList];
-  emit('change', fileList.value);
-};
+async function onUploadChange(info: UploadChangeParam) {
+  innerFileList.value = [...info.fileList];
+  await Promise.all(innerFileList.value.map(item => updateFileUrl(item)));
+  emit('change', innerFileList.value);
+}
 
-/**
- * custom request
- * @param options options
- */
-const customRequest: UploadProps['customRequest'] = async options => {
-  const data = new FormData();
-  data.append('file', options.file);
-  try {
-    // const res = await service({ url: props.updateUrl, method: 'POST', data })
-    const res = await AdminApiSystemDemo.saveFile({ file: options.file as File });
-    console.log(res);
-    if (options.onSuccess) options.onSuccess(res.data.data);
-  } catch (err) {
-    if (options.onError) options.onError(err as any);
-  }
-};
+function onRemoveFile() {
+  innerFileList.value = [];
+}
+
+function onModalConfirm() {
+  emit('change', [...innerFileList.value]);
+}
 </script>
 
 <template>
-  <div class="upload-box">
-    <a-upload
-      v-model:file-list="fileList"
-      name="file"
-      list-type="picture-card"
-      class="avatar-uploader"
-      :with-credentials="true"
+  <div class="upload-box" :style="{ width: props.width }">
+    <div v-if="innerFileList[0]?.url" class="upload-img-thumb">
+      <img :src="innerFileList[0].url" alt="" />
+    </div>
+    <a-button type="dashed" :disabled="disabled" class="upload-img-trigger" @click="uploadModalVisible = true">
+      <PlusOutlined />
+      <span class="ant-upload-text">Upload</span>
+    </a-button>
+    <UploadModal
+      v-model:visible="uploadModalVisible"
+      v-model:confidential-level="attachmentLevel"
+      accept="image/png,image/jpeg,image/jpg,image/gif"
+      :file-list="innerFileList"
       :before-upload="beforeUpload"
-      :custom-request="customRequest"
-      @change="onFileChange">
-      <!-- <img v-if="modelValue" style="width: 100%;" :src="modelValue" alt="avatar"> -->
-      <!-- <div v-else> -->
-      <div>
-        <LoadingOutlined v-if="loading" />
-        <PlusOutlined />
-        <div class="ant-upload-text">Upload</div>
-      </div>
-    </a-upload>
+      :custom-request="imgDemoCustomRequest"
+      :max-count="1"
+      @upload-change="onUploadChange"
+      @remove-file="onRemoveFile"
+      @confirm="onModalConfirm" />
   </div>
 </template>
 
-<style scoped lang="less"></style>
+<style scoped lang="less">
+.upload-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.upload-img-thumb {
+  width: 100%;
+  max-width: 120px;
+  img {
+    max-width: 100%;
+    border-radius: 6px;
+    vertical-align: middle;
+  }
+}
+.upload-img-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+</style>

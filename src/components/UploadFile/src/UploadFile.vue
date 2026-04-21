@@ -1,122 +1,104 @@
-<script setup lang="ts" name="UploadImg">
-import { ref } from 'vue';
-import type { UploadFile, UploadProps } from 'ant-design-vue';
+<script setup lang="ts" name="UploadFile">
+import { computed, ref, watch } from 'vue';
+import type { UploadChangeParam, UploadFile, UploadProps } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
-import { LoadingOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import { getAccessToken } from '@/utils/auth';
-import { service } from '@/httpRequest/service';
-import { generateUUID } from '@/utils/GenerateUUID';
+import { UploadOutlined } from '@ant-design/icons-vue';
 import { handleEpcDownload } from '@/utils/file';
-import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-type FileTypes = 'image/apng' | 'image/bmp' | 'image/gif' | 'image/jpeg' | 'image/pjpeg' | 'image/png' | 'image/svg+xml' | 'image/tiff' | 'image/webp' | 'image/x-icon';
+import UploadModal from '@/views/product/components/upload-modal.vue';
+import { useUserStore } from '@/store/modules/user';
 
-/** 定义 props 的类型 */
 interface Props {
-  // /**
-  //  * 文件的 queryId / queryId 列表
-  //  * @example `'queryId1'` / `['queryId1', 'queryId2']`
-  //  */
-  // /** 上传请求地址 */
-  updateUrl?: string;
-  // /** 是否支持拖拽上传 */
-  // drag?: boolean;
-  // /** 是否禁用上传组件 */
-  // disabled?: boolean;
-  // /** 图片大小限制, 默认为 5M */
   fileSize?: number;
-  // /** 文件类型 */
-  // fileType?: string[];
-  // /** 组件高度 */
-  // height?: string;
-  // /** 组件宽度 */
-  // width?: string;
-  // /** 组件边框圆角 */
-  // borderRadius?: string;
   fileList?: Array<UploadFile>;
+  /** 接受的文件类型，如 .pdf,.doc 或 * */
+  accept?: string;
+  /** 有外层表单密级时传入，用于限制附件密级选项 */
+  formConfidentialLevel?: number | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  updateUrl: import.meta.env.VITE_UPLOAD_URL,
-  drag: true,
-  disabled: false,
   fileSize: 10,
-  /** 文件类型 */
-  fileType: () => ['image/jpeg', 'image/png', 'image/gif'],
-  height: '150px',
-  width: '150px',
-  borderRadius: '8px',
+  accept: '*',
 });
+
 const emit = defineEmits<{
   customRequest: [options: any];
-  change: [UploadfileList: Array<UploadFile>];
+  change: [UploadfileList: Array<UploadFile> | null];
 }>();
-const loading = ref(false);
 
-const UploadfileList = ref<Array<UploadFile>>([]);
+const userStore = useUserStore();
+const uploadModalVisible = ref(false);
+const attachmentLevel = ref(Number(userStore.getConfidentialLevel[0]?.value ?? 0));
+const innerFileList = ref<UploadFile[]>([]);
 
-/**
- * before upload file
- * @param file file
- */
-const beforeUpload: UploadProps['beforeUpload'] = file => {
-  const imgSize = file.size / 1024 / 1024 < props.fileSize;
-  if (!imgSize) message.warn(`上传文件大小不能超过 ${props.fileSize}M！`);
-  return imgSize;
-};
-
-/**
- * handle file change
- * @param evt event
- */
-const onFileChange: UploadProps['onChange'] = async evt => {};
-const onFileremove: UploadProps['onChange'] = async evt => {
-  let file: any = null;
-  emit('change', file);
-};
-const handlePreview: UploadProps['onChange'] = async (file: any) => {
-  const downLoadItem = {
-    fileId: file.response ? file.response.id : file.id,
-  };
-  handleEpcDownload(downLoadItem, file.response ? file.response.fileName : `${file.name}`);
-};
-
-/**
- * custom request
- * @param options options
- */
-const customRequest: UploadProps['customRequest'] = async options => {
-  emit('customRequest', options);
-};
 watch(
   () => props.fileList,
-  (newVal: any, oldVal) => {
-    UploadfileList.value = newVal;
+  v => {
+    innerFileList.value = v ? [...v] : [];
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
+
+const beforeUpload: UploadProps['beforeUpload'] = file => {
+  const ok = file.size / 1024 / 1024 < props.fileSize;
+  if (!ok) message.warn(`上传文件大小不能超过 ${props.fileSize}M！`);
+  return ok;
+};
+
+function passCustomRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0]) {
+  emit('customRequest', options);
+}
+
+function onUploadChange(info: UploadChangeParam) {
+  innerFileList.value = [...info.fileList];
+  emit('change', innerFileList.value);
+}
+
+function onUploadPreview(file: UploadFile) {
+  const r = file.response as { id?: string; fileName?: string } | undefined;
+  const fileId = r?.id ?? (file as UploadFile & { id?: string }).id;
+  handleEpcDownload({ fileId }, r?.fileName ?? file.name ?? '');
+}
+
+function onRemoveFile() {
+  innerFileList.value = [];
+  emit('change', null);
+}
+
+function onModalConfirm() {
+  emit('change', [...innerFileList.value]);
+}
+
+const displayName = computed(() => innerFileList.value[0]?.name);
 </script>
 
 <template>
   <div class="upload-box">
-    <a-upload
-      v-model:file-list="UploadfileList"
-      :max-count="1"
-      class="avatar-uploader"
-      :with-credentials="true"
+    <a-space align="center">
+      <a-button type="primary" ghost @click="uploadModalVisible = true">
+        <UploadOutlined />
+        {{ $t('选择') }}
+      </a-button>
+      <span v-if="displayName" class="upload-file-inline-name">{{ displayName }}</span>
+    </a-space>
+    <UploadModal
+      v-model:visible="uploadModalVisible"
+      v-model:confidential-level="attachmentLevel"
+      :accept="accept"
+      :file-list="innerFileList"
       :before-upload="beforeUpload"
-      :custom-request="customRequest"
-      @preview="handlePreview"
-      @remove="onFileremove"
-      @change="onFileChange">
-      <div>
-        <LoadingOutlined v-if="loading" />
-        <a-button>
-          <upload-outlined></upload-outlined>
-          {{ $t('选择') }}
-        </a-button>
-      </div>
-    </a-upload>
+      :custom-request="passCustomRequest"
+      :form-confidential-level="formConfidentialLevel"
+      :max-count="1"
+      @upload-change="onUploadChange"
+      @upload-preview="onUploadPreview"
+      @remove-file="onRemoveFile"
+      @confirm="onModalConfirm" />
   </div>
 </template>
 
-<style scoped lang="less"></style>
+<style scoped lang="less">
+.upload-file-inline-name {
+  color: rgba(0, 0, 0, 0.65);
+}
+</style>

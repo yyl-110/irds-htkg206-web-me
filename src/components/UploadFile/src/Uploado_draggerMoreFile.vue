@@ -1,131 +1,96 @@
-<script setup lang="ts" name="UploadImg">
-import { ref } from 'vue';
-import type { UploadFile, UploadProps } from 'ant-design-vue';
-import { LoadingOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import { getAccessToken } from '@/utils/auth';
-import { service } from '@/httpRequest/service';
-import { generateUUID } from '@/utils/GenerateUUID';
-import { handleEpcDownload } from '@/utils/file';
-import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-type FileTypes = 'image/apng' | 'image/bmp' | 'image/gif' | 'image/jpeg' | 'image/pjpeg' | 'image/png' | 'image/svg+xml' | 'image/tiff' | 'image/webp' | 'image/x-icon';
-import { EpcIcon } from '@/components/icon/EpcIcon';
+<script setup lang="ts" name="Uploado_draggerMoreFile">
+import { ref, watch } from 'vue';
+import type { UploadChangeParam, UploadFile, UploadProps } from 'ant-design-vue';
 import { message, Upload } from 'ant-design-vue';
-/** 定义 props 的类型 */
+import { useUserStore } from '@/store/modules/user';
+import UploadModal from '@/views/product/components/upload-modal.vue';
+
 interface Props {
-  // /**
-  //  * 文件的 queryId / queryId 列表
-  //  * @example `'queryId1'` / `['queryId1', 'queryId2']`
-  //  */
-  // /** 上传请求地址 */
-  updateUrl?: string;
-  // /** 是否支持拖拽上传 */
-  // drag?: boolean;
-  // /** 是否禁用上传组件 */
-  // disabled?: boolean;
-  // /** 图片大小限制, 默认为 5M */
   fileSize?: number;
-  // /** 文件类型 */
-  // fileType?: string[];
-  // /** 组件高度 */
-  // height?: string;
-  // /** 组件宽度 */
-  // width?: string;
-  // /** 组件边框圆角 */
-  // borderRadius?: string;
   fileList?: Array<UploadFile>;
   width?: string;
   disabled?: boolean;
+  /** 最大文件数，与历史多文件拖拽一致 */
+  maxFileCount?: number;
+  formConfidentialLevel?: number | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  updateUrl: import.meta.env.VITE_UPLOAD_URL,
-  drag: true,
-  disabled: false,
   fileSize: 300,
-  height: '150px',
-  width: '150px',
-  borderRadius: '8px',
+  maxFileCount: 99,
 });
 const emit = defineEmits<{
-  customRequest: any;
-  change: any;
+  customRequest: [options: any];
+  change: [payload: UploadFile[] | UploadChangeParam];
 }>();
-const loading = ref(false);
 
-const UploadfileList = ref<Array<UploadFile>>([]);
-/**
- * before upload file
- * @param file file
- */
-const beforeUpload: UploadProps['beforeUpload'] = file => {
-  let imgSize = file.size / 1024 / 1024 < props.fileSize;
-  if (!imgSize) {
-    message.warn(`上传文件大小不能超过 ${props.fileSize}M！`);
-  }
-  return imgSize || Upload.LIST_IGNORE;
-};
+const userStore = useUserStore();
+const uploadModalVisible = ref(false);
+const attachmentLevel = ref(Number(userStore.getConfidentialLevel[0]?.value ?? 0));
+const innerFileList = ref<UploadFile[]>([]);
 
-/**
- * handle file change
- * @param evt event
- */
-const onFileChange: UploadProps['onChange'] = async evt => {};
-const onFileremove: UploadProps['onChange'] = async file => {
-  emit('change', file);
-};
-const handlePreview: UploadProps['onChange'] = async (file: any) => {
-  let fileUels = '';
-  if (file.filePathl) {
-    fileUels = file.filePathl;
-  } else if (file.filePath) {
-    fileUels = file.filePath;
-  } else if (file.fileUrl) {
-    fileUels = file.fileUrl;
-  }
-  if (fileUels.startsWith('http')) {
-    window.open(fileUels);
-  } else {
-    window.open(import.meta.env.VITE_MINIO_PREVIEW_URL + fileUels);
-  }
-};
-
-/**
- * custom request
- * @param options options
- */
-const customRequest: UploadProps['customRequest'] = async options => {
-  emit('customRequest', options);
-};
 watch(
   () => props.fileList,
-  (newVal: any, oldVal) => {
-    UploadfileList.value = newVal;
+  v => {
+    innerFileList.value = v ? [...v] : [];
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
+
+const beforeUpload: UploadProps['beforeUpload'] = file => {
+  const ok = file.size / 1024 / 1024 < props.fileSize;
+  if (!ok) message.warn(`上传文件大小不能超过 ${props.fileSize}M！`);
+  return ok || Upload.LIST_IGNORE;
+};
+
+function passCustomRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0]) {
+  emit('customRequest', options);
+}
+
+function onUploadChange(info: UploadChangeParam) {
+  innerFileList.value = [...info.fileList];
+  emit('change', info);
+}
+
+function onUploadPreview(file: UploadFile) {
+  const f = file as UploadFile & { filePathl?: string; filePath?: string; fileUrl?: string };
+  let fileUels = '';
+  if (f.filePathl) fileUels = f.filePathl;
+  else if (f.filePath) fileUels = f.filePath;
+  else if (f.fileUrl) fileUels = f.fileUrl;
+  if (!fileUels) return;
+  if (fileUels.startsWith('http')) window.open(fileUels);
+  else window.open(`${import.meta.env.VITE_MINIO_PREVIEW_URL}${fileUels}`);
+}
+
+function onRemoveFile() {
+  innerFileList.value = [];
+}
+
+function onModalConfirm() {
+  emit('change', [...innerFileList.value]);
+}
 </script>
 
 <template>
   <div class="upload-box" :style="{ width: width }">
-    <a-upload-dragger
-      :disabled="disabled"
-      v-model:file-list="UploadfileList"
-      class="avatar-uploader"
-      :with-credentials="true"
+    <a-button type="primary" :disabled="disabled" @click="uploadModalVisible = true">
+      {{ $t('打开上传') }}
+    </a-button>
+    <p class="Attention">{{ $t('文件大小最大300兆') }}（{{ $t('最多选择') }} {{ maxFileCount }} {{ $t('个文件') }}）</p>
+    <UploadModal
+      v-model:visible="uploadModalVisible"
+      v-model:confidential-level="attachmentLevel"
+      accept="*"
+      :file-list="innerFileList"
       :before-upload="beforeUpload"
-      :custom-request="customRequest"
-      @preview="handlePreview"
-      @remove="onFileremove"
-      @change="onFileChange">
-      <p class="ant-upload-drag-icon">
-        <EpcIcon type="icon-shangchuanwenjian" style="font-size: 60px" />
-      </p>
-      <div>
-        <span class="Attention">{{ $t('把文件拖拽到这里') }}</span>
-        <a href="javascript:;">{{ $t(' 或者点击上传文件') }}</a>
-      </div>
-    </a-upload-dragger>
-    <p class="Attention">{{ $t('文件大小最大300兆') }}</p>
+      :custom-request="passCustomRequest"
+      :form-confidential-level="formConfidentialLevel"
+      :max-count="maxFileCount"
+      @upload-change="onUploadChange"
+      @upload-preview="onUploadPreview"
+      @remove-file="onRemoveFile"
+      @confirm="onModalConfirm" />
   </div>
 </template>
 
@@ -134,6 +99,8 @@ watch(
   margin-top: 10px;
 }
 .Attention {
+  margin-top: 8px;
   color: #9e9fa2;
+  font-size: 12px;
 }
 </style>

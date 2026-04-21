@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { defineEmits, getCurrentInstance, reactive, ref } from 'vue';
+import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reactive, ref } from 'vue';
+import type { TableColumnType } from 'ant-design-vue';
 import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue';
 import _ from 'lodash-es';
-import { DownOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretUpOutlined, DownOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import * as echarts from 'echarts';
-import modelvxeTable from '../table/modelvxeTable.vue';
 import addModule from '../modal/addModule.vue';
 import applicationModule from '../modal/applicationModule.vue';
 import parametricdesign from '../modal/parametricdesign.vue';
@@ -12,7 +12,7 @@ import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequest
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
 import { useUserStore } from '@/store/modules/user';
-import { characterToList } from '@/utils/tools';
+import { characterToList, sortermethod } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon.js';
 import Empty from '@/components/Empty/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
@@ -30,6 +30,7 @@ import {
 } from '@/libs/webSocket';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
+import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
 
 defineProps({
   /** 反馈详情 id */
@@ -41,13 +42,9 @@ defineProps({
 });
 const emit = defineEmits(['nodeListInfo', 'getCategory']);
 const instance = getCurrentInstance();
-const modelvxeTableref = ref<any>(null);
 const userStore = useUserStore();
 const categoryid = ref('');
 const menuId = ref<any>(null);
-const tabHeight = ref<any>(`${(window.innerHeight - 380) / 16}rem`);
-const initSelect = ref(false);
-const isArgs = ref<boolean>(false);
 const pageFlagDrawer = ref<boolean>(false);
 const modulePropertyInfo = ref<any>([]);
 const AddVisible = ref<boolean>(false);
@@ -61,7 +58,7 @@ const page = reactive({
   pageCount: 0,
   currentPage: 1,
 });
-const columns = ref<any>([]);
+const columns = ref<TableColumnType<any>[]>([]);
 const queryColumns = ref<any>([]);
 const dropdownList = ref<any>([
   { id: 1, name: '导入' },
@@ -70,7 +67,7 @@ const dropdownList = ref<any>([
 ]);
 const parmDesignData = ref<any>([]);
 const loading = ref(false);
-const selectModelList = ref([]);
+const selectModelList = ref<any[]>([]);
 const queryForm = reactive<Record<string, any>>({});
 
 const {
@@ -98,6 +95,195 @@ onMounted(() => {
 });
 
 const dataSource = ref<any>([]);
+
+const selectedRowkeys = ref<any[]>([]);
+type ModuleSortOrder = 'ascend' | 'descend' | '';
+const sortState = ref<{ key: string, order: ModuleSortOrder }>({ key: '', order: '' });
+/** 表头筛选：与 exeConfigTab 一致，仅前三列数据列可筛（当前页数据） */
+const moduleFilterableColumnKeys = ref<string[]>([]);
+const moduleTableColumnFilter = ref<Record<string, string>>({});
+const moduleTableFilterOpenMap = ref<Record<string, boolean>>({});
+const SCROLL_X_BUFFER_PX = 2;
+const TABLE_SELECTION_COL_WIDTH_PX = 60;
+
+const moduleTableScrollX = computed(() => {
+  const sum = columns.value.reduce((acc, col) => {
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + TABLE_SELECTION_COL_WIDTH_PX + SCROLL_X_BUFFER_PX;
+});
+
+const moduleTableDisplayList = computed(() => {
+  let list = [...dataSource.value];
+  moduleFilterableColumnKeys.value.forEach((key: string) => {
+    const filterValue = String(moduleTableColumnFilter.value[key] ?? '')
+      .trim()
+      .toLowerCase();
+    if (!filterValue)
+      return;
+    list = list.filter((item: any) =>
+      String(item?.[key] ?? '')
+        .toLowerCase()
+        .includes(filterValue),
+    );
+  });
+  if (!sortState.value.key || !sortState.value.order)
+    return list;
+  const key = sortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+const moduleTablePagination = computed(() => ({
+  current: page.currentPage,
+  pageSize: page.pageSize,
+  total: page.pageCount,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '30', '40', '50'],
+  showQuickJumper: false,
+  showTotal: (total: number) => `共 ${total} 条`,
+}));
+
+function applyModuleSelection(selection: any[]) {
+  selectModelList.value = selection;
+  if (selection.length == 1) {
+    btnType.value = false;
+  } else {
+    btnType.value = true;
+  }
+  if (selection.length == 0) {
+    delBtnType.value = true;
+  } else {
+    delBtnType.value = false;
+  }
+  if (selection.length == 0 || selection.length == 1) {
+    compareBtnType.value = true;
+  }
+  if (selection.length >= 2) {
+    compareBtnType.value = false;
+  }
+}
+
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowkeys.value,
+  onChange: (selectedRowKeys: any[], selectedRows: any[]) => {
+    selectedRowkeys.value = selectedRowKeys;
+    applyModuleSelection(selectedRows);
+  },
+}));
+
+function customRow(record: any) {
+  return {
+    onClick: () => {
+      const selectedRowKeys = [...selectedRowkeys.value];
+      const selectedRows = [...(selectModelList.value as any[])];
+      const key = record.id;
+      if (selectedRowKeys.includes(key)) {
+        selectedRowkeys.value = selectedRowKeys.filter((k: any) => k !== key);
+        selectModelList.value = selectedRows.filter((item: any) => item.id !== key);
+      } else {
+        selectedRowkeys.value = [...selectedRowKeys, key];
+        selectModelList.value = [...selectedRows, record];
+      }
+      applyModuleSelection(selectModelList.value as any[]);
+    },
+  };
+}
+
+function isModuleTableSelectionColumn(column: any) {
+  const c = column?.className;
+  if (typeof c === 'string') return c.includes('selection-column');
+  if (Array.isArray(c)) return c.some((x: unknown) => String(x).includes('selection-column'));
+  return false;
+}
+
+function isSortableModuleColumn(column: any) {
+  const di = column?.dataIndex;
+  if (!di || di === 'operation') return false;
+  return true;
+}
+
+function isModuleFilterableColumn(column: any) {
+  const di = column?.dataIndex;
+  if (!di) return false;
+  return moduleFilterableColumnKeys.value.includes(String(di));
+}
+
+function setModuleFilterOpen(key: string, open: boolean) {
+  moduleTableFilterOpenMap.value = { ...moduleTableFilterOpenMap.value, [key]: open };
+}
+
+function handleModuleFilterOpenChange(key: string, open: boolean) {
+  setModuleFilterOpen(key, open);
+}
+
+function getModuleFilterOpen(key: string) {
+  return Boolean(moduleTableFilterOpenMap.value[key]);
+}
+
+function applyModuleColumnFilter(key: string) {
+  setModuleFilterOpen(key, false);
+}
+
+function resetModuleColumnFilter(key: string) {
+  moduleTableColumnFilter.value = { ...moduleTableColumnFilter.value, [key]: '' };
+  setModuleFilterOpen(key, false);
+}
+
+function toggleModuleColumnSort(column: any) {
+  if (!isSortableModuleColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (sortState.value.key !== key) {
+    sortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (sortState.value.order === 'ascend') {
+    sortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (sortState.value.order === 'descend') {
+    sortState.value = { key: '', order: '' };
+    return;
+  }
+  sortState.value = { key, order: 'ascend' };
+}
+
+function getModuleSortOrder(key: string): ModuleSortOrder {
+  return sortState.value.key === key ? sortState.value.order : '';
+}
+
+function handleModuleTableChange(pag: any) {
+  if (!pag) return;
+  if (pag.current !== page.currentPage || pag.pageSize !== page.pageSize) {
+    page.currentPage = pag.current;
+    page.pageSize = pag.pageSize;
+    selectedRowkeys.value = [];
+    selectModelList.value = [];
+    btnType.value = true;
+    delBtnType.value = true;
+    compareBtnType.value = true;
+    const hasFilter = queryColumns.value.some((c: any) => {
+      const v = queryForm[c.key];
+      return v !== undefined && v !== null && String(v).trim() !== '';
+    });
+    if (hasFilter) void handleQuery(false);
+    else void fetchModuleList();
+  }
+}
+
+function handleResizeColumn(w: number, col: TableColumnType<any>) {
+  col.width = w;
+}
+
+function getModuleRowKey(record: any) {
+  return record.id;
+}
+
+function getModuleTableRowClassName(_record: any, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
+
 function handleAddOrUpdate() {
   AddVisible.value = true;
   nextTick(() => {
@@ -126,33 +312,13 @@ function updModule() {
     addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0], menuId.value);
   });
 }
-function selectModelListCheck2(selection: any) {
-  selectModelList.value = selection;
-  if (selection.length == 1) {
-    btnType.value = false;
-  } else {
-    btnType.value = true;
-  }
-
-  if (selection.length == 0) {
-    delBtnType.value = true;
-  } else {
-    delBtnType.value = false;
-  }
-
-  if (selection.length == 0 || selection.length == 1) {
-    compareBtnType.value = true;
-  }
-
-  if (selection.length >= 2) {
-    compareBtnType.value = false;
-  }
-}
 const pdmType = ref<string>('');
 async function initData(categoryidStr: string, menuid: any) {
   categoryid.value = categoryidStr;
   menuId.value = menuid;
   selectModelList.value = [];
+  selectedRowkeys.value = [];
+  sortState.value = { key: '', order: '' };
   modalInit();
 }
 // 列表初始化
@@ -161,6 +327,9 @@ async function modalInit() {
   delBtnType.value = true;
   btnType.value = true;
   compareBtnType.value = true;
+  selectedRowkeys.value = [];
+  selectModelList.value = [];
+  sortState.value = { key: '', order: '' };
   columns.value = [];
   queryColumns.value = [];
   dataSource.value = [];
@@ -183,7 +352,11 @@ async function modalInit() {
   if (libRes.data.code == 200) {
     modulePropertyInfo.value = libRes.data.data;
     const resData: any = libRes.data.data;
-    const parm: any = [];
+    const parm: TableColumnType<any>[] = [];
+    const filterKeys: string[] = [];
+    let moduleDataColIndex = 0;
+    moduleTableColumnFilter.value = {};
+    moduleTableFilterOpenMap.value = {};
     for (let i = 0; i < resData.length; i++) {
       // 动态查询条件：searchFlag == 0（默认查询）
       if (resData[i].searchFlag == 0) {
@@ -199,30 +372,55 @@ async function modalInit() {
           inputType: 'select',
           options,
         });
-        if (!(key in queryForm)) queryForm[key] = '';
+        if (!(key in queryForm)) queryForm[key] = undefined;
       }
 
       if (resData[i].showFlag == 0) {
-        parm.push({
-          id: resData[i].id,
+        const dataKey = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
+        const w = resData[i].colWidth == undefined ? 70 : resData[i].colWidth;
+        const col: TableColumnType<any> = {
           title: resData[i].propertyName,
-          key: resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp,
-          align: 'center',
+          dataIndex: dataKey,
+          key: String(dataKey),
+          align: 'left',
           resizable: true,
-          filters: [],
-          width: resData[i].colWidth == undefined ? 70 : resData[i].colWidth,
-          sortable: true,
-          render: resData[i].dataProp == 'para2' ? renderFunTiele(resData[i].dataProp) : renderFunTiele3(resData[i].dataProp),
-        });
+          width: w,
+          ellipsis: dataKey !== 'para2' && dataKey !== 'status',
+        };
+        if (moduleDataColIndex < 2) {
+          col.fixed = 'left';
+          col.resizable = moduleDataColIndex !== 0;
+        }
+        if (moduleDataColIndex < 3)
+          filterKeys.push(String(dataKey));
+        (col as any).metaId = resData[i].id;
+        parm.push(col);
+        moduleDataColIndex++;
       }
     }
-    parm.unshift({
-      fixed: 'left',
-      type: 'checkbox',
+    queryColumns.value.forEach((c: any) => {
+      if (c.inputType === 'select') {
+        const v = queryForm[c.key];
+        if (v === '' || v === null) queryForm[c.key] = undefined;
+      }
+    });
+    moduleFilterableColumnKeys.value = filterKeys;
+    parm.push({
+      title: '操作',
+      dataIndex: 'operation',
+      key: 'operation',
       align: 'left',
-      width: '60',
+      width: 168,
+      fixed: 'right',
+      resizable: false,
+      ellipsis: false,
     });
     columns.value = parm;
+  }
+  else {
+    moduleFilterableColumnKeys.value = [];
+    moduleTableColumnFilter.value = {};
+    moduleTableFilterOpenMap.value = {};
   }
   if (res.data.code == 200) {
     const resData: any = res.data.data;
@@ -282,31 +480,6 @@ function delModule() {
   });
 }
 
-function renderFunTiele(key: any) {
-  const render = (h: any, params: any) => {
-    return h(
-      'div',
-      {
-        props: {
-          type: 'text', // 类型
-        },
-        style: {
-          color: '#1979e0',
-          'text-decoration': 'underline',
-          cursor: 'pointer',
-        },
-        on: {
-          click: () => {
-            pdmModuleCode.value = params.row[key];
-            PDMid.value = params.row.id;
-          },
-        },
-      },
-      params.row[key],
-    );
-  };
-  return render;
-}
 const moduleRemarks = ref<string>('');
 const module3DThumbUrl = ref<string>('');
 function getModule3DThumbUrl(rowRecord: Record<string, any>, moduleParaList: any[]) {
@@ -343,42 +516,6 @@ async function moduleDetails(rowRecord: any) {
     }));
 }
 
-// 超出宽度隐藏字符串 。。。代替
-function renderFunTiele3(key: any) {
-  const render = (h: any, params: any) => {
-    return h('div', [
-      h(
-        'span',
-        {
-          style: {
-            display: 'inline-block',
-            width: `${params.column._width * 0.8}px`,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          },
-        },
-        params.row[key],
-      ),
-    ]);
-  };
-  return render;
-}
-function onShowSizeChange(current: number, pageSize: number) {
-  page.currentPage = current;
-  page.pageSize = pageSize;
-  // 分页变化：若当前存在筛选条件，走筛选接口；否则走普通列表接口
-  const hasFilter = queryColumns.value.some((c: any) => {
-    const v = queryForm[c.key];
-    return v !== undefined && v !== null && String(v).trim() !== '';
-  });
-  if (hasFilter) {
-    handleQuery(false);
-  } else {
-    fetchModuleList();
-  }
-}
-
 function buildFilterArr() {
   const moduleParaList: any[] = [];
   queryColumns.value.forEach((c: any) => {
@@ -394,7 +531,14 @@ function buildFilterArr() {
 }
 
 function handleQuery(resetPage = true) {
-  if (resetPage) page.currentPage = 1;
+  if (resetPage) {
+    page.currentPage = 1;
+    selectedRowkeys.value = [];
+    selectModelList.value = [];
+    btnType.value = true;
+    delBtnType.value = true;
+    compareBtnType.value = true;
+  }
   const filterArr = buildFilterArr();
   if (filterArr.length > 0) {
     queryModuleLibrary(filterArr);
@@ -405,12 +549,16 @@ function handleQuery(resetPage = true) {
 
 function handleQueryReset() {
   queryColumns.value.forEach((c: any) => {
-    queryForm[c.key] = '';
+    queryForm[c.key] = c.inputType === 'select' ? undefined : '';
   });
   page.currentPage = 1;
+  selectedRowkeys.value = [];
+  selectModelList.value = [];
+  btnType.value = true;
+  delBtnType.value = true;
+  compareBtnType.value = true;
   fetchModuleList();
 }
-function filterChange() {}
 // 打开模型
 function openMx(data: any) {
   if (data.length == 1) {
@@ -687,13 +835,14 @@ async function importSuccessfulFun() {
 }
 // 列宽保存
 function cWidth() {
-  const columnList = [];
-  const list = modelvxeTableref.value.vxeTable1.getTableColumn().tableColumn;
-  for (let i = 0; i < list.length; i++) {
-    if (list[i].params) {
+  const columnList: any[] = [];
+  for (const col of columns.value) {
+    const metaId = (col as any).metaId;
+    const w = col.width;
+    if (metaId != null && w != null) {
       columnList.push({
-        id: list[i].params,
-        colWidth: list[i].renderWidth,
+        id: metaId,
+        colWidth: typeof w === 'number' ? w : Number(w) || 0,
       });
     }
   }
@@ -1161,7 +1310,7 @@ defineExpose({ initData, selectAllModuleInfo });
           <div class="query-scroll">
             <a-row :gutter="[12, 6]">
               <a-col v-for="item in queryColumns" :key="item.key" :span="8">
-                <a-form-item :label="item.title" class="query-item">
+                <a-form-item class="query-item">
                   <a-select
                     v-if="item.inputType === 'select'"
                     v-model:value="queryForm[item.key]"
@@ -1175,7 +1324,7 @@ defineExpose({ initData, selectAllModuleInfo });
                     "
                     size="middle"
                     style="width: 100%"
-                    placeholder="请选择">
+                    :placeholder="'请选择' + item.title">
                     <a-select-option v-for="opt in item.options" :key="opt" :value="opt">
                       {{ opt }}
                     </a-select-option>
@@ -1242,31 +1391,105 @@ defineExpose({ initData, selectAllModuleInfo });
         </div>
       </div>
     </div>
-    <div v-if="!loading" style="width: 100%">
-      <modelvxeTable
-        ref="modelvxeTableref"
-        :loading="loading"
-        :init-select="initSelect"
-        :is-args="isArgs"
-        :columns="columns"
-        :data="dataSource"
-        :height="tabHeight"
-        :page="page"
-        :page-flag="true"
-        :model-type="0"
-        :categoryid="categoryid"
-        @select-model-list-check="selectModelListCheck2"
-        @click-event="clickEvent"
-        @on-show-size-change="onShowSizeChange"
-        @filter-change="filterChange"
-        @open-mx="openMx"
-        @fitout-mx="fitoutMx"
-        @edit-mx="editMx"
-        @open-ewt="openEwt"
-        @args-mx="argsMx" />
-    </div>
-    <div v-else class="example">
-      <a-spin tip="加载中..." />
+    <div class="module-info-table-wrap" style="width: 100%">
+      <a-card class="calc-table-card">
+        <a-table
+          class="exe-config-table"
+          :scroll="{ x: moduleTableScrollX, y: 500 }"
+          :row-key="getModuleRowKey"
+          :columns="columns"
+          :data-source="moduleTableDisplayList"
+          :pagination="moduleTablePagination"
+          :row-selection="rowSelection"
+          :custom-row="customRow"
+          bordered
+          table-layout="fixed"
+          :locale="locale"
+          :loading="loading"
+          :row-class-name="getModuleTableRowClassName"
+          @resize-column="handleResizeColumn"
+          @change="handleModuleTableChange">
+          <template #headerCell="{ column }">
+            <template v-if="isModuleTableSelectionColumn(column)">
+              <span />
+            </template>
+            <template v-else>
+              <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isModuleFilterableColumn(column) }">
+                <span
+                  class="header-title-sort"
+                  :class="{ 'header-title-sort--disabled': !isSortableModuleColumn(column) }"
+                  @click.stop="toggleModuleColumnSort(column)">
+                  <span>{{ column.title }}</span>
+                  <span v-if="isSortableModuleColumn(column)" class="header-sort-icon">
+                    <CaretUpOutlined v-if="getModuleSortOrder(String(column.dataIndex)) === 'ascend'" />
+                    <CaretDownOutlined v-else-if="getModuleSortOrder(String(column.dataIndex)) === 'descend'" />
+                    <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                  </span>
+                </span>
+                <span v-if="isModuleFilterableColumn(column)" class="header-filter-anchor">
+                  <a-popover
+                    trigger="click"
+                    placement="bottomRight"
+                    :open="getModuleFilterOpen(String(column.dataIndex))"
+                    @openChange="handleModuleFilterOpenChange(String(column.dataIndex), $event)">
+                    <template #content>
+                      <div class="header-filter-pop">
+                        <a-input
+                          v-model:value="moduleTableColumnFilter[String(column.dataIndex)]"
+                          :placeholder="`搜索 ${column.title}`"
+                          allow-clear />
+                        <div class="header-filter-actions">
+                          <a-button type="primary" size="small" @click="applyModuleColumnFilter(String(column.dataIndex))">
+                            <SearchOutlined />
+                            确定
+                          </a-button>
+                          <a-button size="small" @click="resetModuleColumnFilter(String(column.dataIndex))">重置</a-button>
+                        </div>
+                      </div>
+                    </template>
+                    <FilterOutlined class="header-query-icon" />
+                  </a-popover>
+                </span>
+              </div>
+            </template>
+          </template>
+          <template #bodyCell="{ column, record, text }">
+            <template v-if="column.dataIndex === 'status'">
+              <span>
+                <span v-if="record.status === 0" style="color: rgba(80, 188, 109, 1)">已发布</span>
+                <span v-else-if="record.status === 1" style="color: rgb(83, 112, 199)">设计中</span>
+                <span v-else-if="record.status === 2" style="color: #a2a1a6">已停用</span>
+                <span v-else-if="record.status === 3" style="color: rgb(240, 231, 73)">审核中</span>
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'para2'">
+              <a style="color: #1979e0; text-decoration: underline; cursor: pointer" @click.stop="clickEvent(record, 'para2')">{{ record.para2 }}</a>
+            </template>
+            <template v-else-if="column.dataIndex === 'operation'">
+              <div class="model-vxe-op-icons" @click.stop>
+                <a-tooltip title="打开模型" placement="topLeft">
+                  <EpcIcon class="act-btns" type="icon-folder-opened" @click="openMx([record])" />
+                </a-tooltip>
+                <a-tooltip title="装配模型" placement="topLeft">
+                  <EpcIcon class="act-btns" style="font-size: 17px" type="icon-element-plus" @click="fitoutMx([record])" />
+                </a-tooltip>
+                <a-tooltip title="打开二维图" placement="topLeft">
+                  <EpcIcon class="act-btns" type="icon-picture" @click="openEwt([record])" />
+                </a-tooltip>
+                <a-tooltip title="参数化设计" placement="topLeft">
+                  <EpcIcon class="act-btns" type="icon-a-3Dbeifen" @click="argsMx([record])" />
+                </a-tooltip>
+              </div>
+            </template>
+            <template v-else-if="column.ellipsis">
+              <TableCellOverflowTooltip :text="String(text ?? '')" />
+            </template>
+            <template v-else>
+              {{ text ?? '' }}
+            </template>
+          </template>
+        </a-table>
+      </a-card>
     </div>
   </div>
   <addModule ref="addOrUpdate" :modal-visible="AddVisible" @handle-save="handleSave" @modal-init="modalInit" @on-close="AddVisible = false" />
@@ -1525,6 +1748,202 @@ defineExpose({ initData, selectAllModuleInfo });
   padding-right: 20px;
 }
 
+/* 模块主表：与 src/views/product/check/sys/components/exeConfigTab.vue 列表区一致 */
+.module-info-table-wrap {
+  margin-top: 10px;
+}
+
+.calc-table-card {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    height: 100%;
+    padding: 0;
+  }
+
+  :deep(.ant-table-wrapper) {
+    height: 100%;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    border-right: none !important;
+    text-align: left !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td.ant-table-selection-column) {
+    text-align: center !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+}
+
+.exe-config-table {
+  :deep(.ant-table-cell-ellipsis .ant-typography) {
+    margin-bottom: 0;
+  }
+
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.header-cell-main--has-filter {
+  padding-right: 22px;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+@model-vxe-op-divider: #e0e0e0;
+@model-vxe-op-line-gap: 8px;
+@model-vxe-op-divider-h: 1em;
+
+.model-vxe-op-icons {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @model-vxe-op-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child)::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 1px;
+      height: @model-vxe-op-divider-h;
+      margin-left: -0.5px;
+      background: @model-vxe-op-divider;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+  }
+
+  .act-btns {
+    font-size: 15px;
+    cursor: pointer;
+
+    &:hover {
+      color: #0d53e2;
+      transform: translateY(-2px);
+      transition: all 0.3s ease;
+    }
+  }
+}
+
 /* 历史文档表格：限制宽度，超出显示横向滚动条 */
 .history-doc-table-wrap {
   width: 100%;
@@ -1628,7 +2047,7 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 .btn-box-middle {
   flex: 1;
-  padding: 4px 10px;
+  padding: 4px 0;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1642,7 +2061,7 @@ defineExpose({ initData, selectAllModuleInfo });
   max-height: 78px; /* 默认最多两行，超出滚动 */
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 6px; /* 抵消 a-row gutter 的负 margin，避免横向滚动条 */
+  padding: 0;
 }
 .query-actions {
   display: flex;
@@ -1656,27 +2075,12 @@ defineExpose({ initData, selectAllModuleInfo });
   align-items: center;
 }
 :deep(.query-item .ant-form-item-label) {
-  flex: 0 0 96px; /* 固定 label 宽度，保证对齐 */
-  text-align: right;
-  padding-right: 8px;
-  padding-top: 0 !important;
-  display: flex;
-  align-items: center;
-}
-:deep(.query-item .ant-form-item-label > label) {
-  font-size: 14px;
-  color: #333;
-  display: inline-block;
-  width: 100%;
-  line-height: 26px;
-  transform: translateY(1px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none !important;
 }
 :deep(.query-item .ant-form-item-control) {
   min-width: 0;
   flex: 1;
+  max-width: 100%;
 }
 
 :deep(.query-item .ant-input-affix-wrapper),

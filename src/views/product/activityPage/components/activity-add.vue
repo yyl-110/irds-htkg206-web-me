@@ -5,10 +5,13 @@ import { AdminApiSystemDictData } from '@/api/tags/管理后台字典数据';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 import type { FormInstance } from 'ant-design-vue';
+import type { UploadChangeParam } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
+import UploadModal from '@/views/product/components/upload-modal.vue';
 
 export default defineComponent({
   name: 'NoticeData',
+  components: { UploadModal },
   props: {
     modalVisible: {
       type: Boolean,
@@ -34,6 +37,10 @@ export default defineComponent({
     ]);
     const excelFileList = ref<any[]>([]);
     const wordFileList = ref<any[]>([]);
+    const openExcelUploadModal = ref(false);
+    const openWordUploadModal = ref(false);
+    const excelConfidentialLevel = ref(1);
+    const wordConfidentialLevel = ref(1);
     const formData = ref({
       pageName: '',
       pageType: '1',
@@ -132,7 +139,14 @@ export default defineComponent({
         confidentialLevel: 1,
       });
       if (res.data.code == 0) {
-        const file: any = { ...res.data, name: res.data?.oldFileName };
+        const file: any = {
+          uid: String(res.data?.id || Date.now()),
+          id: res.data?.id || '',
+          name: res.data?.oldFileName || options?.file?.name || 'excel',
+          status: 'done',
+          response: res.data,
+          url: res.data?.filePath || '',
+        };
         excelFileList.value[0] = file;
         formData.value.excelId = res.data.id || '';
         options?.onSuccess?.(res.data, options.file);
@@ -156,7 +170,14 @@ export default defineComponent({
         confidentialLevel: 1,
       });
       if (res.data.code == 0) {
-        const file: any = { ...res.data, name: res.data?.oldFileName };
+        const file: any = {
+          uid: String(res.data?.id || Date.now()),
+          id: res.data?.id || '',
+          name: res.data?.oldFileName || options?.file?.name || 'word',
+          status: 'done',
+          response: res.data,
+          url: res.data?.filePath || '',
+        };
         wordFileList.value[0] = file;
         formData.value.wordId = res.data.id || '';
         options?.onSuccess?.(res.data, options.file);
@@ -167,18 +188,56 @@ export default defineComponent({
       }
     }
 
-    function excelFileChange(info: any) {
+    function excelFileChange(info: UploadChangeParam) {
       excelFileList.value = info?.fileList || [];
       if (excelFileList.value.length === 0) {
         formData.value.excelId = '';
       }
     }
 
-    function wordFileChange(info: any) {
+    function wordFileChange(info: UploadChangeParam) {
       wordFileList.value = info?.fileList || [];
       if (wordFileList.value.length === 0) {
         formData.value.wordId = '';
       }
+    }
+
+    function beforeUploadExcel(file: File) {
+      if (!isExcelFile(file?.name || '')) {
+        message.warning('请上传Excel文件（.xls/.xlsx）');
+        return false;
+      }
+      return true;
+    }
+
+    function beforeUploadWord(file: File) {
+      if (!isWordFile(file?.name || '')) {
+        message.warning('请上传Word文件（.doc/.docx）');
+        return false;
+      }
+      return true;
+    }
+
+    function handleExcelUploadConfirm() {
+      const first = excelFileList.value?.[0];
+      formData.value.excelId = first?.id || first?.response?.id || '';
+      openExcelUploadModal.value = false;
+    }
+
+    function handleWordUploadConfirm() {
+      const first = wordFileList.value?.[0];
+      formData.value.wordId = first?.id || first?.response?.id || '';
+      openWordUploadModal.value = false;
+    }
+
+    function clearExcelFile() {
+      excelFileList.value = [];
+      formData.value.excelId = '';
+    }
+
+    function clearWordFile() {
+      wordFileList.value = [];
+      formData.value.wordId = '';
     }
 
     return {
@@ -198,10 +257,20 @@ export default defineComponent({
       buttonOptions,
       excelFileList,
       wordFileList,
+      openExcelUploadModal,
+      openWordUploadModal,
+      excelConfidentialLevel,
+      wordConfidentialLevel,
       customRequestExcel,
       customRequestWord,
       excelFileChange,
       wordFileChange,
+      beforeUploadExcel,
+      beforeUploadWord,
+      handleExcelUploadConfirm,
+      handleWordUploadConfirm,
+      clearExcelFile,
+      clearWordFile,
     };
   },
 });
@@ -241,18 +310,36 @@ export default defineComponent({
           <a-checkbox-group v-model:value="formData.button" :options="buttonOptions" />
         </a-form-item>
         <a-form-item :label="$t('上传excel文件')" name="excelId" v-if="formData.pageType == '2'">
-          <a-upload-dragger v-model:file-list="excelFileList" :max-count="1" :custom-request="customRequestExcel" @change="excelFileChange">
-            <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
-            <p class="ant-upload-hint">支持扩展名：.xls .xlsx</p>
-          </a-upload-dragger>
+          <a-button type="primary" @click="openExcelUploadModal = true">上传Excel文件</a-button>
+          <span style="margin-left: 8px">{{ excelFileList[0]?.name || '未上传文件' }}</span>
         </a-form-item>
         <a-form-item :label="$t('上传word文件')" name="wordId" v-if="formData.pageType == '2'">
-          <a-upload-dragger v-model:file-list="wordFileList" :max-count="1" :custom-request="customRequestWord" @change="wordFileChange">
-            <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
-            <p class="ant-upload-hint">支持扩展名：.doc .docx</p>
-          </a-upload-dragger>
+          <a-button type="primary" @click="openWordUploadModal = true">上传Word文件</a-button>
+          <span style="margin-left: 8px">{{ wordFileList[0]?.name || '未上传文件' }}</span>
         </a-form-item>
       </a-form>
+      <UploadModal
+        v-model:visible="openExcelUploadModal"
+        v-model:confidential-level="excelConfidentialLevel"
+        modal-title="上传Excel文件"
+        accept=".xls,.xlsx"
+        :file-list="excelFileList"
+        :before-upload="beforeUploadExcel"
+        :custom-request="customRequestExcel"
+        @upload-change="excelFileChange"
+        @remove-file="clearExcelFile"
+        @confirm="handleExcelUploadConfirm" />
+      <UploadModal
+        v-model:visible="openWordUploadModal"
+        v-model:confidential-level="wordConfidentialLevel"
+        modal-title="上传Word文件"
+        accept=".doc,.docx"
+        :file-list="wordFileList"
+        :before-upload="beforeUploadWord"
+        :custom-request="customRequestWord"
+        @upload-change="wordFileChange"
+        @remove-file="clearWordFile"
+        @confirm="handleWordUploadConfirm" />
       <template #footer>
         <a-button type="primary" @click="savePageInfo">
           {{ $t('确定') }}
