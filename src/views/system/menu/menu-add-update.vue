@@ -168,7 +168,8 @@ export default defineComponent({
   <!-- <div class="menu-addorUpdate" v-dragModal>      :getContainer="customGetContainer"-->
   <a-modal
     v-model:visible="visible"
-    style="width: 45%"
+    style="width: 45%; top: 10vh; height: 80vh;"
+    :body-style="{ height: 'calc(80vh - 108px)', overflowY: 'auto' }"
     :title="$t(!formData.id ? '新增' : '编辑')"
     :confirm-loading="$isPending()"
     :mask-closable="false"
@@ -291,7 +292,7 @@ export default defineComponent({
   <!-- </div> -->
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .menu-addorUpdate {
   position: relative;
 }

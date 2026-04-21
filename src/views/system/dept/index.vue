@@ -11,7 +11,10 @@ import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { DeptListRequestDTOModel } from '@/api/models/DeptListRequestDTOModel';
 import type { DeptCreateRequestDTOModel } from '@/api/models/DeptCreateRequestDTOModel';
 import { EpcIcon } from '@/components/icon/EpcIcon.js';
-
+import { TableColumnsType } from 'ant-design-vue';
+import { useTableFilter } from '@/hooks/useTableFilter';
+import { getAllTimes } from '@/utils/dateUtils';
+import { PlusOutlined } from '@ant-design/icons-vue';
 /** 懒加载部门树数据类型 */
 type DeptLazyData = DeptResponseDTO & {
   children: DeptLazyData[];
@@ -34,19 +37,7 @@ const resources = ref<Array<DeptResponseDTO>>([]);
 /** 所有部门数据(`Map` 结构) */
 const tableDataMap = ref<Record<DeptLazyData['id'], DeptLazyData>>({});
 
-const gridOptions = ref<VxeGridProps<DeptLazyData> & VxeGridEventProps<DeptLazyData>>({
-  columns: [],
-  treeConfig: {
-    rowField: 'id',
-    childrenField: 'children',
-    transform: true,
-  },
-  scrollY: {
-    enabled: true,
-    gt: 0,
-  },
-  showOverflow: true,
-});
+
 
 /** 获取部门数据 */
 async function getResources() {
@@ -64,8 +55,8 @@ async function getResources() {
       set(item, '$parentsNameList', []);
       tableDataMap.value[item.id] = item as DeptLazyData;
     }
-    resources.value = res.data.data as Array<DeptLazyData>;
-    // resources.value = treeDataTranslate(res.data.data, 'id')
+    // resources.value = res.data.data as Array<DeptLazyData>;
+    resources.value = treeDataTranslate(res.data.data, 'id');
     _fillParentsNameList(res.data.data as Array<DeptLazyData>);
   } finally {
     loading.value = false;
@@ -84,71 +75,53 @@ const gridHeight = computed(() => height.value - 285);
 
 /** 是否显示 新增 / 编辑 弹窗 */
 const visibleModal = ref<boolean>(false);
-const columns = computed<VxeGridProps<DeptLazyData>['columns']>(() => {
-  const _columns: VxeGridProps<DeptLazyData>['columns'] = [
+const { getColumnSearchProps, getColumnSelectProps } = useTableFilter();
+
+const rowClassName = (_record: any, index: number) =>
+  index % 2 === 1 ? "table-striped" : "";
+
+const columns = computed<TableColumnsType>(() => [
     {
       title: WeiI18n.t('部门编码').value,
-      field: 'code',
-      width: 90,
+      dataIndex: 'code',
+      key: 'code',
+      width: 140,
+      ...getColumnSearchProps('code'),
     },
     {
       title: WeiI18n.t('部门名称').value,
-      field: 'name',
-      treeNode: true,
+      dataIndex: 'name',
+      key: 'name',
       minWidth: 170,
-      align: 'left',
+      ...getColumnSearchProps('name'),
     },
-    // {
-    //   title: WeiI18n.t('负责人').value,
-    //   field: 'leaderUserId',
-    //   minWidth: 170,
-    //   slots: {
-    //     default({ row }) {
-    //       const content =
-    //         row.leaderUserId &&
-    //         row.leaderUserId
-    //           .map((id: number) => userNickNameMap[id])
-    //           .filter((item: any) => item)
-    //           .join(', ');
-    //       return content || '';
-    //     },
-    //   },
-    // },
     {
       title: WeiI18n.t('排序').value,
-      field: 'sort',
+      dataIndex: 'sort',
+      key: 'sort',
       width: 90,
     },
     {
       title: WeiI18n.t('状态').value,
-      field: 'status',
-      width: 90,
-      slots: {
-        default: 'status_default',
-      },
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
     },
     {
       title: WeiI18n.t('创建时间').value,
-      field: 'createTime',
+      dataIndex: 'createTime',
+      key: 'createTime',
       align: 'center',
       width: 200,
-      formatter: 'dateTime',
     },
     {
       title: WeiI18n.t('操作').value,
-      field: 'operation',
+      key: 'operation',
       align: 'center',
       width: 160,
       fixed: 'right',
-      slots: {
-        default: 'operation_default',
-      },
     },
-  ];
-  // if (!currentQueryName.value) _columns.splice(1, 1);
-
-  return _columns;
-});
+]);
 /**
  * 获取部门的所有上级部门
  * @param dept 部门数据
@@ -305,35 +278,27 @@ async function onRefreshTableData(record: DeptCreateRequestDTOModel) {
     </a-card>
 
     <a-card style="margin-top: 10px" class="b-body">
-      <VxeGrid v-bind="gridOptions" :loading="loading" :loading-config="{text: '加载中...'}" :columns="columns" :data="resources" :cell-config="{ height: 45 }" :header-cell-config="{ height: 45 }">
-        <template #status_default="{ row }">
-          <span>
-            <a-tag v-if="row.status === 0" color="blue">{{ $t('开启') }}</a-tag>
-            <a-tag v-else-if="row.status === 1">{{ $t('关闭') }}</a-tag>
-          </span>
-        </template>
-        <template #operation_default="{ row }">
-          <section @click.stop="() => {}">
-            <!-- v-hasPermi="['system:dept:update']" -->
-            <a @click.prevent="handleAddOrUpdate(row)">{{ $t('编辑') }}</a>
-            <!-- v-hasPermi="['system:dept:update']" -->
+      <a-table :columns="columns" :data-source="resources" :scroll="{ x: 1000, y: 'calc(100vh - 350px)' }"
+        :rowKey="(record) => record.id" :loading="loading" bordered :row-class-name="rowClassName"
+        :pagination="false" defaultExpandAllRows
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'status'">
+            <a-tag v-if="record.status === 0" color="blue">{{ $t('开启') }}</a-tag>
+            <a-tag v-else-if="record.status === 1">{{ $t('关闭') }}</a-tag>
+          </template>
+          <template v-if="column.key === 'createTime'">
+            <span>{{ getAllTimes(Date.parse(record.createTime)) }}</span>
+          </template>
+          <template v-if="column.key === 'operation'">
+            <span class="handle_btn text-primary cursor-pointer" @click="handleAddOrUpdate(record)">编辑</span>
             <a-divider type="vertical" />
-            <a-popconfirm :title="$t('确定要删除吗？')" :ok-text="$t('确定')" :cancel-text="$t('取消')" :disabled="$isPending('delete', row.id)" @confirm="handleDelete(row)">
-              <!-- v-hasPermi="['system:dept:delete']" -->
-              <a-button type="link" danger :disabled="$isPending('delete', row.id)" class="p-0 text-[12px]">
-                {{ $t('删除') }}
-              </a-button>
+            <a-popconfirm :title="$t('确定要删除吗？')" :ok-text="$t('确定')" :cancel-text="$t('取消')" :disabled="$isPending('delete', record.id)" @confirm="handleDelete(record)">
+              <span class="handle_btn text-[red] cursor-pointer" :class="{ 'opacity-50 cursor-not-allowed': $isPending('delete', record.id) }">删除</span>
             </a-popconfirm>
-          </section>
+          </template>
         </template>
-        <!-- 空数据插槽 -->
-        <template #empty>
-          <div class="mx-auto pt-[40px] w-[235px] h-[235px]">
-            <img width="100%" height="auto" src="@/assets/images/empty.png" alt="暂无数据" />
-            <div>数据为空</div>
-          </div>
-        </template>
-      </VxeGrid>
+      </a-table>
 
       <DeptUpdateOrAdd v-model:visible="visibleModal" :resource="editableData" @success="onRefreshTableData" />
     </a-card>
@@ -346,13 +311,7 @@ async function onRefreshTableData(record: DeptCreateRequestDTOModel) {
   bottom: 20px !important;
   background-color: #ffffff !important;
 }
-
-// :deep(.vxe-table--header-wrapper) {
-//   height: 50px !important; /* 强制设置表头高度 */
-// }
-// :deep(.vxe-header--row .vxe-cell) {
-//   margin-top: -13px !important;
-//   background-color: #ededed;
-//   height: 48px;
-// }
+.table-striped {
+  background-color: #f7f8fb!important;
+}
 </style>

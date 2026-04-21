@@ -1,20 +1,12 @@
 <template>
   <div class="content-layout">
-    <draggable-modal
-      :visible="modalVisible"
-      :title="modalType === 2 ? '编辑知识' : '知识上传'"
-      :closable="false"
-      centered
-      :maskClosable="false"
-      @cancel="closeFun"
-      @ok="submitFun"
-      :ok-text="modalType === 2 ? '确认' : '确认'"
-      :cancel-text="'取消'"
-      :width="900"
-      :bodyStyle="{ maxHeight: '80vh', overflowY: 'auto', overflowX: 'hidden' }">
+    <draggable-modal :visible="modalVisible" :title="modalType === 2 ? '编辑知识' : '知识上传'" :closable="false" centered
+      :maskClosable="false" @cancel="closeFun" @ok="submitFun" :ok-text="modalType === 2 ? '确认' : '确认'"
+      :cancel-text="'取消'" :width="900" :bodyStyle="{ maxHeight: '80vh', overflowY: 'auto', overflowX: 'hidden' }">
       <a-form ref="ruleFormRef" :model="ruleForm" :rules="rules" :label-col="{ span: 5 }" :wrapper-col="{ span: 16 }">
         <a-form-item label="上传文件">
-          <a-upload
+          <UploadFile :fileList="fileList" @change="handleUploadChange" @customRequest="customRequest" />
+          <!-- <a-upload
             v-model:fileList="fileList"
             class="upload-demo"
             :max-count="limit"
@@ -35,7 +27,7 @@
                 <div class="fileImport">超过5M的文件，预览功能上传成功后一分钟后可以使用</div>
               </div>
             </div>
-          </a-upload>
+          </a-upload> -->
         </a-form-item>
         <a-form-item label="附件名称">
           <a-input class="elInput" v-model:value="ruleForm.annexName" disabled />
@@ -107,15 +99,16 @@ import { getTreeNodeByNodeLevel, modifyInit, saveKnowledgeFile } from '@/api/kno
 import tagModal from './tagModal.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
+import { UploadFile } from '@/components/UploadFile';
 
 const props = defineProps({
   nodeData: {
     type: Object,
-    default: () => {},
+    default: () => { },
   },
   parentNode: {
     type: Object,
-    default: () => {},
+    default: () => { },
   },
 });
 const emit = defineEmits(['saveSuccess']);
@@ -315,11 +308,11 @@ const handleUploadSuccess = data => {
 
 // Upload Change Handler：仅负责同步 fileList 和处理异常状态
 const handleUploadChange = info => {
-  fileList.value = [...info.fileList];
+  fileList.value = [...info];
 
-  if (info.file.status === 'error') {
-    message.error(`${info.file.name} 上传失败.`);
-  } else if (info.file.status === 'removed') {
+  if (info[0].status === 'error') {
+    message.error(`${info[0].name} 上传失败.`);
+  } else if (info[0].status === 'removed') {
     fileObjParams.value = [];
   }
 };

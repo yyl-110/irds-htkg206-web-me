@@ -321,7 +321,7 @@ onUnmounted(() => {
             </template>
             <a-tab-pane v-for="item in tabs" :key="item.name">
               <template #tab>
-                <div :class="['text-[18px]', { 'font-bold': activeName === item.name }]"
+                <div :class="['text-[16px]', { 'font-bold': activeName === item.name }]"
                   :style="{ color: activeName === item.name ? '#124dd6' : '' }">
                   {{ item.title }}<span
                     v-if="item.name === 'todo' && projectStatistics.todoNum > 0">&nbsp;&nbsp;&nbsp;</span>
@@ -819,7 +819,7 @@ onUnmounted(() => {
   background: #FFFFFF;
   border: 1px solid #EAEAF1;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px;
   transition: all 0.3s;
 
   &:hover {

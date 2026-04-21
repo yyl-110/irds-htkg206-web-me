@@ -12,6 +12,8 @@ import Userdetail from './components/detail/index.vue';
 import UserAddUpdate from './components/form/user-add-update.vue';
 import { useDateRangeParams } from '@/hooks/useDate';
 import { CommonStatusEnum } from '@/utils/constants';
+import { TableColumnsType } from 'ant-design-vue';
+import { useTableFilter } from '@/hooks/useTableFilter';
 import { encryptValue, passwordPattern, passwordPatternMessage } from '@/utils/AES';
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { UserPageRequestDTOModel } from '@/api/models/UserPageRequestDTOModel';
@@ -72,90 +74,74 @@ const userType = ref([
     value: 2,
   },
 ]);
-/** vxe表格 */
-const columns: VxeGridPropTypes.Columns<UserPageItemResponseDTOModel> = [
-  {
-    title: WeiI18n.t('用户名').value,
-    field: 'username',
-    width: 200,
-  },
-  {
-    title: WeiI18n.t('姓名').value,
-    field: 'nickname',
-    width: 200,
-    editRender: {
-      name: 'input',
-      enabled: true,
-    },
-  },
-  {
-    title: WeiI18n.t('部门名称').value,
-    field: 'dept',
-    width: 200,
-    align: 'left',
-    slots: {
-      default: 'dept_default',
-    },
-  },
-  {
-    title: WeiI18n.t('密级').value,
-    field: 'confidentialLevel',
-    width: 100,
-    slots: {
-      default: 'confidentialLevel_default',
-    },
-    //根据行中数据数值显示密级
-  },
-  {
-    title: WeiI18n.t('状态').value,
-    field: 'status',
-    width: 130,
-    slots: {
-      default(params) {
-        // 判断是否可以点击（userType != '4' 时可以点击）
-        const canClick = userStore.getUser.userType !== '4';
 
-        return h(Switch, {
-          checked: Number(params.row.status) === 0,
-          disabled: !canClick, // 如果不能点击，则禁用 Switch
-          onChange() {
-            // 修改状态的二次确认
-            const _text = params.row.status === CommonStatusEnum.ENABLE ? WeiI18n.t('停用').value : WeiI18n.t('启用').value;
-            Modal.confirm({
-              title: `确认要"${_text}""${params.row.username}"用户吗?`,
-              okText: WeiI18n.t('确定').value,
-              cancelText: WeiI18n.t('取消').value,
-              async onOk() {
-                // 发起修改状态
-                await AdminApiSystemUser.updateUserStatus({ id: params.row.id as number, status: params.row.status === 0 ? 1 : 0 });
-                // 刷新列表
-                await getListData();
-              },
-            });
-          },
-        });
-      },
+const handleStatusChange = (record: any) => {
+  const _text = record.status === CommonStatusEnum.ENABLE ? WeiI18n.t('停用').value : WeiI18n.t('启用').value;
+  Modal.confirm({
+    title: `确认要"${_text}""${record.username}"用户吗?`,
+    okText: WeiI18n.t('确定').value,
+    cancelText: WeiI18n.t('取消').value,
+    async onOk() {
+      await AdminApiSystemUser.updateUserStatus({ id: record.id as number, status: record.status === 0 ? 1 : 0 });
+      await getListData();
     },
-  },
-  {
-    title: WeiI18n.t('创建时间').value,
-    field: 'createTime',
-    width: 200,
-    formatter: params => {
-      const date = new Date(params.row.createTime);
-      return useRender.renderDateNoTime(date); // 格式化日期为年月日
+  });
+};
+
+const { getColumnSearchProps, getColumnSelectProps } = useTableFilter();
+
+const rowClassName = (_record: any, index: number) =>
+  index % 2 === 1 ? "table-striped" : "";
+
+const columns = computed<TableColumnsType>(() => [
+    {
+      title: WeiI18n.t('用户名').value,
+      dataIndex: 'username',
+      key: 'username',
+      width: 200,
+      ...getColumnSearchProps('username'),
     },
-  },
-  {
-    title: WeiI18n.t('操作').value,
-    field: 'operation',
-    fixed: 'right',
-    width: 240,
-    slots: {
-      default: 'operation_default',
+    {
+      title: WeiI18n.t('姓名').value,
+      dataIndex: 'nickname',
+      key: 'nickname',
+      width: 200,
+      ...getColumnSearchProps('nickname'),
     },
-  },
-];
+    {
+      title: WeiI18n.t('部门名称').value,
+      dataIndex: 'dept',
+      key: 'dept',
+      width: 200,
+      align: 'left',
+    },
+    {
+      title: WeiI18n.t('密级').value,
+      dataIndex: 'confidentialLevel',
+      key: 'confidentialLevel',
+      width: 100,
+      ...getColumnSelectProps('confidentialLevel', resources as any, { 2: '一般', 3: '重要', 4: '核心', undefined: '公开', null: '公开', '': '公开' }),
+    },
+    {
+      title: WeiI18n.t('状态').value,
+      dataIndex: 'status',
+      key: 'status',
+      width: 130,
+      ...getColumnSelectProps('status', resources as any, { [CommonStatusEnum.ENABLE]: WeiI18n.t('开启').value, [CommonStatusEnum.DISABLE]: WeiI18n.t('停用').value }),
+    },
+    {
+      title: WeiI18n.t('创建时间').value,
+      dataIndex: 'createTime',
+      key: 'createTime',
+      width: 200,
+    },
+    {
+      title: WeiI18n.t('操作').value,
+      key: 'operation',
+      fixed: 'right',
+      width: 240,
+    },
+]);
 const loading = ref(false);
 const { dateRange, dateRangeParams } = useDateRangeParams();
 /** 初始化绑定分页请求参数 */
@@ -452,50 +438,55 @@ async function exportData() {
       </a-form>
     </a-card>
     <a-card v-if="!modalVisible && !modalVisibledetail" style="margin-top: 10px" class="b-body">
-      <VxeGrid :columns="columns" :loading="loading" :loading-config="{text: '加载中...'}" :data="resources" :empty-text="$t('暂无数据')" :cell-config="{ height: 45 }" :header-cell-config="{ height: 45 }">
-        <template #operation_default="{ row }">
-          <!-- @click="handleClick" -->
-
-          <a @click="handleAddOrUpdate(row.id, false)" v-if="userStore.getUser.userType != '4'"> {{ $t('编辑') }}</a>
-          <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
-          <a @click="handleAddOrUpdate(row.id, true)"> {{ $t('详情') }}</a>
-          <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
-          <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(row.id)">
-            <!-- v-hasPermi="['system:role:delete']" -->
-            <a-button type="link" danger class="p-0 text-[12px]" v-if="userStore.getUser.userType != '4'">
-              {{ $t('删除') }}
-            </a-button>
-          </a-popconfirm>
-          <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
-          <a @click="resetpassword(row)" v-if="userStore.getUser.userType != '4'"> {{ $t('重置密码') }}</a>
+      <a-table :columns="columns" :data-source="resources" :scroll="{ x: 1000 }"
+        :rowKey="(record) => record.id" :loading="loading" bordered :row-class-name="rowClassName"
+        :pagination="false"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'dept'">
+            <div>{{ handledeptIdList(record) }}</div>
+          </template>
+          <template v-if="column.key === 'confidentialLevel'">
+            <div v-if="record.confidentialLevel==2">一般</div>
+            <div v-else-if="record.confidentialLevel==3">重要</div>
+            <div v-else-if="record.confidentialLevel==4">核心</div>
+            <div v-else>公开</div>
+          </template>
+          <template v-if="column.key === 'status'">
+            <a-switch
+              :checked="Number(record.status) === 0"
+              :disabled="userStore.getUser.userType === '4'"
+              @change="() => handleStatusChange(record)"
+            />
+          </template>
+          <template v-if="column.key === 'createTime'">
+            <span>{{ useRender.renderDateNoTime(new Date(record.createTime)) }}</span>
+          </template>
+          <template v-if="column.key === 'operation'">
+            <a @click="handleAddOrUpdate(record.id, false)" v-if="userStore.getUser.userType != '4'"> {{ $t('编辑') }}</a>
+            <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
+            <a @click="handleAddOrUpdate(record.id, true)"> {{ $t('详情') }}</a>
+            <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
+            <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
+              <a-button type="link" danger class="p-0 text-[12px]" v-if="userStore.getUser.userType != '4'">
+                {{ $t('删除') }}
+              </a-button>
+            </a-popconfirm>
+            <a-divider type="vertical" v-if="userStore.getUser.userType != '4'" />
+            <a @click="resetpassword(record)" v-if="userStore.getUser.userType != '4'"> {{ $t('重置密码') }}</a>
+          </template>
         </template>
-        <template #workCard_default="{ row }">
-          <a @click.stop="handleAddOrUpdate(row.id, true)">{{ row.workCard }}</a>
-        </template>
-        <template #dept_default="{ row }">
-          <div>{{ handledeptIdList(row) }}</div>
-        </template>
-        <template #confidentialLevel_default="{ row }">
-          <div v-if="row.confidentialLevel==2">一般</div>
-          <div v-else-if="row.confidentialLevel==3">重要</div>
-          <div v-else-if="row.confidentialLevel==4">核心</div>
-          <div v-else>公开</div>
-        </template>
-        
-        <template #userType_default="{ row }">
-          <div>{{ userList[row.type - 1]?.label }}</div>
-        </template>
-        <template #pager>
-          <a-pagination v-bind="pagination" class="ant-table-pagination ant-table-pagination-right" />
-        </template>
-           <!-- 空数据插槽 -->
-        <template #empty>
+        <!-- 空数据插槽 -->
+        <template #emptyText>
           <div class="mx-auto pt-[40px] w-[235px] h-[235px]">
             <img width="100%" height="auto" src="@/assets/images/empty.png" alt="暂无数据" />
             <div>数据为空</div>
           </div>
         </template>
-      </VxeGrid>
+      </a-table>
+      <div class="flex justify-end mt-[16px]">
+        <a-pagination v-bind="pagination" class="ant-table-pagination" />
+      </div>
     </a-card>
     <div class="user-page">
       <!-- 新增、编辑页面 -->

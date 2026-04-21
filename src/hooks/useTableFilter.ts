@@ -57,14 +57,14 @@ export function useTableFilter() {
   })
 
   /** 选择筛选，选项从 dataSource 自动去重 */
-  const getColumnSelectProps = (dataIndex: string, dataSource: Ref<any[]>): Partial<TableColumnType> => ({
+  const getColumnSelectProps = (dataIndex: string, dataSource: Ref<any[]>, valueMap?: Record<string | number, string>): Partial<TableColumnType> => ({
     filterDropdown: (params: FilterDropdownSlotParams) => {
       const unique = [...new Set(
         dataSource.value
           .map(row => row[dataIndex])
           .filter(v => v != null && v !== '')
       )]
-      const options = unique.map(v => ({ label: String(v), value: String(v) }))
+      const options = unique.map(v => ({ label: valueMap ? (valueMap[v] || String(v)) : String(v), value: String(v) }))
       return h(TableFilterDropdown, {
         selectedKeys: params.selectedKeys,
         setSelectedKeys: params.setSelectedKeys,
