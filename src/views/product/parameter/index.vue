@@ -354,9 +354,6 @@ function handleParameterFilterOpenChange(key: string, open: boolean) {
     if (key === 'parameterName') {
       filterValueMap.value = { ...filterValueMap.value, parameterName: parameterName.value ?? '' };
     }
-    if (key === 'parameterNum') {
-      filterValueMap.value = { ...filterValueMap.value, parameterNum: parameterNum.value ?? '' };
-    }
   }
   setParameterFilterOpen(key, open);
 }
@@ -1428,6 +1425,27 @@ const {
   :deep(.ant-table-thead > tr > th) {
     border-right: 1px solid #e8e8e8;
     text-align: center;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-sorters) {
+    justify-content: center !important;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-title) {
+    flex: none;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
   }
 
   :deep(.ant-table-tbody > tr > td) {
@@ -1576,6 +1594,7 @@ const {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  font-size: 14px;
 }
 
 .header-cell-main--static {
@@ -1602,6 +1621,7 @@ const {
   justify-content: center;
   gap: 4px;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .header-title-sort--disabled {

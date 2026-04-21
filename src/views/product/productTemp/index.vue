@@ -1,11 +1,12 @@
 <script lang="ts" setup>
-import { nextTick, reactive, ref } from 'vue';
+import { computed, h, nextTick, reactive, ref } from 'vue';
 import { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { useDateRangeParams } from '@/hooks/useDate';
 import { useRender } from '@/components/escape';
 import { ProductTempPageRequestDTOModel } from '@/api/models/productTemp/ProductTempPageRequestDTOModel';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
@@ -27,8 +28,9 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     dataIndex: 'tempNum',
     key: 'tempNum',
     align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.tempNum, b.tempNum),
+    fixed: 'left',
+    resizable: false,
+    ellipsis: true,
     width: 200,
   },
   {
@@ -37,8 +39,8 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     key: 'tempName',
     align: 'center',
     resizable: true,
+    ellipsis: true,
     width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.tempName, b.tempName),
   },
   {
     title: WeiI18n.$t('版本'),
@@ -46,27 +48,7 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     key: 'versionNum',
     align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.versionNum, b.versionNum),
     width: 130,
-    customRender: ({ record }: any) =>
-      h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '6px' } }, [
-        String('V' + (record.versionNum ?? '-') + '.0'),
-        h(
-          'a',
-          {
-            style: { cursor: 'pointer' },
-            onClick: (e: Event) => {
-              e && (e as Event).stopPropagation();
-              showVersionHistory(record);
-            },
-            title: '查看历史版本',
-          },
-          h(EpcIcon, {
-            type: 'icon-banbenlishi',
-            style: { fontSize: '14px', color: '#1890ff' },
-          }),
-        ),
-      ]),
   },
   {
     title: WeiI18n.$t('状态'),
@@ -76,7 +58,6 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     resizable: true,
     ellipsis: true,
     width: 180,
-    sorter: (a: any, b: any) => sortermethod(a.status, b.status),
   },
   {
     title: WeiI18n.$t('备注'),
@@ -86,17 +67,102 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     resizable: true,
     ellipsis: true,
     width: 270,
-    sorter: (a: any, b: any) => sortermethod(a.remarks, b.remarks),
   },
   {
     title: WeiI18n.$t('操作'),
     dataIndex: 'operation',
     align: 'left',
     fixed: 'right',
+    resizable: false,
     width: 250,
   },
-  {},
 ]);
+
+/** 表头排序、筛选（与 parameter/index.vue 列表一致） */
+type ProductTempSortOrder = 'ascend' | 'descend' | '';
+const sortState = ref<{ key: string; order: ProductTempSortOrder }>({ key: '', order: '' });
+const filterValueMap = ref<Record<string, string>>({ tempNum: '', tempName: '' });
+const filterOpenMap = ref<Record<string, boolean>>({});
+
+function isSortableProductTempColumn(column: any) {
+  const di = column?.dataIndex;
+  if (!di || di === 'operation') return false;
+  return true;
+}
+
+function isFilterableProductTempColumn(column: any) {
+  const di = column?.dataIndex;
+  return di === 'tempNum' || di === 'tempName';
+}
+
+function toggleProductTempColumnSort(column: any) {
+  if (!isSortableProductTempColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (sortState.value.key !== key) {
+    sortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (sortState.value.order === 'ascend') {
+    sortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (sortState.value.order === 'descend') {
+    sortState.value = { key: '', order: '' };
+    return;
+  }
+  sortState.value = { key, order: 'ascend' };
+}
+
+function getProductTempSortOrder(key: string): ProductTempSortOrder {
+  return sortState.value.key === key ? sortState.value.order : '';
+}
+
+function getProductTempFilterOpen(key: string) {
+  return Boolean(filterOpenMap.value[key]);
+}
+
+function handleProductTempFilterOpenChange(key: string, open: boolean) {
+  if (open) {
+    if (key === 'tempNum') {
+      filterValueMap.value = { ...filterValueMap.value, tempNum: String(requestParams.tempNum ?? '') };
+    }
+    if (key === 'tempName') {
+      filterValueMap.value = { ...filterValueMap.value, tempName: String(requestParams.tempName ?? '') };
+    }
+  }
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: open };
+}
+
+function applyProductTempColumnFilter(key: string) {
+  const v = String(filterValueMap.value[key] ?? '').trim();
+  if (key === 'tempNum') requestParams.tempNum = v;
+  if (key === 'tempName') requestParams.tempName = v;
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: false };
+  void getResources();
+}
+
+function resetProductTempColumnFilter(key: string) {
+  filterValueMap.value = { ...filterValueMap.value, [key]: '' };
+  if (key === 'tempNum') requestParams.tempNum = '';
+  if (key === 'tempName') requestParams.tempName = '';
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: false };
+  void getResources();
+}
+
+/** 列宽之和 + 缓冲，保证横向滚动与固定列生效（与 parameter 列表思路一致） */
+const SCROLL_X_BUFFER_PX = 2;
+const productTempTableScrollX = computed(() => {
+  const sum = columns.value.reduce((acc, col) => {
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + SCROLL_X_BUFFER_PX;
+});
+
 const { dateRange, dateRangeParams } = useDateRangeParams();
 /** 列表请求参数 */
 const requestParams = reactive(new ProductTempPageRequestDTOModel());
@@ -109,6 +175,14 @@ pagination.showQuickJumper = false;
 
 /** 列表数据 */
 const resources = ref<Array<NoticeInfoRequestDTOModel>>([]);
+
+const productTempTableDisplayList = computed(() => {
+  let list = [...resources.value];
+  if (!sortState.value.key || !sortState.value.order) return list;
+  const key = sortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
 
 onMounted(() => {
   getResources();
@@ -241,83 +315,145 @@ function customGetContainer() {
 
 <template>
   <div class="drawerContent">
-    <a-card>
-      <a-form layout="inline" :label-col="{ style: { width: '70px' } }" :model="requestParams">
-        <a-input v-model:value="requestParams.tempNum" style="width: 220px" allow-clear :placeholder="$t('请输入模板编号')" />
-        <a-input v-model:value="requestParams.tempName" style="width: 220px; margin-left: 10px" allow-clear :placeholder="$t('请输入模板名称')" />
-        <a-form-item style="margin-left: 15px">
-          <a-button type="primary" @click="handleFinish"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />{{ $t('查询') }} </a-button>
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="noticeAdd(undefined)">
-            <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-            {{ $t('添加') }}
-          </a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
+    <div class="product-temp-calc-pane">
+      <a-card class="calc-toolbar-card">
+        <a-form layout="inline" class="calc-toolbar-form" :label-col="{ style: { width: '70px' } }" :model="requestParams">
+          <a-form-item name="tempNum">
+            <a-input v-model:value="requestParams.tempNum" style="width: 220px" allow-clear :placeholder="$t('请输入模板编号')" />
+          </a-form-item>
+          <a-form-item name="tempName">
+            <a-input v-model:value="requestParams.tempName" style="width: 220px" allow-clear :placeholder="$t('请输入模板名称')" />
+          </a-form-item>
+          <a-form-item class="product-temp-toolbar-btns">
+            <a-button type="primary" @click="handleFinish"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />{{ $t('查询') }} </a-button>
+            <a-button type="primary" @click="noticeAdd(undefined)">
+              <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+              {{ $t('添加') }}
+            </a-button>
+          </a-form-item>
+        </a-form>
+      </a-card>
 
-    <a-card class="mt-[10px] b-body2">
-      <a-table
-        :scroll="{ x: 1200 }"
-        :row-key="(record: any) => record.id"
-        :columns="columns"
-        :locale="locale"
-        :data-source="resources"
-        :pagination="pagination"
-        @resizeColumn="handleResizeColumn"
-        :loading="loading"
-        :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'name'">
-            {{ record.name }}
+      <a-card class="calc-table-card product-temp-table-card">
+        <a-table
+          class="exe-config-table"
+          :scroll="{ x: productTempTableScrollX }"
+          :row-key="record => record.id"
+          :columns="columns"
+          :locale="locale"
+          :data-source="productTempTableDisplayList"
+          :pagination="pagination"
+          bordered
+          table-layout="fixed"
+          @resize-column="handleResizeColumn"
+          :loading="loading"
+          :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
+          <template #headerCell="{ column }">
+            <template v-if="isSortableProductTempColumn(column) || isFilterableProductTempColumn(column)">
+              <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableProductTempColumn(column) }">
+                <span
+                  class="header-title-sort"
+                  :class="{ 'header-title-sort--disabled': !isSortableProductTempColumn(column) }"
+                  @click.stop="toggleProductTempColumnSort(column)">
+                  <span>{{ column.title }}</span>
+                  <span v-if="isSortableProductTempColumn(column)" class="header-sort-icon">
+                    <CaretUpOutlined v-if="getProductTempSortOrder(String(column.dataIndex)) === 'ascend'" />
+                    <CaretDownOutlined v-else-if="getProductTempSortOrder(String(column.dataIndex)) === 'descend'" />
+                    <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                  </span>
+                </span>
+                <span v-if="isFilterableProductTempColumn(column)" class="header-filter-anchor" @mousedown.stop>
+                  <a-popover
+                    trigger="click"
+                    placement="bottomRight"
+                    :open="getProductTempFilterOpen(String(column.dataIndex))"
+                    @openChange="handleProductTempFilterOpenChange(String(column.dataIndex), $event)">
+                    <template #content>
+                      <div class="header-filter-pop">
+                        <a-input
+                          v-model:value="filterValueMap[String(column.dataIndex)]"
+                          :placeholder="`${$t('请输入')}${column.title}`"
+                          allow-clear
+                          @pressEnter="applyProductTempColumnFilter(String(column.dataIndex))" />
+                        <div class="header-filter-actions">
+                          <a-button type="primary" size="small" @click="applyProductTempColumnFilter(String(column.dataIndex))">
+                            <SearchOutlined />
+                            {{ $t('确定') }}
+                          </a-button>
+                          <a-button size="small" @click="resetProductTempColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                        </div>
+                      </div>
+                    </template>
+                    <span :title="`${$t('搜索')}${column.title}`" class="header-search-trigger" @click.stop>
+                      <FilterOutlined class="header-query-icon" />
+                    </span>
+                  </a-popover>
+                </span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="header-cell-main header-cell-main--static">
+                <span class="header-title-sort header-title-sort--disabled">
+                  <span>{{ column.title }}</span>
+                </span>
+              </div>
+            </template>
           </template>
-          <template v-else-if="column.dataIndex === 'type'">
-            <span>
-              <span v-if="record.type === '1'"> {{ $t('富文本') }}</span>
-              <span v-else>{{ $t('附件') }}</span>
+          <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'versionNum'">
+            <span style="display: inline-flex; align-items: center; gap: 6px">
+              <span>{{ 'V' + (record.versionNum ?? '-') + '.0' }}</span>
+              <a href="#" style="cursor: pointer" title="查看历史版本" @click.stop.prevent="showVersionHistory(record)">
+                <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
+              </a>
             </span>
           </template>
-
           <template v-else-if="column.dataIndex === 'status'">
             <span>
-              <a-tag v-if="record.status == '0'">{{ $t('未发布') }}</a-tag>
-              <a-tag v-else-if="record.status == '1'" color="blue">{{ $t('已发布') }}</a-tag>
+              <a-tag v-if="record.status == '0'" :class="['exe-status-tag', 'exe-status-tag--off']">{{ $t('未发布') }}</a-tag>
+              <a-tag v-else-if="record.status == '1'" :class="['exe-status-tag', 'exe-status-tag--on']">{{ $t('已发布') }}</a-tag>
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'operation'">
-            <a-button type="link" class="p-0" :disabled="record.status == '1'" @click="noticeAdd(record)">
-              {{ $t('编辑') }}
-            </a-button>
-            <a-divider type="vertical" />
-            <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="record.status == '1'" @confirm="handleDelete(record.id)">
-              <a-button type="link" danger class="p-0" :disabled="record.status == '1'">
-                {{ $t('删除') }}
-              </a-button>
-            </a-popconfirm>
-            <a-divider type="vertical" />
-            <a-popconfirm v-if="record.status == '0'" :title="`${$t('确定要发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm="pushFun(record.id)">
-              <a-button type="link" class="p-0">
-                {{ $t('发布') }}
-              </a-button>
-            </a-popconfirm>
-            <a-popconfirm v-else :title="`${$t('确定要撤销发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm="goBackPushFun(record.id)">
-              <a-button type="link" class="p-0">
-                {{ $t('撤销') }}
-              </a-button>
-            </a-popconfirm>
-            <a-divider type="vertical" />
-            <a-button v-if="record.status == '1'" type="link" class="p-0">
-              {{ $t('浏览WBS结构') }}
-            </a-button>
-            <a-button v-else type="link" class="p-0">
-              {{ $t('配置WBS结构') }}
-            </a-button>
+            <div class="calc-operation-links" @click.stop>
+              <a
+                href="#"
+                :class="{ 'calc-operation-links__disabled': record.status == '1' }"
+                @click.prevent="record.status != '1' && noticeAdd(record)">
+                {{ $t('编辑') }}
+              </a>
+              <a-popconfirm
+                :title="`${$t('确定要删除吗')}?`"
+                ok-text="确定"
+                cancel-text="取消"
+                :disabled="record.status == '1'"
+                @confirm.stop.prevent="handleDelete(record.id)">
+                <a href="#" :class="{ 'calc-operation-links__disabled': record.status == '1' }" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+              </a-popconfirm>
+              <a-popconfirm
+                v-if="record.status == '0'"
+                :title="`${$t('确定要发布吗')}?`"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="pushFun(record.id)">
+                <a href="#" @click.prevent>{{ $t('发布') }}</a>
+              </a-popconfirm>
+              <a-popconfirm
+                v-else
+                :title="`${$t('确定要撤销发布吗')}?`"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="goBackPushFun(record.id)">
+                <a href="#" @click.prevent>{{ $t('撤销') }}</a>
+              </a-popconfirm>
+              <span class="calc-operation-links__static calc-operation-links__wbs-link">{{ $t('浏览WBS结构') }}</span>
+            </div>
           </template>
         </template>
-      </a-table>
-      <ProductTempAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
-    </a-card>
+        </a-table>
+        <ProductTempAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
+      </a-card>
+    </div>
     <div class="productTemp-index" v-dragModal>
       <a-modal
         v-model:visible="visibleHistoryModal"
@@ -363,6 +499,115 @@ function customGetContainer() {
   background-color: #ffffff !important;
 }
 
+/* 与 parameter/index.vue 右侧 calc-config-pane 一致：左右留白、工具条与表格无分割线 */
+.product-temp-calc-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 0 12px;
+}
+
+.calc-toolbar-card {
+  border: none !important;
+  box-shadow: none !important;
+
+  :deep(.ant-card-body) {
+    padding: 12px 0;
+  }
+}
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.product-temp-toolbar-btns :deep(.ant-form-item-control-input-content) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-temp-table-card {
+  margin-top: 0 !important;
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+/* 表头：标题 + 排序 + 筛选（与 parameter/index.vue 一致） */
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-search-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  padding-right: 22px;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
 .del-text {
   color: var(--ant-error-color);
 }
@@ -384,14 +629,172 @@ function customGetContainer() {
   display: none !important;
 }
 
+/* 与 parameter/index.vue 列表表格一致 */
+.calc-table-card {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  box-shadow: none;
 
-:deep(.ant-table-column-sorters) {
-  justify-content: center;
-  align-items: flex-end;
+  :deep(.ant-card-body) {
+    height: 100%;
+    padding: 0;
+  }
+
+  :deep(.ant-table-wrapper) {
+    height: 100%;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    border-right: none !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
 }
 
-:deep(.ant-table-column-title) {
-  flex: none;
+.exe-config-table {
+  :deep(.ant-table-cell-ellipsis .ant-typography) {
+    margin-bottom: 0;
+  }
+
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+@exe-op-links-divider: #e0e0e0;
+@exe-op-links-line-gap: 8px;
+@exe-op-links-divider-h: 1em;
+
+.calc-operation-links {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @exe-op-links-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child) {
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: @exe-op-links-divider-h;
+        margin-left: -0.5px;
+        background: @exe-op-links-divider;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+.calc-operation-links__disabled {
+  pointer-events: none;
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+.calc-operation-links__static {
+  cursor: default;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+/* 「浏览WBS结构」与「发布」链接同色：主题主色 */
+.calc-operation-links__wbs-link {
+  color: var(--ant-primary-color, #1890ff) !important;
+}
+
+.exe-status-tag {
+  margin: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0 10px;
+  border-style: solid;
+  border-width: 1px;
+}
+
+.exe-status-tag--on {
+  color: #1677ff;
+  background: #e6f4ff;
+  border-color: #91caff;
+}
+
+.exe-status-tag--off {
+  color: rgba(0, 0, 0, 0.65);
+  background: #fafafa;
+  border-color: #d9d9d9;
 }
 
 .history-modal-wrap {

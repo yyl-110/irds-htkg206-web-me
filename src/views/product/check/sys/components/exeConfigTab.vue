@@ -707,6 +707,7 @@ watch(editModalVisible, v => {
   :deep(.ant-table-thead > tr > th) {
     border-right: 1px solid #e8e8e8;
     text-align: center;
+    font-size: 14px;
   }
 
   /* 表体中间列不画竖线；最右列补回右边框；最后一行补回下边框（与 bordered 外轮廓一致） */
@@ -869,6 +870,7 @@ watch(editModalVisible, v => {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  font-size: 14px;
 }
 
 .header-cell-main--has-filter {
@@ -891,6 +893,7 @@ watch(editModalVisible, v => {
   justify-content: center;
   gap: 4px;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .header-title-sort--disabled {
