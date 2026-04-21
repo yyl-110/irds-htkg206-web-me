@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { InboxOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
 import type { UploadFile } from 'ant-design-vue/es/upload/interface';
-
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 type LevelOption = {
   label: string;
   value: string | number;
@@ -50,7 +51,41 @@ function onRemove() {
   emit('removeFile');
 }
 
-function onConfirm() {
+/** 与列表/预览一致：服务端文件 id（非 Upload 组件的 uid） */
+function parseIdFromUploadResponse(raw: unknown): string {
+  if (!raw || typeof raw !== 'object') return '';
+  const body = raw as Record<string, unknown>;
+  let record: Record<string, unknown> = body;
+  const nested = body.data;
+  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) {
+    record = nested as Record<string, unknown>;
+  } else if (body.id == null && body.queryId == null && nested && typeof nested === 'object') {
+    record = nested as Record<string, unknown>;
+  }
+  return String(record.id ?? record.queryId ?? '').trim();
+}
+
+function getCurrentFileServerId(): string {
+  const list = props.fileList;
+  const file = list.length ? list[list.length - 1] : undefined;
+  if (!file) return '';
+  const uid = String(file.uid ?? '');
+  if (uid.startsWith('-existing-')) {
+    return uid.slice('-existing-'.length).trim();
+  }
+  return parseIdFromUploadResponse(file.response);
+}
+
+async function onConfirm() {
+  const id = getCurrentFileServerId();
+  if (!id) {
+    message.warning('缺少文件ID，请先完成上传或保留已有关联文件');
+    return;
+  }
+  await AdminApiSystemUploadFile.updateFileConfidentialLevel({
+    id,
+    confidentialLevel: levelValue.value,
+  });
   emit('confirm');
   modalVisible.value = false;
 }
