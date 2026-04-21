@@ -167,22 +167,35 @@ watch(
   },
   { immediate: true },
 );
-/** 表头与单元格均居中 */
-const CENTER_ALIGNED_KEYS = ['calcType', 'levelName', 'statusDisplay', 'createTime', 'updateTime'];
-
 const exeConfigColumns = ref<TableColumnType<ExeConfigRecord>[]>([
-  { title: '计算名称', dataIndex: 'calcName', key: 'calcName', align: 'left', width: 160, ellipsis: true },
-  { title: '计算类型', dataIndex: 'calcType', key: 'calcType', align: 'center', width: 120, ellipsis: true },
-  { title: '所属分类', dataIndex: 'treeName', key: 'treeName', align: 'left', width: 160, ellipsis: true },
-  { title: '密级', dataIndex: 'levelName', key: 'levelName', align: 'center', width: 100, ellipsis: true },
-  { title: '状态', dataIndex: 'statusDisplay', key: 'statusDisplay', align: 'center', width: 110, ellipsis: false },
-  { title: '文件名称', dataIndex: 'fileName', key: 'fileName', align: 'left', width: 200, ellipsis: true },
-  { title: '创建人', dataIndex: 'createUser', key: 'createUser', align: 'left', width: 100, ellipsis: true },
-  { title: '编辑人', dataIndex: 'updateUser', key: 'updateUser', align: 'left', width: 100, ellipsis: true },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, ellipsis: true },
-  { title: '编辑时间', dataIndex: 'updateTime', key: 'updateTime', align: 'center', width: 120, ellipsis: true },
+  /** 左侧固定列不设 resizable，避免与 sticky 列宽测量错位 */
+  { title: '计算名称', dataIndex: 'calcName', key: 'calcName', align: 'left', width: 160, ellipsis: true, fixed: 'left' },
+  { title: '计算类型', dataIndex: 'calcType', key: 'calcType', align: 'center', width: 120, ellipsis: true, resizable: true },
+  { title: '所属分类', dataIndex: 'treeName', key: 'treeName', align: 'left', width: 160, ellipsis: true, resizable: true },
+  { title: '密级', dataIndex: 'levelName', key: 'levelName', align: 'center', width: 100, ellipsis: true, resizable: true },
+  { title: '状态', dataIndex: 'statusDisplay', key: 'statusDisplay', align: 'center', width: 110, ellipsis: false, resizable: true },
+  { title: '文件名称', dataIndex: 'fileName', key: 'fileName', align: 'left', width: 200, ellipsis: true, resizable: true },
+  { title: '创建人', dataIndex: 'createUser', key: 'createUser', align: 'left', width: 100, ellipsis: true, resizable: true },
+  { title: '编辑人', dataIndex: 'updateUser', key: 'updateUser', align: 'left', width: 100, ellipsis: true, resizable: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, ellipsis: true, resizable: true },
+  { title: '编辑时间', dataIndex: 'updateTime', key: 'updateTime', align: 'center', width: 120, ellipsis: true, resizable: true },
+  /** 固定右侧列不建议 resizable：拖拽手柄与 vc-table 测量宽度易与 sticky 错位，横向滚到尽头时操作列会抖/压盖前一列 */
   { title: '操作', dataIndex: 'operation', key: 'operation', align: 'left', width: 200, fixed: 'right' },
 ]);
+
+function handleResizeColumn(w: number, col: TableColumnType<ExeConfigRecord>) {
+  col.width = w;
+}
+
+/** 横向滚动宽度：列 width 之和 + 极小缓冲，减轻边框/亚像素与 ping-right 判定导致的固定列抖动；缓冲过大时固定列右侧可能出现细空白 */
+const SCROLL_X_BUFFER_PX = 2;
+const exeConfigTableScrollX = computed(() => {
+  const sum = exeConfigColumns.value.reduce((acc, col) => {
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + SCROLL_X_BUFFER_PX;
+});
 
 type SortOrder = 'ascend' | 'descend' | '';
 const sortState = ref<{ key: string; order: SortOrder }>({ key: '', order: '' });
@@ -249,10 +262,6 @@ function isSortableColumn(column: any) {
 
 function isFilterableColumn(column: any) {
   return column?.dataIndex === 'calcName';
-}
-
-function isHeaderCenterColumn(column: any): boolean {
-  return CENTER_ALIGNED_KEYS.includes(String(column?.dataIndex ?? ''));
 }
 
 function isStatusPublished(text: string): boolean {
@@ -584,10 +593,12 @@ watch(editModalVisible, v => {
         bordered
         table-layout="fixed"
         :row-key="getRowKey"
-        :scroll="{ x: 1520, y: 420 }"
-        :row-class-name="getRowClassName">
+        :scroll="{ x: exeConfigTableScrollX }"
+        :row-class-name="getRowClassName"
+        @resize-column="handleResizeColumn"
+      >
         <template #headerCell="{ column }">
-          <div class="header-cell-main" :class="{ 'header-cell-main--center': isHeaderCenterColumn(column) }">
+          <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableColumn(column) }">
             <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableColumn(column) }" @click.stop="toggleColumnSort(column)">
               <span>{{ column.title }}</span>
               <span v-if="isSortableColumn(column)" class="header-sort-icon">
@@ -596,26 +607,27 @@ watch(editModalVisible, v => {
                 <CaretUpOutlined v-else class="header-sort-icon--muted" />
               </span>
             </span>
-            <a-popover
-              v-if="isFilterableColumn(column)"
-              trigger="click"
-              placement="bottomRight"
-              :open="getFilterOpen(String(column.dataIndex))"
-              @openChange="handleFilterOpenChange(String(column.dataIndex), $event)">
-              <template #content>
-                <div class="header-filter-pop">
-                  <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`搜索 ${column.title}`" allow-clear />
-                  <div class="header-filter-actions">
-                    <a-button type="primary" size="small" @click="applyColumnFilter(String(column.dataIndex))">
-                      <SearchOutlined />
-                      确定
-                    </a-button>
-                    <a-button size="small" @click="resetColumnFilter(String(column.dataIndex))">重置</a-button>
+            <span v-if="isFilterableColumn(column)" class="header-filter-anchor">
+              <a-popover
+                trigger="click"
+                placement="bottomRight"
+                :open="getFilterOpen(String(column.dataIndex))"
+                @openChange="handleFilterOpenChange(String(column.dataIndex), $event)">
+                <template #content>
+                  <div class="header-filter-pop">
+                    <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`搜索 ${column.title}`" allow-clear />
+                    <div class="header-filter-actions">
+                      <a-button type="primary" size="small" @click="applyColumnFilter(String(column.dataIndex))">
+                        <SearchOutlined />
+                        确定
+                      </a-button>
+                      <a-button size="small" @click="resetColumnFilter(String(column.dataIndex))">重置</a-button>
+                    </div>
                   </div>
-                </div>
-              </template>
-              <FilterOutlined class="header-query-icon" />
-            </a-popover>
+                </template>
+                <FilterOutlined class="header-query-icon" />
+              </a-popover>
+            </span>
           </div>
         </template>
         <template #bodyCell="{ column, record, text }">
@@ -694,20 +706,53 @@ watch(editModalVisible, v => {
 
   :deep(.ant-table-thead > tr > th) {
     border-right: 1px solid #e8e8e8;
+    text-align: center;
   }
 
-  :deep(.ant-table-thead > tr > th:last-child) {
-    border-right: none;
-  }
-
+  /* 表体中间列不画竖线；最右列补回右边框；最后一行补回下边框（与 bordered 外轮廓一致） */
   :deep(.ant-table-tbody > tr > td) {
     border-right: none !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
   }
 }
 
 .exe-config-table {
   :deep(.ant-table-cell-ellipsis .ant-typography) {
     margin-bottom: 0;
+  }
+
+  /* 横向滚动条与最后一行之间留出空隙，避免悬停滚动条（尤其叠加/加粗轨道）压住单元格内容 */
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  /*
+   * bordered 默认给 .ant-table-container 整条 border-left，高度含 content 的 padding-bottom，
+   * 左边框会伸到表体下方留白里，看起来像左侧多出一截竖线。去掉容器左边框，改由首列单元格承担。
+   */
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  /* 去掉固定列 inset 阴影，减轻横向滚动在 ping 边界时的抖动观感 */
+  :deep(.ant-table-cell-fix-left-first::after),
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after) {
+    display: none;
   }
 }
 
@@ -731,14 +776,6 @@ watch(editModalVisible, v => {
   color: rgba(0, 0, 0, 0.25);
   pointer-events: none;
   cursor: not-allowed;
-}
-
-.header-cell-main--center {
-  justify-content: center;
-}
-
-.header-cell-main--center .header-title-sort {
-  justify-content: center;
 }
 
 .exe-status-tag {
@@ -776,15 +813,32 @@ watch(editModalVisible, v => {
 }
 
 .header-cell-main {
+  position: relative;
   width: 100%;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.header-cell-main--has-filter {
+  padding-right: 22px;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .header-title-sort {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   cursor: pointer;
 }
