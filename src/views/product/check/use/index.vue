@@ -422,8 +422,7 @@ async function checkContentStart(card: ChecklistCard) {
         message.warning('未配置本地下载目录（VITE_BASE_FILE_DOWNLOAD_URL）');
         return;
       }
-      download(filePath, downloadDir, String(first?.oldFileName), true);
-      //调用下载接口
+      void download(filePath, downloadDir, String(first?.oldFileName), true).catch(() => {});
     } else {
       message.warning('未返回 filePath');
     }
@@ -540,7 +539,7 @@ const {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 16px 20px 20px;
+  padding: 10px 20px 20px;
   overflow: hidden;
   background: #fff;
 }

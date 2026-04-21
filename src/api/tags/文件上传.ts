@@ -383,4 +383,16 @@ export class AdminApiSystemUploadFile {
       },
       CommonResultFileUploadResponseDTOModel,
     );
+
+  static updateFileConfidentialLevel = <Req extends any = any>(data: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
+      {
+        path: `system-service/fileManagerController/updateFileConfidentialLevel`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        ...params,
+      },
+      CommonResultFileUploadResponseDTOModel,
+    );
 }

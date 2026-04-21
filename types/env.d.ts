@@ -33,6 +33,8 @@ interface ImportMetaEnv {
   readonly VITE_BASE_PREVIEW_URL: string | undefined
   /** 本地下载落地目录（WebSocket ApiDownload 的 dir 参数） */
   readonly VITE_BASE_FILE_DOWNLOAD_URL: string | undefined
+  /** Creo 本地助手等客户端 WebSocket 地址，默认 ws://localhost:8080 */
+  readonly VITE_CREO_WS_URL: string | undefined
 
 }
 
