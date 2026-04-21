@@ -35,10 +35,6 @@ const addForm = ref({
   fileList: [] as UploadFile[],
 });
 const levelOptions = computed(() => userStore.getConfidentialLevel);
-const attachmentLevelOptions = computed(() => {
-  const outer = Number(addForm.value.confidentialLevel);
-  return levelOptions.value.filter(option => Number(option.value) <= outer);
-});
 const addRules = {
   calcName: [{ required: true, message: '请输入计算名称', trigger: 'blur' }],
   confidentialLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
@@ -269,7 +265,7 @@ function getCurrentFileName() {
       v-model:visible="uploadModalVisible"
       v-model:confidential-level="addForm.attachmentConfidentialLevel"
       accept=".exe"
-      :level-options="attachmentLevelOptions"
+      :form-confidential-level="addForm.confidentialLevel"
       :file-list="addForm.fileList"
       :before-upload="beforeUpload"
       :custom-request="customRequest"

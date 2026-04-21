@@ -54,10 +54,6 @@ const FILE_INFO_ROW_KEYS = [
 ];
 
 const levelOptions = computed(() => userStore.getConfidentialLevel);
-const attachmentLevelOptions = computed(() => {
-  const outer = Number(editForm.value.confidentialLevel);
-  return levelOptions.value.filter(option => Number(option.value) <= outer);
-});
 const editRules = {
   calcName: [{ required: true, message: '请输入计算名称', trigger: 'blur' }],
   confidentialLevel: [{ required: true, message: '请选择密级', trigger: 'change' }],
@@ -409,7 +405,7 @@ async function submitEditForm() {
       v-model:visible="uploadModalVisible"
       v-model:confidential-level="editForm.attachmentConfidentialLevel"
       accept=".exe"
-      :level-options="attachmentLevelOptions"
+      :form-confidential-level="editForm.confidentialLevel"
       :file-list="editForm.fileList"
       :before-upload="beforeUpload"
       :custom-request="customRequest"
