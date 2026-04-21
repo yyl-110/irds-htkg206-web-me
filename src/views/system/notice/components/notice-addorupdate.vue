@@ -1,13 +1,14 @@
 <script lang="ts" setup>
-import { defineComponent, inject, reactive, ref, toRefs } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import '@ckeditor/ckeditor5-build-classic/build/translations/zh-cn';
 import { message } from 'ant-design-vue';
+import type { UploadFile } from 'ant-design-vue/es/upload/interface';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
-import { Uploado_draggerFile } from '@/components/UploadFile';
 import { useUserStore } from '@/store/modules/user';
 import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import UploadModal from '@/views/product/components/upload-modal.vue';
 const props = defineProps({
   /** 弹窗状态 */
   modalVisible: {
@@ -33,9 +34,12 @@ const confidentialLevel = ref(0);
 const content = ref('');
 const ckeditorRef = ref();
 
+const uploadModalVisible = ref(false);
+
 /** handle close */
 function handleClose() {
   fileList.value = [];
+  uploadModalVisible.value = false;
   title.value = '';
   emit('close');
 }
@@ -49,7 +53,7 @@ async function savePageInfo() {
     message.error(WeiI18n.$t('公告内容不能为空!'));
     return;
   }
-  if (type.value == '2' && !fileList.value[0].id) {
+  if (type.value == '2' && !getNoticeUploadedFileId()) {
     message.error(WeiI18n.$t('附件不能为空!'));
     return;
   }
@@ -59,8 +63,9 @@ async function savePageInfo() {
   // 保存信息
   if (id.value != undefined && id.value > 0) {
     requestParams.id = id.value;
-    if (fileList.value !== undefined && fileList.value.length > 0) {
-      requestParams.fileId = fileList.value[0].id;
+    const fid = getNoticeUploadedFileId();
+    if (fid) {
+      requestParams.fileId = fid;
     } else {
       requestParams.fileId = '';
     }
@@ -73,8 +78,9 @@ async function savePageInfo() {
       ...requestParams,
     });
   } else {
-    if (fileList.value !== undefined && fileList.value.length > 0) {
-      requestParams.fileId = fileList.value[0].id;
+    const fid = getNoticeUploadedFileId();
+    if (fid) {
+      requestParams.fileId = fid;
     } else {
       requestParams.fileId = '';
     }
@@ -94,27 +100,63 @@ async function savePageInfo() {
   emit('close');
 }
 
-const fileList = ref<any>([]);
-async function customRequest(options: any) {
-  // 调用上传接口
-  const data = new FormData();
-  data.append('file', options.file);
+const fileList = ref<UploadFile[]>([]);
+
+function getNoticeUploadedFileId(): string {
+  const f = fileList.value[0] as (UploadFile & { id?: string }) | undefined;
+  if (!f) return '';
+  const direct = f.id ?? (f as any).queryId;
+  if (direct != null && String(direct).trim() !== '') return String(direct).trim();
+  const r = f.response as Record<string, unknown> | undefined;
+  if (!r || typeof r !== 'object') return '';
+  const data = r.data as Record<string, unknown> | undefined;
+  const id = (typeof data === 'object' && data ? data.id : r.id) ?? r.queryId ?? data?.queryId;
+  return id != null ? String(id).trim() : '';
+}
+
+async function noticeUploadCustomRequest(options: {
+  file: File | Blob;
+  onSuccess?: (body: unknown, file?: File) => void;
+  onError?: (e: Error) => void;
+}) {
+  const { file, onSuccess, onError } = options;
   try {
-    const res = await AdminApiSystemUploadFile.uploadWordToPDF({ file: options.file as File, userId: userStore.getUser.id, confidentialLevel: confidentialLevel.value + '' });
-    console.log(res);
-    if (res.data.code === 0) {
-      const file: any = { ...res.data, name: res.data?.oldFileName };
-      fileList.value[0] = file;
+    const res = await AdminApiSystemUploadFile.uploadWordToPDF({
+      file: file as File,
+      userId: userStore.getUser.id,
+      confidentialLevel: String(confidentialLevel.value),
+    });
+    if (res.data?.code === 0) {
+      const payload = res.data as Record<string, unknown>;
+      const row = (typeof payload.data === 'object' && payload.data ? payload.data : payload) as Record<string, unknown>;
+      const fid = String(row.id ?? row.queryId ?? '').trim();
+      const displayName = String(row.oldFileName ?? (file as File).name ?? '');
+      const uid = fid || `notice-${Date.now()}`;
+      const next = {
+        uid,
+        name: displayName,
+        status: 'done' as const,
+        response: res.data,
+        ...(fid ? { id: fid } : {}),
+      } as UploadFile & { id?: string };
+      fileList.value = [next];
+      onSuccess?.(res.data, file as File);
       message.success(WeiI18n.t('上传成功').value);
     } else {
       message.error(WeiI18n.t('上传失败').value);
+      onError?.(new Error(String((res.data as any)?.msg ?? 'upload failed')));
     }
   } catch (err) {
-    console.log(err);
+    onError?.(err instanceof Error ? err : new Error(String(err)));
   }
 }
-function filechange(file: any) {
-  fileList.value[0] = file;
+
+function beforeUploadNotice() {
+  return true;
+}
+
+function onNoticeRemoveFile() {
+  fileList.value = [];
 }
 
 // 初始化数据
@@ -124,8 +166,17 @@ function noticeInfoAddOrUpdate(data: any, filedata: any) {
     title.value = data.title;
     type.value = data.type;
     content.value = data.content;
-    fileList.value = [{ ...filedata, name: filedata.oldFileName }];
-    confidentialLevel.value = filedata.confidentialLevel;
+    const fid = String(filedata.id ?? filedata.queryId ?? '').trim();
+    fileList.value = [
+      {
+        uid: fid ? `-existing-${fid}` : `notice-${Date.now()}`,
+        name: String(filedata.oldFileName ?? ''),
+        status: 'done',
+        response: filedata,
+        ...(fid ? { id: fid } : {}),
+      } as UploadFile & { id?: string },
+    ];
+    confidentialLevel.value = filedata.confidentialLevel ?? 0;
     nextTick(() => {
       if (ckeditorRef.value) {
         ckeditorRef.value.setData(data.content);
@@ -137,6 +188,7 @@ function noticeInfoAddOrUpdate(data: any, filedata: any) {
     type.value = '1';
     content.value = '';
     fileList.value = [];
+    uploadModalVisible.value = false;
     confidentialLevel.value = 0;
     nextTick(() => {
       if (ckeditorRef.value) {
@@ -174,18 +226,23 @@ defineExpose({ noticeInfoAddOrUpdate });
           <a-radio value="2"> 附件 </a-radio>
         </a-radio-group>
       </a-form-item>
-      <a-form-item v-if="type === '2'" :label="$t('附件密级')">
-        <a-select v-model:value="confidentialLevel" placeholder="请选择密级">
-          <a-select-option v-for="item in userStore.getConfidentialLevel" :key="item.value" :value="item.value">
-            {{ item.label }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
       <a-form-item :label="$t('公告内容')" name="code">
         <CkeditorPlugin v-if="type === '1'" ref="ckeditorRef" height="400" style="margin-top: 10px" />
-        <Uploado_draggerFile v-if="type === '2'" width="600px" :file-list="fileList" :confidential-level="confidentialLevel" @change="filechange" @custom-request="customRequest" />
+        <div v-else-if="type === '2'" class="notice-attachment-row">
+          <a-button type="primary" @click="uploadModalVisible = true">上传附件</a-button>
+          <span v-if="fileList[0]?.name" class="notice-attachment-row__name">{{ fileList[0].name }}</span>
+        </div>
       </a-form-item>
     </a-form>
+    <UploadModal
+      v-if="type === '2'"
+      v-model:visible="uploadModalVisible"
+      v-model:confidential-level="confidentialLevel"
+      accept=".doc,.docx"
+      :file-list="fileList"
+      :before-upload="beforeUploadNotice"
+      :custom-request="noticeUploadCustomRequest"
+      @remove-file="onNoticeRemoveFile" />
     <template #footer>
       <a-button type="primary" @click="savePageInfo">
         {{ $t('确定') }}
@@ -201,5 +258,15 @@ defineExpose({ noticeInfoAddOrUpdate });
 <style scoped lang="less">
 .notice-addorUpdate {
   position: relative;
+}
+
+.notice-attachment-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notice-attachment-row__name {
+  color: rgba(0, 0, 0, 0.65);
 }
 </style>

@@ -865,7 +865,7 @@ async function compareData() {
   const list = [];
   parmList = res.data.data.listPropertyName;
   const strlist = res.data.data.listModule;
-  
+
   // 动态找出“模型名称”对应的字段名
   let modelNameKey = '';
   for (let i = 0; i < parmList.length; i++) {
@@ -897,7 +897,7 @@ async function compareData() {
     if (list.length == 0) {
       parm.push({
         id: strlist[j].id, // 缺少id
-        title: (modelNameKey && strlist[j][modelNameKey]) ? strlist[j][modelNameKey] : '数据',
+        title: modelNameKey && strlist[j][modelNameKey] ? strlist[j][modelNameKey] : '数据',
         key: `数据${j}`,
         dataIndex: `数据${j}`,
         align: 'center',
@@ -1335,26 +1335,22 @@ defineExpose({ initData, selectAllModuleInfo });
       </template>
     </a-modal>
   </div>
-  <a-modal
-    v-model:visible="tabularflag"
-    style="width: 80%"
-    :confirm-loading="$isPending()"
-    :ok-text="$t('确定')"
-    :cancel-text="$t('取消')"
-    :mask-closable="false">
+  <a-modal v-model:visible="tabularflag" style="width: 80%" :confirm-loading="$isPending()" :ok-text="$t('确定')" :cancel-text="$t('取消')" :mask-closable="false">
     <template #title>
-      <div v-if="tabularColumn.length > 1" style="font-size: 18px; font-weight: bold; background: #f4f8ff; padding: 16px 24px; margin: -16px -24px; display: flex; align-items: center; border-radius: 8px 8px 0 0;">
+      <div
+        v-if="tabularColumn.length > 1"
+        style="font-size: 18px; font-weight: bold; background: #f4f8ff; padding: 16px 24px; margin: -16px -24px; display: flex; align-items: center; border-radius: 8px 8px 0 0">
         <template v-for="(col, index) in tabularColumn.slice(1)" :key="col.key">
-          <span style="color: #313133; margin: 0 4px;">{{ col.title }}</span>
-          <span v-if="index !== tabularColumn.length - 2" style="margin: 0 16px; display: inline-flex; align-items: center;">
-            <img src="@/assets/images/vs.png" alt="VS" style="height: 24px;" />
+          <span style="color: #313133; margin: 0 4px">{{ col.title }}</span>
+          <span v-if="index !== tabularColumn.length - 2" style="margin: 0 16px; display: inline-flex; align-items: center">
+            <img src="@/assets/images/vs.png" alt="VS" style="height: 24px" />
           </span>
         </template>
       </div>
       <div v-else>{{ $t('模块数据比较') }}</div>
     </template>
-    
-    <div style="margin: 16px 0 16px 12px;">
+
+    <div style="margin: 16px 0 16px 12px">
       <a-checkbox-group v-model:value="checkParmList" style="width: 100%" @change="tabularCheckList">
         <a-checkbox value="隐藏相同项">
           {{ '隐藏相同项' }}
@@ -1373,15 +1369,14 @@ defineExpose({ initData, selectAllModuleInfo });
       :columns="tabularColumn"
       :data-source="tabularData"
       style="overflow-y: hidden"
-      :row-class-name="setFixedRowClass"
-    >
+      :row-class-name="setFixedRowClass">
       <template #bodyCell="{ column, record, text }">
         <template v-if="column.dataIndex === '数据'">
           <div class="flex items-center w-full">
             <span class="flex-1"></span>
             <span class="shrink-0 text-center">{{ text }}</span>
             <span class="flex-1 text-right">
-              <CheckCircleFilled v-if="record.isSame" class="align-middle" style="color: #52c41a; font-size: 15px;" />
+              <CheckCircleFilled v-if="record.isSame" class="align-middle" style="color: #52c41a; font-size: 15px" />
             </span>
           </div>
         </template>
@@ -1405,9 +1400,9 @@ defineExpose({ initData, selectAllModuleInfo });
     @close="batchflag = false" />
   <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="800">
     <div ref="udfBoxRef" class="px-[16px] h-full wei-scrollbar overflow-y-auto flex flex-col" :style="udfBoxStyle()">
-      <a-tabs v-model:activeKey="parmType" @change="toParm" :animated="false" style="flex: 1; min-height: 0;">
+      <a-tabs v-model:activeKey="parmType" @change="toParm" :animated="false" style="flex: 1; min-height: 0">
         <a-tab-pane :key="0" tab="分类参数">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style" style="height: 100%">
             <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-bottom: 20px" size="small" bordered>
               <a-descriptions-item :label="item.name" style="width: 150px">
                 {{ item.val }}
@@ -1415,9 +1410,9 @@ defineExpose({ initData, selectAllModuleInfo });
             </a-descriptions>
           </div>
         </a-tab-pane>
-        
+
         <a-tab-pane :key="1" tab="常规属性">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style" style="height: 100%">
             <div v-if="pdmDataFlag">
               <a-descriptions style="margin-top: 20px" size="small" bordered>
                 <a-descriptions-item label="名称：" style="width: 200px">
@@ -1450,7 +1445,7 @@ defineExpose({ initData, selectAllModuleInfo });
         </a-tab-pane>
 
         <a-tab-pane :key="3" tab="知识文档">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style" style="height: 100%">
             <div style="width: 100%; height: 30px; text-align: left; margin-top: 10px">模块库知识:</div>
             <div style="width: 100%">
               <a-table
@@ -1494,7 +1489,7 @@ defineExpose({ initData, selectAllModuleInfo });
         </a-tab-pane>
 
         <a-tab-pane :key="5" tab="历史文档">
-          <div class="udfPage_style history-doc-table-wrap" style="height: 100%;">
+          <div class="udfPage_style history-doc-table-wrap" style="height: 100%">
             <a-table
               :scroll="{ x: 1200, y: 400 }"
               row-key="id"

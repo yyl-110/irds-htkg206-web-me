@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { FormInstance } from 'ant-design-vue';
+import type { FormInstance, UploadChangeParam, UploadFile } from 'ant-design-vue';
 import { ref, computed, nextTick, reactive, watch, h } from 'vue';
 import { TableProps, Modal, message } from 'ant-design-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -7,7 +7,7 @@ import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import { ModuleMenuAddRequestDTOModel } from '@/api/models/module/ModuleMenuAddRequestDTOModel';
 import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { useUserStore } from '@/store/modules/user';
-import { UploadFile } from '@/components/UploadFile';
+import UploadModal from '@/views/product/components/upload-modal.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { characterToList } from '@/utils/tools';
 import dynamicForm from '../form/dynamicForm.vue';
@@ -68,7 +68,9 @@ const childrenList = ref<any>([]);
 const variableComp = ref<any>(null);
 const labelCol = { style: { width: '120px' } };
 const dynamicParm = ref<any[]>([]);
-const uploadFileList = ref<any[]>([]);
+const uploadFileList = ref<UploadFile[]>([]);
+/** 技术文档上传弹窗内附件密级，受 modelData.confidentialLevel 上限约束（见 UploadModal formConfidentialLevel） */
+const uploadModalAttachmentLevel = ref(0);
 const categoryid = ref<any>('');
 const menuId = ref<any>('');
 const loading = ref<boolean>(false);
@@ -338,6 +340,8 @@ const deletefileFlag = computed(() => {
 
 function openUpload() {
   uploadFileList.value = [];
+  const cap = Number(modelData.confidentialLevel);
+  uploadModalAttachmentLevel.value = Number.isFinite(cap) ? cap : Number(userStore.getConfidentialLevel[0]?.value ?? 0);
   openfileUploadModal.value = true;
 }
 
@@ -345,39 +349,142 @@ async function downloadFile(record: any) {
   window.open(record.fileUrl);
 }
 
-async function datacustomRequest(options: any) {
+/** 解析 uploadFile 返回，保证能拿到 id（常见于 res.data.data） */
+function parseUploadFileRecordForModule(raw: unknown): { id: string; fileUrl?: string; displayName?: string } {
+  if (!raw || typeof raw !== 'object') return { id: '' };
+  const body = raw as Record<string, unknown>;
+  const code = body.code;
+  const ok =
+    code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200';
+  if (!ok) return { id: '' };
+  let record: Record<string, unknown> = body;
+  const nested = body.data;
+  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) {
+    record = nested as Record<string, unknown>;
+  } else if (body.id == null && body.queryId == null && nested && typeof nested === 'object') {
+    record = nested as Record<string, unknown>;
+  }
+  const id = String(record.id ?? record.queryId ?? '').trim();
+  const fileUrl =
+    record.fileUrl != null
+      ? String(record.fileUrl)
+      : record.filePath != null
+        ? String(record.filePath)
+        : undefined;
+  const displayName =
+    record.oldFileName != null ? String(record.oldFileName) : record.fileName != null ? String(record.fileName) : undefined;
+  return { id, fileUrl, displayName };
+}
+
+function getEntryFileId(entry: UploadFile | undefined): string {
+  if (!entry) return '';
+  const direct = (entry as UploadFile & { id?: string }).id ?? (entry as UploadFile & { queryId?: string }).queryId;
+  if (direct != null && String(direct).trim() !== '') return String(direct).trim();
+  return parseUploadFileRecordForModule(entry.response).id;
+}
+
+/** 从文件名取扩展名作为文件类型展示 */
+function fileExtFromName(name: string): string {
+  const s = String(name ?? '').trim();
+  const i = s.lastIndexOf('.');
+  return i >= 0 ? s.slice(i + 1).toLowerCase() : '';
+}
+
+/** 与列表列一致：documentName、fileType、fileUrl、id 与 fileId */
+function buildFileTableRow(entry: UploadFile, fileId: string) {
+  const res = entry.response as Record<string, unknown> | undefined;
+  let inner: Record<string, unknown> = {};
+  if (res && typeof res === 'object') {
+    const nested = res.data;
+    inner =
+      nested && typeof nested === 'object' && !Array.isArray(nested)
+        ? (nested as Record<string, unknown>)
+        : { ...res };
+  }
+  const documentName = String(
+    inner.documentName ?? inner.oldFileName ?? inner.fileName ?? inner.newFileName ?? entry.name ?? '',
+  ).trim();
+  const nameForExt = documentName || String(entry.name ?? '');
+  const fileTypeRaw = inner.fileType ?? inner.suffix ?? inner.fileExtension;
+  const fileType =
+    fileTypeRaw != null && String(fileTypeRaw).trim() !== ''
+      ? String(fileTypeRaw).trim()
+      : fileExtFromName(nameForExt) || '--';
+  const fileUrl =
+    inner.fileUrl != null
+      ? String(inner.fileUrl)
+      : inner.filePath != null
+        ? String(inner.filePath)
+        : (entry as UploadFile & { fileUrl?: string }).fileUrl != null
+          ? String((entry as UploadFile & { fileUrl?: string }).fileUrl)
+          : '';
+
+  return {
+    id: fileId,
+    fileId,
+    documentName: documentName || nameForExt || '—',
+    fileType,
+    fileUrl,
+  };
+}
+
+function beforeUploadTechDoc() {
+  return true;
+}
+
+async function datacustomRequest(options: {
+  file: File | Blob;
+  onSuccess?: (body: unknown, file?: File) => void;
+  onError?: (e: Error) => void;
+}) {
   try {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
-      confidentialLevel: 1,
+      confidentialLevel: uploadModalAttachmentLevel.value,
     });
-    if (res.data.code === 0) {
-      const file: any = { ...res.data, name: res.data?.oldFileName };
-      uploadFileList.value[0] = file;
+    const parsed = parseUploadFileRecordForModule(res?.data);
+    const codeOk = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200';
+    if (codeOk && parsed.id) {
+      const file: UploadFile & { id?: string; fileUrl?: string } = {
+        uid: parsed.id,
+        name: parsed.displayName ?? (options.file as File).name ?? 'file',
+        status: 'done',
+        response: res.data as object,
+        id: parsed.id,
+      };
+      if (parsed.fileUrl) file.fileUrl = parsed.fileUrl;
+      uploadFileList.value = [file];
+      options.onSuccess?.(res.data, options.file as File);
       message.success(WeiI18n.t('上传成功').value);
     } else {
       message.error(WeiI18n.t('上传失败').value);
+      options.onError?.(new Error(String((res?.data as any)?.msg ?? 'upload failed')));
     }
   } catch (err) {
     console.log(err);
+    options.onError?.(err instanceof Error ? err : new Error(String(err)));
   }
 }
 
-function datafilechange(file: any) {
-  uploadFileList.value[0] = file;
+function onUploadModalChange(info: UploadChangeParam) {
+  uploadFileList.value = [...info.fileList];
 }
 
-function handlefileSave() {
-  if (uploadFileList.value[0] && uploadFileList.value[0].id) {
-    filedataSource.value.push({
-      ...uploadFileList.value[0],
-      fileId: uploadFileList.value[0].id,
-    });
-    openfileUploadModal.value = false;
-  } else {
+function onUploadModalRemove() {
+  uploadFileList.value = [];
+}
+
+/** UploadModal 确定时已调用 updateFileConfidentialLevel；此处把文件加入表格 */
+function handleUploadModalConfirm() {
+  const entry = uploadFileList.value[0];
+  const fid = getEntryFileId(entry);
+  if (!entry || !fid) {
     message.info(WeiI18n.t('请上传文件').value);
+    return;
   }
+  filedataSource.value.push(buildFileTableRow(entry, fid));
+  openfileUploadModal.value = false;
 }
 
 // 删除文件
@@ -597,7 +704,7 @@ defineExpose({ handleModalAdd, handleModalUpdate });
 
           <a-form-item label="密级：" name="confidentialLevel" :rules="[{ required: true, message: WeiI18n.t('请选择密级').value }]">
             <a-select v-model:value="modelData.confidentialLevel" show-search placeholder="请选择状态">
-              <a-select-option v-for="item in servicesLevel" :key="item.value" :value="item.value">{{ $t(item.label) }}</a-select-option>
+              <a-select-option v-for="item in userStore.getConfidentialLevel" :key="item.value" :value="item.value">{{ $t(item.label) }}</a-select-option>
             </a-select>
           </a-form-item>
 
@@ -676,26 +783,20 @@ defineExpose({ handleModalAdd, handleModalUpdate });
     </template>
   </a-modal>
 
-  <!-- 文件上传 -->
-  <a-modal
+  <!-- 技术文档上传（共用 upload-modal） -->
+  <UploadModal
     v-model:visible="openfileUploadModal"
-    style="width: 40%"
-    :title="$t('技术文档与资料上传')"
-    :confirm-loading="$isPending()"
-    :mask-closable="false"
-    @ok="handlefileSave"
-    @cancel="openfileUploadModal = false">
-    <div style="color: red">温馨提示： 允许上传pdf、doc、docx、xls、xlsx等格式文件</div>
-    <UploadFile style="margin-top: 10px; color: red" :fileList="uploadFileList" @change="datafilechange" @customRequest="datacustomRequest" />
-    <template #footer>
-      <a-button type="primary" @click="handlefileSave">
-        {{ $t('确定') }}
-      </a-button>
-      <a-button @click="openfileUploadModal = false">
-        {{ $t('取消') }}
-      </a-button>
-    </template>
-  </a-modal>
+    v-model:confidential-level="uploadModalAttachmentLevel"
+    :modal-title="$t('技术文档与资料上传')"
+    hint="温馨提示： 允许上传pdf、doc、docx、xls、xlsx等格式文件"
+    accept=".pdf,.doc,.docx,.xls,.xlsx,.PDF,.DOC,.DOCX,.XLS,.XLSX"
+    :file-list="uploadFileList"
+    :before-upload="beforeUploadTechDoc"
+    :custom-request="datacustomRequest"
+    :form-confidential-level="modelData.confidentialLevel"
+    @upload-change="onUploadModalChange"
+    @remove-file="onUploadModalRemove"
+    @confirm="handleUploadModalConfirm" />
 
   <!-- 贡献值浏览 / 选取用户列表 -->
   <a-modal v-model:visible="userListModalVisible" title="选取贡献者" width="880px" @cancel="userListModalVisible = false">

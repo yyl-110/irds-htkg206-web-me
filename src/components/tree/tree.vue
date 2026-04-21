@@ -333,8 +333,8 @@ function onOk() {
           formData.value.level = selectedNode.value.level;
         }
         if (fileList.value.length > 0) {
-          formData.value.fileId = fileList.value[0].id;
-          formData.value.fileUrl = fileList.value[0].fileUrl;
+          formData.value.fileId = getFileListEntryId(fileList.value[0]);
+          formData.value.fileUrl = getFileListEntryUrl(fileList.value[0]) ?? '';
         } else {
           formData.value.fileId = '';
           formData.value.fileUrl = '';
@@ -347,11 +347,13 @@ function onOk() {
         formData.value.id = selectedNode.value.key;
         formData.value.level = selectedNode.value.level;
         if (fileList.value.length > 0) {
-          if (fileList.value[0].id != undefined) {
-            formData.value.fileId = fileList.value[0].id;
+          const fid = getFileListEntryId(fileList.value[0]);
+          if (fid) {
+            formData.value.fileId = fid;
           }
-          if (fileList.value[0].fileUrl != undefined) {
-            formData.value.fileUrl = fileList.value[0].fileUrl;
+          const fu = getFileListEntryUrl(fileList.value[0]);
+          if (fu) {
+            formData.value.fileUrl = fu;
           }
         }
         // 如果通过构型编码选择了节点，更新接口不应传 parentId/pid，先移除再提交
@@ -473,6 +475,53 @@ function searchSubTree(node: any) {
 
 const fileList = ref<any>([]);
 const userStore = useUserStore();
+
+/** 解析 uploadFile 返回，id 常在 data 嵌套内，仅 …res.data 展开会得到不到顶层 id */
+function parseUploadFileRecord(raw: unknown): { id: string; fileUrl?: string; displayName?: string } {
+  if (!raw || typeof raw !== 'object') return { id: '' };
+  const body = raw as Record<string, unknown>;
+  const code = body.code;
+  const ok =
+    code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200';
+  if (!ok) return { id: '' };
+  let record: Record<string, unknown> = body;
+  const nested = body.data;
+  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) {
+    record = nested as Record<string, unknown>;
+  } else if (body.id == null && body.queryId == null && nested && typeof nested === 'object') {
+    record = nested as Record<string, unknown>;
+  }
+  const id = String(record.id ?? record.queryId ?? '').trim();
+  const fileUrl =
+    record.fileUrl != null
+      ? String(record.fileUrl)
+      : record.filePath != null
+        ? String(record.filePath)
+        : record.url != null
+          ? String(record.url)
+          : undefined;
+  const displayName =
+    record.oldFileName != null
+      ? String(record.oldFileName)
+      : record.fileName != null
+        ? String(record.fileName)
+        : undefined;
+  return { id, fileUrl, displayName };
+}
+
+function getFileListEntryId(entry: any): string {
+  if (!entry) return '';
+  const direct = entry.id ?? entry.queryId;
+  if (direct != null && String(direct).trim() !== '') return String(direct).trim();
+  return parseUploadFileRecord(entry.response).id;
+}
+
+function getFileListEntryUrl(entry: any): string | undefined {
+  if (!entry) return undefined;
+  if (entry.fileUrl != null && String(entry.fileUrl).trim() !== '') return String(entry.fileUrl);
+  return parseUploadFileRecord(entry.response).fileUrl;
+}
+
 async function customRequest(options: any) {
   try {
     const res = await AdminApiSystemUploadFile.uploadFile({
@@ -480,20 +529,32 @@ async function customRequest(options: any) {
       userId: userStore.getUser.id,
       confidentialLevel: 1,
     });
-    if (res.data.code === 0) {
-      const file: any = { ...res.data, name: res.data?.oldFileName };
-      fileList.value[0] = file;
+    const parsed = parseUploadFileRecord(res?.data);
+    const codeOk = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200';
+    if (codeOk && parsed.id) {
+      const file: any = {
+        uid: parsed.id,
+        name: parsed.displayName ?? (options.file as File)?.name ?? 'file',
+        status: 'done',
+        response: res.data,
+        id: parsed.id,
+        fileUrl: parsed.fileUrl,
+      };
+      fileList.value = [file];
+      options.onSuccess?.(res.data, options.file as File);
       message.success(WeiI18n.t('上传成功').value);
     } else {
       message.error(WeiI18n.t('上传失败').value);
+      options.onError?.(new Error(String((res?.data as any)?.msg ?? 'upload failed')));
     }
   } catch (err) {
     console.log(err);
+    options.onError?.(err instanceof Error ? err : new Error(String(err)));
   }
 }
 
-function filechange(file: any) {
-  fileList.value[0] = file;
+function filechange(files: any) {
+  fileList.value = Array.isArray(files) ? files : files ? [files] : [];
 }
 
 function filterTreeNode(node: any) {

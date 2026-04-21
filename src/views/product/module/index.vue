@@ -613,9 +613,7 @@ const flagUpdate = ref(false);
 function filterTitleListForDrawer(list: any[]): any[] {
   if (!Array.isArray(list)) return [];
   return list.map(item => {
-    const levelTwoChildren = Array.isArray(item?.children)
-      ? item.children.filter((child: any) => child?.categoryType == 2)
-      : [];
+    const levelTwoChildren = Array.isArray(item?.children) ? item.children.filter((child: any) => child?.categoryType == 2) : [];
     return {
       ...item,
       children: levelTwoChildren,
@@ -894,30 +892,12 @@ function handleSelectTreeNode1(selectedKeys: any[], info: any) {
   selectTreeSelectedKeys1.value = selectedKeys[0];
 }
 
-watch(
-  () => router.query.parms,
-  () => {
-    let paramStr = '';
-    if (router.query.parms) {
-      // 对界面上的参数进行解密处理
-      paramStr = decryptValue(router.query.parms);
-    }
-    if (paramStr) {
-      getMenuListData();
-    }
-  },
-  { immediate: true },
-);
+onMounted(() => {
+  // 获取树数据
+  getMenuListData();
+});
 
-const {
-  leftTreeCollapsed,
-  leftTreePaneSize,
-  rightTreePaneSize,
-  minExpanded,
-  onSplitpanesResized,
-  toggleLeftTreePanel,
-  splitToggleStyle,
-} = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle } = useSplitpanesTreeCollapse();
 </script>
 
 <template>
@@ -941,49 +921,44 @@ const {
     @handle-select-tree-node="handleSelectTreeNode1" />
   <div class="drawerContent">
     <div class="splitpanes-tree-collapse-wrap">
-    <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
-      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
-        <a-spin :spinning="loadingTree" tip="加载中...">
-          <Tree
-            ref="treePage"
-            :operate-flag="true"
-            :tree-data="treeData"
-            bomType="unBom"
-            :selected-keys="selectedKeys"
-            :expanded-keys="expandedKeys"
-            @select-node="selectNode"
-            @up-Node="upNode"
-            @down-Node="downNode"
-            @get-node-update-data="getNodeUpdateData"
-            @get-node-add-data="getNodeAddData"
-            @delete-tree-node="deleteTreeNode"
-            @submit="submitTreeData"
-            @select-Boom-Tree="selectBoomTree"
-            @select-boom-tree1="selectBoomTree1"
-            @edit="editTreeData"
-            @reload-tree="reloadTree"
-            @change-select-key="handleChangeSelectKey" />
-        </a-spin>
-      </Pane>
-      <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls" :size="rightTreePaneSize">
-        <div v-if="!loading">
-          <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
-          <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
-        </div>
-      </Pane>
-    </Splitpanes>
-    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-      <button
-        type="button"
-        class="splitpanes-tree-collapse-wrap__toggle"
-        :style="splitToggleStyle"
-        @click="toggleLeftTreePanel"
-        @mousedown.stop>
-        <LeftOutlined v-if="!leftTreeCollapsed" />
-        <RightOutlined v-else />
-      </button>
-    </Tooltip>
+      <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+        <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
+          <a-spin :spinning="loadingTree" tip="加载中...">
+            <Tree
+              ref="treePage"
+              :operate-flag="true"
+              :tree-data="treeData"
+              bomType="unBom"
+              :selected-keys="selectedKeys"
+              :expanded-keys="expandedKeys"
+              @select-node="selectNode"
+              @up-Node="upNode"
+              @down-Node="downNode"
+              @get-node-update-data="getNodeUpdateData"
+              @get-node-add-data="getNodeAddData"
+              @delete-tree-node="deleteTreeNode"
+              @submit="submitTreeData"
+              @select-Boom-Tree="selectBoomTree"
+              @select-boom-tree1="selectBoomTree1"
+              @edit="editTreeData"
+              @reload-tree="reloadTree"
+              @change-select-key="handleChangeSelectKey" />
+          </a-spin>
+        </Pane>
+        <!-- 右侧内容区域 -->
+        <Pane class="splitpane-cls" :size="rightTreePaneSize">
+          <div v-if="!loading">
+            <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
+            <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
+          </div>
+        </Pane>
+      </Splitpanes>
+      <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+        <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="splitToggleStyle" @click="toggleLeftTreePanel" @mousedown.stop>
+          <LeftOutlined v-if="!leftTreeCollapsed" />
+          <RightOutlined v-else />
+        </button>
+      </Tooltip>
     </div>
   </div>
   <a-drawer

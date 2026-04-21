@@ -6,6 +6,7 @@ import type { UploadChangeParam } from 'ant-design-vue';
 import type { UploadFile } from 'ant-design-vue/es/upload/interface';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
+import { getEffectiveConfidentialLevelOptions } from '@/utils/confidentialLevelOptions';
 
 type LevelOption = {
   label: string;
@@ -17,6 +18,10 @@ const userStore = useUserStore();
 const props = defineProps<{
   visible: boolean;
   confidentialLevel: number;
+  /** 弹窗标题，默认「上传附件」 */
+  modalTitle?: string;
+  /** 表单上方提示（如红字温馨提示） */
+  hint?: string;
   accept: string;
   /** 不传或空数组时，使用用户密级过滤后的 getConfidentialLevel */
   levelOptions?: LevelOption[];
@@ -27,7 +32,10 @@ const props = defineProps<{
   formConfidentialLevel?: number | null;
   fileList: UploadFile[];
   beforeUpload: (file: File) => boolean;
+  /** 父组件注入：选文件后仍走各自的实际上传接口（uploadFile / uploadWordToPDF / …） */
   customRequest: (options: { file: File | Blob; onSuccess?: (body: unknown, file?: File) => void; onError?: (e: Error) => void }) => Promise<void>;
+  /** 单次可选文件数量（多文件确定时对每个已上传文件依次 updateFileConfidentialLevel） */
+  maxCount?: number;
 }>();
 
 const emit = defineEmits<{
@@ -50,18 +58,10 @@ const levelValue = computed({
 });
 
 /** 用户密级范围内的选项；若有外层表单密级则再限制不得高于表单密级 */
-const effectiveLevelOptions = computed(() => {
-  const fromUser = userStore.getConfidentialLevel as LevelOption[];
+const effectiveLevelOptions = computed((): LevelOption[] => {
+  const fromUser = userStore.getConfidentialLevel;
   const base = props.levelOptions?.length ? props.levelOptions : fromUser;
-  const capRaw = props.formConfidentialLevel;
-  if (capRaw === undefined || capRaw === null) {
-    return base;
-  }
-  const cap = Number(capRaw);
-  if (!Number.isFinite(cap)) {
-    return base;
-  }
-  return base.filter(o => Number(o.value) <= cap);
+  return getEffectiveConfidentialLevelOptions(base, props.formConfidentialLevel) as LevelOption[];
 });
 
 watch(
@@ -103,27 +103,50 @@ function parseIdFromUploadResponse(raw: unknown): string {
   return String(record.id ?? record.queryId ?? '').trim();
 }
 
-function getCurrentFileServerId(): string {
-  const list = props.fileList;
-  const file = list.length ? list[list.length - 1] : undefined;
+function getServerIdForFile(file: UploadFile | undefined): string {
   if (!file) return '';
   const uid = String(file.uid ?? '');
   if (uid.startsWith('-existing-')) {
     return uid.slice('-existing-'.length).trim();
   }
-  return parseIdFromUploadResponse(file.response);
+  const fromResponse = parseIdFromUploadResponse(file.response);
+  if (fromResponse) return fromResponse;
+  const anyFile = file as UploadFile & { id?: string; queryId?: string };
+  const direct = anyFile.id ?? anyFile.queryId;
+  if (direct != null && String(direct).trim() !== '') {
+    return String(direct).trim();
+  }
+  return '';
 }
 
+const resolvedModalTitle = computed(() => props.modalTitle?.trim() || '上传附件');
+
+const maxCountCoerced = computed(() => {
+  const m = props.maxCount;
+  if (m == null || Number(m) < 1) return 1;
+  return Math.floor(Number(m));
+});
+
+/** 选文件走父级 customRequest 的实际上传；确定时统一再调文件中心更新附件密级 */
 async function onConfirm() {
-  const id = getCurrentFileServerId();
-  if (!id) {
+  const max = maxCountCoerced.value;
+  const list = props.fileList.filter(f => f.status !== 'removed' && f.status !== 'error');
+  const useList = max === 1 ? (list.length ? [list[list.length - 1] as UploadFile] : []) : list;
+  if (!useList.length) {
+    message.warning('请先上传附件');
+    return;
+  }
+  const ids = useList.map(f => getServerIdForFile(f)).filter(Boolean);
+  if (ids.length !== useList.length) {
     message.warning('缺少文件ID，请先完成上传或保留已有关联文件');
     return;
   }
-  await AdminApiSystemUploadFile.updateFileConfidentialLevel({
-    id,
-    confidentialLevel: levelValue.value,
-  });
+  for (const id of ids) {
+    await AdminApiSystemUploadFile.updateFileConfidentialLevel({
+      id,
+      confidentialLevel: levelValue.value,
+    });
+  }
   emit('confirm');
   modalVisible.value = false;
 }
@@ -134,7 +157,8 @@ function onCancel() {
 </script>
 
 <template>
-  <a-modal v-model:visible="modalVisible" title="上传附件" width="640px" @ok="onConfirm" @cancel="onCancel">
+  <a-modal v-model:visible="modalVisible" :title="resolvedModalTitle" width="640px" @ok="onConfirm" @cancel="onCancel">
+    <p v-if="hint" class="upload-modal-hint">{{ hint }}</p>
     <a-form :label-col="{ style: { width: '90px' } }">
       <a-form-item label="附件密级">
         <a-select v-model:value="levelValue" :options="effectiveLevelOptions" placeholder="请选择密级" />
@@ -142,8 +166,8 @@ function onCancel() {
       <a-form-item label="上传文件">
         <a-upload-dragger
           :accept="accept"
-          :multiple="false"
-          :max-count="1"
+          :multiple="maxCountCoerced > 1"
+          :max-count="maxCountCoerced"
           :show-upload-list="{ showPreviewIcon: true, showRemoveIcon: true }"
           :file-list="fileList"
           :before-upload="beforeUpload"
@@ -165,3 +189,12 @@ function onCancel() {
     </template>
   </a-modal>
 </template>
+
+<style scoped lang="less">
+.upload-modal-hint {
+  margin: 0 0 12px;
+  color: #ff4d4f;
+  font-size: 13px;
+  line-height: 1.5;
+}
+</style>
