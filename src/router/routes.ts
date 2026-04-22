@@ -214,6 +214,16 @@ export const routes: RouteRecordRaw[] = [
           noCache: true,
         },
       },
+      {
+        path: 'design-task-app-workspace',
+        name: 'DesignTaskAppWorkspace',
+        component: () => import('@/views/product/designTaskApplication/components/components/process-flow-app-workspace.vue'),
+        meta: {
+          hidden: true,
+          title: '设计任务应用页面',
+          noCache: true,
+        },
+      },
     ],
   },
 ];

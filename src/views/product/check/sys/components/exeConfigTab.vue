@@ -476,7 +476,6 @@ async function requestUnpublishExe(record: ExeConfigRecord) {
   const treeId = String(props.treeId ?? row.treeId ?? '').trim();
   const remarks = String(row.remarks ?? '');
   const checkType = 3;
-  
 
   publishBusyId.value = record.id;
   try {
@@ -595,8 +594,7 @@ watch(editModalVisible, v => {
         :row-key="getRowKey"
         :scroll="{ x: exeConfigTableScrollX }"
         :row-class-name="getRowClassName"
-        @resize-column="handleResizeColumn"
-      >
+        @resize-column="handleResizeColumn">
         <template #headerCell="{ column }">
           <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableColumn(column) }">
             <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableColumn(column) }" @click.stop="toggleColumnSort(column)">
@@ -659,11 +657,7 @@ watch(editModalVisible, v => {
         </template>
       </a-table>
     </a-card>
-    <ExeConfigAddModal
-      v-model:visible="addModalVisible"
-      :tree-id="treeId"
-      :current-node-name="currentNodeName"
-      @success="handleAddSuccess" />
+    <ExeConfigAddModal v-model:visible="addModalVisible" :tree-id="treeId" :current-node-name="currentNodeName" @success="handleAddSuccess" />
     <ExeConfigEditModal v-model:visible="editModalVisible" :record="editRow" :current-node-name="currentNodeName" @success="handleAddSuccess" />
   </div>
 </template>

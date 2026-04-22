@@ -484,6 +484,37 @@ function findValueByColumnKeywords(row: any, columns: any[], keywords: string[])
   if (!col) return '';
   return String(row?.[col.dataIndex] ?? '').trim();
 }
+function findValueByParameterNums(row: any, columns: any[], parameterNums: string[]) {
+  const wanted = parameterNums.map(x => String(x ?? '').trim().toUpperCase()).filter(Boolean);
+  if (!wanted.length) return '';
+  const col = (Array.isArray(columns) ? columns : []).find((c: any) => wanted.includes(String(c?.parameterNum ?? '').trim().toUpperCase()));
+  if (!col) return '';
+  return String(row?.[col.dataIndex] ?? '').trim();
+}
+function findValueByRowKeyKeywords(row: any, keywords: string[]) {
+  if (row == null || typeof row !== 'object') return '';
+  const entries = Object.entries(row as Record<string, unknown>);
+  for (const [k, v] of entries) {
+    const keyLower = String(k ?? '').trim().toLowerCase();
+    if (!keyLower) continue;
+    if (keywords.some(kw => keyLower.includes(String(kw).toLowerCase()))) {
+      const text = String(v ?? '').trim();
+      if (text !== '') return text;
+    }
+  }
+  return '';
+}
+function pickModulePartAndType(row: any, columns: any[]) {
+  const partNo =
+    findValueByParameterNums(row, columns, ['PART_NO', 'MODEL_PART_NO']) ||
+    findValueByColumnKeywords(row, columns, ['模型件号', '件号']) ||
+    findValueByRowKeyKeywords(row, ['modelpartno', 'model_part_no', 'partno', 'part_no', 'itemcode', 'item_code']);
+  const modelType =
+    findValueByParameterNums(row, columns, ['MODEL_TYPE', 'PART_TYPE', 'TYPE']) ||
+    findValueByColumnKeywords(row, columns, ['模型类型', '类型']) ||
+    findValueByRowKeyKeywords(row, ['modeltype', 'model_type', 'parttype', 'part_type', 'type']);
+  return { partNo, modelType };
+}
 function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
   const list = previewList.value;
   if (modulePickerMode.value === 'moduleTableBrowse') {
@@ -497,8 +528,7 @@ function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
     const dataRow = payload?.row || {};
     const rowIdx = modulePickerTableBodyRowIndex.value;
     const nextMap = { ...previewTableCellMap.value };
-    const partNo = findValueByColumnKeywords(dataRow, cols, ['模型件号', '件号']);
-    const modelType = findValueByColumnKeywords(dataRow, cols, ['模型类型', '类型']);
+    const { partNo, modelType } = pickModulePartAndType(dataRow, cols);
     const mergedPart = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
     const modelNameVal = findValueByColumnKeywords(dataRow, cols, ['模型名称']);
     const baseKey = getPreviewItemKey(item, idx);
@@ -528,19 +558,15 @@ function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
     return;
   }
   const idx = list.findIndex((it: any) => String(it?.id ?? '') === modulePickerItemKey.value);
-  if (idx < 0) return;
-  const item = list[idx] as any;
-  const key = getPreviewItemKey(item, idx);
+  const item = idx >= 0 ? (list[idx] as any) : null;
+  const key = modulePickerTargetFieldKey.value || (idx >= 0 ? getPreviewItemKey(item, idx) : '');
+  if (!key) return;
   const cols = Array.isArray(payload?.columns) ? payload.columns : [];
   const nextFieldValueMap: Record<string, string> = { ...previewFieldValueMap.value };
-  const partNo = findValueByColumnKeywords(payload?.row, cols, ['模型件号', '件号']);
-  const modelType = findValueByColumnKeywords(payload?.row, cols, ['模型类型', '类型']);
+  const { partNo, modelType } = pickModulePartAndType(payload?.row, cols);
   const mergedValue = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
   if (modulePickerMode.value === 'templateBrowse' || modulePickerMode.value === 'modelSelectBrowse') {
-    const targetKey =
-      modulePickerTargetFieldKey.value ||
-      (modulePickerMode.value === 'modelSelectBrowse' ? getPreview3dSubKey(item, idx, 'modelSelectName') : getPreview3dSubKey(item, idx, 'templateName'));
-    nextFieldValueMap[targetKey] = mergedValue;
+    nextFieldValueMap[key] = mergedValue;
     previewFieldValueMap.value = nextFieldValueMap;
     return;
   }
@@ -564,6 +590,7 @@ function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
       const comp = list[i] as any;
       if (String(comp?.paramCode ?? '').trim() !== parameterNum) continue;
       const compKey = getPreviewItemKey(comp, i);
+      if (compKey === key) continue;
       nextFieldValueMap[compKey] = v;
     }
   });

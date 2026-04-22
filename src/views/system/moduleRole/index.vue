@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { nextTick, reactive, ref } from 'vue';
+import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
 import type { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { useForm } from 'ant-design-vue/es/form';
@@ -21,6 +21,7 @@ import type { RolePOModel } from '@/api/models/RolePOModel';
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import Empty from '@/components/Empty/index.vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { sortermethod } from '@/utils/tools';
 import { useUserStore } from '@/store/modules/user';
 
@@ -44,81 +45,21 @@ interface GroupData {
   id: number;
   deptId?: number;
   name: string;
+  nickname?: string;
+  username?: string;
   roleClass?: number;
   key?: object;
 }
-/** 表格高度 */
-const tableHXH = ref(document.body.clientHeight - 450); //
 /** 组授权页面状态 */
 const grpuVisible = ref<boolean>(false);
 /** 已授权数据 */
 const targetKeys = ref<string[]>();
 /** 当前操作的数据 */
 const editableData = ref<RolePOModel>();
-const targetKeys2 = ref<Array<number>[]>([]);
+const targetKeys2 = ref<number[]>([]);
 /** 用户组数据 */
 const groupData = ref<Array<GroupData>>([]);
-const columns = ref<TableColumnType<RolePOModel>[]>([
-  // {
-  //   title: WeiI18n.$t('角色编号'),
-  //   dataIndex: 'id',
-  //   key: 'id',
-  //   align: 'center',
-  //   width: 150,
-  // },
-  {
-    title: WeiI18n.$t('角色名称'),
-    dataIndex: 'name',
-    key: 'name',
-    align: 'center',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.name, b.name),
-    width: 260,
-  },
-  {
-    title: WeiI18n.$t('角色标识'),
-    dataIndex: 'code',
-    key: 'code',
-    align: 'center',
-    resizable: true,
-    width: 260,
-    sorter: (a: any, b: any) => sortermethod(a.code, b.code),
-  },
-  {
-    title: WeiI18n.$t('创建时间'),
-    key: 'createTime',
-    dataIndex: 'createTime',
-    align: 'center',
-    resizable: true,
-    width: 160,
-    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
-    /**
-     * customRender
-     * @param root0 params
-     * @param root0.text text
-     */
-    customRender: ({ text }) => {
-      return useRender.renderDateNoTime(text);
-    },
-  },
-  {
-    title: WeiI18n.$t('备注'),
-    dataIndex: 'remark',
-    key: 'remark',
-    align: 'center',
-    resizable: true,
-    ellipsis: true,
-    width: 160,
-    sorter: (a: any, b: any) => sortermethod(a.remark, b.remark),
-  },
-  {
-    title: WeiI18n.$t('操作'),
-    dataIndex: 'operation',
-    align: 'center',
-    width: 300,
-  },
-  {},
-]);
+
 const { dateRange, dateRangeParams } = useDateRangeParams();
 /** 列表请求参数 */
 const requestParams = reactive(new RolePageRequestDTOModel());
@@ -132,16 +73,170 @@ pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')
 pagination.showQuickJumper = false;
 
 const { resetFields } = useForm(requestParams);
+
+/** 列表数据（须在排序/列定义之前） */
+const resources = ref<Array<RolePOModel>>([]);
+
+/** 首列固定 + 操作列固定；排序与首列筛选用表头插槽（与 parameter / system 角色列表一致） */
+const columns = ref<TableColumnType<RolePOModel>[]>([
+  {
+    title: WeiI18n.$t('角色名称'),
+    dataIndex: 'name',
+    key: 'name',
+    align: 'left',
+    /* 与表头筛选同列右缘，开启 resizable 时拖拽条会挡住筛选图标，首列固定不调宽 */
+    resizable: false,
+    width: 260,
+    fixed: 'left',
+  },
+  {
+    title: WeiI18n.$t('角色标识'),
+    dataIndex: 'code',
+    key: 'code',
+    align: 'left',
+    resizable: true,
+    width: 260,
+  },
+  {
+    title: WeiI18n.$t('创建时间'),
+    key: 'createTime',
+    dataIndex: 'createTime',
+    align: 'center',
+    resizable: true,
+    width: 160,
+  },
+  {
+    title: WeiI18n.$t('备注'),
+    dataIndex: 'remark',
+    key: 'remark',
+    align: 'left',
+    resizable: true,
+    ellipsis: true,
+    width: 160,
+  },
+  {
+    title: WeiI18n.$t('操作'),
+    dataIndex: 'operation',
+    key: 'operation',
+    align: 'center',
+    width: 300,
+    fixed: 'right',
+  },
+]);
+
+type ModuleRoleSortOrder = 'ascend' | 'descend' | '';
+const moduleRoleTableSortState = ref<{ key: string; order: ModuleRoleSortOrder }>({ key: '', order: '' });
+
+const moduleRoleFilterValueMap = ref<Record<string, string>>({ name: '' });
+const moduleRoleFilterOpenMap = ref<Record<string, boolean>>({});
+
+function isModuleRoleSortableColumn(column: any) {
+  const k = column?.dataIndex;
+  return Boolean(k && k !== 'operation');
+}
+
+function isModuleRoleFilterableColumn(column: any) {
+  return column?.dataIndex === 'name';
+}
+
+function setModuleRoleFilterOpen(key: string, open: boolean) {
+  moduleRoleFilterOpenMap.value = { ...moduleRoleFilterOpenMap.value, [key]: open };
+}
+
+function getModuleRoleFilterOpen(key: string) {
+  return Boolean(moduleRoleFilterOpenMap.value[key]);
+}
+
+function handleModuleRoleFilterOpenChange(key: string, open: boolean) {
+  if (open && key === 'name') {
+    moduleRoleFilterValueMap.value = { ...moduleRoleFilterValueMap.value, name: String(requestParams.name ?? '') };
+  }
+  setModuleRoleFilterOpen(key, open);
+}
+
+function onModuleRoleNameFilterOpenChange(open: boolean) {
+  handleModuleRoleFilterOpenChange('name', open);
+}
+
+function getModuleRoleSortOrder(dataIndex: string): ModuleRoleSortOrder {
+  return moduleRoleTableSortState.value.key === dataIndex ? moduleRoleTableSortState.value.order : '';
+}
+
+function toggleModuleRoleColumnSort(column: any) {
+  if (!isModuleRoleSortableColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (moduleRoleTableSortState.value.key !== key) {
+    moduleRoleTableSortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (moduleRoleTableSortState.value.order === 'ascend') {
+    moduleRoleTableSortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (moduleRoleTableSortState.value.order === 'descend') {
+    moduleRoleTableSortState.value = { key: '', order: '' };
+    return;
+  }
+  moduleRoleTableSortState.value = { key, order: 'ascend' };
+}
+
+const moduleRoleTableDisplayList = computed(() => {
+  const list = [...resources.value];
+  if (!moduleRoleTableSortState.value.key || !moduleRoleTableSortState.value.order) return list;
+  const key = moduleRoleTableSortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return moduleRoleTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+function applyModuleRoleColumnFilter(key: string) {
+  if (key === 'name') {
+    requestParams.name = String(moduleRoleFilterValueMap.value[key] ?? '').trim();
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setModuleRoleFilterOpen(key, false);
+  void getResources();
+}
+
+function resetModuleRoleColumnFilter(key: string) {
+  if (key === 'name') {
+    moduleRoleFilterValueMap.value = { ...moduleRoleFilterValueMap.value, name: '' };
+    requestParams.name = '';
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setModuleRoleFilterOpen(key, false);
+  void getResources();
+}
+
+const MODULE_ROLE_TABLE_SCROLL_BUFFER = 24;
+const moduleRoleTableScrollX = computed(() => {
+  let sum = 0;
+  for (const col of columns.value) {
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
+  }
+  return sum + MODULE_ROLE_TABLE_SCROLL_BUFFER;
+});
+
+function getModuleRoleRowKey(record: RolePOModel) {
+  return record.id ?? '';
+}
+
+function moduleRoleRowClassName(_record: RolePOModel, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
+
 /** handle reset fields */
 function handleResetFields() {
   dateRange.value = null;
   requestParams.pageNo = 1;
   pagination.current = 1;
+  moduleRoleTableSortState.value = { key: '', order: '' };
+  moduleRoleFilterValueMap.value = { ...moduleRoleFilterValueMap.value, name: '' };
+  setModuleRoleFilterOpen('name', false);
   resetFields();
 }
-
-/** 列表数据 */
-const resources = ref<Array<RolePOModel>>([]);
 
 /** 获取用户组数据 */
 async function getResources() {
@@ -210,7 +305,7 @@ function handleMenuData(resource: RolePOModel) {
   });
 }
 
-function handleResizeColumn(w, col) {
+function handleResizeColumn(w: number, col: TableColumnType<RolePOModel>) {
   col.width = w;
 }
 
@@ -271,8 +366,9 @@ function handleClosePowModal() {
 const currentRoleId = ref<string | null>(null);
 function transclearSearch() {
   document.querySelectorAll('.ant-transfer-list-search .ant-input').forEach(el => {
-    el.value = '';
-    el.dispatchEvent(new Event('input'));
+    const input = el as HTMLInputElement;
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
   });
 }
 /**
@@ -285,8 +381,8 @@ async function handleAddUsers(record: any) {
   const res = await AdminApiSystemPermission.getUsersByRole({
     roleId: record.id,
   });
-  currentRoleId.value = record.id;
-  targetKeys2.value = res.data.data?.map(item => item.id) || [];
+  currentRoleId.value = String(record.id);
+  targetKeys2.value = res.data.data?.flatMap(item => (item.id != null ? [Number(item.id)] : [])) ?? [];
   record.loading_Management = false;
   grpuVisible.value = true;
   getUserSelectData();
@@ -311,20 +407,21 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingTop: '50px' },
+    style: { paddingBottom: '50px' },
   }),
 });
 
 /** submit */
 async function handleResetOk() {
-  if (!currentRoleId.value) throw new Error('Missing rold id');
+  const rid = Number(currentRoleId.value);
+  if (!currentRoleId.value || !Number.isFinite(rid)) throw new Error('Missing role id');
   const userIds: Array<number> = [];
   const deptIds: Array<number> = [];
   targetKeys2.value?.forEach((item: any) => {
     userIds.push(item);
   });
   const params: PermissionAssignUsersRoleRequestDTO = {
-    roleIds: [currentRoleId.value],
+    roleIds: [rid],
     userIds,
     deptIds,
   };
@@ -344,6 +441,14 @@ function handleChange(nextTargetKeys: any, direction: string, moveKeys: string[]
  * @param targetSelectedKeys 已授权选中列表
  */
 function handleSelectChange(sourceSelectedKeys: string[], targetSelectedKeys: string[]) {}
+
+function transferItemRender(item: GroupData) {
+  return `${item.nickname}  （${item.username}）`;
+}
+
+function transferRowKey(item: GroupData) {
+  return item.id;
+}
 
 interface MockData {
   key: string;
@@ -365,8 +470,8 @@ function customGetContainer() {
 
 <template>
   <div class="drawerContent">
-    <a-card>
-      <a-form layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
+    <a-card class="b-body2 module-role-page-card">
+      <a-form layout="inline" class="calc-toolbar-form" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
         <a-form-item name="name">
           <a-input v-model:value="requestParams.name" style="width: 220px" :placeholder="$t('请输入角色名称')" allow-clear />
         </a-form-item>
@@ -387,22 +492,75 @@ function customGetContainer() {
           </a-button>
         </a-form-item>
       </a-form>
-    </a-card>
 
-    <a-card class="mt-[10px] b-body2">
       <a-table
-        :scroll="{ x: 1200 }"
-        :row-key="(record: any) => record.id"
+        class="module-role-list-table exe-config-table parameter-table-spaced"
+        bordered
+        table-layout="fixed"
+        :scroll="{ x: moduleRoleTableScrollX }"
+        :row-key="getModuleRoleRowKey"
         :columns="columns"
-        :data-source="resources"
+        :data-source="moduleRoleTableDisplayList"
         :pagination="pagination"
         :locale="locale"
         :loading="loading"
-        :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')"
+        :row-class-name="moduleRoleRowClassName"
         @resize-column="handleResizeColumn">
+        <template #headerCell="{ column }">
+          <template v-if="isModuleRoleSortableColumn(column) || isModuleRoleFilterableColumn(column)">
+            <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isModuleRoleFilterableColumn(column) }">
+              <span
+                class="header-title-sort"
+                :class="{ 'header-title-sort--disabled': !isModuleRoleSortableColumn(column) }"
+                @click.stop="toggleModuleRoleColumnSort(column)">
+                <span>{{ column.title }}</span>
+                <span v-if="isModuleRoleSortableColumn(column)" class="header-sort-icon">
+                  <CaretUpOutlined v-if="getModuleRoleSortOrder(String(column.dataIndex)) === 'ascend'" />
+                  <CaretDownOutlined v-else-if="getModuleRoleSortOrder(String(column.dataIndex)) === 'descend'" />
+                  <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                </span>
+              </span>
+              <span v-if="isModuleRoleFilterableColumn(column)" class="header-filter-anchor">
+                <a-popover
+                  trigger="click"
+                  placement="bottomRight"
+                  :open="getModuleRoleFilterOpen('name')"
+                  @openChange="onModuleRoleNameFilterOpenChange">
+                  <template #content>
+                    <div class="header-filter-pop">
+                      <a-input
+                        v-model:value="moduleRoleFilterValueMap.name"
+                        :placeholder="`${$t('搜索')} ${column.title}`"
+                        allow-clear
+                        @pressEnter="applyModuleRoleColumnFilter('name')" />
+                      <div class="header-filter-actions">
+                        <a-button type="primary" size="small" @click="applyModuleRoleColumnFilter('name')">
+                          <SearchOutlined />
+                          {{ $t('确定') }}
+                        </a-button>
+                        <a-button size="small" @click="resetModuleRoleColumnFilter('name')">{{ $t('重置') }}</a-button>
+                      </div>
+                    </div>
+                  </template>
+                  <FilterOutlined class="header-query-icon" />
+                </a-popover>
+              </span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort header-title-sort--disabled">
+                <span>{{ column.title }}</span>
+              </span>
+            </div>
+          </template>
+        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
             {{ record.name }}
+          </template>
+          <template v-else-if="column.dataIndex === 'createTime'">
+            <span>{{ useRender.renderDateNoTime(record.createTime) }}</span>
           </template>
           <template v-else-if="column.dataIndex === 'status'">
             <span>
@@ -445,8 +603,8 @@ function customGetContainer() {
             :locale="transferlocale.Transfer"
             :data-source="groupData"
             :titles="['未授权用户', '已授用户']"
-            :render="(item: any) => `${item.nickname}  （${item.username}）`"
-            :row-key="(item: any) => item.id"
+            :render="transferItemRender"
+            :row-key="transferRowKey"
             show-search
             :filter-option="filterOption"
             :pagination="{
@@ -484,37 +642,172 @@ function customGetContainer() {
   background-color: #ffffff !important;
 }
 
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.module-role-page-card {
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    padding: 12px 20px 0;
+    box-sizing: border-box;
+  }
+}
+
+.module-role-page-card :deep(.ant-table-wrapper) {
+  margin-top: 0;
+}
+
+.module-role-page-card :deep(.parameter-table-spaced) {
+  margin-top: 16px;
+}
+
+.module-role-page-card :deep(.ant-table-thead > tr > th) {
+  border-right: 1px solid #e8e8e8;
+  text-align: center;
+  vertical-align: middle;
+  background: #fafafa !important;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.module-role-page-card :deep(.ant-table-thead .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.module-role-page-card :deep(.ant-table-thead .ant-table-column-title) {
+  flex: none;
+}
+
+.module-role-page-card :deep(.ant-table-tbody > tr.odd > td) {
+  background: #ffffff;
+}
+
+.module-role-page-card :deep(.ant-table-tbody > tr.even > td) {
+  background: #f7f9fc;
+}
+
+.module-role-page-card :deep(.ant-table-tbody > tr > td) {
+  border-right: none !important;
+}
+
+.module-role-page-card :deep(.ant-table-tbody > tr > td:last-child) {
+  border-right: 1px solid #e8e8e8 !important;
+}
+
+.module-role-page-card :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 1px solid #e8e8e8 !important;
+}
+
+.module-role-list-table.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+/* 表头：与 system/user/index 用户列表一致 */
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  gap: 6px;
+  padding-right: 0;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
 .del-text {
   color: var(--ant-error-color);
 }
 
-.card_css {
-  margin-top: 10px;
-}
-
-.card_css .ant-form {
-  margin-bottom: -20px;
-}
-
-.form_css .ant-form-item {
-  margin-bottom: 20px;
-}
-
-// .user-selector-modal{
 :deep(.ant-tabs-tab .ant-tabs-nav-wrap) {
   display: none !important;
-}
-
-:deep(.ant-table-tbody > tr > td) {
-  padding: 5px;
-}
-
-:deep(.ant-table-column-sorters) {
-  justify-content: center;
-  align-items: flex-end;
-}
-
-:deep(.ant-table-column-title) {
-  flex: none;
 }
 </style>

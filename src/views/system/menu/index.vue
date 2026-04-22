@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject, nextTick, reactive, ref } from 'vue';
+import { computed, h, inject, nextTick, onMounted, reactive, ref } from 'vue';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { useForm } from 'ant-design-vue/es/form';
@@ -28,13 +28,6 @@ pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI1
 pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
 pagination.showQuickJumper = false;
 
-// eslint-disable-next-line jsdoc/check-indentation
-/**  获取共同的 operation 操作属性  */
-const operationWidth = computed<number>(() => {
-  const root = document.querySelector(':root');
-  const width = getComputedStyle(root).getPropertyValue('--main-operation3-width');
-  return Number(width);
-});
 /** 升序降序提示  */
 const locale = ref({
   cancelSort: WeiI18n.t('点击取消排序').value,
@@ -42,7 +35,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingTop: '50px' },
+    style: { paddingBottom: '50px' },
   }),
 });
 // 声明表格类型
@@ -76,7 +69,8 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'name',
     width: 250,
     resizable: true,
-    sortDirections: ['descend', 'ascend'],
+    align: 'left',
+    fixed: 'left',
   },
   {
     title: WeiI18n.t('图标').value,
@@ -84,6 +78,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'icon',
     width: 130,
     resizable: true,
+    align: 'center',
     customRender(opt) {
       return h(WeiIcon, { icon: opt.record.icon });
     },
@@ -94,7 +89,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'sort',
     width: 130,
     resizable: true,
-    sortDirections: ['descend', 'ascend'],
+    align: 'center',
   },
   {
     title: WeiI18n.t('权限标识').value,
@@ -102,7 +97,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'permission',
     width: 130,
     resizable: true,
-    sortDirections: ['descend', 'ascend'],
+    align: 'left',
   },
   {
     title: WeiI18n.t('组件路径').value,
@@ -110,6 +105,9 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'component',
     resizable: true,
     width: 230,
+    align: 'left',
+    /** 超出显示 …，悬停通过原生 title 展示完整路径 */
+    ellipsis: { showTitle: true },
   },
   {
     title: WeiI18n.t('组件名称').value,
@@ -118,6 +116,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     ellipsis: true,
     resizable: true,
     width: 130,
+    align: 'left',
   },
   {
     title: WeiI18n.t('状态').value,
@@ -125,6 +124,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'status',
     resizable: true,
     width: 150,
+    align: 'center',
   },
   {
     title: WeiI18n.t('操作').value,
@@ -132,10 +132,21 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'operation',
     align: 'left',
     fixed: 'right',
-    width: operationWidth.value,
+    resizable: false,
+    width: 200,
   },
-  {},
 ]);
+
+/** 横向滚动宽度（与 parameter / 系统列表一致） */
+const MENU_TABLE_SCROLL_BUFFER = 24;
+const menuTableScrollX = computed(() => {
+  let sum = 0;
+  for (const col of columns.value) {
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
+  }
+  return sum + MENU_TABLE_SCROLL_BUFFER;
+});
 
 /** 列表数据 */
 const dataSource = ref<Array<Menus>>([]);
@@ -188,8 +199,12 @@ function handleDelete(id: Menus['id']) {
   });
 }
 
-function handleResizeColumn(w, col) {
+function handleResizeColumn(w: number, col: TableColumnType<Menus>) {
   col.width = w;
+}
+
+function menuTableRowClassName(_record: Menus, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
 }
 
 const { resetFields } = useForm(requestParams);
@@ -197,8 +212,8 @@ const { resetFields } = useForm(requestParams);
 
 <template>
   <div class="drawerContent">
-    <a-card>
-      <a-form layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
+    <a-card class="b-body menu-list-card">
+      <a-form layout="inline" class="calc-toolbar-form" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
         <a-row :gutter="[24, 12]" :wrap="true">
           <a-col :span="12" :xl="8">
             <a-form-item name="name">
@@ -232,19 +247,20 @@ const { resetFields } = useForm(requestParams);
           </a-col>
         </a-row>
       </a-form>
-    </a-card>
-    <a-card style="margin-top: 10px" class="b-body">
-      <!--    表格处 -->
+
       <a-table
-        :scroll="{ x: 1200 }"
+        class="menu-list-table exe-config-table parameter-table-spaced"
+        bordered
+        table-layout="fixed"
+        :scroll="{ x: menuTableScrollX }"
         :pagination="pagination"
         :loading="loading"
         row-key="id"
         :locale="locale"
         :data-source="dataSource"
         :columns="columns"
-        @resizeColumn="handleResizeColumn"
-        :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
+        @resize-column="handleResizeColumn"
+        :row-class-name="menuTableRowClassName">
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'status'">
             <span>
@@ -280,7 +296,6 @@ const { resetFields } = useForm(requestParams);
           </template>
         </template>
       </a-table>
-      <!--    弹窗 -- 新增 or 修改 -->
       <MenuAddUpdate ref="addOrUpdate" v-model:modal-visible="visible" @refresh-table-data="getListData" />
     </a-card>
   </div>
@@ -291,5 +306,95 @@ const { resetFields } = useForm(requestParams);
   position: sticky;
   bottom: 20px !important;
   background-color: #ffffff !important;
+}
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+/* 与 product/parameter、系统角色列表表格一致 */
+.menu-list-card {
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    padding: 12px 20px 0;
+    box-sizing: border-box;
+  }
+}
+
+.menu-list-card :deep(.parameter-table-spaced) {
+  margin-top: 16px;
+}
+
+/* 表头全部居中；表体对齐由各列 align 控制 */
+.menu-list-card :deep(.ant-table-thead > tr > th) {
+  border-right: 1px solid #e8e8e8;
+  text-align: center !important;
+  vertical-align: middle;
+  background: #fafafa !important;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.menu-list-card :deep(.ant-table-thead .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.menu-list-card :deep(.ant-table-thead .ant-table-column-title) {
+  flex: none;
+}
+
+.menu-list-card :deep(.ant-table-tbody > tr.odd > td) {
+  background: #ffffff;
+}
+
+.menu-list-card :deep(.ant-table-tbody > tr.even > td) {
+  background: #f7f9fc;
+}
+
+.menu-list-card :deep(.ant-table-tbody > tr > td) {
+  border-right: none !important;
+}
+
+.menu-list-card :deep(.ant-table-tbody > tr > td:last-child) {
+  border-right: 1px solid #e8e8e8 !important;
+}
+
+.menu-list-card :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 1px solid #e8e8e8 !important;
+}
+
+.menu-list-table.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
 }
 </style>

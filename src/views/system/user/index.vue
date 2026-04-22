@@ -1,11 +1,11 @@
 <!-- eslint-disable jsdoc/check-tag-names -->
 <script setup lang="ts">
-import { h, nextTick, reactive, ref } from 'vue';
+import { computed, h, nextTick, reactive, ref } from 'vue';
 import type { FormInstance, FormProps, UploadFile } from 'ant-design-vue';
 import { Modal, Switch, message } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { VxeGridPropTypes } from 'vxe-table';
-import { SearchOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import type { DefaultOptionType } from 'ant-design-vue/lib/select';
 import SubaccountDialog from './components/form/SubaccountDialog.vue';
 import Userdetail from './components/detail/index.vue';
@@ -13,7 +13,6 @@ import UserAddUpdate from './components/form/user-add-update.vue';
 import { useDateRangeParams } from '@/hooks/useDate';
 import { CommonStatusEnum } from '@/utils/constants';
 import { TableColumnsType } from 'ant-design-vue';
-import { useTableFilter } from '@/hooks/useTableFilter';
 import { encryptValue, passwordPattern, passwordPatternMessage } from '@/utils/AES';
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { UserPageRequestDTOModel } from '@/api/models/UserPageRequestDTOModel';
@@ -28,8 +27,9 @@ import type { UserProfileUpdatePasswordRequestDTO } from '@/api/tags/data-contra
 import { useRoute, useRouter } from 'vue-router';
 import { toLogin } from '@/httpRequest';
 import { exportFile } from '@/utils/file';
-import { listToTree } from '@/utils/tools';
+import { listToTree, sortermethod } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon';
+import Empty from '@/components/Empty/index.vue';
 const { push, $router } = useRouter();
 const userStore = useUserStore();
 /** 列表请求参数 */
@@ -88,60 +88,187 @@ const handleStatusChange = (record: any) => {
   });
 };
 
-const { getColumnSearchProps, getColumnSelectProps } = useTableFilter();
+/** 斑马纹：与参数管理列表一致（odd / even） */
+const rowClassName = (_record: any, index: number) => (index % 2 === 0 ? 'odd' : 'even');
 
-const rowClassName = (_record: any, index: number) =>
-  index % 2 === 1 ? "table-striped" : "";
+function getUserTableRowKey(record: UserPageItemResponseDTOModel) {
+  return record.id;
+}
 
+/** 表头排序（当前页数据，与 product/parameter/index 一致） */
+type UserSortOrder = 'ascend' | 'descend' | '';
+const userTableSortState = ref<{ key: string; order: UserSortOrder }>({ key: '', order: '' });
+/** 表头筛选：草稿 + 弹层显隐 */
+const userTableFilterValueMap = ref<Record<string, string>>({ username: '' });
+const userTableFilterOpenMap = ref<Record<string, boolean>>({});
+
+function isUserTableSortableColumn(column: any) {
+  const di = column?.dataIndex;
+  if (!di || di === 'operation') return false;
+  return true;
+}
+
+function isUserTableFilterableColumn(column: any) {
+  return column?.dataIndex === 'username';
+}
+
+function setUserTableFilterOpen(key: string, open: boolean) {
+  userTableFilterOpenMap.value = { ...userTableFilterOpenMap.value, [key]: open };
+}
+
+function getUserTableFilterOpen(key: string) {
+  return Boolean(userTableFilterOpenMap.value[key]);
+}
+
+function handleUserTableFilterOpenChange(key: string, open: boolean) {
+  if (open) {
+    if (key === 'username') {
+      userTableFilterValueMap.value = { ...userTableFilterValueMap.value, username: String(requestParams.username ?? '') };
+    }
+  }
+  setUserTableFilterOpen(key, open);
+}
+
+function onUsernameTableFilterOpenChange(open: boolean) {
+  handleUserTableFilterOpenChange('username', open);
+}
+
+function getUserTableSortOrder(dataIndex: string): UserSortOrder {
+  return userTableSortState.value.key === dataIndex ? userTableSortState.value.order : '';
+}
+
+function toggleUserTableColumnSort(column: any) {
+  if (!isUserTableSortableColumn(column)) return;
+  const key = String(column.dataIndex ?? column.key);
+  if (userTableSortState.value.key !== key) {
+    userTableSortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (userTableSortState.value.order === 'ascend') {
+    userTableSortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (userTableSortState.value.order === 'descend') {
+    userTableSortState.value = { key: '', order: '' };
+    return;
+  }
+  userTableSortState.value = { key, order: 'ascend' };
+}
+
+const userTableDisplayList = computed(() => {
+  let list = [...resources.value];
+  const usernameKeyword = String(requestParams.username ?? '')
+    .trim()
+    .toLowerCase();
+  if (usernameKeyword) {
+    list = list.filter((item: any) =>
+      String(item?.username ?? '')
+        .toLowerCase()
+        .includes(usernameKeyword),
+    );
+  }
+  if (!userTableSortState.value.key || !userTableSortState.value.order) return list;
+  const key = userTableSortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return userTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+function applyUserTableColumnFilter(key: string) {
+  if (key === 'username') {
+    requestParams.username = String(userTableFilterValueMap.value[key] ?? '').trim();
+  }
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  setUserTableFilterOpen(key, false);
+  void getListData();
+}
+
+function resetUserTableColumnFilter(key: string) {
+  if (key === 'username') {
+    userTableFilterValueMap.value = { ...userTableFilterValueMap.value, username: '' };
+    requestParams.username = '';
+  }
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  setUserTableFilterOpen(key, false);
+  void getListData();
+}
+
+/** 表格 locale（排序提示等）；空状态仍优先使用下方 #emptyText 插槽 */
+const tableLocale = ref({
+  cancelSort: WeiI18n.t('点击取消排序').value,
+  triggerAsc: WeiI18n.t('点击升序').value,
+  triggerDesc: WeiI18n.t('点击降序').value,
+  emptyText: h(Empty, {
+    description: '数据为空',
+    style: { paddingBottom: '50px' },
+  }),
+});
+
+/** 仅首列左侧固定 + 操作列右侧固定；排序/筛选由表头插槽控制（首列独有筛选） */
 const columns = computed<TableColumnsType>(() => [
-    {
-      title: WeiI18n.t('用户名').value,
-      dataIndex: 'username',
-      key: 'username',
-      width: 200,
-      ...getColumnSearchProps('username'),
-    },
-    {
-      title: WeiI18n.t('姓名').value,
-      dataIndex: 'nickname',
-      key: 'nickname',
-      width: 200,
-      ...getColumnSearchProps('nickname'),
-    },
-    {
-      title: WeiI18n.t('部门名称').value,
-      dataIndex: 'dept',
-      key: 'dept',
-      width: 200,
-      align: 'left',
-    },
-    {
-      title: WeiI18n.t('密级').value,
-      dataIndex: 'confidentialLevel',
-      key: 'confidentialLevel',
-      width: 100,
-      ...getColumnSelectProps('confidentialLevel', resources as any, { 2: '一般', 3: '重要', 4: '核心', undefined: '公开', null: '公开', '': '公开' }),
-    },
-    {
-      title: WeiI18n.t('状态').value,
-      dataIndex: 'status',
-      key: 'status',
-      width: 130,
-      ...getColumnSelectProps('status', resources as any, { [CommonStatusEnum.ENABLE]: WeiI18n.t('开启').value, [CommonStatusEnum.DISABLE]: WeiI18n.t('停用').value }),
-    },
-    {
-      title: WeiI18n.t('创建时间').value,
-      dataIndex: 'createTime',
-      key: 'createTime',
-      width: 200,
-    },
-    {
-      title: WeiI18n.t('操作').value,
-      key: 'operation',
-      fixed: 'right',
-      width: 240,
-    },
+  {
+    title: WeiI18n.t('用户名').value,
+    dataIndex: 'username',
+    key: 'username',
+    width: 200,
+    fixed: 'left',
+    align: 'center',
+  },
+  {
+    title: WeiI18n.t('姓名').value,
+    dataIndex: 'nickname',
+    key: 'nickname',
+    width: 200,
+    align: 'center',
+  },
+  {
+    title: WeiI18n.t('部门名称').value,
+    dataIndex: 'deptId',
+    key: 'dept',
+    width: 200,
+    align: 'left',
+  },
+  {
+    title: WeiI18n.t('密级').value,
+    dataIndex: 'confidentialLevel',
+    key: 'confidentialLevel',
+    width: 100,
+    align: 'center',
+  },
+  {
+    title: WeiI18n.t('状态').value,
+    dataIndex: 'status',
+    key: 'status',
+    width: 130,
+    align: 'center',
+  },
+  {
+    title: WeiI18n.t('创建时间').value,
+    dataIndex: 'createTime',
+    key: 'createTime',
+    width: 200,
+    align: 'center',
+  },
+  {
+    title: WeiI18n.t('操作').value,
+    key: 'operation',
+    fixed: 'right',
+    width: 240,
+    align: 'center',
+  },
 ]);
+
+/** 横向滚动宽度（列宽之和 + 缓冲） */
+const USER_TABLE_SCROLL_BUFFER = 24;
+const userTableScrollX = computed(() => {
+  let sum = 0;
+  for (const col of columns.value) {
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
+  }
+  return sum + USER_TABLE_SCROLL_BUFFER;
+});
 const loading = ref(false);
 const { dateRange, dateRangeParams } = useDateRangeParams();
 /** 初始化绑定分页请求参数 */
@@ -270,9 +397,13 @@ function canlemodalVisible() {
 function handleResetFields() {
   requestParams.type = '';
   requestParams.condition = '';
+  requestParams.username = '';
   requestParams.deptId = '';
   requestParams.pageNo = 1;
   pagination.current = 1;
+  userTableSortState.value = { key: '', order: '' };
+  userTableFilterValueMap.value = { ...userTableFilterValueMap.value, username: '' };
+  setUserTableFilterOpen('username', false);
   getListData();
 }
 function canlemodalVisibledetail() {
@@ -393,10 +524,10 @@ async function exportData() {
 
 <template>
   <div class="drawerContent">
-    <a-card v-if="!modalVisible && !modalVisibledetail">
-      <a-form layout="inline" :label-col="labelCol" :wrapper-col="wrapperCol" :model="requestParams" @finish="handleFinish">
+    <a-card v-if="!modalVisible && !modalVisibledetail" class="calc-merged-card user-page-list-card">
+      <a-form layout="inline" class="calc-toolbar-form" :label-col="labelCol" :wrapper-col="wrapperCol" :model="requestParams" @finish="handleFinish">
         <a-form-item>
-          <a-input v-model:value="requestParams.condition" style="width: 220px" :placeholder="$t('请输入用户名或姓名')"> </a-input>
+          <a-input v-model:value="requestParams.condition" style="width: 220px" :placeholder="$t('请输入用户名或姓名')" allow-clear />
         </a-form-item>
         <a-form-item name="deptId">
           <a-tree-select
@@ -436,12 +567,68 @@ async function exportData() {
           </a-button>
         </a-form-item>
       </a-form>
-    </a-card>
-    <a-card v-if="!modalVisible && !modalVisibledetail" style="margin-top: 10px" class="b-body">
-      <a-table :columns="columns" :data-source="resources" :scroll="{ x: 1000 }"
-        :rowKey="(record) => record.id" :loading="loading" bordered :row-class-name="rowClassName"
-        :pagination="false"
-      >
+
+      <a-table
+        class="exe-config-table parameter-table-spaced"
+        table-layout="fixed"
+        :columns="columns"
+        :data-source="userTableDisplayList"
+        :scroll="{ x: userTableScrollX }"
+        :row-key="getUserTableRowKey"
+        :loading="loading"
+        bordered
+        :locale="tableLocale"
+        :row-class-name="rowClassName"
+        :pagination="false">
+        <template #headerCell="{ column }">
+          <template v-if="isUserTableSortableColumn(column) || isUserTableFilterableColumn(column)">
+            <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isUserTableFilterableColumn(column) }">
+              <span
+                class="header-title-sort"
+                :class="{ 'header-title-sort--disabled': !isUserTableSortableColumn(column) }"
+                @click.stop="toggleUserTableColumnSort(column)">
+                <span>{{ column.title }}</span>
+                <span v-if="isUserTableSortableColumn(column)" class="header-sort-icon">
+                  <CaretUpOutlined v-if="getUserTableSortOrder(String(column.dataIndex)) === 'ascend'" />
+                  <CaretDownOutlined v-else-if="getUserTableSortOrder(String(column.dataIndex)) === 'descend'" />
+                  <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                </span>
+              </span>
+              <span v-if="isUserTableFilterableColumn(column)" class="header-filter-anchor">
+                <a-popover
+                  trigger="click"
+                  placement="bottomRight"
+                  :open="getUserTableFilterOpen('username')"
+                  @openChange="onUsernameTableFilterOpenChange">
+                  <template #content>
+                    <div class="header-filter-pop">
+                      <a-input
+                        v-model:value="userTableFilterValueMap.username"
+                        :placeholder="`${$t('搜索')} ${column.title}`"
+                        allow-clear
+                        @pressEnter="applyUserTableColumnFilter('username')" />
+                      <div class="header-filter-actions">
+                        <a-button type="primary" size="small" @click="applyUserTableColumnFilter('username')">
+                          <SearchOutlined />
+                          {{ $t('确定') }}
+                        </a-button>
+                        <a-button size="small" @click="resetUserTableColumnFilter('username')">{{ $t('重置') }}</a-button>
+                      </div>
+                    </div>
+                  </template>
+                  <FilterOutlined class="header-query-icon" />
+                </a-popover>
+              </span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort header-title-sort--disabled">
+                <span>{{ column.title }}</span>
+              </span>
+            </div>
+          </template>
+        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'dept'">
             <div>{{ handledeptIdList(record) }}</div>
@@ -484,7 +671,7 @@ async function exportData() {
           </div>
         </template>
       </a-table>
-      <div class="flex justify-end mt-[16px]">
+      <div class="user-page-pagination flex justify-end mt-[16px]">
         <a-pagination v-bind="pagination" class="ant-table-pagination" />
       </div>
     </a-card>
@@ -567,5 +754,176 @@ async function exportData() {
   margin-left: 10px;
   margin-top: 10px;
   color: #165dff;
+}
+
+/* ---------- 对齐 src/views/product/parameter/index.vue 列表表格样式 ---------- */
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.calc-merged-card.user-page-list-card {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    padding: 12px 20px 0;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-wrapper) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  :deep(.parameter-table-spaced) {
+    margin-top: 16px;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    vertical-align: middle;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-sorters) {
+    justify-content: center !important;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-title) {
+    flex: none;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    border-right: none !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+}
+
+.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+.user-page-pagination {
+  flex-shrink: 0;
+}
+
+/* 表头：标题 + 排序 + 首列筛选（与参数管理列表一致） */
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  gap: 6px;
+  padding-right: 0;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 </style>

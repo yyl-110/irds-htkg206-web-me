@@ -523,15 +523,20 @@ const confirm = () => {
   }
   // 更新 BPMN 属性
   const currentElement = window.bpmnInstances?.bpmnElement || bpmnElement.value || props.elementBusinessObject;
-  if (window.bpmnInstances?.modeling && currentElement) {
+  const currentElementId = currentElement?.id ? String(currentElement.id) : '';
+  const registryElement = currentElementId ? window.bpmnInstances?.elementRegistry?.get(currentElementId) : null;
+  const targetElement = registryElement || currentElement;
+  if (window.bpmnInstances?.modeling && targetElement) {
     window.bpmnInstances.modeling.updateProperties(
-      toRaw(currentElement),
+      toRaw(targetElement),
       toRaw({
         formKey: selectedRow.value.id,
         name: selectedRow.value.pageName,
         pageType: selectedRow.value.pageType,
       }),
     );
+    // 某些场景下仅 updateProperties 不会立即刷新节点内文字，补一次 updateLabel 保证画布可见
+    window.bpmnInstances.modeling.updateLabel(toRaw(targetElement), String(selectedRow.value.pageName ?? ''));
   }
   //   fieldList.value.map(v => {
   //   // 给xml添加对应的标识

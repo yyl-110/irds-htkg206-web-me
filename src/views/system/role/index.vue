@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { nextTick, reactive, ref } from 'vue';
+import { computed, h, nextTick, reactive, ref } from 'vue';
 import type { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { useForm } from 'ant-design-vue/es/form';
@@ -21,6 +21,7 @@ import type { RolePOModel } from '@/api/models/RolePOModel';
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import Empty from '@/components/Empty/index.vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { sortermethod } from '@/utils/tools';
 import { useUserStore } from '@/store/modules/user';
 
@@ -44,6 +45,8 @@ interface GroupData {
   id: number;
   deptId?: number;
   name: string;
+  nickname?: string;
+  username?: string;
   roleClass?: number;
   key?: object;
 }
@@ -55,70 +58,10 @@ const grpuVisible = ref<boolean>(false);
 const targetKeys = ref<string[]>();
 /** 当前操作的数据 */
 const editableData = ref<RolePOModel>();
-const targetKeys2 = ref<Array<number>[]>([]);
+const targetKeys2 = ref<number[]>([]);
 /** 用户组数据 */
 const groupData = ref<Array<GroupData>>([]);
-const columns = ref<TableColumnType<RolePOModel>[]>([
-  // {
-  //   title: WeiI18n.$t('角色编号'),
-  //   dataIndex: 'id',
-  //   key: 'id',
-  //   align: 'center',
-  //   width: 150,
-  // },
-  {
-    title: WeiI18n.$t('角色名称'),
-    dataIndex: 'name',
-    key: 'name',
-    align: 'center',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.name, b.name),
-    width: 260,
-  },
-  {
-    title: WeiI18n.$t('角色标识'),
-    dataIndex: 'code',
-    key: 'code',
-    align: 'center',
-    resizable: true,
-    width: 260,
-    sorter: (a: any, b: any) => sortermethod(a.code, b.code),
-  },
-  {
-    title: WeiI18n.$t('创建时间'),
-    key: 'createTime',
-    dataIndex: 'createTime',
-    align: 'center',
-    resizable: true,
-    width: 160,
-    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
-    /**
-     * customRender
-     * @param root0 params
-     * @param root0.text text
-     */
-    customRender: ({ text }) => {
-      return useRender.renderDateNoTime(text);
-    },
-  },
-  {
-    title: WeiI18n.$t('备注'),
-    dataIndex: 'remark',
-    key: 'remark',
-    align: 'center',
-    resizable: true,
-    ellipsis: true,
-    width: 160,
-    sorter: (a: any, b: any) => sortermethod(a.remark, b.remark),
-  },
-  {
-    title: WeiI18n.$t('操作'),
-    dataIndex: 'operation',
-    align: 'center',
-    width: 300,
-  },
-  {},
-]);
+
 const { dateRange, dateRangeParams } = useDateRangeParams();
 /** 列表请求参数 */
 const requestParams = reactive(new RolePageRequestDTOModel());
@@ -132,16 +75,179 @@ pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')
 pagination.showQuickJumper = false;
 
 const { resetFields } = useForm(requestParams);
+
+/** 列表数据（须在 roleTableDisplayList 等之前声明） */
+const resources = ref<Array<RolePOModel>>([]);
+
+/** 首列固定 + 操作列固定；排序/首列筛选由表头插槽控制 */
+const columns = ref<TableColumnType<RolePOModel>[]>([
+  {
+    title: WeiI18n.$t('角色名称'),
+    dataIndex: 'name',
+    key: 'name',
+    align: 'left',
+    resizable: true,
+    width: 260,
+    fixed: 'left',
+  },
+  {
+    title: WeiI18n.$t('角色标识'),
+    dataIndex: 'code',
+    key: 'code',
+    align: 'left',
+    resizable: true,
+    width: 260,
+  },
+  {
+    title: WeiI18n.$t('创建时间'),
+    key: 'createTime',
+    dataIndex: 'createTime',
+    align: 'center',
+    resizable: true,
+    width: 160,
+  },
+  {
+    title: WeiI18n.$t('备注'),
+    dataIndex: 'remark',
+    key: 'remark',
+    align: 'left',
+    resizable: true,
+    ellipsis: true,
+    width: 160,
+  },
+  {
+    title: WeiI18n.$t('操作'),
+    dataIndex: 'operation',
+    align: 'center',
+    width: 300,
+    fixed: 'right',
+  },
+]);
+
+type RoleSortOrder = 'ascend' | 'descend' | '';
+const roleTableSortState = ref<{ key: string; order: RoleSortOrder }>({ key: '', order: '' });
+
+/** 表头筛选（与 product/parameter/index 一致） */
+const roleTableFilterValueMap = ref<Record<string, string>>({ name: '' });
+const roleTableFilterOpenMap = ref<Record<string, boolean>>({});
+
+function isRoleTableSortableColumn(column: any) {
+  const k = column?.dataIndex;
+  return Boolean(k && k !== 'operation');
+}
+
+function isRoleTableFilterableColumn(column: any) {
+  return column?.dataIndex === 'name';
+}
+
+function setRoleTableFilterOpen(key: string, open: boolean) {
+  roleTableFilterOpenMap.value = { ...roleTableFilterOpenMap.value, [key]: open };
+}
+
+function getRoleTableFilterOpen(key: string) {
+  return Boolean(roleTableFilterOpenMap.value[key]);
+}
+
+function handleRoleTableFilterOpenChange(key: string, open: boolean) {
+  if (open) {
+    if (key === 'name') {
+      roleTableFilterValueMap.value = { ...roleTableFilterValueMap.value, name: String(requestParams.name ?? '') };
+    }
+  }
+  setRoleTableFilterOpen(key, open);
+}
+
+function onRoleNameTableFilterVisibleChange(visible: boolean) {
+  handleRoleTableFilterOpenChange('name', visible);
+}
+
+function getRoleTableSortOrder(dataIndex: string): RoleSortOrder {
+  return roleTableSortState.value.key === dataIndex ? roleTableSortState.value.order : '';
+}
+
+function toggleRoleTableColumnSort(column: any) {
+  if (!isRoleTableSortableColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (roleTableSortState.value.key !== key) {
+    roleTableSortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (roleTableSortState.value.order === 'ascend') {
+    roleTableSortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (roleTableSortState.value.order === 'descend') {
+    roleTableSortState.value = { key: '', order: '' };
+    return;
+  }
+  roleTableSortState.value = { key, order: 'ascend' };
+}
+
+const roleTableDisplayList = computed(() => {
+  let list = [...resources.value];
+  if (!roleTableSortState.value.key || !roleTableSortState.value.order) return list;
+  const key = roleTableSortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return roleTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+function applyRoleTableColumnFilter(key: string) {
+  if (key === 'name') {
+    requestParams.name = String(roleTableFilterValueMap.value[key] ?? '').trim();
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setRoleTableFilterOpen(key, false);
+  void getResources();
+}
+
+function resetRoleTableColumnFilter(key: string) {
+  if (key === 'name') {
+    roleTableFilterValueMap.value = { ...roleTableFilterValueMap.value, name: '' };
+    requestParams.name = '';
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setRoleTableFilterOpen(key, false);
+  void getResources();
+}
+
+const ROLE_TABLE_SCROLL_BUFFER = 24;
+const roleTableScrollX = computed(() => {
+  let sum = 0;
+  for (const col of columns.value) {
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
+  }
+  return sum + ROLE_TABLE_SCROLL_BUFFER;
+});
+
+function getRoleRowKey(record: RolePOModel) {
+  return record.id ?? '';
+}
+
+function transferItemRender(item: GroupData) {
+  return `${item.nickname}  （${item.username}）`;
+}
+
+function transferRowKey(item: GroupData) {
+  return item.id;
+}
+
+function roleTableRowClassName(_record: RolePOModel, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
+
 /** handle reset fields */
 function handleResetFields() {
   dateRange.value = null;
   requestParams.pageNo = 1;
   pagination.current = 1;
+  roleTableSortState.value = { key: '', order: '' };
+  roleTableFilterValueMap.value = { ...roleTableFilterValueMap.value, name: '' };
+  setRoleTableFilterOpen('name', false);
   resetFields();
 }
-
-/** 列表数据 */
-const resources = ref<Array<RolePOModel>>([]);
 
 /** 获取用户组数据 */
 async function getResources() {
@@ -176,11 +282,11 @@ function handleFinish() {
  * 删除资源
  * @param id id
  */
-async function handleDelete(id: number) {
+async function handleDelete(id: string | number) {
   // Modal.confirm({
   //   title: "`${$t('确定要删除吗')}?`",
   //   async onOk() {
-  await AdminApiSystemRole.deleteRole({ id });
+  await AdminApiSystemRole.deleteRole({ id: Number(id) });
   message.success(WeiI18n.$t('删除成功'));
   handleFinish();
   //   },
@@ -210,7 +316,7 @@ function handleMenuData(resource: RolePOModel) {
   });
 }
 
-function handleResizeColumn(w, col) {
+function handleResizeColumn(w: number, col: TableColumnType<RolePOModel>) {
   col.width = w;
 }
 
@@ -271,8 +377,9 @@ function handleClosePowModal() {
 const currentRoleId = ref<string | null>(null);
 function transclearSearch() {
   document.querySelectorAll('.ant-transfer-list-search .ant-input').forEach(el => {
-    el.value = '';
-    el.dispatchEvent(new Event('input'));
+    const input = el as HTMLInputElement;
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
   });
 }
 /**
@@ -286,7 +393,8 @@ async function handleAddUsers(record: any) {
     roleId: record.id,
   });
   currentRoleId.value = record.id;
-  targetKeys2.value = res.data.data?.map(item => item.id) || [];
+  targetKeys2.value =
+    res.data.data?.flatMap(item => (item.id != null ? [Number(item.id)] : [])) ?? [];
   record.loading_Management = false;
   grpuVisible.value = true;
   getUserSelectData();
@@ -317,14 +425,15 @@ const locale = ref({
 
 /** submit */
 async function handleResetOk() {
-  if (!currentRoleId.value) throw new Error('Missing rold id');
+  const rid = Number(currentRoleId.value);
+  if (!currentRoleId.value || !Number.isFinite(rid)) throw new Error('Missing role id');
   const userIds: Array<number> = [];
   const deptIds: Array<number> = [];
   targetKeys2.value?.forEach((item: any) => {
     userIds.push(item);
   });
   const params: PermissionAssignUsersRoleRequestDTO = {
-    roleIds: [currentRoleId.value],
+    roleIds: [rid],
     userIds,
     deptIds,
   };
@@ -365,7 +474,7 @@ function customGetContainer() {
 
 <template>
   <div class="drawerContent">
-    <a-card>
+    <a-card class="b-body2 role-page-card">
       <a-form layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
         <a-form-item name="name">
           <a-input v-model:value="requestParams.name" style="width: 220px" :placeholder="$t('请输入角色名称')" allow-clear />
@@ -389,22 +498,74 @@ function customGetContainer() {
           </a-button>
         </a-form-item>
       </a-form>
-    </a-card>
-
-    <a-card class="mt-[10px] b-body2">
       <a-table
-        :scroll="{ x: 1200 }"
-        :row-key="(record: any) => record.id"
+        class="role-list-table exe-config-table parameter-table-spaced"
+        bordered
+        table-layout="fixed"
+        :scroll="{ x: roleTableScrollX }"
+        :row-key="getRoleRowKey"
         :columns="columns"
-        :data-source="resources"
+        :data-source="roleTableDisplayList"
         :pagination="pagination"
         :locale="locale"
         :loading="loading"
-        :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')"
+        :row-class-name="roleTableRowClassName"
         @resize-column="handleResizeColumn">
+        <template #headerCell="{ column }">
+          <template v-if="isRoleTableSortableColumn(column) || isRoleTableFilterableColumn(column)">
+            <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isRoleTableFilterableColumn(column) }">
+              <span
+                class="header-title-sort"
+                :class="{ 'header-title-sort--disabled': !isRoleTableSortableColumn(column) }"
+                @click.stop="toggleRoleTableColumnSort(column)">
+                <span>{{ column.title }}</span>
+                <span v-if="isRoleTableSortableColumn(column)" class="header-sort-icon">
+                  <CaretUpOutlined v-if="getRoleTableSortOrder(String(column.dataIndex)) === 'ascend'" />
+                  <CaretDownOutlined v-else-if="getRoleTableSortOrder(String(column.dataIndex)) === 'descend'" />
+                  <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                </span>
+              </span>
+              <span v-if="isRoleTableFilterableColumn(column)" class="header-filter-anchor">
+                <a-popover
+                  trigger="click"
+                  placement="bottomRight"
+                  :open="getRoleTableFilterOpen('name')"
+                  @openChange="onRoleNameTableFilterVisibleChange">
+                  <template #content>
+                    <div class="header-filter-pop">
+                      <a-input
+                        v-model:value="roleTableFilterValueMap.name"
+                        :placeholder="`${$t('搜索')} ${column.title}`"
+                        allow-clear
+                        @pressEnter="applyRoleTableColumnFilter('name')" />
+                      <div class="header-filter-actions">
+                        <a-button type="primary" size="small" @click="applyRoleTableColumnFilter('name')">
+                          <SearchOutlined />
+                          {{ $t('确定') }}
+                        </a-button>
+                        <a-button size="small" @click="resetRoleTableColumnFilter('name')">{{ $t('重置') }}</a-button>
+                      </div>
+                    </div>
+                  </template>
+                  <FilterOutlined class="header-query-icon" />
+                </a-popover>
+              </span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort header-title-sort--disabled">
+                <span>{{ column.title }}</span>
+              </span>
+            </div>
+          </template>
+        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
             {{ record.name }}
+          </template>
+          <template v-else-if="column.dataIndex === 'createTime'">
+            <span>{{ useRender.renderDateNoTime(record.createTime) }}</span>
           </template>
           <template v-else-if="column.dataIndex === 'status'">
             <span>
@@ -458,8 +619,8 @@ function customGetContainer() {
             :locale="transferlocale.Transfer"
             :data-source="groupData"
             :titles="['未授权用户', '已授用户']"
-            :render="(item: any) => `${item.nickname}  （${item.username}）`"
-            :row-key="(item: any) => item.id"
+            :render="transferItemRender"
+            :row-key="transferRowKey"
             show-search
             :filter-option="filterOption"
             :pagination="{
@@ -497,6 +658,163 @@ function customGetContainer() {
   background-color: #ffffff !important;
 }
 
+.role-page-card {
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    padding: 12px 20px 0;
+    box-sizing: border-box;
+  }
+}
+
+.role-page-card :deep(.ant-table-wrapper) {
+  margin-top: 0;
+}
+
+.role-page-card :deep(.parameter-table-spaced) {
+  margin-top: 16px;
+}
+
+.role-page-card :deep(.ant-table-thead > tr > th) {
+  border-right: 1px solid #e8e8e8;
+  text-align: center;
+  vertical-align: middle;
+  background: #fafafa !important;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.role-page-card :deep(.ant-table-thead .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.role-page-card :deep(.ant-table-thead .ant-table-column-title) {
+  flex: none;
+}
+
+.role-page-card :deep(.ant-table-tbody > tr.odd > td) {
+  background: #ffffff;
+}
+
+.role-page-card :deep(.ant-table-tbody > tr.even > td) {
+  background: #f7f9fc;
+}
+
+.role-page-card :deep(.ant-table-tbody > tr > td) {
+  border-right: none !important;
+}
+
+.role-page-card :deep(.ant-table-tbody > tr > td:last-child) {
+  border-right: 1px solid #e8e8e8 !important;
+}
+
+.role-page-card :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 1px solid #e8e8e8 !important;
+}
+
+.role-list-table.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+/* 表头：与 system/user/index 用户列表一致 */
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  gap: 6px;
+  padding-right: 0;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
 .del-text {
   color: var(--ant-error-color);
 }
@@ -529,5 +847,24 @@ function customGetContainer() {
 
 :deep(.ant-table-column-title) {
   flex: none;
+}
+
+/** 文本列：表体左对齐（列 align:left）；表头仍居中，与参数列表参考图一致 */
+.role-list-table :deep(.ant-table-thead > tr > th:nth-child(1)),
+.role-list-table :deep(.ant-table-thead > tr > th:nth-child(2)),
+.role-list-table :deep(.ant-table-thead > tr > th:nth-child(4)) {
+  text-align: center !important;
+}
+
+.role-list-table :deep(.ant-table-thead > tr > th:nth-child(1) .ant-table-column-sorters),
+.role-list-table :deep(.ant-table-thead > tr > th:nth-child(2) .ant-table-column-sorters),
+.role-list-table :deep(.ant-table-thead > tr > th:nth-child(4) .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.role-list-table :deep(.ant-table-tbody > tr > td:nth-child(1)),
+.role-list-table :deep(.ant-table-tbody > tr > td:nth-child(2)),
+.role-list-table :deep(.ant-table-tbody > tr > td:nth-child(4)) {
+  text-align: left !important;
 }
 </style>

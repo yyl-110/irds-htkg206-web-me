@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { nextTick, reactive, ref } from 'vue';
-import { TableColumnType } from 'ant-design-vue';
+import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
+import type { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { useDateRangeParams } from '@/hooks/useDate';
 import { useRender } from '@/components/escape';
@@ -12,6 +12,7 @@ import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import NoticeDetail from './components/notice-detail.vue';
 import NoticeAddOrUpdate from './components/notice-addorupdate.vue';
 import Empty from '@/components/Empty/index.vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { sortermethod } from '@/utils/tools';
 const powerModel = ref<any>(null);
 const addOrUpdateModel = ref<any>(null);
@@ -26,10 +27,11 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     title: WeiI18n.$t('公告名称'),
     dataIndex: 'title',
     key: 'title',
-    align: 'center',
+    align: 'left',
+    fixed: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.title, b.title),
-    width: 490,
+    width: 320,
+    ellipsis: { showTitle: true },
   },
   {
     title: WeiI18n.$t('类型'),
@@ -38,16 +40,14 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     align: 'center',
     resizable: true,
     width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.type, b.type),
   },
   {
     title: WeiI18n.$t('创建时间'),
     key: 'createTime',
     dataIndex: 'createTime',
-    align: 'center',
+    align: 'left',
     resizable: true,
     width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
     /**
      * customRender
      * @param root0 params
@@ -63,21 +63,20 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
     key: 'status',
     align: 'center',
     resizable: true,
-    ellipsis: true,
     width: 180,
-    sorter: (a: any, b: any) => sortermethod(a.status, b.status),
   },
   {
     title: WeiI18n.$t('操作'),
     dataIndex: 'operation',
     align: 'left',
-    width: 220,
+    width: 300,
     fixed: 'right',
+    resizable: false,
   },
-  {},
 ]);
+
 const { dateRange, dateRangeParams } = useDateRangeParams();
-/** 列表请求参数 */
+/** 列表请求参数（须在表头筛选用到 requestParams 之前声明） */
 const requestParams = reactive(new NoticePageRequestDTOModel());
 requestParams.releaseFlag = 0;
 requestParams.userid = userStore.getUser.id;
@@ -90,12 +89,117 @@ pagination.showQuickJumper = false;
 /** 列表数据 */
 const resources = ref<Array<NoticeInfoRequestDTOModel>>([]);
 
+type NoticeSortOrder = 'ascend' | 'descend' | '';
+const noticeTableSortState = ref<{ key: string; order: NoticeSortOrder }>({ key: '', order: '' });
+
+const noticeTableFilterValueMap = ref<Record<string, string>>({ title: '' });
+const noticeTableFilterOpenMap = ref<Record<string, boolean>>({});
+
+function isNoticeTableSortableColumn(column: { dataIndex?: unknown }) {
+  const k = column?.dataIndex;
+  return Boolean(k && k !== 'operation');
+}
+
+function isNoticeTableFilterableColumn(column: { dataIndex?: unknown }) {
+  return column?.dataIndex === 'title';
+}
+
+function setNoticeTableFilterOpen(key: string, open: boolean) {
+  noticeTableFilterOpenMap.value = { ...noticeTableFilterOpenMap.value, [key]: open };
+}
+
+function getNoticeTableFilterOpen(key: string) {
+  return Boolean(noticeTableFilterOpenMap.value[key]);
+}
+
+function handleNoticeTableFilterOpenChange(key: string, open: boolean) {
+  if (open) {
+    if (key === 'title') {
+      noticeTableFilterValueMap.value = { ...noticeTableFilterValueMap.value, title: String(requestParams.title ?? '') };
+    }
+  }
+  setNoticeTableFilterOpen(key, open);
+}
+
+function onNoticeTitleTableFilterOpenChange(visible: boolean) {
+  handleNoticeTableFilterOpenChange('title', visible);
+}
+
+function getNoticeTableSortOrder(dataIndex: string): NoticeSortOrder {
+  return noticeTableSortState.value.key === dataIndex ? noticeTableSortState.value.order : '';
+}
+
+function toggleNoticeTableColumnSort(column: { dataIndex?: unknown }) {
+  if (!isNoticeTableSortableColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (noticeTableSortState.value.key !== key) {
+    noticeTableSortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (noticeTableSortState.value.order === 'ascend') {
+    noticeTableSortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (noticeTableSortState.value.order === 'descend') {
+    noticeTableSortState.value = { key: '', order: '' };
+    return;
+  }
+  noticeTableSortState.value = { key, order: 'ascend' };
+}
+
+const noticeTableDisplayList = computed(() => {
+  const list = [...resources.value];
+  if (!noticeTableSortState.value.key || !noticeTableSortState.value.order) return list;
+  const k = noticeTableSortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[k], b[k]));
+  return noticeTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+function applyNoticeTableColumnFilter(key: string) {
+  if (key === 'title') {
+    requestParams.title = String(noticeTableFilterValueMap.value[key] ?? '').trim();
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setNoticeTableFilterOpen(key, false);
+  void getResources();
+}
+
+function resetNoticeTableColumnFilter(key: string) {
+  if (key === 'title') {
+    noticeTableFilterValueMap.value = { ...noticeTableFilterValueMap.value, title: '' };
+    requestParams.title = '';
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setNoticeTableFilterOpen(key, false);
+  void getResources();
+}
+
+const NOTICE_TABLE_SCROLL_BUFFER = 24;
+const noticeTableScrollX = computed(() => {
+  let sum = 0;
+  for (const col of columns.value) {
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
+  }
+  return sum + NOTICE_TABLE_SCROLL_BUFFER;
+});
+
 onMounted(() => {
   getResources();
 });
 
-function handleResizeColumn(w, col) {
+function handleResizeColumn(w: number, col: TableColumnType<NoticeInfoRequestDTOModel>) {
   col.width = w;
+}
+
+function noticeTableRowClassName(_record: NoticeInfoRequestDTOModel, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
+
+function noticeRowKey(record: NoticeInfoRequestDTOModel) {
+  return record.id;
 }
 
 function handleClosePowModal() {
@@ -180,7 +284,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
     description: '数据为空',
-    style: { paddingTop: '50px' },
+    style: { paddingBottom: '50px' },
   }),
 });
 
@@ -205,6 +309,8 @@ async function noticeAdd(record?: any) {
   }
 }
 function handleFinish() {
+  requestParams.pageNo = 1;
+  pagination.current = 1;
   getResources();
 }
 function handleReset() {
@@ -216,41 +322,89 @@ function handleReset() {
 </script>
 
 <template>
-  <div class="drawerContent">
-    <a-card>
-      <a-form layout="inline" :label-col="{ style: { width: '70px' } }" :model="requestParams">
-        <a-input v-model:value="requestParams.title" style="width: 220px" allow-clear :placeholder="$t('请输入公告名称')" />
-        <a-form-item style="margin-left: 15px">
-          <a-button type="primary" @click="handleFinish"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />{{ $t('查询') }} </a-button>
+  <div class="drawerContent notice-page-root">
+    <a-card class="notice-list-card">
+      <div class="notice-list-body-scroll">
+        <a-form layout="inline" class="calc-toolbar-form notice-toolbar-form" :label-col="{ style: { width: '70px' } }" :model="requestParams" @finish="handleFinish">
+        <a-form-item name="title">
+          <a-input v-model:value="requestParams.title" style="width: 220px" allow-clear :placeholder="$t('请输入公告名称')" />
         </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="noticeAdd(undefined)">
+        <a-form-item class="notice-toolbar-form__actions">
+          <a-button type="primary" html-type="submit">
+            <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+            {{ $t('查询') }}
+          </a-button>
+          <a-button type="primary" style="margin-left: 15px" @click="noticeAdd(undefined)">
             <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
             {{ $t('添加') }}
           </a-button>
         </a-form-item>
-        <!-- <a-form-item>
-          <a-button @click="handleReset"> <EpcIcon type="icon-zhongzhi" style="font-size: 12px" />{{ $t('重置') }} </a-button>
-        </a-form-item> -->
       </a-form>
-    </a-card>
 
-    <a-card class="mt-[10px] b-body2">
       <a-table
-        :scroll="{ x: 1200 }"
-        :row-key="(record: any) => record.id"
+        class="notice-list-table exe-config-table parameter-table-spaced"
+        bordered
+        table-layout="fixed"
+        :scroll="{ x: noticeTableScrollX }"
+        :row-key="noticeRowKey"
         :columns="columns"
         :locale="locale"
-        :data-source="resources"
-        :pagination="pagination"
-        @resizeColumn="handleResizeColumn"
+        :data-source="noticeTableDisplayList"
+        :pagination="false"
+        @resize-column="handleResizeColumn"
         :loading="loading"
-        :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'name'">
-            {{ record.name }}
+        :row-class-name="noticeTableRowClassName">
+        <template #headerCell="{ column }">
+          <template v-if="isNoticeTableSortableColumn(column) || isNoticeTableFilterableColumn(column)">
+            <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isNoticeTableFilterableColumn(column) }">
+              <span
+                class="header-title-sort"
+                :class="{ 'header-title-sort--disabled': !isNoticeTableSortableColumn(column) }"
+                @click.stop="toggleNoticeTableColumnSort(column)">
+                <span>{{ column.title }}</span>
+                <span v-if="isNoticeTableSortableColumn(column)" class="header-sort-icon">
+                  <CaretUpOutlined v-if="getNoticeTableSortOrder(String(column.dataIndex)) === 'ascend'" />
+                  <CaretDownOutlined v-else-if="getNoticeTableSortOrder(String(column.dataIndex)) === 'descend'" />
+                  <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                </span>
+              </span>
+              <span v-if="isNoticeTableFilterableColumn(column)" class="header-filter-anchor" @mousedown.stop>
+                <a-popover
+                  trigger="click"
+                  placement="bottomRight"
+                  :open="getNoticeTableFilterOpen('title')"
+                  @openChange="onNoticeTitleTableFilterOpenChange">
+                  <template #content>
+                    <div class="header-filter-pop">
+                      <a-input
+                        v-model:value="noticeTableFilterValueMap.title"
+                        :placeholder="`${$t('搜索')} ${column.title}`"
+                        allow-clear
+                        @pressEnter="applyNoticeTableColumnFilter('title')" />
+                      <div class="header-filter-actions">
+                        <a-button type="primary" size="small" @click="applyNoticeTableColumnFilter('title')">
+                          <SearchOutlined />
+                          {{ $t('确定') }}
+                        </a-button>
+                        <a-button size="small" @click="resetNoticeTableColumnFilter('title')">{{ $t('重置') }}</a-button>
+                      </div>
+                    </div>
+                  </template>
+                  <FilterOutlined class="header-query-icon" @mousedown.stop />
+                </a-popover>
+              </span>
+            </div>
           </template>
-          <template v-else-if="column.dataIndex === 'type'">
+          <template v-else>
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort header-title-sort--disabled">
+                <span>{{ column.title }}</span>
+              </span>
+            </div>
+          </template>
+        </template>
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'type'">
             <span>
               <span v-if="record.type === '1'"> {{ $t('富文本') }}</span>
               <span v-else>{{ $t('附件') }}</span>
@@ -283,6 +437,10 @@ function handleReset() {
         </template> -->
         </template>
       </a-table>
+        <div class="notice-list-pagination">
+          <a-pagination v-bind="pagination" class="ant-table-pagination" />
+        </div>
+      </div>
       <NoticeAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
       <NoticeDetail ref="powerModel" :modal-visible="powVisible" @refreshtabledata="getResources" @close="handleClosePowModal" />
     </a-card>
@@ -290,43 +448,229 @@ function handleReset() {
 </template>
 
 <style lang="less" scoped>
-.drawerContent {
-  position: sticky;
-  bottom: 20px !important;
-  background-color: #ffffff !important;
+/* 填满 .route-page-wrapper，避免整块页面顶出主布局导致浏览器最右侧出整页滚动条 */
+.drawerContent.notice-page-root {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: static;
+  background-color: #ffffff;
 }
 
-.del-text {
-  color: var(--ant-error-color);
+.calc-toolbar-form {
+  gap: 4px;
 }
 
-.card_css {
-  margin-top: 10px;
+/* 与 system/role 一致：条件与按钮同一行、垂直居中对齐 */
+.notice-toolbar-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 12px;
+  column-gap: 0;
 }
 
-.card_css .ant-form {
-  margin-bottom: -20px;
+.notice-toolbar-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+  margin-right: 0;
 }
 
-.form_css .ant-form-item {
-  margin-bottom: 20px;
+.notice-toolbar-form :deep(.ant-form-item:not(:last-child)) {
+  margin-right: 16px;
 }
 
-// .user-selector-modal{
-:deep(.ant-tabs-tab .ant-tabs-nav-wrap) {
-  display: none !important;
+.notice-toolbar-form__actions :deep(.ant-form-item-control-input-content) {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
-:deep(.ant-table-tbody > tr > td) {
-  padding: 5px;
+/* 与菜单 / 用户列表一致；卡片内区域滚动，不把整页顶出主内容区 */
+.notice-list-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+
+  :deep(.ant-card-body) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 12px 20px 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
 }
 
-:deep(.ant-table-column-sorters) {
-  justify-content: center;
-  align-items: flex-end;
+/* 搜索区 + 表格 + 分页在此区域滚动（竖向/横向在需要时仅出现在内容区，而非浏览器最外侧） */
+.notice-list-body-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
-:deep(.ant-table-column-title) {
+.notice-list-pagination {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-bottom: 16px;
+}
+
+.notice-list-card :deep(.parameter-table-spaced) {
+  margin-top: 16px;
+}
+
+.notice-list-card :deep(.ant-table-thead > tr > th) {
+  border-right: 1px solid #e8e8e8;
+  text-align: center !important;
+  vertical-align: middle;
+  background: #fafafa !important;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.notice-list-card :deep(.ant-table-thead .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.notice-list-card :deep(.ant-table-thead .ant-table-column-title) {
   flex: none;
+}
+
+.notice-list-card :deep(.ant-table-tbody > tr.odd > td) {
+  background: #ffffff;
+}
+
+.notice-list-card :deep(.ant-table-tbody > tr.even > td) {
+  background: #f7f9fc;
+}
+
+.notice-list-card :deep(.ant-table-tbody > tr > td) {
+  border-right: none !important;
+}
+
+.notice-list-card :deep(.ant-table-tbody > tr > td:last-child) {
+  border-right: 1px solid #e8e8e8 !important;
+}
+
+.notice-list-card :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 1px solid #e8e8e8 !important;
+}
+
+.notice-list-table.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+/* 表头：自定义排序 + 首列筛选（与 system/role、product/parameter 一致） */
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  gap: 6px;
+  padding-right: 0;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 </style>
