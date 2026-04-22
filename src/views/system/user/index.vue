@@ -885,7 +885,10 @@ async function exportData() {
 }
 
 .header-filter-anchor {
-  position: static;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   line-height: 1;
   display: inline-flex;
   align-items: center;

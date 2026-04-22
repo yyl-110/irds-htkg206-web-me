@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { nextTick, reactive, ref } from 'vue';
-import { TableColumnType } from 'ant-design-vue';
+import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
+import type { TableColumnType } from 'ant-design-vue';
 import { message, Modal } from 'ant-design-vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { LibraryPageRequestDTOModel } from '@/api/models/library/LibraryPageRequestDTOModel';
 import { businessApiLibrary } from '@/api/tags/library/基础资源库';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
-import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import Empty from '@/components/Empty/index.vue';
 import LibraryAddOrUpdate from './libraryAddOrUpdate.vue';
 import { sortermethod } from '@/utils/tools';
@@ -96,73 +96,11 @@ const numericTypeOptions = [
   { label: WeiI18n.$t('boolean'), value: 2 },
 ];
 const visibleNoticeEditor = ref<boolean>(false);
-const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
-  {
-    title: WeiI18n.$t('基础库名称'),
-    dataIndex: 'menuName',
-    key: 'menuName',
-    align: 'center',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.menuName, b.menuName),
-    width: 290,
-  },
-  {
-    title: WeiI18n.$t('参数库类型'),
-    dataIndex: 'categoryType',
-    key: 'categoryType',
-    align: 'center',
-    resizable: true,
-    width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.categoryType, b.categoryType),
-  },
-  {
-    title: WeiI18n.$t('资源库类型'),
-    dataIndex: 'menuType',
-    key: 'menuType',
-    align: 'center',
-    resizable: true,
-    width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.menuType, b.menuType),
-  },
-  {
-    title: WeiI18n.$t('序号'),
-    dataIndex: 'sort',
-    key: 'sort',
-    align: 'center',
-    resizable: true,
-    ellipsis: true,
-    width: 100,
-    sorter: (a: any, b: any) => sortermethod(a.sort, b.sort),
-  },
-  {
-    title: WeiI18n.$t('分类节点共用'),
-    dataIndex: 'categoryName',
-    key: 'categoryName',
-    align: 'center',
-    resizable: true,
-    ellipsis: true,
-    width: 200,
-    sorter: (a: any, b: any) => sortermethod(a.categoryName, b.categoryName),
-  },
-  {
-    title: WeiI18n.$t('发布状态'),
-    dataIndex: 'status',
-    key: 'status',
-    align: 'center',
-    resizable: true,
-    ellipsis: true,
-    width: 180,
-    sorter: (a: any, b: any) => sortermethod(a.status, b.status),
-  },
-  {
-    title: WeiI18n.$t('操作'),
-    dataIndex: 'operation',
-    align: 'left',
-    width: 220,
-    fixed: 'right',
-  },
-]);
-/** 列表请求参数 */
+
+type LibraryListRow = Record<string, any> & { id: number | string };
+type LibrarySortOrder = 'ascend' | 'descend' | '';
+
+/** 列表请求参数（须在表头筛选用到 requestParams 之前声明） */
 const requestParams = reactive(new LibraryPageRequestDTOModel());
 requestParams.userid = userStore.getUser.id;
 /** 初始化绑定分页请求参数 */
@@ -171,14 +109,184 @@ pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI1
 pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
 pagination.showQuickJumper = false;
 /** 列表数据 */
-const resources = ref<Array<NoticeInfoRequestDTOModel>>([]);
+const resources = ref<LibraryListRow[]>([]);
+
+const libraryTableSortState = ref<{ key: string; order: LibrarySortOrder }>({ key: '', order: '' });
+const libraryTableFilterValueMap = ref<Record<string, string>>({ menuName: '' });
+const libraryTableFilterOpenMap = ref<Record<string, boolean>>({});
+
+function isLibraryTableSortableColumn(column: { dataIndex?: unknown }) {
+  const k = column?.dataIndex;
+  return Boolean(k && k !== 'operation');
+}
+
+function isLibraryTableFilterableColumn(column: { dataIndex?: unknown }) {
+  return column?.dataIndex === 'menuName';
+}
+
+function setLibraryTableFilterOpen(key: string, open: boolean) {
+  libraryTableFilterOpenMap.value = { ...libraryTableFilterOpenMap.value, [key]: open };
+}
+
+function getLibraryTableFilterOpen(key: string) {
+  return Boolean(libraryTableFilterOpenMap.value[key]);
+}
+
+function handleLibraryTableFilterOpenChange(key: string, open: boolean) {
+  if (open && key === 'menuName') {
+    libraryTableFilterValueMap.value = { ...libraryTableFilterValueMap.value, menuName: String(requestParams.menuName ?? '') };
+  }
+  setLibraryTableFilterOpen(key, open);
+}
+
+function onLibraryMenuNameFilterOpenChange(vis: boolean) {
+  handleLibraryTableFilterOpenChange('menuName', vis);
+}
+
+function getLibraryTableSortOrder(dataIndex: string): LibrarySortOrder {
+  return libraryTableSortState.value.key === dataIndex ? libraryTableSortState.value.order : '';
+}
+
+function toggleLibraryTableColumnSort(column: { dataIndex?: unknown }) {
+  if (!isLibraryTableSortableColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (libraryTableSortState.value.key !== key) {
+    libraryTableSortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (libraryTableSortState.value.order === 'ascend') {
+    libraryTableSortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (libraryTableSortState.value.order === 'descend') {
+    libraryTableSortState.value = { key: '', order: '' };
+    return;
+  }
+  libraryTableSortState.value = { key, order: 'ascend' };
+}
+
+const libraryTableDisplayList = computed(() => {
+  const list = [...resources.value];
+  if (!libraryTableSortState.value.key || !libraryTableSortState.value.order) return list;
+  const k = libraryTableSortState.value.key;
+  if (k === 'sort') {
+    const sorted = [...list].sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0));
+    return libraryTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
+  }
+  const sorted = [...list].sort((a: LibraryListRow, b: LibraryListRow) => sortermethod(a[k] as any, b[k] as any));
+  return libraryTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+const columns = ref<TableColumnType<LibraryListRow>[]>([
+  {
+    title: WeiI18n.$t('基础库名称'),
+    dataIndex: 'menuName',
+    key: 'menuName',
+    align: 'left',
+    resizable: true,
+    fixed: 'left',
+    width: 260,
+    ellipsis: { showTitle: true },
+  },
+  {
+    title: WeiI18n.$t('参数库类型'),
+    dataIndex: 'categoryType',
+    key: 'categoryType',
+    align: 'center',
+    resizable: true,
+    width: 200,
+  },
+  {
+    title: WeiI18n.$t('资源库类型'),
+    dataIndex: 'menuType',
+    key: 'menuType',
+    align: 'center',
+    resizable: true,
+    width: 200,
+  },
+  {
+    title: WeiI18n.$t('序号'),
+    dataIndex: 'sort',
+    key: 'sort',
+    align: 'center',
+    resizable: true,
+    ellipsis: { showTitle: true },
+    width: 100,
+  },
+  {
+    title: WeiI18n.$t('分类节点共用'),
+    dataIndex: 'categoryName',
+    key: 'categoryName',
+    align: 'left',
+    resizable: true,
+    ellipsis: { showTitle: true },
+    width: 200,
+  },
+  {
+    title: WeiI18n.$t('发布状态'),
+    dataIndex: 'status',
+    key: 'status',
+    align: 'center',
+    resizable: true,
+    ellipsis: { showTitle: true },
+    width: 180,
+  },
+  {
+    title: WeiI18n.$t('操作'),
+    dataIndex: 'operation',
+    key: 'operation',
+    align: 'left',
+    width: 280,
+    fixed: 'right',
+    resizable: false,
+  },
+]);
+
+const LIBRARY_TABLE_SCROLL_BUFFER = 24;
+const libraryTableScrollX = computed(() => {
+  let sum = 0;
+  for (const col of columns.value) {
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
+  }
+  return sum + LIBRARY_TABLE_SCROLL_BUFFER;
+});
+
+function applyLibraryTableColumnFilter(key: string) {
+  if (key === 'menuName') {
+    requestParams.menuName = String(libraryTableFilterValueMap.value.menuName ?? '').trim();
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setLibraryTableFilterOpen(key, false);
+  void getResources();
+}
+
+function resetLibraryTableColumnFilter(key: string) {
+  if (key === 'menuName') {
+    libraryTableFilterValueMap.value = { ...libraryTableFilterValueMap.value, menuName: '' };
+    requestParams.menuName = '';
+  }
+  pagination.current = 1;
+  requestParams.pageNo = 1;
+  setLibraryTableFilterOpen(key, false);
+  void getResources();
+}
 
 onMounted(() => {
   getResources();
 });
 
-function handleResizeColumn(w, col) {
+function handleResizeColumn(w: number, col: TableColumnType<LibraryListRow>) {
   col.width = w;
+}
+
+function libraryTableRowClassName(_record: LibraryListRow, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
+
+function libraryRowKey(record: LibraryListRow) {
+  return record.id;
 }
 
 function customGetContainer() {
@@ -204,6 +312,15 @@ function handleRequestClosePowModal() {
 
 function handleCloseAddModal() {
   visibleNoticeEditor.value = false;
+}
+
+function onPowModalVisibleChange(v: boolean) {
+  if (v) powVisible.value = true;
+  else handleRequestClosePowModal();
+}
+
+function propertyTableRowKey(row: PropertyRow) {
+  return row._rowKey ?? row.id;
 }
 
 /** 获取公告列表数据 */
@@ -378,76 +495,140 @@ async function libraryAdd(record?: any) {
   }
 }
 function handleFinish() {
+  requestParams.pageNo = 1;
+  pagination.current = 1;
   getResources();
 }
 </script>
 
 <template>
-  <div class="drawerContent">
-    <a-card>
-      <a-form layout="inline" :label-col="{ style: { width: '70px' } }" :model="requestParams">
-        <a-input v-model:value="requestParams.menuName" style="width: 220px" allow-clear :placeholder="$t('请输入基础库名称')" />
-        <a-form-item style="margin-left: 15px">
-          <a-button type="primary" @click="handleFinish"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />{{ $t('查询') }} </a-button>
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="libraryAdd(undefined)">
-            <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-            {{ $t('添加') }}
-          </a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
+  <div class="drawerContent library-page-root">
+    <a-card class="library-list-card">
+      <div class="library-list-body-scroll">
+        <a-form
+          layout="inline"
+          class="calc-toolbar-form library-toolbar-form"
+          :label-col="{ style: { width: '70px' } }"
+          :model="requestParams"
+          @finish="handleFinish">
+          <a-form-item name="menuName">
+            <a-input v-model:value="requestParams.menuName" style="width: 220px" allow-clear :placeholder="$t('请输入基础库名称')" />
+          </a-form-item>
+          <a-form-item class="library-toolbar-form__actions">
+            <a-button type="primary" html-type="submit">
+              <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+              {{ $t('查询') }}
+            </a-button>
+            <a-button type="primary" style="margin-left: 15px" @click="libraryAdd(undefined)">
+              <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+              {{ $t('添加') }}
+            </a-button>
+          </a-form-item>
+        </a-form>
 
-    <a-card class="mt-[10px] b-body2">
-      <a-table
-        :scroll="{ x: 1200 }"
-        :row-key="(record: any) => record.id"
-        :columns="columns"
-        :locale="locale"
-        :data-source="resources"
-        :pagination="pagination"
-        @resizeColumn="handleResizeColumn"
-        :loading="loading"
-        :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'name'">
-            {{ record.name }}
+        <a-table
+          class="library-list-table exe-config-table parameter-table-spaced"
+          bordered
+          table-layout="fixed"
+          :scroll="{ x: libraryTableScrollX }"
+          :row-key="libraryRowKey"
+          :columns="columns"
+          :locale="locale"
+          :data-source="libraryTableDisplayList"
+          :pagination="false"
+          @resize-column="handleResizeColumn"
+          :loading="loading"
+          :row-class-name="libraryTableRowClassName">
+          <template #headerCell="{ column }">
+            <template v-if="isLibraryTableSortableColumn(column) || isLibraryTableFilterableColumn(column)">
+              <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isLibraryTableFilterableColumn(column) }">
+                <span
+                  class="header-title-sort"
+                  :class="{ 'header-title-sort--disabled': !isLibraryTableSortableColumn(column) }"
+                  @click.stop="toggleLibraryTableColumnSort(column)">
+                  <span>{{ column.title }}</span>
+                  <span v-if="isLibraryTableSortableColumn(column)" class="header-sort-icon">
+                    <CaretUpOutlined v-if="getLibraryTableSortOrder(String(column.dataIndex)) === 'ascend'" />
+                    <CaretDownOutlined v-else-if="getLibraryTableSortOrder(String(column.dataIndex)) === 'descend'" />
+                    <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                  </span>
+                </span>
+                <span v-if="isLibraryTableFilterableColumn(column)" class="header-filter-anchor" @mousedown.stop>
+                  <a-popover
+                    trigger="click"
+                    placement="bottomRight"
+                    :open="getLibraryTableFilterOpen('menuName')"
+                    @openChange="onLibraryMenuNameFilterOpenChange">
+                    <template #content>
+                      <div class="header-filter-pop">
+                        <a-input
+                          v-model:value="libraryTableFilterValueMap.menuName"
+                          :placeholder="`${$t('搜索')} ${column.title}`"
+                          allow-clear
+                          @pressEnter="applyLibraryTableColumnFilter('menuName')" />
+                        <div class="header-filter-actions">
+                          <a-button type="primary" size="small" @click="applyLibraryTableColumnFilter('menuName')">
+                            <SearchOutlined />
+                            {{ $t('确定') }}
+                          </a-button>
+                          <a-button size="small" @click="resetLibraryTableColumnFilter('menuName')">{{ $t('重置') }}</a-button>
+                        </div>
+                      </div>
+                    </template>
+                    <FilterOutlined class="header-query-icon" @mousedown.stop />
+                  </a-popover>
+                </span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="header-cell-main header-cell-main--static">
+                <span class="header-title-sort header-title-sort--disabled">
+                  <span>{{ column.title }}</span>
+                </span>
+              </div>
+            </template>
           </template>
-
-          <template v-else-if="column.dataIndex === 'categoryType'">
-            <span>
-              <span v-if="record.categoryType === 1"> {{ $t('固定列') }}</span>
-              <span v-else-if="record.categoryType === 2"> {{ $t('自定义列') }}</span>
-              <span v-else-if="record.categoryType === 3"> {{ $t('固定列+自定义列') }}</span>
-            </span>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'categoryType'">
+              <span>
+                <span v-if="record.categoryType === 1"> {{ $t('固定列') }}</span>
+                <span v-else-if="record.categoryType === 2"> {{ $t('自定义列') }}</span>
+                <span v-else-if="record.categoryType === 3"> {{ $t('固定列+自定义列') }}</span>
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'menuType'">
+              <span>
+                <span v-if="record.menuType === 1"> {{ $t('模块库') }}</span>
+                <span v-else-if="record.menuType === 2"> {{ $t('UDF库') }}</span>
+                <span v-else-if="record.menuType === 3"> {{ $t('列表数据类') }}</span>
+                <span v-else-if="record.menuType === 4"> {{ $t('系统集成类') }}</span>
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'status'">
+              <span>
+                <a-switch :checked="record.status === 1" @change="checked => handleStatusChange(checked, record)" />
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'operation'">
+              <a @click="libraryAdd(record)">{{ $t('编辑') }}</a>
+              <a-divider type="vertical" />
+              <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
+                <a-button type="link" danger class="p-0 text-[12px]">
+                  {{ $t('删除') }}
+                </a-button>
+              </a-popconfirm>
+              <a-divider type="vertical" v-if="record.categoryType !== 2" />
+              <a @click="seeDetailFun(record)" v-if="record.categoryType !== 2">{{ $t('属性配置') }}</a>
+            </template>
+            <template v-else>
+              <span>{{ record[String(column.dataIndex || '')] }}</span>
+            </template>
           </template>
-          <template v-else-if="column.dataIndex === 'menuType'">
-            <span>
-              <span v-if="record.menuType === 1"> {{ $t('模块库') }}</span>
-              <span v-else-if="record.menuType === 2"> {{ $t('UDF库') }}</span>
-              <span v-else-if="record.menuType === 3"> {{ $t('列表数据类') }}</span>
-              <span v-else-if="record.menuType === 4"> {{ $t('系统集成类') }}</span>
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'status'">
-            <span>
-              <a-switch :checked="record.status === 1" @change="checked => handleStatusChange(checked, record)" />
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'operation'">
-            <a @click="libraryAdd(record)">{{ $t('编辑') }}</a>
-            <a-divider type="vertical" />
-            <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
-              <a-button type="link" danger class="p-0 text-[12px]">
-                {{ $t('删除') }}
-              </a-button>
-            </a-popconfirm>
-            <a-divider type="vertical" v-if="record.categoryType !== 2" />
-            <a @click="seeDetailFun(record)" v-if="record.categoryType !== 2">{{ $t('属性配置') }}</a>
-          </template>
-        </template>
-      </a-table>
+        </a-table>
+        <div class="library-list-pagination">
+          <a-pagination v-bind="pagination" class="ant-table-pagination" />
+        </div>
+      </div>
       <LibraryAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
     </a-card>
 
@@ -456,12 +637,7 @@ function handleFinish() {
       <a-modal
         :getContainer="customGetContainer"
         :visible="powVisible"
-        @update:visible="
-          (v: boolean) => {
-            if (v) powVisible = true;
-            else handleRequestClosePowModal();
-          }
-        "
+        @update:visible="onPowModalVisibleChange"
         :title="$t('属性配置')"
         width="1200px"
         :mask-closable="false"
@@ -479,7 +655,7 @@ function handleFinish() {
           <a-table
             :columns="propertyColumns"
             :data-source="propertyList"
-            :row-key="(row: PropertyRow) => row._rowKey ?? row.id"
+            :row-key="propertyTableRowKey"
             :pagination="false"
             :scroll="{ x: 1240, y: 380 }"
             size="small"
@@ -565,10 +741,226 @@ function handleFinish() {
   position: relative;
 }
 
-.drawerContent {
-  position: sticky;
-  bottom: 20px !important;
-  background-color: #ffffff !important;
+/* 填满主内容区，避免整页被顶出主布局 */
+.drawerContent.library-page-root {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: static;
+  background-color: #ffffff;
+}
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.library-toolbar-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 12px;
+  column-gap: 0;
+}
+
+.library-toolbar-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+  margin-right: 0;
+}
+
+.library-toolbar-form :deep(.ant-form-item:not(:last-child)) {
+  margin-right: 16px;
+}
+
+.library-toolbar-form__actions :deep(.ant-form-item-control-input-content) {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.library-list-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+
+  :deep(.ant-card-body) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 12px 20px 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+}
+
+.library-list-body-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.library-list-pagination {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-bottom: 16px;
+}
+
+.library-list-card :deep(.parameter-table-spaced) {
+  margin-top: 16px;
+}
+
+.library-list-card :deep(.ant-table-thead > tr > th) {
+  border-right: 1px solid #e8e8e8;
+  text-align: center !important;
+  vertical-align: middle;
+  background: #fafafa !important;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.library-list-card :deep(.ant-table-thead .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.library-list-card :deep(.ant-table-thead .ant-table-column-title) {
+  flex: none;
+}
+
+.library-list-card :deep(.ant-table-tbody > tr.odd > td) {
+  background: #ffffff;
+}
+
+.library-list-card :deep(.ant-table-tbody > tr.even > td) {
+  background: #f7f9fc;
+}
+
+.library-list-card :deep(.ant-table-tbody > tr > td) {
+  border-right: none !important;
+}
+
+.library-list-card :deep(.ant-table-tbody > tr > td:last-child) {
+  border-right: 1px solid #e8e8e8 !important;
+}
+
+.library-list-card :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 1px solid #e8e8e8 !important;
+}
+
+.library-list-table.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  gap: 6px;
+  padding-right: 0;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 
 .del-text {

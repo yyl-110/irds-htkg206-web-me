@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import { computed, inject, reactive, ref } from 'vue';
+import { computed, inject, nextTick, onMounted, reactive, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import { set } from 'lodash-es';
-import type { VxeGridEventProps, VxeGridProps } from 'vxe-table';
-import { useWindowSize } from '@vueuse/core';
 import DeptUpdateOrAdd from './deptUpdateOrAdd.vue';
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 import type { DeptListRequestDTO, DeptResponseDTO } from '@/api/tags/data-contracts';
-import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { DeptListRequestDTOModel } from '@/api/models/DeptListRequestDTOModel';
 import type { DeptCreateRequestDTOModel } from '@/api/models/DeptCreateRequestDTOModel';
 import { EpcIcon } from '@/components/icon/EpcIcon.js';
 import { TableColumnsType } from 'ant-design-vue';
-import { useTableFilter } from '@/hooks/useTableFilter';
 import { getAllTimes } from '@/utils/dateUtils';
-import { PlusOutlined } from '@ant-design/icons-vue';
+import { sortermethod } from '@/utils/tools';
 /** 懒加载部门树数据类型 */
 type DeptLazyData = DeptResponseDTO & {
   children: DeptLazyData[];
@@ -66,62 +62,80 @@ onMounted(() => {
   getResources();
 });
 
-const userNickNameMap = reactive<{ [id: string]: string }>({});
-
 const formRef = ref();
-
-const { height } = useWindowSize();
-const gridHeight = computed(() => height.value - 285);
 
 /** 是否显示 新增 / 编辑 弹窗 */
 const visibleModal = ref<boolean>(false);
-const { getColumnSearchProps, getColumnSelectProps } = useTableFilter();
 
-const rowClassName = (_record: any, index: number) =>
-  index % 2 === 1 ? "table-striped" : "";
+const rowClassName = (_record: any, index: number) => (index % 2 === 0 ? 'odd' : 'even');
 
 const columns = computed<TableColumnsType>(() => [
-    {
-      title: WeiI18n.t('部门编码').value,
-      dataIndex: 'code',
-      key: 'code',
-      width: 140,
-      ...getColumnSearchProps('code'),
-    },
-    {
-      title: WeiI18n.t('部门名称').value,
-      dataIndex: 'name',
-      key: 'name',
-      minWidth: 170,
-      ...getColumnSearchProps('name'),
-    },
-    {
-      title: WeiI18n.t('排序').value,
-      dataIndex: 'sort',
-      key: 'sort',
-      width: 90,
-    },
-    {
-      title: WeiI18n.t('状态').value,
-      dataIndex: 'status',
-      key: 'status',
-      width: 120,
-    },
-    {
-      title: WeiI18n.t('创建时间').value,
-      dataIndex: 'createTime',
-      key: 'createTime',
-      align: 'center',
-      width: 200,
-    },
-    {
-      title: WeiI18n.t('操作').value,
-      key: 'operation',
-      align: 'center',
-      width: 160,
-      fixed: 'right',
-    },
+  {
+    title: WeiI18n.t('部门编码').value,
+    dataIndex: 'code',
+    key: 'code',
+    width: 140,
+    fixed: 'left',
+    align: 'center',
+    ellipsis: true,
+    sorter: (a: any, b: any) => sortermethod(a?.code, b?.code),
+  },
+  {
+    title: WeiI18n.t('部门名称').value,
+    dataIndex: 'name',
+    key: 'name',
+    width: 200,
+    align: 'left',
+    ellipsis: true,
+    sorter: (a: any, b: any) => sortermethod(a?.name, b?.name),
+  },
+  {
+    title: WeiI18n.t('排序').value,
+    dataIndex: 'sort',
+    key: 'sort',
+    width: 90,
+    align: 'center',
+    sorter: (a: any, b: any) => (Number(a?.sort) || 0) - (Number(b?.sort) || 0),
+  },
+  {
+    title: WeiI18n.t('状态').value,
+    dataIndex: 'status',
+    key: 'status',
+    width: 120,
+    align: 'center',
+    sorter: (a: any, b: any) => (Number(a?.status) || 0) - (Number(b?.status) || 0),
+  },
+  {
+    title: WeiI18n.t('创建时间').value,
+    dataIndex: 'createTime',
+    key: 'createTime',
+    align: 'center',
+    width: 200,
+    sorter: (a: any, b: any) => sortermethod(a?.createTime, b?.createTime),
+  },
+  {
+    title: WeiI18n.t('操作').value,
+    key: 'operation',
+    dataIndex: 'operation',
+    align: 'center',
+    width: 160,
+    fixed: 'right',
+  },
 ]);
+
+const DEPT_TABLE_SCROLL_BUFFER = 24;
+const deptTableScrollX = computed(() => {
+  let sum = 0;
+  for (const col of columns.value) {
+    const w = (col as { width?: number }).width;
+    if (typeof w === 'number') sum += w;
+  }
+  return sum + DEPT_TABLE_SCROLL_BUFFER;
+});
+
+function deptRowKey(record: DeptResponseDTO) {
+  return record.id;
+}
 /**
  * 获取部门的所有上级部门
  * @param dept 部门数据
@@ -244,74 +258,228 @@ async function onRefreshTableData(record: DeptCreateRequestDTOModel) {
 </script>
 
 <template>
-  <div class="drawerContent">
-    <a-card>
-      <a-form ref="formRef" class="form_main" layout="inline" :label-col="{ style: { width: '100px' } }" :wrapper-col="{ span: 14 }" :model="requestParams" @finish="handleFinish">
-        <a-form-item name="name">
-          <a-input v-model:value="requestParams.name" style="width: 240px" :placeholder="$t('请输入部门名称')" allow-clear />
-        </a-form-item>
-        <a-form-item name="status">
-          <a-select v-model:value="requestParams.status" style="width: 240px; text-align: left" :placeholder="$t('请选择部门状态')" allow-clear>
-            <a-select-option value="0">
-              {{ $t('开启') }}
-            </a-select-option>
-            <a-select-option value="1">
-              {{ $t('关闭') }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <!-- v-hasPermi="['system:dept:query']" -->
-        <a-form-item>
-          <a-button type="primary" html-type="submit">
-            <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-            {{ $t('查询') }}
-          </a-button>
-        </a-form-item>
-        <!-- v-hasPermi="['system:dept:create']" -->
-        <a-form-item>
-          <a-button type="primary" @click="handleAddOrUpdate(undefined)">
-            <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-            {{ $t('添加') }}
-          </a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
+  <div class="drawerContent dept-page-root">
+    <a-card class="dept-list-card">
+      <div class="dept-list-body-scroll">
+        <a-form
+          ref="formRef"
+          class="form_main calc-toolbar-form dept-toolbar-form"
+          layout="inline"
+          :label-col="{ style: { width: '100px' } }"
+          :wrapper-col="{ span: 14 }"
+          :model="requestParams"
+          @finish="handleFinish">
+          <a-form-item name="name">
+            <a-input v-model:value="requestParams.name" style="width: 240px" :placeholder="$t('请输入部门名称')" allow-clear />
+          </a-form-item>
+          <a-form-item name="status">
+            <a-select v-model:value="requestParams.status" style="width: 240px; text-align: left" :placeholder="$t('请选择部门状态')" allow-clear>
+              <a-select-option value="0">
+                {{ $t('开启') }}
+              </a-select-option>
+              <a-select-option value="1">
+                {{ $t('关闭') }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+          <!-- v-hasPermi="['system:dept:query']" -->
+          <a-form-item class="dept-toolbar-form__actions">
+            <a-button type="primary" html-type="submit">
+              <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+              {{ $t('查询') }}
+            </a-button>
+            <!-- v-hasPermi="['system:dept:create']" -->
+            <a-button type="primary" style="margin-left: 15px" @click="handleAddOrUpdate(undefined)">
+              <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+              {{ $t('添加') }}
+            </a-button>
+          </a-form-item>
+        </a-form>
 
-    <a-card style="margin-top: 10px" class="b-body">
-      <a-table :columns="columns" :data-source="resources" :scroll="{ x: 1000, y: 'calc(100vh - 350px)' }"
-        :rowKey="(record) => record.id" :loading="loading" bordered :row-class-name="rowClassName"
-        :pagination="false" defaultExpandAllRows
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'status'">
-            <a-tag v-if="record.status === 0" color="blue">{{ $t('开启') }}</a-tag>
-            <a-tag v-else-if="record.status === 1">{{ $t('关闭') }}</a-tag>
+        <a-table
+          class="dept-list-table exe-config-table parameter-table-spaced"
+          table-layout="fixed"
+          :columns="columns"
+          :data-source="resources"
+          :scroll="{ x: deptTableScrollX, y: 'calc(100vh - 380px)' }"
+          :row-key="deptRowKey"
+          :loading="loading"
+          bordered
+          :row-class-name="rowClassName"
+          :pagination="false"
+          defaultExpandAllRows>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'status'">
+              <a-tag v-if="record.status === 0" color="blue">{{ $t('开启') }}</a-tag>
+              <a-tag v-else-if="record.status === 1">{{ $t('关闭') }}</a-tag>
+            </template>
+            <template v-else-if="column.key === 'createTime'">
+              <span>{{ getAllTimes(Date.parse(record.createTime)) }}</span>
+            </template>
+            <template v-else-if="column.key === 'operation'">
+              <span class="handle_btn text-primary cursor-pointer" @click="handleAddOrUpdate(record)">编辑</span>
+              <a-divider type="vertical" />
+              <a-popconfirm
+                :title="$t('确定要删除吗？')"
+                :ok-text="$t('确定')"
+                :cancel-text="$t('取消')"
+                :disabled="$isPending('delete', record.id)"
+                @confirm="handleDelete(record)">
+                <span class="handle_btn text-[red] cursor-pointer" :class="{ 'opacity-50 cursor-not-allowed': $isPending('delete', record.id) }">删除</span>
+              </a-popconfirm>
+            </template>
           </template>
-          <template v-if="column.key === 'createTime'">
-            <span>{{ getAllTimes(Date.parse(record.createTime)) }}</span>
-          </template>
-          <template v-if="column.key === 'operation'">
-            <span class="handle_btn text-primary cursor-pointer" @click="handleAddOrUpdate(record)">编辑</span>
-            <a-divider type="vertical" />
-            <a-popconfirm :title="$t('确定要删除吗？')" :ok-text="$t('确定')" :cancel-text="$t('取消')" :disabled="$isPending('delete', record.id)" @confirm="handleDelete(record)">
-              <span class="handle_btn text-[red] cursor-pointer" :class="{ 'opacity-50 cursor-not-allowed': $isPending('delete', record.id) }">删除</span>
-            </a-popconfirm>
-          </template>
-        </template>
-      </a-table>
-
+        </a-table>
+      </div>
       <DeptUpdateOrAdd v-model:visible="visibleModal" :resource="editableData" @success="onRefreshTableData" />
     </a-card>
   </div>
 </template>
 
 <style scoped lang="less">
-.drawerContent {
-  position: sticky;
-  bottom: 20px !important;
-  background-color: #ffffff !important;
+/* 填满主内容区，避免整页被顶出主布局 */
+.drawerContent.dept-page-root {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: static;
+  background-color: #ffffff;
 }
-.table-striped {
-  background-color: #f7f8fb!important;
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.dept-toolbar-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 12px;
+  column-gap: 0;
+}
+
+.dept-toolbar-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+  margin-right: 0;
+}
+
+.dept-toolbar-form :deep(.ant-form-item:not(:last-child)) {
+  margin-right: 16px;
+}
+
+.dept-toolbar-form__actions :deep(.ant-form-item-control-input-content) {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.dept-list-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+
+  :deep(.ant-card-body) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 12px 20px 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+}
+
+.dept-list-body-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.dept-list-card :deep(.parameter-table-spaced) {
+  margin-top: 16px;
+}
+
+.dept-list-card :deep(.ant-table-thead > tr > th) {
+  border-right: 1px solid #e8e8e8;
+  text-align: center !important;
+  vertical-align: middle;
+  background: #fafafa !important;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.dept-list-card :deep(.ant-table-thead .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.dept-list-card :deep(.ant-table-thead .ant-table-column-title) {
+  flex: none;
+}
+
+.dept-list-card :deep(.ant-table-tbody > tr.odd > td) {
+  background: #ffffff;
+}
+
+.dept-list-card :deep(.ant-table-tbody > tr.even > td) {
+  background: #f7f9fc;
+}
+
+.dept-list-card :deep(.ant-table-tbody > tr > td) {
+  border-right: none !important;
+}
+
+.dept-list-card :deep(.ant-table-tbody > tr > td:last-child) {
+  border-right: 1px solid #e8e8e8 !important;
+}
+
+.dept-list-card :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 1px solid #e8e8e8 !important;
+}
+
+.dept-list-table.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
 }
 </style>

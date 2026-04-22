@@ -529,8 +529,8 @@ function customGetContainer() {
                 <a-popover
                   trigger="click"
                   placement="bottomRight"
-                  :visible="getRoleTableFilterOpen('name')"
-                  @update:visible="onRoleNameTableFilterVisibleChange">
+                  :open="getRoleTableFilterOpen('name')"
+                  @openChange="onRoleNameTableFilterVisibleChange">
                   <template #content>
                     <div class="header-filter-pop">
                       <a-input
@@ -746,6 +746,7 @@ function customGetContainer() {
   }
 }
 
+/* 表头：与 system/user/index 用户列表一致 */
 .header-query-icon {
   font-size: 12px;
   color: #8c8c8c;
@@ -767,7 +768,8 @@ function customGetContainer() {
 }
 
 .header-cell-main--has-filter {
-  padding-right: 22px;
+  gap: 6px;
+  padding-right: 0;
 }
 
 .header-filter-anchor {
