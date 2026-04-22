@@ -285,7 +285,8 @@ ContextPadProvider.prototype.getContextPadEntries = function(element) {
     ) {
       assign(actions, {
         'append.end-event': appendAction('bpmn:EndEvent', 'bpmn-icon-end-event-none', translate('Append EndEvent')),
-        'append.gateway': appendAction('bpmn:ExclusiveGateway', 'bpmn-icon-gateway-none', translate('Append Gateway')),
+        'append.split-gateway': appendAction('bpmn:ParallelGateway', 'bpmn-icon-gateway-parallel', '分解'),
+        'append.merge-gateway': appendAction('bpmn:InclusiveGateway', 'bpmn-icon-gateway-or', '合并'),
         'append.append-task': appendAction('bpmn:UserTask', 'bpmn-icon-user-task', translate('Append Task'))
         //,'append.intermediate-event': appendAction(
         //  'bpmn:IntermediateThrowEvent',

@@ -4,8 +4,15 @@
       <a-form-item v-if="false" label="ID">
         <a-input v-model:value="elementBaseInfo.id" :disabled="true" allowClear @change="updateBaseInfo('id')" />
       </a-form-item>
-      <a-form-item label="名称" name="name">
-        <a-input v-model:value="elementBaseInfo.name" placeholder="请输入名称" :disabled="isProcessNameReadonly" @change="updateBaseInfo('name')" />
+      <a-form-item label="类型" name="type">
+        <a-input :value="elementTypeText" :disabled="true" />
+      </a-form-item>
+      <a-form-item :label="nameFieldLabel" name="name">
+        <a-input
+          :value="nameFieldValue"
+          :placeholder="nameFieldPlaceholder"
+          :disabled="isProcessNameReadonly"
+          @update:value="onNameFieldInput" />
       </a-form-item>
 
       <!-- 流程的基础属性 -->
@@ -59,6 +66,32 @@ const elementBaseInfo = ref({
 
 /** 从任务列表「配置」进入（flag=1）时，流程根节点(Process)名称只读置灰 */
 const isProcessNameReadonly = computed(() => Number(props.flag) === 1 && elementBaseInfo.value.$type === 'bpmn:Process');
+/** 分解节点（并行网关）名称字段按“参数代号”语义展示 */
+const isSplitGateway = computed(() => elementBaseInfo.value.$type === 'bpmn:ParallelGateway');
+/** 分解后的连线（顺序流）按“条件”语义展示 */
+const isSequenceFlow = computed(() => elementBaseInfo.value.$type === 'bpmn:SequenceFlow');
+const elementTypeText = computed(() => String(elementBaseInfo.value.$type ?? props.type ?? '').trim());
+const nameFieldLabel = computed(() => {
+  if (isSplitGateway.value) return '参数代号';
+  if (isSequenceFlow.value) return '条件';
+  return '名称';
+});
+const nameFieldPlaceholder = computed(() => {
+  if (isSplitGateway.value) return '配置参数代号';
+  if (isSequenceFlow.value) return '配置条件';
+  return '请输入名称';
+});
+const nameFieldValue = computed(() => {
+  if (isSplitGateway.value) {
+    const paraNo = elementBaseInfo.value?.paraNo;
+    if (paraNo != null && String(paraNo).trim() !== '') return String(paraNo);
+  }
+  if (isSequenceFlow.value) {
+    const where = elementBaseInfo.value?.where;
+    if (where != null && String(where).trim() !== '') return String(where);
+  }
+  return String(elementBaseInfo.value?.name ?? '');
+});
 // Reactive data
 const formState = reactive({
   category: '计算工具',
@@ -103,7 +136,7 @@ watch(
   () => elementBaseInfo.value,
   val => {
     if (val) {
-      localStorage.setItem('categoryName', val.name);
+      localStorage.setItem('categoryName', nameFieldValue.value);
       emit('on-click', val);
     }
   },
@@ -141,11 +174,43 @@ const resetBaseInfo = () => {
     if (elementBaseInfo.value.$type === 'bpmn:UserTask') {
       elementBaseInfo.value.name = elementBaseInfo.value.name;
     }
+    if (elementBaseInfo.value.$type === 'bpmn:ParallelGateway') {
+      const paraNo = String(elementBaseInfo.value.paraNo ?? '').trim();
+      if (!paraNo) {
+        elementBaseInfo.value.paraNo = String(elementBaseInfo.value.name ?? '').trim();
+      }
+    }
+    if (elementBaseInfo.value.$type === 'bpmn:SequenceFlow') {
+      const where = String(elementBaseInfo.value.where ?? '').trim();
+      if (!where) {
+        elementBaseInfo.value.where = String(elementBaseInfo.value.name ?? '').trim();
+      }
+    }
     // 处理子流程状态
     if (elementBaseInfo.value && elementBaseInfo.value.$type === 'bpmn:SubProcess') {
       elementBaseInfo.value['isExpanded'] = elementBaseInfo.value.di?.isExpanded;
     }
   }
+};
+
+const onNameFieldInput = value => {
+  const text = String(value ?? '');
+  if (isSplitGateway.value) {
+    elementBaseInfo.value.paraNo = text;
+    // 兼容 BPMN 序列化：自定义键 paraNo 同步镜像到 name，确保保存后可回显
+    elementBaseInfo.value.name = text;
+    window.bpmnInstances.modeling.updateProperties(bpmnElement.value, { paraNo: text, name: text });
+    return;
+  }
+  if (isSequenceFlow.value) {
+    elementBaseInfo.value.where = text;
+    // 兼容 BPMN 序列化：自定义键 where 同步镜像到 name，确保保存后可回显
+    elementBaseInfo.value.name = text;
+    window.bpmnInstances.modeling.updateProperties(bpmnElement.value, { where: text, name: text });
+    return;
+  }
+  elementBaseInfo.value.name = text;
+  window.bpmnInstances.modeling.updateProperties(bpmnElement.value, { name: text });
 };
 
 const updateBaseInfo = key => {
