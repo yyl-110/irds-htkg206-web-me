@@ -1,7 +1,10 @@
 .layout {
   background: #f3f2f7;
   // padding: 0 20px 20px 20px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   height: 100%;
   .nav-sub {
     padding: 16px 0 12px 0;
@@ -57,9 +60,13 @@
   }
   .layout-content {
     display: flex;
+    flex: 1;
+    min-height: 0;
     .lf-cont {
       margin-right: 16px;
-      width: calc(100vw - 0px);
+      flex: 1;
+      min-width: 0;
+      width: auto;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -526,6 +533,7 @@
     .rt-cont {
       display: flex;
       flex-direction: column;
+      flex-shrink: 0;
       height: 100%;
       .rt-cont-list {
         &:not(:first-child) {

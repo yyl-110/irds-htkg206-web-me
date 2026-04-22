@@ -526,9 +526,10 @@ onUnmounted(() => {
   </div>
   <div class="show-right-content-btn" @click="showRightContent">{{ isShowRigth }}</div>
 
-  <a-card class="mt-[10px] b-body2">
+  <!-- 公告详情为 Modal，勿再套 b-body2（会占 calc(100vh-205px) 高度与主区叠成双屏滚动） -->
+  <div class="workbench-notice-mount">
     <NoticeDetail ref="powerModel" :modal-visible="powVisible" @close="handleClosePowModal" />
-  </a-card>
+  </div>
 </template>
 
 <style lang="less" scoped>
@@ -911,6 +912,13 @@ onUnmounted(() => {
     color: #FAAD14;
     background: #FFFBE6;
   }
+}
+
+/* 占位不占纵向流式高度，避免与 .layout 叠出整页外侧滚动条 */
+.workbench-notice-mount {
+  height: 0;
+  overflow: visible;
+  position: relative;
 }
 
 .delay-progress :deep(.ant-progress-bg) {
