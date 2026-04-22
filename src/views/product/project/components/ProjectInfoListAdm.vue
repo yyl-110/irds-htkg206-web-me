@@ -194,7 +194,7 @@ const columns = ref<TableColumnType<ProjectListRow>[]>([
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
-    align: 'left',
+    align: 'center',
     width: 160,
     fixed: 'right',
     resizable: false,
@@ -489,20 +489,22 @@ defineExpose({ getResourcesByParent });
               <span>{{ formatProjectPlanDate(record[String(column.dataIndex || '')]) }}</span>
             </template>
             <template v-else-if="column.dataIndex === 'operation'">
-              <template v-if="record.projectStatus == '1'">
-                <a @click="noticeAdd(record)">{{ $t('编辑') }}</a>
-                <a-divider type="vertical" />
-                <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
-                  <a-button type="link" danger class="p-0">
-                    {{ $t('删除') }}
-                  </a-button>
-                </a-popconfirm>
-              </template>
-              <template v-else>
-                <span class="operation-disabled">{{ $t('编辑') }}</span>
-                <a-divider type="vertical" />
-                <span class="operation-disabled">{{ $t('删除') }}</span>
-              </template>
+              <div class="project-list-adm-op-cell">
+                <template v-if="record.projectStatus == '1'">
+                  <a @click="noticeAdd(record)">{{ $t('编辑') }}</a>
+                  <a-divider type="vertical" />
+                  <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
+                    <a-button type="link" danger class="p-0">
+                      {{ $t('删除') }}
+                    </a-button>
+                  </a-popconfirm>
+                </template>
+                <template v-else>
+                  <span class="operation-disabled">{{ $t('编辑') }}</span>
+                  <a-divider type="vertical" />
+                  <span class="operation-disabled">{{ $t('删除') }}</span>
+                </template>
+              </div>
             </template>
             <template v-else>
               <span>{{ record[String(column.dataIndex || '')] }}</span>
@@ -743,6 +745,16 @@ defineExpose({ getResourcesByParent });
 
 .del-text {
   color: var(--ant-error-color);
+}
+
+.project-list-adm-op-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  width: 100%;
+  min-height: 22px;
 }
 
 .operation-disabled {

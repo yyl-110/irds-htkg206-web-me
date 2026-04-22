@@ -75,7 +75,6 @@ const {
   globalQueryModalVisible,
   globalQueryLoading,
   globalQueryList,
-  globalQueryTableScrollY,
   globalQueryTablePagination,
   globalQueryColumns,
   globalQueryTypeOptions,
@@ -1173,7 +1172,7 @@ function toParm(type: any) {
   }
 }
 const udfBoxRef = ref<any>();
-function udfBoxStyle() {
+function udfBoxStyle(): Record<string, string> {
   let lastPixelRatio: any = window.devicePixelRatio;
   window.addEventListener('resize', () => {
     const currentPixelRatio: any = window.devicePixelRatio;
@@ -1193,6 +1192,7 @@ function udfBoxStyle() {
     }
     lastPixelRatio = currentPixelRatio;
   });
+  return {};
 }
 const supGbomcolumns = ref<any>([
   {
@@ -1291,7 +1291,7 @@ defineExpose({ initData, selectAllModuleInfo });
 </script>
 
 <template>
-  <div class="module-body h-full p-[16px]">
+  <div class="module-body h-full min-h-0 flex flex-1 flex-col p-[16px]">
     <div class="selectLeft">
       <div class="btn-box">
         <div class="top-right-actions">
@@ -1387,7 +1387,7 @@ defineExpose({ initData, selectAllModuleInfo });
       <a-card class="calc-table-card module-info-list-table-card">
         <a-table
           class="exe-config-table"
-          :scroll="{ x: moduleTableScrollX, y: 500 }"
+          :scroll="{ x: moduleTableScrollX }"
           :row-key="getModuleRowKey"
           :columns="columns"
           :data-source="moduleTableDisplayList"
@@ -1540,7 +1540,7 @@ defineExpose({ initData, selectAllModuleInfo });
         row-key="_rowKey"
         :columns="globalQueryColumns"
         :data-source="globalQueryList"
-        :scroll="{ y: globalQueryTableScrollY }"
+        :scroll="{ x: 'max-content' }"
         :pagination="globalQueryTablePagination"
         :loading="globalQueryLoading"
         @change="handleGlobalTableChange">
@@ -1590,11 +1590,10 @@ defineExpose({ initData, selectAllModuleInfo });
     <a-table
       ref="elementTable"
       bordered
-      :scroll="{ x: 'max-content', y: 500 }"
+      :scroll="{ x: 'max-content' }"
       :pagination="false"
       :columns="tabularColumn"
       :data-source="tabularData"
-      style="overflow-y: hidden"
       :row-class-name="setFixedRowClass"
     >
       <template #bodyCell="{ column, record, text }">
@@ -1625,11 +1624,11 @@ defineExpose({ initData, selectAllModuleInfo });
     @template-download="templateDownload"
     @import-successful-fun="importSuccessfulFun"
     @close="batchflag = false" />
-  <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="800">
-    <div ref="udfBoxRef" class="px-[16px] h-full wei-scrollbar overflow-y-auto flex flex-col" :style="udfBoxStyle()">
-      <a-tabs v-model:activeKey="parmType" @change="toParm" :animated="false" style="flex: 1; min-height: 0;">
+  <a-drawer v-model:visible="pageFlagDrawer" class="module-detail-drawer" title="模块详情" placement="right" :closable="false" width="800">
+    <div ref="udfBoxRef" class="module-detail-drawer-inner px-[16px]" :style="udfBoxStyle()">
+      <a-tabs v-model:activeKey="parmType" class="module-detail-udf-tabs" @change="toParm" :animated="false">
         <a-tab-pane :key="0" tab="分类参数">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style">
             <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-bottom: 20px" size="small" bordered>
               <a-descriptions-item :label="item.name" style="width: 150px">
                 {{ item.val }}
@@ -1639,7 +1638,7 @@ defineExpose({ initData, selectAllModuleInfo });
         </a-tab-pane>
         
         <a-tab-pane :key="1" tab="常规属性">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style">
             <div v-if="pdmDataFlag">
               <a-descriptions style="margin-top: 20px" size="small" bordered>
                 <a-descriptions-item label="名称：" style="width: 200px">
@@ -1672,11 +1671,11 @@ defineExpose({ initData, selectAllModuleInfo });
         </a-tab-pane>
 
         <a-tab-pane :key="3" tab="知识文档">
-          <div class="udfPage_style" style="height: 100%;">
+          <div class="udfPage_style">
             <div style="width: 100%; height: 30px; text-align: left; margin-top: 10px">模块库知识:</div>
             <div style="width: 100%">
               <a-table
-                :scroll="{ x: 400, y: 400 }"
+                :scroll="{ x: 400 }"
                 row-key="id"
                 :loading="loading"
                 :locale="locale"
@@ -1696,7 +1695,7 @@ defineExpose({ initData, selectAllModuleInfo });
             <div style="width: 100%; height: 30px; text-align: left; margin-top: 20px">PDM知识:</div>
             <div style="width: 100%">
               <a-table
-                :scroll="{ x: 400, y: 400 }"
+                :scroll="{ x: 400 }"
                 row-key="id"
                 :locale="locale"
                 :loading="loading"
@@ -1716,9 +1715,9 @@ defineExpose({ initData, selectAllModuleInfo });
         </a-tab-pane>
 
         <a-tab-pane :key="5" tab="历史文档">
-          <div class="udfPage_style history-doc-table-wrap" style="height: 100%;">
+          <div class="udfPage_style history-doc-table-wrap">
             <a-table
-              :scroll="{ x: 1200, y: 400 }"
+              :scroll="{ x: 1200 }"
               row-key="id"
               :loading="loading"
               :locale="locale"
@@ -1735,11 +1734,15 @@ defineExpose({ initData, selectAllModuleInfo });
 </template>
 
 <style lang="less" scoped>
-:deep(.ant-tabs-content) {
-  height: 100%;
-}
+/* 与后台 form/ModuleInfoList.vue 一致的滚动策略：主表区 flex 定高，详情 Drawer 内分区滚动，禁止 100vh 顶整页 */
+
 .module-body {
-  padding-right: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* 历史文档表格：限制宽度，超出显示横向滚动条 */
@@ -1765,10 +1768,10 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 .selectLeft {
   width: 100%;
-  height: 100%;
+  flex-shrink: 0;
   padding-top: 5px;
   background-color: #ffffff;
-  overflow: auto;
+  overflow-x: auto;
   overflow-y: hidden;
 }
 .btn-box {
@@ -1894,11 +1897,66 @@ defineExpose({ initData, selectAllModuleInfo });
   padding-left: 20px;
   color: #a2b7bf;
 }
+/* 详情 Drawer 内 tab 内容区：随抽屉高度伸展，仅本区超出时竖向滚动 */
 .udfPage_style {
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: #fff;
-  height: calc(100vh - 190px);
+  box-sizing: border-box;
+}
+
+.module-detail-drawer-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+:deep(.module-detail-udf-tabs.ant-tabs) {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:deep(.module-detail-udf-tabs .ant-tabs-nav) {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+:deep(.module-detail-udf-tabs .ant-tabs-content-holder) {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.module-detail-udf-tabs .ant-tabs-content) {
+  height: 100%;
+  overflow: hidden;
+}
+
+:deep(.module-detail-udf-tabs .ant-tabs-tabpane) {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+:deep(.module-detail-drawer .ant-drawer-body) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px !important;
+  box-sizing: border-box;
 }
 
 .seDalIcon {
@@ -1952,13 +2010,14 @@ defineExpose({ initData, selectAllModuleInfo });
   right: 12px;
   z-index: 10;
 }
-:deep(.ant-drawer-body) {
-  padding: 10px !important;
-}
 
 /* 模块主表：与 exeConfigTab 列表区一致 */
 .module-info-table-wrap {
   margin-top: 10px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .module-info-list-table-card {
@@ -1973,6 +2032,8 @@ defineExpose({ initData, selectAllModuleInfo });
   }
 
   :deep(.ant-table-wrapper) {
+    flex: 1;
+    min-height: 0;
     height: 100%;
   }
 

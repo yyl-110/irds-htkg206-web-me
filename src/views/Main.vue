@@ -217,11 +217,11 @@ onBeforeMount(() => {
             !layoutStore.homepage && route.name === 'ProductProjectEditor'
               ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
-                ? 'p-[16px] pt-[16px] overflow-y-hidden pl-[11px]'
+                ? 'p-[16px] pt-[16px] pl-[11px]'
                 : '',
           ]">
           <div
-            class="layout-router-host h-full"
+            class="layout-router-host min-h-0 flex w-full min-w-0 flex-1 flex-col"
             :class="{
               'layout-router-host--fill': !layoutStore.homepage && route.name === 'ProductProjectEditor',
             }">
@@ -261,11 +261,16 @@ onBeforeMount(() => {
   flex-direction: row !important;
   align-items: stretch;
 
-  /* 右侧主区域占满剩余宽度 */
+  /* 右侧主区域：定高列布局，避免 header+标签+内容用 calc 叠出 >100vh 导致整页出滚动条 */
   :deep(> .ant-layout) {
     flex: 1;
     min-width: 0;
-    min-height: 100vh;
+    min-height: 0;
+    max-height: 100vh;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 }
 
@@ -398,11 +403,21 @@ onBeforeMount(() => {
 }
 :deep(.ant-layout-header) {
   background-color: #fff !important;
-  flex: 1;
+  flex: 0 0 auto;
 }
 
+:deep(.wei-page-tabs-component) {
+  flex: 0 0 auto;
+}
+
+/* 主工作区占满右侧列剩余高度；由本区 overflow-y: auto 负责竖条，避免与 100vh 叠算成整页滚动 */
 .layout-container {
-  height: calc(100vh - 104px);
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /** 项目信息创建页：主内容区铺满白底，避免透出外层 #f3f2f7 灰边 */

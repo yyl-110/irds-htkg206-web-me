@@ -945,9 +945,9 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
               @change-select-key="handleChangeSelectKey" />
           </a-spin>
         </Pane>
-        <!-- 右侧内容区域 -->
-        <Pane class="splitpane-cls" :size="rightTreePaneSize">
-          <div v-if="!loading">
+        <!-- 右侧内容区域：定高 flex 链，避免主表区把整页撑出滚动条 -->
+        <Pane class="splitpane-cls module-index-right-pane" :size="rightTreePaneSize">
+          <div v-if="!loading" class="module-index-right-inner">
             <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
             <ModuleInfoList v-else ref="ModuleInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
           </div>
@@ -999,11 +999,37 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
 }
-.drawerContent {
-  position: sticky;
-  bottom: 20px !important;
+
+:deep(.splitpanes.default-theme .splitpanes__pane) {
+  min-height: 0;
   display: flex;
+  flex-direction: column;
+}
+
+.module-index-right-pane {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.module-index-right-inner {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 与 Main 主区 flex 定高一致，避免 sticky+底边偏移撑高文档 */
+.drawerContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   background-color: #ffffff !important;
+  box-sizing: border-box;
 }
 :deep(.marginstyle) {
   padding: 10px !important;

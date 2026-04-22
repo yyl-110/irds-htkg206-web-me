@@ -74,7 +74,6 @@ const {
   globalQueryModalVisible,
   globalQueryLoading,
   globalQueryList,
-  globalQueryTableScrollY,
   globalQueryTablePagination,
   globalQueryColumns,
   globalQueryTypeOptions,
@@ -1185,7 +1184,7 @@ function toParm(type: any) {
   }
 }
 const udfBoxRef = ref<any>();
-function udfBoxStyle() {
+function udfBoxStyle(): Record<string, string> {
   let lastPixelRatio: any = window.devicePixelRatio;
   window.addEventListener('resize', () => {
     const currentPixelRatio: any = window.devicePixelRatio;
@@ -1205,6 +1204,7 @@ function udfBoxStyle() {
     }
     lastPixelRatio = currentPixelRatio;
   });
+  return {};
 }
 const supGbomcolumns = ref<any>([
   {
@@ -1395,7 +1395,7 @@ defineExpose({ initData, selectAllModuleInfo });
       <a-card class="calc-table-card">
         <a-table
           class="exe-config-table"
-          :scroll="{ x: moduleTableScrollX, y: 500 }"
+          :scroll="{ x: moduleTableScrollX }"
           :row-key="getModuleRowKey"
           :columns="columns"
           :data-source="moduleTableDisplayList"
@@ -1548,7 +1548,7 @@ defineExpose({ initData, selectAllModuleInfo });
         row-key="_rowKey"
         :columns="globalQueryColumns"
         :data-source="globalQueryList"
-        :scroll="{ y: globalQueryTableScrollY }"
+        :scroll="{ x: 'max-content' }"
         :pagination="globalQueryTablePagination"
         :loading="globalQueryLoading"
         @change="handleGlobalTableChange">
@@ -1587,11 +1587,10 @@ defineExpose({ initData, selectAllModuleInfo });
 
     <a-table
       ref="elementTable"
-      :scroll="{ x: 'max-content', y: 500 }"
+      :scroll="{ x: 'max-content' }"
       :pagination="false"
       :columns="tabularColumn"
       :data-source="tabularData"
-      style="overflow-y: hidden"
       :row-class-name="setFixedRowClass" />
     <template #footer>
       <a-button type="primary" @click="handlefileSave"> 确定 </a-button>
@@ -1606,7 +1605,13 @@ defineExpose({ initData, selectAllModuleInfo });
     @template-download="templateDownload"
     @import-successful-fun="importSuccessfulFun"
     @close="batchflag = false" />
-  <a-drawer v-model:visible="pageFlagDrawer" title="模块详情" placement="right" :closable="false" width="800">
+  <a-drawer
+    v-model:visible="pageFlagDrawer"
+    class="module-detail-drawer"
+    title="模块详情"
+    placement="right"
+    :closable="false"
+    width="800">
     <!--    详情页面 -->
     <div class="dalIconList2" style="margin-top: 0">
       <div :class="{ seDalIcon: parmType == 0, dalIcon: parmType != 0 }" @click="toParm(0)">
@@ -1674,7 +1679,7 @@ defineExpose({ initData, selectAllModuleInfo });
         <div style="width: 100%; height: 30px; text-align: left; margin-top: 10px">模块库知识:</div>
         <div style="width: 100%">
           <a-table
-            :scroll="{ x: 400, y: 400 }"
+            :scroll="{ x: 400 }"
             row-key="id"
             :loading="loading"
             :locale="locale"
@@ -1694,7 +1699,7 @@ defineExpose({ initData, selectAllModuleInfo });
         <div style="width: 100%; height: 30px; text-align: left; margin-top: 20px">PDM知识:</div>
         <div style="width: 100%">
           <a-table
-            :scroll="{ x: 400, y: 400 }"
+            :scroll="{ x: 400 }"
             row-key="id"
             :locale="locale"
             :loading="loading"
@@ -1729,7 +1734,7 @@ defineExpose({ initData, selectAllModuleInfo });
       </div>
       <div v-if="parmType == 5" class="history-doc-table-wrap">
         <a-table
-          :scroll="{ x: 1200, y: 400 }"
+          :scroll="{ x: 1200 }"
           row-key="id"
           :loading="loading"
           :locale="locale"
@@ -1744,13 +1749,24 @@ defineExpose({ initData, selectAllModuleInfo });
 </template>
 
 <style lang="less" scoped>
+/* 定高 flex 链：仅表格区在内容过高时自己撑开，避免固定 scroll.y 或 100vh 把外层顶出无意义竖条 */
 .module-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
   padding-right: 20px;
+  overflow: hidden;
 }
 
 /* 模块主表：与 src/views/product/check/sys/components/exeConfigTab.vue 列表区一致 */
 .module-info-table-wrap {
   margin-top: 10px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .calc-table-card {
@@ -2017,10 +2033,10 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 .selectLeft {
   width: 100%;
-  height: 100%;
+  flex-shrink: 0;
   padding-top: 5px;
   background-color: #ffffff;
-  overflow: auto;
+  overflow-x: auto;
   overflow-y: hidden;
 }
 .btn-box {
@@ -2145,11 +2161,13 @@ defineExpose({ initData, selectAllModuleInfo });
   padding-left: 20px;
   color: #a2b7bf;
 }
+/* 详情抽屉内随抽屉高度变化，仅本区域内容超出时竖向滚动，勿用整屏 100vh 顶高 */
 .udfPage_style {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: #fff;
-  height: calc(100vh - 190px);
 }
 
 .seDalIcon {
@@ -2196,7 +2214,11 @@ defineExpose({ initData, selectAllModuleInfo });
   top: 0;
   z-index: 4 !important;
 }
-:deep(.ant-drawer-body) {
+:deep(.module-detail-drawer .ant-drawer-body) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   padding: 10px !important;
 }
 </style>

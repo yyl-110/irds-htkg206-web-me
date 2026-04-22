@@ -778,7 +778,8 @@ defineExpose({
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: calc(100vh - 180px);
+  /* 不在分栏内再按 100vh 强撑高度，避免高于右侧 Pane 时把外层主区顶出竖向滚动条 */
+  min-height: 0;
   padding: 10px;
   box-sizing: border-box;
 }

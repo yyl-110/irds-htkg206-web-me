@@ -50,7 +50,7 @@ defineExpose({ infoReload });
     <div class="top-right-actions">
       <a-button type="link" @click="handleGlobalQuery">全局查询</a-button>
     </div>
-    <a-tabs v-model:activeKey="activeKey" @change="handleTabChange" style="margin-left: 20px">
+    <a-tabs v-model:activeKey="activeKey" class="module-adm-tabs" @change="handleTabChange" style="margin-left: 20px">
       <a-tab-pane key="1" tab="数据管理">
         <ModuleInfoList :categoryid="categoryid" ref="moduleInfoListRef" @getCategory="getCategory" />
       </a-tab-pane>
@@ -64,9 +64,52 @@ defineExpose({ infoReload });
 <style scoped lang="less">
 .imgList {
   background-color: #ffffff;
-  width: auto;
+  width: 100%;
+  min-width: 0;
   height: 100%;
+  min-height: 0;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 与 Main / 分栏定高链衔接，仅 tab 内容区可内部滚动，避免 a-tabs 撑高整页 */
+.module-adm-tabs {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:deep(.module-adm-tabs.ant-tabs) {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.module-adm-tabs .ant-tabs-nav) {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+:deep(.module-adm-tabs .ant-tabs-content-holder) {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.module-adm-tabs .ant-tabs-content) {
+  height: 100%;
+  overflow: hidden;
+}
+
+:deep(.module-adm-tabs .ant-tabs-tabpane) {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .top-right-actions {

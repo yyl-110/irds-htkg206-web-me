@@ -81,8 +81,8 @@ export class AdminApiSystemCheckInfoApi {
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `business-service/business/check-exe-info/delete`,
-        method: 'POST',
-        body: query,
+        method: 'DELETE',
+        query: query,
         secure: true,
         ...params,
       },

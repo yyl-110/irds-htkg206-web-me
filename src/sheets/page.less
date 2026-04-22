@@ -1,6 +1,11 @@
 .route-page-wrapper {
-  height: calc(100% - 0px);
-  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  /* 高度随业务内容伸展，主滚动交给 .layout-container，避免与父级 100% 双算导致「未满也有条」 */
+  min-height: 100%;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: visible;
   background-color: #ffffff !important;
   border-radius: 4px;
 }
