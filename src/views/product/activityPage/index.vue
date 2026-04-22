@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { inject, nextTick, reactive, ref, h } from 'vue';
-import { computed } from 'vue';
+import { computed, h, inject, nextTick, reactive, ref } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
-import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, LeftOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -127,8 +126,9 @@ const columns = ref<TableColumnType<Menus>[]>([
     dataIndex: 'pageName',
     key: 'pageName',
     align: 'left',
-    resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.pageName, b.pageName),
+    fixed: 'left',
+    resizable: false,
+    ellipsis: true,
     width: 180,
   },
   {
@@ -137,7 +137,6 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'pageType',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.pageType, b.pageType),
     width: 180,
   },
   {
@@ -146,7 +145,6 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'treeName',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.treeName, b.treeName),
     width: 180,
   },
   {
@@ -155,7 +153,6 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'groupName',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.groupName, b.groupName),
     width: 130,
   },
   {
@@ -164,7 +161,6 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'remark',
     align: 'left',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.remark, b.remark),
     width: 180,
   },
   {
@@ -173,7 +169,6 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'createTime',
     align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => sortermethod(a.createTime, b.createTime),
     width: 230,
   },
   {
@@ -183,9 +178,110 @@ const columns = ref<TableColumnType<Menus>[]>([
     align: 'left',
     width: 180,
     fixed: 'right',
+    resizable: false,
   },
-  { fixed: 'right', width: 1 },
 ]);
+
+/** 横向滚动：列宽 + 勾选列 + 缓冲（与 parameter 列表一致） */
+const SCROLL_X_BUFFER_PX = 2;
+const TABLE_SELECTION_COL_WIDTH_PX = 60;
+const activityTableScrollX = computed(() => {
+  const sum = columns.value.reduce((acc, col) => {
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + TABLE_SELECTION_COL_WIDTH_PX + SCROLL_X_BUFFER_PX;
+});
+
+/** 表头排序、页面名称列检索（与 parameter/index.vue 一致） */
+type ActivitySortOrder = 'ascend' | 'descend' | '';
+const sortState = ref<{ key: string; order: ActivitySortOrder }>({ key: '', order: '' });
+const filterValueMap = ref<Record<string, string>>({ pageName: '' });
+const filterOpenMap = ref<Record<string, boolean>>({});
+
+const activityTableDisplayList = computed(() => {
+  let list = [...datasource.value];
+  if (!sortState.value.key || !sortState.value.order) return list;
+  const key = sortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+function isActivityTableSelectionColumn(column: any) {
+  const c = column?.className;
+  if (typeof c === 'string') return c.includes('selection-column');
+  if (Array.isArray(c)) return c.some((x: unknown) => String(x).includes('selection-column'));
+  return false;
+}
+
+function isSortableActivityColumn(column: any) {
+  const di = column?.dataIndex;
+  if (!di || di === 'operation') return false;
+  return true;
+}
+
+function isFilterableActivityColumn(column: any) {
+  return column?.dataIndex === 'pageName';
+}
+
+function toggleActivityColumnSort(column: any) {
+  if (!isSortableActivityColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (sortState.value.key !== key) {
+    sortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (sortState.value.order === 'ascend') {
+    sortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (sortState.value.order === 'descend') {
+    sortState.value = { key: '', order: '' };
+    return;
+  }
+  sortState.value = { key, order: 'ascend' };
+}
+
+function getActivitySortOrder(key: string): ActivitySortOrder {
+  return sortState.value.key === key ? sortState.value.order : '';
+}
+
+function getActivityFilterOpen(key: string) {
+  return Boolean(filterOpenMap.value[key]);
+}
+
+function handleActivityFilterOpenChange(key: string, open: boolean) {
+  if (open && key === 'pageName') {
+    filterValueMap.value = { ...filterValueMap.value, pageName: String(pageName.value ?? '') };
+  }
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: open };
+}
+
+function applyActivityColumnFilter(key: string) {
+  const v = String(filterValueMap.value[key] ?? '').trim();
+  if (key === 'pageName') pageName.value = v;
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: false };
+  void loadParameterListData();
+}
+
+function resetActivityColumnFilter(key: string) {
+  filterValueMap.value = { ...filterValueMap.value, [key]: '' };
+  if (key === 'pageName') pageName.value = '';
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: false };
+  void loadParameterListData();
+}
+
+function getActivityTableRowKey(record: any) {
+  return record.id;
+}
+
+function getActivityTableRowClassName(_record: any, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
 
 /** 获取分类数据 */
 async function getListData(type?: string) {
@@ -609,7 +705,7 @@ function handleUpdate(data: any) {
 function handleFinish() {
   requestParams.pageNo = 1;
   pagination.current = 1;
-  getListData();
+  void loadParameterListData();
 }
 
 function handleResizeColumn(w, col) {
@@ -881,83 +977,131 @@ const {
         </a-spin>
       </Pane>
 
-      <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls" :size="rightTreePaneSize">
-        <a-card>
-          <a-form layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
-            <a-form-item name="pageName">
-              <a-input v-model:value="pageName" style="width: 220px" allow-clear :placeholder="$t('请输入活动名称')" />
-            </a-form-item>
-            <a-form-item>
-              <a-button type="primary" @click="loadParameterListData">
-                <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-                {{ $t('查询') }}
-              </a-button>
-              <a-button type="primary" @click="handleAddOrUpdate(undefined)" style="margin-left: 15px">
-                <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-                {{ $t('添加') }}
-              </a-button>
-              <!--删除按钮（批量删除需二次确认）-->
-              <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(undefined)">
-                <a-button type="primary" danger :disabled="deleteFlag" style="margin-left: 15px">
-                  <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
-                  {{ $t('删除') }}
+      <!-- 右侧内容区域（布局与 parameter/index 列表区一致） -->
+      <Pane class="splitpane-cls activity-right-pane" :size="rightTreePaneSize">
+        <div class="calc-config-pane">
+          <a-card class="calc-toolbar-card">
+            <a-form class="calc-toolbar-form" layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
+              <a-form-item name="pageName">
+                <a-input v-model:value="pageName" style="width: 220px" allow-clear :placeholder="$t('请输入活动名称')" />
+              </a-form-item>
+              <a-form-item class="activity-toolbar-btns">
+                <a-button type="primary" @click="loadParameterListData">
+                  <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+                  {{ $t('查询') }}
                 </a-button>
-              </a-popconfirm>
-              <!--导入数据按钮-->
-              <a-button type="primary" @click="handleUploadFile()" style="margin-left: 15px">
-                <EpcIcon type="icon-daiyanshou1" style="font-size: 12px" />
-                {{ $t('另存为') }}
-              </a-button>
-              <!--导出数据按钮-->
-              <a-button type="primary" :loading="exportLoading" @click="exportParameData()" style="margin-left: 15px">
-                <EpcIcon type="icon-daochu" style="font-size: 12px" />
-                {{ $t('导出') }}
-              </a-button>
-            </a-form-item>
-          </a-form>
-        </a-card>
-
-        <a-card style="margin-top: 10px">
-          <!-- 表格 -->
-          <a-table
-            :scroll="{ x: 1200, y: 500 }"
-            :row-key="(record: any) => record.id"
-            :columns="columns"
-            :data-source="datasource"
-            :pagination="pagination"
-            :row-selection="rowSelection"
-            :customRow="customRow"
-            @resizeColumn="handleResizeColumn"
-            :locale="locale"
-            :loading="loading"
-            :sticky="true"
-            :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-            <template #bodyCell="{ column, record }">
-              <!-- 操作列：编辑/删除 等，阻止事件冒泡 -->
-              <template v-if="column.dataIndex === 'operation'">
-                <a @click="handleUpdate(record)">{{ $t('编辑') }}</a>
-                <a-divider type="vertical" />
-                <a @click="showPageConfigModal(record)">{{ $t('配置') }}</a>
-                <a-divider type="vertical" />
-                <a @click="priviewPageConfigModal(record)">{{ $t('预览') }}</a>
-                <a-divider type="vertical" />
-                <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                  <a @click.stop style="color: #ff4d4f; cursor: pointer">{{ $t('删除') }}</a>
+                <a-button type="primary" @click="handleAddOrUpdate(undefined)">
+                  <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+                  {{ $t('添加') }}
+                </a-button>
+                <!--删除按钮（批量删除需二次确认）-->
+                <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(undefined)">
+                  <a-button type="primary" danger :disabled="deleteFlag">
+                    <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+                    {{ $t('删除') }}
+                  </a-button>
                 </a-popconfirm>
+                <!--导入数据按钮-->
+                <a-button type="primary" @click="handleUploadFile()">
+                  <EpcIcon type="icon-daiyanshou1" style="font-size: 12px" />
+                  {{ $t('另存为') }}
+                </a-button>
+                <!--导出数据按钮-->
+                <a-button type="primary" :loading="exportLoading" @click="exportParameData()">
+                  <EpcIcon type="icon-daochu" style="font-size: 12px" />
+                  {{ $t('导出') }}
+                </a-button>
+              </a-form-item>
+            </a-form>
+          </a-card>
+
+          <a-card class="calc-table-card">
+            <a-table
+              class="exe-config-table"
+              :scroll="{ x: activityTableScrollX, y: 500 }"
+              :row-key="getActivityTableRowKey"
+              :columns="columns"
+              :data-source="activityTableDisplayList"
+              :pagination="pagination"
+              :row-selection="rowSelection"
+              :customRow="customRow"
+              bordered
+              table-layout="fixed"
+              :locale="locale"
+              :loading="loading"
+              :row-class-name="getActivityTableRowClassName"
+              @resize-column="handleResizeColumn">
+              <template #headerCell="{ column }">
+                <template v-if="isActivityTableSelectionColumn(column)">
+                  <span />
+                </template>
+                <template v-else-if="isSortableActivityColumn(column) || isFilterableActivityColumn(column)">
+                  <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableActivityColumn(column) }">
+                    <span
+                      class="header-title-sort"
+                      :class="{ 'header-title-sort--disabled': !isSortableActivityColumn(column) }"
+                      @click.stop="toggleActivityColumnSort(column)">
+                      <span>{{ column.title }}</span>
+                      <span v-if="isSortableActivityColumn(column)" class="header-sort-icon">
+                        <CaretUpOutlined v-if="getActivitySortOrder(String(column.dataIndex)) === 'ascend'" />
+                        <CaretDownOutlined v-else-if="getActivitySortOrder(String(column.dataIndex)) === 'descend'" />
+                        <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                      </span>
+                    </span>
+                    <span v-if="isFilterableActivityColumn(column)" class="header-filter-anchor">
+                      <a-popover
+                        trigger="click"
+                        placement="bottomRight"
+                        :open="getActivityFilterOpen(String(column.dataIndex))"
+                        @openChange="handleActivityFilterOpenChange(String(column.dataIndex), $event)">
+                        <template #content>
+                          <div class="header-filter-pop">
+                            <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`${$t('搜索')} ${column.title}`" allow-clear />
+                            <div class="header-filter-actions">
+                              <a-button type="primary" size="small" @click="applyActivityColumnFilter(String(column.dataIndex))">
+                                <SearchOutlined />
+                                {{ $t('确定') }}
+                              </a-button>
+                              <a-button size="small" @click="resetActivityColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                            </div>
+                          </div>
+                        </template>
+                        <FilterOutlined class="header-query-icon" />
+                      </a-popover>
+                    </span>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="header-cell-main header-cell-main--static">
+                    <span class="header-title-sort header-title-sort--disabled">
+                      <span>{{ column.title }}</span>
+                    </span>
+                  </div>
+                </template>
               </template>
-              <template v-else-if="column.dataIndex === 'pageType'">
-                <span v-if="record.pageType === '1'">{{ $t('设计配置页面') }}</span>
-                <span v-else-if="record.pageType === '2'">{{ $t('计算集成页面') }}</span>
-                <span v-else-if="record.pageType === '3'">{{ $t('自定义页面') }}</span>
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'operation'">
+                  <div class="calc-operation-links" @click.stop>
+                    <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
+                    <a @click.stop.prevent="showPageConfigModal(record)">{{ $t('配置') }}</a>
+                    <a @click.stop.prevent="priviewPageConfigModal(record)">{{ $t('预览') }}</a>
+                    <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
+                      <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                    </a-popconfirm>
+                  </div>
+                </template>
+                <template v-else-if="column.dataIndex === 'pageType'">
+                  <span v-if="record.pageType === '1'">{{ $t('设计配置页面') }}</span>
+                  <span v-else-if="record.pageType === '2'">{{ $t('计算集成页面') }}</span>
+                  <span v-else-if="record.pageType === '3'">{{ $t('自定义页面') }}</span>
+                </template>
+                <template v-else>
+                  {{ record[column.dataIndex] }}
+                </template>
               </template>
-              <!-- 默认渲染：按列 dataIndex 输出 -->
-              <template v-else>
-                {{ record[column.dataIndex] }}
-              </template>
-            </template>
-          </a-table>
-        </a-card>
+            </a-table>
+          </a-card>
+        </div>
       </Pane>
     </Splitpanes>
 
@@ -1044,6 +1188,247 @@ const {
   bottom: 20px !important;
   display: flex;
   background-color: #ffffff !important;
+}
+
+/* ---------- 与 parameter/index.vue 列表区一致 ---------- */
+.activity-right-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.activity-toolbar-btns :deep(.ant-form-item-control-input-content) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.calc-config-pane {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.calc-toolbar-card {
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    padding: 12px 0;
+  }
+}
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.calc-table-card {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    height: 100%;
+    padding: 0;
+  }
+
+  :deep(.ant-table-wrapper) {
+    height: 100%;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-sorters) {
+    justify-content: center !important;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-title) {
+    flex: none;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    border-right: none !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+}
+
+.exe-config-table {
+  :deep(.ant-table-cell-ellipsis .ant-typography) {
+    margin-bottom: 0;
+  }
+
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+@exe-op-links-divider: #e0e0e0;
+@exe-op-links-line-gap: 8px;
+@exe-op-links-divider-h: 1em;
+
+.calc-operation-links {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @exe-op-links-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child) {
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: @exe-op-links-divider-h;
+        margin-left: -0.5px;
+        background: @exe-op-links-divider;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  padding-right: 22px;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 
 .version-history-modal {

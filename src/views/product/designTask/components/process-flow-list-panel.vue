@@ -12,6 +12,7 @@ import Empty from '@/components/Empty/index.vue';
 import FlowView from '@/components/flowview/index.vue';
 import { useUserStore } from '@/store/modules/user';
 import { useRouter } from 'vue-router';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 const props = defineProps<{
   menuId?: string | number;
@@ -127,6 +128,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     align: 'center',
     width: 80,
     fixed: 'left',
+    resizable: false,
     customRender: ({ index }) => {
       const current = Number(pagination.current || 1);
       const pageSize = Number(pagination.pageSize || 10);
@@ -139,7 +141,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'processName',
     align: 'left',
     resizable: true,
-    sorter: (a: FlowRow, b: FlowRow) => sortermethod(a.processName, b.processName),
+    ellipsis: true,
     width: 180,
   },
   {
@@ -148,7 +150,6 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'confidentialLevel',
     align: 'center',
     resizable: true,
-    sorter: (a: FlowRow, b: FlowRow) => sortermethod(a.confidentialLevel, b.confidentialLevel),
     width: 120,
   },
   {
@@ -157,7 +158,6 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'collabStatus',
     align: 'center',
     resizable: true,
-    sorter: (a: FlowRow, b: FlowRow) => sortermethod(a.collabStatus, b.collabStatus),
     width: 120,
   },
   {
@@ -166,7 +166,6 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'appStatus',
     align: 'center',
     resizable: true,
-    sorter: (a: FlowRow, b: FlowRow) => sortermethod(a.appStatus, b.appStatus),
     width: 120,
   },
   {
@@ -175,7 +174,6 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'createTime',
     align: 'center',
     resizable: true,
-    sorter: (a: FlowRow, b: FlowRow) => sortermethod(a.createTime, b.createTime),
     width: 190,
   },
   {
@@ -184,19 +182,112 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'ownerName',
     align: 'center',
     resizable: true,
-    sorter: (a: FlowRow, b: FlowRow) => sortermethod(a.ownerName, b.ownerName),
     width: 120,
   },
   {
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
-    align: 'center',
+    align: 'left',
     width: 260,
     fixed: 'right',
+    resizable: false,
   },
-  { fixed: 'right', width: 1 },
 ]);
+
+/** 横向滚动：列宽之和 + 勾选列 + 缓冲（与 parameter/index.vue 一致） */
+const SCROLL_X_BUFFER_PX = 2;
+const TABLE_SELECTION_COL_WIDTH_PX = 60;
+const processFlowTableScrollX = computed(() => {
+  const sum = columns.value.reduce((acc, col) => {
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + TABLE_SELECTION_COL_WIDTH_PX + SCROLL_X_BUFFER_PX;
+});
+
+/** 表头排序、任务名称列检索（与 parameter/index.vue 一致） */
+type ProcessFlowSortOrder = 'ascend' | 'descend' | '';
+const sortState = ref<{ key: string; order: ProcessFlowSortOrder }>({ key: '', order: '' });
+const filterValueMap = ref<Record<string, string>>({ processName: '' });
+const filterOpenMap = ref<Record<string, boolean>>({});
+
+const processFlowTableDisplayList = computed(() => {
+  let list = [...tableData.value];
+  if (!sortState.value.key || !sortState.value.order) return list;
+  const key = sortState.value.key;
+  const sorted = [...list].sort((a: FlowRow, b: FlowRow) => sortermethod((a as any)[key], (b as any)[key]));
+  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
+
+function isProcessFlowTableSelectionColumn(column: any) {
+  const c = column?.className;
+  if (typeof c === 'string') return c.includes('selection-column');
+  if (Array.isArray(c)) return c.some((x: unknown) => String(x).includes('selection-column'));
+  return false;
+}
+
+function isSortableProcessFlowColumn(column: any) {
+  const di = column?.dataIndex;
+  if (!di || di === 'operation' || di === 'rowIndex') return false;
+  return true;
+}
+
+/** 首列可检索字段：任务名称（与顶部「流程名称」查询一致；序号列为计算列不做表头筛选） */
+function isFilterableProcessFlowColumn(column: any) {
+  return column?.dataIndex === 'processName';
+}
+
+function toggleProcessFlowColumnSort(column: any) {
+  if (!isSortableProcessFlowColumn(column)) return;
+  const key = String(column.dataIndex);
+  if (sortState.value.key !== key) {
+    sortState.value = { key, order: 'ascend' };
+    return;
+  }
+  if (sortState.value.order === 'ascend') {
+    sortState.value = { key, order: 'descend' };
+    return;
+  }
+  if (sortState.value.order === 'descend') {
+    sortState.value = { key: '', order: '' };
+    return;
+  }
+  sortState.value = { key, order: 'ascend' };
+}
+
+function getProcessFlowSortOrder(key: string): ProcessFlowSortOrder {
+  return sortState.value.key === key ? sortState.value.order : '';
+}
+
+function getProcessFlowFilterOpen(key: string) {
+  return Boolean(filterOpenMap.value[key]);
+}
+
+function handleProcessFlowFilterOpenChange(key: string, open: boolean) {
+  if (open && key === 'processName') {
+    filterValueMap.value = { ...filterValueMap.value, processName: String(requestParams.processName ?? '') };
+  }
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: open };
+}
+
+function applyProcessFlowColumnFilter(key: string) {
+  const v = String(filterValueMap.value[key] ?? '').trim();
+  if (key === 'processName') requestParams.processName = v;
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: false };
+  void loadFlowListData();
+}
+
+function resetProcessFlowColumnFilter(key: string) {
+  filterValueMap.value = { ...filterValueMap.value, [key]: '' };
+  if (key === 'processName') requestParams.processName = '';
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  filterOpenMap.value = { ...filterOpenMap.value, [key]: false };
+  void loadFlowListData();
+}
 
 async function loadFlowListData() {
   loading.value = true;
@@ -259,6 +350,11 @@ function isCollabPublished(record: FlowRow) {
 /** 独立应用状态：1 / 已发布 视为已发布 */
 function isAppPublished(record: FlowRow) {
   return String(record.appStatus) === '1' || record.appStatus === '已发布';
+}
+
+/** 发布协同、独立应用均为未发布时，才允许进入「配置」 */
+function isFlowConfigEditable(record: FlowRow) {
+  return !isCollabPublished(record) && !isAppPublished(record);
 }
 
 const selectedFlowRows = computed(() => {
@@ -424,6 +520,10 @@ async function handleToolbarConfig(record?: FlowRow) {
     message.warning('请选择一条任务');
     return;
   }
+  if (!isFlowConfigEditable(row)) {
+    message.warning('发布协同与独立应用均为未发布时才可配置');
+    return;
+  }
   const taskName = String(row.processName ?? '').trim();
   const taskId = String(row.id ?? '').trim();
   try {
@@ -479,61 +579,145 @@ defineExpose({
       <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarEdit"><EpcIcon type="icon-bianji" style="font-size: 12px" />编辑</a-button>
     </div>
 
-    <a-table
-      style="margin-top: 5px"
-      :scroll="{ x: 1340, y: 500 }"
-      :row-key="(record: any) => record.id"
-      :columns="columns"
-      :data-source="tableData"
-      :pagination="pagination"
-      :row-selection="rowSelection"
-      :customRow="customRow"
-      @resizeColumn="handleResizeColumn"
-      :locale="locale"
-      :loading="loading"
-      :sticky="true"
-      :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'appStatus'">
-          <span v-if="record.appStatus == 1">已发布</span>
-          <span v-else>未发布</span>
-        </template>
-        <template v-if="column.dataIndex === 'collabStatus'">
-          <span v-if="record.collabStatus == 1">已发布</span>
-          <span v-else>未发布</span>
-        </template>
-        <template v-if="column.dataIndex === 'confidentialLevel'">
-          <span v-if="record.confidentialLevel == 0">公开</span>
-          <span v-if="record.confidentialLevel == 1">内部</span>
-          <span v-if="record.confidentialLevel == 2">秘密</span>
-          <span v-if="record.confidentialLevel == 3">机密</span>
-        </template>
-        <template v-if="column.dataIndex === 'operation'">
-          <div class="process-panel__ops">
-            <div class="process-panel__ops-line">
-              <a @click="handlePublishAction(record, 'COLLAB')">
-                {{ isCollabPublished(record) ? '撤回发布协同' : '发布协同' }}
-              </a>
-              <a-divider type="vertical" />
-              <a @click="handlePublishAction(record, 'APP')">
-                {{ isAppPublished(record) ? '取消独立应用' : '发布独立应用' }}
-              </a>
-              <a-divider type="vertical" />
-              <a @click="handleToolbarConfig(record)">配置</a>
-              <a-divider type="vertical" />
-              <template v-if="!isCollabPublished(record)">
-                <a-popconfirm title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record.id)">
-                  <a class="operation-danger">删除</a>
-                </a-popconfirm>
-              </template>
-              <template v-else>
-                <span class="operation-disabled">删除</span>
-              </template>
+    <a-card class="calc-table-card process-flow-table-card">
+      <a-table
+        class="exe-config-table"
+        :scroll="{ x: processFlowTableScrollX, y: 500 }"
+        :row-key="record => record.id"
+        :columns="columns"
+        :data-source="processFlowTableDisplayList"
+        :pagination="pagination"
+        :row-selection="rowSelection"
+        :customRow="customRow"
+        bordered
+        table-layout="fixed"
+        @resize-column="handleResizeColumn"
+        :locale="locale"
+        :loading="loading"
+        :sticky="true"
+        :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
+        <template #headerCell="{ column }">
+          <template v-if="isProcessFlowTableSelectionColumn(column)">
+            <span />
+          </template>
+          <template v-else-if="isSortableProcessFlowColumn(column) || isFilterableProcessFlowColumn(column)">
+            <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableProcessFlowColumn(column) }">
+              <span
+                class="header-title-sort"
+                :class="{ 'header-title-sort--disabled': !isSortableProcessFlowColumn(column) }"
+                @click.stop="toggleProcessFlowColumnSort(column)">
+                <span>{{ column.title }}</span>
+                <span v-if="isSortableProcessFlowColumn(column)" class="header-sort-icon">
+                  <CaretUpOutlined v-if="getProcessFlowSortOrder(String(column.dataIndex)) === 'ascend'" />
+                  <CaretDownOutlined v-else-if="getProcessFlowSortOrder(String(column.dataIndex)) === 'descend'" />
+                  <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                </span>
+              </span>
+              <span v-if="isFilterableProcessFlowColumn(column)" class="header-filter-anchor" @mousedown.stop>
+                <a-popover
+                  trigger="click"
+                  placement="bottomRight"
+                  :open="getProcessFlowFilterOpen(String(column.dataIndex))"
+                  @openChange="handleProcessFlowFilterOpenChange(String(column.dataIndex), $event)">
+                  <template #content>
+                    <div class="header-filter-pop">
+                      <a-input
+                        v-model:value="filterValueMap[String(column.dataIndex)]"
+                        :placeholder="`请输入${column.title}`"
+                        allow-clear
+                        @pressEnter="applyProcessFlowColumnFilter(String(column.dataIndex))" />
+                      <div class="header-filter-actions">
+                        <a-button type="primary" size="small" @click="applyProcessFlowColumnFilter(String(column.dataIndex))">
+                          <SearchOutlined />
+                          确定
+                        </a-button>
+                        <a-button size="small" @click="resetProcessFlowColumnFilter(String(column.dataIndex))">重置</a-button>
+                      </div>
+                    </div>
+                  </template>
+                  <span class="header-filter-trigger" @click.stop>
+                    <FilterOutlined class="header-query-icon" />
+                  </span>
+                </a-popover>
+              </span>
             </div>
-          </div>
+          </template>
+          <template v-else>
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort header-title-sort--disabled">
+                <span>{{ column.title }}</span>
+              </span>
+            </div>
+          </template>
         </template>
-      </template>
-    </a-table>
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'appStatus'">
+            <span>
+              <a-tag v-if="record.appStatus == 1" :class="['exe-status-tag', 'exe-status-tag--on']">已发布</a-tag>
+              <a-tag v-else :class="['exe-status-tag', 'exe-status-tag--off']">未发布</a-tag>
+            </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'collabStatus'">
+            <span>
+              <a-tag v-if="record.collabStatus == 1" :class="['exe-status-tag', 'exe-status-tag--on']">已发布</a-tag>
+              <a-tag v-else :class="['exe-status-tag', 'exe-status-tag--off']">未发布</a-tag>
+            </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'confidentialLevel'">
+            <span v-if="record.confidentialLevel == 0">公开</span>
+            <span v-else-if="record.confidentialLevel == 1">内部</span>
+            <span v-else-if="record.confidentialLevel == 2">秘密</span>
+            <span v-else-if="record.confidentialLevel == 3">机密</span>
+          </template>
+          <template v-else-if="column.dataIndex === 'operation'">
+            <div class="calc-operation-links" @click.stop>
+              <a-popconfirm
+                v-if="!isCollabPublished(record)"
+                placement="topLeft"
+                title="确定要发布协同吗？"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
+                <a href="#" @click.prevent>发布协同</a>
+              </a-popconfirm>
+              <a-popconfirm
+                v-else
+                placement="topLeft"
+                title="确定要取消发布协同吗？"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
+                <a href="#" @click.prevent>撤回发布协同</a>
+              </a-popconfirm>
+              <a-popconfirm
+                v-if="!isAppPublished(record)"
+                placement="topLeft"
+                title="确定要发布独立应用吗？"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="handlePublishAction(record, 'APP')">
+                <a href="#" @click.prevent>发布独立应用</a>
+              </a-popconfirm>
+              <a-popconfirm
+                v-else
+                placement="topLeft"
+                title="确定要取消发布独立应用吗？"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="handlePublishAction(record, 'APP')">
+                <a href="#" @click.prevent>取消独立应用</a>
+              </a-popconfirm>
+              <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
+              <span v-else class="operation-disabled">配置</span>
+              <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record.id)">
+                <a href="#" class="operation-danger" @click.prevent>删除</a>
+              </a-popconfirm>
+              <span v-else class="operation-disabled">删除</span>
+            </div>
+          </template>
+        </template>
+      </a-table>
+    </a-card>
 
     <a-modal
       v-model:visible="flowFormVisible"
@@ -605,8 +789,6 @@ defineExpose({
   align-items: center;
   gap: 10px;
   padding: 12px 0;
-  margin-bottom: 4px;
-  border-bottom: 1px solid #f0f0f0;
 }
 
 .process-panel__search-input {
@@ -619,20 +801,245 @@ defineExpose({
   gap: 6px;
 }
 
-.process-panel__ops {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  line-height: 1.5;
+/* 与 parameter/index.vue 列表表格一致 */
+.process-flow-table-card {
+  margin-top: 8px;
 }
 
-.process-panel__ops-line {
-  display: flex;
+.calc-table-card {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    height: 100%;
+    padding: 0;
+  }
+
+  :deep(.ant-table-wrapper) {
+    height: 100%;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  /* 表头标题与内置排序区整体居中（与 parameter 一致） */
+  :deep(.ant-table-thead .ant-table-column-sorters) {
+    justify-content: center !important;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-title) {
+    flex: none;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    border-right: none !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+}
+
+.exe-config-table {
+  :deep(.ant-table-cell-ellipsis .ant-typography) {
+    margin-bottom: 0;
+  }
+
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+@exe-op-links-divider: #e0e0e0;
+@exe-op-links-line-gap: 8px;
+@exe-op-links-divider-h: 1em;
+
+.calc-operation-links {
+  display: inline-flex;
+  align-items: center;
   flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @exe-op-links-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child) {
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: @exe-op-links-divider-h;
+        margin-left: -0.5px;
+        background: @exe-op-links-divider;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+.exe-status-tag {
+  margin: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0 10px;
+  border-style: solid;
+  border-width: 1px;
+}
+
+.exe-status-tag--on {
+  color: #1677ff;
+  background: #e6f4ff;
+  border-color: #91caff;
+}
+
+.exe-status-tag--off {
+  color: rgba(0, 0, 0, 0.65);
+  background: #fafafa;
+  border-color: #d9d9d9;
+}
+
+/* 表头：标题 + 排序 + 筛选（与 parameter/index.vue 一致） */
+.header-query-icon {
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+}
+
+.header-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-cell-main--has-filter {
+  padding-right: 22px;
+}
+
+.header-filter-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
+}
+
+.header-sort-icon {
+  font-size: 11px;
+  color: #595959;
+  display: inline-flex;
+}
+
+.header-sort-icon--muted {
+  color: #bfbfbf;
+}
+
+.header-filter-pop {
+  width: 220px;
+}
+
+.header-filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 
 .process-panel__level {
