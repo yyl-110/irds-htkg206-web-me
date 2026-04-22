@@ -207,21 +207,21 @@
           </a-tab-pane>
           <a-tab-pane tab="地图内容" key="second">
             <div class="secondTop">
-              <div class="iconfont" @click="addTreeFun">
+              <div class="iconfont" :title="treeOpTip.add" @click="addTreeFun">
                 <PlusCircleOutlined class="icon" />
                 <!-- <span>添加</span> -->
               </div>
-              <div class="iconfont" @click="editTreeFun">
+              <div class="iconfont" :title="treeOpTip.edit" @click="editTreeFun">
                 <EditOutlined class="icon" />
                 <!-- <span>编辑</span> -->
               </div>
-              <div class="iconfont" @click="upTreeFun">
+              <div class="iconfont" :title="treeOpTip.up" @click="upTreeFun">
                 <ArrowUpOutlined class="icon" />
               </div>
-              <div class="iconfont" @click="downTreeFun">
+              <div class="iconfont" :title="treeOpTip.down" @click="downTreeFun">
                 <ArrowDownOutlined class="icon" />
               </div>
-              <div class="iconfont" @click="deleteTreeFun">
+              <div class="iconfont" :title="treeOpTip.del" @click="deleteTreeFun">
                 <DeleteOutlined class="icon" />
                 <!-- <span>删除</span> -->
               </div>
@@ -313,7 +313,9 @@ import draggableModal from '@/components/DraggableModal/index.vue';
 import uploadModal from './components/upload-modal.vue'
 import { WeiIcon } from '@/wei-components';
 import centerSearch from './components/centerSearch.vue'
+import { useTreeOperateTooltips } from '@/composables/useTreeOperateTooltips';
 
+const treeOpTip = useTreeOperateTooltips();
 const router = useRouter();
 const route = useRoute();
 

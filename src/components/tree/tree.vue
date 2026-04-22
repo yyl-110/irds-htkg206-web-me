@@ -10,6 +10,9 @@ import { Uploado_draggerFile } from '@/components/UploadFile';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 import { WeiIcon } from '@/wei-components';
+import { useTreeOperateTooltips } from '@/composables/useTreeOperateTooltips';
+
+const treeOpTip = useTreeOperateTooltips();
 const props = defineProps({
   treeData: {
     require: false,
@@ -601,32 +604,52 @@ defineExpose({
     <div class="controls-wrap">
       <a-input v-model:value="searchValue" style="margin-bottom: 8px" :placeholder="$t('请输入')" allow-clear />
       <div v-if="props.operateFlag" class="action">
-        <div class="icon" @click="addTree">
-          <PlusCircleOutlined />
-        </div>
+        <a-tooltip class="tree-action-tooltip" placement="top" :mouse-enter-delay="0.2">
+          <template #title>{{ treeOpTip.add }}</template>
+          <div class="icon" @click="addTree">
+            <PlusCircleOutlined />
+          </div>
+        </a-tooltip>
 
-        <div v-if="btnReadOnly === '1'" class="icon">
-          <FormOutlined style="color: #dededf" />
-        </div>
-        <div v-else class="icon" @click="updTree">
-          <FormOutlined />
-        </div>
+        <a-tooltip class="tree-action-tooltip" placement="top" :mouse-enter-delay="0.2">
+          <template #title>{{ treeOpTip.edit }}</template>
+          <div>
+            <div v-if="btnReadOnly === '1'" class="icon">
+              <FormOutlined style="color: #dededf" />
+            </div>
+            <div v-else class="icon" @click="updTree">
+              <FormOutlined />
+            </div>
+          </div>
+        </a-tooltip>
 
-        <div class="icon" @click="toUpTreeNode">
-          <ArrowUpOutlined />
-        </div>
+        <a-tooltip class="tree-action-tooltip" placement="top" :mouse-enter-delay="0.2">
+          <template #title>{{ treeOpTip.up }}</template>
+          <div class="icon" @click="toUpTreeNode">
+            <ArrowUpOutlined />
+          </div>
+        </a-tooltip>
 
-        <div class="icon" @click="toDownTreeNode">
-          <ArrowDownOutlined />
-        </div>
-        <div v-if="btnReadOnly === '1'" class="icon">
-          <DeleteOutlined style="color: #dededf" />
-        </div>
-        <div v-else class="icon">
-          <a-popconfirm :title="WeiI18n.t('是否确认删除').value" :ok-text="WeiI18n.t('确定').value" :cancel-text="WeiI18n.t('取消').value" @confirm="delTree" @cancel="cancel">
-            <DeleteOutlined />
-          </a-popconfirm>
-        </div>
+        <a-tooltip class="tree-action-tooltip" placement="top" :mouse-enter-delay="0.2">
+          <template #title>{{ treeOpTip.down }}</template>
+          <div class="icon" @click="toDownTreeNode">
+            <ArrowDownOutlined />
+          </div>
+        </a-tooltip>
+
+        <a-tooltip class="tree-action-tooltip" placement="top" :mouse-enter-delay="0.2">
+          <template #title>{{ treeOpTip.del }}</template>
+          <div>
+            <div v-if="btnReadOnly === '1'" class="icon">
+              <DeleteOutlined style="color: #dededf" />
+            </div>
+            <div v-else class="icon">
+              <a-popconfirm :title="WeiI18n.t('是否确认删除').value" :ok-text="WeiI18n.t('确定').value" :cancel-text="WeiI18n.t('取消').value" @confirm="delTree" @cancel="cancel">
+                <DeleteOutlined />
+              </a-popconfirm>
+            </div>
+          </div>
+        </a-tooltip>
       </div>
     </div>
     <div class="mt-[10px]">
@@ -740,6 +763,12 @@ defineExpose({
     border-bottom: 0.0625rem solid #f1f1f1;
     padding: 0 10px;
     padding-bottom: 10px;
+
+    .tree-action-tooltip {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
 
     .icon {
       font-size: 1.125rem;

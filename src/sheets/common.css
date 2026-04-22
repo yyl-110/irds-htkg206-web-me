@@ -82,6 +82,14 @@
 .ant-table-thead .ant-table-cell-scrollbar {
   box-shadow: 0 1px 0 1px #ededed !important;
 }
+.ant-table-thead > tr > th,
+.ant-table-thead > tr > th .ant-table-column-title,
+.ant-table-thead > tr > th .ant-table-column-sorters,
+.ant-table-thead > tr > th .ant-table-filter-column-title,
+.ant-table-thead > tr > th .header-cell-main,
+.ant-table-thead > tr > th .header-title-sort {
+  font-size: 13px !important;
+}
 /*** 表格斑马样式 **/
 .odd {
   background-color: #ffffff;

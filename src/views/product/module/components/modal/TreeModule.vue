@@ -5,6 +5,9 @@ import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, FormOutlined, PlusC
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
+import { useTreeOperateTooltips } from '@/composables/useTreeOperateTooltips';
+
+const treeOpTip = useTreeOperateTooltips();
 const props = defineProps({
   /** 弹窗状态 */
   modalVisible: {
@@ -326,19 +329,19 @@ defineExpose({ updateMenu });
       <div class="container">
         <div class="controls-wrap">
           <div class="action">
-            <div class="icon" style="margin-left: 0" @click="addTreedata">
+            <div class="icon" style="margin-left: 0" :title="treeOpTip.add" @click="addTreedata">
               <PlusCircleOutlined />
             </div>
-            <div class="icon" @click="editTree">
+            <div class="icon" :title="treeOpTip.edit" @click="editTree">
               <FormOutlined />
             </div>
-            <div class="icon" @click="toUpTreeNode">
+            <div class="icon" :title="treeOpTip.up" @click="toUpTreeNode">
               <ArrowUpOutlined />
             </div>
-            <div class="icon" @click="toDownTreeNode">
+            <div class="icon" :title="treeOpTip.down" @click="toDownTreeNode">
               <ArrowDownOutlined />
             </div>
-            <div class="icon" @click="delTreedata">
+            <div class="icon" :title="treeOpTip.del" @click="delTreedata">
               <DeleteOutlined />
             </div>
           </div>
