@@ -341,4 +341,109 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 创建独立应用
+   *
+   * @tags 管理后台 - 创建独立应用
+   * @name createApp
+   * @summary 创建独立应用
+   * @request POST:/business-service/business/standalone-app/create
+   * @secure
+   */
+  static createApp = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 查询独立应用列表
+   *
+   * @tags 管理后台 - 查询独立应用列表
+   * @name appList
+   * @summary 查询独立应用列表
+   * @request POST:/business-service/business/standalone-app/app-list
+   * @secure
+   */
+  static appList = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/app-list`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 查询流程节点树+节点状态（不含 componentsJson，数据量大请分步加载）
+   *
+   * @tags 管理后台 - 查询流程节点树+节点状态（不含 componentsJson，数据量大请分步加载）
+   * @name projectPages
+   * @summary 查询流程节点树+节点状态（不含 componentsJson，数据量大请分步加载）
+   * @request POST:/business-service/business/standalone-app/project-pages
+   * @secure
+   */
+  static projectPages = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/project-pages`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 按节点查询活动页面 componentsJson + 该页已保存参数（点击树节点后调用）
+   *
+   * @tags 管理后台 - 按节点查询活动页面 componentsJson + 该页已保存参数（点击树节点后调用）
+   * @name nodePageDetail
+   * @summary 按节点查询活动页面 componentsJson + 该页已保存参数（点击树节点后调用）
+   * @request POST:/business-service/business/standalone-app/node-page-detail
+   * @secure
+   */
+  static nodePageDetail = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/node-page-detail`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 保存指定流程节点参数值（同应用同任务同参数key全局唯一）
+   *
+   * @tags  保存指定流程节点参数值（同应用同任务同参数key全局唯一）
+   * @name saveParams
+   * @summary  保存指定流程节点参数值（同应用同任务同参数key全局唯一）
+   * @request POST:/business-service/business/standalone-app/save-params
+   * @secure
+   */
+  static saveParams = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/save-params`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

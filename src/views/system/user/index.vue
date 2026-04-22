@@ -129,8 +129,8 @@ function handleUserTableFilterOpenChange(key: string, open: boolean) {
   setUserTableFilterOpen(key, open);
 }
 
-function onUsernameTableFilterVisibleChange(visible: boolean) {
-  handleUserTableFilterOpenChange('username', visible);
+function onUsernameTableFilterOpenChange(open: boolean) {
+  handleUserTableFilterOpenChange('username', open);
 }
 
 function getUserTableSortOrder(dataIndex: string): UserSortOrder {
@@ -157,6 +157,16 @@ function toggleUserTableColumnSort(column: any) {
 
 const userTableDisplayList = computed(() => {
   let list = [...resources.value];
+  const usernameKeyword = String(requestParams.username ?? '')
+    .trim()
+    .toLowerCase();
+  if (usernameKeyword) {
+    list = list.filter((item: any) =>
+      String(item?.username ?? '')
+        .toLowerCase()
+        .includes(usernameKeyword),
+    );
+  }
   if (!userTableSortState.value.key || !userTableSortState.value.order) return list;
   const key = userTableSortState.value.key;
   const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
@@ -588,8 +598,8 @@ async function exportData() {
                 <a-popover
                   trigger="click"
                   placement="bottomRight"
-                  :visible="getUserTableFilterOpen('username')"
-                  @update:visible="onUsernameTableFilterVisibleChange">
+                  :open="getUserTableFilterOpen('username')"
+                  @openChange="onUsernameTableFilterOpenChange">
                   <template #content>
                     <div class="header-filter-pop">
                       <a-input
@@ -870,14 +880,12 @@ async function exportData() {
 }
 
 .header-cell-main--has-filter {
-  padding-right: 22px;
+  gap: 6px;
+  padding-right: 0;
 }
 
 .header-filter-anchor {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
   line-height: 1;
   display: inline-flex;
   align-items: center;

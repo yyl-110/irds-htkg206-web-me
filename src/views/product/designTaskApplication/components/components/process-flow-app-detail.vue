@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { useUserStore } from '@/store/modules/user';
@@ -8,17 +9,37 @@ const route = useRoute();
 const router = useRouter();
 const detailData = ref<Record<string, any>>({});
 const userStore = useUserStore();
+const creatingFlow = ref(false);
+const processCreated = ref(false);
+const appCodeSource = ref<'none' | 'apply' | 'browse'>('none');
+const browseModalVisible = ref(false);
+const browseLoading = ref(false);
+const browseTableData = ref<any[]>([]);
+const browseSelectedRowKeys = ref<Array<string | number>>([]);
+const browseSelectedRow = ref<Record<string, any> | null>(null);
+const browseSearchCode = ref('');
+const browseSearchName = ref('');
+const browseColumns = [
+  { title: '编号', dataIndex: 'appCode', key: 'appCode' },
+  { title: '名称', dataIndex: 'appName', key: 'appName' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
+  { title: '创建人', dataIndex: 'creator', key: 'creator' },
+  { title: '状态', dataIndex: 'status', key: 'status' },
+];
+const bpmnElementId = ref<any>();
 
-function getConfidentialLevelText(level: unknown) {
-  const map: Record<string, string> = {
-    '0': '公开',
-    '1': '内部',
-    '2': '秘密',
-    '3': '机密',
-  };
-  const key = String(level ?? '');
-  if (!key) return '公开';
-  return map[key] ?? key;
+function parseConfidentialLevel(level: unknown): number {
+  const n = Number(level);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n;
+}
+
+function firstNonEmptyString(...values: unknown[]): string {
+  for (const v of values) {
+    const s = String(v ?? '').trim();
+    if (s) return s;
+  }
+  return '';
 }
 
 function loadDetailData() {
@@ -35,19 +56,154 @@ function loadDetailData() {
 
 const projectNo = ref('');
 const projectName = computed(() => String(detailData.value?.processName ?? detailData.value?.categoryName ?? ''));
-const confidentialLevel = computed(() => getConfidentialLevelText(detailData.value?.confidentialLevel));
+const confidentialLevel = ref<number>(0);
 const appName = ref('');
+const appCodeFromDetail = computed(() =>
+  firstNonEmptyString(detailData.value?.appCode, detailData.value?.standaloneAppCode, detailData.value?.independentAppCode, detailData.value?.projectNo),
+);
+const createFlowDisabled = computed(() => {
+  const appNameFilled = String(appName.value ?? '').trim() !== '';
+  return appCodeSource.value !== 'apply' || !projectNo.value || !appNameFilled || processCreated.value || creatingFlow.value;
+});
+const nextStepDisabled = computed(() => {
+  if (appCodeSource.value === 'browse') return false;
+  if (appCodeSource.value === 'apply') return !processCreated.value;
+  return true;
+});
 
 //申请编号
 async function getAppCode() {
   const res = await AdminApiSystemProcessTask.nextAppCode({});
-  projectNo.value = res.data.data;
+  projectNo.value = String(res?.data?.data ?? '');
+  if (projectNo.value) {
+    appCodeSource.value = 'apply';
+    processCreated.value = false;
+  }
+}
+
+async function createFlow() {
+  if (createFlowDisabled.value) return;
+  if (!String(appName.value ?? '').trim()) {
+    message.warning('请先填写独立应用名称');
+    return;
+  }
+  creatingFlow.value = true;
+  try {
+    const payload = {
+      appCode: projectNo.value,
+      appName: appName.value,
+      confidentialLevel: confidentialLevel.value,
+      taskId: detailData.value?.id ?? '',
+    };
+    const res = await AdminApiSystemProcessTask.createApp(payload);
+    bpmnElementId.value = res?.data?.data?.appId ?? '';
+    processCreated.value = true;
+    message.success('创建流程成功');
+  } catch (e) {
+    message.error('创建流程失败');
+  } finally {
+    creatingFlow.value = false;
+  }
+}
+
+async function nextFlow() {
+  const data = {
+    appId: bpmnElementId.value ?? '',
+    appCode: projectNo.value,
+  };
+  try {
+    const res = await AdminApiSystemProcessTask.projectPages(data);
+    const payload = res?.data?.data;
+    if (!payload || typeof payload !== 'object') {
+      message.error('流程页面数据为空');
+      return;
+    }
+    const cacheKey = `designTaskAppWorkspace:${String(payload?.appId ?? Date.now())}:${Date.now()}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    router.push({
+      path: '/internal/design-task-app-workspace',
+      query: { cacheKey },
+    });
+  } catch (e) {
+    message.error('获取流程页面失败');
+  }
+}
+
+async function loadBrowseList() {
+  const payload = {
+    appCode: browseSearchCode.value,
+    appName: browseSearchName.value,
+    taskId: detailData.value?.id ?? '',
+  };
+  browseLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.appList(payload);
+    const list = res?.data?.data;
+    browseTableData.value = Array.isArray(list) ? list : [];
+    browseSelectedRow.value = null;
+    browseSelectedRowKeys.value = [];
+    browseModalVisible.value = true;
+  } catch (e) {
+    message.error('独立应用列表加载失败');
+  } finally {
+    browseLoading.value = false;
+  }
+}
+
+async function handleBrowseApp() {
+  browseModalVisible.value = true;
+  await loadBrowseList();
+}
+
+function handleBrowseSearch() {
+  void loadBrowseList();
+}
+
+function onBrowseRowSelectChange(selectedRowKeys: Array<string | number>, selectedRows: Record<string, any>[]) {
+  browseSelectedRowKeys.value = selectedRowKeys;
+  browseSelectedRow.value = selectedRows?.[0] ?? null;
+}
+
+function onBrowseTableRow(record: Record<string, any>) {
+  return {
+    onClick: () => {
+      const key = record?.appId;
+      if (key == null) return;
+      browseSelectedRowKeys.value = [key];
+      browseSelectedRow.value = record;
+    },
+  };
+}
+
+function handleBrowseModalOk() {
+  const row = browseSelectedRow.value;
+  if (!row) {
+    message.warning('请选择一条独立应用数据');
+    return;
+  }
+  projectNo.value = String(row.appCode ?? '');
+  appName.value = String(row.appName ?? '');
+  bpmnElementId.value = String(row.appId ?? '');
+  appCodeSource.value = 'browse';
+  processCreated.value = true;
+  browseModalVisible.value = false;
+}
+
+function handleBrowseModalCancel() {
+  browseModalVisible.value = false;
 }
 function goBack() {
   router.back();
 }
 
 loadDetailData();
+projectNo.value = appCodeFromDetail.value;
+appName.value = firstNonEmptyString(detailData.value?.appName, detailData.value?.standaloneAppName, detailData.value?.projectName);
+confidentialLevel.value = parseConfidentialLevel(detailData.value?.confidentialLevel);
+if (projectNo.value) {
+  appCodeSource.value = 'browse';
+  processCreated.value = true;
+}
 </script>
 
 <template>
@@ -59,7 +215,7 @@ loadDetailData();
         <div class="detail-page__row">
           <span class="detail-page__label">独立应用编号:</span>
           <a-input class="detail-page__input" :value="projectNo" disabled />
-          <a-button type="primary"><EpcIcon type="icon-liulan" style="font-size: 12px" />浏览</a-button>
+          <a-button type="primary" @click="handleBrowseApp"><EpcIcon type="icon-liulan" style="font-size: 12px" />浏览</a-button>
           <a-button type="primary" @click="getAppCode"><EpcIcon type="icon-tianjia1" style="font-size: 12px" />申请编号</a-button>
         </div>
         <div class="detail-page__row">
@@ -77,11 +233,36 @@ loadDetailData();
       </div>
 
       <div class="detail-page__actions">
-        <a-button disabled><EpcIcon type="icon-wenjiandaoru" style="font-size: 12px" />创建流程</a-button>
-        <a-button type="primary"><EpcIcon type="icon-paixujiantou" style="font-size: 12px" />下一步</a-button>
+        <a-button :disabled="createFlowDisabled" type="primary" :loading="creatingFlow" @click="createFlow"
+          ><EpcIcon type="icon-wenjiandaoru" style="font-size: 12px" />创建流程</a-button
+        >
+        <a-button type="primary" :disabled="nextStepDisabled" @click="nextFlow"><EpcIcon type="icon-paixujiantou" style="font-size: 12px" />下一步</a-button>
         <a-button type="primary" @click="goBack"><EpcIcon type="icon-fanhui" style="font-size: 12px" />返回</a-button>
       </div>
     </div>
+    <a-modal v-model:visible="browseModalVisible" title="浏览独立应用" width="900px" @ok="handleBrowseModalOk" @cancel="handleBrowseModalCancel">
+      <div class="browse-toolbar">
+        <a-input v-model:value="browseSearchCode" placeholder="请输入编号" allow-clear class="browse-toolbar__input" />
+        <a-input v-model:value="browseSearchName" placeholder="请输入名称" allow-clear class="browse-toolbar__input" />
+        <a-button type="primary" @click="handleBrowseSearch">查询</a-button>
+      </div>
+      <a-table
+        :columns="browseColumns"
+        :data-source="browseTableData"
+        :loading="browseLoading"
+        :pagination="false"
+        row-key="appId"
+        :custom-row="onBrowseTableRow"
+        :row-selection="{
+          type: 'radio',
+          selectedRowKeys: browseSelectedRowKeys,
+          onChange: onBrowseRowSelectChange,
+        }" />
+      <template #footer>
+        <a-button type="primary" @click="handleBrowseModalOk">确定</a-button>
+        <a-button @click="handleBrowseModalCancel">取消</a-button>
+      </template>
+    </a-modal>
   </div>
 </template>
 
@@ -140,5 +321,16 @@ loadDetailData();
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.browse-toolbar {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.browse-toolbar__input {
+  width: 170px;
 }
 </style>
