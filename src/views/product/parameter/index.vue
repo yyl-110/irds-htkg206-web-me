@@ -102,7 +102,7 @@ const { resetFields } = useForm(requestParams);
 /** 勾选表格数据源  */
 const selectedRowList = ref<any>([]);
 const selectedRowkeys = ref<any>([]);
-/** 表格勾选事件 */
+/** 表头首列「全选」与行勾选用同一套 key，需与 getParameterRowKey 类型一致 */
 const rowSelection = computed(() => {
   /**
    * @param selectedRowKeys 选中的行数量
@@ -110,12 +110,42 @@ const rowSelection = computed(() => {
    */
   return {
     selectedRowKeys: selectedRowkeys.value,
+    /** 与操作列一起：仅锁定首列复选框，数据列横向滚动 */
+    fixed: true,
     onChange: (selectedRowKeys: string[], selectedRows: DataType[]) => {
       selectedRowList.value = selectedRows;
       selectedRowkeys.value = selectedRowKeys;
     },
   };
 });
+/** 当前页全选/半选（与 antd 默认全选行为一致，仅作用当前页展示数据） */
+const parameterSelectionHeaderChecked = computed(() => {
+  const rows = parameterTableDisplayList.value;
+  if (!rows.length) return false;
+  return rows.every((r: any) => selectedRowkeys.value.includes(r.id));
+});
+const parameterSelectionHeaderIndeterminate = computed(() => {
+  const rows = parameterTableDisplayList.value;
+  if (!rows.length) return false;
+  const n = rows.filter((r: any) => selectedRowkeys.value.includes(r.id)).length;
+  return n > 0 && n < rows.length;
+});
+function onParameterSelectionHeaderChange(e: any) {
+  const checked = Boolean(e?.target?.checked);
+  const pageRows = parameterTableDisplayList.value as any[];
+  const pageIds = pageRows.map(r => r.id);
+  if (checked) {
+    const nextKeys = new Set([...selectedRowkeys.value.map((x: any) => x), ...pageIds]);
+    selectedRowkeys.value = Array.from(nextKeys);
+    const byId = new Map(selectedRowList.value.map((r: any) => [r.id, r]));
+    pageRows.forEach(r => byId.set(r.id, r));
+    selectedRowList.value = Array.from(byId.values());
+  } else {
+    const idSet = new Set(pageIds);
+    selectedRowkeys.value = selectedRowkeys.value.filter((k: any) => !idSet.has(k));
+    selectedRowList.value = selectedRowList.value.filter((r: any) => !idSet.has(r.id));
+  }
+}
 function customRow(record: any) {
   return {
     onClick: () => {
@@ -148,7 +178,7 @@ const addModel = ref<InstanceType<typeof ParameterInfoRequestDTOModel>>();
 const updateModel = ref<InstanceType<typeof ParameterInfoRequestDTOModel>>();
 const treeDataTranslate: any = inject('treeDataTranslate');
 const columns = ref<TableColumnType<Menus>[]>([
-  /** 左侧固定列不设 resizable；排序/筛选由表头插槽控制（与 exeConfigTab 一致） */
+  /** 与前方的勾选列（rowSelection.fixed）共同固定左侧前两列 */
   {
     title: WeiI18n.$t('参数名称'),
     dataIndex: 'parameterName',
@@ -271,7 +301,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
-    align: 'left',
+    align: 'center',
     width: 200,
     fixed: 'right',
   },
@@ -295,6 +325,8 @@ const sortState = ref<{ key: string; order: ParameterSortOrder }>({ key: '', ord
 /** 表头筛选弹层输入草稿（确定后写入查询条件并请求接口） */
 const filterValueMap = ref<Record<string, string>>({ parameterName: '', parameterNum: '' });
 const filterOpenMap = ref<Record<string, boolean>>({});
+/** 首列（勾选列）组合筛选用与 column 筛选同一套草稿字段 */
+const SELECTION_FILTER_KEY = '__selection__';
 
 const parameterTableDisplayList = computed(() => {
   let list = [...datasource.value];
@@ -379,6 +411,36 @@ function resetParameterColumnFilter(key: string) {
   requestParams.pageNo = 1;
   pagination.current = 1;
   setParameterFilterOpen(key, false);
+  void loadParameterListData();
+}
+
+function handleSelectionFilterOpenChange(open: boolean) {
+  if (open) {
+    filterValueMap.value = {
+      ...filterValueMap.value,
+      parameterName: parameterName.value ?? '',
+      parameterNum: parameterNum.value ?? '',
+    };
+  }
+  setParameterFilterOpen(SELECTION_FILTER_KEY, open);
+}
+
+function applySelectionColumnFilter() {
+  parameterName.value = String(filterValueMap.value.parameterName ?? '').trim();
+  parameterNum.value = String(filterValueMap.value.parameterNum ?? '').trim();
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  setParameterFilterOpen(SELECTION_FILTER_KEY, false);
+  void loadParameterListData();
+}
+
+function resetSelectionColumnFilter() {
+  filterValueMap.value = { ...filterValueMap.value, parameterName: '', parameterNum: '' };
+  parameterName.value = '';
+  parameterNum.value = '';
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  setParameterFilterOpen(SELECTION_FILTER_KEY, false);
   void loadParameterListData();
 }
 
@@ -1098,7 +1160,7 @@ const {
       <!-- 右侧内容区域（列表卡片布局与 exeConfigTab 一致） -->
       <Pane class="splitpane-cls parameter-right-pane" :size="rightTreePaneSize">
         <div class="calc-config-pane">
-          <a-card class="calc-toolbar-card">
+          <a-card class="calc-merged-card">
             <a-form layout="inline" class="form_main calc-toolbar-form" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
               <a-form-item name="parameterName">
                 <a-input v-model:value="parameterName" style="width: 220px" allow-clear :placeholder="$t('请输入参数名称')" />
@@ -1140,11 +1202,9 @@ const {
                 </a-button>
               </a-form-item>
             </a-form>
-          </a-card>
 
-          <a-card class="calc-table-card">
             <a-table
-              class="exe-config-table"
+              class="exe-config-table parameter-table-spaced"
               :scroll="{ x: parameterTableScrollX, y: 500 }"
               :row-key="getParameterRowKey"
               :columns="columns"
@@ -1160,7 +1220,34 @@ const {
               @resize-column="handleResizeColumn">
               <template #headerCell="{ column }">
                 <template v-if="isParameterTableSelectionColumn(column)">
-                  <span />
+                  <div class="header-cell-main header-cell-main--selection header-cell-main--has-filter">
+                    <a-checkbox
+                      :checked="parameterSelectionHeaderChecked"
+                      :indeterminate="parameterSelectionHeaderIndeterminate"
+                      @change="onParameterSelectionHeaderChange" />
+                    <span class="header-filter-anchor header-filter-anchor--inline">
+                      <a-popover
+                        trigger="click"
+                        placement="bottomRight"
+                        :open="getParameterFilterOpen(SELECTION_FILTER_KEY)"
+                        @openChange="handleSelectionFilterOpenChange">
+                        <template #content>
+                          <div class="header-filter-pop header-filter-pop--selection">
+                            <a-input v-model:value="filterValueMap.parameterName" :placeholder="$t('请输入参数名称')" allow-clear />
+                            <a-input v-model:value="filterValueMap.parameterNum" class="header-filter-pop__second" :placeholder="$t('请输入参数代号')" allow-clear />
+                            <div class="header-filter-actions">
+                              <a-button type="primary" size="small" @click="applySelectionColumnFilter">
+                                <SearchOutlined />
+                                {{ $t('确定') }}
+                              </a-button>
+                              <a-button size="small" @click="resetSelectionColumnFilter">{{ $t('重置') }}</a-button>
+                            </div>
+                          </div>
+                        </template>
+                        <FilterOutlined class="header-query-icon" />
+                      </a-popover>
+                    </span>
+                  </div>
                 </template>
                 <template v-else-if="isSortableParameterColumn(column) || isFilterableParameterColumn(column)">
                   <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableParameterColumn(column) }">
@@ -1391,23 +1478,15 @@ const {
   min-height: 120px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.calc-toolbar-card {
-  border: none;
-  box-shadow: none;
-
-  :deep(.ant-card-body) {
-    padding: 12px 0;
-  }
+  gap: 0;
 }
 
 .calc-toolbar-form {
   gap: 4px;
 }
 
-.calc-table-card {
+/** 查询区与表格同一卡片，去掉中间分割线 */
+.calc-merged-card {
   flex: 1;
   min-height: 0;
   border: none;
@@ -1415,16 +1494,26 @@ const {
 
   :deep(.ant-card-body) {
     height: 100%;
-    padding: 0;
+    padding: 12px 0 0;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
   }
 
   :deep(.ant-table-wrapper) {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /** 表格与上方查询表单留出间距（可按视觉再微调数值） */
+  :deep(.parameter-table-spaced) {
+    margin-top: 16px;
   }
 
   :deep(.ant-table-thead > tr > th) {
     border-right: 1px solid #e8e8e8;
     text-align: center;
+    vertical-align: middle;
     background: #fafafa !important;
     color: rgba(0, 0, 0, 0.88);
     font-weight: 600;
@@ -1517,7 +1606,8 @@ const {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
+  width: 100%;
   row-gap: 6px;
   column-gap: 0;
 
@@ -1603,6 +1693,29 @@ const {
 
 .header-cell-main--has-filter {
   padding-right: 22px;
+}
+
+/* 首列：全选 + 筛选，与数据列表头同高、居中对齐 */
+.header-cell-main--selection {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding-right: 0;
+}
+
+.header-filter-anchor--inline {
+  position: static !important;
+  transform: none !important;
+}
+
+.header-filter-pop--selection {
+  width: 260px;
+}
+
+.header-filter-pop__second {
+  margin-top: 8px;
 }
 
 .header-filter-anchor {
