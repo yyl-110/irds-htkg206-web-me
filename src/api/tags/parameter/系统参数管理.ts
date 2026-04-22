@@ -5,6 +5,7 @@ import { CommonResultListDeptResponseDTOModel } from '../../models/CommonResultL
 import { ParameterInfoRequestDTOModel } from '@/api/models/parameter/ParameterInfoRequestDTOModel';
 import { ParameterUnitRequestDTOModel } from '@/api/models/parameter/ParameterUnitRequestDTOModel';
 import { ParameterCheckRequestDTOModel } from '@/api/models/parameter/ParameterCheckRequestDTOModel';
+import { ParameterConfigRequestDTOModel } from '@/api/models/parameter/ParameterConfigRequestDTOModel';
 
 /**
  * 系统参数管理
@@ -325,16 +326,16 @@ export class AdminApiSystemParameter {
       },
       CommonResultListDeptResponseDTOModel,
     );
-  
-    /**
-   * 计算树功能查询
-   *
-   * @tags 计算应用 - 计算树功能查询
-   * @name checkTreeAppList
-   * @summary 计算应用功能查询
-   * @request POST:/business-service/business/check-tree/check-tree-list
-   * @secure
-   */
+
+  /**
+ * 计算树功能查询
+ *
+ * @tags 计算应用 - 计算树功能查询
+ * @name checkTreeAppList
+ * @summary 计算应用功能查询
+ * @request POST:/business-service/business/check-tree/check-tree-list
+ * @secure
+ */
   static checkTreeAppList = <Req extends ParameterPageRequestDTOModel = ParameterPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -445,6 +446,76 @@ export class AdminApiSystemParameter {
         body: query,
         secure: true,
         ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 根据文件ID查询解析文档列表
+   *
+   * @tags 管理后台 - 根据文件ID查询解析文档列表
+   * @name getParameterActList
+   * @request POST: /business-service/business/parameter-act-knowledge/parse-file/list-by-file-id
+   * @secure
+   */
+  static getParameterActList = <Req extends ParameterConfigRequestDTOModel = ParameterConfigRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/parameter-act-knowledge/parse-file/list-by-file-id`,
+        method: 'GET',
+        query: query,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  /**
+   * 预览
+   *
+   * @tags 管理后台 - 预览
+   * @name parameterFileDetail
+   * @request POST: /business-service/business/parameter-act-knowledge/parse-file/detail
+   * @secure
+   */
+  static parameterFileDetail = <Req extends ParameterConfigRequestDTOModel = ParameterConfigRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/parameter-act-knowledge/parse-file/detail`,
+        method: 'GET',
+        query: query,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  /**
+   * 关联文件
+   * @tags 管理后台 - 关联文件
+   * @name parameterAssociation
+   * @request POST: /business-service/business/parameter-act-knowledge/association
+   * @secure
+   */
+  static parameterAssociation = <Req extends ParameterConfigRequestDTOModel = ParameterConfigRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/parameter-act-knowledge/association`,
+        method: 'POST',
+        body: query,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 取消关联文件
+   * @tags 管理后台 - 取消关联文件
+   * @name parameterAssociation
+   * @request POST: /business-service/business/parameter-act-knowledge/cancel
+   * @secure
+   */
+  static parameterCancelAssociation = <Req extends ParameterConfigRequestDTOModel = ParameterConfigRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/parameter-act-knowledge/cancel`,
+        method: 'POST',
+        body: query,
       },
       CommonResultListDeptResponseDTOModel,
     );

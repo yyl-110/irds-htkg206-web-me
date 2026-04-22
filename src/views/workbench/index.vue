@@ -46,6 +46,19 @@ const greetingText = ref('');
 // 定时器标识，用于清除定时器
 let timer = null;
 
+const todoColumns = [
+  { title: '任务名称', dataIndex: 'title', key: 'title', ellipsis: true, width: 250 },
+  { title: '标签', dataIndex: 'tags', key: 'tags', width: 150 },
+  { title: '任务类型', dataIndex: 'type', key: 'type', width: 120 },
+  { title: '项目时间', key: 'time', width: 200 },
+  { title: '当前进度', dataIndex: 'progress', key: 'progress', width: 150 },
+  { title: '状态', key: 'status', width: 120 },
+  { title: '创建人', dataIndex: 'creatorName', key: 'creatorName', width: 100 },
+  { title: '操作', key: 'action', width: 80, align: 'center' }
+];
+const rowClassName = (_record: any, index: number) =>
+  index % 2 === 1 ? "table-striped" : "";
+
 // 待办任务统计 mock 数据
 const todoChartData = ref({
   delay: 2,    // 延期
@@ -362,62 +375,106 @@ onUnmounted(() => {
                 </div>
 
                 <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
-                  <a-row :gutter="[16, 16]">
-                    <a-col :span="viewMode === 'list' ? 24 : 12" v-for="item in mockTodoList" :key="item.id">
-                      <div class="task-card">
-                        <div class="tc-header flex justify-between items-start">
-                          <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">
-                            <span class="title-text truncate font-bold text-[16px] text-[#313133]"
-                              :title="item.title">{{
-                                item.title
-                              }}</span>
-                            <span v-for="tag in item.tags" :key="tag" class="tc-tag flex-shrink-0"
-                              :class="getTagClass(tag)">{{ tag
-                              }}</span>
-                          </div>
-                          <ellipsis-outlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
-                        </div>
-
-                        <div class="tc-body mt-[16px] space-y-[12px] text-[14px] text-[#6A696E]">
-                          <div class="flex">
-                            <span class="w-[75px] flex-shrink-0">项目时间：</span>
-                            <span>{{ item.startTime }} ~ {{ item.endTime }}</span>
-                          </div>
-                          <div class="flex">
-                            <span class="w-[75px] flex-shrink-0">任务类型：</span>
-                            <span>{{ item.type }}</span>
-                          </div>
-                          <div class="flex justify-between items-center pr-[10px]">
-                            <div class="flex">
-                              <span class="w-[75px] flex-shrink-0">当前进度：</span>
-                              <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
+                  <template v-if="viewMode === 'grid'">
+                    <a-row :gutter="[16, 16]">
+                      <a-col :span="12" v-for="item in mockTodoList" :key="item.id">
+                        <div class="task-card">
+                          <div class="tc-header flex justify-between items-start">
+                            <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">
+                              <span class="title-text truncate font-bold text-[16px] text-[#313133]"
+                                :title="item.title">{{
+                                  item.title
+                                }}</span>
+                              <span v-for="tag in item.tags" :key="tag" class="tc-tag flex-shrink-0"
+                                :class="getTagClass(tag)">{{ tag
+                                }}</span>
                             </div>
-                            <span v-if="item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
-                            <span v-else-if="item.remainDays" class="text-[#6A696E]">距截止还剩 {{ item.remainDays }}
-                              天</span>
+                            <ellipsis-outlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
                           </div>
-                          <a-progress :percent="item.progress" :show-info="false" :stroke-width="8"
-                            :trail-color="'#F0F0F0'"
-                            :class="['mt-[8px]', '!mb-0', item.delayDays ? 'delay-progress' : 'normal-progress']" />
-                        </div>
 
-                        <div class="tc-footer mt-[12px] flex items-center text-[14px] text-[#6A696E]">
-                          <span class="w-[60px] flex-shrink-0">创建人：</span>
-                          <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[14px] px-[8px] py-[3px]">
-                            <img v-if="item.creatorAvatar" :src="item.creatorAvatar"
-                              class="w-[20px] h-[20px] rounded-full mr-[6px]" />
-                            <img v-else src="../../assets/workbench/people.png"
-                              class="w-[20px] h-[20px] rounded-full mr-[6px]" />
-                            <span>{{ item.creatorName }}</span>
+                          <div class="tc-body mt-[16px] space-y-[12px] text-[14px] text-[#6A696E]">
+                            <div class="flex">
+                              <span class="w-[75px] flex-shrink-0">项目时间：</span>
+                              <span>{{ item.startTime }} ~ {{ item.endTime }}</span>
+                            </div>
+                            <div class="flex">
+                              <span class="w-[75px] flex-shrink-0">任务类型：</span>
+                              <span>{{ item.type }}</span>
+                            </div>
+                            <div class="flex justify-between items-center pr-[10px]">
+                              <div class="flex">
+                                <span class="w-[75px] flex-shrink-0">当前进度：</span>
+                                <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
+                              </div>
+                              <span v-if="item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
+                              <span v-else-if="item.remainDays" class="text-[#6A696E]">距截止还剩 {{ item.remainDays }}
+                                天</span>
+                            </div>
+                            <a-progress :percent="item.progress" :show-info="false" :stroke-width="8"
+                              :trail-color="'#F0F0F0'"
+                              :class="['mt-[8px]', '!mb-0', item.delayDays ? 'delay-progress' : 'normal-progress']" />
+                          </div>
+
+                          <div class="tc-footer mt-[12px] flex items-center text-[14px] text-[#6A696E]">
+                            <span class="w-[60px] flex-shrink-0">创建人：</span>
+                            <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[14px] px-[8px] py-[3px]">
+                              <img v-if="item.creatorAvatar" :src="item.creatorAvatar"
+                                class="w-[20px] h-[20px] rounded-full mr-[6px]" />
+                              <img v-else src="../../assets/workbench/people.png"
+                                class="w-[20px] h-[20px] rounded-full mr-[6px]" />
+                              <span>{{ item.creatorName }}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </a-col>
-                  </a-row>
-
+                      </a-col>
+                    </a-row>
+                  </template>
+                  
+                  <template v-else>
+                    <a-table 
+                      :columns="todoColumns" 
+                      :data-source="mockTodoList" 
+                      :row-class-name="rowClassName"
+                      :pagination="false"
+                      :row-key="record => record.id"
+                      bordered
+                      class="bg-white"
+                      :scroll="{x: 600}"
+                    >
+                      <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'title'">
+                          <span class="font-bold text-[#313133]">{{ record.title }}</span>
+                        </template>
+                        <template v-if="column.key === 'tags'">
+                          <span v-for="tag in record.tags" :key="tag" class="tc-tag flex-shrink-0 inline-block mr-[4px]" :class="getTagClass(tag)">{{ tag }}</span>
+                        </template>
+                        <template v-if="column.key === 'time'">
+                          {{ record.startTime }} ~ {{ record.endTime }}
+                        </template>
+                        <template v-if="column.key === 'progress'">
+                          <div class="flex items-center gap-[8px]">
+                            <span class="text-[#313133] font-bold w-[30px]">{{ record.progress }}%</span>
+                            <a-progress class="flex-1 !mb-0" :percent="record.progress" :show-info="false" :stroke-width="8" :trail-color="'#F0F0F0'" :class="record.delayDays ? 'delay-progress' : 'normal-progress'" />
+                          </div>
+                        </template>
+                        <template v-if="column.key === 'status'">
+                          <span v-if="record.delayDays" class="text-[#FF4D4F]">已延期 {{ record.delayDays }} 天</span>
+                          <span v-else-if="record.remainDays" class="text-[#6A696E]">距截止还剩 {{ record.remainDays }} 天</span>
+                        </template>
+                        <template v-if="column.key === 'creatorName'">
+                          <div class="flex items-center">
+                            <img v-if="record.creatorAvatar" :src="record.creatorAvatar" class="w-[20px] h-[20px] rounded-full mr-[6px]" />
+                            <img v-else src="../../assets/workbench/people.png" class="w-[20px] h-[20px] rounded-full mr-[6px]" />
+                            <span>{{ record.creatorName }}</span>
+                          </div>
+                        </template>
+                        <template v-if="column.key === 'action'">
+                          <a class="text-primary cursor-pointer text-[14px]">详情</a>
+                        </template>
+                      </template>
+                    </a-table>
+                  </template>
                 </div>
-
-
               </div>
             </a-tab-pane>
           </a-tabs>

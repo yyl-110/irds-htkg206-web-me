@@ -29,6 +29,7 @@ import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
 import TableCellOverflowTooltip from './components/TableCellOverflowTooltip.vue';
+import knowledgeConfig from './components/knowledge-config.vue'
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -987,6 +988,7 @@ function formatHisLine(item: any) {
 }
 
 // 新增：知识配置相关状态
+const knowledgeConfigRef = ref(null)
 const knowledgeModalVisible = ref(false);
 const knowledgeLoading = ref(false);
 const knowledgeContent = ref('');
@@ -995,13 +997,7 @@ const currentKnowledgeId = ref<number | string>(0);
 
 // 打开知识配置弹窗，带入当前行 id 与 knowledge 字段
 async function showKnowledgeModal(record: any) {
-  currentKnowledgeId.value = record?.id;
-  knowledgeContent.value = record?.knowledge ?? '';
-  knowledgeModalVisible.value = true;
-  await nextTick();
-  if (knowledgeEditorRef.value && knowledgeEditorRef.value.setData) {
-    knowledgeEditorRef.value.setData(knowledgeContent.value);
-  }
+  knowledgeConfigRef.value.show(record?.id)
 }
 
 // 关闭弹窗
@@ -1305,17 +1301,7 @@ const {
     </a-modal>
 
     <!-- 知识配置弹窗 -->
-    <a-modal v-model:visible="knowledgeModalVisible" :title="$t('知识配置')" width="800px" :confirm-loading="knowledgeLoading" @cancel="closeKnowledgeModal">
-      <div style="min-height: 360px">
-        <CkeditorPlugin ref="knowledgeEditorRef" height="320" />
-      </div>
-      <template #footer>
-        <a-space>
-          <a-button type="primary" :loading="knowledgeLoading" @click="saveKnowledge">{{ $t('确定') }}</a-button>
-          <a-button @click="closeKnowledgeModal">{{ $t('取消') }}</a-button>
-        </a-space>
-      </template>
-    </a-modal>
+   <knowledge-config ref="knowledgeConfigRef" />
 
     <!-- 分享知识弹窗：展示富文本内容 -->
     <a-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="800px" @cancel="closeShareModal">
