@@ -6,8 +6,8 @@ import knowledgeQuestionAnswer from "./knowledgeQuestionAnswer/index.vue";
 import RightContent from "./components/knowledge-center-right-content.vue";
 import QuestionRightContent from "./components/knowledge-question-right-content.vue";
 import homeRightPage from "./components/knowledge-home-right-page.vue";
-import knowledgeStandard from "./knowledgeStandard/index.vue";
-import flowTaskMap from "./flowTaskMap/index.vue";
+// import knowledgeStandard from "./knowledgeStandard/index.vue";
+// import flowTaskMap from "./flowTaskMap/index.vue";
 import personal from "./personal/index.vue";
 import {
   hotFileList,
@@ -17,22 +17,13 @@ import {
 import { useUserStore } from "@/store/modules/user";
 const userStore = useUserStore();
 
-const componentsMap = {
-  0: knowledgeCenter,
-  2: flowTaskMap,
-  1: knowledgeMap,
-  3: knowledgeQuestionAnswer,
-  4: knowledgeStandard,
-  5: personal
-};
-type ComponentKey = keyof typeof componentsMap; // 推导出 0 | 1
-const tabList = [
-  "知识中心",
-  "知识地图",
-  // "知识学习",
-  "知识问答",
-  // "技术标准",
-  "个人主页",
+const tabs = [
+  { key: 1, name: "知识中心", component: knowledgeCenter },
+  { key: 2, name: "知识地图", component: knowledgeMap },
+  // { key: 3, name: "知识学习", component: flowTaskMap },
+  { key: 4, name: "知识问答", component: knowledgeQuestionAnswer },
+  // { key: 5, name: "技术标准", component: knowledgeStandard },
+  { key: 6, name: "个人主页", component: personal },
 ];
 const activeKey = ref(1);
 const hasRightPanel = computed(() => [1, 4, 6].includes(activeKey.value));
@@ -54,7 +45,7 @@ const exposeAskDesId = ref('');
 const personalInfo = ref({});
 
 const handleTabchange = (key: number) => {
-  activeKey.value = key as ComponentKey;
+  activeKey.value = key;
 };
 
 // 获取右侧的用户列表
@@ -135,9 +126,9 @@ watch(
       <a-col :span="hasRightPanel ? 19 : 24" class="h-full bg-white p-[16px] rounded-[4px]">
         <a-tabs v-model:active-key="activeKey" @change="handleTabchange" size="small" class="h-full"
           destroyInactiveTabPane>
-          <a-tab-pane :key="index + 1" :tab="value" v-for="(value, index) in tabList">
+          <a-tab-pane :key="item.key" :tab="item.name" v-for="item in tabs">
             <keep-alive>
-              <component v-if="index in componentsMap" :is="componentsMap[index]" :exposeAskDesId="exposeAskDesId"
+              <component :is="item.component" :exposeAskDesId="exposeAskDesId"
                 :personalInfo="personalInfo" />
             </keep-alive>
           </a-tab-pane>
