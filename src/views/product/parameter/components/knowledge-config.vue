@@ -43,6 +43,7 @@ const tableData = ref([])
 // 预览
 const imgHide = ref(false);
 const fileUrlPlay = ref<string>();
+const previewText = ref<string>('');
 
 const columns = ref([
   { title: '关联知识主题', dataIndex: 'content', key: 'content', ellipsis: true, align: 'center' },
@@ -133,6 +134,7 @@ const preview = async (item) => {
     const res = await AdminApiSystemParameter.parameterFileDetail({ id: item.id || item.kldFileId })
     if (res.data.code === 200) {
       fileUrlPlay.value = res.data.data.picture
+      previewText.value = res.data.data.content
       imgHide.value = true
     }
   } catch (error) {
@@ -200,7 +202,7 @@ defineExpose({
               <div class="list flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar mt-[10px]">
                 <a-spin :spinning="loading" class="h-full w-full">
                   <div class="item" v-for="item in documentList" :key="item.id" @click="handleClick(item?.content)">
-                    <text-card :text-data="item?.content" @handleFetchList="fetchFileList" :activeId="activeFileId" />
+                    <text-card :text-data="item?.content" @handle-preview="closeKnowledgeModal" :activeId="activeFileId" />
                   </div>
                 </a-spin>
               </div>
@@ -230,7 +232,7 @@ defineExpose({
                   </template>
                 </template>
               </a-table>
-              <VideoImg :video-hide="imgHide" :file-url-play="fileUrlPlay" dialog-type="3" title-type="图片预览"
+              <VideoImg :video-hide="imgHide" :file-url-play="fileUrlPlay" :text-data="previewText" dialog-type="3" title-type="知识预览"
                 @get-video-hide="(val) => imgHide = val" />
             </div>
           </Pane>

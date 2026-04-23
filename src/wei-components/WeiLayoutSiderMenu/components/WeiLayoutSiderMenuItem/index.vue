@@ -16,12 +16,10 @@ const label = WeiI18n.getRouteTitle(props.route.meta);
 <template>
   <a-menu-item :key="route.path">
     <template #icon>
-      <div class="inline-block w-[16px]">
+      <div :class="collapsed ? 'inline-block w-[16px]' : 'flex justify-center'">
         <WeiIcon :size="20" :icon="route.meta?.icon" />
-        <!-- <a-icon :size="16" :icon="assets / icon / clo.png" /> -->
       </div>
     </template>
     <span v-if="collapsed" style="font-weight: 600">{{ label }}</span>
-    <!-- <WeiOverflowTooltip v-else :title="label" placement="right" /> -->
   </a-menu-item>
 </template>

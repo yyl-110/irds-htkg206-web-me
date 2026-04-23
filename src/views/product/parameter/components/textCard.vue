@@ -16,7 +16,7 @@ const props = defineProps({
   activeId: String,
 });
 
-const emits = defineEmits(['handleFetchList']);
+const emits = defineEmits(['handlePreview']);
 
 const confidentialLevel = computed(() => {
   if (props.textData.confidential_level === '0')
@@ -47,7 +47,7 @@ const viewPdf = async (item) => {
   try {
     updateKldCounting({ kldFileId: item.id, countingType: 1 });
     const res = await getPdfPreviewPath({ id: item.fileId });
-    console.log('res:', res);
+    emits('handlePreview')
     const filePath = res.data.fileUrl;
     router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
   } catch (error) {
@@ -73,12 +73,13 @@ const viewPdf = async (item) => {
             <span v-else-if="textData.releaseStatus === 1">【未发布】</span>
           </div>
         </div>
-        <div style="height: 26px; margin-top: 4px">
+        <div style="height: 26px; margin-top: 4px" class="flex items-center">
           <a-breadcrumb separator="|">
             <a-breadcrumb-item>{{ textData.userName }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ getTimes(Date.parse(textData.addTime)) || '' }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ confidentialLevel }}</a-breadcrumb-item>
           </a-breadcrumb>
+          <span class="text-primary ml-auto cursor-pointer" @click="viewPdfFun">预览</span>
         </div>
       </div>
     </div>
