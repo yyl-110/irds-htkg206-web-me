@@ -509,8 +509,9 @@ defineExpose({ initInfoList });
 .drawerContent {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 120px);
+  height: calc(100vh - 120px);
   background-color: #ffffff !important;
+  overflow: hidden;
 }
 
 .version-history-modal {

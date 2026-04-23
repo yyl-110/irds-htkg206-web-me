@@ -156,6 +156,12 @@ F.prototype.getPaletteEntries = function () {
       "bpmn-icon-gateway-parallel",
       "分解"
     ),
+    "create.combine-gateway": createAction(
+      "bpmn:ExclusiveGateway",
+      "gateway",
+      "bpmn-icon-gateway-xor",
+      "组合"
+    ),
     "create.exclusive-gateway": createAction(
       "bpmn:InclusiveGateway",
       "gateway",

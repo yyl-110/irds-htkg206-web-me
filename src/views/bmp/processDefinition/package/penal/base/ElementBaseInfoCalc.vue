@@ -9,10 +9,13 @@
       </a-form-item>
       <a-form-item :label="nameFieldLabel" name="name">
         <a-input
-          :value="nameFieldValue"
+          :value="editableNameFieldValue"
           :placeholder="nameFieldPlaceholder"
           :disabled="isProcessNameReadonly"
-          @update:value="onNameFieldInput" />
+          @focus="onNameFieldFocus"
+          @update:value="onNameFieldInput"
+          @blur="onNameFieldBlur"
+          @pressEnter="onNameFieldBlur" />
       </a-form-item>
 
       <!-- 流程的基础属性 -->
@@ -55,6 +58,8 @@ const emit = defineEmits(['on-click']);
 
 // Refs
 const formRef = ref();
+const editableNameFieldValue = ref('');
+const editingElementId = ref('');
 const bpmnElement = ref({});
 const elementBaseInfo = ref({
   id: '',
@@ -143,6 +148,13 @@ watch(
   { deep: true },
 );
 watch(
+  () => nameFieldValue.value,
+  val => {
+    editableNameFieldValue.value = String(val ?? '');
+  },
+  { immediate: true },
+);
+watch(
   () => pageName.value,
   val => {
     if (val) {
@@ -194,23 +206,75 @@ const resetBaseInfo = () => {
 };
 
 const onNameFieldInput = value => {
-  const text = String(value ?? '');
+  editableNameFieldValue.value = String(value ?? '');
+};
+
+const onNameFieldFocus = () => {
+  editingElementId.value = String(bpmnElement.value?.id ?? '');
+};
+
+const onNameFieldBlur = () => {
+  const text = String(editableNameFieldValue.value ?? '');
+  const current = String(nameFieldValue.value ?? '');
+  if (text === current) return;
+  const registry = window?.bpmnInstances?.elementRegistry;
+  const lockedEl = editingElementId.value && registry?.get ? registry.get(editingElementId.value) : null;
+  const targetEl = lockedEl || bpmnElement.value;
+  if (!targetEl) return;
+
+  const applyProps = props => {
+    window.bpmnInstances.modeling.updateProperties(targetEl, props);
+    // 失焦时确保仍然保持在正在编辑的图元，避免误切到 Process 根节点
+    const sel = window?.bpmnInstances?.selection;
+    if (sel && typeof sel.select === 'function') {
+      sel.select(targetEl);
+    }
+    resetModelerInteractionState();
+  };
+
   if (isSplitGateway.value) {
     elementBaseInfo.value.paraNo = text;
     // 兼容 BPMN 序列化：自定义键 paraNo 同步镜像到 name，确保保存后可回显
     elementBaseInfo.value.name = text;
-    window.bpmnInstances.modeling.updateProperties(bpmnElement.value, { paraNo: text, name: text });
+    applyProps({ paraNo: text, name: text });
     return;
   }
   if (isSequenceFlow.value) {
     elementBaseInfo.value.where = text;
     // 兼容 BPMN 序列化：自定义键 where 同步镜像到 name，确保保存后可回显
     elementBaseInfo.value.name = text;
-    window.bpmnInstances.modeling.updateProperties(bpmnElement.value, { where: text, name: text });
+    applyProps({ where: text, name: text });
     return;
   }
   elementBaseInfo.value.name = text;
-  window.bpmnInstances.modeling.updateProperties(bpmnElement.value, { name: text });
+  applyProps({ name: text });
+};
+
+const resetModelerInteractionState = () => {
+  const modeler = window?.bpmnInstances?.modeler;
+  if (!modeler || typeof modeler.get !== 'function') return;
+  const safeGet = key => {
+    try {
+      return modeler.get(key);
+    } catch {
+      return null;
+    }
+  };
+  const dragging = safeGet('dragging');
+  const directEditing = safeGet('directEditing');
+  const contextPad = safeGet('contextPad');
+  const toolManager = safeGet('toolManager');
+  if (dragging && typeof dragging.cancel === 'function') dragging.cancel();
+  if (directEditing && typeof directEditing.cancel === 'function') directEditing.cancel();
+  if (contextPad && typeof contextPad.close === 'function') contextPad.close();
+  if (toolManager && typeof toolManager.setActive === 'function') toolManager.setActive(null);
+  // 某些浏览器/输入法场景会延迟一个事件循环才释放交互态，补一次异步兜底
+  setTimeout(() => {
+    if (dragging && typeof dragging.cancel === 'function') dragging.cancel();
+    if (directEditing && typeof directEditing.cancel === 'function') directEditing.cancel();
+    if (contextPad && typeof contextPad.close === 'function') contextPad.close();
+    if (toolManager && typeof toolManager.setActive === 'function') toolManager.setActive(null);
+  }, 0);
 };
 
 const updateBaseInfo = key => {

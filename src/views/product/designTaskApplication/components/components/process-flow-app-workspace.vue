@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { message } from 'ant-design-vue';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
+import ProcessFlowAppNodePreview from './process-flow-app-node-preview.vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 type FlowNode = {
   bpmnElementId?: string;
   nodeName?: string;
@@ -34,6 +37,7 @@ type TreeItem = {
 };
 
 const route = useRoute();
+const router = useRouter();
 const workspaceData = ref<WorkspaceData>({});
 const selectedNodeKey = ref<string>('');
 const leftPaneSize = ref(20);
@@ -43,6 +47,8 @@ const rightPaneBeforeCollapse = ref(24);
 const leftCollapsed = ref(false);
 const rightCollapsed = ref(false);
 const minExpanded = 12;
+const nodeDetailLoading = ref(false);
+const nodeDetailData = ref<Record<string, any> | null>(null);
 
 function loadWorkspaceData() {
   const cacheKey = String(route.query.cacheKey ?? '');
@@ -100,21 +106,99 @@ const selectedNode = computed<FlowNode | null>(() => {
   return allNodeMap.value.get(selectedNodeKey.value) ?? null;
 });
 
+const orderedActivityNodeKeys = computed<string[]>(() => {
+  const keys: string[] = [];
+  const walk = (nodes: FlowNode[] | undefined) => {
+    if (!Array.isArray(nodes)) return;
+    nodes.forEach((node: FlowNode) => {
+      const key = String(node?.bpmnElementId ?? '').trim();
+      if (key) keys.push(key);
+      if (Array.isArray(node?.children) && node.children.length) {
+        walk(node.children);
+      }
+    });
+  };
+  walk(workspaceData.value?.pages);
+  return keys;
+});
+
+const currentActivityIndex = computed(() => orderedActivityNodeKeys.value.findIndex(k => k === selectedNodeKey.value));
+const canGoPrev = computed(() => currentActivityIndex.value > 0);
+const canGoNext = computed(() => currentActivityIndex.value >= 0 && currentActivityIndex.value < orderedActivityNodeKeys.value.length - 1);
+const isLastActivity = computed(() => currentActivityIndex.value >= 0 && currentActivityIndex.value === orderedActivityNodeKeys.value.length - 1);
+
 const selectedNodeTitle = computed(() => {
+  const detailName = String(nodeDetailData.value?.nodeName ?? '').trim();
+  if (detailName) return detailName;
   if (!selectedNodeKey.value) return String(workspaceData.value?.appName ?? '--');
   const node = selectedNode.value;
   if (!node) return String(workspaceData.value?.appName ?? '--');
   return String(node.nodeName ?? '--');
 });
 
-async function onSelectTree(keys: (string | number)[]) {
+async function requestNodeDetailByKey(key: string) {
+  if (!key) return;
+  const targetNode = allNodeMap.value.get(key);
+  if (!targetNode) return;
   const data = {
     appCode: workspaceData.value.appCode,
-    bpmnElementId: String(keys?.[0] ?? ''),
+    bpmnElementId: key,
   };
-  const res = await AdminApiSystemProcessTask.nodePageDetail(data);
+  nodeDetailLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.nodePageDetail(data);
+    const detail = res?.data?.data;
+    nodeDetailData.value = detail && typeof detail === 'object' ? detail : null;
+  } finally {
+    nodeDetailLoading.value = false;
+  }
+}
+
+async function onSelectTree(keys: (string | number)[]) {
   const k = String(keys?.[0] ?? '');
   selectedNodeKey.value = k;
+  await requestNodeDetailByKey(k);
+}
+
+function findFirstSelectableNodeKey() {
+  const roots = treeData.value;
+  const root = Array.isArray(roots) && roots.length ? roots[0] : null;
+  const firstChild = root?.children && root.children.length ? root.children[0] : null;
+  return firstChild?.key ? String(firstChild.key) : '';
+}
+
+async function initDefaultSelectedNode() {
+  const preferred = String(workspaceData.value?.currentBpmnElementId ?? '').trim();
+  const firstNodeKey = findFirstSelectableNodeKey();
+  const fallbackRootKey = String(workspaceData.value?.appCode ?? 'root');
+  const targetKey = preferred || firstNodeKey || fallbackRootKey;
+  selectedNodeKey.value = targetKey;
+  await requestNodeDetailByKey(targetKey);
+}
+
+async function goPrevNode() {
+  if (!canGoPrev.value) return;
+  const key = orderedActivityNodeKeys.value[currentActivityIndex.value - 1];
+  if (!key) return;
+  selectedNodeKey.value = key;
+  await requestNodeDetailByKey(key);
+}
+
+async function saveFlowInfo() {
+  const res = await AdminApiSystemProcessTask.saveParams(data);
+}
+
+async function goNextNode() {
+  if (!canGoNext.value) return;
+  const key = orderedActivityNodeKeys.value[currentActivityIndex.value + 1];
+  if (!key) return;
+  selectedNodeKey.value = key;
+  await requestNodeDetailByKey(key);
+}
+
+function finishFlow() {
+  message.success('已完成当前流程浏览');
+  router.back();
 }
 
 const centerPaneSize = computed(() => Math.max(0, 100 - leftPaneSize.value - rightPaneSize.value));
@@ -165,11 +249,7 @@ function onSplitpanesResized(panes: any[]) {
 const leftToggleStyle = computed(() => {
   const top = '50%';
   if (leftCollapsed.value) {
-    return {
-      left: SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT,
-      top,
-      transform: 'translate(-50%, -50%)',
-    };
+    return { left: '2px', top, transform: 'translateY(-50%)' };
   }
   return { left: `${leftPaneSize.value}%`, top, transform: 'translate(-50%, -50%)' };
 });
@@ -183,55 +263,29 @@ const rightToggleStyle = computed(() => {
 });
 
 loadWorkspaceData();
-if (workspaceData.value?.currentBpmnElementId) {
-  selectedNodeKey.value = String(workspaceData.value.currentBpmnElementId);
-} else {
-  selectedNodeKey.value = String(workspaceData.value?.appCode ?? 'root');
-}
+void initDefaultSelectedNode();
 </script>
 
 <template>
-  <div
-    class="workspace-page splitpanes-tree-collapse-wrap"
-    :class="{ 'splitpanes-tree-collapse-wrap--left-collapsed': leftCollapsed }">
-    <Splitpanes class="default-theme workspace-splitpanes" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
-      <Pane :size="leftPaneSize" :min-size="leftCollapsed ? 0 : minExpanded" class="workspace-left">
+  <div class="workspace-page splitpanes-tree-collapse-wrap">
+    <Splitpanes class="default-theme workspace-splitpanes" @resized="onSplitpanesResized">
+      <Pane :size="leftPaneSize" :min-size="leftCollapsed ? 0 : minExpanded" :class="['workspace-left', { 'workspace-left--collapsed': leftCollapsed }]">
         <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
       </Pane>
       <Pane :size="centerPaneSize" :min-size="20" class="workspace-center">
-        <div class="panel-title">{{ selectedNodeTitle }}</div>
-        <div class="detail-grid">
-          <div class="detail-row">
-            <span class="label">独立应用编号:</span>
-            <span>{{ workspaceData.appCode || '--' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">独立应用名称:</span>
-            <span>{{ workspaceData.appName || '--' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">节点名称:</span>
-            <span>{{ selectedNode?.nodeName || '--' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">节点状态:</span>
-            <span>{{ selectedNode?.nodeStatus || '--' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">节点标识:</span>
-            <span>{{ selectedNode?.bpmnElementId || workspaceData.currentBpmnElementId || '--' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">活动页面ID:</span>
-            <span>{{ selectedNode?.activityPageId || '--' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">父节点标识:</span>
-            <span>{{ selectedNode?.parentBpmnElementId || '--' }}</span>
-          </div>
+        <div class="workspace-center-body">
+          <a-spin :spinning="nodeDetailLoading" class="workspace-center-spin">
+            <ProcessFlowAppNodePreview :components-json="nodeDetailData?.componentsJson" :saved-param-values="nodeDetailData?.savedParamValues" />
+          </a-spin>
+        </div>
+        <div class="workspace-center-footer">
+          <a-button type="primary" @click="saveFlowInfo"><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button>
+          <a-button type="primary" v-if="canGoPrev" @click="goPrevNode"><EpcIcon type="icon-paixujiantou2" style="font-size: 12px" />上一步</a-button>
+          <a-button type="primary" v-if="canGoNext" @click="goNextNode"><EpcIcon type="icon-paixujiantou" style="font-size: 12px" />提 交</a-button>
+          <a-button v-if="isLastActivity" type="primary" @click="finishFlow"><EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成</a-button>
         </div>
       </Pane>
-      <Pane :size="rightPaneSize" :min-size="rightCollapsed ? 0 : minExpanded" class="workspace-right">
+      <Pane :size="rightPaneSize" :min-size="rightCollapsed ? 0 : minExpanded" :class="['workspace-right', { 'workspace-right--collapsed': rightCollapsed }]">
         <div class="panel-title">知识信息</div>
         <a-input-search placeholder="请输入" enter-button="搜索" />
         <div class="knowledge-text">我是设计知识，包括文本关联知识和页面关联知识</div>
@@ -251,23 +305,49 @@ if (workspaceData.value?.currentBpmnElementId) {
 <style scoped lang="less">
 .workspace-page {
   width: 100%;
-  height: calc(100vh - 96px);
+  height: 100%;
   background: #fff;
+  overflow: hidden;
+}
+
+.workspace-splitpanes {
+  height: 100%;
 }
 
 .workspace-left {
   padding: 12px;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
   overflow: auto;
+}
+
+.workspace-left--collapsed {
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 .workspace-center {
   padding: 16px;
-  overflow: auto;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .workspace-right {
   padding: 16px;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
   overflow: auto;
+}
+
+.workspace-right--collapsed {
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 :deep(.workspace-splitpanes .splitpanes__splitter) {
@@ -280,27 +360,40 @@ if (workspaceData.value?.currentBpmnElementId) {
 }
 
 .panel-title {
-  margin-bottom: 14px;
   font-size: 16px;
   font-weight: 600;
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  row-gap: 10px;
+.workspace-center-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
-.detail-row {
+.workspace-center-spin {
+  min-height: 100%;
+}
+
+.workspace-center-spin :deep(.ant-spin-nested-loading) {
+  height: 100%;
+  min-height: 0;
+}
+
+.workspace-center-spin :deep(.ant-spin-container) {
+  min-height: 100%;
+  height: auto;
+}
+
+.workspace-center-footer {
+  flex: 0 0 auto;
   display: flex;
+  justify-content: flex-start;
+  align-items: center;
   gap: 8px;
-  line-height: 24px;
-}
-
-.label {
-  width: 110px;
-  color: #666;
-  flex-shrink: 0;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
 }
 
 .knowledge-text {

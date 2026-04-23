@@ -65,6 +65,25 @@ export default {
     },
   },
   methods: {
+    resetModelerInteractionState() {
+      const modeler = window?.bpmnInstances?.modeler;
+      if (!modeler || typeof modeler.get !== 'function') return;
+      const safeGet = key => {
+        try {
+          return modeler.get(key);
+        } catch {
+          return null;
+        }
+      };
+      const dragging = safeGet('dragging');
+      const directEditing = safeGet('directEditing');
+      const contextPad = safeGet('contextPad');
+      const toolManager = safeGet('toolManager');
+      if (dragging && typeof dragging.cancel === 'function') dragging.cancel();
+      if (directEditing && typeof directEditing.cancel === 'function') directEditing.cancel();
+      if (contextPad && typeof contextPad.close === 'function') contextPad.close();
+      if (toolManager && typeof toolManager.setActive === 'function') toolManager.setActive(null);
+    },
     resetFlowCondition() {
       this.bpmnElement = window.bpmnInstances.bpmnElement;
       this.bpmnElementSource = this.bpmnElement.source;
@@ -100,6 +119,7 @@ export default {
         window.bpmnInstances.modeling.updateProperties(this.bpmnElement, {
           conditionExpression: this.flowConditionRef,
         });
+        this.resetModelerInteractionState();
         return;
       }
       // 默认路径
@@ -110,6 +130,7 @@ export default {
         window.bpmnInstances.modeling.updateProperties(this.bpmnElementSource, {
           default: this.bpmnElement,
         });
+        this.resetModelerInteractionState();
         return;
       }
       // 正常路径，如果来源节点的默认路径是当前连线时，清除父元素的默认路径配置
@@ -121,6 +142,7 @@ export default {
       window.bpmnInstances.modeling.updateProperties(this.bpmnElement, {
         conditionExpression: null,
       });
+      this.resetModelerInteractionState();
     },
     updateFlowCondition() {
       //console.log(this.flowConditionForm, 'this.flowConditionForm')
@@ -138,6 +160,7 @@ export default {
         }
       }
       window.bpmnInstances.modeling.updateProperties(this.bpmnElement, { conditionExpression: condition });
+      this.resetModelerInteractionState();
     },
   },
   beforeUnmount() {

@@ -134,8 +134,9 @@ onMounted(() => {
 .drawerContent {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 84px);
+  height: calc(100vh - 84px);
   background-color: #ffffff !important;
+  overflow: hidden;
 }
 :deep(.marginstyle) {
   padding: 10px !important;
@@ -149,7 +150,7 @@ onMounted(() => {
 
 :deep(.b-body) {
   height: calc(100vh - 125px);
-  overflow: auto;
+  overflow: hidden;
 }
 :deep(.ant-drawer-body) {
   padding: 2px;

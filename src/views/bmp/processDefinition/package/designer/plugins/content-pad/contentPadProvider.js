@@ -28,7 +28,8 @@ export default function ContextPadProvider(
   canvas,
   rules,
   translate,
-  elementRegistry
+  elementRegistry,
+  dragging
 ) {
   config = config || {};
 
@@ -45,6 +46,7 @@ export default function ContextPadProvider(
   this._canvas = canvas;
   this._rules = rules;
   this._translate = translate;
+  this._dragging = dragging;
 
   if (config.autoPlace !== false) {
     this._autoPlace = injector.get('autoPlace', false);
@@ -63,6 +65,12 @@ export default function ContextPadProvider(
     if (entries.replace) {
       entries.replace.action.click(event, shape);
     }
+
+    // 防止偶发遗留在拖拽工具态，导致后续连线/拖拽失效
+    contextPad.close();
+    if (dragging && typeof dragging.cancel === 'function') {
+      dragging.cancel();
+    }
   });
 }
 
@@ -79,7 +87,8 @@ ContextPadProvider.$inject = [
   'canvas',
   'rules',
   'translate',
-  'elementRegistry'
+  'elementRegistry',
+  'dragging'
 ];
 
 ContextPadProvider.prototype.getContextPadEntries = function(element) {
@@ -286,6 +295,7 @@ ContextPadProvider.prototype.getContextPadEntries = function(element) {
       assign(actions, {
         'append.end-event': appendAction('bpmn:EndEvent', 'bpmn-icon-end-event-none', translate('Append EndEvent')),
         'append.split-gateway': appendAction('bpmn:ParallelGateway', 'bpmn-icon-gateway-parallel', '分解'),
+        'append.combine-gateway': appendAction('bpmn:ExclusiveGateway', 'bpmn-icon-gateway-xor', '组合'),
         'append.merge-gateway': appendAction('bpmn:InclusiveGateway', 'bpmn-icon-gateway-or', '合并'),
         'append.append-task': appendAction('bpmn:UserTask', 'bpmn-icon-user-task', translate('Append Task'))
         //,'append.intermediate-event': appendAction(

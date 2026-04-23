@@ -1,0 +1,1460 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
+import { message } from 'ant-design-vue';
+import { ExclamationCircleOutlined, InboxOutlined } from '@ant-design/icons-vue';
+import CkeditorPlugin from '@/components/Ckeditor/index.vue';
+import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
+import { useUserStore } from '@/store/modules/user';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { downloadFileFromStream } from '@/utils/file';
+
+const props = defineProps<{
+  componentsJson?: Record<string, any> | null;
+  savedParamValues?: any[] | null;
+}>();
+
+const userStore = useUserStore();
+const previewFieldValueMap = ref<Record<string, string>>({});
+const radioPreviewValueMap = ref<Record<string, string>>({});
+const previewUploadFileMap = ref<Record<string, any[]>>({});
+const previewTableCellMap = ref<Record<string, string>>({});
+const inputRangeBlurredMap = ref<Record<string, boolean>>({});
+const inputLastValidValueMap = ref<Record<string, string>>({});
+const previewFileCollabFileIdMap = ref<Record<string, string>>({});
+const fileCollabPreviewRowCountMap = ref<Record<string, number>>({});
+const fileCollabUploadInputRef = ref<HTMLInputElement | null>(null);
+const fileCollabUploadTarget = ref<{ item: any; componentIndex: number; bodyRow: number } | null>(null);
+const modulePickerVisible = ref(false);
+const modulePickerCategoryId = ref('');
+const modulePickerMenuId = ref('');
+const modulePickerTargetFieldKey = ref('');
+const modulePickerMode = ref<'dataView' | 'templateBrowse' | 'modelSelectBrowse' | 'moduleTableBrowse'>('dataView');
+const modulePickerItemKey = ref('');
+const modulePickerSourceComponentIndex = ref(-1);
+const modulePickerTableBodyRowIndex = ref(1);
+
+function normalizeValidateRule(raw: unknown): any {
+  if (raw == null) return null;
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return null;
+    try {
+      const p = JSON.parse(s);
+      return typeof p === 'object' && p !== null ? p : null;
+    } catch {
+      return null;
+    }
+  }
+  return typeof raw === 'object' ? raw : null;
+}
+
+function parseSavedValueMap(list: any[] | null | undefined) {
+  const map = new Map<string, string>();
+  if (!Array.isArray(list)) return map;
+  list.forEach((row: any) => {
+    const code = String(row?.paramCode ?? row?.code ?? '').trim();
+    if (!code) return;
+    const val = String(row?.paramValue ?? row?.value ?? row?.savedValue ?? '').trim();
+    map.set(code, val);
+  });
+  return map;
+}
+
+const savedValueMap = computed(() => parseSavedValueMap(props.savedParamValues));
+
+function knowledgeHintText(item: any): string {
+  return String(item?.knowledgeContent ?? '').trim();
+}
+function hasKnowledgeHint(item: any): boolean {
+  return knowledgeHintText(item) !== '';
+}
+
+const previewList = computed(() => {
+  const cfg = props.componentsJson || {};
+  const all = [
+    ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
+    ...(Array.isArray(cfg.threeDComponentList) ? cfg.threeDComponentList : []),
+    ...(Array.isArray(cfg.uploadComponentList) ? cfg.uploadComponentList : []),
+    ...(Array.isArray(cfg.tableComponentList) ? cfg.tableComponentList : []),
+  ].map((item: any) => ({
+    ...item,
+    customProps: item?.customProps || {},
+    constraintRules: Array.isArray(item?.constraintRules) ? item.constraintRules : [],
+    validateRule: normalizeValidateRule(item?.validateRule),
+  }));
+  const orderList = Array.isArray(cfg.componentDisplayOrderList) ? cfg.componentDisplayOrderList : [];
+  if (!orderList.length) {
+    return all.slice().sort((a: any, b: any) => (Number(a?.sortNo) || 0) - (Number(b?.sortNo) || 0));
+  }
+  const byId = new Map<string, any>();
+  all.forEach((item: any) => byId.set(String(item?.id ?? ''), item));
+  const used = new Set<string>();
+  const ordered: any[] = [];
+  orderList
+    .slice()
+    .sort((a: any, b: any) => (Number(a?.sortNo) || 0) - (Number(b?.sortNo) || 0))
+    .forEach((o: any) => {
+      const id = String(o?.componentId ?? '');
+      const found = byId.get(id);
+      if (!found) return;
+      used.add(id);
+      ordered.push(found);
+    });
+  const rest = all.filter((item: any) => !used.has(String(item?.id ?? ''))).sort((a: any, b: any) => (Number(a?.sortNo) || 0) - (Number(b?.sortNo) || 0));
+  return [...ordered, ...rest];
+});
+
+function getPreviewItemKey(item: any, index: number) {
+  return String(item?.id ?? `${item?.componentType}-${index}`);
+}
+function getPreview3dSubKey(item: any, index: number, part: 'templateName' | 'modelName' | 'modelSelectName') {
+  return `${getPreviewItemKey(item, index)}::${part}`;
+}
+function getTableCellPreviewKey(item: any, componentIndex: number, bodyRow: number, col: number) {
+  return `${getPreviewItemKey(item, componentIndex)}::${bodyRow}::${col}`;
+}
+
+function getSelectOptions(item: any) {
+  const values = item?.customProps?.sequenceValues || [];
+  if (!Array.isArray(values)) return [];
+  return values.map((val: string) => (val || '').trim()).filter((val: string) => val !== '');
+}
+
+function getRadioOptions(item: any) {
+  const raw = item?.customProps?.radioOptions;
+  if (Array.isArray(raw) && raw.length) return raw.map((val: string) => (val || '').trim()).filter(Boolean);
+  const options = item?.customProps?.options;
+  if (Array.isArray(options)) {
+    return options
+      .map((opt: any) => {
+        if (opt == null) return '';
+        if (typeof opt === 'string') return opt;
+        return String(opt?.label ?? opt?.value ?? '');
+      })
+      .map((val: string) => val.trim())
+      .filter((val: string) => val !== '');
+  }
+  return [];
+}
+
+function isOutputIoType(item: any) {
+  return String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT';
+}
+
+function normalizeDateFormatForPicker(raw: unknown) {
+  const fmt = String(raw ?? '').trim();
+  if (!fmt) return 'YYYY-MM-DD';
+  return fmt.replace(/yyyy/g, 'YYYY').replace(/yy/g, 'YY').replace(/dd/g, 'DD');
+}
+
+function previewDateDisplay(item: any, index: number) {
+  const key = getPreviewItemKey(item, index);
+  const s = String(previewFieldValueMap.value[key] ?? '');
+  if (!s) return null;
+  const d = dayjs(s);
+  return d.isValid() ? d : null;
+}
+function onPreviewDateChange(item: any, index: number, d: Dayjs | null) {
+  const key = getPreviewItemKey(item, index);
+  const fmt = normalizeDateFormatForPicker(item.customProps?.format);
+  previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: d ? d.format(fmt) : '' };
+}
+
+function shouldDisable3dModelInput(item: any) {
+  return isOutputIoType(item) || !!item?.customProps?.btnApplyPartNo;
+}
+
+function showModuleInfo(item: any, index: number, mode: 'dataView' | 'templateBrowse' | 'modelSelectBrowse' = 'dataView') {
+  const isTemplateBrowse = mode === 'templateBrowse';
+  const isModelSelectBrowse = mode === 'modelSelectBrowse';
+  const categoryId = isTemplateBrowse
+    ? String(item?.customProps?.relatedTemplateLibId ?? '').trim()
+    : isModelSelectBrowse
+      ? String(item?.customProps?.relatedModelLibId ?? '').trim()
+      : String(item?.customProps?.libraryCategoryId ?? '').trim();
+  const menuId = isTemplateBrowse || isModelSelectBrowse ? '9' : String(item?.libraryType ?? '').trim();
+  if (!categoryId || !menuId) {
+    message.warning(isTemplateBrowse || isModelSelectBrowse ? '请先在配置中选择关联模型库分类' : '请先在配置中选择基础资源库类型和分类节点');
+    return;
+  }
+  modulePickerMode.value = mode;
+  modulePickerItemKey.value = String(item?.id ?? '');
+  modulePickerTargetFieldKey.value =
+    mode === 'templateBrowse'
+      ? getPreview3dSubKey(item, index, 'templateName')
+      : mode === 'modelSelectBrowse'
+        ? getPreview3dSubKey(item, index, 'modelSelectName')
+        : getPreviewItemKey(item, index);
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = menuId;
+  modulePickerVisible.value = true;
+}
+function mapLibraryParamToKeywords(code: string): string[] {
+  const c = String(code ?? '')
+    .trim()
+    .toUpperCase();
+  if (c === 'PART_NO') return ['件号', '编码', '编码号'];
+  if (c === 'PART_NAME') return ['名称'];
+  if (c === 'MATERIAL') return ['材料', '材质'];
+  return [];
+}
+function findValueByColumnKeywords(row: any, columns: any[], keywords: string[]) {
+  const col = (Array.isArray(columns) ? columns : []).find((c: any) => keywords.some((kw: string) => String(c?.title ?? '').includes(kw)));
+  if (!col) return '';
+  return String(row?.[col.dataIndex] ?? '').trim();
+}
+function findValueByParameterNums(row: any, columns: any[], parameterNums: string[]) {
+  const wanted = parameterNums.map(x => String(x ?? '').trim().toUpperCase()).filter(Boolean);
+  if (!wanted.length) return '';
+  const col = (Array.isArray(columns) ? columns : []).find((c: any) => wanted.includes(String(c?.parameterNum ?? '').trim().toUpperCase()));
+  if (!col) return '';
+  return String(row?.[col.dataIndex] ?? '').trim();
+}
+function findValueByRowKeyKeywords(row: any, keywords: string[]) {
+  if (row == null || typeof row !== 'object') return '';
+  const entries = Object.entries(row as Record<string, unknown>);
+  for (const [k, v] of entries) {
+    const keyLower = String(k ?? '').trim().toLowerCase();
+    if (!keyLower) continue;
+    if (keywords.some(kw => keyLower.includes(String(kw).toLowerCase()))) {
+      const text = String(v ?? '').trim();
+      if (text !== '') return text;
+    }
+  }
+  return '';
+}
+function pickModulePartAndType(row: any, columns: any[]) {
+  const partNo =
+    findValueByParameterNums(row, columns, ['PART_NO', 'MODEL_PART_NO']) ||
+    findValueByColumnKeywords(row, columns, ['模型件号', '件号']) ||
+    findValueByRowKeyKeywords(row, ['modelpartno', 'model_part_no', 'partno', 'part_no', 'itemcode', 'item_code']);
+  const modelType =
+    findValueByParameterNums(row, columns, ['MODEL_TYPE', 'PART_TYPE', 'TYPE']) ||
+    findValueByColumnKeywords(row, columns, ['模型类型', '类型']) ||
+    findValueByRowKeyKeywords(row, ['modeltype', 'model_type', 'parttype', 'part_type', 'type']);
+  return { partNo, modelType };
+}
+function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
+  const list = previewList.value;
+  if (modulePickerMode.value === 'moduleTableBrowse') {
+    const idx = modulePickerSourceComponentIndex.value;
+    if (idx < 0 || idx >= list.length) return;
+    const item = list[idx] as any;
+    if (String(item?.customProps?.tableBizType ?? '') !== 'MODULE_LIB_READ') return;
+    const p = item.customProps || {};
+    const tableColDefs = Array.isArray(p.tableColDefs) ? p.tableColDefs : [];
+    const cols = Array.isArray(payload?.columns) ? payload.columns : [];
+    const dataRow = payload?.row || {};
+    const rowIdx = modulePickerTableBodyRowIndex.value;
+    const nextMap = { ...previewTableCellMap.value };
+    const { partNo, modelType } = pickModulePartAndType(dataRow, cols);
+    const mergedPart = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
+    const modelNameVal = findValueByColumnKeywords(dataRow, cols, ['模型名称']);
+    const baseKey = getPreviewItemKey(item, idx);
+    const totalCols = getWorkspaceTablePreviewColCount(item);
+    for (let c = 2; c <= totalCols; c++) {
+      if (isWorkspaceTableOperationColumn(item, c)) continue;
+      const cellKey = `${baseKey}::${rowIdx}::${c}`;
+      if (c === 2) {
+        nextMap[cellKey] = mergedPart;
+      } else if (c === 3) {
+        nextMap[cellKey] = modelNameVal;
+      } else {
+        const def = tableColDefs[c - 1];
+        const paramCode = String(def?.paramCode ?? '').trim();
+        let v = '';
+        if (paramCode) {
+          const colMeta = cols.find((col: any) => String(col?.parameterNum ?? '').trim() === paramCode);
+          if (colMeta && colMeta.dataIndex != null && String(colMeta.dataIndex) !== '') {
+            v = String(dataRow[colMeta.dataIndex] ?? '');
+          }
+        }
+        nextMap[cellKey] = v;
+      }
+    }
+    previewTableCellMap.value = nextMap;
+    modulePickerSourceComponentIndex.value = -1;
+    return;
+  }
+  const idx = list.findIndex((it: any) => String(it?.id ?? '') === modulePickerItemKey.value);
+  const item = idx >= 0 ? (list[idx] as any) : null;
+  const key = modulePickerTargetFieldKey.value || (idx >= 0 ? getPreviewItemKey(item, idx) : '');
+  if (!key) return;
+  const cols = Array.isArray(payload?.columns) ? payload.columns : [];
+  const nextFieldValueMap: Record<string, string> = { ...previewFieldValueMap.value };
+  const { partNo, modelType } = pickModulePartAndType(payload?.row, cols);
+  const merged = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
+  if (modulePickerMode.value === 'templateBrowse' || modulePickerMode.value === 'modelSelectBrowse') {
+    nextFieldValueMap[key] = merged;
+    previewFieldValueMap.value = nextFieldValueMap;
+    return;
+  }
+  if (merged) {
+    nextFieldValueMap[key] = merged;
+  } else {
+    const keywords = mapLibraryParamToKeywords(item?.libraryParam);
+    let targetCol = cols.find((c: any) => keywords.some((kw: string) => String(c?.title ?? '').includes(kw)));
+    if (!targetCol) targetCol = cols[0];
+    const fallbackValue = targetCol ? payload?.row?.[targetCol.dataIndex] : '';
+    nextFieldValueMap[key] = String(fallbackValue ?? '');
+  }
+
+  // 联动回填：按返回列 parameterNum 匹配页面中相同 paramCode 的组件，批量赋值
+  cols.forEach((col: any) => {
+    const parameterNum = String(col?.parameterNum ?? '').trim();
+    const dataIndex = String(col?.dataIndex ?? '').trim();
+    if (!parameterNum || !dataIndex) return;
+    const v = String(payload?.row?.[dataIndex] ?? '');
+    for (let i = 0; i < list.length; i++) {
+      const comp = list[i] as any;
+      if (String(comp?.paramCode ?? '').trim() !== parameterNum) continue;
+      const compKey = getPreviewItemKey(comp, i);
+      if (compKey === key) continue;
+      nextFieldValueMap[compKey] = v;
+    }
+  });
+
+  previewFieldValueMap.value = nextFieldValueMap;
+}
+
+function isTemplateBrowse3DItem(item: any) {
+  return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE';
+}
+function isModelSelect3DItem(item: any) {
+  return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'MODEL_SELECT';
+}
+function isFixedTemplate3DItem(item: any) {
+  return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'FIXED_TEMPLATE';
+}
+function shouldShowFixedTemplateName(item: any) {
+  const display = item?.customProps?.fixedTemplateDisplay;
+  return display === 1 || display === '1' || display === true;
+}
+function get3dPreviewButtons(item: any) {
+  const p = item?.customProps || {};
+  const buttons: string[] = [];
+  if (p.btnApplyPartNo) buttons.push('申请件号');
+  if (p.btnOpenModel) buttons.push('打开模型');
+  if (p.btnAssembleModel) buttons.push('装配模型');
+  return buttons;
+}
+function getModelSelectPreviewButtons(item: any) {
+  const p = item?.customProps || {};
+  const buttons: string[] = [];
+  if (p.btnOpenModel) buttons.push('打开模型');
+  if (p.btnAssembleModel) buttons.push('装配模型');
+  return buttons;
+}
+function handle3dPreviewButtonClick(btn: string, item: any, index: number) {
+  const text = String(btn ?? '').trim();
+  if (text === '申请件号') {
+    showModuleInfo(item, index, 'templateBrowse');
+    return;
+  }
+  if (text === '打开模型' || text === '生成模型') {
+    message.info('打开模型（示例）');
+    return;
+  }
+  if (text === '装配模型') {
+    message.info('装配模型（示例）');
+    return;
+  }
+  message.info(`${text}（示例）`);
+}
+function isFullRowComponent(type: string) {
+  return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
+}
+
+function normalizeRangeOperator(op: string) {
+  return String(op ?? '')
+    .trim()
+    .replace(/≤/g, '<=');
+}
+function normalizeRangeHintOperator(op: string) {
+  const s = String(op ?? '')
+    .trim()
+    .replace(/≤/g, '<=')
+    .replace(/≥/g, '>=');
+  if (s === '<=') return '≤';
+  if (s === '>=') return '≥';
+  return s;
+}
+function getResolvedValueRangeBounds(vr: any): { v1: string; v2: string } {
+  const raw = String(vr?.compareValue ?? '')
+    .trim()
+    .replace(/；/g, ';');
+  const v2 = String(vr?.compareValue2 ?? '').trim();
+  const op = String(vr?.operator ?? '');
+  if (op.includes(';') && v2 === '' && raw.includes(';')) {
+    const idx = raw.indexOf(';');
+    return {
+      v1: raw.slice(0, idx).trim(),
+      v2: raw.slice(idx + 1).trim(),
+    };
+  }
+  return { v1: raw, v2 };
+}
+function getInputValueRangeHint(item: any): string {
+  if (item?.componentType !== 'INPUT') return '';
+  const vr = item?.validateRule?.valueRange;
+  if (!vr || typeof vr !== 'object') return '';
+  const opRaw = String(vr.operator ?? '')
+    .trim()
+    .replace(/；/g, ';');
+  if (!opRaw) return '';
+  const { v1, v2 } = getResolvedValueRangeBounds(vr);
+  if (opRaw.includes(';')) {
+    if (!v1 || !v2) return '';
+    const [left = '<', right = '<'] = opRaw.split(';').map(s => normalizeRangeHintOperator(s));
+    return `${v1} ${left} X ${right} ${v2}`;
+  }
+  if (!v1) return '';
+  return `X ${normalizeRangeHintOperator(opRaw)} ${v1}`;
+}
+function hasValueRangeConfig(item: any): boolean {
+  const vr = item?.validateRule?.valueRange;
+  if (!vr || typeof vr !== 'object') return false;
+  const op = normalizeRangeOperator(String(vr.operator ?? ''));
+  const { v1, v2 } = getResolvedValueRangeBounds(vr);
+  if (!op) return false;
+  if (op.includes(';')) return v1 !== '' && v2 !== '';
+  return v1 !== '';
+}
+function compareConstraintValues(leftRaw: string, operator: string, rightRaw: string): boolean {
+  const op = String(operator || '=').trim();
+  const lt = String(leftRaw ?? '').trim();
+  const rt = String(rightRaw ?? '').trim();
+  const ln = Number(lt);
+  const rn = Number(rt);
+  const leftIsNum = lt !== '' && !Number.isNaN(ln);
+  const rightIsNum = rt !== '' && !Number.isNaN(rn);
+  if (leftIsNum && rightIsNum) {
+    switch (op) {
+      case '=':
+        return ln === rn;
+      case '!=':
+        return ln !== rn;
+      case '>':
+        return ln > rn;
+      case '>=':
+        return ln >= rn;
+      case '<':
+        return ln < rn;
+      case '<=':
+        return ln <= rn;
+      default:
+        return lt === rt;
+    }
+  }
+  switch (op) {
+    case '=':
+      return lt === rt;
+    case '!=':
+      return lt !== rt;
+    case '>':
+      return lt > rt;
+    case '>=':
+      return lt >= rt;
+    case '<':
+      return lt < rt;
+    case '<=':
+      return lt <= rt;
+    default:
+      return lt === rt;
+  }
+}
+function isValueWithinRange(inputRaw: string, vr: any): boolean {
+  if (!vr || typeof vr !== 'object') return true;
+  const input = String(inputRaw ?? '');
+  const opRaw = normalizeRangeOperator(String(vr.operator ?? '='));
+  const { v1, v2 } = getResolvedValueRangeBounds(vr);
+  if (!opRaw) return true;
+  if (!opRaw.includes(';')) {
+    if (v1 === '') return true;
+    return compareConstraintValues(input, opRaw, v1);
+  }
+  if (v1 === '' || v2 === '') return true;
+  const parts = opRaw.split(';').map(s => normalizeRangeOperator(s.trim()));
+  const op1 = parts[0] || '=';
+  const op2 = parts[1] || '=';
+  return compareConstraintValues(v1, op1, input) && compareConstraintValues(input, op2, v2);
+}
+function onPreviewInputValue(item: any, index: number, newVal: string) {
+  const key = getPreviewItemKey(item, index);
+  previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: newVal };
+}
+function onPreviewInputBlur(item: any, index: number) {
+  if (item?.componentType !== 'INPUT' || isOutputIoType(item)) return;
+  const key = getPreviewItemKey(item, index);
+  inputRangeBlurredMap.value = { ...inputRangeBlurredMap.value, [key]: true };
+  const vr = item?.validateRule?.valueRange;
+  const raw = String(previewFieldValueMap.value[key] ?? '');
+  const trimmed = raw.trim();
+  if (!vr || typeof vr !== 'object' || !hasValueRangeConfig(item) || trimmed === '') {
+    inputLastValidValueMap.value = { ...inputLastValidValueMap.value, [key]: raw };
+    return;
+  }
+  const st = vr.scopeType;
+  const scope = st == null || String(st).trim() === '' ? 'WARNING' : String(st).toUpperCase();
+  const valid = isValueWithinRange(raw, vr);
+  if (scope === 'REQUIRED' && !valid) {
+    message.warning('输入值不符合取值范围限制');
+    previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: String(inputLastValidValueMap.value[key] ?? '') };
+    return;
+  }
+  if (valid) {
+    inputLastValidValueMap.value = { ...inputLastValidValueMap.value, [key]: raw };
+  }
+}
+function isPreviewInputRangeError(item: any, index: number): boolean {
+  if (item?.componentType !== 'INPUT') return false;
+  const vr = item?.validateRule?.valueRange;
+  if (!vr || typeof vr !== 'object') return false;
+  const st = vr.scopeType;
+  const scope = st == null || String(st).trim() === '' ? 'WARNING' : String(st).toUpperCase();
+  if (scope !== 'WARNING') return false;
+  if (!hasValueRangeConfig(item)) return false;
+  const key = getPreviewItemKey(item, index);
+  if (!inputRangeBlurredMap.value[key]) return false;
+  const raw = String(previewFieldValueMap.value[key] ?? '');
+  if (raw.trim() === '') return false;
+  return !isValueWithinRange(raw, vr);
+}
+function getRefParamCurrentValueForPreview(refParamCode: string): string {
+  const code = String(refParamCode ?? '').trim();
+  if (!code) return '';
+  const list = previewList.value;
+  for (let i = 0; i < list.length; i++) {
+    const it = list[i] as any;
+    if (String(it?.paramCode ?? '').trim() !== code) continue;
+    const key = getPreviewItemKey(it, i);
+    const t = it?.componentType;
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || t === 'AUTO_COMPLETE' || t === 'DATE' || t === 'DATA_VIEW') {
+      return String(previewFieldValueMap.value[key] ?? it?.paramValue ?? '');
+    }
+    if (t === 'RADIO') {
+      return String(radioPreviewValueMap.value[key] ?? it?.paramValue ?? '');
+    }
+    return String(it?.paramValue ?? '');
+  }
+  return '';
+}
+function isPreviewConstraintVisible(item: any): boolean {
+  const rules = item?.constraintRules;
+  if (!Array.isArray(rules) || rules.length === 0) return true;
+  return rules.every((rule: any) => {
+    const refCode = String(rule?.refParamCode ?? '').trim();
+    if (!refCode) return true;
+    const left = getRefParamCurrentValueForPreview(refCode);
+    const right = String(rule?.compareValue ?? '');
+    const op = String(rule?.operator ?? '=');
+    return compareConstraintValues(left, op, right);
+  });
+}
+
+function tableDimensionRange(count: number) {
+  const n = Math.max(0, Math.min(100, Number(count) || 0));
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
+function shouldShowWorkspaceTableOperationColumn(item: any) {
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB' || biz === 'FILE_COLLAB_SIMPLE';
+}
+function getWorkspaceTablePreviewColCount(item: any) {
+  const base = Math.max(1, Number(item?.customProps?.tableColCount) || 1);
+  return shouldShowWorkspaceTableOperationColumn(item) ? base + 1 : base;
+}
+function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
+  if (!shouldShowWorkspaceTableOperationColumn(item)) return false;
+  return colIndex === getWorkspaceTablePreviewColCount(item);
+}
+function getWorkspaceTableOperationButtons(item: any) {
+  const p = item?.customProps || {};
+  const biz = String(p.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB') return ['浏览', '删除行', '分配', '发布'];
+  if (biz === 'FILE_COLLAB_SIMPLE') return ['上传', '下载', '清空'];
+  if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
+  if (biz === 'MODULE_LIB_READ') {
+    const buttons = ['浏览'];
+    if (p.btnOpenDrawing) buttons.push('打开图纸');
+    if (p.btnOpenModel) buttons.push('打开模型');
+    if (p.btnAssembleModel) buttons.push('装配模型');
+    return buttons;
+  }
+  return [];
+}
+function getFixedTableHeaderLabel(item: any, colIndex: number) {
+  if (isWorkspaceTableOperationColumn(item, colIndex)) return '操作';
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'MODULE_LIB_READ') {
+    if (colIndex === 2) return '模型件号';
+    if (colIndex === 3) return '模型名称';
+  }
+  if (biz === 'FILE_COLLAB_SIMPLE' && colIndex === 2) return '文件名称';
+  const firstType = item?.customProps?.firstColumnType || 'INDEX';
+  if (colIndex === 1) {
+    if (firstType === 'INDEX') return '序号';
+    return '';
+  }
+  const raw = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnName;
+  if (raw != null && String(raw).trim() !== '') return String(raw).trim();
+  return `列名${colIndex - 1}`;
+}
+function normalizeFixedTableColumnWidthCss(raw: unknown): string | undefined {
+  const s = (raw == null ? '' : String(raw)).trim();
+  if (!s) return undefined;
+  if (/^\d+(\.\d+)?$/.test(s)) return `${s}px`;
+  return s;
+}
+function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
+  if (colIndex === 1) {
+    return { width: '100px', minWidth: '100px' } as Record<string, string>;
+  }
+  if (isWorkspaceTableOperationColumn(item, colIndex)) {
+    const biz = String(item?.customProps?.tableBizType ?? '');
+    if (biz === 'FILE_COLLAB') {
+      return { width: '216px', minWidth: '216px' } as Record<string, string>;
+    }
+    if (biz === 'FILE_COLLAB_SIMPLE' || biz === 'MODULE_LIB_READ') {
+      const n = getWorkspaceTableOperationButtons(item).length;
+      const w = Math.min(300, Math.max(88, 58 * n + 36));
+      return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
+    }
+    return { width: '96px', minWidth: '96px' } as Record<string, string>;
+  }
+  const bizData = String(item?.customProps?.tableBizType ?? '');
+  const raw = item?.customProps?.tableColDefs?.[colIndex - 1]?.columnWidth;
+  const css = normalizeFixedTableColumnWidthCss(raw);
+  if (bizData === 'FILE_COLLAB') {
+    const width = css || '180px';
+    return { width, minWidth: width } as Record<string, string>;
+  }
+  const width = css || '170px';
+  return { width, minWidth: width } as Record<string, string>;
+}
+function showModuleTableBrowse(item: any, componentIndex: number, bodyRowIndex: number) {
+  const p = item?.customProps;
+  const defs = p?.tableRowDefs;
+  if (!Array.isArray(defs) || bodyRowIndex < 1 || bodyRowIndex > defs.length) {
+    message.warning('行定义数据异常');
+    return;
+  }
+  const rowDef = defs[bodyRowIndex - 1];
+  const categoryId = String(rowDef?.moduleLibCategoryId ?? '').trim();
+  const menuIdRaw = String(rowDef?.moduleLibCategoryMenuId ?? '').trim();
+  const menuId = menuIdRaw || '9';
+  if (!categoryId) {
+    message.warning('请先在活动配置中为该行选择关联模型库分类');
+    return;
+  }
+  modulePickerMode.value = 'moduleTableBrowse';
+  modulePickerSourceComponentIndex.value = componentIndex;
+  modulePickerTableBodyRowIndex.value = bodyRowIndex;
+  modulePickerItemKey.value = String(item?.id ?? '');
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = menuId;
+  modulePickerTargetFieldKey.value = '';
+  modulePickerVisible.value = true;
+}
+function getPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number) {
+  const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);
+  return previewTableCellMap.value[k] ?? '';
+}
+function setPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number, v: string) {
+  const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);
+  previewTableCellMap.value = { ...previewTableCellMap.value, [k]: v };
+}
+function getPreviewTableBodyRowCountForTable(item: any, componentIndex: number) {
+  if (String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB') {
+    const key = getPreviewItemKey(item, componentIndex);
+    const o = fileCollabPreviewRowCountMap.value[key];
+    const base = Math.max(1, Number(item?.customProps?.tableBodyRows) || 1);
+    if (o != null && Number.isFinite(o) && o >= 1) return Math.min(50, o);
+    return base;
+  }
+  return Math.max(1, Number(item?.customProps?.tableBodyRows) || 1);
+}
+function getFileCollabRowKey(item: any, componentIndex: number, bodyRow: number) {
+  return `${getPreviewItemKey(item, componentIndex)}::${bodyRow}`;
+}
+function onFileCollabPreviewAddRow(item: any, componentIndex: number) {
+  if (isOutputIoType(item)) return;
+  const key = getPreviewItemKey(item, componentIndex);
+  const cur = getPreviewTableBodyRowCountForTable(item, componentIndex);
+  if (cur >= 50) {
+    message.warning('表格行数最多为 50');
+    return;
+  }
+  fileCollabPreviewRowCountMap.value = { ...fileCollabPreviewRowCountMap.value, [key]: cur + 1 };
+}
+function onFileCollabPreviewUpdate(_item: any, _componentIndex: number) {
+  message.success('已更新');
+}
+function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, bodyRow: number) {
+  const t = String(btn ?? '').trim();
+  if (isOutputIoType(item)) return;
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'FILE_COLLAB_SIMPLE') {
+    if (t === '上传') {
+      fileCollabUploadTarget.value = { item, componentIndex, bodyRow };
+      fileCollabUploadInputRef.value?.click();
+      return;
+    }
+    if (t === '下载') {
+      void downloadFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    if (t === '清空') {
+      clearFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    return;
+  }
+  if (biz === 'FILE_COLLAB') {
+    if (t === '浏览' || t === '上传') {
+      fileCollabUploadTarget.value = { item, componentIndex, bodyRow };
+      fileCollabUploadInputRef.value?.click();
+      return;
+    }
+    if (t === '下载') {
+      void downloadFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    if (t === '清空') {
+      clearFileCollabRow(item, componentIndex, bodyRow);
+      return;
+    }
+    if (t === '删除行') {
+      clearFileCollabRow(item, componentIndex, bodyRow);
+      const key = getPreviewItemKey(item, componentIndex);
+      const cur = getPreviewTableBodyRowCountForTable(item, componentIndex);
+      if (cur > 1) {
+        fileCollabPreviewRowCountMap.value = { ...fileCollabPreviewRowCountMap.value, [key]: cur - 1 };
+      }
+      message.success('已删除该行');
+      return;
+    }
+    if (t === '分配') {
+      message.info('分配（示例）');
+      return;
+    }
+    if (t === '发布') {
+      message.info('发布（示例）');
+      return;
+    }
+  }
+  if (biz === 'MODULE_LIB_READ' && t === '浏览') {
+    showModuleTableBrowse(item, componentIndex, bodyRow);
+    return;
+  }
+  message.info(`${t}（示例）`);
+}
+async function downloadFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
+  const rowKey = getFileCollabRowKey(item, componentIndex, bodyRow);
+  const fileId = String(previewFileCollabFileIdMap.value[rowKey] ?? '').trim();
+  if (!fileId) {
+    message.warning('请先上传文件');
+    return;
+  }
+  const fileName = getPreviewTableCellValue(item, componentIndex, bodyRow, 2) || 'download';
+  try {
+    const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any);
+    const stream = (res as any)?.data !== undefined ? (res as any).data : res;
+    downloadFileFromStream(stream, fileName);
+  } catch {
+    message.error('下载失败');
+  }
+}
+function clearFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
+  const totalCols = getWorkspaceTablePreviewColCount(item);
+  const next = { ...previewTableCellMap.value };
+  for (let c = 2; c <= totalCols; c++) {
+    if (isWorkspaceTableOperationColumn(item, c)) continue;
+    const k = getTableCellPreviewKey(item, componentIndex, bodyRow, c);
+    delete next[k];
+  }
+  previewTableCellMap.value = next;
+  const fk = getFileCollabRowKey(item, componentIndex, bodyRow);
+  const nextIds = { ...previewFileCollabFileIdMap.value };
+  delete nextIds[fk];
+  previewFileCollabFileIdMap.value = nextIds;
+}
+async function onFileCollabFileInputChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  const target = fileCollabUploadTarget.value;
+  fileCollabUploadTarget.value = null;
+  if (!file || !target) return;
+  if (isOutputIoType(target.item)) return;
+  try {
+    const res = await AdminApiSystemUploadFile.uploadFile({
+      file,
+      userId: userStore.getUser.id,
+      confidentialLevel: 1,
+    } as any);
+    if (res?.data?.code == 0) {
+      const d: any = res.data;
+      const fileId = String(d.id ?? '').trim();
+      const displayName = String(d.oldFileName ?? d.fileName ?? file.name).trim();
+      setPreviewTableCellValue(target.item, target.componentIndex, target.bodyRow, 2, displayName);
+      const rowKey = getFileCollabRowKey(target.item, target.componentIndex, target.bodyRow);
+      previewFileCollabFileIdMap.value = { ...previewFileCollabFileIdMap.value, [rowKey]: fileId };
+      message.success('上传成功');
+      return;
+    }
+    message.error('上传失败');
+  } catch {
+    message.error('上传失败');
+  }
+}
+
+async function customRequestPreviewUpload(item: any, index: number, options: any) {
+  try {
+    const res = await AdminApiSystemUploadFile.uploadFile({
+      file: options.file as File,
+      userId: userStore.getUser.id,
+      confidentialLevel: 1,
+    });
+    if (res?.data?.code == 0) {
+      const uploaded = {
+        uid: String(res.data.id || options.file?.uid || Date.now()),
+        name: res.data?.oldFileName || options.file?.name || '未命名文件',
+        status: 'done',
+        id: res.data.id || '',
+        url: res.data.filePath || '',
+      };
+      const key = getPreviewItemKey(item, index);
+      previewUploadFileMap.value = { ...previewUploadFileMap.value, [key]: [uploaded] };
+      options?.onSuccess?.(res.data, options.file);
+      message.success('上传成功');
+      return;
+    }
+    options?.onError?.(new Error('upload failed'));
+    message.error('上传失败');
+  } catch (e: any) {
+    options?.onError?.(e instanceof Error ? e : new Error('upload failed'));
+    message.error('上传失败');
+  }
+}
+function onPreviewFileChange(item: any, index: number, info: any) {
+  const key = getPreviewItemKey(item, index);
+  const nextList = Array.isArray(info?.fileList) ? info.fileList.slice(-1) : [];
+  previewUploadFileMap.value = { ...previewUploadFileMap.value, [key]: nextList };
+}
+
+watch(
+  previewList,
+  list => {
+    const nextFieldValueMap: Record<string, string> = {};
+    const nextRadioMap: Record<string, string> = {};
+    const nextBlurred: Record<string, boolean> = {};
+    const nextLastValid: Record<string, string> = {};
+    list.forEach((item: any, index: number) => {
+      const key = getPreviewItemKey(item, index);
+      const code = String(item?.paramCode ?? '').trim();
+      const saved = code && savedValueMap.value.has(code) ? String(savedValueMap.value.get(code) ?? '') : '';
+      const base = saved || String(item?.paramValue ?? '');
+      if (['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'DATE', 'DATA_VIEW'].includes(String(item?.componentType ?? ''))) {
+        nextFieldValueMap[key] = base;
+      }
+      if (String(item?.componentType ?? '') === 'RADIO') {
+        nextRadioMap[key] = base;
+      }
+      if (String(item?.componentType ?? '') === 'INPUT') {
+        nextBlurred[key] = false;
+        nextLastValid[key] = base;
+      }
+      if (String(item?.componentType ?? '') === '3D_VIEW') {
+        if (isTemplateBrowse3DItem(item) || isFixedTemplate3DItem(item)) {
+          nextFieldValueMap[getPreview3dSubKey(item, index, 'templateName')] = String(item?.customProps?.templateValue ?? '');
+          nextFieldValueMap[getPreview3dSubKey(item, index, 'modelName')] = String(item?.customProps?.modelValue ?? '');
+        }
+        if (isModelSelect3DItem(item)) {
+          nextFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')] = String(item?.customProps?.modelSelectName ?? '');
+        }
+      }
+    });
+    previewFieldValueMap.value = nextFieldValueMap;
+    radioPreviewValueMap.value = nextRadioMap;
+    inputRangeBlurredMap.value = nextBlurred;
+    inputLastValidValueMap.value = nextLastValid;
+  },
+  { immediate: true, deep: true },
+);
+</script>
+
+<template>
+  <div class="activity-preview-canvas">
+    <input ref="fileCollabUploadInputRef" type="file" class="activity-preview-file-collab-input" tabindex="-1" aria-hidden="true" @change="onFileCollabFileInputChange" />
+    <div v-if="previewList.length === 0" class="activity-preview-empty">暂无页面组件</div>
+    <div v-else class="component-list">
+      <div
+        v-for="(item, index) in previewList"
+        v-show="isPreviewConstraintVisible(item)"
+        :key="item.id || `${item.componentType}-${index}`"
+        class="component-card"
+        :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
+        <div class="component-preview-wrap">
+          <div
+            v-if="
+              item.componentType !== 'TITLE' &&
+              item.componentType !== 'RADIO' &&
+              item.componentType !== 'FILE' &&
+              item.componentType !== 'DIVIDER' &&
+              item.componentType !== 'DATA_VIEW' &&
+              item.componentType !== 'TABLE' &&
+              !isTemplateBrowse3DItem(item) &&
+              !isFixedTemplate3DItem(item) &&
+              !isModelSelect3DItem(item)
+            "
+            class="component-title">
+            <span>{{ item.paramName || '未命名组件' }}</span>
+            <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+              <ExclamationCircleOutlined class="component-knowledge-hint" />
+            </a-tooltip>
+          </div>
+
+          <template v-if="item.componentType === 'TITLE'">
+            <div class="title-preview-text">{{ item.paramName || '标题' }}</div>
+            <div v-if="item.customProps?.hasDivider" class="title-divider-line"></div>
+          </template>
+
+          <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
+            <a-input
+              :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :placeholder="item.customProps?.placeholder || '请输入'"
+              :disabled="isOutputIoType(item)"
+              class="preview-field"
+              :class="{ 'preview-input-range-error': isPreviewInputRangeError(item, index) }"
+              @update:value="(v: string) => onPreviewInputValue(item, index, v)"
+              @blur="() => onPreviewInputBlur(item, index)" />
+            <span v-if="getInputValueRangeHint(item)" class="value-range-hint-chip">{{ getInputValueRangeHint(item) }}</span>
+          </div>
+          <a-textarea
+            v-else-if="item.componentType === 'TEXTAREA'"
+            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+            :rows="item.customProps?.rows || 4"
+            :placeholder="item.customProps?.placeholder || '请输入'"
+            :disabled="isOutputIoType(item)"
+            class="preview-field" />
+          <a-date-picker
+            v-else-if="item.componentType === 'DATE'"
+            :value="previewDateDisplay(item, index)"
+            :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
+            :format="normalizeDateFormatForPicker(item.customProps?.format)"
+            :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
+            :disabled="isOutputIoType(item)"
+            class="preview-field"
+            @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
+          <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
+
+          <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
+            <div class="component-title">
+              <span>{{ item.paramName || '数据浏览' }}</span>
+              <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                <ExclamationCircleOutlined class="component-knowledge-hint" />
+              </a-tooltip>
+            </div>
+            <div class="data-view-preview-row">
+              <a-input v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" placeholder="请选择参数" disabled class="data-view-preview-input browse-adjoined-input" />
+              <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
+            </div>
+          </div>
+
+          <a-select
+            v-else-if="item.componentType === 'SELECT'"
+            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+            :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
+            placeholder="请选择"
+            :disabled="isOutputIoType(item)"
+            class="preview-field" />
+          <a-auto-complete
+            v-else-if="item.componentType === 'AUTO_COMPLETE'"
+            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+            :options="getSelectOptions(item).map(v => ({ value: v }))"
+            placeholder="请选择或输入"
+            :disabled="isOutputIoType(item)"
+            class="preview-field" />
+
+          <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
+            <div class="component-title">
+              <span>{{ item.paramName || '单选项' }}</span>
+            </div>
+            <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
+            <a-radio-group v-else v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
+              <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">{{ opt }}</a-radio>
+            </a-radio-group>
+          </div>
+
+          <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">
+            <CkeditorPlugin height="180" :disabled="isOutputIoType(item)" />
+          </div>
+
+          <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
+            <div class="component-title">
+              <span>{{ item.paramName || '文件上传' }}</span>
+            </div>
+            <a-upload-dragger
+              :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
+              :disabled="isOutputIoType(item)"
+              :multiple="false"
+              :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
+              @change="(info: any) => onPreviewFileChange(item, index, info)">
+              <p class="ant-upload-drag-icon">
+                <InboxOutlined />
+              </p>
+              <p class="ant-upload-text">点击或拖拽上传文件</p>
+              <p class="ant-upload-hint">支持单文件上传，示例预览模式</p>
+            </a-upload-dragger>
+          </div>
+
+          <div
+            v-else-if="item.componentType === 'TABLE'"
+            class="fixed-table-preview"
+            :class="{
+              'fixed-table-preview--file-collab': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB',
+              'fixed-table-preview--simple-file': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE',
+            }">
+            <div class="component-title fixed-table-preview-title-row">
+              <span class="fixed-table-preview-title-text">{{ item.customProps?.tableTitle || item.paramName || '表格' }}</span>
+              <div v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
+                <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
+                <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
+              </div>
+            </div>
+            <div class="fixed-table-preview-scroll">
+              <table class="fixed-table-preview-grid">
+                <thead>
+                  <tr>
+                            <th
+                              v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                              :key="`h-${c}`"
+                              :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
+                              :style="getFixedTableColumnPreviewStyle(item, c)">
+                              {{ getFixedTableHeaderLabel(item, c) }}
+                            </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="r in tableDimensionRange(getPreviewTableBodyRowCountForTable(item, index))" :key="`b-${r}`">
+                    <td
+                      v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                      :key="`b-${r}-${c}`"
+                      class="fixed-table-preview-td"
+                      :class="{ 'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c) }"
+                      :style="getFixedTableColumnPreviewStyle(item, c)">
+                      <template v-if="c === 1 && String(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</template>
+                      <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
+                        <div class="fixed-table-cell-op-btns">
+                          <a
+                            v-for="btn in getWorkspaceTableOperationButtons(item)"
+                            :key="`preview-table-op-${index}-${r}-${btn}`"
+                            href="javascript:void(0)"
+                            class="fixed-table-cell-op-link"
+                            :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }"
+                            @click.prevent="onPreviewTableOpClick(btn, item, index, r)">
+                            {{ btn }}
+                          </a>
+                        </div>
+                      </template>
+                      <a-input
+                        v-else
+                        :value="getPreviewTableCellValue(item, index, r, c)"
+                        size="small"
+                        placeholder="请输入"
+                        :disabled="isOutputIoType(item)"
+                        @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div v-else-if="isTemplateBrowse3DItem(item)" class="template-browse-3d-preview">
+            <div class="template-browse-3d-row template-browse-3d-row--stacked">
+              <div class="template-browse-3d-group">
+                <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
+                <div class="template-browse-3d-controls">
+                  <a-input
+                    v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
+                    placeholder="请选择参数"
+                    disabled
+                    class="template-browse-3d-input template-browse-3d-input--grey" />
+                  <a-button type="primary" size="small" class="template-browse-3d-action-btn" @click="showModuleInfo(item, index, 'templateBrowse')">浏览</a-button>
+                </div>
+              </div>
+              <div class="template-browse-3d-group">
+                <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
+                <div class="template-browse-3d-controls">
+                  <a-input
+                    v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
+                    placeholder="请输入"
+                    :disabled="shouldDisable3dModelInput(item)"
+                    :class="['template-browse-3d-input', { 'template-browse-3d-input--grey': shouldDisable3dModelInput(item) }]" />
+                  <div class="three-d-preview-btn-grid">
+                    <a-button
+                      v-for="btn in get3dPreviewButtons(item)"
+                      :key="`preview-tpl-btn-${btn}`"
+                      type="primary"
+                      size="small"
+                      class="template-browse-3d-action-btn"
+                      :disabled="isOutputIoType(item)"
+                      @click="handle3dPreviewButtonClick(btn, item, index)"
+                      >{{ btn }}</a-button
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="isFixedTemplate3DItem(item)" class="template-browse-3d-preview">
+            <div class="template-browse-3d-row template-browse-3d-row--stacked">
+              <div v-if="shouldShowFixedTemplateName(item)" class="template-browse-3d-group">
+                <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
+                <div class="template-browse-3d-controls">
+                  <a-input
+                    v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
+                    placeholder="请输入"
+                    disabled
+                    class="template-browse-3d-input template-browse-3d-input--grey" />
+                </div>
+              </div>
+              <div class="template-browse-3d-group">
+                <div class="template-browse-3d-label">{{ item.customProps?.modelName || '模型名称' }}：</div>
+                <div class="template-browse-3d-controls">
+                  <a-input
+                    v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
+                    placeholder="请输入"
+                    :disabled="shouldDisable3dModelInput(item)"
+                    :class="['template-browse-3d-input', { 'template-browse-3d-input--grey': shouldDisable3dModelInput(item) }]" />
+                  <div class="three-d-preview-btn-grid">
+                    <a-button
+                      v-for="btn in get3dPreviewButtons(item)"
+                      :key="`preview-fixed-btn-${btn}`"
+                      type="primary"
+                      size="small"
+                      class="template-browse-3d-action-btn"
+                      :disabled="isOutputIoType(item)"
+                      @click="handle3dPreviewButtonClick(btn, item, index)"
+                      >{{ btn }}</a-button
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
+            <div class="model-select-3d-label">{{ item.paramName || '模型名称' }}：</div>
+            <div class="model-select-3d-controls">
+              <a-input
+                v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')]"
+                placeholder="请输入"
+                disabled
+                class="template-browse-3d-input template-browse-3d-input--grey" />
+              <a-button type="primary" size="small" class="template-browse-3d-action-btn" @click="showModuleInfo(item, index, 'modelSelectBrowse')">浏览</a-button>
+              <a-button
+                v-for="btn in getModelSelectPreviewButtons(item)"
+                :key="`preview-model-select-btn-${btn}`"
+                type="primary"
+                size="small"
+                class="template-browse-3d-action-btn"
+                :disabled="isOutputIoType(item)"
+                @click="handle3dPreviewButtonClick(btn, item, index)"
+                >{{ btn }}</a-button
+              >
+            </div>
+          </div>
+
+          <div v-else class="preview-field-join-row">
+            <a-input v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="preview-field" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <ModuleLibraryPickerModal
+    v-model:visible="modulePickerVisible"
+    :category-id="modulePickerCategoryId"
+    :menu-id="modulePickerMenuId"
+    :user-id="userStore.getUser.id"
+    @confirm="onModulePickerConfirm" />
+</template>
+
+<style scoped lang="less">
+.activity-preview-file-collab-input {
+  position: fixed;
+  left: -9999px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+.activity-preview-canvas {
+  height: 100%;
+  flex: 1;
+  overflow: visible;
+  padding: 12px 16px;
+  padding-bottom: 20px;
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
+  --activity-preview-component-width: 270px;
+  --activity-preview-wide-component-width: 650px;
+  --activity-preview-file-upload-width: 600px;
+  --activity-preview-table-width: 700px;
+  --activity-preview-grid-column-gap: 150px;
+  --activity-preview-grid-row-gap: 32px;
+}
+.component-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  column-gap: var(--activity-preview-grid-column-gap);
+  row-gap: var(--activity-preview-grid-row-gap);
+  justify-content: start;
+  width: max-content;
+  min-width: 100%;
+}
+.component-card {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 0;
+}
+.component-card.full-row-item {
+  grid-column: 1 / -1;
+}
+.component-title {
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.component-knowledge-hint {
+  color: #1677ff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.preview-field {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
+}
+.title-preview-text {
+  font-size: 18px;
+  color: #222;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.title-divider-line,
+.divider-preview-line {
+  height: 1px;
+  background: #d9d9d9;
+  width: 100%;
+}
+.data-view-preview-row {
+  display: flex;
+  gap: 8px;
+}
+.data-view-preview {
+  display: flex;
+  flex-direction: column;
+}
+.data-view-preview-input {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
+}
+.value-range-inline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.value-range-inline-row .preview-field {
+  flex: 0 0 var(--activity-preview-component-width);
+}
+.value-range-hint-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #1f1f1f;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.ant-input.preview-input-range-error {
+  border-color: #ff4d4f !important;
+}
+.radio-preview-wrap,
+.rich-preview-wrap,
+.fixed-table-preview {
+  width: var(--activity-preview-wide-component-width);
+  max-width: 100%;
+}
+.file-preview-wrap {
+  width: var(--activity-preview-file-upload-width);
+  max-width: 100%;
+}
+.file-preview-wrap :deep(.ant-upload-wrapper),
+.file-preview-wrap :deep(.ant-upload-drag) {
+  width: var(--activity-preview-file-upload-width) !important;
+  max-width: 100%;
+}
+.radio-preview-grid {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.radio-preview-empty {
+  color: #999;
+  font-size: 12px;
+}
+.fixed-table-preview-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: min(100%, var(--activity-preview-table-width));
+  padding-right: 0;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+.fixed-table-preview-grid {
+  width: max-content;
+  border-collapse: collapse;
+  table-layout: auto;
+  background: #fff;
+  font-size: 13px;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op,
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  box-shadow: none;
+  border-right: 1px solid #e8e8e8;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op {
+  z-index: 3;
+  background: #fafafa;
+}
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  background: #fff;
+}
+.fixed-table-preview-grid th,
+.fixed-table-preview-grid td {
+  border: 1px solid #e8e8e8;
+  padding: 10px 12px;
+  text-align: left;
+}
+.fixed-table-preview-grid th {
+  font-weight: 600;
+  background: #fafafa;
+}
+.fixed-table-preview-title-row {
+  justify-content: space-between;
+}
+.fixed-table-preview-title-text {
+  font-size: 14px;
+}
+.file-collab-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fixed-table-cell-op-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fixed-table-preview-td--op .fixed-table-cell-op-btns {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.fixed-table-cell-op-link {
+  color: #1677ff;
+  text-decoration: underline;
+  cursor: pointer;
+  line-height: 22px;
+}
+.fixed-table-cell-op-link--disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
+  text-decoration-color: rgba(0, 0, 0, 0.25);
+}
+.template-browse-3d-preview,
+.model-select-3d-preview {
+  width: 100%;
+  max-width: var(--activity-preview-wide-component-width);
+}
+.model-select-3d-preview {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.template-browse-3d-row--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--activity-preview-grid-row-gap);
+  width: 100%;
+}
+.template-browse-3d-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.template-browse-3d-label,
+.model-select-3d-label {
+  color: #444;
+  font-size: 12px;
+}
+.template-browse-3d-controls,
+.model-select-3d-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.template-browse-3d-input {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
+}
+.template-browse-3d-input--grey :deep(.ant-input) {
+  background: #f5f5f5;
+}
+.template-browse-3d-action-btn {
+  flex-shrink: 0;
+  min-width: 64px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
+}
+.three-d-preview-btn-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+.activity-preview-empty {
+  text-align: center;
+  color: #999;
+  padding: 40px 0;
+}
+.data-view-assemble-btn {
+  min-width: 64px;
+}
+.preview-field-join-row .preview-field {
+  flex: 0 1 var(--activity-preview-component-width);
+}
+</style>

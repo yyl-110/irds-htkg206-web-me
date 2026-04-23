@@ -297,6 +297,39 @@ const calcFlowData = ref();
 const sign = ref();
 const createData = ref();
 
+const resetInteractionState = () => {
+  if (!bpmnModeler.value) return;
+  const safeGet = key => {
+    try {
+      return bpmnModeler.value.get(key);
+    } catch {
+      return null;
+    }
+  };
+  const dragging = safeGet('dragging');
+  const directEditing = safeGet('directEditing');
+  const contextPad = safeGet('contextPad');
+  const toolManager = safeGet('toolManager');
+
+  if (dragging && typeof dragging.cancel === 'function') {
+    dragging.cancel();
+  }
+  if (directEditing && typeof directEditing.cancel === 'function') {
+    directEditing.cancel();
+  }
+  if (contextPad && typeof contextPad.close === 'function') {
+    contextPad.close();
+  }
+  if (toolManager && typeof toolManager.setActive === 'function') {
+    toolManager.setActive(null);
+  }
+};
+
+const onGlobalKeydown = event => {
+  if (event.key !== 'Escape') return;
+  resetInteractionState();
+};
+
 // CodeMirror 配置
 const cmOptions = reactive({
   mode: 'xml',
@@ -318,7 +351,12 @@ onActivated(() => {
   }
 });
 
+onMounted(() => {
+  document.addEventListener('keydown', onGlobalKeydown);
+});
+
 onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onGlobalKeydown);
   if (bpmnModeler.value) {
     bpmnModeler.value.destroy();
     emit('destroy', bpmnModeler.value);
@@ -681,13 +719,13 @@ defineExpose({ createNewDiagram, createNewDiagramNew });
 .top-btn {
   width: 64px;
   height: 25px;
-  background-color: var(--ant-primary-color);
+  background-color: #1890ff;
   color: #fff;
   border-radius: 0;
   border: none;
 
   &:hover {
-    filter: brightness(1.12);
+    background-color: #40a9ff;
   }
 }
 
