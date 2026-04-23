@@ -1,14 +1,13 @@
 <script lang="ts" setup>
-import { CheckOutlined, CloseOutlined, RedoOutlined } from '@ant-design/icons-vue'
+import { CheckOutlined, CloseOutlined, RedoOutlined, SaveOutlined } from '@ant-design/icons-vue'
 import { Modal, message } from 'ant-design-vue'
 import { storeToRefs } from 'pinia'
-import { computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
 import { useProjectUiStore } from '@/store/modules/layout/projectUi'
 import type { WeiThemeKey } from '@/utils/WeiTheme'
-import { useUserStore } from '@/store/modules/user'
-import { toLogin } from '@/httpRequest'
-import { removeWatermark } from '@/utils/watermark'
+import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
+import { useUserStore } from "@/store/modules/user";
+const userStore = useUserStore();
 
 const projectUi = useProjectUiStore()
 const {
@@ -29,10 +28,9 @@ const drawerVisible = computed({
   },
 })
 
-const router = useRouter()
-const userStore = useUserStore()
-
 const themeKeys = computed(() => Object.keys(projectUi.themeSwatches) as WeiThemeKey[])
+
+const saving = ref(false)
 
 const MENU_SWATCH_EXTRA = [
   { label: '白', value: '#ffffff' },
@@ -75,31 +73,39 @@ function onReset() {
   })
 }
 
-async function onClearAndLogout() {
-  Modal.confirm({
-    title: '保持配置',
-    content: '确认要保存当前配置？',
-    okText: '确定',
-    cancelText: '取消',
-    async onOk() {
-      try {
-        localStorage.removeItem('project-ui-settings')
-        localStorage.removeItem('wei-theme')
-        localStorage.removeItem('asideWidth')
-        localStorage.removeItem('layout')
-        projectUi.resetToDefaults()
-        projectUi.closeSettings()
-        await userStore.loginOut()
-      } catch {
-        /* ignore */
-      } finally {
-        await toLogin()
-        await router.replace('/login')
-        removeWatermark()
-        location.reload()
-      }
-    },
-  })
+/** 与 pinia persist `project-ui-settings` 字段一致，便于服务端同步 */
+function buildPageStylePayload() {
+  return {
+    systemThemeKey: projectUi.systemThemeKey,
+    headerBg: projectUi.headerBg,
+    menuBg: projectUi.menuBg,
+    menuCollapsePosition: projectUi.menuCollapsePosition,
+    showTabs: projectUi.showTabs,
+    grayscale: projectUi.grayscale,
+    colorWeak: projectUi.colorWeak,
+  }
+}
+
+async function onSavePageStyle() {
+  saving.value = true
+  try {
+    const payload = buildPageStylePayload()
+    //JSON转string
+    const res = await AdminApiSystemUser.savePageStyle({
+      userId: userStore.getUser.id,
+      styleJson: JSON.stringify(payload),
+    })
+    const code = res?.data?.code
+    if (code === 0 || code === 200) {
+      message.success(res?.data?.msg || '配置已保存')
+    } else {
+      message.error(res?.data?.msg || '保存失败')
+    }
+  } catch {
+    message.error('保存失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 watch(
@@ -219,7 +225,7 @@ watch(
           <RedoOutlined />
           重置
         </a-button>
-        <a-button type="primary"  @click="onClearAndLogout">
+        <a-button type="primary" :loading="saving" @click="onSavePageStyle">
           <SaveOutlined />
           保存配置
         </a-button>

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { menuBgLuminance, parseMenuBgHex } from '@/utils/menuThemeChrome';
 import type { WeiThemeKey } from '@/utils/WeiTheme';
 import { WeiTheme } from '@/utils/WeiTheme';
@@ -21,6 +22,36 @@ const THEME_SWATCHES: Record<WeiThemeKey, string> = {
 const DEFAULT_HEADER_BG = '#ffffff';
 const DEFAULT_MENU_BG = '#1a3677';
 
+const VALID_THEME_KEYS = new Set<string>(Object.keys(THEME_SWATCHES));
+
+/** 服务端 styleJson（字符串或对象）解析后的形状 */
+export type PageStylePayload = {
+  systemThemeKey?: WeiThemeKey;
+  headerBg?: string;
+  menuBg?: string;
+  menuCollapsePosition?: ProjectMenuCollapsePos;
+  showTabs?: boolean;
+  grayscale?: boolean;
+  colorWeak?: boolean;
+};
+
+function parseStyleJsonField(raw: unknown): PageStylePayload | null {
+  if (raw == null || raw === '') return null;
+  try {
+    if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+      return raw as PageStylePayload;
+    }
+    if (typeof raw === 'string') {
+      const s = raw.trim();
+      if (!s) return null;
+      return JSON.parse(s) as PageStylePayload;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export const useProjectUiStore = defineStore('projectUi', {
   state: () => ({
     settingsDrawerOpen: false,
@@ -30,7 +61,7 @@ export const useProjectUiStore = defineStore('projectUi', {
     headerBg: DEFAULT_HEADER_BG,
     menuBg: DEFAULT_MENU_BG,
 
-    menuCollapsePosition: 'bottom' as ProjectMenuCollapsePos,
+    menuCollapsePosition: 'header' as ProjectMenuCollapsePos,
 
     showTabs: true,
     grayscale: false,
@@ -101,12 +132,76 @@ export const useProjectUiStore = defineStore('projectUi', {
         systemThemeKey: 'deepBlue' as WeiThemeKey,
         headerBg: DEFAULT_HEADER_BG,
         menuBg: DEFAULT_MENU_BG,
-        menuCollapsePosition: 'bottom',
+        menuCollapsePosition: 'header',
         showTabs: true,
         grayscale: false,
         colorWeak: false,
       });
+      WeiTheme.theme = this.systemThemeKey;
       this.applyDomEffects();
+    },
+
+    /**
+     * 登录成功后拉取用户页面样式（优先于本地持久化缓存）。
+     * 返回为空或解析失败时使用 {@link resetToDefaults}
+     */
+    async hydratePageStyleFromServer(userId: number) {
+      if (!userId) {
+        this.resetToDefaults();
+        return;
+      }
+      try {
+        const res = await AdminApiSystemUser.getPageStyle({ userId });
+        const code = res?.data?.code;
+        if (code !== 0 && code !== 200) {
+          this.resetToDefaults();
+          return;
+        }
+        const row = res?.data?.data as Record<string, unknown> | undefined;
+        if (row == null || typeof row !== 'object') {
+          this.resetToDefaults();
+          return;
+        }
+        let rawJson: unknown;
+        if ('styleJson' in row) {
+          const sj = row.styleJson;
+          if (sj == null || sj === '') {
+            this.resetToDefaults();
+            return;
+          }
+          rawJson = sj;
+        } else {
+          rawJson = row;
+        }
+        const parsed = parseStyleJsonField(rawJson);
+        if (!parsed || Object.keys(parsed).length === 0) {
+          this.resetToDefaults();
+          return;
+        }
+
+        const sk = parsed.systemThemeKey;
+        const systemThemeKey =
+          typeof sk === 'string' && VALID_THEME_KEYS.has(sk) ? (sk as WeiThemeKey) : ('deepBlue' as WeiThemeKey);
+
+        const collapse =
+          parsed.menuCollapsePosition === 'bottom' || parsed.menuCollapsePosition === 'header'
+            ? parsed.menuCollapsePosition
+            : ('header' as ProjectMenuCollapsePos);
+
+        this.$patch({
+          systemThemeKey,
+          headerBg: typeof parsed.headerBg === 'string' ? parsed.headerBg : DEFAULT_HEADER_BG,
+          menuBg: typeof parsed.menuBg === 'string' ? parsed.menuBg : DEFAULT_MENU_BG,
+          menuCollapsePosition: collapse,
+          showTabs: typeof parsed.showTabs === 'boolean' ? parsed.showTabs : true,
+          grayscale: Boolean(parsed.grayscale),
+          colorWeak: Boolean(parsed.colorWeak),
+        });
+        WeiTheme.theme = this.systemThemeKey;
+        this.applyDomEffects();
+      } catch {
+        this.resetToDefaults();
+      }
     },
   },
 

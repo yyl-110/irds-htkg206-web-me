@@ -638,5 +638,49 @@ export class AdminApiSystemUser {
       CommonResultLongModel
     );
   
+    /**
+   * 保存前端样式配置信息
+   *
+   * @tags 保存前端样式配置信息
+   * @name save-page-style
+   * @summary 保存前端样式配置信息
+   * @request GET:/system-service/system/auth/savePageStyle
+   * @secure
+   */
+  static savePageStyle =  <Req extends {} = {}>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultLongModel, any>(
+      {
+        path: `/system-service/system/epc-user/save-page-style`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultLongModel
+    );
+  
+  
+  /**
+   * 保存前端样式配置信息
+   *
+   * @tags 保存前端样式配置信息
+   * @name get-page-style
+   * @summary 保存前端样式配置信息
+   * @request GET:/system-service/system/auth/getPageStyle
+   * @secure
+   */
+  /** @param query 需包含 userId */
+  static getPageStyle = (query: { userId: number | string }, params: RequestParams = {}) =>
+    httpClient.request<any, any>(
+      {
+        path: `/system-service/system/epc-user/get-page-style`,
+        method: 'GET',
+        query,
+        secure: true,
+        ...params,
+      },
+    );
+  
+  
     
 }

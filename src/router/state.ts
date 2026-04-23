@@ -2,6 +2,7 @@ import { shallowRef } from 'vue';
 import type { Router } from 'vue-router';
 import { router } from '.';
 import appStore from '@/store';
+import { useProjectUiStore } from '@/store/modules/layout/projectUi';
 
 /** 主页地址 */
 export const HOME_PAGE_ROUTE_NAME: string = '/home/workbench';
@@ -38,6 +39,8 @@ export async function updateUserData(router: Router, forceUpdate: boolean = !upd
   const permissionStore = appStore.usePermissionStore;
   // isRelogin.show = true
   await userStore.setUserInfoAction(forceUpdate);
+  const projectUi = useProjectUiStore();
+  await projectUi.hydratePageStyleFromServer(Number(userStore.user?.id) || 0);
   // isRelogin.show = false
   // 后端过滤菜单
   await permissionStore.generateRoutes(forceUpdate);
