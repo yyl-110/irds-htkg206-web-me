@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { Pane, Splitpanes } from 'splitpanes';
+import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 type FlowNode = {
   bpmnElementId?: string;
@@ -164,7 +165,11 @@ function onSplitpanesResized(panes: any[]) {
 const leftToggleStyle = computed(() => {
   const top = '50%';
   if (leftCollapsed.value) {
-    return { left: '2px', top, transform: 'translateY(-50%)' };
+    return {
+      left: SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT,
+      top,
+      transform: 'translate(-50%, -50%)',
+    };
   }
   return { left: `${leftPaneSize.value}%`, top, transform: 'translate(-50%, -50%)' };
 });
@@ -186,8 +191,10 @@ if (workspaceData.value?.currentBpmnElementId) {
 </script>
 
 <template>
-  <div class="workspace-page splitpanes-tree-collapse-wrap">
-    <Splitpanes class="default-theme workspace-splitpanes" @resized="onSplitpanesResized">
+  <div
+    class="workspace-page splitpanes-tree-collapse-wrap"
+    :class="{ 'splitpanes-tree-collapse-wrap--left-collapsed': leftCollapsed }">
+    <Splitpanes class="default-theme workspace-splitpanes" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
       <Pane :size="leftPaneSize" :min-size="leftCollapsed ? 0 : minExpanded" class="workspace-left">
         <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
       </Pane>

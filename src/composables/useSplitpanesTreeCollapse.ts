@@ -1,5 +1,8 @@
 import { computed, ref } from 'vue';
 
+/** default-theme 竖向分隔条宽约 7px，折叠后按钮中心对齐在分隔条中线上 */
+export const SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT = '3.5px';
+
 export interface UseSplitpanesTreeCollapseOptions {
   /** 初始与展开恢复的左侧占比 */
   defaultSize?: number;
@@ -26,6 +29,7 @@ export function useSplitpanesTreeCollapse(options: UseSplitpanesTreeCollapseOpti
     leftTreeCollapsed.value ? 100 : Math.max(0, 100 - treePaneSize.value),
   );
 
+  /** 拖拽中（@resize）与结束（@resized）均需同步，否则折叠按钮不会跟分割线移动 */
   function onSplitpanesResized(panes: any[]) {
     if (leftTreeCollapsed.value) return;
     const p0 = panes?.[0];
@@ -51,9 +55,9 @@ export function useSplitpanesTreeCollapse(options: UseSplitpanesTreeCollapseOpti
     const top = 'calc(50% + 32px)';
     if (leftTreeCollapsed.value) {
       return {
-        left: '2px',
+        left: SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT,
         top,
-        transform: 'translateY(-50%)',
+        transform: 'translate(-50%, -50%)',
       };
     }
     return {
@@ -62,6 +66,11 @@ export function useSplitpanesTreeCollapse(options: UseSplitpanesTreeCollapseOpti
       transform: 'translate(-50%, -50%)',
     };
   });
+
+  const splitpanesTreeCollapseWrapClass = computed(() => ({
+    'splitpanes-tree-collapse-wrap': true,
+    'splitpanes-tree-collapse-wrap--left-collapsed': leftTreeCollapsed.value,
+  }));
 
   return {
     leftTreeCollapsed,
@@ -73,5 +82,6 @@ export function useSplitpanesTreeCollapse(options: UseSplitpanesTreeCollapseOpti
     onSplitpanesResized,
     toggleLeftTreePanel,
     splitToggleStyle,
+    splitpanesTreeCollapseWrapClass,
   };
 }
