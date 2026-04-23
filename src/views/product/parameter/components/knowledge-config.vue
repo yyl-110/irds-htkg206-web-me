@@ -65,6 +65,7 @@ const fetchFileList = async () => {
       currentPage: page.value.currentPage,
       pageSize: page.value.pageSize,
       userId: useUserStore().getUser.id,
+      isTextAttachment:0,
     };
     const res = await knowledgeQueryPage(params);
     if (res?.data.code === '0') {
@@ -101,6 +102,7 @@ const {
   onSplitpanesResized,
   toggleLeftTreePanel,
   splitToggleStyle,
+  splitpanesTreeCollapseWrapClass,
 } = useSplitpanesTreeCollapse({ defaultSize: 30 });
 
 const handleCurrentChange = (val: number, size: number) => {
@@ -186,8 +188,8 @@ defineExpose({
   <draggable-modal v-model:visible="visible" centered :title="$t('知识配置')" width="80%"
     :body-style="{ height: '80vh', padding: 0 }" @cancel="closeKnowledgeModal">
     <div style="min-height: 360px" class="w-full h-full">
-      <div class="splitpanes-tree-collapse-wrap h-full">
-        <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+      <div class="h-full" :class="splitpanesTreeCollapseWrapClass">
+        <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
           <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize"
             class="splitpane-cls marginstyle">
             <div class="h-full flex flex-col">

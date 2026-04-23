@@ -879,7 +879,7 @@ onMounted(() => {
   getMenuListData();
 });
 
-const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle } = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } = useSplitpanesTreeCollapse();
 </script>
 
 <template>
@@ -902,8 +902,8 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
     @cancel-select-tree-node="cancelSelectTreeNode1"
     @handle-select-tree-node="handleSelectTreeNode1" />
   <div class="drawerContent">
-    <div class="splitpanes-tree-collapse-wrap">
-      <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+    <div :class="splitpanesTreeCollapseWrapClass">
+      <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
           <a-spin :spinning="loadingTree" tip="加载中...">
             <Tree

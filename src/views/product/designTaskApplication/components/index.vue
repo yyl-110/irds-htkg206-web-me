@@ -441,14 +441,14 @@ async function handleChangeSelectKey(searchValue: string) {
   treeData.value = treeNodes;
 }
 
-const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle } = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } = useSplitpanesTreeCollapse();
 defineExpose({ initInfoList });
 </script>
 
 <template>
   <div class="drawerContent">
-    <div class="splitpanes-tree-collapse-wrap">
-      <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
+    <div :class="splitpanesTreeCollapseWrapClass">
+      <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
           <a-spin :spinning="loadingTree" tip="加载中...">
             <Tree

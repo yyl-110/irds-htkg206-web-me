@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons-vue'
 import type { Ref, VNode } from 'vue'
-import { computed, h, ref } from 'vue'
+import { computed, h, ref, watch } from 'vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 import type { LayoutSider } from 'ant-design-vue'
@@ -88,6 +88,8 @@ const ASIDE_DEFAULT_WIDTH = 240
 const ASIDE_MIN_WIDTH = 240
 /** 左侧 aside 最大宽度 */
 const ASIDE_MAX_WIDTH = 800
+/** 侧栏折叠宽度：略宽于仅图标，避免 55px 下 antd 内联菜单被裁切；Logo 在样式内等比缩小 */
+const SIDER_COLLAPSED_WIDTH = 64
 /** localStorage 存储的 Key */
 const ASIDE_WIDTH_STORAGE_KEY = 'asideWidth'
 
@@ -105,7 +107,17 @@ const asideWidth = computed({
   },
 })
 const asideWidthStyle = computed(() => `${asideWidth.value}px`)
-layoutStore.setAsideWidthStyle(asideWidthStyle.value)
+/** 业务里 marginLeft 等用的实际侧栏占位宽：折叠时用折叠宽 */
+const effectiveAsideWidthStyle = computed(() =>
+  collapsed.value ? `${SIDER_COLLAPSED_WIDTH}px` : asideWidthStyle.value,
+)
+watch(
+  effectiveAsideWidthStyle,
+  v => {
+    layoutStore.setAsideWidthStyle(v)
+  },
+  { immediate: true },
+)
 const asideResizing = ref(false)
 
 /**
@@ -173,11 +185,14 @@ onBeforeMount(() => {
         <a-layout-sider
           ref="asideRef"
           v-model:collapsed="collapsed"
+          :collapsedWidth="SIDER_COLLAPSED_WIDTH"
           :trigger="null"
           class="sider-wrapper p-0"
           :data-resizing="asideResizing"
           collapsible>
-          <aside class="sider-menu-scroll overflow-x-hidden pt-4">
+          <aside
+            class="sider-menu-scroll pt-4"
+            :class="collapsed ? 'overflow-x-visible' : 'overflow-x-hidden'">
             <div class="sider-header" style="cursor: pointer" v-if="!collapsed">
               <img class="sider-header-img" src="@/assets/zg_yt.png" />
               <div class="sider-header-text">{{ $t('机械设备快速设计系统') }}</div>
@@ -185,7 +200,7 @@ onBeforeMount(() => {
             <div v-else class="sider-header-collapsed">
               <img class="sider-header-collapsed-img" src="@/assets/zg_yt.png" />
             </div>
-            <WeiLayoutMenuSider :collapsed="true" />
+            <WeiLayoutMenuSider :collapsed="collapsed" />
           </aside>
         </a-layout-sider>
         <div
@@ -334,11 +349,16 @@ onBeforeMount(() => {
   }
   .sider-header-collapsed {
     display: flex;
+    flex-shrink: 0;
     justify-content: center;
     align-items: center;
+    overflow: visible;
     .sider-header-collapsed-img {
-      width: 55px;
-      height: 34px;
+      display: block;
+      width: 40px;
+      height: auto;
+      max-width: 100%;
+      object-fit: contain;
       aspect-ratio: 55/34;
     }
   }
@@ -362,6 +382,90 @@ onBeforeMount(() => {
   }
   &.ant-layout-sider-collapsed .resizable-bar {
     width: 0;
+  }
+
+  /* 折叠：一级仅图标，行内水平+垂直居中；勿改 .ant-menu-title-content 的 display */
+  &.ant-layout-sider-collapsed {
+    :deep(ul.ant-menu-inline-collapsed.ant-menu-root) {
+      text-align: center;
+    }
+    :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-item),
+    :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title) {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    :deep(
+      .ant-menu-inline-collapsed.ant-menu-root
+        > .ant-menu-item
+        .ant-menu-item-icon,
+      .ant-menu-inline-collapsed.ant-menu-root
+        > .ant-menu-submenu
+        > .ant-menu-submenu-title
+        .ant-menu-item-icon
+    ) {
+      position: static !important;
+      margin: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    /* antd 会给 .anticon 内联 margin-left 做“居中”，与当前 :collapsedWidth 不一致时偏移，须清掉 */
+    :deep(.ant-menu-inline-collapsed.ant-menu-root .ant-menu-item-icon .anticon),
+    :deep(.ant-menu-inline-collapsed.ant-menu-root .ant-menu-item-icon span[role='img']),
+    :deep(
+      .ant-menu-inline-collapsed.ant-menu-root
+        > .ant-menu-submenu
+        > .ant-menu-submenu-title
+        .ant-menu-item-icon
+        .anticon
+    ),
+    :deep(
+      .ant-menu-inline-collapsed.ant-menu-root
+        > .ant-menu-submenu
+        > .ant-menu-submenu-title
+        .ant-menu-item-icon
+        span[role='img']
+    ) {
+      margin: 0 !important;
+      margin-left: 0 !important;
+      margin-inline: 0 !important;
+    }
+    :deep(
+      .ant-menu-inline-collapsed.ant-menu-root
+        > .ant-menu-submenu
+        > .ant-menu-submenu-title
+        .ant-menu-submenu-arrow
+    ) {
+      display: none;
+    }
+  }
+}
+
+/* 侧栏：展开时图标+文字垂直对齐；折叠时不能用 inline-flex 盖标题区（与 antd inlineCollapsed 冲突） */
+.sider-wrapper :deep(.ant-menu) {
+  .ant-menu-item-icon {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+  }
+}
+
+.sider-wrapper :deep(.ant-menu:not(.ant-menu-inline-collapsed)) {
+  .ant-menu-item,
+  .ant-menu-submenu-title {
+    display: flex !important;
+    align-items: center !important;
+  }
+  .ant-menu-title-content {
+    display: inline-flex !important;
+    align-items: center;
+    line-height: normal;
   }
 }
 
@@ -522,7 +626,37 @@ onBeforeMount(() => {
   color:#409EFF !important;
 }
 
+/* 仅左侧侧栏：有子项选中时父级仍为白字/白图标/浅白箭头（压过上方全局主色） */
+.sider-wrapper {
+  :deep(.ant-menu-submenu-selected) {
+    color: #fff !important;
+  }
+  :deep(.ant-menu-submenu-selected > .ant-menu-submenu-title) {
+    color: #fff !important;
+  }
+  :deep(.ant-menu-submenu-selected .ant-menu-item-icon),
+  :deep(.ant-menu-submenu-selected .anticon),
+  :deep(.ant-menu-submenu-selected .ant-menu-title-content) {
+    color: #fff !important;
+  }
+  :deep(.ant-menu-submenu-selected .anticon svg) {
+    fill: currentColor;
+  }
+  :deep(.ant-menu-submenu-selected .ant-menu-submenu-arrow) {
+    color: rgba(255, 255, 255, 0.88) !important;
+  }
+  :deep(.ant-menu-submenu-active) {
+    color: #fff !important;
+  }
+  :deep(.ant-menu-submenu-title:hover) {
+    color: #fff !important;
+  }
+  :deep(.ant-menu-submenu-active > .ant-menu-submenu-title) {
+    color: #fff !important;
+  }
+}
 
-
-
+// :deep(.anticon) {
+//     margin-left: 53px !important;
+//   }
 </style>
