@@ -447,7 +447,7 @@ const {
 </script>
 
 <template>
-  <div class="drawerContent">
+  <div class="drawerContent h-full">
     <div class="splitpanes-tree-collapse-wrap">
       <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">

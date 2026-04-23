@@ -254,13 +254,18 @@ service.interceptors.response.use(
     } else if (code === 1002000013) {
       return Promise.reject(response);
     }
-    // 6. 处理其他错误码
-    else if (Number(code) !== ResponseCode.Successfully && Number(code) !== ResponseCode.Unauthorized && Number(code) !== 0) {
+    // 6. 处理 401
+    else if (Number(code) === ResponseCode.Unauthorized) {
+      toLogin();
+      return Promise.reject(toResponseError(response, msg));
+    }
+    // 7. 处理其他错误码
+    else if (Number(code) !== ResponseCode.Successfully && Number(code) !== 0) {
       WeiMessage.error(WeiI18n.t(msg).value);
       // return Promise.reject(response)
       return Promise.reject(toResponseError(response, msg));
     }
-    // 7. 无错误
+    // 8. 无错误
     else {
       return response;
     }
@@ -312,7 +317,9 @@ service.interceptors.response.use(
       else if (message.includes('timeout')) message = '接口请求超时,请刷新页面重试!';
       else if (message.includes('Request failed with status code')) message = `请求出错,请稍候重试${message.substr(message.length - 3)}`;
       console.error('[axios interceptors]: error', message, isRefreshToken);
-      if (error.response.status !== 401) {
+      if (error.response && error.response.status === 401) {
+        toLogin();
+      } else if (error.response && error.response.status !== 401) {
         // WeiMessage.error(message);
       }
       // return Promise.reject(error)

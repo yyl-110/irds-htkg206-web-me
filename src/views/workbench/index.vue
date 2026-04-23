@@ -377,7 +377,7 @@ onUnmounted(() => {
                 <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
                   <template v-if="viewMode === 'grid'">
                     <a-row :gutter="[16, 16]">
-                      <a-col :span="12" v-for="item in mockTodoList" :key="item.id">
+                      <a-col flex="0 0 380px" style="width: 380px; max-width: 380px;" v-for="item in mockTodoList" :key="item.id">
                         <div class="task-card">
                           <div class="tc-header flex justify-between items-start">
                             <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">

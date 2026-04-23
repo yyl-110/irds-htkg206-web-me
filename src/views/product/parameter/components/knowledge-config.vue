@@ -148,14 +148,14 @@ const association = async (record: any) => {
       businessId: businessId.value,
       type: '1',
     }
-    
+
     let res;
     if (record.status === '未关联') {
       res = await AdminApiSystemParameter.parameterAssociation(params)
     } else if (record.status === '已关联') {
       res = await AdminApiSystemParameter.parameterCancelAssociation(params)
     }
-    
+
     if (res?.data?.code === '0' || res?.data?.code === 200) {
       message.success(record.status === '未关联' ? '关联成功' : '取消关联成功')
       fetchConfigData()
@@ -182,7 +182,7 @@ defineExpose({
 </script>
 <template>
   <draggable-modal v-model:visible="visible" centered :title="$t('知识配置')" width="80%"
-    :body-style="{ height: '80vh', padding: 0 }" :confirm-loading="knowledgeLoading" @cancel="closeKnowledgeModal">
+    :body-style="{ height: '80vh', padding: 0 }" @cancel="closeKnowledgeModal">
     <div style="min-height: 360px" class="w-full h-full">
       <div class="splitpanes-tree-collapse-wrap h-full">
         <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
@@ -222,7 +222,8 @@ defineExpose({
                     <span class="text-primary cursor-pointer text-[12px]" @click="preview(record)">预览</span>
                     <template v-if="['未关联', '已关联'].includes(record.status)">
                       <a-divider type="vertical" />
-                      <span :class="record.status === '未关联' ? 'text-primary' : 'text-red-500'" class="cursor-pointer text-[12px]" @click="association(record)">
+                      <span :class="record.status === '未关联' ? 'text-primary' : 'text-red-500'"
+                        class="cursor-pointer text-[12px]" @click="association(record)">
                         {{ record.status === '未关联' ? '关联' : '取消关联' }}
                       </span>
                     </template>
@@ -245,7 +246,7 @@ defineExpose({
     </div>
     <template #footer>
       <a-space>
-        <a-button type="primary" :loading="knowledgeLoading" @click="saveKnowledge">{{ $t('确定') }}</a-button>
+        <a-button type="primary" @click="closeKnowledgeModal">{{ $t('确定') }}</a-button>
         <a-button @click="closeKnowledgeModal">{{ $t('取消') }}</a-button>
       </a-space>
     </template>

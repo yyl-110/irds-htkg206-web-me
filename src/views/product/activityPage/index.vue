@@ -950,7 +950,7 @@ const {
 </script>
 
 <template>
-  <div class="drawerContent">
+  <div class="drawerContent h-full">
     <div class="splitpanes-tree-collapse-wrap">
     <!-- 左侧树结构 -->
     <Splitpanes class="default-theme sbom" @resized="onSplitpanesResized">
