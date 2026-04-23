@@ -191,11 +191,16 @@ const onClickMenuItem: MenuClickEventHandler = event => {
 </script>
 
 <template>
-  <a-menu v-model:open-keys="openKeys" v-model:selected-keys="selectedKeys" :mode="mode" @click="onClickMenuItem">
+  <a-menu
+    v-model:open-keys="openKeys"
+    v-model:selected-keys="selectedKeys"
+    :mode="mode"
+    :inline-collapsed="mode === 'inline' && collapsed"
+    @click="onClickMenuItem">
     <template v-for="(item, key) in menuRoutes" :key="key">
       <template v-if="isMenuRoute(item)">
-        <WeiLayoutSiderSubMenu v-if="item.children && item.children.length && item.children.some(subItem => !subItem.meta?.hidden)" :route="item" :collapsed="collapsed" />
-        <WeiLayoutSiderMenuItem v-else :route="item" :collapsed="collapsed" />
+        <WeiLayoutSiderSubMenu v-if="item.children && item.children.length && item.children.some(subItem => !subItem.meta?.hidden)" :route="item" />
+        <WeiLayoutSiderMenuItem v-else :route="item" />
       </template>
     </template>
   </a-menu>

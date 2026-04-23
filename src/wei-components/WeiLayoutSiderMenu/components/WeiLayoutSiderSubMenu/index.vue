@@ -6,7 +6,6 @@ import { WeiI18n } from '@/utils/WeiI18n';
 import { WeiIcon } from '@/wei-components';
 
 interface ComponentProps {
-  collapsed: boolean;
   route: RouteRecordNormalized;
 }
 
@@ -20,18 +19,17 @@ const label = WeiI18n.getRouteTitle(props.route.meta);
 <template>
   <a-sub-menu :key="route.path">
     <template #icon>
-      <div class="inline-block w-[16px]">
+      <div class="inline-flex w-5 flex-shrink-0 items-center justify-center self-center">
         <WeiIcon :size="20" :icon="route.meta?.icon" />
       </div>
     </template>
     <template #title>
-      <span v-if="collapsed" style="font-weight: 600">{{ label }}</span>
-      <!-- <WeiOverflowTooltip v-else :title="label" placement="right" /> -->
+      <span style="font-weight: 600">{{ label }}</span>
     </template>
 
     <template v-for="(item, key) in route.children" :key="key">
-      <wei-layout-sider-sub-menu v-if="item.children && item.children.some(subItem => !subItem.meta?.hidden)" :collapsed="collapsed" :route="item" />
-      <WeiLayoutSiderMenuItem v-else :collapsed="collapsed" :route="item" />
+      <wei-layout-sider-sub-menu v-if="item.children && item.children.some(subItem => !subItem.meta?.hidden)" :route="item" />
+      <WeiLayoutSiderMenuItem v-else :route="item" />
     </template>
   </a-sub-menu>
 </template>
