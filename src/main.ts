@@ -13,7 +13,6 @@ import { CkeditorPlugin } from '@ckeditor/ckeditor5-vue';
 import App from './App.vue';
 import '@/plugins/svgIcon';
 import requestPlugin from './plugins/request';
-import { WeiTheme } from './utils/WeiTheme';
 import { WeiI18n } from './utils/WeiI18n';
 import 'reflect-metadata';
 // import { includeWeiComponents } from './wei-components'
@@ -40,20 +39,10 @@ import { WeiVxe } from './plugins/vxe';
 import { router } from '@/router';
 import { setupAuth } from '@/directives/index';
 import { registerStore } from '@/store';
+import { useProjectUiStore } from '@/store/modules/layout/projectUi';
 
 import 'splitpanes/dist/splitpanes.css';
 import 'animate.css';
-import { useDark, useToggle } from '@vueuse/core';
-const isDark = useDark();
-// 强制锁定为亮色模式
-isDark.value = false;
-// 阻止系统设置覆盖
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  isDark.value = false;
-  location.reload();
-});
-/** 初始化应用主题色 */
-WeiTheme.init();
 
 const app = createApp(App);
 // const vConsole = new VConsole()
@@ -72,6 +61,7 @@ pinia.use(piniaPluginPersistedstate);
 WeiI18n.init(app);
 app.use(pinia);
 registerStore(); // 注册pinia状态库
+useProjectUiStore().applyDomEffects();
 app.use(router);
 app.use(Antd);
 app.use(Vant);

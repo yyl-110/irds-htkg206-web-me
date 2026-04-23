@@ -816,7 +816,7 @@ onUnmounted(() => {
   color: #fff;
   font-size: 12px;
   cursor: pointer;
-  background: #124dd6;
+  background: var(--ant-primary-color);
   z-index: 10;
 }
 

@@ -1,0 +1,73 @@
+/* 项目配置：顶栏背景随「顶栏主题」--project-header-bg（勿用 bg-layout-header 以免被 Tailwind 覆盖） */
+.main-root-layout .ant-layout-header.collapsed-header {
+  background: var(--project-header-bg, #fff) !important;
+  color: var(--project-header-fg, #1f2937);
+}
+
+.main-root-layout .sider-wrapper.ant-layout-sider {
+  background: var(--project-menu-bg, #1a3677) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 侧栏列与内容区之间、Logo 条下：去掉 Ant/浏览器默认阴影 */
+.main-root-layout .sider-column-wrap {
+  box-shadow: none !important;
+}
+
+.main-root-layout .sider-wrapper .ant-layout-sider-children {
+  box-shadow: none !important;
+}
+
+.main-root-layout .sider-wrapper .sider-header {
+  box-shadow: none !important;
+}
+
+.project-ui-top-menu-wrap[data-align='center'] {
+  justify-content: center;
+}
+
+.project-ui-top-menu-wrap[data-align='right'] {
+  justify-content: flex-end;
+}
+
+.project-ui-top-menu-wrap[data-align='left'] {
+  justify-content: flex-start;
+}
+
+html.project-ui-grayscale {
+  filter: grayscale(1);
+}
+
+html.project-ui-color-weak {
+  filter: invert(0.82) hue-rotate(-180deg);
+}
+
+.layout-breadcrumb-bar {
+  flex: 0 0 auto;
+  padding: 6px 16px 0;
+  background: #fff;
+  border-bottom: 1px solid #e7eaee;
+}
+
+.project-ui-ai-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 80px;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ant-primary-color);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.main-root-layout--sider-right {
+  flex-direction: row-reverse !important;
+}

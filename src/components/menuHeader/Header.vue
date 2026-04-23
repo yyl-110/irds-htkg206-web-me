@@ -10,6 +10,7 @@ import {
   NotificationOutlined,
   PoweroffOutlined,
   ScheduleOutlined,
+  SettingOutlined,
   SwapOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue'
@@ -23,10 +24,10 @@ import type { MenuClickEventHandler } from 'ant-design-vue/lib/menu/src/interfac
 import type { AntdIconProps } from '@ant-design/icons-vue/lib/components/AntdIcon'
 import AntDVZhCN from 'ant-design-vue/es/locale/zh_CN'
 import vxeZhCN from 'vxe-pc-ui/lib/language/zh-CN'
+import ProjectSettingsDrawer from '@/components/project-settings/ProjectSettingsDrawer.vue'
 import { useLayoutStore } from '@/store/modules/layout/layout'
+import { useProjectUiStore } from '@/store/modules/layout/projectUi'
 import { useUserStore } from '@/store/modules/user'
-import type { WeiThemeKey } from '@/utils/WeiTheme'
-import { WeiTheme } from '@/utils/WeiTheme'
 import appStore from '@/store'
 import { Locales, WeiI18n } from '@/utils/WeiI18n'
 import { toLogin } from '@/httpRequest'
@@ -38,6 +39,11 @@ import { debounce } from '@/hooks/useDebonce'
 import { AdminApiSystemLanguage } from '@/api/tags/管理后台多语言'
 import { removeWatermark } from '@/utils/watermark'
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
+
+defineOptions({
+  /** 多根节点时父级传入的 class（如 ml-auto）不会合并，须单根承接 $attrs */
+  inheritAttrs: false,
+})
 
 const timer = ref<any>(null)
 const isTaskMessage = ref<boolean>(false)
@@ -106,9 +112,8 @@ function handleFunction() {
 const userStore = useUserStore()
 const userName = ref(userStore.getUser.userName)
 
-const themes = WeiTheme.Themes
-const isDark = WeiTheme.isDark
 const languages = ref([])
+const projectUi = useProjectUiStore()
 const $router = useRouter()
 
 const layoutStore = useLayoutStore()
@@ -324,45 +329,46 @@ function showOnLineUser() {
 </script>
 
 <template>
-  <div class="w-[100%] h-[52px] flex justify-between text-left px-3" style="flex: 1">
-    <div style="margin-top: -5px;"></div>
-    <div style="margin-top: -5px;">
-
-      <EpcIcon type="icon-icon-xuqiu-yanshouguanli" style="font-size: 16px; color: #313133" />
-      <span class="header-menu-text-name">&nbsp;&nbsp;陈颖琴（86291）&nbsp;&nbsp;|&nbsp;&nbsp;信息化</span>
-      <span style="margin-left: 50px">
-        <img class="h-[40px]" src="@/assets/images/miji.png" />
-      </span>
-    </div>
-    <div class="flex items-center space-x-1">
-      <div v-if="layoutStore.systemType === 'system'" class="header-menu-container" @click="showOnLineUser()">
-        <span class="header-menu-text">当前&nbsp;<span style="color: #124DD6;" ><b>{{onLineNum}}</b></span>&nbsp;{{ $t('人在线') }}</span>
+  <div v-bind="$attrs" class="project-header-root">
+  <div class="project-header-inner project-header-inner--bar project-header-inner--3col">
+    <div class="project-header-center">
+      <div class="project-header-center-inner flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        <div class="project-header-cluster__user flex min-w-0 items-center gap-2">
+          <EpcIcon type="icon-icon-xuqiu-yanshouguanli" class="header-bar-icon shrink-0" style="font-size: 16px" />
+          <span class="header-menu-text-name whitespace-nowrap">陈颖琴（86291）| 信息化</span>
+        </div>
+        <div class="project-header-cluster__stamp flex shrink-0 items-center">
+          <img class="header-miji-img" src="@/assets/images/miji.png" alt="" />
+        </div>
       </div>
-      <div>
-        <div class="online-user" />
-        <a-badge :count="badgeNum" :overflow-count="99" style="margin-left: 10px">
+    </div>
+    <div class="project-header-right">
+      <div
+        v-if="layoutStore.systemType === 'system'"
+        class="header-menu-container shrink-0"
+        @click="showOnLineUser()">
+        <span class="header-menu-text">当前&nbsp;<b>{{ onLineNum }}</b>&nbsp;{{ $t('人在线') }}</span>
+      </div>
+      <div class="project-header-right-actions flex shrink-0 items-center gap-1">
+        <a-badge :count="badgeNum" :overflow-count="99" class="header-bell-badge">
           <EpcIcon
             type="icon-lingdang1"
+            class="header-bar-icon header-bar-icon--bell"
             title="消息提醒"
-            style="font-size: 20px; margin-top: 22px; margin-left: 5px"
             @click="getTaskMessageList(true)" />
         </a-badge>
-      </div>
-
-      <!-- 功能模块 -->
-      <div class="button-group flex space-x-5 items-center">
-        <span class="vertical-line" />
+        <a-button type="text" class="header-settings-btn" title="样式配置" @click="projectUi.openSettings()">
+          <SettingOutlined class="header-bar-icon" />
+        </a-button>
+        <span v-if="layoutStore.systemType === 'system'" class="vertical-line" />
         <a-dropdown v-if="layoutStore.systemType === 'system'" @click.prevent>
-          <!-- 竖线分隔符 -->
-
-          <a-button type="text" style="height: 100%; margin-left: 5px !important; padding: 0 10px">
-            <div class="flex items-center space-x-2 cursor-pointer">
+          <a-button type="text" class="header-user-dropdown-btn">
+            <div class="flex cursor-pointer items-center gap-2">
               <a-badge :dot="messageFlag">
                 <a-avatar class="bg-img-avatar">
                   <!-- {{ userName.substring(0, 1) }} -->
                 </a-avatar>
               </a-badge>
-              <!-- class="text-secondary" -->
               <div class="header-userName">
                 {{ $t(userName) }}
               </div>
@@ -387,7 +393,8 @@ function showOnLineUser() {
         </a-dropdown>
       </div>
     </div>
-    <a-drawer
+  </div>
+  <a-drawer
       title="消息提醒"
       placement="right"
       :closable="false"
@@ -400,7 +407,6 @@ function showOnLineUser() {
         <a-divider v-if="taskMessage.length > 0" />
       </div>
     </a-drawer>
-  </div>
   <!-- 弹窗显示在线用户列表-->
   <a-drawer
     title="当前在线用户"
@@ -419,11 +425,116 @@ function showOnLineUser() {
        />
     </div>
     </a-drawer>
+  <ProjectSettingsDrawer />
+  </div>
 </template>
 
 <style lang="less" scoped>
-:deep(.ant-badge .anticon) {
-  margin-top: 5px !important;
+.project-header-root {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--project-header-bg, #fff);
+}
+.project-header-inner {
+  color: var(--project-header-fg, #1f2937);
+}
+.project-header-inner--bar {
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+/** 与 Main 顶栏左侧折叠按钮配合：中间区居中、右侧区贴右 */
+.project-header-inner--3col {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 16px;
+  width: 100%;
+}
+.project-header-center {
+  display: flex;
+  min-width: 0;
+  justify-content: center;
+  justify-self: stretch;
+}
+.project-header-center-inner {
+  max-width: 100%;
+}
+.project-header-right {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 12px;
+}
+.project-header-right-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+}
+.header-miji-img {
+  display: block;
+  height: 36px;
+  width: auto;
+}
+.header-bell-badge {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+.header-user-dropdown-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center;
+  height: auto !important;
+  margin-left: 4px !important;
+  padding: 0 8px !important;
+  color: var(--project-header-fg, #1f2937) !important;
+}
+.header-user-dropdown-btn:hover,
+.header-user-dropdown-btn:focus-visible {
+  color: var(--project-header-fg, #1f2937) !important;
+  opacity: 0.88;
+}
+.header-bar-icon {
+  color: var(--project-header-fg, #1f2937) !important;
+  font-size: 16px;
+}
+.header-bar-icon--bell {
+  font-size: 20px;
+}
+.project-header-inner :deep(.header-bar-icon svg),
+.project-header-inner :deep(.header-bar-icon use) {
+  fill: currentColor;
+}
+.header-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 6px;
+  color: var(--project-header-fg, #1f2937);
+}
+.project-header-inner :deep(.ant-btn-text) {
+  color: var(--project-header-fg, #1f2937);
+}
+.project-header-inner :deep(.ant-btn-text:hover) {
+  color: var(--project-header-fg, #1f2937);
+  opacity: 0.85;
+}
+.header-bell-badge :deep(.ant-badge) {
+  line-height: 0;
 }
 @button-size: 32px;
 .header-icon {
@@ -432,7 +543,7 @@ function showOnLineUser() {
   height: @button-size;
 }
 .header-menu-text-name {
-  color: var(--Color-, #313133);
+  color: var(--project-header-fg, #1f2937);
   font-family: 'PingFang SC';
   font-size: 14px;
   font-style: normal;
@@ -449,7 +560,7 @@ function showOnLineUser() {
     line-height: 11px;
   }
   .header-menu-text {
-    color: var(--Color-, #313133);
+    color: var(--project-header-fg, #1f2937);
     font-family: 'Source Sans 3';
     font-size: 14px;
     font-style: normal;
@@ -472,7 +583,7 @@ function showOnLineUser() {
   }
 }
 .header-userName {
-  color: var(--Color-, #313133);
+  color: var(--project-header-fg, #1f2937);
   font-family: 'Source Sans 3';
   font-size: 14px;
   font-style: normal;
@@ -561,12 +672,14 @@ function showOnLineUser() {
 /* 竖线样式 */
 .vertical-line {
   width: 1px;
-  height: 30px; /* 竖线高度，和头像匹配 */
-  background-color: #0e44ae; /* 浅灰色，可改 */
-  margin-left: 10px;
+  height: 22px;
+  flex-shrink: 0;
+  align-self: center;
+  background-color: var(--project-header-divider, rgba(15, 23, 42, 0.12));
+  margin: 0 4px 0 8px;
 }
 
 :deep(.ant-layout-header) {
-  line-height: 52px !important;
+  line-height: normal !important;
 }
 </style>

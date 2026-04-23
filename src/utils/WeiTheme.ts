@@ -20,6 +20,8 @@ export enum WeiThemeKey {
   cyan = 'cyan',
   /** 极致蓝 */
   brand = 'brand',
+  /** 经典蓝（#124dd6，应用默认主色） */
+  deepBlue = 'deepBlue',
   /** 暗夜紫 */
   purple = 'purple',
   /** 品红 */
@@ -61,7 +63,7 @@ export class WeiTheme {
   static THEME_LOCALSTORAGE_KEY: string = 'wei-theme';
 
   /** 默认主题 key */
-  static DEFAULT_THEME_KEY: WeiThemeKey = WeiThemeKey.brand;
+  static DEFAULT_THEME_KEY: WeiThemeKey = WeiThemeKey.deepBlue;
 
   /** 当前主题 key */
   private static currentTheme: Ref<WeiThemeKey> = ref((localStorage.getItem(WeiTheme.THEME_LOCALSTORAGE_KEY) as WeiThemeKey | null) || WeiTheme.DEFAULT_THEME_KEY);
@@ -170,6 +172,7 @@ export class WeiTheme {
   }
 
   static readonly Themes: Record<keyof typeof WeiThemeKey, WeiTheme> = {
+    deepBlue: new WeiTheme(WeiThemeKey.deepBlue, '经典蓝', '应用默认', { primaryColor: '#124dd6' }),
     brand: new WeiTheme(WeiThemeKey.brand, '极致蓝', '探索钻研', { primaryColor: '#165DFF' }),
     red: new WeiTheme(WeiThemeKey.red, '浪漫红', '斗志奔放', { primaryColor: '#F53F3F' }),
     orange: new WeiTheme(WeiThemeKey.orange, '活力橙', '温暖欢快', { primaryColor: '#FF8D1F' }),

@@ -681,13 +681,13 @@ defineExpose({ createNewDiagram, createNewDiagramNew });
 .top-btn {
   width: 64px;
   height: 25px;
-  background-color: #1890ff;
+  background-color: var(--ant-primary-color);
   color: #fff;
   border-radius: 0;
   border: none;
 
   &:hover {
-    background-color: #40a9ff;
+    filter: brightness(1.12);
   }
 }
 

@@ -912,7 +912,7 @@ defineExpose({ handleModalAdd, handleModalUpdate });
   top: 6px;
   width: 4px;
   height: 18px;
-  background: linear-gradient(180deg, #1890ff, #2db7f5);
+  background: var(--ant-primary-color);
   border-radius: 2px;
 }
 

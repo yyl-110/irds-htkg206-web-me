@@ -124,7 +124,7 @@ async function removeTab(key: string = '') {
   if (tabs.value.length === 1) return;
 
   const index = tabs.value.findIndex(tab => tab.tabKey === key);
-  if (index < -1) return;
+  if (index < 0) return;
 
   const tab = tabs.value[index];
   tabs.value.splice(index, 1);

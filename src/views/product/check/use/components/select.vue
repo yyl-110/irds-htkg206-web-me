@@ -542,7 +542,7 @@ const clearData = () => {
   border: none !important;
 }
 .bgc {
-  background-color: #1890ff !important;
+  background-color: var(--ant-primary-color) !important;
   color: #fff !important;
 }
 .disBgc:hover {
@@ -551,7 +551,7 @@ const clearData = () => {
   border: none !important;
 }
 .bgc:hover {
-  background-color: #1890ff !important;
+  background-color: var(--ant-primary-color) !important;
   color: #fff !important;
 }
 

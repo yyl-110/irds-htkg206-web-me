@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { RouteRecord, RouteRecordRaw } from 'vue-router';
 import { useRoute, useRouter } from 'vue-router';
 import type { MenuClickEventHandler } from 'ant-design-vue/lib/menu/src/interface';
@@ -7,6 +7,7 @@ import type { MenuProps } from 'ant-design-vue';
 import WeiLayoutSiderMenuItem from './components/WeiLayoutSiderMenuItem/index.vue';
 import WeiLayoutSiderSubMenu from './components/WeiLayoutSiderSubMenu/index.vue';
 import appStore from '@/store';
+import { useProjectUiStore } from '@/store/modules/layout/projectUi';
 import { encryptValue } from '@/utils';
 import { generateRandomNumberByTime } from '@/utils/tools';
 type MenuRoute = RouteRecord | RouteRecordRaw;
@@ -106,8 +107,9 @@ const menuRoutes = ref(getMenuRoutes());
 
 const selectedKeys = ref<string[]>([route.path]);
 
-/** 菜单栏是否显示在顶部(默认显示在左侧) */
-const menuPosition: 'top' | 'left' = import.meta.env.VITE_APP_MENU_POSITION || 'left';
+const projectUi = useProjectUiStore();
+/** 菜单栏位置（项目配置优先，其次构建时环境变量） */
+const menuPosition = computed<'top' | 'left'>(() => projectUi.menuPositionForRoutes);
 const openKeys = ref<string[]>(['10']);
 
 /** 在菜单树中查找目标 path，返回需展开的父级 path（不含叶子自身） */
@@ -153,7 +155,7 @@ function initMenuState() {
     }
   }
 
-  if (menuPosition === 'left') {
+  if (menuPosition.value === 'left') {
     const useMenuHighlight =
       !!metaActiveMenu || (r.name === 'ProductProjectEditor' && typeof r.query.activeMenu === 'string' && r.query.activeMenu.length > 0);
     if (useMenuHighlight) {
@@ -169,7 +171,8 @@ function initMenuState() {
 initMenuState();
 
 watch(
-  () => [route.path, route.fullPath, route.name, route.query.activeMenu, route.meta?.activeMenu] as const,
+  () =>
+    [route.path, route.fullPath, route.name, route.query.activeMenu, route.meta?.activeMenu, menuPosition.value] as const,
   () => initMenuState(),
 );
 

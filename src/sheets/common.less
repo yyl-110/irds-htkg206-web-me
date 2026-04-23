@@ -15,10 +15,11 @@
   --main-operation5-width: 250; //   操作列宽度------(查看、编辑、删除、开关)------------    5个操作按钮
   --main-operation6-width: 380; //   操作列宽度------(查看、编辑、删除、开关、提交、驳回、变更)------------    6个操作按钮
 
-  --ant-primary-color: #124dd6 !important; // ant主题色
-  --ant-primary-color-hover: #124dd6 !important;
-  --ant-primary-color-active: #124dd6 !important;
-  --ant-primary-5: #124dd6 !important;
+  /** Ant 主色（Primary 按钮等）：随「样式配置 → 系统主题」注入的 --project-system-primary 变化（见 projectUi.applyDomEffects） */
+  --ant-primary-color: var(--project-system-primary, #124dd6) !important;
+  --ant-primary-color-hover: var(--project-system-primary, #124dd6) !important;
+  --ant-primary-color-active: var(--project-system-primary, #124dd6) !important;
+  --ant-primary-5: var(--project-system-primary, #124dd6) !important;
 
   // --ant-primary-color: #1677FF!important; // ant主题色
   // --ant-primary-color-hover: #1677FF!important;
