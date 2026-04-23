@@ -64,6 +64,7 @@ const fetchFileList = async () => {
       currentPage: page.value.currentPage,
       pageSize: page.value.pageSize,
       userId: useUserStore().getUser.id,
+      isTextAttachment:0,
     };
     const res = await knowledgeQueryPage(params);
     if (res?.data.code === '0') {
