@@ -211,13 +211,13 @@ onBeforeMount(() => {
           :data-resizing="asideResizing"
           collapsible>
           <aside
-            class="sider-aside-column flex h-full min-h-0 flex-col bg-[var(--project-menu-bg,#1a3677)] pt-4"
+            class="sider-aside-column flex h-full min-h-0 flex-col bg-[var(--project-menu-bg,#1a3677)]"
             :class="collapsed ? 'overflow-x-visible' : 'overflow-x-hidden'">
-            <div class="sider-header" style="cursor: pointer" v-if="!collapsed">
+            <div class="sider-header items-center h-[64px]" style="cursor: pointer" v-if="!collapsed">
               <img class="sider-header-img" src="@/assets/zg_yt.png" />
               <div class="sider-header-text">{{ $t('机械设备快速设计系统') }}</div>
             </div>
-            <div v-else class="sider-header-collapsed">
+            <div v-else class="sider-header-collapsed h-[64px]">
               <img class="sider-header-collapsed-img" src="@/assets/zg_yt.png" />
             </div>
             <div class="sider-menu-scroll min-h-0 flex-1">
@@ -435,12 +435,12 @@ onBeforeMount(() => {
     }
     :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-item),
     :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title) {
-      display: flex !important;
+       // display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       width: 100% !important;
       margin: 0 !important;
-      padding: 0 !important;
+      // padding: 0 !important;
     }
     :deep(
       .ant-menu-inline-collapsed.ant-menu-root
