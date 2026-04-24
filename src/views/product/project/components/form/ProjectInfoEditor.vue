@@ -9,6 +9,7 @@ import localeA from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
 import ProjectBasicInfoTab from './ProjectBasicInfoTab.vue';
 import ProjectTeamTab from './ProjectTeamTab.vue';
+import ProjectTaskWbsPanel from './ProjectTaskWbsPanel.vue';
 
 const PROJECT_EDITOR_DRAFT_KEY = 'project-info-editor-draft';
 const PROJECT_LIST_REFRESH_FLAG = 'project-info-list-refresh';
@@ -217,6 +218,9 @@ async function getProjectInfo() {
         </a-tab-pane>
         <a-tab-pane v-if="projectId" key="2" :tab="$t('项目团队')">
           <ProjectTeamTab ref="projectTeamRef" :project-id="projectId" />
+        </a-tab-pane>
+        <a-tab-pane v-if="projectId" key="3" :tab="$t('任务管理')">
+          <ProjectTaskWbsPanel v-if="projectFormTab === '3'" :project-id="projectId" />
         </a-tab-pane>
       </a-tabs>
     </a-card>
