@@ -7,10 +7,14 @@ import { Pane, Splitpanes } from 'splitpanes';
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import ProcessFlowAppNodePreview from './process-flow-app-node-preview.vue';
+import ProcessFlowAppCheckNodePreview from './process-flow-app-check-node-preview.vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 type FlowNode = {
   bpmnElementId?: string;
   nodeName?: string;
+  activityType?: string | number;
+  pageType?: string | number;
+  type?: string | number;
   parentBpmnElementId?: string;
   nodeStatus?: string;
   activityPageId?: string;
@@ -126,6 +130,17 @@ const currentActivityIndex = computed(() => orderedActivityNodeKeys.value.findIn
 const canGoPrev = computed(() => currentActivityIndex.value > 0);
 const canGoNext = computed(() => currentActivityIndex.value >= 0 && currentActivityIndex.value < orderedActivityNodeKeys.value.length - 1);
 const isLastActivity = computed(() => currentActivityIndex.value >= 0 && currentActivityIndex.value === orderedActivityNodeKeys.value.length - 1);
+const selectedNodeActivityType = computed(() => {
+  const raw = selectedNode.value || {};
+  const detail = nodeDetailData.value || {};
+  const v = raw?.activityType ?? raw?.pageType ?? raw?.type ?? detail?.activityType ?? detail?.pageType ?? detail?.type;
+  return String(v ?? '').trim();
+});
+const isCalcNodePreview = computed(() => {
+  if (selectedNodeActivityType.value === '2') return true;
+  const nodeName = String(nodeDetailData.value?.nodeName ?? selectedNode.value?.nodeName ?? '').trim();
+  return nodeName.includes('计算');
+});
 
 const selectedNodeTitle = computed(() => {
   const detailName = String(nodeDetailData.value?.nodeName ?? '').trim();
@@ -275,7 +290,12 @@ void initDefaultSelectedNode();
       <Pane :size="centerPaneSize" :min-size="20" class="workspace-center">
         <div class="workspace-center-body">
           <a-spin :spinning="nodeDetailLoading" class="workspace-center-spin">
-            <ProcessFlowAppNodePreview :components-json="nodeDetailData?.componentsJson" :saved-param-values="nodeDetailData?.savedParamValues" />
+            <ProcessFlowAppCheckNodePreview
+              v-if="isCalcNodePreview"
+              :components-json="nodeDetailData?.componentsJson"
+              :saved-param-values="nodeDetailData?.savedParamValues"
+              :node-detail-data="nodeDetailData" />
+            <ProcessFlowAppNodePreview v-else :components-json="nodeDetailData?.componentsJson" :saved-param-values="nodeDetailData?.savedParamValues" />
           </a-spin>
         </div>
         <div class="workspace-center-footer">
