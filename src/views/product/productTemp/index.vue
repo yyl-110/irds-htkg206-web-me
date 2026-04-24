@@ -11,9 +11,11 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import ProductTempAddOrUpdate from './components/productTemp-addorupdate.vue';
+import WbsModal from './components/WbsModal.vue';
 import Empty from '@/components/Empty/index.vue';
 import { sortermethod } from '@/utils/tools';
 const addOrUpdateModel = ref<any>(null);
+const wbsModalRef = ref<any>(null);
 
 const userStore = useUserStore();
 const loading = ref<boolean>(false);
@@ -446,12 +448,17 @@ function customGetContainer() {
                 @confirm.stop.prevent="goBackPushFun(record.id)">
                 <a href="#" @click.prevent>{{ $t('撤销') }}</a>
               </a-popconfirm>
-              <span class="calc-operation-links__static calc-operation-links__wbs-link">{{ $t('浏览WBS结构') }}</span>
+              <span
+                class="calc-operation-links__static calc-operation-links__wbs-link"
+                style="cursor: pointer"
+                @click.stop="wbsModalRef?.show(record.tempName)"
+              >{{ $t('浏览WBS结构') }}</span>
             </div>
           </template>
         </template>
         </a-table>
         <ProductTempAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
+        <WbsModal ref="wbsModalRef" />
       </a-card>
     </div>
     <div class="productTemp-index" v-dragModal>
