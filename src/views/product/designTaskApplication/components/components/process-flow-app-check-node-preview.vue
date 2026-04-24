@@ -170,6 +170,27 @@ function buildReportOutputPayload() {
   return { reportFileId, reportValue };
 }
 
+function getCurrentSaveParamValues() {
+  const detail = props.nodeDetailData || {};
+  const activityPageId = detail?.activityPageId != null ? Number(detail.activityPageId) : undefined;
+  const bpmnElementId = String(detail?.bpmnElementId ?? '').trim();
+  return previewList.value
+    .map((item: any, index: number) => {
+      const paramKey = String(item?.paramKey ?? item?.paramCode ?? '').trim();
+      if (!paramKey) return null;
+      const key = getPreviewItemKey(item, index);
+      const paramValue = String(previewFieldValueMap.value[key] ?? item?.paramValue ?? '');
+      return {
+        activityPageId,
+        bpmnElementId,
+        paramKey,
+        paramName: String(item?.paramName ?? ''),
+        paramValue,
+      };
+    })
+    .filter(Boolean);
+}
+
 async function onReportOutputClick() {
   const params: any = buildReportOutputPayload();
   if (!params.reportFileId) {
@@ -232,6 +253,10 @@ watch(
   },
   { immediate: true, deep: true },
 );
+
+defineExpose({
+  getCurrentSaveParamValues,
+});
 </script>
 
 <template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { message } from 'ant-design-vue';
@@ -13,12 +13,15 @@ import { downloadFileFromStream } from '@/utils/file';
 const props = defineProps<{
   componentsJson?: Record<string, any> | null;
   savedParamValues?: any[] | null;
+  savedTables?: any[] | null;
 }>();
 
 const userStore = useUserStore();
 const previewFieldValueMap = ref<Record<string, string>>({});
 const radioPreviewValueMap = ref<Record<string, string>>({});
 const previewUploadFileMap = ref<Record<string, any[]>>({});
+const richTextEditorRefMap = ref<Record<string, any>>({});
+const richTextValueMap = ref<Record<string, string>>({});
 const previewTableCellMap = ref<Record<string, string>>({});
 const inputRangeBlurredMap = ref<Record<string, boolean>>({});
 const inputLastValidValueMap = ref<Record<string, string>>({});
@@ -610,7 +613,7 @@ function normalizeFixedTableColumnWidthCss(raw: unknown): string | undefined {
 }
 function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
   if (colIndex === 1) {
-    return { width: '100px', minWidth: '100px' } as Record<string, string>;
+    return { width: '55px', minWidth: '55px' } as Record<string, string>;
   }
   if (isWorkspaceTableOperationColumn(item, colIndex)) {
     const biz = String(item?.customProps?.tableBizType ?? '');
@@ -845,11 +848,256 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   previewUploadFileMap.value = { ...previewUploadFileMap.value, [key]: nextList };
 }
 
+async function onPreviewFileDownload(file: any) {
+  const fileId = String(file?.id ?? file?.response?.id ?? file?.uid ?? '').trim();
+  if (!fileId) {
+    message.warning('未找到文件ID，无法下载');
+    return;
+  }
+  try {
+    const stream = await AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any);
+    const saveName = String(file?.name ?? '下载文件').trim() || '下载文件';
+    downloadFileFromStream(stream, saveName);
+  } catch {
+    message.error('文件下载失败');
+  }
+}
+
+function bindRichTextEditorRef(item: any, index: number, inst: any) {
+  const key = getPreviewItemKey(item, index);
+  const nextInst = inst || null;
+  if (richTextEditorRefMap.value[key] === nextInst) return;
+  richTextEditorRefMap.value[key] = nextInst;
+}
+
+function normalizeUploadListFromSaved(savedValue: string) {
+  const s = String(savedValue ?? '').trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((row: any, idx: number) => ({
+          uid: String(row?.uid ?? row?.id ?? `${Date.now()}-${idx}`),
+          name: String(row?.name ?? row?.fileName ?? row?.oldFileName ?? '已上传文件'),
+          status: 'done',
+          id: String(row?.id ?? ''),
+          url: String(row?.url ?? row?.filePath ?? ''),
+        }))
+        .slice(-1);
+    }
+  } catch {
+    // ignore json parse errors
+  }
+  return [
+    {
+      uid: `${Date.now()}`,
+      name: s,
+      status: 'done',
+      id: '',
+      url: '',
+    },
+  ];
+}
+
+function parseThreeDValue(raw: unknown): { templateName?: string; modelName?: string; modelSelectName?: string } | null {
+  const s = String(raw ?? '').trim();
+  if (!s) return null;
+  try {
+    const parsed = JSON.parse(s);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return {
+      templateName: String((parsed as any)?.templateName ?? '').trim(),
+      modelName: String((parsed as any)?.modelName ?? '').trim(),
+      modelSelectName: String((parsed as any)?.modelSelectName ?? '').trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getCurrentComponentValue(item: any, index: number) {
+  const type = String(item?.componentType ?? '');
+  const key = getPreviewItemKey(item, index);
+  if (type === 'RADIO') {
+    return String(radioPreviewValueMap.value[key] ?? item?.paramValue ?? '');
+  }
+  if (type === 'RICH_TEXT') {
+    return String(richTextEditorRefMap.value[key]?.getData?.() ?? richTextValueMap.value[key] ?? item?.paramValue ?? '');
+  }
+  if (type === 'FILE') {
+    const list = previewUploadFileMap.value[key] || [];
+    if (!Array.isArray(list) || !list.length) return '';
+    return JSON.stringify(
+      list.map((f: any) => ({
+        id: String(f?.id ?? f?.response?.id ?? ''),
+        name: String(f?.name ?? ''),
+        url: String(f?.url ?? f?.response?.filePath ?? ''),
+      })),
+    );
+  }
+  if (type === '3D_VIEW') {
+    const templateName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'templateName')] ?? '');
+    const modelName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelName')] ?? '');
+    const modelSelectName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelSelectName')] ?? '');
+    const payload: Record<string, string> = {
+      templateName,
+      modelName,
+      modelSelectName,
+    };
+    const nonEmpty = Object.entries(payload).filter(([, v]) => String(v ?? '').trim() !== '');
+    if (nonEmpty.length > 1) {
+      return JSON.stringify({
+        threeDSubtype: String(item?.customProps?.threeDSubtype ?? ''),
+        ...Object.fromEntries(nonEmpty),
+      });
+    }
+    if (nonEmpty.length === 1) return String(nonEmpty[0][1]);
+    if (isModelSelect3DItem(item)) {
+      return String(item?.paramValue ?? '');
+    }
+    if (isTemplateBrowse3DItem(item) || isFixedTemplate3DItem(item)) {
+      return String(item?.paramValue ?? '');
+    }
+    return String(item?.paramValue ?? '');
+  }
+  return String(previewFieldValueMap.value[key] ?? item?.paramValue ?? '');
+}
+
+function getCurrentSaveParamValues() {
+  return previewList.value
+    .map((item: any, index: number) => {
+      const paramKey = String(item?.paramKey ?? item?.paramCode ?? '').trim();
+      if (!paramKey) return null;
+      return {
+        paramKey,
+        paramName: String(item?.paramName ?? ''),
+        paramValue: getCurrentComponentValue(item, index),
+      };
+    })
+    .filter(Boolean);
+}
+
+function toExcelColumnName(colIndex: number) {
+  let n = Math.max(1, Math.floor(colIndex));
+  let name = '';
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    name = String.fromCharCode(97 + r) + name;
+    n = Math.floor((n - 1) / 26);
+  }
+  return name;
+}
+
+function fromExcelColumnName(colName: string) {
+  const s = String(colName ?? '')
+    .trim()
+    .toLowerCase();
+  if (!s) return 0;
+  let n = 0;
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    if (code < 97 || code > 122) return 0;
+    n = n * 26 + (code - 96);
+  }
+  return n;
+}
+
+function applySavedTablesToPreviewMap(list: any[], tables: any[] | null | undefined) {
+  const nextMap: Record<string, string> = {};
+  const nextFileIdMap: Record<string, string> = {};
+  const tableList = Array.isArray(tables) ? tables : [];
+  if (!tableList.length) return { cellMap: nextMap, fileIdMap: nextFileIdMap };
+  const byComponentId = new Map<string, any>();
+  tableList.forEach((t: any) => {
+    const id = String(t?.componentId ?? '').trim();
+    if (id) byComponentId.set(id, t);
+  });
+  list.forEach((item: any, componentIndex: number) => {
+    if (String(item?.componentType ?? '') !== 'TABLE') return;
+    const componentId = String(item?.id ?? '').trim();
+    if (!componentId || !byComponentId.has(componentId)) return;
+    const table = byComponentId.get(componentId);
+    const rows = Array.isArray(table?.values) ? table.values : [];
+    if (!rows.length) return;
+    const totalCols = getWorkspaceTablePreviewColCount(item);
+    const dataCols: number[] = [];
+    for (let col = 1; col <= totalCols; col++) {
+      if (col === 1) continue;
+      if (isWorkspaceTableOperationColumn(item, col)) continue;
+      dataCols.push(col);
+    }
+    rows.forEach((rowObj: any) => {
+      if (!rowObj || typeof rowObj !== 'object') return;
+      Object.entries(rowObj).forEach(([cell, val]) => {
+        const rawCell = String(cell ?? '').trim();
+        const isFileIdCell = /FileId$/i.test(rawCell);
+        const baseCell = isFileIdCell ? rawCell.replace(/FileId$/i, '') : rawCell;
+        const m = /^([a-zA-Z]+)(\d+)$/.exec(baseCell);
+        if (!m) return;
+        const dataColNo = fromExcelColumnName(m[1]);
+        const rowNo = Number(m[2]);
+        if (!dataColNo || !rowNo) return;
+        const col = dataCols[dataColNo - 1];
+        if (!col) return;
+        if (isFileIdCell) {
+          const rowKey = getFileCollabRowKey(item, componentIndex, rowNo);
+          const fileId = String(val ?? '').trim();
+          if (fileId) nextFileIdMap[rowKey] = fileId;
+          return;
+        }
+        const key = getTableCellPreviewKey(item, componentIndex, rowNo, col);
+        nextMap[key] = String(val ?? '');
+      });
+    });
+  });
+  return { cellMap: nextMap, fileIdMap: nextFileIdMap };
+}
+
+function getCurrentTableSavePayload() {
+  return previewList.value
+    .map((item: any, componentIndex: number) => {
+      if (String(item?.componentType ?? '') !== 'TABLE') return null;
+      const totalCols = getWorkspaceTablePreviewColCount(item);
+      const totalRows = getPreviewTableBodyRowCountForTable(item, componentIndex);
+      const cellMap: Record<string, string> = {};
+      const isFileCollabBiz = ['FILE_COLLAB', 'FILE_COLLAB_SIMPLE'].includes(String(item?.customProps?.tableBizType ?? ''));
+      for (let row = 1; row <= totalRows; row++) {
+        let dataColIndex = 0;
+        for (let col = 1; col <= totalCols; col++) {
+          if (col === 1) continue; // 跳过序号/选择列
+          if (isWorkspaceTableOperationColumn(item, col)) continue; // 跳过操作列
+          dataColIndex++;
+          const v = String(getPreviewTableCellValue(item, componentIndex, row, col) ?? '');
+          const cellKey = `${toExcelColumnName(dataColIndex)}${row}`;
+          if (isFileCollabBiz && dataColIndex === 1) {
+            const rowKey = getFileCollabRowKey(item, componentIndex, row);
+            const fileId = String(previewFileCollabFileIdMap.value[rowKey] ?? '').trim();
+            if (fileId) {
+              cellMap[`${cellKey}FileId`] = fileId;
+            }
+          }
+          if (v.trim() === '') continue;
+          cellMap[cellKey] = v;
+        }
+      }
+      return {
+        componentId: item?.id ?? '',
+        tableName: String(item?.customProps?.tableTitle ?? item?.paramName ?? '表格'),
+        values: [cellMap],
+      };
+    })
+    .filter(Boolean);
+}
+
 watch(
-  previewList,
-  list => {
+  () => [props.componentsJson, props.savedParamValues, props.savedTables],
+  () => {
+    const list = previewList.value;
     const nextFieldValueMap: Record<string, string> = {};
     const nextRadioMap: Record<string, string> = {};
+    const nextRichTextMap: Record<string, string> = {};
+    const nextUploadMap: Record<string, any[]> = {};
     const nextBlurred: Record<string, boolean> = {};
     const nextLastValid: Record<string, string> = {};
     list.forEach((item: any, index: number) => {
@@ -863,27 +1111,53 @@ watch(
       if (String(item?.componentType ?? '') === 'RADIO') {
         nextRadioMap[key] = base;
       }
+      if (String(item?.componentType ?? '') === 'RICH_TEXT') {
+        nextRichTextMap[key] = base;
+      }
+      if (String(item?.componentType ?? '') === 'FILE') {
+        nextUploadMap[key] = normalizeUploadListFromSaved(base);
+      }
       if (String(item?.componentType ?? '') === 'INPUT') {
         nextBlurred[key] = false;
         nextLastValid[key] = base;
       }
       if (String(item?.componentType ?? '') === '3D_VIEW') {
+        const parsed3d = parseThreeDValue(base);
         if (isTemplateBrowse3DItem(item) || isFixedTemplate3DItem(item)) {
-          nextFieldValueMap[getPreview3dSubKey(item, index, 'templateName')] = String(item?.customProps?.templateValue ?? '');
-          nextFieldValueMap[getPreview3dSubKey(item, index, 'modelName')] = String(item?.customProps?.modelValue ?? '');
+          const templateDefault = String(item?.customProps?.templateValue ?? '');
+          const modelDefault = String(item?.customProps?.modelValue ?? '');
+          const templateFromSaved = String(parsed3d?.templateName ?? templateDefault);
+          const modelFromSaved = String(parsed3d?.modelName ?? base ?? modelDefault);
+          nextFieldValueMap[getPreview3dSubKey(item, index, 'templateName')] = templateFromSaved;
+          nextFieldValueMap[getPreview3dSubKey(item, index, 'modelName')] = modelFromSaved;
         }
         if (isModelSelect3DItem(item)) {
-          nextFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')] = String(item?.customProps?.modelSelectName ?? '');
+          nextFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')] = String(parsed3d?.modelSelectName ?? base ?? item?.customProps?.modelSelectName ?? '');
         }
       }
     });
     previewFieldValueMap.value = nextFieldValueMap;
     radioPreviewValueMap.value = nextRadioMap;
+    richTextValueMap.value = nextRichTextMap;
+    previewUploadFileMap.value = { ...previewUploadFileMap.value, ...nextUploadMap };
+    const tableRestore = applySavedTablesToPreviewMap(list, props.savedTables);
+    previewTableCellMap.value = tableRestore.cellMap;
+    previewFileCollabFileIdMap.value = tableRestore.fileIdMap;
     inputRangeBlurredMap.value = nextBlurred;
     inputLastValidValueMap.value = nextLastValid;
+    void nextTick(() => {
+      Object.entries(nextRichTextMap).forEach(([k, v]) => {
+        richTextEditorRefMap.value[k]?.setData?.(v);
+      });
+    });
   },
   { immediate: true, deep: true },
 );
+
+defineExpose({
+  getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
+});
 </script>
 
 <template>
@@ -990,7 +1264,7 @@ watch(
           </div>
 
           <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">
-            <CkeditorPlugin height="180" :disabled="isOutputIoType(item)" />
+            <CkeditorPlugin :ref="(inst: any) => bindRichTextEditorRef(item, index, inst)" height="180" :disabled="isOutputIoType(item)" />
           </div>
 
           <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
@@ -1002,6 +1276,7 @@ watch(
               :disabled="isOutputIoType(item)"
               :multiple="false"
               :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
+              @preview="(file: any) => onPreviewFileDownload(file)"
               @change="(info: any) => onPreviewFileChange(item, index, info)">
               <p class="ant-upload-drag-icon">
                 <InboxOutlined />

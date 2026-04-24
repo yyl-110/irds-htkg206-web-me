@@ -120,9 +120,11 @@ async function nextFlow() {
     }
     const cacheKey = `designTaskAppWorkspace:${String(payload?.appId ?? Date.now())}:${Date.now()}`;
     sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    const taskId = String(detailData.value?.id ?? '').trim();
+    const appId = String(bpmnElementId.value ?? payload?.appId ?? '').trim();
     router.push({
       path: '/internal/design-task-app-workspace',
-      query: { cacheKey },
+      query: { cacheKey, taskId, appId },
     });
   } catch (e) {
     message.error('获取流程页面失败');

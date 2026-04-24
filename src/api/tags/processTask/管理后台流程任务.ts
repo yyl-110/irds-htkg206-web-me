@@ -446,4 +446,46 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 下一步（自动保存当前节点并推进到下一个未完成/待确认节点）
+   *
+   * @tags  下一步（自动保存当前节点并推进到下一个未完成/待确认节点）
+   * @name nextStep
+   * @summary  下一步（自动保存当前节点并推进到下一个未完成/待确认节点）
+   * @request POST:/business-service/business/standalone-app/next-step
+   * @secure
+   */
+  static nextStep = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/next-step`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 查询当前任务全节点参数集合（Map结构，便于前端按key读取）
+   *
+   * @tags  查询当前任务全节点参数集合（Map结构，便于前端按key读取）
+   * @name saveParams
+   * @summary  查询当前任务全节点参数集合（Map结构，便于前端按key读取）
+   * @request POST:/business-service/business/standalone-app/task-param-map
+   * @secure
+   */
+  static taskParamMap = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/task-param-map`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, h, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { CheckCircleOutlined, ClockCircleOutlined, EditOutlined, LeftOutlined, QuestionCircleOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import ProcessFlowAppNodePreview from './process-flow-app-node-preview.vue';
 import ProcessFlowAppCheckNodePreview from './process-flow-app-check-node-preview.vue';
+import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 type FlowNode = {
   bpmnElementId?: string;
@@ -53,6 +54,22 @@ const rightCollapsed = ref(false);
 const minExpanded = 12;
 const nodeDetailLoading = ref(false);
 const nodeDetailData = ref<Record<string, any> | null>(null);
+const activityImageUrl = ref('');
+const activityImageMarginTop = ref(0);
+const activityImageWidth = ref(260);
+const saveFlowLoading = ref(false);
+const submitFlowLoading = ref(false);
+const nodePreviewRef = ref<any>(null);
+const checkNodePreviewRef = ref<any>(null);
+const activityImagePaneStyle = computed<Record<string, string>>(() => {
+  const mt = Number(activityImageMarginTop.value);
+  const width = Number(activityImageWidth.value);
+  return {
+    marginTop: `${Number.isFinite(mt) && mt >= 0 ? mt : 0}px`,
+    width: `${Number.isFinite(width) && width > 0 ? width : 260}px`,
+    minWidth: `${Number.isFinite(width) && width > 0 ? width : 260}px`,
+  };
+});
 
 function loadWorkspaceData() {
   const cacheKey = String(route.query.cacheKey ?? '');
@@ -72,11 +89,30 @@ function buildTreeNodes(nodes: FlowNode[] | undefined): TreeItem[] {
     const key = String(item.bpmnElementId ?? `node-${index}-${Date.now()}`);
     return {
       key,
-      title: String(item.nodeName ?? '未命名活动'),
+      title: renderNodeTitle(item),
       raw: item,
       children: buildTreeNodes(item.children),
     };
   });
+}
+
+function resolveNodeStatusStyle(statusRaw: unknown) {
+  const status = String(statusRaw ?? '').trim();
+  if (status.includes('未开始')) return { color: '#999999', icon: ClockCircleOutlined };
+  if (status.includes('进行中') || status.includes('设计中')) return { color: '#1890ff', icon: EditOutlined };
+  if (status.includes('待确认')) return { color: '#fa8c16', icon: QuestionCircleOutlined };
+  if (status.includes('已完成')) return { color: '#52c41a', icon: CheckCircleOutlined };
+  return null;
+}
+
+function renderNodeTitle(item: FlowNode) {
+  const name = String(item.nodeName ?? '未命名活动');
+  const style = resolveNodeStatusStyle(item.nodeStatus);
+  if (!style) return name;
+  return h('span', { class: 'workspace-tree-node-title', style: { color: style.color } }, [
+    h(style.icon, { style: { marginRight: '6px', color: style.color, fontSize: '13px' } }),
+    h('span', null, name),
+  ]);
 }
 
 const treeData = computed<TreeItem[]>(() => {
@@ -86,7 +122,7 @@ const treeData = computed<TreeItem[]>(() => {
   return [
     {
       key: rootKey,
-      title: rootTitle,
+      title: h('span', { class: 'workspace-tree-node-title--root' }, rootTitle),
       raw: null,
       children: buildTreeNodes(workspaceData.value?.pages),
     },
@@ -160,12 +196,98 @@ async function requestNodeDetailByKey(key: string) {
     bpmnElementId: key,
   };
   nodeDetailLoading.value = true;
+  let detailObj: Record<string, any> | null = null;
   try {
     const res = await AdminApiSystemProcessTask.nodePageDetail(data);
     const detail = res?.data?.data;
-    nodeDetailData.value = detail && typeof detail === 'object' ? detail : null;
+    detailObj = detail && typeof detail === 'object' ? detail : null;
+    nodeDetailData.value = detailObj;
+    activityImageUrl.value = '';
+    activityImageMarginTop.value = 0;
+    activityImageWidth.value = 260;
+    const activityPageId = detailObj?.activityPageId;
+    if (activityPageId) {
+      try {
+        const imgRes = await AdminApiActivityPage.activityImageList({ activityPageId });
+        const list = imgRes?.data?.data;
+        const first = Array.isArray(list) ? list[0] : null;
+        const imageUrl = String(first?.fileInfo?.filePath ?? first?.filePath ?? '').trim();
+        const marginTop = Number(first?.marginTop ?? 0);
+        const width = Number(first?.width ?? 260);
+        activityImageUrl.value = imageUrl;
+        activityImageMarginTop.value = Number.isFinite(marginTop) && marginTop >= 0 ? marginTop : 0;
+        activityImageWidth.value = Number.isFinite(width) && width > 0 ? width : 260;
+      } catch {
+        activityImageUrl.value = '';
+        activityImageMarginTop.value = 0;
+        activityImageWidth.value = 260;
+      }
+    }
   } finally {
     nodeDetailLoading.value = false;
+  }
+
+  const taskId = route.query.taskId ?? workspaceData.value?.taskId ?? '';
+  const appId = route.query.appId ?? workspaceData.value?.appId ?? '';
+  const appCode = String(workspaceData.value?.appCode ?? '').trim();
+  if (!taskId || (!appId && !appCode) || !detailObj) return;
+  const paramQuery: Record<string, any> = { taskId };
+  if (appId) paramQuery.appId = appId;
+  else paramQuery.appCode = appCode;
+  try {
+    const mapRes = await AdminApiSystemProcessTask.taskParamMap(paramQuery);
+    const raw = mapRes?.data?.data;
+    if (!raw || typeof raw !== 'object') return;
+    const dataObj = raw as Record<string, any>;
+    const paramsObj = dataObj?.params && typeof dataObj.params === 'object' ? dataObj.params : null;
+    const tablesObj = Array.isArray(dataObj?.tables) ? dataObj.tables : [];
+    const currentNodeMap = dataObj?.[key];
+    const source = paramsObj ?? currentNodeMap ?? dataObj;
+    const cfg = detailObj?.componentsJson || {};
+    const pageComponents = [
+      ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
+      ...(Array.isArray(cfg.threeDComponentList) ? cfg.threeDComponentList : []),
+      ...(Array.isArray(cfg.uploadComponentList) ? cfg.uploadComponentList : []),
+      ...(Array.isArray(cfg.tableComponentList) ? cfg.tableComponentList : []),
+    ];
+    const pageParamRows = pageComponents
+      .map((item: any) => ({
+        paramCode: String(item?.paramCode ?? item?.paramKey ?? '').trim(),
+        paramName: String(item?.paramName ?? '').trim(),
+      }))
+      .filter((row: any) => row.paramCode);
+    if (!pageParamRows.length) return;
+    const sourceMap = new Map<string, string>();
+    if (Array.isArray(source)) {
+      source.forEach((row: any) => {
+        const code = String(row?.paramCode ?? row?.paramKey ?? row?.code ?? '').trim();
+        if (!code) return;
+        sourceMap.set(code, String(row?.paramValue ?? row?.value ?? row?.savedValue ?? ''));
+      });
+    } else if (source && typeof source === 'object') {
+      Object.entries(source as Record<string, any>).forEach(([k, v]) => {
+        const code = String(k ?? '').trim();
+        if (!code) return;
+        if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+          sourceMap.set(code, String((v as any)?.paramValue ?? (v as any)?.value ?? (v as any)?.savedValue ?? ''));
+          return;
+        }
+        sourceMap.set(code, String(v ?? ''));
+      });
+    }
+    const normalizedValues = pageParamRows.map((row: any) => ({
+      paramCode: row.paramCode,
+      paramName: row.paramName,
+      paramValue: String(sourceMap.get(row.paramCode) ?? ''),
+    }));
+    if (!normalizedValues.length) return;
+    nodeDetailData.value = {
+      ...detailObj,
+      savedParamValues: normalizedValues,
+      savedTables: tablesObj,
+    };
+  } catch {
+    // task-param-map 失败不阻断节点详情展示
   }
 }
 
@@ -199,12 +321,149 @@ async function goPrevNode() {
   await requestNodeDetailByKey(key);
 }
 
+async function saveCurrentNodeParams(options?: { successMessage?: string; loadingType?: 'save' | 'submit' }) {
+  if (saveFlowLoading.value || submitFlowLoading.value) return false;
+  const loadingType = options?.loadingType || 'save';
+  const setLoading = (v: boolean) => {
+    if (loadingType === 'submit') submitFlowLoading.value = v;
+    else saveFlowLoading.value = v;
+  };
+  const currentNodeKey = String(selectedNodeKey.value || nodeDetailData.value?.bpmnElementId || '').trim();
+  if (!currentNodeKey) {
+    message.warning('未选择流程节点，无法保存');
+    return false;
+  }
+  const appId = route.query.appId;
+  const appCode = String(workspaceData.value?.appCode ?? '').trim();
+  if (!appId && !appCode) {
+    message.warning('缺少应用标识（appId/appCode），无法保存');
+    return false;
+  }
+  const taskId = route.query.taskId;
+  if (!taskId) {
+    message.warning('缺少任务ID，无法保存');
+    return false;
+  }
+  const projectId = route.query.projectId;
+  const activityPageId = nodeDetailData.value?.activityPageId;
+  if (!activityPageId) {
+    message.warning('缺少活动页面ID，无法保存');
+    return false;
+  }
+  const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const sourceValues = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
+  const values = sourceValues
+    .map((row: any) => ({
+      bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
+      paramKey: String(row?.paramKey ?? '').trim(),
+      paramName: String(row?.paramName ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    }))
+    .filter((row: any) => row.paramKey);
+  if (!values.length) {
+    message.warning('当前节点暂无可保存参数');
+    return false;
+  }
+  const data: Record<string, any> = {
+    bpmnElementId: currentNodeKey,
+    taskId,
+    projectId,
+    activityPageId,
+    values,
+    tables: Array.isArray(tablePayload) ? tablePayload : [],
+  };
+  if (appId) data.appId = appId;
+  else data.appCode = appCode;
+  setLoading(true);
+  try {
+    const res = await AdminApiSystemProcessTask.saveParams(data);
+    const code = res?.data?.code;
+    if (code === 0 || code === 200 || code === '0' || code === '200') {
+      message.success(options?.successMessage || '保存成功');
+      return true;
+    }
+    message.error(String(res?.data?.msg ?? '保存失败'));
+    return false;
+  } catch {
+    message.error('保存失败');
+    return false;
+  } finally {
+    setLoading(false);
+  }
+}
+
 async function saveFlowInfo() {
-  const res = await AdminApiSystemProcessTask.saveParams(data);
+  await saveCurrentNodeParams({ successMessage: '保存成功', loadingType: 'save' });
 }
 
 async function goNextNode() {
   if (!canGoNext.value) return;
+  if (saveFlowLoading.value || submitFlowLoading.value) return;
+  const currentNodeKey = String(selectedNodeKey.value || nodeDetailData.value?.bpmnElementId || '').trim();
+  if (!currentNodeKey) {
+    message.warning('未选择流程节点，无法提交');
+    return;
+  }
+  const appId = route.query.appId;
+  const appCode = String(workspaceData.value?.appCode ?? '').trim();
+  if (!appId && !appCode) {
+    message.warning('缺少应用标识（appId/appCode），无法提交');
+    return;
+  }
+  const taskId = route.query.taskId;
+  if (!taskId) {
+    message.warning('缺少任务ID，无法提交');
+    return;
+  }
+  const projectId = route.query.projectId;
+  const activityPageId = nodeDetailData.value?.activityPageId;
+  if (!activityPageId) {
+    message.warning('缺少活动页面ID，无法提交');
+    return;
+  }
+  const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const sourceValues = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
+  const values = sourceValues
+    .map((row: any) => ({
+      bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
+      paramKey: String(row?.paramKey ?? '').trim(),
+      paramName: String(row?.paramName ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    }))
+    .filter((row: any) => row.paramKey);
+  if (!values.length) {
+    message.warning('当前节点暂无可提交参数');
+    return;
+  }
+  const data: Record<string, any> = {
+    bpmnElementId: currentNodeKey,
+    taskId,
+    projectId,
+    activityPageId,
+    values,
+    tables: Array.isArray(tablePayload) ? tablePayload : [],
+  };
+  if (appId) data.appId = appId;
+  else data.appCode = appCode;
+  submitFlowLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.nextStep(data);
+    const code = res?.data?.code;
+    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
+      message.error(String(res?.data?.msg ?? '提交失败'));
+      return;
+    }
+    message.success('提交成功');
+  } catch {
+    message.error('提交失败');
+    return;
+  } finally {
+    submitFlowLoading.value = false;
+  }
   const key = orderedActivityNodeKeys.value[currentActivityIndex.value + 1];
   if (!key) return;
   selectedNodeKey.value = key;
@@ -290,18 +549,35 @@ void initDefaultSelectedNode();
       <Pane :size="centerPaneSize" :min-size="20" class="workspace-center">
         <div class="workspace-center-body">
           <a-spin :spinning="nodeDetailLoading" class="workspace-center-spin">
-            <ProcessFlowAppCheckNodePreview
-              v-if="isCalcNodePreview"
-              :components-json="nodeDetailData?.componentsJson"
-              :saved-param-values="nodeDetailData?.savedParamValues"
-              :node-detail-data="nodeDetailData" />
-            <ProcessFlowAppNodePreview v-else :components-json="nodeDetailData?.componentsJson" :saved-param-values="nodeDetailData?.savedParamValues" />
+            <div class="workspace-preview-scroll-row">
+              <div class="workspace-preview-main">
+                <ProcessFlowAppCheckNodePreview
+                  v-if="isCalcNodePreview"
+                  ref="checkNodePreviewRef"
+                  :components-json="nodeDetailData?.componentsJson"
+                  :saved-param-values="nodeDetailData?.savedParamValues"
+                  :node-detail-data="nodeDetailData" />
+                <ProcessFlowAppNodePreview
+                  v-else
+                  ref="nodePreviewRef"
+                  :components-json="nodeDetailData?.componentsJson"
+                  :saved-param-values="nodeDetailData?.savedParamValues"
+                  :saved-tables="nodeDetailData?.savedTables" />
+              </div>
+              <div v-if="activityImageUrl" class="workspace-preview-image-pane" :style="activityImagePaneStyle">
+                <img :src="activityImageUrl" alt="活动示意图" class="workspace-preview-image" />
+              </div>
+            </div>
           </a-spin>
         </div>
         <div class="workspace-center-footer">
-          <a-button type="primary" @click="saveFlowInfo"><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button>
+          <a-button type="primary" :loading="saveFlowLoading" :disabled="saveFlowLoading || submitFlowLoading" @click="saveFlowInfo"
+            ><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button
+          >
           <a-button type="primary" v-if="canGoPrev" @click="goPrevNode"><EpcIcon type="icon-paixujiantou2" style="font-size: 12px" />上一步</a-button>
-          <a-button type="primary" v-if="canGoNext" @click="goNextNode"><EpcIcon type="icon-paixujiantou" style="font-size: 12px" />提 交</a-button>
+          <a-button type="primary" v-if="canGoNext" :loading="submitFlowLoading" :disabled="saveFlowLoading || submitFlowLoading" @click="goNextNode"
+            ><EpcIcon type="icon-paixujiantou" style="font-size: 12px" />提 交</a-button
+          >
           <a-button v-if="isLastActivity" type="primary" @click="finishFlow"><EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成</a-button>
         </div>
       </Pane>
@@ -347,6 +623,16 @@ void initDefaultSelectedNode();
   overflow: hidden !important;
 }
 
+.workspace-tree-node-title {
+  display: inline-flex;
+  align-items: center;
+}
+
+.workspace-tree-node-title--root {
+  color: #262626;
+  font-weight: 600;
+}
+
 .workspace-center {
   padding: 16px;
   height: 100%;
@@ -388,6 +674,36 @@ void initDefaultSelectedNode();
   flex: 1;
   min-height: 0;
   overflow: auto;
+}
+
+.workspace-preview-scroll-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.workspace-preview-main {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 85%;
+  max-width: none;
+}
+
+.workspace-preview-image-pane {
+  flex: 0 0 auto;
+  margin-left: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.workspace-preview-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 .workspace-center-spin {
