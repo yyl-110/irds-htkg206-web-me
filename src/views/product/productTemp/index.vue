@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, h, nextTick, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { useDateRangeParams } from '@/hooks/useDate';
@@ -11,12 +12,11 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import ProductTempAddOrUpdate from './components/productTemp-addorupdate.vue';
-import WbsModal from './components/WbsModal.vue';
 import Empty from '@/components/Empty/index.vue';
 import { sortermethod } from '@/utils/tools';
 const addOrUpdateModel = ref<any>(null);
-const wbsModalRef = ref<any>(null);
 
+const router = useRouter();
 const userStore = useUserStore();
 const loading = ref<boolean>(false);
 /** 是否显示 新增 / 编辑 弹窗 */
@@ -313,6 +313,17 @@ function customGetContainer() {
   // 返回自定义挂载节点
   return document.querySelector('.productTemp-index');
 }
+
+function openWbsStructure(record: any) {
+  router.push({
+    path: '/internal/product-temp-wbs',
+    query: {
+      id: String(record.id ?? ''),
+      tempName: String(record.tempName ?? ''),
+      tempNum: String(record.tempNum ?? ''),
+    },
+  });
+}
 </script>
 
 <template>
@@ -448,17 +459,12 @@ function customGetContainer() {
                 @confirm.stop.prevent="goBackPushFun(record.id)">
                 <a href="#" @click.prevent>{{ $t('撤销') }}</a>
               </a-popconfirm>
-              <span
-                class="calc-operation-links__static calc-operation-links__wbs-link"
-                style="cursor: pointer"
-                @click.stop="wbsModalRef?.show(record.tempName)"
-              >{{ $t('浏览WBS结构') }}</span>
+              <a href="#" class="calc-operation-links__wbs-link" @click.prevent.stop="openWbsStructure(record)">{{ $t('浏览WBS结构') }}</a>
             </div>
           </template>
         </template>
         </a-table>
         <ProductTempAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
-        <WbsModal ref="wbsModalRef" />
       </a-card>
     </div>
     <div class="productTemp-index" v-dragModal>

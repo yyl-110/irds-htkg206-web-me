@@ -408,7 +408,7 @@ async function modalInit() {
       title: '操作',
       dataIndex: 'operation',
       key: 'operation',
-      align: 'left',
+      align: 'center',
       width: 168,
       fixed: 'right',
       resizable: false,
@@ -1911,7 +1911,8 @@ defineExpose({ initData, selectAllModuleInfo });
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
+  width: 100%;
   row-gap: 6px;
   column-gap: 0;
 
@@ -2047,7 +2048,9 @@ defineExpose({ initData, selectAllModuleInfo });
   font-size: 14px;
 }
 .btn-box-container {
+  /* 与「样式配置 → 系统主题」主色一致（--project-system-primary 由 projectUi 注入） */
   background-color: #e5efff;
+  background-color: color-mix(in srgb, var(--project-system-primary, var(--ant-primary-color, #124dd6)) 16%, #ffffff);
   width: 100%;
   min-height: 35px;
   display: flex;
@@ -2155,6 +2158,7 @@ defineExpose({ initData, selectAllModuleInfo });
   width: 100%;
   height: 40px;
   background-color: #e5efff;
+  background-color: color-mix(in srgb, var(--project-system-primary, var(--ant-primary-color, #124dd6)) 16%, #ffffff);
   display: flex;
   justify-content: space-between;
   line-height: 40px;

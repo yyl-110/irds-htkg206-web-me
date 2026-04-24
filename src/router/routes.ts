@@ -224,6 +224,16 @@ export const routes: RouteRecordRaw[] = [
           noCache: true,
         },
       },
+      {
+        path: 'product-temp-wbs',
+        name: 'ProductTempWbsStructure',
+        component: () => import('@/views/product/productTemp/wbs-structure.vue'),
+        meta: {
+          hidden: true,
+          title: 'WBS结构',
+          noCache: true,
+        },
+      },
     ],
   },
 ];
