@@ -1387,7 +1387,7 @@ defineExpose({ initData, selectAllModuleInfo });
       <a-card class="calc-table-card module-info-list-table-card">
         <a-table
           class="exe-config-table"
-          :scroll="{ x: moduleTableScrollX }"
+          :scroll="{ x: moduleTableScrollX, y: 'calc(100vh - 386px)' }"
           :row-key="getModuleRowKey"
           :columns="columns"
           :data-source="moduleTableDisplayList"

@@ -3,7 +3,9 @@ import { computed, h, inject, nextTick, reactive, ref } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
-import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, LeftOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, LeftOutlined, RightOutlined, SearchOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
+import knowledgeConfig from '../components/knowledge-config.vue';
+import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -172,11 +174,19 @@ const columns = ref<TableColumnType<Menus>[]>([
     width: 230,
   },
   {
+    title: WeiI18n.$t('参数知识'),
+    dataIndex: 'knowledge',
+    key: 'knowledge',
+    align: 'center',
+    resizable: false,
+    width: 180,
+  },
+  {
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
     align: 'left',
-    width: 180,
+    width: 240,
     fixed: 'right',
     resizable: false,
   },
@@ -927,14 +937,39 @@ async function saveActivityCheckConfig(payload: any) {
   }
 }
 
-// 新增：分享知识弹窗状态
+// 知识配置弹窗
+const knowledgeConfigRef = ref<any>(null);
+
+async function showKnowledgeModal(record: any) {
+  knowledgeConfigRef.value?.show(record?.id);
+}
+
+// 分享知识弹窗
 const shareModalVisible = ref(false);
-const shareContent = ref<string>('');
 const shareModalTitle = ref<string>('');
+const shareLoading = ref(false);
+const shareList = ref<any[]>([]);
+
+async function showShareModal(record: any) {
+  shareModalTitle.value = `${record?.pageName ?? ''} - 知识分享`;
+  shareModalVisible.value = true;
+  shareList.value = [];
+  try {
+    shareLoading.value = true;
+    const res = await AdminApiSystemParameter.getParameterActList({ businessId: record?.id, type: '2' });
+    if (res?.data?.code === '0' || res?.data?.code === 200) {
+      shareList.value = Array.isArray(res.data.data) ? res.data.data : [];
+    }
+  } catch (error) {
+    console.error('showShareModal error:', error);
+  } finally {
+    shareLoading.value = false;
+  }
+}
 
 function closeShareModal() {
   shareModalVisible.value = false;
-  shareContent.value = '';
+  shareList.value = [];
   shareModalTitle.value = '';
 }
 
@@ -1019,7 +1054,7 @@ const {
           <a-card class="calc-table-card">
             <a-table
               class="exe-config-table"
-              :scroll="{ x: activityTableScrollX, y: 500 }"
+              :scroll="{ x: activityTableScrollX, y: 'calc(100vh - 300px)' }"
               :row-key="getActivityTableRowKey"
               :columns="columns"
               :data-source="activityTableDisplayList"
@@ -1081,11 +1116,20 @@ const {
                 </template>
               </template>
               <template #bodyCell="{ column, record }">
-                <template v-if="column.dataIndex === 'operation'">
+                <template v-if="column.dataIndex === 'knowledge'">
+                  <span style="display: flex; justify-content: center; align-items: center">
+                    <span v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: var(--ant-primary-color)" title="查看知识">
+                      <ShareAltOutlined style="font-size: 16px" />
+                    </span>
+                    <span v-else style="color: #bfbfbf">—</span>
+                  </span>
+                </template>
+                <template v-else-if="column.dataIndex === 'operation'">
                   <div class="calc-operation-links" @click.stop>
                     <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
                     <a @click.stop.prevent="showPageConfigModal(record)">{{ $t('配置') }}</a>
                     <a @click.stop.prevent="priviewPageConfigModal(record)">{{ $t('预览') }}</a>
+                    <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
                     <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
                       <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
                     </a-popconfirm>
@@ -1120,18 +1164,39 @@ const {
     </Tooltip>
     </div>
 
-    <!-- 分享知识弹窗：展示富文本内容 -->
-    <a-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="800px" @cancel="closeShareModal">
-      <div style="min-height: 320px">
-        <!-- 富文本直接渲染（后端内容已是 HTML） -->
-        <div v-if="shareContent" v-html="shareContent" style="padding: 12px; max-height: 520px; overflow: auto; border-radius: 4px; background: #fff"></div>
-        <div v-else style="text-align: center; padding: 40px 0; color: #999">暂无知识内容</div>
+    <!-- 知识配置弹窗 -->
+    <knowledge-config ref="knowledgeConfigRef" type="2" />
+
+    <!-- 分享知识弹窗：展示关联知识列表 -->
+    <a-modal
+      v-model:visible="shareModalVisible"
+      :title="shareModalTitle"
+      width="860px"
+      :footer="null"
+      centered
+      @cancel="closeShareModal">
+      <a-spin :spinning="shareLoading">
+        <div class="share-knowledge-list min-h-[400px]">
+          <template v-if="shareList.length > 0">
+            <div v-for="(item, idx) in shareList" :key="idx" class="share-knowledge-item">
+              <div class="share-knowledge-meta">
+                <a-tag color="blue">{{ item.file?.title || '知识文档' }}</a-tag>
+                <a-tag v-if="item.remark" color="default">{{ item.remark }}</a-tag>
+                <a-tag v-if="item.versionNum" color="cyan">V{{ item.versionNum }}</a-tag>
+              </div>
+              <div v-if="item.file?.picture" class="share-knowledge-pictures">
+                <a-image :src="item.file?.picture" :width="400" fit="contain" class="share-knowledge-img" />
+              </div>
+              <div v-if="item.file?.content" class="share-knowledge-content" v-html="item.file.content" />
+              <a-divider v-if="idx < shareList.length - 1" style="margin: 12px 0" />
+            </div>
+          </template>
+          <div v-else-if="!shareLoading" class="share-knowledge-empty">暂无关联知识</div>
+        </div>
+      </a-spin>
+      <div class="share-knowledge-footer">
+        <a-button @click="closeShareModal">关闭</a-button>
       </div>
-      <template #footer>
-        <a-space style="width: 100%; display: flex; justify-content: flex-end">
-          <a-button @click="closeShareModal">关闭</a-button>
-        </a-space>
-      </template>
     </a-modal>
 
     <!-- 其他弹窗/组件 -->
@@ -1470,5 +1535,67 @@ const {
       border-bottom: 1px solid #e6e7e9;
     }
   }
+}
+
+/* ---------- 分享知识弹框 ---------- */
+.share-knowledge-list {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.share-knowledge-item {
+  padding: 4px 0;
+}
+
+.share-knowledge-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.share-knowledge-pictures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.share-knowledge-img {
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+  object-fit: contain;
+}
+
+.share-knowledge-content {
+  line-height: 1.7;
+  color: rgba(0, 0, 0, 0.85);
+  word-break: break-word;
+  white-space: pre-wrap;
+
+  :deep(img) {
+    max-width: 100%;
+    border-radius: 4px;
+  }
+
+  :deep(p) {
+    margin: 4px 0;
+  }
+}
+
+.share-knowledge-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+}
+
+.share-knowledge-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
 }
 </style>

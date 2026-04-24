@@ -78,8 +78,9 @@ const viewPdf = async (item) => {
             <a-breadcrumb-item>{{ textData.userName }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ getTimes(Date.parse(textData.addTime)) || '' }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ confidentialLevel }}</a-breadcrumb-item>
+            <a-breadcrumb-item @click="viewPdfFun" class="text-primary cursor-pointer">预览</a-breadcrumb-item>
           </a-breadcrumb>
-          <span class="text-primary ml-auto cursor-pointer" @click="viewPdfFun">预览</span>
+          <!-- <span class="text-primary ml-auto cursor-pointer" @click="viewPdfFun">预览</span> -->
         </div>
       </div>
     </div>

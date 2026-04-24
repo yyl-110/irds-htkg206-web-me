@@ -44,7 +44,7 @@ watch(
   <draggable-modal v-model:visible="visible" :closable="false" centered :title="titleType" :width="1100"
     @cancel="closeDialog">
     <div class="max-h-[70vh] overflow-y-auto wei-scrollbar">
-      <div v-html="textData"></div>
+      <div v-html="textData" class="whitespace-pre-wrap"></div>
       <video v-if="dialogType === '2'" id="videoId" autoPlay :src="fileUrlPlay" width="1000" height="500" controls />
       <div v-if="dialogType === '3'" style="height: 550px; overflow-y: auto; text-align: center">
         <a-image style="width: 500px; height: 500px; margin: 0 auto" :width="500" :src="fileUrlPlay" fit="contain" v-if="fileUrlPlay" />

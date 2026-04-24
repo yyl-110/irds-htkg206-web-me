@@ -451,6 +451,24 @@ export class AdminApiSystemParameter {
     );
 
   /**
+   * 查询已关联知识列表
+   *
+   * @tags 管理后台 - 查询已关联知识列表
+   * @name getParameterActList
+   * @request POST: /business-service/business/parameter-act-knowledge/get
+   * @secure
+   */
+  static getParameterActList = <Req extends ParameterConfigRequestDTOModel = ParameterConfigRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/parameter-act-knowledge/get`,
+        method: 'GET',
+        query: query,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  /**
    * 根据文件ID查询解析文档列表
    *
    * @tags 管理后台 - 根据文件ID查询解析文档列表
@@ -458,7 +476,7 @@ export class AdminApiSystemParameter {
    * @request POST: /business-service/business/parameter-act-knowledge/parse-file/list-by-file-id
    * @secure
    */
-  static getParameterActList = <Req extends ParameterConfigRequestDTOModel = ParameterConfigRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static getParameterList = <Req extends ParameterConfigRequestDTOModel = ParameterConfigRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/parameter-act-knowledge/parse-file/list-by-file-id`,

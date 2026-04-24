@@ -29,7 +29,7 @@ import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
 import TableCellOverflowTooltip from './components/TableCellOverflowTooltip.vue';
-import knowledgeConfig from './components/knowledge-config.vue'
+import knowledgeConfig from '../components/knowledge-config.vue'
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -1100,18 +1100,30 @@ async function saveKnowledge() {
 
 // 新增：分享知识弹窗状态
 const shareModalVisible = ref(false);
-const shareContent = ref<string>('');
 const shareModalTitle = ref<string>('');
+const shareLoading = ref(false);
+const shareList = ref<any[]>([]);
 
-function showShareModal(record: any) {
-  shareContent.value = record?.knowledge ?? '';
+async function showShareModal(record: any) {
   shareModalTitle.value = `${record?.parameterName ?? ''} - 知识分享`;
   shareModalVisible.value = true;
+  shareList.value = [];
+  try {
+    shareLoading.value = true;
+    const res = await AdminApiSystemParameter.getParameterActList({ businessId: record?.id, type: '1' });
+    if (res?.data?.code === '0' || res?.data?.code === 200) {
+      shareList.value = Array.isArray(res.data.data) ? res.data.data : [];
+    }
+  } catch (error) {
+    console.error('showShareModal error:', error);
+  } finally {
+    shareLoading.value = false;
+  }
 }
 
 function closeShareModal() {
   shareModalVisible.value = false;
-  shareContent.value = '';
+  shareList.value = [];
   shareModalTitle.value = '';
 }
 
@@ -1202,7 +1214,7 @@ const {
 
             <a-table
               class="exe-config-table parameter-table-spaced"
-              :scroll="{ x: parameterTableScrollX, y: 500 }"
+              :scroll="{ x: parameterTableScrollX, y: 'calc(100vh - 300px)' }"
               :row-key="getParameterRowKey"
               :columns="columns"
               :data-source="parameterTableDisplayList"
@@ -1389,20 +1401,48 @@ const {
     </a-modal>
 
     <!-- 知识配置弹窗 -->
-   <knowledge-config ref="knowledgeConfigRef" />
+   <knowledge-config ref="knowledgeConfigRef" type="1" />
 
-    <!-- 分享知识弹窗：展示富文本内容 -->
-    <a-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="800px" @cancel="closeShareModal">
-      <div style="min-height: 320px">
-        <!-- 富文本直接渲染（后端内容已是 HTML） -->
-        <div v-if="shareContent" v-html="shareContent" style="padding: 12px; max-height: 520px; overflow: auto; border-radius: 4px; background: #fff"></div>
-        <div v-else style="text-align: center; padding: 40px 0; color: #999">暂无知识内容</div>
+    <!-- 分享知识弹窗：展示关联知识列表 -->
+    <a-modal
+      v-model:visible="shareModalVisible"
+      :title="shareModalTitle"
+      width="860px"
+      :footer="null"
+      centered
+      @cancel="closeShareModal">
+      <a-spin :spinning="shareLoading">
+        <div class="share-knowledge-list min-h-[400px]">
+          <template v-if="shareList.length > 0">
+            <div v-for="(item, idx) in shareList" :key="idx" class="share-knowledge-item">
+              <!-- 元信息标签行 -->
+              <div class="share-knowledge-meta">
+                <a-tag color="blue">{{ item.file?.title || '知识文档' }}</a-tag>
+                <a-tag v-if="item.remark" color="default">{{ item.remark }}</a-tag>
+                <a-tag v-if="item.versionNum" color="cyan">V{{ item.versionNum }}</a-tag>
+              </div>
+              <!-- 图片 -->
+              <div v-if="item.file?.picture" class="share-knowledge-pictures">
+                <a-image
+                  :src="item.file?.picture"
+                  :width="400"
+                  fit="contain"
+                  class="share-knowledge-img" />
+              </div>
+              <!-- 富文本内容 -->
+              <div
+                v-if="item.file?.content"
+                class="share-knowledge-content"
+                v-html="item.file.content" />
+              <a-divider v-if="idx < shareList.length - 1" style="margin: 12px 0" />
+            </div>
+          </template>
+          <div v-else-if="!shareLoading" class="share-knowledge-empty">暂无关联知识</div>
+        </div>
+      </a-spin>
+      <div class="share-knowledge-footer">
+        <a-button @click="closeShareModal">关闭</a-button>
       </div>
-      <template #footer>
-        <a-space style="width: 100%; display: flex; justify-content: flex-end">
-          <a-button @click="closeShareModal">关闭</a-button>
-        </a-space>
-      </template>
     </a-modal>
 
     <!-- 其他弹窗/组件 -->
@@ -1490,6 +1530,17 @@ const {
   :deep(.ant-table-wrapper) {
     flex: 1;
     min-height: 0;
+  }
+  :deep(.ant-spin-nested-loading) {
+    height: 100%;
+    .ant-spin-container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      .ant-table {
+        flex: 0.8;
+      }
+    }
   }
 
   /** 表格与上方查询表单留出间距（可按视觉再微调数值） */
@@ -1786,5 +1837,67 @@ const {
       border-bottom: 1px solid #e6e7e9;
     }
   }
+}
+
+/* ---------- 分享知识弹框 ---------- */
+.share-knowledge-list {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.share-knowledge-item {
+  padding: 4px 0;
+}
+
+.share-knowledge-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.share-knowledge-pictures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.share-knowledge-img {
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+  object-fit: contain;
+}
+
+.share-knowledge-content {
+  line-height: 1.7;
+  color: rgba(0, 0, 0, 0.85);
+  word-break: break-word;
+  white-space: pre-wrap;
+
+  :deep(img) {
+    max-width: 100%;
+    border-radius: 4px;
+  }
+
+  :deep(p) {
+    margin: 4px 0;
+  }
+}
+
+.share-knowledge-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+}
+
+.share-knowledge-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
 }
 </style>

@@ -582,7 +582,7 @@ defineExpose({
     <a-card class="calc-table-card process-flow-table-card">
       <a-table
         class="exe-config-table"
-        :scroll="{ x: processFlowTableScrollX, y: 500 }"
+        :scroll="{ x: processFlowTableScrollX, y: 'calc(100vh - 300px)' }"
         :row-key="record => record.id"
         :columns="columns"
         :data-source="processFlowTableDisplayList"

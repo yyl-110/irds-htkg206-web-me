@@ -337,7 +337,7 @@ function customGetContainer() {
       <a-card class="calc-table-card product-temp-table-card">
         <a-table
           class="exe-config-table"
-          :scroll="{ x: productTempTableScrollX }"
+          :scroll="{ x: productTempTableScrollX, y: 'calc(100vh - 300px)' }"
           :row-key="record => record.id"
           :columns="columns"
           :locale="locale"

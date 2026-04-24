@@ -17,7 +17,8 @@ interface PageState {
   currentPage: number;
 }
 const props = defineProps({
-  fileId: String
+  fileId: String,
+  type: String  // 1参数管理 2活动管理
 })
 
 const emits = defineEmits(['closeKnowledgeModal'])
@@ -114,7 +115,7 @@ const handleCurrentChange = (val: number, size: number) => {
 const fetchConfigData = async () => {
   try {
     tableLoading.value = true
-    const res = await AdminApiSystemParameter.getParameterActList({ fileId: activeFileId.value, businessId: businessId.value, type: '1' })
+    const res = await AdminApiSystemParameter.getParameterList({ fileId: activeFileId.value, businessId: businessId.value, type: props.type })
     if (res?.data.code === 200) {
       tableData.value = res?.data.data
     }
@@ -150,7 +151,7 @@ const association = async (record: any) => {
     const params = {
       knowledgeParseId: record.id,
       businessId: businessId.value,
-      type: '1',
+      type: props.type,
     }
 
     let res;
@@ -185,7 +186,7 @@ defineExpose({
 
 </script>
 <template>
-  <draggable-modal v-model:visible="visible" centered :title="$t('知识配置')" width="80%"
+  <draggable-modal v-model:visible="visible" centered :title="$t('知识配置')" width="90%"
     :body-style="{ height: '80vh', padding: 0 }" @cancel="closeKnowledgeModal">
     <div style="min-height: 360px" class="w-full h-full">
       <div class="h-full" :class="splitpanesTreeCollapseWrapClass">
@@ -217,8 +218,8 @@ defineExpose({
           </Pane>
           <!-- 右侧内容区域 -->
           <Pane class="splitpane-cls" :size="rightTreePaneSize">
-            <div class="p-[16px]">
-              <a-table :columns="columns" :data-source="tableData" :scroll="{ x: 600, y: 600 }"
+            <div class="p-[16px] h-full">
+              <a-table :columns="columns" :data-source="tableData" :scroll="{ x: 600, y: 'calc(100vh - 140px)' }"
                 :rowKey="(record) => record.id" :loading="tableLoading" bordered :row-class-name="rowClassName"
                 :pagination="false">
                 <template #bodyCell="{ column, record }">
@@ -260,6 +261,9 @@ defineExpose({
 <style lang="less" scoped>
 .splitpane-cls {
   border-top: 3px solid #ffffff !important;
+}
+:deep(.ant-table-wrapper) {
+  height: 100%;
 }
 
 :deep(.marginstyle) {
