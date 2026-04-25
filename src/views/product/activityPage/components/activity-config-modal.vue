@@ -3425,6 +3425,10 @@ watch(
                   <template v-if="['FIXED', 'ROW_EXPAND'].includes(selectedComponent.customProps.tableSubtype)">
                     <a-collapse-panel key="info" header="表格基本信息">
                       <div class="row-field">
+                        <div class="row-label">表格ID：</div>
+                        <div class="row-control"><a-input :value="selectedComponent.id" disabled /></div>
+                      </div>
+                      <div class="row-field">
                         <div class="row-label">表格标题：</div>
                         <div class="row-control"><a-input v-model:value="selectedComponent.customProps.tableTitle" placeholder="请输入" /></div>
                       </div>

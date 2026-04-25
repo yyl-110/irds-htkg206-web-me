@@ -488,4 +488,25 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 独立应用导出报告
+   *
+   * @tags  独立应用导出报告
+   * @name exportReport
+   * @summary  独立应用导出报告
+   * @request POST:/business-service/business/standalone-app/export-report
+   * @secure
+   */
+  static exportReport = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/export-report`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { computed, defineComponent, ref } from 'vue';
+import { computed, defineComponent, ref, watch } from 'vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { AdminApiSystemDictData } from '@/api/tags/管理后台字典数据';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
@@ -51,6 +51,13 @@ export default defineComponent({
       wordId: '',
     });
     const propTypeList = ref<any>([]);
+
+    /** 设计配置页面且勾选「导出报告」时，展示与计算页一致的 Word 模板上传 */
+    const showDesignPageWordUpload = computed(() => {
+      const pt = String(formData.value.pageType ?? '');
+      const btn = formData.value.button || [];
+      return pt === '1' && btn.includes('导出报告');
+    });
 
     /** handle close */
     const handleClose = () => {
@@ -107,7 +114,12 @@ export default defineComponent({
       formData.value.pageType = data.pageType;
       formData.value.url = data.url;
       formData.value.groupName = data.groupName;
-      formData.value.button = data.button.split(',');
+      formData.value.button = data.button
+        ? String(data.button)
+            .split(/[,，]/)
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+        : [];
       formData.value.excelId = data.calculateFileId;
       formData.value.wordId = data.reportFileId;
       const excelFile = normalizeUploadFile(data.calculateFileInfo);
@@ -257,6 +269,17 @@ export default defineComponent({
       formData.value.wordId = '';
     }
 
+    watch(
+      () => [String(formData.value.pageType ?? ''), [...(formData.value.button || [])].join('|')],
+      () => {
+        const pt = String(formData.value.pageType ?? '');
+        const hasExportReport = (formData.value.button || []).includes('导出报告');
+        if (pt === '1' && !hasExportReport) {
+          clearWordFile();
+        }
+      },
+    );
+
     return {
       visible,
       customGetContainer,
@@ -288,6 +311,7 @@ export default defineComponent({
       handleWordUploadConfirm,
       clearExcelFile,
       clearWordFile,
+      showDesignPageWordUpload,
     };
   },
 });
@@ -325,6 +349,10 @@ export default defineComponent({
         </a-form-item>
         <a-form-item :label="$t('页面功能按钮')" name="button" v-if="formData.pageType == '1'">
           <a-checkbox-group v-model:value="formData.button" :options="buttonOptions" />
+        </a-form-item>
+        <a-form-item v-if="showDesignPageWordUpload" :label="$t('上传word文件')" name="wordId">
+          <a-button type="primary" @click="openWordUploadModal = true">上传Word文件</a-button>
+          <span style="margin-left: 8px">{{ wordFileList[0]?.name || '未上传文件' }}</span>
         </a-form-item>
         <a-form-item :label="$t('上传excel文件')" name="excelId" v-if="formData.pageType == '2'">
           <a-button type="primary" @click="openExcelUploadModal = true">上传Excel文件</a-button>

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 
 function auto_width(ws, data) {
     /*set worksheet max width per col*/

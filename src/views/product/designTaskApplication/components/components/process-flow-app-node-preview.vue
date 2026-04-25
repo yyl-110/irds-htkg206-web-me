@@ -9,6 +9,7 @@ import ModuleLibraryPickerModal from '../../../activityPage/components/module-li
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { downloadFileFromStream } from '@/utils/file';
+import * as XLSX from 'xlsx';
 
 const props = defineProps<{
   componentsJson?: Record<string, any> | null;
@@ -28,6 +29,10 @@ const inputLastValidValueMap = ref<Record<string, string>>({});
 const previewFileCollabFileIdMap = ref<Record<string, string>>({});
 const fileCollabPreviewRowCountMap = ref<Record<string, number>>({});
 const fileCollabUploadInputRef = ref<HTMLInputElement | null>(null);
+const importParamsModalVisible = ref(false);
+const importParamsModalLoading = ref(false);
+const importParamsSelectedFile = ref<File | null>(null);
+const importParamsFileInputKey = ref(0);
 const fileCollabUploadTarget = ref<{ item: any; componentIndex: number; bodyRow: number } | null>(null);
 const modulePickerVisible = ref(false);
 const modulePickerCategoryId = ref('');
@@ -1054,6 +1059,188 @@ function applySavedTablesToPreviewMap(list: any[], tables: any[] | null | undefi
   return { cellMap: nextMap, fileIdMap: nextFileIdMap };
 }
 
+/** 与导出参数一致：不向富文本 / 上传 / 表格 / 三维写入导入值 */
+const EXPORT_PARAM_EXCEL_SKIP_TYPES = new Set(['RICH_TEXT', 'FILE', 'TABLE', '3D_VIEW']);
+
+/** @returns 实际写入表单的字段数量 */
+function applyToolbarImportedParams(parsed: { values?: unknown[] }): number {
+  const rows = Array.isArray(parsed?.values) ? parsed.values : [];
+  const byKey = new Map<string, string>();
+  rows.forEach((row: any) => {
+    const pk = String(row?.paramKey ?? row?.paramCode ?? '').trim();
+    if (!pk) return;
+    byKey.set(pk, String(row?.paramValue ?? row?.value ?? ''));
+  });
+  if (!byKey.size) {
+    message.warning('文件中未找到可导入的参数');
+    return 0;
+  }
+  const next = { ...previewFieldValueMap.value };
+  const nextRadio = { ...radioPreviewValueMap.value };
+  const nextLastValid = { ...inputLastValidValueMap.value };
+  let n = 0;
+  previewList.value.forEach((item: any, index: number) => {
+    if (!isPreviewConstraintVisible(item)) return;
+    const type = String(item?.componentType ?? '');
+    if (EXPORT_PARAM_EXCEL_SKIP_TYPES.has(type)) return;
+    const pk = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+    if (!pk || !byKey.has(pk)) return;
+    const val = byKey.get(pk)!;
+    const key = getPreviewItemKey(item, index);
+    if (['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'DATE', 'DATA_VIEW'].includes(type)) {
+      next[key] = val;
+      n++;
+      if (type === 'INPUT') {
+        nextLastValid[key] = val;
+      }
+    }
+    if (type === 'RADIO') {
+      nextRadio[key] = val;
+      n++;
+    }
+  });
+  previewFieldValueMap.value = next;
+  radioPreviewValueMap.value = nextRadio;
+  inputLastValidValueMap.value = nextLastValid;
+  if (n) message.success('导入成功');
+  else message.warning('当前页面没有与文件匹配的参数项');
+  return n;
+}
+
+/** 解析「导出参数」同款 Excel：表头含 参数名称 / 参数代号 / 参数值 */
+function parseImportParamsExcelFromArrayBuffer(buf: ArrayBuffer): { values: unknown[] } {
+  const wb = XLSX.read(buf, { type: 'array' });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) return { values: [] };
+  const sheet = wb.Sheets[sheetName];
+  const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null | undefined)[]>(sheet, {
+    header: 1,
+    raw: false,
+    defval: '',
+  }) as unknown[][];
+  if (!Array.isArray(matrix) || matrix.length < 2) return { values: [] };
+  const headerRow = (matrix[0] || []).map(c => String(c ?? '').trim().replace(/\s+/g, ''));
+  const findCol = (must: string) => headerRow.findIndex(h => h === must || h.includes(must.replace(/\s/g, '')));
+  const nameIdx = findCol('参数名称');
+  let codeIdx = findCol('参数代号');
+  let valIdx = findCol('参数值');
+  if (codeIdx < 0) codeIdx = headerRow.findIndex(h => h.includes('代号'));
+  if (valIdx < 0) valIdx = headerRow.findIndex(h => h.includes('参数值') || (h.includes('值') && !h.includes('代号')));
+  if (codeIdx < 0 || valIdx < 0) {
+    message.error('Excel 表头需包含「参数代号」「参数值」列（与导出模板一致）');
+    return { values: [] };
+  }
+  const values: unknown[] = [];
+  for (let i = 1; i < matrix.length; i++) {
+    const row = matrix[i];
+    if (!Array.isArray(row)) continue;
+    const paramCode = String(row[codeIdx] ?? '').trim();
+    if (!paramCode) continue;
+    const paramValue = String(row[valIdx] ?? '').trim();
+    const paramName = nameIdx >= 0 ? String(row[nameIdx] ?? '').trim() : '';
+    values.push({ paramCode, paramKey: paramCode, paramValue, paramName });
+  }
+  return { values };
+}
+
+function openImportParamsModal() {
+  importParamsSelectedFile.value = null;
+  importParamsFileInputKey.value += 1;
+  importParamsModalVisible.value = true;
+}
+
+function onImportParamsModalCancel() {
+  importParamsModalVisible.value = false;
+  importParamsSelectedFile.value = null;
+}
+
+function onImportParamsFileSelect(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const f = input.files?.[0];
+  importParamsSelectedFile.value = f ?? null;
+}
+
+async function onImportParamsModalConfirm() {
+  const file = importParamsSelectedFile.value;
+  if (!file) {
+    message.warning('请先选择 Excel 文件');
+    return Promise.reject();
+  }
+  const lower = file.name.toLowerCase();
+  if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
+    message.warning('请上传 .xlsx 或 .xls 文件');
+    return Promise.reject();
+  }
+  importParamsModalLoading.value = true;
+  try {
+    const buf = await file.arrayBuffer();
+    const parsed = parseImportParamsExcelFromArrayBuffer(buf);
+    if (!Array.isArray(parsed.values) || parsed.values.length === 0) {
+      return Promise.reject();
+    }
+    const applied = applyToolbarImportedParams(parsed);
+    if (!applied) {
+      return Promise.reject();
+    }
+    importParamsModalVisible.value = false;
+    importParamsSelectedFile.value = null;
+  } catch {
+    message.error('解析 Excel 失败');
+    return Promise.reject();
+  } finally {
+    importParamsModalLoading.value = false;
+  }
+}
+
+function buildParamExportRowsForExcel(): Array<{ paramName: string; paramCode: string; paramValue: string }> {
+  const rows: Array<{ paramName: string; paramCode: string; paramValue: string }> = [];
+  previewList.value.forEach((item: any, index: number) => {
+    if (!isPreviewConstraintVisible(item)) return;
+    const type = String(item?.componentType ?? '');
+    if (EXPORT_PARAM_EXCEL_SKIP_TYPES.has(type)) return;
+    const paramCode = String(item?.paramKey ?? item?.paramCode ?? '').trim();
+    if (!paramCode) return;
+    const paramName = String(item?.paramName ?? '').trim() || paramCode;
+    const rawVal = getCurrentComponentValue(item, index);
+    const paramValue = rawVal == null ? '' : String(rawVal);
+    rows.push({ paramName, paramCode, paramValue });
+  });
+  return rows;
+}
+
+/** 导出为 Excel：表头 参数名称 / 参数代号 / 参数值，工作表名 Sheet1 */
+function exportParamsToExcel(): boolean {
+  const rows = buildParamExportRowsForExcel();
+  if (!rows.length) {
+    message.warning('暂无可导出的参数');
+    return false;
+  }
+  try {
+    const aoa: string[][] = [['参数名称', '参数代号', '参数值'], ...rows.map(r => [r.paramName, r.paramCode, r.paramValue])];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    XLSX.writeFile(wb, `流程节点参数-${Date.now()}.xlsx`);
+    message.success('导出成功');
+    return true;
+  } catch {
+    message.error('导出 Excel 失败');
+    return false;
+  }
+}
+
+async function runToolbarAction(label: string): Promise<boolean> {
+  const t = String(label ?? '').trim();
+  if (t === '导出参数') {
+    return exportParamsToExcel();
+  }
+  if (t === '导入参数') {
+    openImportParamsModal();
+    return true;
+  }
+  return false;
+}
+
 function getCurrentTableSavePayload() {
   return previewList.value
     .map((item: any, componentIndex: number) => {
@@ -1157,11 +1344,32 @@ watch(
 defineExpose({
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
+  runToolbarAction,
+  exportParamsToExcel,
 });
 </script>
 
 <template>
   <div class="activity-preview-canvas">
+    <a-modal
+      v-model:visible="importParamsModalVisible"
+      title="导入参数"
+      width="520px"
+      :mask-closable="false"
+      :confirm-loading="importParamsModalLoading"
+      ok-text="确定"
+      cancel-text="取消"
+      @ok="onImportParamsModalConfirm"
+      @cancel="onImportParamsModalCancel">
+      <p class="import-params-modal-tip">请选择由「导出参数」生成的 Excel（.xlsx / .xls），表头须包含「参数代号」「参数值」列；解析在本地完成，不上传服务器。</p>
+      <input
+        :key="importParamsFileInputKey"
+        type="file"
+        accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+        class="import-params-file-input"
+        @change="onImportParamsFileSelect" />
+      <div v-if="importParamsSelectedFile" class="import-params-file-name">已选择：{{ importParamsSelectedFile.name }}</div>
+    </a-modal>
     <input ref="fileCollabUploadInputRef" type="file" class="activity-preview-file-collab-input" tabindex="-1" aria-hidden="true" @change="onFileCollabFileInputChange" />
     <div v-if="previewList.length === 0" class="activity-preview-empty">暂无页面组件</div>
     <div v-else class="component-list">
@@ -1731,5 +1939,20 @@ defineExpose({
 }
 .preview-field-join-row .preview-field {
   flex: 0 1 var(--activity-preview-component-width);
+}
+.import-params-modal-tip {
+  margin: 0 0 12px;
+  color: #595959;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.import-params-file-input {
+  display: block;
+  max-width: 100%;
+}
+.import-params-file-name {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #262626;
 }
 </style>

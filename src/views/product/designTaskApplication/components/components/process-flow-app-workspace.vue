@@ -10,6 +10,7 @@ import ProcessFlowAppNodePreview from './process-flow-app-node-preview.vue';
 import ProcessFlowAppCheckNodePreview from './process-flow-app-check-node-preview.vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { EpcIcon } from '@/components/icon/EpcIcon';
+import { useUserStore } from '@/store/modules/user';
 type FlowNode = {
   bpmnElementId?: string;
   nodeName?: string;
@@ -60,6 +61,7 @@ const activityImageWidth = ref(260);
 const saveFlowLoading = ref(false);
 const submitFlowLoading = ref(false);
 const finishFlowLoading = ref(false);
+const toolbarActionLoadingIndex = ref<number | null>(null);
 const nodePreviewRef = ref<any>(null);
 const checkNodePreviewRef = ref<any>(null);
 const activityImagePaneStyle = computed<Record<string, string>>(() => {
@@ -218,6 +220,232 @@ const selectedNodeTitle = computed(() => {
   return String(node.nodeName ?? '--');
 });
 
+/** 解析 node-page-detail 返回的 `button` 字段（逗号分隔） */
+function parseNodeDetailButtonLabels(raw: unknown): string[] {
+  const s = String(raw ?? '').trim();
+  if (!s) return [];
+  return s
+    .split(/[,，]/)
+    .map(x => x.trim())
+    .filter(Boolean);
+}
+
+const nodeDetailToolbarButtons = computed(() => parseNodeDetailButtonLabels(nodeDetailData.value?.button));
+
+/** 再生模型 */
+async function handleToolbarRegenerateModel(): Promise<boolean> {
+  return (await checkNodePreviewRef.value?.runToolbarAction?.('再生模型')) === true;
+}
+
+/** 导出报告 */
+async function handleToolbarExportReport(): Promise<boolean> {
+  const toColIndex = (colName: string): number => {
+    const s = String(colName ?? '')
+      .trim()
+      .toUpperCase();
+    if (!s) return 0;
+    let n = 0;
+    for (let i = 0; i < s.length; i++) {
+      const code = s.charCodeAt(i);
+      if (code < 65 || code > 90) return 0;
+      n = n * 26 + (code - 64);
+    }
+    return n;
+  };
+  const parseCellAddr = (cellKey: string): { rowNo: number; colNo: number } | null => {
+    const m = /^([a-zA-Z]+)(\d+)$/.exec(String(cellKey ?? '').trim());
+    if (!m) return null;
+    const colNo = toColIndex(m[1]);
+    const rowNo = Number(m[2]);
+    if (!colNo || !rowNo) return null;
+    return { rowNo, colNo };
+  };
+
+  const detail = nodeDetailData.value || {};
+  const reportFileId = String(detail?.reportFileId ?? detail?.reportFileInfo?.fileId ?? detail?.reportFileInfo?.id ?? '').trim();
+  if (!reportFileId) {
+    message.warning('当前节点缺少 reportFileId，无法构建导出报告参数');
+    return false;
+  }
+
+  const tableCfgList = Array.isArray(detail?.componentsJson?.tableComponentList) ? detail.componentsJson.tableComponentList : [];
+  const cfgByComponentId = new Map<string, any>();
+  tableCfgList.forEach((cfg: any) => {
+    const cid = String(cfg?.id ?? '').trim();
+    if (!cid) return;
+    cfgByComponentId.set(cid, cfg);
+  });
+
+  // 文本参数：先用 task-param-map 快照，再用页面实时值覆盖，确保是最新输入
+  const params: Record<string, string> = {};
+  const paramRows = Array.isArray(detail?.savedParamValues) ? detail.savedParamValues : [];
+  paramRows.forEach((row: any) => {
+    const code = String(row?.paramCode ?? row?.paramKey ?? '').trim();
+    if (!code) return;
+    params[code] = String(row?.paramValue ?? '');
+  });
+  const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const liveParamRows = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
+  liveParamRows.forEach((row: any) => {
+    const code = String(row?.paramKey ?? row?.paramCode ?? '').trim();
+    if (!code) return;
+    params[code] = String(row?.paramValue ?? '');
+  });
+
+  const normalizeTableRows = (arr: any[]) =>
+    arr.map((tb: any) => {
+      const componentId = String(tb?.componentId ?? '').trim();
+      const cfg = componentId ? cfgByComponentId.get(componentId) : null;
+      const rowCount = Number(cfg?.customProps?.tableBodyRows ?? 0) || 0;
+      const colCount = Number(cfg?.customProps?.tableColCount ?? 0) || 0;
+      const values = Array.isArray(tb?.values) ? tb.values : [];
+      const mergedCellMap: Record<string, any> = {};
+      values.forEach((m: any) => {
+        if (!m || typeof m !== 'object') return;
+        Object.assign(mergedCellMap, m);
+      });
+
+      // 与预览渲染规则一致：有操作列的业务类型，末列为操作列
+      const tableBizType = String(cfg?.customProps?.tableBizType ?? '');
+      const hasOperationCol =
+        tableBizType === 'MODULE_LIB_READ' || tableBizType === 'BASIC_RESOURCE_LIB_READ' || tableBizType === 'FILE_COLLAB' || tableBizType === 'FILE_COLLAB_SIMPLE';
+      const previewColCount = hasOperationCol ? colCount + 1 : colCount;
+      const isOperationCol = (physicalCol: number) => hasOperationCol && physicalCol === previewColCount;
+
+      const getHeaderByPhysicalCol = (physicalCol: number) => {
+        if (isOperationCol(physicalCol)) return '操作';
+        if (tableBizType === 'MODULE_LIB_READ') {
+          if (physicalCol === 2) return '模型件号';
+          if (physicalCol === 3) return '模型名称';
+        }
+        if (tableBizType === 'FILE_COLLAB_SIMPLE' && physicalCol === 2) return '文件名称';
+        const firstType = String(cfg?.customProps?.firstColumnType ?? 'INDEX');
+        if (physicalCol === 1) return firstType === 'INDEX' ? '序号' : '';
+        const raw = cfg?.customProps?.tableColDefs?.[physicalCol - 1]?.columnName;
+        if (raw != null && String(raw).trim() !== '') return String(raw).trim();
+        return `列名${physicalCol - 1}`;
+      };
+
+      // dataColIndex(Excel列号) -> 物理列号（跳过序号列与操作列）
+      const dataColToPhysicalCol = new Map<number, number>();
+      let dataColIdx = 0;
+      for (let physicalCol = 1; physicalCol <= previewColCount; physicalCol++) {
+        if (physicalCol === 1) continue;
+        if (isOperationCol(physicalCol)) continue;
+        dataColIdx++;
+        dataColToPhysicalCol.set(dataColIdx, physicalCol);
+      }
+
+      const cells = Object.entries(mergedCellMap as Record<string, any>)
+        .filter(([k]) => !/FileId$/i.test(String(k)))
+        .map(([cell, value]) => {
+          const rc = parseCellAddr(cell);
+          const physicalCol = rc?.colNo ? (dataColToPhysicalCol.get(rc.colNo) ?? 0) : 0;
+          const header = physicalCol ? getHeaderByPhysicalCol(physicalCol) : '';
+          return {
+            cell,
+            rowNo: rc?.rowNo ?? 0,
+            colNo: physicalCol,
+            header,
+            value: String(value ?? ''),
+          };
+        })
+        .filter(c => c.rowNo > 0 && c.colNo > 0 && c.header && c.header !== '操作');
+
+      // 最终按“列头”输出整表行数据（去掉操作列）
+      const rowsByNo = new Map<number, Record<string, any>>();
+      cells.forEach(c => {
+        if (!rowsByNo.has(c.rowNo)) rowsByNo.set(c.rowNo, { rowNo: c.rowNo, cellsByHeader: {} as Record<string, string> });
+        const rowObj = rowsByNo.get(c.rowNo)!;
+        rowObj.cellsByHeader[c.header] = c.value;
+      });
+      const rows = Array.from(rowsByNo.values()).sort((a, b) => a.rowNo - b.rowNo);
+
+      const headers = Array.from(
+        new Set(
+          Array.from({ length: previewColCount }, (_, i) => i + 1)
+            .filter(physicalCol => physicalCol !== 1 && !isOperationCol(physicalCol))
+            .map(physicalCol => getHeaderByPhysicalCol(physicalCol))
+            .filter(Boolean),
+        ),
+      );
+
+      return {
+        componentId,
+        tableTitle: String(tb?.tableName ?? cfg?.customProps?.tableTitle ?? cfg?.paramName ?? ''),
+        rowCount,
+        colCount,
+        headers,
+        rows,
+        values,
+      };
+    });
+
+  // 表格参数：先用 task-param-map 快照，再用页面实时表格覆盖同 componentId
+  const baseTables = normalizeTableRows(Array.isArray(detail?.savedTables) ? detail.savedTables : []);
+  const liveTablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const liveTables = normalizeTableRows(Array.isArray(liveTablePayload) ? liveTablePayload : []);
+  const tableMap = new Map<string, any>();
+  baseTables.forEach((tb: any, idx: number) => tableMap.set(tb.componentId || `base-${idx}`, tb));
+  liveTables.forEach((tb: any, idx: number) => tableMap.set(tb.componentId || `live-${idx}`, tb));
+  const tables = Array.from(tableMap.values());
+
+  const payload = {
+    // taskId: String(route.query.taskId ?? workspaceData.value?.taskId ?? ''),
+    // appId: String(route.query.appId ?? workspaceData.value?.appId ?? ''),
+    // appCode: String(workspaceData.value?.appCode ?? ''),
+    // bpmnElementId: String(selectedNodeKey.value || detail?.bpmnElementId || ''),
+    // activityPageId: String(detail?.activityPageId ?? ''),
+    reportFileId,
+    params,
+    tables,
+    userId: useUserStore().getUser.id,
+  };
+  const res = await AdminApiSystemProcessTask.exportReport(payload);
+  window.open(res.data.data.fileUrl);
+  return true;
+}
+
+/** 导入参数 */
+async function handleToolbarImportParams(): Promise<boolean> {
+  return (await nodePreviewRef.value?.runToolbarAction?.('导入参数')) === true;
+}
+
+/** 导出参数（Excel：参数名称 / 参数代号 / 参数值） */
+async function handleToolbarExportParams(): Promise<boolean> {
+  const fn = nodePreviewRef.value?.exportParamsToExcel;
+  if (typeof fn !== 'function') return false;
+  return fn() === true;
+}
+
+function resolveToolbarActionHandler(label: string): (() => Promise<boolean>) | null {
+  const t = String(label ?? '').trim();
+  if (t === '再生模型') return handleToolbarRegenerateModel;
+  if (t === '导出报告') return handleToolbarExportReport;
+  if (t === '导入参数') return handleToolbarImportParams;
+  if (t === '导出参数') return handleToolbarExportParams;
+  return null;
+}
+
+async function onNodeDetailToolbarAction(label: string, index: number) {
+  const text = String(label ?? '').trim();
+  if (!text) return;
+  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return;
+  if (toolbarActionLoadingIndex.value !== null) return;
+  const handler = resolveToolbarActionHandler(text);
+  if (!handler) {
+    message.warning(`「${text}」暂不支持`);
+    return;
+  }
+  toolbarActionLoadingIndex.value = index;
+  try {
+    await handler();
+  } finally {
+    toolbarActionLoadingIndex.value = null;
+  }
+}
+
 async function requestNodeDetailByKey(key: string) {
   if (!key) return;
   const targetNode = allNodeMap.value.get(key);
@@ -366,6 +594,7 @@ async function refreshWorkspaceTreeData() {
 
 async function goPrevNode() {
   if (!canGoPrev.value) return;
+  if (toolbarActionLoadingIndex.value !== null) return;
   const key = orderedActivityNodeKeys.value[currentActivityIndex.value - 1];
   if (!key) return;
   selectedNodeKey.value = key;
@@ -373,7 +602,7 @@ async function goPrevNode() {
 }
 
 async function saveCurrentNodeParams(options?: { successMessage?: string; loadingType?: 'save' | 'submit' | 'finish' }) {
-  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return false;
+  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value || toolbarActionLoadingIndex.value !== null) return false;
   const loadingType = options?.loadingType || 'save';
   const setLoading = (v: boolean) => {
     if (loadingType === 'submit') submitFlowLoading.value = v;
@@ -453,7 +682,7 @@ async function saveFlowInfo() {
 
 async function goNextNode() {
   if (!canGoNext.value) return;
-  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return;
+  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value || toolbarActionLoadingIndex.value !== null) return;
   const currentNodeKey = String(selectedNodeKey.value || nodeDetailData.value?.bpmnElementId || '').trim();
   if (!currentNodeKey) {
     message.warning('未选择流程节点，无法提交');
@@ -538,14 +767,70 @@ async function goNextNode() {
 }
 
 async function finishFlow() {
-  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return;
-  const ok = await saveCurrentNodeParams({
-    successMessage: '保存成功，已完成当前流程浏览',
-    loadingType: 'finish',
-  });
-  if (!ok) return;
-  await refreshWorkspaceTreeData();
-  router.back();
+  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value || toolbarActionLoadingIndex.value !== null) return;
+  const currentNodeKey = String(selectedNodeKey.value || nodeDetailData.value?.bpmnElementId || '').trim();
+  if (!currentNodeKey) {
+    message.warning('未选择流程节点，无法提交');
+    return;
+  }
+  const appId = route.query.appId;
+  const appCode = String(workspaceData.value?.appCode ?? '').trim();
+  if (!appId && !appCode) {
+    message.warning('缺少应用标识（appId/appCode），无法提交');
+    return;
+  }
+  const taskId = route.query.taskId;
+  if (!taskId) {
+    message.warning('缺少任务ID，无法提交');
+    return;
+  }
+  const projectId = route.query.projectId;
+  const activityPageId = nodeDetailData.value?.activityPageId;
+  if (!activityPageId) {
+    message.warning('缺少活动页面ID，无法提交');
+    return;
+  }
+  const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const sourceValues = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
+  const values = sourceValues
+    .map((row: any) => ({
+      bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
+      paramKey: String(row?.paramKey ?? '').trim(),
+      paramName: String(row?.paramName ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    }))
+    .filter((row: any) => row.paramKey);
+  if (!values.length) {
+    message.warning('当前节点暂无可提交参数');
+    return;
+  }
+  const data: Record<string, any> = {
+    bpmnElementId: currentNodeKey,
+    taskId,
+    projectId,
+    activityPageId,
+    values,
+    tables: Array.isArray(tablePayload) ? tablePayload : [],
+  };
+  if (appId) data.appId = appId;
+  else data.appCode = appCode;
+  finishFlowLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.nextStep(data);
+    const code = res?.data?.code;
+    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
+      message.error(String(res?.data?.msg ?? '提交失败'));
+      return;
+    }
+    message.success('提交成功');
+    router.back();
+  } catch {
+    message.error('提交失败');
+  } finally {
+    finishFlowLoading.value = false;
+  }
 }
 
 const centerPaneSize = computed(() => Math.max(0, 100 - leftPaneSize.value - rightPaneSize.value));
@@ -647,18 +932,27 @@ void initDefaultSelectedNode();
           <a-button
             type="primary"
             :loading="saveFlowLoading"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
             @click="saveFlowInfo"
             ><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button
           >
-          <a-button type="primary" v-if="canGoPrev" :disabled="finishFlowLoading" @click="goPrevNode"
+          <a-button
+            v-for="(tbLabel, tbIdx) in nodeDetailToolbarButtons"
+            :key="`node-toolbar-${tbIdx}-${tbLabel}`"
+            type="primary"
+            :loading="toolbarActionLoadingIndex === tbIdx"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
+            @click="onNodeDetailToolbarAction(tbLabel, tbIdx)"
+            >{{ tbLabel }}</a-button
+          >
+          <a-button type="primary" v-if="canGoPrev" :disabled="finishFlowLoading || toolbarActionLoadingIndex !== null" @click="goPrevNode"
             ><EpcIcon type="icon-paixujiantou2" style="font-size: 12px" />上一步</a-button
           >
           <a-button
             type="primary"
             v-if="canGoNext"
             :loading="submitFlowLoading"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
             @click="goNextNode"
             ><EpcIcon type="icon-paixujiantou" style="font-size: 12px" />提 交</a-button
           >
@@ -666,7 +960,7 @@ void initDefaultSelectedNode();
             v-if="isLastActivity"
             type="primary"
             :loading="finishFlowLoading"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
             @click="finishFlow"
             ><EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成</a-button
           >

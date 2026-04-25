@@ -254,8 +254,23 @@ watch(
   { immediate: true, deep: true },
 );
 
+/** 节点详情接口 `button` 文案与页内能力对齐（计算页） */
+async function runToolbarAction(label: string): Promise<boolean> {
+  const t = String(label ?? '').trim();
+  if (t === '再生模型') {
+    await onCalcButtonPreviewClick();
+    return true;
+  }
+  if (t === '导出报告') {
+    await onReportOutputClick();
+    return true;
+  }
+  return false;
+}
+
 defineExpose({
   getCurrentSaveParamValues,
+  runToolbarAction,
 });
 </script>
 

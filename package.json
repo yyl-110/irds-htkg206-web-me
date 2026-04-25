@@ -90,7 +90,8 @@
     "vuedraggable": "^2.24.3",
     "vxe-pc-ui": "^4.1.22",
     "vxe-table": "^4.7.77",
-    "web-storage-cache": "^1.1.1"
+    "web-storage-cache": "^1.1.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^2.27.3",
