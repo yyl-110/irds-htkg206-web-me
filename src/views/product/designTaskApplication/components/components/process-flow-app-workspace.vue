@@ -539,10 +539,26 @@ async function requestNodeDetailByKey(key: string) {
       paramName: row.paramName,
       paramValue: String(sourceMap.get(row.paramCode) ?? ''),
     }));
-    if (!normalizedValues.length) return;
+    const fullMapValues = Array.from(sourceMap.entries()).map(([paramCode, paramValue]) => ({
+      paramCode,
+      paramName: paramCode,
+      paramValue: String(paramValue ?? ''),
+    }));
+    const mergedByCode = new Map<string, { paramCode: string; paramName: string; paramValue: string }>();
+    fullMapValues.forEach(row => {
+      const code = String(row?.paramCode ?? '').trim();
+      if (!code) return;
+      mergedByCode.set(code, row);
+    });
+    normalizedValues.forEach(row => {
+      const code = String(row?.paramCode ?? '').trim();
+      if (!code) return;
+      // 当前页组件参数优先（保留更准确的 paramName）
+      mergedByCode.set(code, row);
+    });
     nodeDetailData.value = {
       ...detailObj,
-      savedParamValues: normalizedValues,
+      savedParamValues: Array.from(mergedByCode.values()),
       savedTables: tablesObj,
     };
   } catch {
@@ -633,9 +649,10 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
   }
   const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
   const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const tableUniqueCodeValues = nodePreviewRef.value?.getCurrentTableUniqueCodeSaveValues?.() || [];
   const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
   const sourceValues = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
-  const values = sourceValues
+  const baseValues = sourceValues
     .map((row: any) => ({
       bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
       paramKey: String(row?.paramKey ?? '').trim(),
@@ -643,6 +660,17 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
       paramValue: String(row?.paramValue ?? ''),
     }))
     .filter((row: any) => row.paramKey);
+  const extraValues = (Array.isArray(tableUniqueCodeValues) ? tableUniqueCodeValues : [])
+    .map((row: any) => ({
+      bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
+      paramKey: String(row?.paramKey ?? '').trim(),
+      paramName: String(row?.paramName ?? row?.paramKey ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    }))
+    .filter((row: any) => row.paramKey);
+  const dedup = new Map<string, any>();
+  [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
+  const values = Array.from(dedup.values());
   if (!values.length) {
     message.warning('当前节点暂无可保存参数');
     return false;
@@ -707,9 +735,10 @@ async function goNextNode() {
   }
   const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
   const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const tableUniqueCodeValues = nodePreviewRef.value?.getCurrentTableUniqueCodeSaveValues?.() || [];
   const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
   const sourceValues = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
-  const values = sourceValues
+  const baseValues = sourceValues
     .map((row: any) => ({
       bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
       paramKey: String(row?.paramKey ?? '').trim(),
@@ -717,6 +746,17 @@ async function goNextNode() {
       paramValue: String(row?.paramValue ?? ''),
     }))
     .filter((row: any) => row.paramKey);
+  const extraValues = (Array.isArray(tableUniqueCodeValues) ? tableUniqueCodeValues : [])
+    .map((row: any) => ({
+      bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
+      paramKey: String(row?.paramKey ?? '').trim(),
+      paramName: String(row?.paramName ?? row?.paramKey ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    }))
+    .filter((row: any) => row.paramKey);
+  const dedup = new Map<string, any>();
+  [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
+  const values = Array.from(dedup.values());
   if (!values.length) {
     message.warning('当前节点暂无可提交参数');
     return;
@@ -792,9 +832,10 @@ async function finishFlow() {
   }
   const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
   const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const tableUniqueCodeValues = nodePreviewRef.value?.getCurrentTableUniqueCodeSaveValues?.() || [];
   const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
   const sourceValues = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
-  const values = sourceValues
+  const baseValues = sourceValues
     .map((row: any) => ({
       bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
       paramKey: String(row?.paramKey ?? '').trim(),
@@ -802,6 +843,17 @@ async function finishFlow() {
       paramValue: String(row?.paramValue ?? ''),
     }))
     .filter((row: any) => row.paramKey);
+  const extraValues = (Array.isArray(tableUniqueCodeValues) ? tableUniqueCodeValues : [])
+    .map((row: any) => ({
+      bpmnElementId: String(row?.bpmnElementId ?? currentNodeKey),
+      paramKey: String(row?.paramKey ?? '').trim(),
+      paramName: String(row?.paramName ?? row?.paramKey ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    }))
+    .filter((row: any) => row.paramKey);
+  const dedup = new Map<string, any>();
+  [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
+  const values = Array.from(dedup.values());
   if (!values.length) {
     message.warning('当前节点暂无可提交参数');
     return;

@@ -666,9 +666,118 @@ function showModuleTableBrowse(item: any, componentIndex: number, bodyRowIndex: 
   modulePickerTargetFieldKey.value = '';
   modulePickerVisible.value = true;
 }
+function getTableCellInheritConfig(
+  item: any,
+  bodyRow: number,
+  col: number,
+): { inheritType: string; paramCode: string; tableNumber: string; tableCellRef: string } | null {
+  // 后端返回存在两种位置：component.cellParamInheritMap / component.customProps.cellParamInheritMap
+  const rawMap = item?.cellParamInheritMap ?? item?.customProps?.cellParamInheritMap;
+  if (!rawMap) return null;
+  let mapObj: Record<string, any> | null = null;
+  if (typeof rawMap === 'string') {
+    try {
+      const parsed = JSON.parse(rawMap);
+      mapObj = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, any>) : null;
+    } catch {
+      mapObj = null;
+    }
+  } else if (typeof rawMap === 'object' && !Array.isArray(rawMap)) {
+    mapObj = rawMap as Record<string, any>;
+  }
+  if (!mapObj) return null;
+  const key = `${bodyRow}-${col}`;
+  const directEntry = mapObj[key];
+  const normalizedDirectEntry = mapObj[key.replace(/\s+/g, '')] || mapObj[`${bodyRow}:${col}`] || mapObj[`${bodyRow}_${col}`];
+  let entry: any = directEntry ?? normalizedDirectEntry ?? null;
+  if (!entry || typeof entry !== 'object') {
+    const entries = Object.entries(mapObj);
+    const hit = entries.find(([k]) => {
+      const kk = String(k ?? '').trim().replace(/\s+/g, '');
+      if (kk === key) return true;
+      const m = /^(\d+)\D+(\d+)$/.exec(kk);
+      if (!m) return false;
+      return Number(m[1]) === bodyRow && Number(m[2]) === col;
+    });
+    entry = hit?.[1];
+  }
+  if (!entry || typeof entry !== 'object') return null;
+  return {
+    inheritType: String(entry?.cellInheritType ?? '').trim().toUpperCase(),
+    paramCode: String(entry?.cellParamCode ?? '').trim(),
+    tableNumber: String(entry?.cellTableNumber ?? '').trim(),
+    tableCellRef: String(entry?.cellTableCellRef ?? '').trim(),
+  };
+}
+function getTableCellUniqueCode(item: any, bodyRow: number, col: number): string {
+  const rawMap = item?.cellBasicDefMap ?? item?.customProps?.cellBasicDefMap;
+  if (!rawMap) return '';
+  let mapObj: Record<string, any> | null = null;
+  if (typeof rawMap === 'string') {
+    try {
+      const parsed = JSON.parse(rawMap);
+      mapObj = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, any>) : null;
+    } catch {
+      mapObj = null;
+    }
+  } else if (typeof rawMap === 'object' && !Array.isArray(rawMap)) {
+    mapObj = rawMap as Record<string, any>;
+  }
+  if (!mapObj) return '';
+  const key = `${bodyRow}-${col}`;
+  const directEntry = mapObj[key];
+  const normalizedDirectEntry = mapObj[key.replace(/\s+/g, '')] || mapObj[`${bodyRow}:${col}`] || mapObj[`${bodyRow}_${col}`];
+  let entry: any = directEntry ?? normalizedDirectEntry ?? null;
+  if (!entry || typeof entry !== 'object') {
+    const entries = Object.entries(mapObj);
+    const hit = entries.find(([k]) => {
+      const kk = String(k ?? '').trim().replace(/\s+/g, '');
+      if (kk === key) return true;
+      const m = /^(\d+)\D+(\d+)$/.exec(kk);
+      if (!m) return false;
+      return Number(m[1]) === bodyRow && Number(m[2]) === col;
+    });
+    entry = hit?.[1];
+  }
+  if (!entry || typeof entry !== 'object') return '';
+  return String(entry?.uniqueCode ?? '').trim();
+}
+/** 单元格继承值来源：task-param-map -> savedParamValues */
+function getInheritedParamValueByCode(paramCodeRaw: string): string {
+  const target = String(paramCodeRaw ?? '').trim();
+  if (!target) return '';
+  // 1) 优先精确命中 task-param-map
+  if (savedValueMap.value.has(target)) {
+    return String(savedValueMap.value.get(target) ?? '');
+  }
+  // 2) 兼容大小写差异
+  const targetLower = target.toLowerCase();
+  for (const [k, v] of savedValueMap.value.entries()) {
+    if (String(k).trim().toLowerCase() === targetLower) {
+      return String(v ?? '');
+    }
+  }
+  return '';
+}
 function getPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number) {
   const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);
-  return previewTableCellMap.value[k] ?? '';
+  const direct = previewTableCellMap.value[k];
+  if (direct != null && String(direct) !== '') return direct;
+  const inherit = getTableCellInheritConfig(item, bodyRow, col);
+  if (!inherit) return '';
+  if (inherit.inheritType === 'FROM_PARAM' && inherit.paramCode) {
+    return getInheritedParamValueByCode(inherit.paramCode);
+  }
+  if (inherit.inheritType === 'FIXED') {
+    // 从其他表格继承：使用“继承唯一编号”作为参数key，从 task-param-map 读取
+    if (inherit.tableNumber) return getInheritedParamValueByCode(inherit.tableNumber);
+    if (inherit.tableCellRef) return getInheritedParamValueByCode(inherit.tableCellRef);
+  }
+  return '';
+}
+function isPreviewTableCellReadonly(item: any, bodyRow: number, col: number): boolean {
+  const inherit = getTableCellInheritConfig(item, bodyRow, col);
+  return !!inherit && (inherit.inheritType === 'FROM_PARAM' || inherit.inheritType === 'FIXED');
 }
 function setPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number, v: string) {
   const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);
@@ -1277,6 +1386,31 @@ function getCurrentTableSavePayload() {
     .filter(Boolean);
 }
 
+/** 表格单元格唯一编号参数：paramKey=uniqueCode，paramValue=单元格值 */
+function getCurrentTableUniqueCodeSaveValues() {
+  const rows: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
+  previewList.value.forEach((item: any, componentIndex: number) => {
+    if (String(item?.componentType ?? '') !== 'TABLE') return;
+    const totalCols = getWorkspaceTablePreviewColCount(item);
+    const totalRows = getPreviewTableBodyRowCountForTable(item, componentIndex);
+    for (let row = 1; row <= totalRows; row++) {
+      for (let col = 1; col <= totalCols; col++) {
+        if (col === 1) continue;
+        if (isWorkspaceTableOperationColumn(item, col)) continue;
+        const uniqueCode = getTableCellUniqueCode(item, row, col);
+        if (!uniqueCode) continue;
+        const paramValue = String(getPreviewTableCellValue(item, componentIndex, row, col) ?? '');
+        rows.push({
+          paramKey: uniqueCode,
+          paramName: uniqueCode,
+          paramValue,
+        });
+      }
+    }
+  });
+  return rows;
+}
+
 watch(
   () => [props.componentsJson, props.savedParamValues, props.savedTables],
   () => {
@@ -1344,6 +1478,7 @@ watch(
 defineExpose({
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
+  getCurrentTableUniqueCodeSaveValues,
   runToolbarAction,
   exportParamsToExcel,
 });
@@ -1548,7 +1683,7 @@ defineExpose({
                         :value="getPreviewTableCellValue(item, index, r, c)"
                         size="small"
                         placeholder="请输入"
-                        :disabled="isOutputIoType(item)"
+                        :disabled="isOutputIoType(item) || isPreviewTableCellReadonly(item, r, c)"
                         @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
                     </td>
                   </tr>
