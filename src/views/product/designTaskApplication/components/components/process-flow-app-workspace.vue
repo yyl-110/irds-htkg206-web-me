@@ -59,6 +59,7 @@ const activityImageMarginTop = ref(0);
 const activityImageWidth = ref(260);
 const saveFlowLoading = ref(false);
 const submitFlowLoading = ref(false);
+const finishFlowLoading = ref(false);
 const nodePreviewRef = ref<any>(null);
 const checkNodePreviewRef = ref<any>(null);
 const activityImagePaneStyle = computed<Record<string, string>>(() => {
@@ -115,16 +116,46 @@ function renderNodeTitle(item: FlowNode) {
   ]);
 }
 
+function flattenFlowNodes(nodes: FlowNode[] | undefined): FlowNode[] {
+  if (!Array.isArray(nodes)) return [];
+  const result: FlowNode[] = [];
+  const walk = (arr: FlowNode[]) => {
+    arr.forEach((node: FlowNode) => {
+      result.push(node);
+      if (Array.isArray(node.children) && node.children.length) walk(node.children);
+    });
+  };
+  walk(nodes);
+  return result;
+}
+
+function resolveRootStatusByChildren(nodes: FlowNode[] | undefined): '进行中' | '已完成' {
+  const all = flattenFlowNodes(nodes).filter(n => String(n?.bpmnElementId ?? '').trim() !== '');
+  if (!all.length) return '进行中';
+  const allCompleted = all.every(n => String(n?.nodeStatus ?? '').includes('已完成'));
+  return allCompleted ? '已完成' : '进行中';
+}
+
+function renderRootTitle(name: string, nodes: FlowNode[] | undefined) {
+  const status = resolveRootStatusByChildren(nodes);
+  const style = status === '已完成' ? { color: '#52c41a', icon: CheckCircleOutlined } : { color: '#1890ff', icon: EditOutlined };
+  return h('span', { class: 'workspace-tree-node-title workspace-tree-node-title--root', style: { color: style.color } }, [
+    h(style.icon, { style: { marginRight: '6px', color: style.color, fontSize: '13px' } }),
+    h('span', null, name),
+  ]);
+}
+
 const treeData = computed<TreeItem[]>(() => {
   const rootTitle = String(workspaceData.value?.appName ?? '独立应用');
   const appCode = String(workspaceData.value?.appCode ?? '');
   const rootKey = appCode || 'root';
+  const pages = workspaceData.value?.pages;
   return [
     {
       key: rootKey,
-      title: h('span', { class: 'workspace-tree-node-title--root' }, rootTitle),
+      title: renderRootTitle(rootTitle, pages),
       raw: null,
-      children: buildTreeNodes(workspaceData.value?.pages),
+      children: buildTreeNodes(pages),
     },
   ];
 });
@@ -313,6 +344,26 @@ async function initDefaultSelectedNode() {
   await requestNodeDetailByKey(targetKey);
 }
 
+async function refreshWorkspaceTreeData() {
+  const appId = route.query.appId ?? workspaceData.value?.appId ?? '';
+  const appCode = String(workspaceData.value?.appCode ?? '').trim();
+  if (!appId && !appCode) return;
+  const query: Record<string, any> = {};
+  if (appId) query.appId = appId;
+  if (appCode) query.appCode = appCode;
+  try {
+    const res = await AdminApiSystemProcessTask.projectPages(query);
+    const payload = res?.data?.data;
+    if (!payload || typeof payload !== 'object') return;
+    workspaceData.value = {
+      ...workspaceData.value,
+      ...(payload as Record<string, any>),
+    };
+  } catch {
+    // 刷新树失败不阻断当前流程
+  }
+}
+
 async function goPrevNode() {
   if (!canGoPrev.value) return;
   const key = orderedActivityNodeKeys.value[currentActivityIndex.value - 1];
@@ -321,11 +372,12 @@ async function goPrevNode() {
   await requestNodeDetailByKey(key);
 }
 
-async function saveCurrentNodeParams(options?: { successMessage?: string; loadingType?: 'save' | 'submit' }) {
-  if (saveFlowLoading.value || submitFlowLoading.value) return false;
+async function saveCurrentNodeParams(options?: { successMessage?: string; loadingType?: 'save' | 'submit' | 'finish' }) {
+  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return false;
   const loadingType = options?.loadingType || 'save';
   const setLoading = (v: boolean) => {
     if (loadingType === 'submit') submitFlowLoading.value = v;
+    else if (loadingType === 'finish') finishFlowLoading.value = v;
     else saveFlowLoading.value = v;
   };
   const currentNodeKey = String(selectedNodeKey.value || nodeDetailData.value?.bpmnElementId || '').trim();
@@ -395,12 +447,13 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
 }
 
 async function saveFlowInfo() {
-  await saveCurrentNodeParams({ successMessage: '保存成功', loadingType: 'save' });
+  const ok = await saveCurrentNodeParams({ successMessage: '保存成功', loadingType: 'save' });
+  if (ok) await refreshWorkspaceTreeData();
 }
 
 async function goNextNode() {
   if (!canGoNext.value) return;
-  if (saveFlowLoading.value || submitFlowLoading.value) return;
+  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return;
   const currentNodeKey = String(selectedNodeKey.value || nodeDetailData.value?.bpmnElementId || '').trim();
   if (!currentNodeKey) {
     message.warning('未选择流程节点，无法提交');
@@ -449,6 +502,7 @@ async function goNextNode() {
   };
   if (appId) data.appId = appId;
   else data.appCode = appCode;
+  let serverNextBpmnElementId = '';
   submitFlowLoading.value = true;
   try {
     const res = await AdminApiSystemProcessTask.nextStep(data);
@@ -457,21 +511,40 @@ async function goNextNode() {
       message.error(String(res?.data?.msg ?? '提交失败'));
       return;
     }
+    const payload = res?.data?.data;
+    if (payload && typeof payload === 'object') {
+      serverNextBpmnElementId = String((payload as Record<string, unknown>).nextBpmnElementId ?? '').trim();
+    }
     message.success('提交成功');
+    await refreshWorkspaceTreeData();
   } catch {
     message.error('提交失败');
     return;
   } finally {
     submitFlowLoading.value = false;
   }
-  const key = orderedActivityNodeKeys.value[currentActivityIndex.value + 1];
+  let key = serverNextBpmnElementId;
+  if (key && !allNodeMap.value.has(key)) {
+    key = '';
+  }
+  if (!key) {
+    const submittedKey = String(selectedNodeKey.value || currentNodeKey || '').trim();
+    const idx = orderedActivityNodeKeys.value.findIndex(k => k === submittedKey);
+    key = (idx >= 0 ? orderedActivityNodeKeys.value[idx + 1] : '') || '';
+  }
   if (!key) return;
   selectedNodeKey.value = key;
   await requestNodeDetailByKey(key);
 }
 
-function finishFlow() {
-  message.success('已完成当前流程浏览');
+async function finishFlow() {
+  if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return;
+  const ok = await saveCurrentNodeParams({
+    successMessage: '保存成功，已完成当前流程浏览',
+    loadingType: 'finish',
+  });
+  if (!ok) return;
+  await refreshWorkspaceTreeData();
   router.back();
 }
 
@@ -571,14 +644,32 @@ void initDefaultSelectedNode();
           </a-spin>
         </div>
         <div class="workspace-center-footer">
-          <a-button type="primary" :loading="saveFlowLoading" :disabled="saveFlowLoading || submitFlowLoading" @click="saveFlowInfo"
+          <a-button
+            type="primary"
+            :loading="saveFlowLoading"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading"
+            @click="saveFlowInfo"
             ><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button
           >
-          <a-button type="primary" v-if="canGoPrev" @click="goPrevNode"><EpcIcon type="icon-paixujiantou2" style="font-size: 12px" />上一步</a-button>
-          <a-button type="primary" v-if="canGoNext" :loading="submitFlowLoading" :disabled="saveFlowLoading || submitFlowLoading" @click="goNextNode"
+          <a-button type="primary" v-if="canGoPrev" :disabled="finishFlowLoading" @click="goPrevNode"
+            ><EpcIcon type="icon-paixujiantou2" style="font-size: 12px" />上一步</a-button
+          >
+          <a-button
+            type="primary"
+            v-if="canGoNext"
+            :loading="submitFlowLoading"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading"
+            @click="goNextNode"
             ><EpcIcon type="icon-paixujiantou" style="font-size: 12px" />提 交</a-button
           >
-          <a-button v-if="isLastActivity" type="primary" @click="finishFlow"><EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成</a-button>
+          <a-button
+            v-if="isLastActivity"
+            type="primary"
+            :loading="finishFlowLoading"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading"
+            @click="finishFlow"
+            ><EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成</a-button
+          >
         </div>
       </Pane>
       <Pane :size="rightPaneSize" :min-size="rightCollapsed ? 0 : minExpanded" :class="['workspace-right', { 'workspace-right--collapsed': rightCollapsed }]">
