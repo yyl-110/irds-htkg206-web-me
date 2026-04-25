@@ -1719,8 +1719,59 @@ export class AdminApiSystemProduct {
       },
       CommonResultListDeptResponseDTOModel,
     );
-  
 
+  /**
+   * 新增产品平台（项目树节点）
+   *
+   * @request POST:/business-service/business/project-tree/create
+   * @secure
+   */
+  static createProjectTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-tree/create`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 
+  /**
+   * 修改产品平台（项目树节点）
+   *
+   * @request POST:/business-service/business/project-tree/update
+   * @secure
+   */
+  static updateProjectTree = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-tree/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 产品平台（项目树）成员授权，入参与后端约定：treeId + userIds
+   *
+   * @request POST:/business-service/business/project-tree-user/createProjectTreeUserAuth
+   * @secure
+   */
+  static createProjectTreeUserAuth = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-tree-user/createProjectTreeUserAuth`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 
 }
