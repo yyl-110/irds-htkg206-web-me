@@ -152,4 +152,99 @@ export class AdminApiProductTemp {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+    /**
+   * 查询树（浏览/编辑回显共用）
+   * @summary 返回模板 WBS 树、节点选中状态、节点必选项、节点任务候选列表 [cite: 28]
+   * @request POST /business-service/business/product-temp/wbs-tree-list [cite: 27]
+   */
+  static getWbsTreeList = (
+    query: {
+      tempId: number | string;
+      menuId?: number | string;
+      parentId?: number | string | null;
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/wbs-tree-list`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
+
+  /**
+   * 保存模板 WBS 快照
+   * @summary 保存节点选择 + 任务单选 + 节点必选项，并回传最新树 [cite: 91]
+   * @request POST /business-service/business/product-temp/wbs-snapshot/save [cite: 90]
+   */
+  static saveWbsSnapshot = (
+    query: {
+      tempId: number | string;
+      menuId: number | string;
+      tree: any[];
+      nodeTaskSelections: Array<{
+        nodeId: string | number;
+        taskId: string | number;
+        requiredFlag: 0 | 1;
+      }>;
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/wbs-snapshot/save`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
+
+  /**
+   * 节点上移
+   * @request POST /business-service/business/product-temp/wbs-snapshot/move-up [cite: 127]
+   */
+  static moveUpNode = (
+    query: { tempId: number | string; nodeId: number | string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/wbs-snapshot/move-up`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
+
+  /**
+   * 节点下移
+   * @request POST /business-service/business/product-temp/wbs-snapshot/move-down [cite: 133]
+   */
+  static moveDownNode = (
+    query: { tempId: number | string; nodeId: number | string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/wbs-snapshot/move-down`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
+
+  /**
+   * 删除节点（有子节点禁止删）
+   * @request POST /business-service/business/product-temp/wbs-snapshot/delete-node [cite: 139]
+   */
+  static deleteWbsNode = (
+    query: { tempId: number | string; nodeId: number | string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/wbs-snapshot/delete-node`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
 }
