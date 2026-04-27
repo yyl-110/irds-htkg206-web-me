@@ -26,6 +26,8 @@ import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollap
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import draggableModal from '@/components/DraggableModal/index.vue'
+
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -1165,10 +1167,10 @@ const {
     </div>
 
     <!-- 知识配置弹窗 -->
-    <knowledge-config ref="knowledgeConfigRef" type="2" />
+    <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="getListData" type="2" />
 
     <!-- 分享知识弹窗：展示关联知识列表 -->
-    <a-modal
+    <draggable-modal
       v-model:visible="shareModalVisible"
       :title="shareModalTitle"
       width="860px"
@@ -1197,7 +1199,7 @@ const {
       <div class="share-knowledge-footer">
         <a-button @click="closeShareModal">关闭</a-button>
       </div>
-    </a-modal>
+    </draggable-modal>
 
     <!-- 其他弹窗/组件 -->
     <SelectBoomTree

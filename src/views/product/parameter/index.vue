@@ -30,6 +30,7 @@ import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
 import TableCellOverflowTooltip from './components/TableCellOverflowTooltip.vue';
 import knowledgeConfig from '../components/knowledge-config.vue'
+import draggableModal from '@/components/DraggableModal/index.vue'
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -1401,10 +1402,10 @@ const {
     </a-modal>
 
     <!-- 知识配置弹窗 -->
-   <knowledge-config ref="knowledgeConfigRef" type="1" />
+   <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="getListData" type="1" />
 
     <!-- 分享知识弹窗：展示关联知识列表 -->
-    <a-modal
+    <draggable-modal
       v-model:visible="shareModalVisible"
       :title="shareModalTitle"
       width="860px"
@@ -1443,7 +1444,7 @@ const {
       <div class="share-knowledge-footer">
         <a-button @click="closeShareModal">关闭</a-button>
       </div>
-    </a-modal>
+    </draggable-modal>
 
     <!-- 其他弹窗/组件 -->
     <SelectBoomTree

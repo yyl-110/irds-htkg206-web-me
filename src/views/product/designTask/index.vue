@@ -85,7 +85,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="drawerContent">
+  <div class="drawerContent h-full">
     <ProjectInfoList ref="designTaskComRef" :menuId="menuId" />
   </div>
   <a-drawer

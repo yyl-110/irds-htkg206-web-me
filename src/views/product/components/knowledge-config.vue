@@ -21,7 +21,7 @@ const props = defineProps({
   type: String  // 1参数管理 2活动管理
 })
 
-const emits = defineEmits(['closeKnowledgeModal'])
+const emits = defineEmits(['closeKnowledgeModal','handleConfirmClose'])
 const page = ref<PageState>({
   pageSize: 10,
   pageCount: 100,
@@ -172,6 +172,11 @@ const association = async (record: any) => {
   }
 }
 
+const confirm = () => {
+  emits('handleConfirmClose')
+  closeKnowledgeModal()
+}
+
 
 const show = (id: string) => {
   businessId.value = id
@@ -251,7 +256,7 @@ defineExpose({
     </div>
     <template #footer>
       <a-space>
-        <a-button type="primary" @click="closeKnowledgeModal">{{ $t('确定') }}</a-button>
+        <a-button type="primary" @click="confirm">{{ $t('确定') }}</a-button>
         <a-button @click="closeKnowledgeModal">{{ $t('取消') }}</a-button>
       </a-space>
     </template>
