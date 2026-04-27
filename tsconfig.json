@@ -4,7 +4,6 @@
     "jsx": "preserve",
     "lib": ["ESNext", "DOM"],
     "useDefineForClassFields": true,
-    "experimentals": true,
     "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Node",

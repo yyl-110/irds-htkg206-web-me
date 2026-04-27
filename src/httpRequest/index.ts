@@ -36,6 +36,68 @@ let isRefreshToken = false;
 /** 请求白名单，无须token的接口 */
 const whiteList: string[] = ['/login', '/sso-login', '/refresh-token', '/outer-sso'];
 
+type AxCfg = InternalAxiosRequestConfig<HttpRequestResponse> & { _wbsAtRefreshRetried?: boolean };
+
+/** 仅对 refresh 端点本身失败时不再重试，避免与 refresh 请求形成环 */
+function isRefreshTokenRequestUrl(url: string | undefined) {
+  if (!url) return false;
+  return url.includes('refresh-token') || url.includes('refresh-toke');
+}
+
+/** 登录/SSO 等接口 401 不要尝试用 refresh 救（多为账号密码错），否则误续期 */
+function isLoginLikeRequestUrl(url: string) {
+  if (url.includes('auth/login') || url.includes('auth/ssoLogin') || url.includes('ssoLogin')) return true;
+  if (url.includes('outer-sso') || url.includes('outerSso')) return true;
+  if (url.includes('sso-login')) return true;
+  return false;
+}
+
+/**
+ * access 失效时无感刷新后重发请求（与 body code -8 / 业务 401 及 HTTP 401 共用一套队列）
+ */
+async function runRefreshAndReplay(
+  config: AxCfg
+): Promise<ReturnType<typeof service> | ReturnType<typeof handleAuthorized> | any> {
+  if (config._wbsAtRefreshRetried) {
+    return handleAuthorized();
+  }
+  if (isRefreshTokenRequestUrl(config.url)) {
+    return handleAuthorized();
+  }
+  if (!isRefreshToken) {
+    isRefreshToken = true;
+    if (!getRefreshToken()) {
+      isRefreshToken = false;
+      return handleAuthorized();
+    }
+    try {
+      const refreshTokenRes = await refreshToken();
+      setToken(refreshTokenRes.data.data as unknown as TokenType);
+      config.headers = config.headers || ({} as AxiosRequestHeaders);
+      (config.headers as any).Authorization = HttpRequestConfig.tokenHeaderPrefix + getAccessToken();
+      const queued = requestList;
+      requestList = [];
+      queued.forEach(cb => cb());
+      config._wbsAtRefreshRetried = true;
+      return service(config);
+    } catch (e) {
+      console.error('refresh token failed', e);
+      requestList.forEach(cb => cb());
+      return handleAuthorized();
+    } finally {
+      requestList = [];
+      isRefreshToken = false;
+    }
+  }
+  return new Promise(resolve => {
+    requestList.push(() => {
+      if (!config.headers) config.headers = {} as AxiosRequestHeaders;
+      (config.headers as any).Authorization = HttpRequestConfig.tokenHeaderPrefix + getAccessToken();
+      resolve(service(config));
+    });
+  }) as any;
+}
+
 /** response 中的 code 值枚举 */
 export enum ResponseCode {
   /** 请求成功 */
@@ -46,7 +108,6 @@ export enum ResponseCode {
   Forbidden = 403,
   /** 访问资源不存在 */
   NotFound = 404,
-  itong,
 }
 
 /**
@@ -205,42 +266,9 @@ service.interceptors.response.use(
     if (ignoreMsgs.includes(msg)) {
       return Promise.reject(toResponseError(response));
     }
-    // 4. 处理 token 过期
-    else if (code === -8) {
-      // 如果未认证，并且未进行刷新令牌，说明可能是访问令牌过期了
-      if (!isRefreshToken) {
-        isRefreshToken = true;
-        // 4.1. 如果获取不到刷新令牌，则只能执行登出操作
-        if (!getRefreshToken()) return handleAuthorized();
-        // 4.2. 进行刷新访问令牌
-        try {
-          const refreshTokenRes = await refreshToken();
-          // 4.2.1 刷新成功，则回放队列的请求 + 当前请求
-          setToken(refreshTokenRes.data.data as unknown as TokenType);
-          config.headers!.Authorization = HttpRequestConfig.tokenHeaderPrefix + getAccessToken();
-          requestList.forEach(cb => cb());
-          requestList = [];
-          return service(config);
-        } catch (e) {
-          console.error('refresh token failed', e);
-          // 为什么需要 catch 异常呢？刷新失败时，请求因为 Promise.reject 触发异常。
-          // 4.2.2 刷新失败，只回放队列的请求
-          requestList.forEach(cb => cb());
-          // 提示是否要登出。即不回放当前请求！不然会形成递归
-          return handleAuthorized();
-        } finally {
-          requestList = [];
-          isRefreshToken = false;
-        }
-      } else {
-        // 添加到队列，等待刷新获取到新的令牌
-        return new Promise(resolve => {
-          requestList.push(() => {
-            config.headers!.Authorization = HttpRequestConfig.tokenHeaderPrefix + getAccessToken(); // 让每个请求携带自定义token 请根据实际情况自行修改
-            resolve(service(config));
-          });
-        }) as any;
-      }
+    // 4. 处理 access 过期：业务 code -8 或 401（与 error 里 HTTP 401 一样走 refresh + 重放）
+    else if (code === -8 || Number(code) === ResponseCode.Unauthorized) {
+      return runRefreshAndReplay(config as AxCfg);
     }
     // 5. 处理 500
     else if (code === 500) {
@@ -254,11 +282,7 @@ service.interceptors.response.use(
     } else if (code === 1002000013) {
       return Promise.reject(response);
     }
-    // 6. 处理 401
-    else if (Number(code) === ResponseCode.Unauthorized) {
-      toLogin();
-      return Promise.reject(toResponseError(response, msg));
-    }
+    // 6. 业务 401 已在 code === -8 || 401 分支中统一处理无感刷新
     // 7. 处理其他错误码
     else if (Number(code) !== ResponseCode.Successfully && Number(code) !== 0) {
       WeiMessage.error(WeiI18n.t(msg).value);
@@ -270,76 +294,44 @@ service.interceptors.response.use(
       return response;
     }
   },
-  // 处理请求失败
+  // 处理请求失败（含 HTTP 401：网关/网关对过期 access 常直接 401，此前会误跳登录，改为与 code -8 一样先 refresh）
   async (error: AxiosError) => {
-    console.log(error, 'error');
-    if (error.response && error.response.status === -8) {
-      // 如果未认证，并且未进行刷新令牌，说明可能是访问令牌过期了
-      if (!isRefreshToken) {
-        isRefreshToken = true;
-        if (!getRefreshToken()) {
-          handleAuthorized();
-          return;
-        }
-        // 4.2. 进行刷新访问令牌
-        try {
-          const refreshTokenRes = await refreshToken();
-          // 4.2.1 刷新成功，则回放队列的请求 + 当前请求
-          setToken(refreshTokenRes.data.data as unknown as TokenType);
-          error.response.config.headers!.Authorization = HttpRequestConfig.tokenHeaderPrefix + getAccessToken();
-          requestList.forEach(cb => cb());
-          requestList = [];
-          return service(error.response.config);
-        } catch (e) {
-          console.error('refresh token failed', e);
-          // 为什么需要 catch 异常呢？刷新失败时，请求因为 Promise.reject 触发异常。
-          // 4.2.2 刷新失败，只回放队列的请求
-          requestList.forEach(cb => cb());
-          // 提示是否要登出。即不回放当前请求！不然会形成递归;
-          handleAuthorized();
-          return;
-        } finally {
-          requestList = [];
-          isRefreshToken = false;
-        }
-      } else {
-        // 添加到队列，等待刷新获取到新的令牌
-        return new Promise(resolve => {
-          requestList.push(() => {
-            error.response.config.headers!.Authorization = HttpRequestConfig.tokenHeaderPrefix + getAccessToken(); // 让每个请求携带自定义token 请根据实际情况自行修改
-            resolve(service(error.response.config));
-          });
-        }) as any;
+    const u = String(error.config?.url ?? '');
+
+    if (error.response?.status === 401 && error.config) {
+      if (isLoginLikeRequestUrl(u)) {
+        if (error.config.url) Reflect.deleteProperty(pendingRequests.value, error.config.url);
+        return Promise.reject(error);
+      }
+      if (!getRefreshToken()) {
+        toLogin();
+        if (error.config?.url) Reflect.deleteProperty(pendingRequests.value, error.config.url);
+        return Promise.reject(error);
+      }
+      if (error.config?.url) Reflect.deleteProperty(pendingRequests.value, error.config.url);
+      return runRefreshAndReplay(error.config as AxCfg) as any;
+    }
+
+    const status = error.response?.status;
+    const reqUrl = u;
+    /** 压缩包下载为可选能力，404 时前端会回退 WebSocket，不应刷红错 */
+    const isCompressedFileOptional404 = status === 404 && reqUrl.includes('folderManagerController/compressedFile');
+
+    let message = error.message;
+    if (message === 'Network Error') message = '操作失败,系统异常!';
+    else if (message.includes('timeout')) message = '接口请求超时,请刷新页面重试!';
+    else if (message.includes('Request failed with status code')) message = `请求出错,请稍候重试${message.substr(message.length - 3)}`;
+
+    if (isCompressedFileOptional404) {
+      if (import.meta.env.DEV) {
+        console.debug('[axios] compressedFile 404（可选接口，已忽略全局错误日志）');
       }
     } else {
-      const status = error.response?.status;
-      const reqUrl = String(error.config?.url ?? '');
-      /** 压缩包下载为可选能力，404 时前端会回退 WebSocket，不应刷红错 */
-      const isCompressedFileOptional404 =
-        status === 404 && reqUrl.includes('folderManagerController/compressedFile');
-
-      let message = error.message;
-      if (message === 'Network Error') message = '操作失败,系统异常!';
-      else if (message.includes('timeout')) message = '接口请求超时,请刷新页面重试!';
-      else if (message.includes('Request failed with status code')) message = `请求出错,请稍候重试${message.substr(message.length - 3)}`;
-
-      if (isCompressedFileOptional404) {
-        if (import.meta.env.DEV) {
-          console.debug('[axios] compressedFile 404（可选接口，已忽略全局错误日志）');
-        }
-      } else {
-        console.log(error, 'error');
-        console.error('[axios interceptors]: error', message, isRefreshToken);
-      }
-      if (error.response && error.response.status === 401) {
-        toLogin();
-      } else if (error.response && error.response.status !== 401) {
-        // WeiMessage.error(message);
-      }
-      // return Promise.reject(error)
-      if (error && error.config && error.config.url) Reflect.deleteProperty(pendingRequests.value, error.config.url);
-      return Promise.reject(error);
+      console.log(error, 'error');
+      console.error('[axios interceptors]: error', message, isRefreshToken);
     }
+    if (error && error.config && error.config.url) Reflect.deleteProperty(pendingRequests.value, error.config.url);
+    return Promise.reject(error);
   }
 );
 
