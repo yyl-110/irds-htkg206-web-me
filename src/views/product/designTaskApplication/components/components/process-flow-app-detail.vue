@@ -23,7 +23,7 @@ const browseColumns = [
   { title: '编号', dataIndex: 'appCode', key: 'appCode' },
   { title: '名称', dataIndex: 'appName', key: 'appName' },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
-  { title: '创建人', dataIndex: 'creator', key: 'creator' },
+  { title: '创建人', dataIndex: 'creatorName', key: 'creatorName' },
   { title: '状态', dataIndex: 'status', key: 'status' },
 ];
 const bpmnElementId = ref<any>();

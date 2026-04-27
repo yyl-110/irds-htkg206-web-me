@@ -17,20 +17,20 @@ interface PlatformRoleRow {
   id: string
   roleName: string
   attribute: string
-  owner: string
+  userName: string
   /** 已授权用户 id，用于成员授权弹窗回显 */
   authUserIds: string[]
   status: PlatformStatus
 }
 
-type MemberAuthUser = {
+interface MemberAuthUser {
   id: string
   name: string
   username: string
   deptId?: string
 }
 
-type MemberAuthDept = {
+interface MemberAuthDept {
   id: string
   name: string
 }
@@ -47,7 +47,7 @@ function formatAuthorizedNames(item: Record<string, unknown>): string {
       .filter(Boolean)
       .join('、')
   }
-  for (const key of ['owner', 'assignUserNames', 'userNames'] as const) {
+  for (const key of ['userName', 'assignUserNames', 'userNames'] as const) {
     const v = item[key]
     if (typeof v === 'string' && v.trim())
       return v.trim()
@@ -128,7 +128,7 @@ function mapProjectTreeItemToRow(item: Record<string, unknown>, idx: number): Pl
     id: idRaw != null && idRaw !== '' ? String(idRaw) : `row-${idx}`,
     roleName: String(item.categoryName ?? item.name ?? ''),
     attribute,
-    owner: formatAuthorizedNames(item),
+    userName: formatAuthorizedNames(item),
     authUserIds: getAuthorizedUserIdsFromItem(item),
     status,
   }
@@ -137,7 +137,7 @@ function mapProjectTreeItemToRow(item: Record<string, unknown>, idx: number): Pl
 async function fetchPlatformList() {
   loading.value = true
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeList()
+    const res = await AdminApiSystemProduct.getProjectTreeAllList()
     const payload = res.data
     const codeOk = payload?.code === 200 || payload?.code === undefined
     const rawList = payload?.data
@@ -232,10 +232,6 @@ function closeEditModal() {
 }
 
 async function submitEditForm() {
-  if (editFormState.status === 1) {
-    message.warning(WeiI18n.$t('固定平台不可编辑'))
-    return
-  }
   await editFormRef.value?.validate()
   editSubmitting.value = true
   try {
@@ -292,12 +288,12 @@ const columns = ref<TableColumnType<PlatformRoleRow>[]>([
   },
   {
     title: WeiI18n.$t('授权人员'),
-    dataIndex: 'owner',
-    key: 'owner',
+    dataIndex: 'userName',
+    key: 'userName',
     align: 'left',
     width: 220,
     resizable: true,
-    ellipsis: { showTitle: true },
+    className: 'platform-role-col-owner',
   },
   {
     title: WeiI18n.$t('操作'),
@@ -401,38 +397,100 @@ const memberAuthUsers = ref<MemberAuthUser[]>([])
 const memberAuthDepts = ref<MemberAuthDept[]>([])
 const memberAuthUserIds = ref<string[]>([])
 
+function mapDeptUserToMemberAuth(raw: Record<string, unknown>): MemberAuthUser | null {
+  const idRaw = raw.id ?? raw.userId
+  if (idRaw == null || idRaw === '')
+    return null
+  return {
+    id: String(idRaw),
+    name: String(raw.nickname ?? raw.name ?? ''),
+    username: String(raw.username ?? ''),
+    deptId: raw.deptId != null && raw.deptId !== '' ? String(raw.deptId) : undefined,
+  }
+}
+
+function mapDeptToMemberAuth(raw: Record<string, unknown>): MemberAuthDept | null {
+  const idRaw = raw.id
+  if (idRaw == null || idRaw === '')
+    return null
+  return {
+    id: String(idRaw),
+    name: String(raw.name ?? ''),
+  }
+}
+
+/**
+ * 解析「树节点授权」接口返回的 userId 列表（兼容多种 data 形态）
+ * @param resBody
+ */
+function parseProjectTreeAuthUserIds(resBody: Record<string, unknown>): string[] {
+  const data = resBody.data
+  if (data == null)
+    return []
+  if (Array.isArray(data)) {
+    return data
+      .map((x): string => {
+        if (typeof x === 'string' || typeof x === 'number')
+          return String(x)
+        if (x && typeof x === 'object') {
+          const o = x as Record<string, unknown>
+          const id = o.userId ?? o.id ?? o.adminUserId
+          return id != null ? String(id) : ''
+        }
+        return ''
+      })
+      .filter(Boolean)
+  }
+  if (typeof data === 'object') {
+    const o = data as Record<string, unknown>
+    const raw = o.userIds ?? o.assignUserIds ?? o.ids
+    if (Array.isArray(raw))
+      return raw.map(v => String(v)).filter(Boolean)
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    }
+  }
+  return []
+}
+
 async function openMemberAuth(record: PlatformRoleRow) {
-  if (rowIsFixedPlatform(record)) {
-    message.warning(WeiI18n.$t('固定平台不可编辑'))
-    return
-  }
-  if (record.id.startsWith('row-')) {
-    message.warning(WeiI18n.$t('当前数据无法编辑'))
-    return
-  }
   currentPlatformTreeId.value = record.id
-  const res = await AdminApiSystemDept.getDeptInfo({} as any)
-  const deptPayload = res.data?.data as any
-  if (res.data.code === 200 && deptPayload) {
-    memberAuthDepts.value = deptPayload.adminDeptResponseDTO || []
-    memberAuthUsers.value = deptPayload.adminUserResponseDTO || []
+  const [deptRes, authRes] = await Promise.all([
+    AdminApiSystemDept.getDeptInfo({} as any),
+    AdminApiSystemProduct.getProjectTreeUserAuth({ treeId: record.id }).catch(() => null),
+  ])
+  const deptPayload = deptRes.data?.data as Record<string, unknown> | undefined
+  if (deptRes.data.code === 200 && deptPayload) {
+    const rawDepts = Array.isArray(deptPayload.adminDeptResponseDTO) ? deptPayload.adminDeptResponseDTO : []
+    const rawUsers = Array.isArray(deptPayload.adminUserResponseDTO) ? deptPayload.adminUserResponseDTO : []
+    memberAuthDepts.value = rawDepts
+      .map((d: Record<string, unknown>) => mapDeptToMemberAuth(d))
+      .filter((d): d is MemberAuthDept => d != null)
+    memberAuthUsers.value = rawUsers
+      .map((u: Record<string, unknown>) => mapDeptUserToMemberAuth(u))
+      .filter((u): u is MemberAuthUser => u != null)
   }
   else {
     memberAuthDepts.value = []
     memberAuthUsers.value = []
   }
-  memberAuthUserIds.value = [...record.authUserIds]
+
+  const authPayload = authRes?.data as Record<string, unknown> | undefined
+  const authCodeOk = authPayload?.code === 200 || authPayload?.code === undefined
+  let resolvedAuthIds: string[] | null = null
+  if (authRes && authCodeOk && authPayload)
+    resolvedAuthIds = parseProjectTreeAuthUserIds(authPayload)
+  memberAuthUserIds.value = resolvedAuthIds ?? record.authUserIds.map(id => String(id))
+
   memberAuthVisible.value = true
 }
 
 async function handleMemberAuthConfirm(userIds: string[]) {
   if (currentPlatformTreeId.value == null)
     return
-  const row = dataSource.value.find(r => String(r.id) === String(currentPlatformTreeId.value))
-  if (row && rowIsFixedPlatform(row)) {
-    message.warning(WeiI18n.$t('固定平台不可编辑'))
-    return
-  }
   try {
     const res = await AdminApiSystemProduct.createProjectTreeUserAuth({
       treeId: currentPlatformTreeId.value,
@@ -501,79 +559,81 @@ function onDelete(record: PlatformRoleRow) {
     </div>
 
     <div class="platform-table-wrap">
-    <a-table
-      class="platform-role-table exe-config-table parameter-table-spaced"
-      bordered
-      table-layout="fixed"
-      :columns="columns"
-      :data-source="displayList"
-      :loading="loading"
-      :locale="locale"
-      :pagination="false"
-      :scroll="{ x: tableScrollX }"
-      :row-key="rowKey"
-      :row-class-name="rowClassName"
-      @resize-column="handleResizeColumn"
-    >
-      <template #headerCell="{ column }">
-        <template v-if="isSortableColumn(column)">
-          <div class="header-cell-main header-cell-main--static">
-            <span class="header-title-sort" @click.stop="toggleColumnSort(column)">
-              <span>{{ column.title }}</span>
-              <span class="header-sort-icon">
-                <CaretUpOutlined v-if="getSortOrder(getColumnSortKey(column)) === 'ascend'" />
-                <CaretDownOutlined v-else-if="getSortOrder(getColumnSortKey(column)) === 'descend'" />
-                <CaretUpOutlined v-else class="header-sort-icon--muted" />
+      <a-table
+        class="platform-role-table exe-config-table parameter-table-spaced"
+        bordered
+        table-layout="fixed"
+        :columns="columns"
+        :data-source="displayList"
+        :loading="loading"
+        :locale="locale"
+        :pagination="false"
+        :scroll="{ x: tableScrollX }"
+        :row-key="rowKey"
+        :row-class-name="rowClassName"
+        @resize-column="handleResizeColumn"
+      >
+        <template #headerCell="{ column }">
+          <template v-if="isSortableColumn(column)">
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort" @click.stop="toggleColumnSort(column)">
+                <span>{{ column.title }}</span>
+                <span class="header-sort-icon">
+                  <CaretUpOutlined v-if="getSortOrder(getColumnSortKey(column)) === 'ascend'" />
+                  <CaretDownOutlined v-else-if="getSortOrder(getColumnSortKey(column)) === 'descend'" />
+                  <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                </span>
               </span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort header-title-sort--disabled">
+                <span>{{ column.title }}</span>
+              </span>
+            </div>
+          </template>
+        </template>
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.key === 'index'">
+            {{ Number(index) + 1 }}
+          </template>
+          <template v-else-if="column.key === 'attribute'">
+            {{ record.attribute || '\u00a0' }}
+          </template>
+          <template v-else-if="column.key === 'userName'">
+            <a-tooltip v-if="record.userName" placement="topLeft" :title="record.userName">
+              <span class="platform-role-owner-cell">{{ record.userName }}</span>
+            </a-tooltip>
+          </template>
+          <template v-else-if="column.key === 'operation'">
+            <span class="platform-role-actions">
+              <template v-if="rowIsFixedPlatform(record)">
+                <a-typography-link @click="openMemberAuth(record)">
+                  {{ $t('分配人员') }}
+                </a-typography-link>
+                <span class="platform-role-actions__sep">|</span>
+                <span class="platform-role-actions--disabled">{{ WeiI18n.$t('编辑') }}</span>
+                <span class="platform-role-actions__sep">|</span>
+                <span class="platform-role-actions--disabled">{{ WeiI18n.$t('删除') }}</span>
+              </template>
+              <template v-else>
+                <a-typography-link @click="openMemberAuth(record)">
+                  {{ $t('分配人员') }}
+                </a-typography-link>
+                <span class="platform-role-actions__sep">|</span>
+                <a-typography-link @click="onEdit(record)">
+                  {{ WeiI18n.$t('编辑') }}
+                </a-typography-link>
+                <span class="platform-role-actions__sep">|</span>
+                <a-typography-link type="danger" @click="onDelete(record)">
+                  {{ WeiI18n.$t('删除') }}
+                </a-typography-link>
+              </template>
             </span>
-          </div>
+          </template>
         </template>
-        <template v-else>
-          <div class="header-cell-main header-cell-main--static">
-            <span class="header-title-sort header-title-sort--disabled">
-              <span>{{ column.title }}</span>
-            </span>
-          </div>
-        </template>
-      </template>
-      <template #bodyCell="{ column, record, index }">
-        <template v-if="column.key === 'index'">
-          {{ Number(index) + 1 }}
-        </template>
-        <template v-else-if="column.key === 'attribute'">
-          {{ record.attribute || '\u00a0' }}
-        </template>
-        <template v-else-if="column.key === 'owner'">
-          {{ record.owner || '\u00a0' }}
-        </template>
-        <template v-else-if="column.key === 'operation'">
-          <span class="platform-role-actions">
-            <template v-if="rowIsFixedPlatform(record)">
-              <a-typography-link @click="openMemberAuth(record)">
-                {{ $t('分配人员') }}
-              </a-typography-link>
-              <span class="platform-role-actions__sep">|</span>
-              <span class="platform-role-actions--disabled">{{ WeiI18n.$t('编辑') }}</span>
-              <span class="platform-role-actions__sep">|</span>
-              <span class="platform-role-actions--disabled">{{ WeiI18n.$t('删除') }}</span>
-            </template>
-            <template v-else>
-              <a-typography-link @click="openMemberAuth(record)">
-                {{ $t('分配人员') }}
-              </a-typography-link>
-              <span class="platform-role-actions__sep">|</span>
-              <a-typography-link @click="onEdit(record)">
-                {{ WeiI18n.$t('编辑') }}
-              </a-typography-link>
-              <span class="platform-role-actions__sep">|</span>
-              <a-typography-link type="danger" @click="onDelete(record)">
-                {{ WeiI18n.$t('删除') }}
-              </a-typography-link>
-            </template>
-          </span>
-        </template>
-      </template>
-    </a-table>
+      </a-table>
     </div>
 
     <a-modal
@@ -703,6 +763,11 @@ function onDelete(record: PlatformRoleRow) {
     border-bottom: 1px solid #e8e8e8;
   }
 
+  :deep(.ant-table-tbody > tr > td.platform-role-col-owner) {
+    overflow: hidden;
+    vertical-align: middle;
+  }
+
   :deep(.ant-table-tbody > tr > td:first-child) {
     text-align: center;
   }
@@ -801,5 +866,15 @@ function onDelete(record: PlatformRoleRow) {
   color: rgba(0, 0, 0, 0.25);
   cursor: not-allowed;
   user-select: none;
+}
+
+.platform-role-owner-cell {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
 }
 </style>
