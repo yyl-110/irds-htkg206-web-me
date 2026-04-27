@@ -10,11 +10,15 @@ import {
   ColumnWidthOutlined,
   DeleteOutlined,
   EditOutlined,
+  FormOutlined,
   LeftOutlined,
   MinusOutlined,
   PlusOutlined,
   RightOutlined,
+  RollbackOutlined,
+  SendOutlined,
 } from '@ant-design/icons-vue';
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 
 dayjs.extend(isoWeek);
 
@@ -36,6 +40,8 @@ export type WbsTaskNode = {
   predecessor: string;
   status: TaskWbsStatus;
   resource: string;
+  /** 负责人用户 id（每行仅一人，用于再次打开时回显） */
+  responsibleUserId?: string;
   children?: WbsTaskNode[];
 };
 
@@ -210,13 +216,13 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
       customRender: ({ record }) => `${record.progress}%`,
     },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
+    { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
     { title: '状态', key: 'status', dataIndex: 'status', width: 112, align: 'center', resizable: true },
-    { title: '资源', dataIndex: 'resource', key: 'resource', width: 100, ellipsis: true, resizable: true },
     {
       title: '操作',
       key: 'operation',
       dataIndex: 'operation',
-      width: 150,
+      width: 220,
       align: 'center',
       fixed: 'right',
       resizable: false,
@@ -240,6 +246,102 @@ function onTaskEdit(record: WbsTaskNode) {
 
 function onTaskDelete(record: WbsTaskNode) {
   message.warning(`删除：${record.taskName}`);
+}
+
+function onTaskPublish(record: WbsTaskNode) {
+  message.info(`发布：${record.taskName}`);
+}
+
+function onTaskChangeRequest(record: WbsTaskNode) {
+  message.info(`变更：${record.taskName}`);
+}
+
+function onTaskUnpublish(record: WbsTaskNode) {
+  message.info(`撤销发布：${record.taskName}`);
+}
+
+type ResponsiblePickerUser = { id: string; name: string; username: string; deptId?: string };
+type ResponsiblePickerDept = { id: string; name: string };
+
+/** 单选弹窗内表示「不指定负责人」 */
+const RESPONSIBLE_PICKER_NONE = '__wbs_responsible_none__';
+
+const responsiblePickerVisible = ref(false);
+const responsiblePickerUsers = ref<ResponsiblePickerUser[]>([]);
+const responsiblePickerDepts = ref<ResponsiblePickerDept[]>([]);
+const responsiblePickerTarget = ref<WbsTaskNode | null>(null);
+const responsiblePickerKeyword = ref('');
+/** 选中用户 id，或 RESPONSIBLE_PICKER_NONE 表示不指定 */
+const responsiblePickerSelectedUserId = ref<string>(RESPONSIBLE_PICKER_NONE);
+
+const responsiblePickerDeptNameMap = computed(() => {
+  const map = new Map<string, string>();
+  for (const d of responsiblePickerDepts.value) map.set(d.id, d.name);
+  return map;
+});
+
+const responsiblePickerFilteredUsers = computed(() => {
+  const kw = responsiblePickerKeyword.value.trim().toLowerCase();
+  const list = responsiblePickerUsers.value;
+  if (!kw) return list;
+  return list.filter(u => {
+    const dept = u.deptId ? responsiblePickerDeptNameMap.value.get(u.deptId) ?? '' : '';
+    return `${u.name}${u.username}${dept}`.toLowerCase().includes(kw);
+  });
+});
+
+function formatResponsibleUserRow(u: ResponsiblePickerUser) {
+  const dept = u.deptId ? responsiblePickerDeptNameMap.value.get(u.deptId) ?? '-' : '-';
+  return `${u.name} / ${u.username} / ${dept}`;
+}
+
+async function openResponsiblePicker(record: WbsTaskNode) {
+  responsiblePickerTarget.value = record;
+  responsiblePickerKeyword.value = '';
+  responsiblePickerSelectedUserId.value = record.responsibleUserId ?? RESPONSIBLE_PICKER_NONE;
+  try {
+    const res = await AdminApiSystemDept.getDeptInfo({} as any);
+    if (res.data?.code === 200) {
+      const payload = res.data.data as
+        | { adminDeptResponseDTO?: ResponsiblePickerDept[]; adminUserResponseDTO?: ResponsiblePickerUser[] }
+        | undefined;
+      responsiblePickerDepts.value = payload?.adminDeptResponseDTO ?? [];
+      responsiblePickerUsers.value = payload?.adminUserResponseDTO ?? [];
+    } else {
+      responsiblePickerDepts.value = [];
+      responsiblePickerUsers.value = [];
+    }
+  } catch {
+    message.error('加载用户列表失败');
+    return;
+  }
+  responsiblePickerVisible.value = true;
+}
+
+function closeResponsiblePicker() {
+  responsiblePickerVisible.value = false;
+  responsiblePickerTarget.value = null;
+}
+
+function confirmResponsiblePicker() {
+  const target = responsiblePickerTarget.value;
+  if (!target) {
+    closeResponsiblePicker();
+    return;
+  }
+  const uid = responsiblePickerSelectedUserId.value;
+  if (!uid || uid === RESPONSIBLE_PICKER_NONE) {
+    target.responsibleUserId = undefined;
+    target.resource = '';
+    message.success('已清空负责人');
+    closeResponsiblePicker();
+    return;
+  }
+  const u = responsiblePickerUsers.value.find(x => x.id === uid);
+  target.responsibleUserId = uid;
+  target.resource = u?.name ?? uid;
+  message.success('负责人已更新');
+  closeResponsiblePicker();
 }
 
 /** 在树中定位节点及其直接上级 */
@@ -438,9 +540,13 @@ function statusLabel(s: TaskWbsStatus) {
   return '未开始';
 }
 
-const TASK_WBS_STATUS_OPTIONS: { label: string; value: TaskWbsStatus }[] = (
-  ['pending', 'in_progress', 'completed', 'delayed'] as TaskWbsStatus[]
-).map((value) => ({ value, label: statusLabel(value) }));
+/** 与项目列表等处的状态 Tag 色一致：未开始默认、进行中 gold、已完成 blue；已延迟为异常态用红 */
+function wbsStatusTagColor(s: TaskWbsStatus): string | undefined {
+  if (s === 'completed') return 'blue';
+  if (s === 'in_progress') return 'gold';
+  if (s === 'delayed') return 'red';
+  return undefined;
+}
 
 /** 按表格可见顺序拍平（尊重 expandedRowKeys） */
 function flattenVisible(nodes: WbsTaskNode[], expanded: string[], acc: WbsTaskNode[] = []): WbsTaskNode[] {
@@ -454,6 +560,11 @@ function flattenVisible(nodes: WbsTaskNode[], expanded: string[], acc: WbsTaskNo
 }
 
 const flatRows = computed(() => flattenVisible(treeData.value, expandedRowKeys.value));
+
+/** 与甘特行同高（含底部分隔线），与左侧表格行高一一对应 */
+const ROW_H = 48;
+/** 与 .gantt-bar 高度一致，用于依赖箭头锚点 */
+const GANTT_BAR_H = 26;
 
 const timelineBounds = computed(() => {
   let min = dayjs('2099-12-31');
@@ -507,6 +618,17 @@ function fitTimelineToView() {
 
 const timelineWidthPx = computed(() => Math.ceil(totalTimelineDays.value * pxPerDay.value));
 
+/** 可视区域变宽而时间轴未铺满时，自动按与「适应宽度」相同规则拉满，避免窗口或分割条拉大后右侧留白 */
+function maybeFitGanttTimelineToView() {
+  if (ganttCollapsed.value) return;
+  const el = ganttBodyRef.value;
+  if (!el) return;
+  const cw = el.clientWidth;
+  if (cw <= 0) return;
+  if (timelineWidthPx.value >= cw - 0.5) return;
+  fitTimelineToView();
+}
+
 const monthHeaderCells = computed(() => {
   const cells: { label: string; widthPx: number }[] = [];
   let cur = timelineBounds.value.start.startOf('month');
@@ -552,6 +674,101 @@ function barMetrics(row: WbsTaskNode) {
   const width = spanDays * pxPerDay.value;
   return { left, width };
 }
+
+function collectAllTaskNodes(nodes: WbsTaskNode[], acc: WbsTaskNode[] = []): WbsTaskNode[] {
+  for (const n of nodes) {
+    acc.push(n);
+    if (n.children?.length) collectAllTaskNodes(n.children, acc);
+  }
+  return acc;
+}
+
+const allTaskNodesFlat = computed(() => collectAllTaskNodes(treeData.value));
+
+const serialToTaskNode = computed(() => {
+  const m = new Map<number, WbsTaskNode>();
+  for (const n of allTaskNodesFlat.value) {
+    if (!m.has(n.serialNo)) m.set(n.serialNo, n);
+  }
+  return m;
+});
+
+const wbsCodeToTaskNode = computed(() => {
+  const m = new Map<string, WbsTaskNode>();
+  for (const n of allTaskNodesFlat.value) {
+    m.set(n.wbsCode, n);
+  }
+  return m;
+});
+
+/** 解析前置列：如 `2FS`、`1.2FS`，支持逗号/分号分隔多条 */
+function parsePredecessorTokens(raw: string): { ref: string; link: string }[] {
+  const s = raw?.trim();
+  if (!s) return [];
+  const out: { ref: string; link: string }[] = [];
+  for (const part of s.split(/[,;，；]+/).map(p => p.trim()).filter(Boolean)) {
+    const m = part.match(/^(\d+(?:\.\d+)*)\s*([A-Za-z]{2})?$/);
+    if (!m) continue;
+    out.push({ ref: m[1], link: (m[2] || 'FS').toUpperCase() });
+  }
+  return out;
+}
+
+function resolvePredecessorTask(ref: string): WbsTaskNode | null {
+  const t = ref.trim();
+  if (!t) return null;
+  if (/^\d+$/.test(t)) return serialToTaskNode.value.get(Number(t)) ?? null;
+  return wbsCodeToTaskNode.value.get(t) ?? null;
+}
+
+/** FS：自前置条右端（或下端）折线连至当前条左端，风格接近 Project 示意图 */
+function buildDependencyPathFs(predIdx: number, succIdx: number, predRight: number, succLeft: number): string {
+  const rowCY = (i: number) => i * ROW_H + ROW_H / 2;
+  const rowBottom = (i: number) => rowCY(i) + GANTT_BAR_H / 2;
+  const rowTop = (i: number) => rowCY(i) - GANTT_BAR_H / 2;
+  const succCY = rowCY(succIdx);
+  const tipX = Math.max(succLeft - 2, 0);
+
+  if (succIdx > predIdx) {
+    const y0 = rowBottom(predIdx);
+    const legY = y0 + Math.min(32, 8 + (succIdx - predIdx) * 5);
+    return `M ${predRight} ${y0} L ${predRight} ${legY} L ${tipX} ${legY} L ${tipX} ${succCY} L ${succLeft} ${succCY}`;
+  }
+  if (succIdx < predIdx) {
+    const y0 = rowTop(predIdx);
+    const legY = y0 - Math.min(32, 8 + (predIdx - succIdx) * 5);
+    return `M ${predRight} ${y0} L ${predRight} ${legY} L ${tipX} ${legY} L ${tipX} ${succCY} L ${succLeft} ${succCY}`;
+  }
+  const midY = rowBottom(predIdx) + 12;
+  const stub = Math.min(16, Math.max(8, Math.abs(succLeft - predRight) * 0.15));
+  return `M ${predRight} ${rowCY(predIdx)} L ${predRight + stub} ${rowCY(predIdx)} L ${predRight + stub} ${midY} L ${tipX} ${midY} L ${tipX} ${succCY} L ${succLeft} ${succCY}`;
+}
+
+const ganttArrowMarkerId = computed(() => `wbs-gantt-arr-${String(props.projectId).replace(/[^a-zA-Z0-9_-]/g, '-')}`);
+
+const ganttDependencyLinks = computed(() => {
+  const rows = flatRows.value;
+  const items: { id: string; d: string }[] = [];
+  let n = 0;
+  for (let si = 0; si < rows.length; si++) {
+    const succ = rows[si];
+    const tokens = parsePredecessorTokens(succ.predecessor);
+    for (const { ref } of tokens) {
+      const pred = resolvePredecessorTask(ref);
+      if (!pred) continue;
+      const pi = rows.indexOf(pred);
+      if (pi < 0) continue;
+      const pm = barMetrics(pred);
+      const sm = barMetrics(succ);
+      if (pm.width <= 0 || sm.width <= 0) continue;
+      const predRight = pm.left + pm.width;
+      const succLeft = sm.left;
+      const d = buildDependencyPathFs(pi, si, predRight, succLeft);
+      items.push({ id: `dep-${succ.id}-${n++}`, d });
+    }
+  }
+  return items;
+});
 
 let onTableScrollHandler: (() => void) | null = null;
 let onGanttScrollHandler: (() => void) | null = null;
@@ -661,9 +878,6 @@ function measureSyncHeights() {
   measureTableBodyHeight();
 }
 
-/** 与甘特行同高（含底部分隔线），保证 scrollHeight 一致 */
-const ROW_H = 48;
-
 const ganttGridMinHeightPx = computed(() => flatRows.value.length * ROW_H);
 
 /** 拖拽命中区略大于视觉线宽，便于拖动 */
@@ -723,6 +937,11 @@ const rightPaneDynamicStyle = computed(() => {
     minHeight: 0,
   };
 });
+
+/** 表体固定像素高，配合样式使左侧横向滚动条落在栏底，与右侧 .gantt-body 对齐 */
+const tableWbsBodyCssVars = computed(() => ({
+  '--wbs-table-body-h': `${Math.max(0, Math.floor(Number(tableBodyHeight.value) || 0))}px`,
+}));
 
 function toggleGanttCollapsed() {
   if (ganttCollapsed.value) {
@@ -789,6 +1008,7 @@ async function refreshScrollBinding() {
   await nextTick();
   measureSyncHeights();
   await nextTick();
+  maybeFitGanttTimelineToView();
   bindTableBodyScroll();
 }
 
@@ -799,11 +1019,15 @@ onMounted(async () => {
   ro = new ResizeObserver(() => {
     measureSyncHeights();
     ensureLeftPaneWidthInitialized();
-    nextTick(() => bindTableBodyScroll());
+    nextTick(() => {
+      maybeFitGanttTimelineToView();
+      bindTableBodyScroll();
+    });
   });
   if (tableWrapRef.value) ro.observe(tableWrapRef.value.parentElement ?? tableWrapRef.value);
   await nextTick();
   if (splitRootRef.value) ro.observe(splitRootRef.value);
+  if (ganttBodyRef.value) ro.observe(ganttBodyRef.value);
   await refreshScrollBinding();
 });
 
@@ -837,6 +1061,7 @@ watch(ganttCollapsed, () => {
     <div ref="tableWrapRef" class="project-task-wbs__left" :style="leftPaneDynamicStyle">
       <a-table
         class="project-task-wbs-table"
+        :style="tableWbsBodyCssVars"
         table-layout="fixed"
         size="small"
         bordered
@@ -877,18 +1102,34 @@ watch(ganttCollapsed, () => {
                 @change="makeOnTaskEndChange(record)" />
             </div>
           </template>
+          <template v-else-if="column.key === 'resource'">
+            <div class="task-wbs-responsible-cell">
+              <span class="task-wbs-responsible-text" :title="record.resource">{{ record.resource }}</span>
+              <a-button type="primary" size="small" @click.stop="openResponsiblePicker(record)">浏览</a-button>
+            </div>
+          </template>
           <template v-else-if="column.key === 'status'">
             <div class="task-wbs-status-cell">
-              <a-select
-                v-model:value="record.status"
-                :options="TASK_WBS_STATUS_OPTIONS"
-                size="small"
-                class="task-wbs-status-select"
-                @click.stop />
+              <a-tag :color="wbsStatusTagColor(record.status)" size="small">{{ statusLabel(record.status) }}</a-tag>
             </div>
           </template>
           <template v-else-if="column.key === 'operation'">
-            <a-space :size="2" class="task-wbs-ops">
+            <a-space :size="2" wrap class="task-wbs-ops">
+              <a-tooltip title="发布">
+                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskPublish(record)">
+                  <template #icon><SendOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="变更">
+                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskChangeRequest(record)">
+                  <template #icon><FormOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="撤销发布">
+                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskUnpublish(record)">
+                  <template #icon><RollbackOutlined /></template>
+                </a-button>
+              </a-tooltip>
               <a-tooltip title="编辑">
                 <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskEdit(record)">
                   <template #icon><EditOutlined /></template>
@@ -903,6 +1144,38 @@ watch(ganttCollapsed, () => {
           </template>
         </template>
       </a-table>
+
+      <a-modal
+        v-model:visible="responsiblePickerVisible"
+        title="选择负责人"
+        width="560px"
+        :mask-closable="false"
+        destroy-on-close
+        @cancel="closeResponsiblePicker">
+        <div class="task-wbs-responsible-modal">
+          <a-input
+            v-model:value="responsiblePickerKeyword"
+            allow-clear
+            placeholder="搜索姓名、账号、部门"
+            size="small" />
+          <div class="task-wbs-responsible-modal__hint">每行任务仅可选一名负责人。</div>
+          <div class="task-wbs-responsible-modal__list">
+            <a-radio-group v-model:value="responsiblePickerSelectedUserId" class="task-wbs-responsible-modal__radios">
+              <div class="task-wbs-responsible-modal__row">
+                <a-radio :value="RESPONSIBLE_PICKER_NONE">不指定负责人</a-radio>
+              </div>
+              <div v-for="u in responsiblePickerFilteredUsers" :key="u.id" class="task-wbs-responsible-modal__row">
+                <a-radio :value="u.id">{{ formatResponsibleUserRow(u) }}</a-radio>
+              </div>
+            </a-radio-group>
+            <div v-if="!responsiblePickerFilteredUsers.length" class="task-wbs-responsible-modal__empty">无匹配用户</div>
+          </div>
+        </div>
+        <template #footer>
+          <a-button @click="closeResponsiblePicker">取消</a-button>
+          <a-button type="primary" @click="confirmResponsiblePicker">确定</a-button>
+        </template>
+      </a-modal>
     </div>
     <div
       class="project-task-wbs__splitter"
@@ -966,7 +1239,7 @@ watch(ganttCollapsed, () => {
           class="gantt-grid"
           :style="{
             width: `${timelineWidthPx}px`,
-            minHeight: `${ganttGridMinHeightPx}px`,
+            '--gantt-content-min-h': `${ganttGridMinHeightPx}px`,
             backgroundImage: `repeating-linear-gradient(to right, #fafafa 0, #fafafa ${pxPerDay - 1}px, #f0f0f0 ${pxPerDay - 1}px, #f0f0f0 ${pxPerDay}px)`,
           }">
           <div
@@ -986,6 +1259,35 @@ watch(ganttCollapsed, () => {
               <span class="gantt-bar__label">{{ row.taskName }} {{ row.progress }}%</span>
             </div>
           </div>
+          <svg
+            class="gantt-links-layer"
+            xmlns="http://www.w3.org/2000/svg"
+            :width="timelineWidthPx"
+            :height="ganttGridMinHeightPx"
+            aria-hidden="true">
+            <defs>
+              <marker
+                :id="ganttArrowMarkerId"
+                markerWidth="7"
+                markerHeight="7"
+                refX="0"
+                refY="3.5"
+                orient="auto"
+                markerUnits="strokeWidth">
+                <path d="M0,0 L0,7 L7,3.5 z" fill="#1890ff" />
+              </marker>
+            </defs>
+            <path
+              v-for="item in ganttDependencyLinks"
+              :key="item.id"
+              class="gantt-link-path"
+              :d="item.d"
+              fill="none"
+              stroke="#1890ff"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+              :marker-end="`url(#${ganttArrowMarkerId})`" />
+          </svg>
         </div>
       </div>
     </div>
@@ -996,9 +1298,9 @@ watch(ganttCollapsed, () => {
 .project-task-wbs {
   display: flex;
   align-items: stretch;
-  min-height: 480px;
-  height: calc(100vh - 280px);
-  max-height: 720px;
+  flex: 1 1 0;
+  min-height: 0;
+  height: 100%;
   gap: 0;
   background: #fafafa;
   border: 1px solid #f0f0f0;
@@ -1299,8 +1601,25 @@ watch(ganttCollapsed, () => {
   box-shadow: none !important;
 }
 
-/* 与甘特区一致：纵向始终占位，底部横向条与右侧纵向条交角对齐 */
+/* 有横向滚动时常见结构：scroll 容器包住 header+body，须占满剩余高度 */
+.project-task-wbs-table :deep(.ant-table-scroll) {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.project-task-wbs-table :deep(.ant-table-scroll .ant-table-header) {
+  flex: 0 0 auto;
+}
+
+/* 与甘特区一致：表体固定为 scroll.y 高度（避免仅用 max-height 随内容变矮），横向条贴在栏底与右侧对齐 */
 .project-task-wbs-table :deep(.ant-table-body) {
+  flex: 1 1 0;
+  min-height: 0;
+  height: var(--wbs-table-body-h, 420px) !important;
+  max-height: var(--wbs-table-body-h, 420px) !important;
   scrollbar-width: thin;
   overflow-x: auto !important;
   overflow-y: scroll !important;
@@ -1352,9 +1671,62 @@ watch(ganttCollapsed, () => {
   width: 100%;
 }
 
-.task-wbs-status-select {
+.task-wbs-responsible-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  max-width: 104px;
+  min-width: 0;
+}
+
+.task-wbs-responsible-text {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-wbs-responsible-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-wbs-responsible-modal__hint {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  line-height: 1.4;
+}
+
+.task-wbs-responsible-modal__list {
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.task-wbs-responsible-modal__radios {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.task-wbs-responsible-modal__row {
+  padding: 6px 0;
+  border-bottom: 1px dashed #f5f5f5;
+}
+
+.task-wbs-responsible-modal__row:last-child {
+  border-bottom: 0;
+}
+
+.task-wbs-responsible-modal__empty {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.35);
+  text-align: center;
+  padding: 16px 0;
 }
 
 .task-wbs-ops {
@@ -1398,7 +1770,18 @@ watch(ganttCollapsed, () => {
 
 .gantt-grid {
   position: relative;
-  min-height: 100%;
+  /* 行数少时也铺满 .gantt-body 可视高，使竖向网格线延伸到底，避免下方大块留白 */
+  min-height: max(100%, var(--gantt-content-min-h, 0px));
+  box-sizing: border-box;
+}
+
+.gantt-links-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
 }
 
 .gantt-row {
@@ -1417,6 +1800,7 @@ watch(ganttCollapsed, () => {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 4;
   height: 26px;
   border-radius: 3px;
   background: #69b1ff;
