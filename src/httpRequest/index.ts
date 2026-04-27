@@ -312,11 +312,25 @@ service.interceptors.response.use(
         }) as any;
       }
     } else {
+      const status = error.response?.status;
+      const reqUrl = String(error.config?.url ?? '');
+      /** 压缩包下载为可选能力，404 时前端会回退 WebSocket，不应刷红错 */
+      const isCompressedFileOptional404 =
+        status === 404 && reqUrl.includes('folderManagerController/compressedFile');
+
       let message = error.message;
       if (message === 'Network Error') message = '操作失败,系统异常!';
       else if (message.includes('timeout')) message = '接口请求超时,请刷新页面重试!';
       else if (message.includes('Request failed with status code')) message = `请求出错,请稍候重试${message.substr(message.length - 3)}`;
-      console.error('[axios interceptors]: error', message, isRefreshToken);
+
+      if (isCompressedFileOptional404) {
+        if (import.meta.env.DEV) {
+          console.debug('[axios] compressedFile 404（可选接口，已忽略全局错误日志）');
+        }
+      } else {
+        console.log(error, 'error');
+        console.error('[axios interceptors]: error', message, isRefreshToken);
+      }
       if (error.response && error.response.status === 401) {
         toLogin();
       } else if (error.response && error.response.status !== 401) {

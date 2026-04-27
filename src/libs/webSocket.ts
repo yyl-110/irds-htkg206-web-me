@@ -6,6 +6,17 @@ import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
 //206项目 true 需要先去服务器下载,其它项目false
 var casicProject = true;
 import { message } from 'ant-design-vue';
+
+/** 压缩包 HTTP 未部署或路径不对时常见 404，此时会走 WebSocket 回退，不算异常 */
+function isCompressedFileNotFound(err: unknown): boolean {
+  const e = err as { name?: string; response?: { status?: number }; config?: { url?: string } };
+  return (
+    e?.name === 'AxiosError' &&
+    e?.response?.status === 404 &&
+    String(e?.config?.url ?? '').includes('folderManagerController/compressedFile')
+  );
+}
+
 function ReceiveMessage() {
   return new Promise(resolve => {
     ws.onmessage = function (e) {
@@ -755,60 +766,83 @@ async function ApiExtOpenModel(filename) {
 
 //执行下载、解压、打开模型；compressedData 为下载的数据对象 包含物料编码 ,openModuleData为打开模型需要的数据对象
 export async function compressedFileAndOpen(that, compressedData, openModuleData) {
-  AdminApiwebSocketAuth.compressedFile(compressedData).then(async function (response) {
+  const runOpenModuleInfo = async () => {
+    const data = await openModuleInfo(
+      openModuleData.modelNum,
+      openModuleData.modelType,
+      openModuleData.newModelName,
+      openModuleData.commonName,
+      openModuleData.parametersStr,
+    );
+    const jsons = eval('(' + data + ')');
+    if (jsons.ReturnStatus == 0) {
+      message.success('模型打开成功！');
+    } else {
+      message.error('模型打开失败！！');
+    }
+  };
+
+  try {
+    const response = await AdminApiwebSocketAuth.compressedFile(compressedData);
     if (response.data.zipPath != '') {
-      //开始下载，下载完成后自动解压
       await DownloadModuleFile(that, response.data.zipPath, 'D:\\\\PTC\\\\mrds_work', '', compressedData.moduleNum);
-      var data = await openModuleInfo(openModuleData.modelNum, openModuleData.modelType, openModuleData.newModelName, openModuleData.commonName, openModuleData.parametersStr);
-      var jsons = eval('(' + data + ')');
-      if (jsons.ReturnStatus == 0) {
-        message.success('模型打开成功！');
-      } else {
-        message.error('模型打开失败！！');
+    }
+    await runOpenModuleInfo();
+  } catch (err) {
+    if (isCompressedFileNotFound(err)) {
+      if (import.meta.env.DEV) {
+        console.debug('[compressedFileAndOpen] compressedFile 404，回退为直接 WebSocket 打开');
       }
     } else {
-      var data = await openModuleInfo(openModuleData.modelNum, openModuleData.modelType, openModuleData.newModelName, openModuleData.commonName, openModuleData.parametersStr);
-      var jsons = eval('(' + data + ')');
-      if (jsons.ReturnStatus == 0) {
-        message.success('模型打开成功！');
-      } else {
-        message.error('模型打开失败！！');
-      }
+      console.error('[compressedFileAndOpen] 压缩包接口或下载失败，回退为直接 WebSocket 打开:', err);
+      message.warning('压缩包服务不可用或请求失败，已改为直接打开本地模型');
     }
-  });
+    try {
+      await runOpenModuleInfo();
+    } catch (e2) {
+      console.error(e2);
+      message.error('模型打开失败');
+    }
+  }
 }
 
 //执行下载、解压、装配模型；compressedData 为下载的数据对象 包含物料编码 ,openModuleData为需要装配的模型需要的数据对象
 async function compressedFileAndAsm(that, compressedData, asmModuleData) {
-  return new Promise(resolve => {
-    AdminApiwebSocketAuth.compressedFile(compressedData).then(async function (response) {
-      if (response.data.zipPath != '') {
-        //开始下载，下载完成后自动解压
-        await DownloadModuleFile(that, response.data.zipPath, 'D:\\\\PTC\\\\mrds_work', '', compressedData.moduleNum);
-        var data = await assembleModuleInfo(
-          asmModuleData.modelNum,
-          asmModuleData.modelType,
-          asmModuleData.parentAsmName,
-          asmModuleData.newModelName,
-          asmModuleData.commonName,
-          asmModuleData.parametersStr,
-        );
-        var jsons = eval('(' + data + ')');
-        resolve(jsons);
-      } else {
-        var data = await assembleModuleInfo(
-          asmModuleData.modelNum,
-          asmModuleData.modelType,
-          asmModuleData.parentAsmName,
-          asmModuleData.newModelName,
-          asmModuleData.commonName,
-          asmModuleData.parametersStr,
-        );
-        var jsons = eval('(' + data + ')');
-        resolve(jsons);
+  const runAssemble = async () => {
+    const data = await assembleModuleInfo(
+      asmModuleData.modelNum,
+      asmModuleData.modelType,
+      asmModuleData.parentAsmName,
+      asmModuleData.newModelName,
+      asmModuleData.commonName,
+      asmModuleData.parametersStr,
+    );
+    return eval('(' + data + ')');
+  };
+
+  try {
+    const response = await AdminApiwebSocketAuth.compressedFile(compressedData);
+    if (response.data.zipPath != '') {
+      await DownloadModuleFile(that, response.data.zipPath, 'D:\\\\PTC\\\\mrds_work', '', compressedData.moduleNum);
+    }
+    return await runAssemble();
+  } catch (err) {
+    if (isCompressedFileNotFound(err)) {
+      if (import.meta.env.DEV) {
+        console.debug('[compressedFileAndAsm] compressedFile 404，回退为直接 WebSocket 装配');
       }
-    });
-  });
+    } else {
+      console.error('[compressedFileAndAsm] 压缩包接口或下载失败，回退为直接 WebSocket 装配:', err);
+      message.warning('压缩包服务不可用或请求失败，已改为直接装配');
+    }
+    try {
+      return await runAssemble();
+    } catch (e2) {
+      console.error(e2);
+      message.error('装配失败');
+      throw e2;
+    }
+  }
 }
 
 export const UnPackFiles = async function (zipFilePath, unPackDirectory, that) {
@@ -893,10 +927,11 @@ export const deleteModule = function (modelNum, modelType, parentAsmName) {
 export const openDrawing = async function (that, modelNum) {
   var data = await openDrawingInfo(modelNum);
   var jsons = eval('(' + data + ')');
-  if (jsons.ReturnStatus == 0) {
-    that.$Message.warning('二维图打开成功！');
+  const tip = typeof jsons.message === 'string' && jsons.message.trim() ? jsons.message.trim() : '';
+  if (jsons.ReturnStatus == 0 || jsons.ReturnStatus === '0') {
+    message.success(tip || '二维图打开成功！');
   } else {
-    that.$Message.warning('二维图打开失败！');
+    message.error(tip || '二维图打开失败！');
   }
 };
 
