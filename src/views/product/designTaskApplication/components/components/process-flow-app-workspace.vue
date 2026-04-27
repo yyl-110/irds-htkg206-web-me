@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, ref } from 'vue';
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { CheckCircleOutlined, ClockCircleOutlined, EditOutlined, LeftOutlined, QuestionCircleOutlined, RightOutlined } from '@ant-design/icons-vue';
@@ -62,6 +62,9 @@ const saveFlowLoading = ref(false);
 const submitFlowLoading = ref(false);
 const finishFlowLoading = ref(false);
 const toolbarActionLoadingIndex = ref<number | null>(null);
+const saveDirtyByNode = ref<Record<string, boolean>>({});
+const savedSnapshotByNode = ref<Record<string, string>>({});
+let saveDirtyPollingTimer: ReturnType<typeof setInterval> | null = null;
 const nodePreviewRef = ref<any>(null);
 const checkNodePreviewRef = ref<any>(null);
 const activityImagePaneStyle = computed<Record<string, string>>(() => {
@@ -76,9 +79,15 @@ const activityImagePaneStyle = computed<Record<string, string>>(() => {
 
 function loadWorkspaceData() {
   const cacheKey = String(route.query.cacheKey ?? '');
-  if (!cacheKey) return;
+  if (!cacheKey) {
+    workspaceData.value = {};
+    return;
+  }
   const raw = sessionStorage.getItem(cacheKey);
-  if (!raw) return;
+  if (!raw) {
+    workspaceData.value = {};
+    return;
+  }
   try {
     workspaceData.value = JSON.parse(raw) as WorkspaceData;
   } catch {
@@ -564,6 +573,9 @@ async function requestNodeDetailByKey(key: string) {
   } catch {
     // task-param-map 失败不阻断节点详情展示
   }
+  await nextTick();
+  captureNodeSavedSnapshot(key);
+  refreshSaveDirtyState();
 }
 
 async function onSelectTree(keys: (string | number)[]) {
@@ -691,6 +703,11 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
     const code = res?.data?.code;
     if (code === 0 || code === 200 || code === '0' || code === '200') {
       message.success(options?.successMessage || '保存成功');
+      const key = String(currentNodeKey).trim();
+      if (key) {
+        captureNodeSavedSnapshot(key);
+        saveDirtyByNode.value[key] = false;
+      }
       return true;
     }
     message.error(String(res?.data?.msg ?? '保存失败'));
@@ -707,6 +724,66 @@ async function saveFlowInfo() {
   const ok = await saveCurrentNodeParams({ successMessage: '保存成功', loadingType: 'save' });
   if (ok) await refreshWorkspaceTreeData();
 }
+
+function normalizeSaveValues(values: unknown[]) {
+  return (Array.isArray(values) ? values : [])
+    .map((row: any) => ({
+      paramKey: String(row?.paramKey ?? row?.paramCode ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    }))
+    .filter((row: any) => row.paramKey)
+    .sort((a: any, b: any) => a.paramKey.localeCompare(b.paramKey));
+}
+
+function normalizeSaveTables(tables: unknown[]) {
+  return (Array.isArray(tables) ? tables : [])
+    .map((tb: any) => {
+      const componentId = String(tb?.componentId ?? '').trim();
+      const valueMap: Record<string, string> = {};
+      const values = Array.isArray(tb?.values) ? tb.values : [];
+      values.forEach((row: any) => {
+        if (!row || typeof row !== 'object') return;
+        Object.entries(row).forEach(([k, v]) => {
+          const key = String(k ?? '').trim();
+          if (!key) return;
+          valueMap[key] = String(v ?? '');
+        });
+      });
+      const sortedValues = Object.fromEntries(Object.entries(valueMap).sort(([a], [b]) => a.localeCompare(b)));
+      return { componentId, values: sortedValues };
+    })
+    .sort((a: any, b: any) => a.componentId.localeCompare(b.componentId));
+}
+
+function buildCurrentNodeSnapshot() {
+  const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const paramValues = normalizeSaveValues((Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || []);
+  const tableValues = normalizeSaveTables(nodePreviewRef.value?.getCurrentTableSavePayload?.() || []);
+  return JSON.stringify({ paramValues, tableValues });
+}
+
+function captureNodeSavedSnapshot(nodeKey: string) {
+  const key = String(nodeKey ?? '').trim();
+  if (!key) return;
+  savedSnapshotByNode.value[key] = buildCurrentNodeSnapshot();
+}
+
+function refreshSaveDirtyState() {
+  const nodeKey = String(selectedNodeKey.value ?? '').trim();
+  if (!nodeKey) return;
+  const currentSnapshot = buildCurrentNodeSnapshot();
+  if (!(nodeKey in savedSnapshotByNode.value)) {
+    savedSnapshotByNode.value[nodeKey] = currentSnapshot;
+  }
+  saveDirtyByNode.value[nodeKey] = currentSnapshot !== savedSnapshotByNode.value[nodeKey];
+}
+
+const saveButtonDisabled = computed(() => {
+  const nodeKey = String(selectedNodeKey.value ?? '').trim();
+  const dirty = nodeKey ? saveDirtyByNode.value[nodeKey] === true : false;
+  return saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value || toolbarActionLoadingIndex.value !== null || !dirty;
+});
 
 async function goNextNode() {
   if (!canGoNext.value) return;
@@ -947,7 +1024,22 @@ const rightToggleStyle = computed(() => {
 });
 
 loadWorkspaceData();
-void initDefaultSelectedNode();
+if (treeData.value.length > 0) {
+  void initDefaultSelectedNode();
+}
+
+onMounted(() => {
+  saveDirtyPollingTimer = setInterval(() => {
+    if (treeData.value.length > 0) refreshSaveDirtyState();
+  }, 500);
+});
+
+onBeforeUnmount(() => {
+  if (saveDirtyPollingTimer) {
+    clearInterval(saveDirtyPollingTimer);
+    saveDirtyPollingTimer = null;
+  }
+});
 </script>
 
 <template>
@@ -981,11 +1073,7 @@ void initDefaultSelectedNode();
           </a-spin>
         </div>
         <div class="workspace-center-footer">
-          <a-button
-            type="primary"
-            :loading="saveFlowLoading"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
-            @click="saveFlowInfo"
+          <a-button type="primary" :loading="saveFlowLoading" :disabled="saveButtonDisabled" @click="saveFlowInfo"
             ><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button
           >
           <a-button
