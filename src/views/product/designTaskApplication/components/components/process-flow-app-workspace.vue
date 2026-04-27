@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, h, nextTick, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import { CheckCircleOutlined, ClockCircleOutlined, EditOutlined, LeftOutlined, QuestionCircleOutlined, RightOutlined } from '@ant-design/icons-vue';
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  EditOutlined,
+  LeftOutlined,
+  QuestionCircleOutlined,
+  RightOutlined,
+  SearchOutlined,
+} from '@ant-design/icons-vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
@@ -46,12 +54,18 @@ const route = useRoute();
 const router = useRouter();
 const workspaceData = ref<WorkspaceData>({});
 const selectedNodeKey = ref<string>('');
+/** 左侧 / 右侧默认宽度 px → 换算为 Splitpanes 占比 */
+const DEFAULT_LEFT_WIDTH_PX = 210;
+const DEFAULT_RIGHT_WIDTH_PX = 280;
+const workspacePageRef = ref<HTMLElement | null>(null);
 const leftPaneSize = ref(20);
 const rightPaneSize = ref(24);
 const leftPaneBeforeCollapse = ref(20);
 const rightPaneBeforeCollapse = ref(24);
 const leftCollapsed = ref(false);
 const rightCollapsed = ref(false);
+/** 右侧：设计知识 | 操作日志 | 设计流程 */
+const knowledgeRightActiveKey = ref<'design' | 'log' | 'flow'>('design');
 const minExpanded = 12;
 const nodeDetailLoading = ref(false);
 const nodeDetailData = ref<Record<string, any> | null>(null);
@@ -62,9 +76,6 @@ const saveFlowLoading = ref(false);
 const submitFlowLoading = ref(false);
 const finishFlowLoading = ref(false);
 const toolbarActionLoadingIndex = ref<number | null>(null);
-const saveDirtyByNode = ref<Record<string, boolean>>({});
-const savedSnapshotByNode = ref<Record<string, string>>({});
-let saveDirtyPollingTimer: ReturnType<typeof setInterval> | null = null;
 const nodePreviewRef = ref<any>(null);
 const checkNodePreviewRef = ref<any>(null);
 const activityImagePaneStyle = computed<Record<string, string>>(() => {
@@ -79,15 +90,9 @@ const activityImagePaneStyle = computed<Record<string, string>>(() => {
 
 function loadWorkspaceData() {
   const cacheKey = String(route.query.cacheKey ?? '');
-  if (!cacheKey) {
-    workspaceData.value = {};
-    return;
-  }
+  if (!cacheKey) return;
   const raw = sessionStorage.getItem(cacheKey);
-  if (!raw) {
-    workspaceData.value = {};
-    return;
-  }
+  if (!raw) return;
   try {
     workspaceData.value = JSON.parse(raw) as WorkspaceData;
   } catch {
@@ -573,9 +578,6 @@ async function requestNodeDetailByKey(key: string) {
   } catch {
     // task-param-map 失败不阻断节点详情展示
   }
-  await nextTick();
-  captureNodeSavedSnapshot(key);
-  refreshSaveDirtyState();
 }
 
 async function onSelectTree(keys: (string | number)[]) {
@@ -703,11 +705,6 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
     const code = res?.data?.code;
     if (code === 0 || code === 200 || code === '0' || code === '200') {
       message.success(options?.successMessage || '保存成功');
-      const key = String(currentNodeKey).trim();
-      if (key) {
-        captureNodeSavedSnapshot(key);
-        saveDirtyByNode.value[key] = false;
-      }
       return true;
     }
     message.error(String(res?.data?.msg ?? '保存失败'));
@@ -724,66 +721,6 @@ async function saveFlowInfo() {
   const ok = await saveCurrentNodeParams({ successMessage: '保存成功', loadingType: 'save' });
   if (ok) await refreshWorkspaceTreeData();
 }
-
-function normalizeSaveValues(values: unknown[]) {
-  return (Array.isArray(values) ? values : [])
-    .map((row: any) => ({
-      paramKey: String(row?.paramKey ?? row?.paramCode ?? '').trim(),
-      paramValue: String(row?.paramValue ?? ''),
-    }))
-    .filter((row: any) => row.paramKey)
-    .sort((a: any, b: any) => a.paramKey.localeCompare(b.paramKey));
-}
-
-function normalizeSaveTables(tables: unknown[]) {
-  return (Array.isArray(tables) ? tables : [])
-    .map((tb: any) => {
-      const componentId = String(tb?.componentId ?? '').trim();
-      const valueMap: Record<string, string> = {};
-      const values = Array.isArray(tb?.values) ? tb.values : [];
-      values.forEach((row: any) => {
-        if (!row || typeof row !== 'object') return;
-        Object.entries(row).forEach(([k, v]) => {
-          const key = String(k ?? '').trim();
-          if (!key) return;
-          valueMap[key] = String(v ?? '');
-        });
-      });
-      const sortedValues = Object.fromEntries(Object.entries(valueMap).sort(([a], [b]) => a.localeCompare(b)));
-      return { componentId, values: sortedValues };
-    })
-    .sort((a: any, b: any) => a.componentId.localeCompare(b.componentId));
-}
-
-function buildCurrentNodeSnapshot() {
-  const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
-  const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
-  const paramValues = normalizeSaveValues((Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || []);
-  const tableValues = normalizeSaveTables(nodePreviewRef.value?.getCurrentTableSavePayload?.() || []);
-  return JSON.stringify({ paramValues, tableValues });
-}
-
-function captureNodeSavedSnapshot(nodeKey: string) {
-  const key = String(nodeKey ?? '').trim();
-  if (!key) return;
-  savedSnapshotByNode.value[key] = buildCurrentNodeSnapshot();
-}
-
-function refreshSaveDirtyState() {
-  const nodeKey = String(selectedNodeKey.value ?? '').trim();
-  if (!nodeKey) return;
-  const currentSnapshot = buildCurrentNodeSnapshot();
-  if (!(nodeKey in savedSnapshotByNode.value)) {
-    savedSnapshotByNode.value[nodeKey] = currentSnapshot;
-  }
-  saveDirtyByNode.value[nodeKey] = currentSnapshot !== savedSnapshotByNode.value[nodeKey];
-}
-
-const saveButtonDisabled = computed(() => {
-  const nodeKey = String(selectedNodeKey.value ?? '').trim();
-  const dirty = nodeKey ? saveDirtyByNode.value[nodeKey] === true : false;
-  return saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value || toolbarActionLoadingIndex.value !== null || !dirty;
-});
 
 async function goNextNode() {
   if (!canGoNext.value) return;
@@ -964,34 +901,62 @@ async function finishFlow() {
 
 const centerPaneSize = computed(() => Math.max(0, 100 - leftPaneSize.value - rightPaneSize.value));
 
+function computeLeftPercentFromWidthPx(px: number): number {
+  const el = workspacePageRef.value;
+  if (!el || el.clientWidth <= 0) return minExpanded;
+  const w = el.clientWidth;
+  const rawPct = (px / w) * 100;
+  const centerMin = 20;
+  const maxLeft = Math.max(minExpanded, 100 - rightPaneSize.value - centerMin);
+  return Math.min(Math.max(rawPct, minExpanded), maxLeft);
+}
+
+function applyDefaultLeftWidthPx() {
+  leftPaneSize.value = computeLeftPercentFromWidthPx(DEFAULT_LEFT_WIDTH_PX);
+}
+
+function computeRightPercentFromWidthPx(px: number): number {
+  const el = workspacePageRef.value;
+  if (!el || el.clientWidth <= 0) return minExpanded;
+  const w = el.clientWidth;
+  const rawPct = (px / w) * 100;
+  const centerMin = 20;
+  const maxRight = Math.max(minExpanded, 100 - leftPaneSize.value - centerMin);
+  return Math.min(Math.max(rawPct, minExpanded), maxRight);
+}
+
+function applyDefaultRightWidthPx() {
+  rightPaneSize.value = computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX);
+}
+
 function toggleLeftPanel() {
   if (!leftCollapsed.value) {
-    leftPaneBeforeCollapse.value = leftPaneSize.value || 20;
+    leftPaneBeforeCollapse.value = leftPaneSize.value || computeLeftPercentFromWidthPx(DEFAULT_LEFT_WIDTH_PX);
     leftCollapsed.value = true;
     leftPaneSize.value = 0;
     if (rightCollapsed.value) {
       rightCollapsed.value = false;
-      rightPaneSize.value = rightPaneBeforeCollapse.value || 24;
+      rightPaneSize.value = rightPaneBeforeCollapse.value || computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX);
     }
     return;
   }
   leftCollapsed.value = false;
-  leftPaneSize.value = leftPaneBeforeCollapse.value || 20;
+  leftPaneSize.value = leftPaneBeforeCollapse.value || computeLeftPercentFromWidthPx(DEFAULT_LEFT_WIDTH_PX);
 }
 
 function toggleRightPanel() {
   if (!rightCollapsed.value) {
-    rightPaneBeforeCollapse.value = rightPaneSize.value || 24;
+    rightPaneBeforeCollapse.value = rightPaneSize.value || computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX);
     rightCollapsed.value = true;
     rightPaneSize.value = 0;
     if (leftCollapsed.value) {
       leftCollapsed.value = false;
-      leftPaneSize.value = leftPaneBeforeCollapse.value || 20;
+      leftPaneSize.value = leftPaneBeforeCollapse.value || computeLeftPercentFromWidthPx(DEFAULT_LEFT_WIDTH_PX);
     }
     return;
   }
   rightCollapsed.value = false;
-  rightPaneSize.value = rightPaneBeforeCollapse.value || 24;
+  rightPaneSize.value = rightPaneBeforeCollapse.value || computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX);
 }
 
 function onSplitpanesResized(panes: any[]) {
@@ -1010,7 +975,7 @@ function onSplitpanesResized(panes: any[]) {
 const leftToggleStyle = computed(() => {
   const top = '50%';
   if (leftCollapsed.value) {
-    return { left: '2px', top, transform: 'translateY(-50%)' };
+    return { left: SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT, top, transform: 'translate(-50%, -50%)' };
   }
   return { left: `${leftPaneSize.value}%`, top, transform: 'translate(-50%, -50%)' };
 });
@@ -1024,27 +989,21 @@ const rightToggleStyle = computed(() => {
 });
 
 loadWorkspaceData();
-if (treeData.value.length > 0) {
-  void initDefaultSelectedNode();
-}
+void initDefaultSelectedNode();
 
 onMounted(() => {
-  saveDirtyPollingTimer = setInterval(() => {
-    if (treeData.value.length > 0) refreshSaveDirtyState();
-  }, 500);
-});
-
-onBeforeUnmount(() => {
-  if (saveDirtyPollingTimer) {
-    clearInterval(saveDirtyPollingTimer);
-    saveDirtyPollingTimer = null;
-  }
+  nextTick(() => {
+    applyDefaultLeftWidthPx();
+    leftPaneBeforeCollapse.value = leftPaneSize.value;
+    applyDefaultRightWidthPx();
+    rightPaneBeforeCollapse.value = rightPaneSize.value;
+  });
 });
 </script>
 
 <template>
-  <div class="workspace-page splitpanes-tree-collapse-wrap">
-    <Splitpanes class="default-theme workspace-splitpanes" @resized="onSplitpanesResized">
+  <div ref="workspacePageRef" class="workspace-page splitpanes-tree-collapse-wrap">
+    <Splitpanes class="default-theme workspace-splitpanes" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
       <Pane :size="leftPaneSize" :min-size="leftCollapsed ? 0 : minExpanded" :class="['workspace-left', { 'workspace-left--collapsed': leftCollapsed }]">
         <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
       </Pane>
@@ -1073,7 +1032,11 @@ onBeforeUnmount(() => {
           </a-spin>
         </div>
         <div class="workspace-center-footer">
-          <a-button type="primary" :loading="saveFlowLoading" :disabled="saveButtonDisabled" @click="saveFlowInfo"
+          <a-button
+            type="primary"
+            :loading="saveFlowLoading"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
+            @click="saveFlowInfo"
             ><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button
           >
           <a-button
@@ -1107,9 +1070,27 @@ onBeforeUnmount(() => {
         </div>
       </Pane>
       <Pane :size="rightPaneSize" :min-size="rightCollapsed ? 0 : minExpanded" :class="['workspace-right', { 'workspace-right--collapsed': rightCollapsed }]">
-        <div class="panel-title">知识信息</div>
-        <a-input-search placeholder="请输入" enter-button="搜索" />
-        <div class="knowledge-text">我是设计知识，包括文本关联知识和页面关联知识</div>
+        <div class="workspace-right-inner">
+          <a-tabs v-model:activeKey="knowledgeRightActiveKey" class="workspace-knowledge-tabs">
+            <a-tab-pane key="design" tab="设计知识">
+              <a-input-search placeholder="请输入" class="workspace-knowledge-search">
+                <template #enterButton>
+                  <a-button type="primary">
+                    <SearchOutlined class="workspace-knowledge-search__icon" />
+                    搜索
+                  </a-button>
+                </template>
+              </a-input-search>
+              <div class="knowledge-text">我是设计知识，包括文本关联知识和页面关联知识</div>
+            </a-tab-pane>
+            <a-tab-pane key="log" tab="操作日志">
+              <div class="workspace-right-tab-body">暂无操作日志</div>
+            </a-tab-pane>
+            <a-tab-pane key="flow" tab="设计流程">
+              <div class="workspace-right-tab-body">暂无设计流程信息</div>
+            </a-tab-pane>
+          </a-tabs>
+        </div>
       </Pane>
     </Splitpanes>
     <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="leftToggleStyle" @click="toggleLeftPanel" @mousedown.stop>
@@ -1158,8 +1139,9 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
+/* 右侧不设 padding，滚动条贴齐与右栏之间的分割线；上/左/下仍留白 */
 .workspace-center {
-  padding: 16px;
+  padding: 16px 0 16px 16px;
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
@@ -1169,11 +1151,82 @@ onBeforeUnmount(() => {
 }
 
 .workspace-right {
-  padding: 16px;
+  padding: 12px 16px 16px;
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-right-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-knowledge-tabs {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-knowledge-tabs :deep(.ant-tabs-nav) {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.workspace-knowledge-tabs :deep(.ant-tabs-nav::before) {
+  border-bottom-color: #e8e8e8;
+}
+
+.workspace-knowledge-tabs :deep(.ant-tabs-tab) {
+  padding: 8px 0;
+  margin: 0 20px 0 0;
+  font-size: 14px;
+}
+
+.workspace-knowledge-tabs :deep(.ant-tabs-tab-active .ant-tabs-tab-btn) {
+  font-weight: 500;
+}
+
+.workspace-knowledge-tabs :deep(.ant-tabs-content-holder) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-knowledge-tabs :deep(.ant-tabs-content),
+.workspace-knowledge-tabs :deep(.ant-tabs-tabpane) {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
+}
+
+.workspace-knowledge-search {
+  margin-top: 12px;
+}
+
+.workspace-knowledge-search :deep(.ant-input-group .ant-input) {
+  border-color: #d9d9d9;
+}
+
+.workspace-knowledge-search__icon {
+  margin-right: 4px;
+}
+
+.workspace-right-tab-body {
+  margin-top: 12px;
+  color: #8c8c8c;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .workspace-right--collapsed {
@@ -1251,7 +1304,7 @@ onBeforeUnmount(() => {
   justify-content: flex-start;
   align-items: center;
   gap: 8px;
-  padding-top: 12px;
+  padding: 12px 16px 0 0;
   margin-top: 8px;
   border-top: 1px solid #f0f0f0;
   background: #fff;
