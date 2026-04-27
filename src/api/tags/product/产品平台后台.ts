@@ -8,6 +8,8 @@ import { ProductPlatformParameterInfoUpdateDTOModel } from '@/api/models/product
 import { ProductSeriesParameterInfoRequestDTOModel } from '@/api/models/product/ProductSeriesParameterInfoRequestDTOModel';
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 import { ProductSeriesGBOMModuleInfoDTOModel } from '@/api/models/product/ProductSeriesGBOMModuleInfoDTOModel';
+import { useUserStore } from '@/store/modules/user';
+
 /**
  * 公告管理
  */
@@ -1701,7 +1703,7 @@ export class AdminApiSystemProduct {
   
   
   /**
-   * 获取产品平台分类列表
+   * 获取产品平台分类列表（GET 查询参数始终附带当前登录用户 `userId`，与 `query` 合并且以登录用户为准）
    *
    * @tags 管理后台 - 获取产品平台分类列表
    * @name upDownSaveTreeKey
@@ -1709,16 +1711,46 @@ export class AdminApiSystemProduct {
    * @request GET:/business-service/business/project-tree/list
    * @secure
    */
-  static getProjectTreeList = <Req extends any = any>(params: RequestParams = {}) =>
-    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+  static getProjectTreeList = <Req extends Record<string, unknown> = Record<string, unknown>>(
+    query: Req = {} as Req,
+    params: RequestParams = {},
+  ) => {
+    const userStore = useUserStore();
+    const userId = userStore.user?.id;
+    return httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-tree/list`,
+        method: 'GET',
+        query: { ...query, userId },
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  };
+  
+  
+  /**
+   * 获取产品平台分类列表
+   *
+   * @tags 管理后台 - 获取产品平台分类列表
+   * @name getProjectTreeAllList
+   * @summary 获取产品平台分类列表
+   * @request GET:/business-service/business/project-tree/allList
+   * @secure
+   */
+  static getProjectTreeAllList = <Req extends any = any>(params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-tree/allList`,
         method: 'GET',
         secure: true,
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
     );
+  
+  
 
   /**
    * 新增产品平台（项目树节点）
@@ -1757,6 +1789,27 @@ export class AdminApiSystemProduct {
     );
 
   /**
+   * 查询产品平台（项目树）节点已授权用户
+   *
+   * @request POST:/business-service/business/project-tree-auth/getProjectTreeUserAuth
+   * @secure
+   */
+  static getProjectTreeUserAuth = <Req extends { treeId: string | number } = { treeId: string | number }>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-tree-auth/getProjectTreeUserAuth`,
+        method: 'GET',
+        query: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 产品平台（项目树）成员授权，入参与后端约定：treeId + userIds
    *
    * @request POST:/business-service/business/project-tree-user/createProjectTreeUserAuth
@@ -1765,7 +1818,7 @@ export class AdminApiSystemProduct {
   static createProjectTreeUserAuth = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
-        path: `/business-service/business/project-tree-user/createProjectTreeUserAuth`,
+        path: `/business-service/business/project-tree-auth/createProjectTreeUserAuth`,
         method: 'POST',
         body: query,
         secure: true,
