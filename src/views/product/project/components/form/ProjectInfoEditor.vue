@@ -219,8 +219,10 @@ async function getProjectInfo() {
         <a-tab-pane v-if="projectId" key="2" :tab="$t('项目团队')">
           <ProjectTeamTab ref="projectTeamRef" :project-id="projectId" />
         </a-tab-pane>
-        <a-tab-pane v-if="projectId" key="3" :tab="$t('任务管理')">
-          <ProjectTaskWbsPanel v-if="projectFormTab === '3'" :project-id="projectId" />
+        <a-tab-pane v-if="projectId" key="3" :tab="$t('任务管理')" class="project-editor-tabs-pane--wbs">
+          <div class="project-editor-tab-wbs">
+            <ProjectTaskWbsPanel v-if="projectFormTab === '3'" :project-id="projectId" />
+          </div>
         </a-tab-pane>
       </a-tabs>
     </a-card>
@@ -295,6 +297,22 @@ async function getProjectInfo() {
   overflow-x: hidden;
 }
 
+/* 任务管理：表格+甘特占满 Tab 可分配高度，无 max-height/100vh 掐断 */
+.project-editor-tabs :deep(.ant-tabs-tabpane.project-editor-tabs-pane--wbs) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.project-editor-tab-wbs {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .project-editor-tab-placeholder {
   min-height: 200px;
   padding: 48px 0;
@@ -306,7 +324,7 @@ async function getProjectInfo() {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-top: 8px;
+  margin-top: 10px;
   padding: 12px 16px 0;
   background: #fff;
   border-top: 1px solid #f0f0f0;

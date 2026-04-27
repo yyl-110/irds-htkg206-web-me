@@ -10,10 +10,13 @@ import {
   ColumnWidthOutlined,
   DeleteOutlined,
   EditOutlined,
+  FormOutlined,
   LeftOutlined,
   MinusOutlined,
   PlusOutlined,
   RightOutlined,
+  RollbackOutlined,
+  SendOutlined,
 } from '@ant-design/icons-vue';
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 
@@ -213,13 +216,13 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
       customRender: ({ record }) => `${record.progress}%`,
     },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
-    { title: '状态', key: 'status', dataIndex: 'status', width: 112, align: 'center', resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
+    { title: '状态', key: 'status', dataIndex: 'status', width: 112, align: 'center', resizable: true },
     {
       title: '操作',
       key: 'operation',
       dataIndex: 'operation',
-      width: 150,
+      width: 220,
       align: 'center',
       fixed: 'right',
       resizable: false,
@@ -243,6 +246,18 @@ function onTaskEdit(record: WbsTaskNode) {
 
 function onTaskDelete(record: WbsTaskNode) {
   message.warning(`删除：${record.taskName}`);
+}
+
+function onTaskPublish(record: WbsTaskNode) {
+  message.info(`发布：${record.taskName}`);
+}
+
+function onTaskChangeRequest(record: WbsTaskNode) {
+  message.info(`变更：${record.taskName}`);
+}
+
+function onTaskUnpublish(record: WbsTaskNode) {
+  message.info(`撤销发布：${record.taskName}`);
 }
 
 type ResponsiblePickerUser = { id: string; name: string; username: string; deptId?: string };
@@ -525,6 +540,14 @@ function statusLabel(s: TaskWbsStatus) {
   return '未开始';
 }
 
+/** 与项目列表等处的状态 Tag 色一致：未开始默认、进行中 gold、已完成 blue；已延迟为异常态用红 */
+function wbsStatusTagColor(s: TaskWbsStatus): string | undefined {
+  if (s === 'completed') return 'blue';
+  if (s === 'in_progress') return 'gold';
+  if (s === 'delayed') return 'red';
+  return undefined;
+}
+
 /** 按表格可见顺序拍平（尊重 expandedRowKeys） */
 function flattenVisible(nodes: WbsTaskNode[], expanded: string[], acc: WbsTaskNode[] = []): WbsTaskNode[] {
   for (const n of nodes) {
@@ -594,6 +617,17 @@ function fitTimelineToView() {
 }
 
 const timelineWidthPx = computed(() => Math.ceil(totalTimelineDays.value * pxPerDay.value));
+
+/** 可视区域变宽而时间轴未铺满时，自动按与「适应宽度」相同规则拉满，避免窗口或分割条拉大后右侧留白 */
+function maybeFitGanttTimelineToView() {
+  if (ganttCollapsed.value) return;
+  const el = ganttBodyRef.value;
+  if (!el) return;
+  const cw = el.clientWidth;
+  if (cw <= 0) return;
+  if (timelineWidthPx.value >= cw - 0.5) return;
+  fitTimelineToView();
+}
 
 const monthHeaderCells = computed(() => {
   const cells: { label: string; widthPx: number }[] = [];
@@ -974,6 +1008,7 @@ async function refreshScrollBinding() {
   await nextTick();
   measureSyncHeights();
   await nextTick();
+  maybeFitGanttTimelineToView();
   bindTableBodyScroll();
 }
 
@@ -984,11 +1019,15 @@ onMounted(async () => {
   ro = new ResizeObserver(() => {
     measureSyncHeights();
     ensureLeftPaneWidthInitialized();
-    nextTick(() => bindTableBodyScroll());
+    nextTick(() => {
+      maybeFitGanttTimelineToView();
+      bindTableBodyScroll();
+    });
   });
   if (tableWrapRef.value) ro.observe(tableWrapRef.value.parentElement ?? tableWrapRef.value);
   await nextTick();
   if (splitRootRef.value) ro.observe(splitRootRef.value);
+  if (ganttBodyRef.value) ro.observe(ganttBodyRef.value);
   await refreshScrollBinding();
 });
 
@@ -1063,19 +1102,34 @@ watch(ganttCollapsed, () => {
                 @change="makeOnTaskEndChange(record)" />
             </div>
           </template>
-          <template v-else-if="column.key === 'status'">
-            <div class="task-wbs-status-cell">
-              <span class="task-wbs-status-text">{{ statusLabel(record.status) }}</span>
-            </div>
-          </template>
           <template v-else-if="column.key === 'resource'">
             <div class="task-wbs-responsible-cell">
               <span class="task-wbs-responsible-text" :title="record.resource">{{ record.resource }}</span>
               <a-button type="primary" size="small" @click.stop="openResponsiblePicker(record)">浏览</a-button>
             </div>
           </template>
+          <template v-else-if="column.key === 'status'">
+            <div class="task-wbs-status-cell">
+              <a-tag :color="wbsStatusTagColor(record.status)" size="small">{{ statusLabel(record.status) }}</a-tag>
+            </div>
+          </template>
           <template v-else-if="column.key === 'operation'">
-            <a-space :size="2" class="task-wbs-ops">
+            <a-space :size="2" wrap class="task-wbs-ops">
+              <a-tooltip title="发布">
+                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskPublish(record)">
+                  <template #icon><SendOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="变更">
+                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskChangeRequest(record)">
+                  <template #icon><FormOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="撤销发布">
+                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskUnpublish(record)">
+                  <template #icon><RollbackOutlined /></template>
+                </a-button>
+              </a-tooltip>
               <a-tooltip title="编辑">
                 <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskEdit(record)">
                   <template #icon><EditOutlined /></template>
@@ -1185,7 +1239,7 @@ watch(ganttCollapsed, () => {
           class="gantt-grid"
           :style="{
             width: `${timelineWidthPx}px`,
-            minHeight: `${ganttGridMinHeightPx}px`,
+            '--gantt-content-min-h': `${ganttGridMinHeightPx}px`,
             backgroundImage: `repeating-linear-gradient(to right, #fafafa 0, #fafafa ${pxPerDay - 1}px, #f0f0f0 ${pxPerDay - 1}px, #f0f0f0 ${pxPerDay}px)`,
           }">
           <div
@@ -1216,7 +1270,7 @@ watch(ganttCollapsed, () => {
                 :id="ganttArrowMarkerId"
                 markerWidth="7"
                 markerHeight="7"
-                refX="6"
+                refX="0"
                 refY="3.5"
                 orient="auto"
                 markerUnits="strokeWidth">
@@ -1244,9 +1298,9 @@ watch(ganttCollapsed, () => {
 .project-task-wbs {
   display: flex;
   align-items: stretch;
-  min-height: 480px;
-  height: calc(100vh - 280px);
-  max-height: 720px;
+  flex: 1 1 0;
+  min-height: 0;
+  height: 100%;
   gap: 0;
   background: #fafafa;
   border: 1px solid #f0f0f0;
@@ -1617,11 +1671,6 @@ watch(ganttCollapsed, () => {
   width: 100%;
 }
 
-.task-wbs-status-text {
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.88);
-}
-
 .task-wbs-responsible-cell {
   display: flex;
   align-items: center;
@@ -1721,7 +1770,9 @@ watch(ganttCollapsed, () => {
 
 .gantt-grid {
   position: relative;
-  min-height: 100%;
+  /* 行数少时也铺满 .gantt-body 可视高，使竖向网格线延伸到底，避免下方大块留白 */
+  min-height: max(100%, var(--gantt-content-min-h, 0px));
+  box-sizing: border-box;
 }
 
 .gantt-links-layer {
