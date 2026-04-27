@@ -95,9 +95,9 @@ function transformApiTree(apiTree: any[]): WbsRow[] {
 
 // ─── 辅助函数 ───────────────────────────────────────────────
 
-/** 是否显示任务下拉（有 taskOptions 时显示） */
+/** 是否显示任务下拉（taskList 非空且有选项时才显示） */
 function isTaskFlowDropdownRow(row: WbsRow): boolean {
-  return row.taskOptions && row.taskOptions.length > 0;
+  return Array.isArray(row.taskOptions) && row.taskOptions.length > 0;
 }
 
 function taskFlowLabelFromSelectValue(value: string | undefined, row: WbsRow): string {
@@ -384,7 +384,12 @@ onMounted(() => { fetchWbsTree(); });
               <a class="wbs-ops__link" @click.prevent="onEdit(record)">{{ $t('编辑') }}</a>
               <a class="wbs-ops__link" @click.prevent="onMoveUp(record)">{{ $t('上移') }}</a>
               <a class="wbs-ops__link" @click.prevent="onMoveDown(record)">{{ $t('下移') }}</a>
-              <a class="wbs-ops__link wbs-ops__link--danger" @click.prevent="onDelete(record)">{{ $t('删除') }}</a>
+              <a-popconfirm
+                :title="$t('确定要删除该节点吗？')"
+                @confirm="onDelete(record)"
+              >
+                <a class="wbs-ops__link wbs-ops__link--danger" @click.prevent>{{ $t('删除') }}</a>
+              </a-popconfirm>
             </span>
           </template>
         </template>
@@ -530,9 +535,10 @@ onMounted(() => { fetchWbsTree(); });
 .wbs-ops__link--danger {
   color: #ff4d4f;
 }
+
+
 </style>
 
-<!-- 下拉层 teleport 到 body，与表格同字号 -->
 <style lang="less">
 .wbs-taskflow-select-dropdown .ant-select-item-option {
   display: flex !important;

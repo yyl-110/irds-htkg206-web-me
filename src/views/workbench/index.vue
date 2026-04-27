@@ -255,73 +255,47 @@ onUnmounted(() => {
   <div class="layout h-full">
     <div class="layout-content h-full">
       <div class="lf-cont" :style="{ marginRight: isShowRigth == '展开' ? '0' : '16px' }">
-        <div class="top-wrap">
-          <a-row style="height: 100%; width: 100%">
-            <a-col :span="7">
-              <a-card :hoverable="true" style="height: 108px">
-                <div class="user-info">
-                  <!-- <i :class="userInfoObj.sex == '男' ? 'man' : 'women'"></i> -->
-                  <div class="pic"><img src="../../assets/workbench/people.png" alt="" /></div>
-                  <div class="info">
-                    <div class="name">{{ greetingText }}，{{ userInfoObj.name }}</div>
-                    <div class="job">
-                      部门：<span>{{ userInfoObj.departName }}</span>
-                    </div>
-                  </div>
-                </div>
-              </a-card>
-            </a-col>
-            <a-col :span="17">
-              <div class="statistics-info">
-                <a-card :hoverable="true" style="height: 108px">
-                  <a-card-grid style="width: 20%; height: 108px">
-                    <!-- @click="getActOnSbTo(1)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
-                    <div class="sta-list">
-                      <div class="num">
-                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.totalNum }}5</span>
-                      </div>
-                      <div class="type" style="margin-top: 20px; color: #6a696e">待办任务</div>
-                    </div>
-                  </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
-                    <div class="sta-list">
-                      <div class="num">
-                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.participatedPlanProjectCount
-                          }}6</span>
-                      </div>
-                      <div class="type" style="margin-top: 20px; color: #6a696e">审批待办</div>
-                    </div>
-                  </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
-                    <!-- @click="getActOnSbTo(4)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
-                    <div class="sta-list">
-                      <div class="num" :style="{ color: projectStatistics.deferredNum > 0 ? 'red' : '' }">
-                        <span class="num-num">{{ projectStatistics.deferredNum }}2</span>
-                      </div>
-                      <div class="type" style="margin-top: 20px; color: #6a696e">延期任务</div>
-                    </div>
-                  </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
-                    <!-- @click="getActOnSbTo(3)" :style="!isSendTask ? 'cursor: pointer;' : 'cursor: default;'" -->
-                    <div class="sta-list">
-                      <div class="num">
-                        <span class="num-num" style="color: #124dd6">{{ projectStatistics.forwardNum }}6</span>
-                      </div>
-                      <div class="type" style="margin-top: 20px; color: #6a696e">转办任务</div>
-                    </div>
-                  </a-card-grid>
-                  <a-card-grid style="width: 20%; text-align: center; height: 108px">
-                    <div class="sta-list">
-                      <div class="num">
-                        <span class="num-num">{{ projectStatistics.inNum }}9</span>
-                      </div>
-                      <div class="type" style="margin-top: 20px; color: #6a696e">参与项目</div>
-                    </div>
-                  </a-card-grid>
-                </a-card>
+        <div class="top-wrap items-center !rounded-[6px] border border-[#EAEAF1] !bg-white">
+          <!-- 左侧用户信息 -->
+          <div class="user-info w-[250px] flex-shrink-0 pl-[24px]">
+            <div class="pic">
+              <img src="../../assets/workbench/people.png" alt="" />
+              <i :class="userInfoObj.sex == '女' ? 'women' : 'man'"></i>
+            </div>
+            <div class="info">
+              <div class="name !mb-[8px]">{{ greetingText }}，{{ userInfoObj.name }}</div>
+              <div class="job">
+                部门：<span>{{ userInfoObj.departName || '暂无' }}</span>
               </div>
-            </a-col>
-          </a-row>
+            </div>
+          </div>
+          
+          <!-- 分割线 -->
+          <div class="w-[1px] h-[60px] bg-[#EAEAF1] mx-[16px] flex-shrink-0 self-center"></div>
+
+          <!-- 右侧统计数据 -->
+          <div class="statistics-info flex-1 flex justify-around items-center h-full">
+            <div class="sta-list">
+              <div class="num" style="color: #FF4D4F;">{{ projectStatistics.deferredNum ?? 0 }}</div>
+              <div class="type !mb-0" style="margin-top: 8px;">延期待办</div>
+            </div>
+            <div class="sta-list">
+              <div class="num" style="color: #FAAD14;">{{ projectStatistics.totalNum ?? 0 }}</div>
+              <div class="type !mb-0" style="margin-top: 8px;">任务待办</div>
+            </div>
+            <div class="sta-list">
+              <div class="num" style="color: #1A58E8;">{{ projectStatistics.participatedPlanProjectCount ?? 0 }}</div>
+              <div class="type !mb-0" style="margin-top: 8px;">审批待办</div>
+            </div>
+            <div class="sta-list">
+              <div class="num" style="color: #1A58E8;">{{ projectStatistics.forwardNum ?? 0 }}</div>
+              <div class="type !mb-0" style="margin-top: 8px;">转办待办</div>
+            </div>
+            <div class="sta-list">
+              <div class="num" style="color: #313133;">{{ projectStatistics.inNum ?? 0 }}</div>
+              <div class="type !mb-0" style="margin-top: 8px;">参与项目</div>
+            </div>
+          </div>
         </div>
         <div class="work-wrap">
           <a-tabs v-model:activeKey="activeName" class="work_nav_top">
