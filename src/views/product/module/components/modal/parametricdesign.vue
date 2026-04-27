@@ -4,7 +4,12 @@ import type { TableProps } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
 import { useUserStore } from '@/store/modules/user';
-import { openModule, parameterInFirstCsys, GetLocParametersInFirstCsys } from '@/libs/webSocket';
+import {
+  openModuleInfoNew,
+  setModelParameterInFirstCsysNew,
+  getLocSkeletonParametersInFirstCsysNew,
+  mergeLocSkeletonParametersIntoParmDesign,
+} from '@/libs/webSocketNew';
 
 const userStore = useUserStore();
 const instance = getCurrentInstance();
@@ -99,7 +104,7 @@ function buildParametersStr(): string {
 function setModuleParameter() {
   if (needPieceNumberTip()) return;
   const parametersStr = buildParametersStr();
-  parameterInFirstCsys(props.paramsObject!.inputVal!, props.paramsObject!.templateModuleType!, parametersStr);
+  setModelParameterInFirstCsysNew(props.paramsObject!.inputVal!, props.paramsObject!.templateModuleType!, parametersStr);
 }
 
 async function applyPieceNumber() {
@@ -117,12 +122,22 @@ async function applyPieceNumber() {
 function makeModule() {
   if (needPieceNumberTip()) return;
   const parametersStr = buildParametersStr();
-  openModule(instance, props.paramsObject!.templateModuleNum!, props.paramsObject!.templateModuleType!, props.paramsObject!.inputVal!, '', parametersStr);
+  openModuleInfoNew(props.paramsObject!.templateModuleNum!, props.paramsObject!.templateModuleType!, props.paramsObject!.inputVal!, '', parametersStr);
 }
 
-function getModuleParameter() {
+async function getModuleParameter() {
   if (needPieceNumberTip()) return;
-  GetLocParametersInFirstCsys(instance, props.paramsObject!.inputVal!, props.paramsObject!.templateModuleType!);
+  const ret = await getLocSkeletonParametersInFirstCsysNew(
+    props.paramsObject!.inputVal!,
+    props.paramsObject!.templateModuleType!,
+  );
+  if (ret == null) return;
+  const merged = mergeLocSkeletonParametersIntoParmDesign(ret, props.parmDesignData ?? []);
+  if (merged != null) {
+    emit('updateParmDesignData', merged);
+  } else {
+    message.warning({ content: '未找到可同步参数！', duration: 3, closable: true });
+  }
 }
 
 async function resetParm() {

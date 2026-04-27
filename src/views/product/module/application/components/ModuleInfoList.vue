@@ -18,16 +18,13 @@ import Empty from '@/components/Empty/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { handleEpcDownload } from '@/utils/file';
+
 import {
-  DownloadModuleFile,
-  GetLocParametersInFirstCsys,
-  apiRenameModel,
-  assembleModule,
-  openDrawing,
-  openModule,
-  openTopAsmTemplateInterfaceModel,
-  parameterInFirstCsys,
-} from '@/libs/webSocket';
+  openModuleInfoNew,
+  assembleModuleInfoNew,
+  openDrawingInfoNew,
+ } from '@/libs/webSocketNew';
+
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
@@ -547,7 +544,7 @@ function handleQueryReset() {
 // 打开模型
 function openMx(data: any) {
   if (data.length == 1) {
-    openModule(instance, data[0].para1, data[0].para4, '', '', '');
+    openModuleInfoNew(data[0].para1, data[0].para4, '', '', '');
     addModelLog(data[0], 8);
   } else {
     message.warning({
@@ -571,7 +568,7 @@ async function addModelLog(moduleInfo: any, logUpdateType: any) {
 // 装配模型
 function fitoutMx(data: any) {
   if (data.length == 1) {
-    assembleModule(instance, data[0].para1, data[0].para4, '', '', '', '');
+    assembleModuleInfoNew( data[0].para1, data[0].para4, '', '', '', '');
     addModelLog(data[0], 9);
   } else {
     message.warning({
@@ -601,7 +598,7 @@ async function applicationEdit(list: any) {
       const res = await AdminApiwebSocketAuth.getBomNewNumberApi(data);
       if (res.data.code == 0) {
         const { moduleNewNum } = res.data.data;
-        openModule(instance, fos.para1, fos.para4, moduleNewNum, '', '');
+        openModuleInfoNew(fos.para1, fos.para4, moduleNewNum, '', '');
       } else {
         message.error(res.data.msg);
       }
@@ -673,7 +670,7 @@ function recursiveMapWithAction(tree: any) {
 }
 function openEwt(data: any) {
   if (data.length == 1) {
-    openDrawing(instance, data[0].para1);
+    openDrawingInfoNew(data[0].para1);
   } else {
     message.warning({
       content: '只能选择一条数据进行操作！',
