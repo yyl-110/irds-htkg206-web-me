@@ -324,7 +324,7 @@ async function getProjectInfo() {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-top: 10px;
+  margin-top: 5px;
   padding: 12px 16px 0;
   background: #fff;
   border-top: 1px solid #f0f0f0;

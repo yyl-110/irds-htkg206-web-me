@@ -587,7 +587,7 @@ function flattenVisible(nodes: WbsTaskNode[], expanded: string[], acc: WbsTaskNo
 const flatRows = computed(() => flattenVisible(treeData.value, expandedRowKeys.value));
 
 /** 与甘特行同高（含底部分隔线），与左侧表格行高一一对应 */
-const ROW_H = 48;
+const ROW_H = 35;
 /** 与 .gantt-bar 高度一致，用于依赖箭头锚点 */
 const GANTT_BAR_H = 13;
 
@@ -1694,7 +1694,7 @@ watch(ganttCollapsed, () => {
 }
 
 .project-task-wbs-table :deep(.ant-table-tbody > tr) {
-  height: 48px;
+  height: 35px;
   box-sizing: border-box;
 }
 
@@ -1702,7 +1702,7 @@ watch(ganttCollapsed, () => {
   font-size: 13px;
   padding: 4px 8px;
   vertical-align: middle;
-  height: 48px;
+  height: 35px;
   box-sizing: border-box;
   line-height: 20px;
 }
