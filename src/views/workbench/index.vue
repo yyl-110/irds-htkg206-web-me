@@ -46,16 +46,20 @@ const greetingText = ref('');
 // 定时器标识，用于清除定时器
 let timer = null;
 
-const todoColumns = [
-  { title: '任务名称', dataIndex: 'title', key: 'title', ellipsis: true, width: 250 },
-  { title: '标签', dataIndex: 'tags', key: 'tags', width: 150 },
-  { title: '任务类型', dataIndex: 'type', key: 'type', width: 120 },
-  { title: '项目时间', key: 'time', width: 200 },
-  { title: '当前进度', dataIndex: 'progress', key: 'progress', width: 150 },
-  { title: '状态', key: 'status', width: 120 },
-  { title: '创建人', dataIndex: 'creatorName', key: 'creatorName', width: 100 },
-  { title: '操作', key: 'action', width: 80, align: 'center' }
-];
+const todoColumns = ref([
+  { title: '任务名称', dataIndex: 'title', key: 'title', ellipsis: true, width: 250, fixed: 'left', resizable: true },
+  { title: '标签', dataIndex: 'tags', key: 'tags', width: 150, resizable: true },
+  { title: '任务类型', dataIndex: 'type', key: 'type', width: 120, resizable: true },
+  { title: '项目时间', key: 'time', width: 200, resizable: true },
+  { title: '当前进度', dataIndex: 'progress', key: 'progress', width: 150, resizable: true },
+  { title: '状态', key: 'status', width: 120, resizable: true },
+  { title: '创建人', dataIndex: 'creatorName', key: 'creatorName', width: 120, resizable: true },
+  { title: '操作', key: 'action', width: 220, align: 'center', fixed: 'right', resizable: true }
+]);
+
+const handleResizeColumn = (width: number, col: any) => {
+  col.width = width;
+};
 const rowClassName = (_record: any, index: number) =>
   index % 2 === 1 ? "table-striped" : "";
 
@@ -398,6 +402,12 @@ onUnmounted(() => {
                                 class="w-[20px] h-[20px] rounded-full mr-[6px]" />
                               <span>{{ item.creatorName }}</span>
                             </div>
+                            <div class="tc-actions ml-auto flex items-center gap-[12px]">
+                              <a class="text-primary cursor-pointer text-[14px]">设计</a>
+                              <a class="text-primary cursor-pointer text-[14px]">指派</a>
+                              <a class="text-primary cursor-pointer text-[14px]">转办</a>
+                              <a class="text-primary cursor-pointer text-[14px]">详情</a>
+                            </div>
                           </div>
                         </div>
                       </a-col>
@@ -412,8 +422,9 @@ onUnmounted(() => {
                       :pagination="false"
                       :row-key="record => record.id"
                       bordered
-                      class="bg-white"
-                      :scroll="{x: 600}"
+                      class="workbench-main-table bg-white"
+                      :scroll="{ x: 1330 }"
+                      @resizeColumn="handleResizeColumn"
                     >
                       <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'title'">
@@ -443,7 +454,12 @@ onUnmounted(() => {
                           </div>
                         </template>
                         <template v-if="column.key === 'action'">
-                          <a class="text-primary cursor-pointer text-[14px]">详情</a>
+                          <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
+                            <a class="text-primary cursor-pointer text-[14px]">设计</a>
+                            <a class="text-primary cursor-pointer text-[14px]">指派</a>
+                            <a class="text-primary cursor-pointer text-[14px]">转办</a>
+                            <a class="text-primary cursor-pointer text-[14px]">详情</a>
+                          </div>
                         </template>
                       </template>
                     </a-table>
@@ -775,6 +791,34 @@ onUnmounted(() => {
 
 :deep(.ant-table-column-title) {
   flex: none;
+}
+
+:deep(.workbench-main-table .ant-table-thead > tr > th) {
+  background: #f7f8fa;
+  color: #313133;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eaeaf1;
+}
+
+:deep(.workbench-main-table .ant-table-tbody > tr > td) {
+  padding: 10px 12px;
+  color: #313133;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+:deep(.workbench-main-table .ant-table-tbody > tr:hover > td) {
+  background: #f9fbff;
+}
+
+:deep(.workbench-main-table .ant-table-thead > tr > th.ant-table-cell-fix-left),
+:deep(.workbench-main-table .ant-table-thead > tr > th.ant-table-cell-fix-right) {
+  background: #f7f8fa;
+}
+
+:deep(.workbench-main-table .ant-table-tbody > tr > td.ant-table-cell-fix-left),
+:deep(.workbench-main-table .ant-table-tbody > tr > td.ant-table-cell-fix-right) {
+  background: #fff;
 }
 
 .show-right-content-btn {
