@@ -7,6 +7,7 @@ import { useDateRangeParams } from '@/hooks/useDate';
 import { useRender } from '@/components/escape';
 import { ProductTempPageRequestDTOModel } from '@/api/models/productTemp/ProductTempPageRequestDTOModel';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
+import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
@@ -14,11 +15,27 @@ import { NoticeInfoRequestDTOModel } from '@/api/models/notice/NoticePOModel';
 import ProductTempAddOrUpdate from './components/productTemp-addorupdate.vue';
 import Empty from '@/components/Empty/index.vue';
 import { sortermethod } from '@/utils/tools';
+import { useLayoutStore } from '@/store/modules/layout/layout';
 const addOrUpdateModel = ref<any>(null);
+const PROJECT_LIST_SKIP_DRAWER_ON_RETURN = 'project-info-list-skip-drawer-on-return';
 
 const router = useRouter();
 const userStore = useUserStore();
+const layoutStore = useLayoutStore();
 const loading = ref<boolean>(false);
+const titleVisible = ref<boolean>(false);
+const shouldShowDrawer = ref<boolean>(false);
+const titleList = ref<any[]>([]);
+const menuId = ref<string>('');
+const drawerStyle = ref<any>({
+  marginLeft: '201px',
+  marginTop: '0px',
+  width: 'calc(100% - 201px)',
+  height: 'calc(100vh)',
+});
+function resetDrawerStyle() {
+  drawerStyle.value = {};
+}
 /** 是否显示 新增 / 编辑 弹窗 */
 const visibleNoticeEditor = ref<boolean>(false);
 const visibleHistoryModal = ref<boolean>(false);
@@ -187,7 +204,13 @@ const productTempTableDisplayList = computed(() => {
 });
 
 onMounted(() => {
-  getResources();
+  drawerStyle.value = {
+    marginLeft: layoutStore.asideWidthStyle,
+    marginTop: '0px',
+    width: 'calc(100% - 241px)',
+    height: 'calc(100vh)',
+  };
+  getMenuListData();
 });
 
 function handleResizeColumn(w, col) {
@@ -200,12 +223,14 @@ function handleCloseAddModal() {
 
 /** 获取公告列表数据 */
 async function getResources() {
+  if (!menuId.value) return;
   loading.value = true;
   try {
     requestParams.currentPage = requestParams.pageNo;
     requestParams.numberPage = requestParams.pageSize;
     const res = await AdminApiProductTemp.getProductTempPageList({
       ...requestParams,
+      menuId: menuId.value,
     });
     resources.value = res.data.data.list || [];
     pagination.total = res.data?.data.total;
@@ -220,6 +245,7 @@ async function showVersionHistory(record: any) {
   try {
     const data: any = {};
     data.tempId = record.id;
+    data.menuId = menuId.value;
     const res = await AdminApiProductTemp.getHistoryList(data);
     historyList.value = (res?.data?.data || []).sort((a: any, b: any) => Number(b.versionNum || 0) - Number(a.versionNum || 0));
   } finally {
@@ -242,6 +268,7 @@ async function pushFun(id: string) {
   const data: any = {};
   data.id = id;
   data.status = 1;
+  data.menuId = menuId.value;
   const res = await AdminApiProductTemp.goBackPushFun(data);
   nextTick(() => {
     //发布成功刷新页面
@@ -257,6 +284,7 @@ async function goBackPushFun(id: string) {
   const data: any = {};
   data.id = id;
   data.status = 0;
+  data.menuId = menuId.value;
   const res = await AdminApiProductTemp.goBackPushFun(data);
   nextTick(() => {
     //撤销成功刷新页面
@@ -272,9 +300,54 @@ async function goBackPushFun(id: string) {
 async function handleDelete(id: any) {
   const data: any = {};
   data.id = id;
+  data.menuId = menuId.value;
   await AdminApiProductTemp.productTempDelete(data);
   message.success(WeiI18n.$t('删除成功'));
   getResources();
+}
+
+async function getMenuListData() {
+  try {
+    const res = await AdminApiSystemProduct.getProjectTreeList();
+    titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    const skipDrawerOnReturn = sessionStorage.getItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN) === '1';
+    if (skipDrawerOnReturn) {
+      sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);
+      if (titleList.value.length > 0) {
+        shouldShowDrawer.value = false;
+        menuId.value = String(titleList.value[0]?.id ?? '');
+        titleVisible.value = false;
+        resetDrawerStyle();
+        await getResources();
+      }
+      return;
+    }
+    if (titleList.value.length === 1) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      menuId.value = String(titleList.value[0]?.id ?? '');
+      resetDrawerStyle();
+      await getResources();
+      return;
+    }
+    shouldShowDrawer.value = titleList.value.length > 1;
+    titleVisible.value = shouldShowDrawer.value;
+  } catch (error) {
+    console.error('获取平台分类失败:', error);
+  }
+}
+
+async function updateMenu(item: any) {
+  menuId.value = String(item?.id ?? '');
+  onCloseDrawer();
+  requestParams.pageNo = 1;
+  pagination.current = 1;
+  await getResources();
+}
+
+function onCloseDrawer() {
+  resetDrawerStyle();
+  titleVisible.value = false;
 }
 
 const locale = ref({
@@ -293,10 +366,10 @@ const locale = ref({
 async function noticeAdd(record?: any) {
   visibleNoticeEditor.value = true;
   if (record) {
-    addOrUpdateModel.value?.noticeInfoAddOrUpdate(record);
+    addOrUpdateModel.value?.noticeInfoAddOrUpdate(record, menuId.value);
   } else {
     nextTick(() => {
-      addOrUpdateModel.value?.noticeInfoAddOrUpdate();
+      addOrUpdateModel.value?.noticeInfoAddOrUpdate(undefined, menuId.value);
     });
   }
 }
@@ -327,7 +400,7 @@ function openWbsStructure(record: any) {
 </script>
 
 <template>
-  <div class="drawerContent">
+  <div class="drawerContent h-full">
     <div class="product-temp-calc-pane">
       <a-card class="calc-toolbar-card">
         <a-form layout="inline" class="calc-toolbar-form" :label-col="{ style: { width: '70px' } }" :model="requestParams">
@@ -364,10 +437,7 @@ function openWbsStructure(record: any) {
           <template #headerCell="{ column }">
             <template v-if="isSortableProductTempColumn(column) || isFilterableProductTempColumn(column)">
               <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableProductTempColumn(column) }">
-                <span
-                  class="header-title-sort"
-                  :class="{ 'header-title-sort--disabled': !isSortableProductTempColumn(column) }"
-                  @click.stop="toggleProductTempColumnSort(column)">
+                <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableProductTempColumn(column) }" @click.stop="toggleProductTempColumnSort(column)">
                   <span>{{ column.title }}</span>
                   <span v-if="isSortableProductTempColumn(column)" class="header-sort-icon">
                     <CaretUpOutlined v-if="getProductTempSortOrder(String(column.dataIndex)) === 'ascend'" />
@@ -413,56 +483,38 @@ function openWbsStructure(record: any) {
             </template>
           </template>
           <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'versionNum'">
-            <span style="display: inline-flex; align-items: center; gap: 6px">
-              <span>{{ 'V' + (record.versionNum ?? '-') + '.0' }}</span>
-              <a href="#" style="cursor: pointer" title="查看历史版本" @click.stop.prevent="showVersionHistory(record)">
-                <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
-              </a>
-            </span>
+            <template v-if="column.dataIndex === 'versionNum'">
+              <span style="display: inline-flex; align-items: center; gap: 6px">
+                <span>{{ 'V' + (record.versionNum ?? '-') + '.0' }}</span>
+                <a href="#" style="cursor: pointer" title="查看历史版本" @click.stop.prevent="showVersionHistory(record)">
+                  <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
+                </a>
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'status'">
+              <span>
+                <a-tag v-if="record.status == '0'" :class="['exe-status-tag', 'exe-status-tag--off']">{{ $t('未发布') }}</a-tag>
+                <a-tag v-else-if="record.status == '1'" :class="['exe-status-tag', 'exe-status-tag--on']">{{ $t('已发布') }}</a-tag>
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'operation'">
+              <div class="calc-operation-links" @click.stop>
+                <a href="#" :class="{ 'calc-operation-links__disabled': record.status == '1' }" @click.prevent="record.status != '1' && noticeAdd(record)">
+                  {{ $t('编辑') }}
+                </a>
+                <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="record.status == '1'" @confirm.stop.prevent="handleDelete(record.id)">
+                  <a href="#" :class="{ 'calc-operation-links__disabled': record.status == '1' }" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                </a-popconfirm>
+                <a-popconfirm v-if="record.status == '0'" :title="`${$t('确定要发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="pushFun(record.id)">
+                  <a href="#" @click.prevent>{{ $t('发布') }}</a>
+                </a-popconfirm>
+                <a-popconfirm v-else :title="`${$t('确定要撤销发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="goBackPushFun(record.id)">
+                  <a href="#" @click.prevent>{{ $t('撤销') }}</a>
+                </a-popconfirm>
+                <a href="#" class="calc-operation-links__wbs-link" @click.prevent.stop="openWbsStructure(record)">{{ $t('浏览WBS结构') }}</a>
+              </div>
+            </template>
           </template>
-          <template v-else-if="column.dataIndex === 'status'">
-            <span>
-              <a-tag v-if="record.status == '0'" :class="['exe-status-tag', 'exe-status-tag--off']">{{ $t('未发布') }}</a-tag>
-              <a-tag v-else-if="record.status == '1'" :class="['exe-status-tag', 'exe-status-tag--on']">{{ $t('已发布') }}</a-tag>
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'operation'">
-            <div class="calc-operation-links" @click.stop>
-              <a
-                href="#"
-                :class="{ 'calc-operation-links__disabled': record.status == '1' }"
-                @click.prevent="record.status != '1' && noticeAdd(record)">
-                {{ $t('编辑') }}
-              </a>
-              <a-popconfirm
-                :title="`${$t('确定要删除吗')}?`"
-                ok-text="确定"
-                cancel-text="取消"
-                :disabled="record.status == '1'"
-                @confirm.stop.prevent="handleDelete(record.id)">
-                <a href="#" :class="{ 'calc-operation-links__disabled': record.status == '1' }" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
-              </a-popconfirm>
-              <a-popconfirm
-                v-if="record.status == '0'"
-                :title="`${$t('确定要发布吗')}?`"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="pushFun(record.id)">
-                <a href="#" @click.prevent>{{ $t('发布') }}</a>
-              </a-popconfirm>
-              <a-popconfirm
-                v-else
-                :title="`${$t('确定要撤销发布吗')}?`"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="goBackPushFun(record.id)">
-                <a href="#" @click.prevent>{{ $t('撤销') }}</a>
-              </a-popconfirm>
-              <a href="#" class="calc-operation-links__wbs-link" @click.prevent.stop="openWbsStructure(record)">{{ $t('浏览WBS结构') }}</a>
-            </div>
-          </template>
-        </template>
         </a-table>
         <ProductTempAddOrUpdate ref="addOrUpdateModel" :modal-visible="visibleNoticeEditor" @refreshtabledata="getResources" @close="handleCloseAddModal" />
       </a-card>
@@ -503,13 +555,61 @@ function openWbsStructure(record: any) {
       </a-modal>
     </div>
   </div>
+  <a-drawer
+    v-if="shouldShowDrawer"
+    :title="`产品平台选择`"
+    placement="left"
+    :style="drawerStyle"
+    :closable="false"
+    :mask="true"
+    :visible="titleVisible"
+    :get-container="false"
+    :wrap-style="{ position: 'absolute' }"
+    @blur="onCloseDrawer"
+    @close="onCloseDrawer">
+    <div v-for="(item, index) in titleList" :key="index">
+      <div style="display: flex; background-color: #ecf5ff; margin: 15px 10px 0 10px; border-radius: 10px; height: 60px; cursor: pointer" @click="updateMenu(item)">
+        <img src="@/assets/images/jc.png" v-if="index == 0" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <img src="@/assets/images/ct.png" v-else-if="index == 1" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <img src="@/assets/images/hj.png" v-else alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <a-badge>
+          <div class="menuLi">{{ item.categoryName }}</div>
+        </a-badge>
+      </div>
+    </div>
+  </a-drawer>
 </template>
 
 <style lang="less" scoped>
 .drawerContent {
-  position: sticky;
-  bottom: 20px !important;
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - 84px);
   background-color: #ffffff !important;
+}
+
+:deep(.ant-drawer-content-wrapper) {
+  width: 480px !important;
+}
+
+:deep(.b-body) {
+  height: calc(100vh - 125px);
+  overflow: auto;
+}
+
+:deep(.ant-drawer-body) {
+  padding: 2px;
+}
+
+.menuLi {
+  display: inline-block;
+  margin: 20px 0 0 10px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.menuLi:hover {
+  transform: translateY(-2px);
+  color: #165dff;
 }
 
 /* 与 parameter/index.vue 右侧 calc-config-pane 一致：左右留白、工具条与表格无分割线 */

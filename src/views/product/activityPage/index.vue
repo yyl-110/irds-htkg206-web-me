@@ -7,6 +7,7 @@ import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, LeftOutlined, Right
 import knowledgeConfig from '../components/knowledge-config.vue';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
+import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { sortermethod, findNodeByIdFromKey } from '@/utils/tools';
@@ -15,6 +16,7 @@ import Empty from '@/components/Empty/index.vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import Tree from '@/components/tree/tree.vue';
 import { useUserStore } from '@/store/modules/user';
+import { useLayoutStore } from '@/store/modules/layout/layout';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import ActivityAdd from './components/activity-add.vue';
 import ActivityUpdate from './components/activity-update.vue';
@@ -26,7 +28,7 @@ import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollap
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-import draggableModal from '@/components/DraggableModal/index.vue'
+import draggableModal from '@/components/DraggableModal/index.vue';
 
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
@@ -40,6 +42,7 @@ const treePage = ref<any>(null);
 const loadingTree = ref<boolean>(false);
 const treeNodeColmoun = ref<any[]>([]);
 const userStore = useUserStore();
+const layoutStore = useLayoutStore();
 const pageName = ref<string>('');
 const selectNodeKeys = ref<string>('');
 const currentNode = ref<any>();
@@ -122,6 +125,19 @@ const visible = ref<boolean>(false);
 const updateVisible = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const exportLoading = ref<boolean>(false);
+const titleVisible = ref<boolean>(false);
+const shouldShowDrawer = ref<boolean>(false);
+const titleList = ref<any[]>([]);
+const menuId = ref<string>('');
+const drawerStyle = ref<any>({
+  marginLeft: '201px',
+  marginTop: '0px',
+  width: 'calc(100% - 201px)',
+  height: 'calc(100vh)',
+});
+function resetDrawerStyle() {
+  drawerStyle.value = {};
+}
 const addModel = ref<any>();
 const updateModel = ref<any>();
 const columns = ref<TableColumnType<Menus>[]>([
@@ -344,8 +360,44 @@ async function getListData(type?: string) {
   }
 }
 
+async function getMenuListData() {
+  try {
+    const res = await AdminApiSystemProduct.getProjectTreeList();
+    titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    if (titleList.value.length === 1) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      menuId.value = String(titleList.value[0]?.id ?? '');
+      resetDrawerStyle();
+      await getListData();
+      return;
+    }
+    shouldShowDrawer.value = titleList.value.length > 1;
+    titleVisible.value = shouldShowDrawer.value;
+  } catch (error) {
+    console.error('获取平台分类失败:', error);
+  }
+}
+
+async function updateMenu(item: any) {
+  menuId.value = String(item?.id ?? '');
+  onCloseDrawer();
+  await getListData();
+}
+
+function onCloseDrawer() {
+  resetDrawerStyle();
+  titleVisible.value = false;
+}
+
 onMounted(() => {
-  getListData();
+  drawerStyle.value = {
+    marginLeft: layoutStore.asideWidthStyle,
+    marginTop: '0px',
+    width: 'calc(100% - 241px)',
+    height: 'calc(100vh)',
+  };
+  getMenuListData();
 });
 
 /** 将数据转换为树结构所需格式 */
@@ -975,208 +1027,186 @@ function closeShareModal() {
   shareModalTitle.value = '';
 }
 
-const {
-  leftTreeCollapsed,
-  leftTreePaneSize,
-  rightTreePaneSize,
-  minExpanded,
-  onSplitpanesResized,
-  toggleLeftTreePanel,
-  splitToggleStyle,
-  splitpanesTreeCollapseWrapClass,
-} = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } =
+  useSplitpanesTreeCollapse();
 </script>
 
 <template>
   <div class="drawerContent h-full">
     <div :class="splitpanesTreeCollapseWrapClass">
-    <!-- 左侧树结构 -->
-    <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
-      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
-        <a-spin :spinning="loadingTree" tip="加载中...">
-          <Tree
-            ref="treePage"
-            :operate-flag="true"
-            :tree-data="treeData"
-            bomType="unBom"
-            :selected-keys="selectedKeys"
-            :expanded-keys="expandedKeys"
-            @select-node="selectNode"
-            @up-Node="upNode"
-            @down-Node="downNode"
-            @get-node-update-data="getNodeUpdateData"
-            @get-node-add-data="getNodeAddData"
-            @delete-tree-node="deleteTreeNode"
-            @submit="submitTreeData"
-            @select-Boom-Tree="selectBoomTree"
-            @edit="editTreeData"
-            @reload-tree="reloadTree"
-            @change-select-key="handleChangeSelectKey" />
-        </a-spin>
-      </Pane>
+      <!-- 左侧树结构 -->
+      <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
+        <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
+          <a-spin :spinning="loadingTree" tip="加载中...">
+            <Tree
+              ref="treePage"
+              :operate-flag="true"
+              :tree-data="treeData"
+              bomType="unBom"
+              :selected-keys="selectedKeys"
+              :expanded-keys="expandedKeys"
+              @select-node="selectNode"
+              @up-Node="upNode"
+              @down-Node="downNode"
+              @get-node-update-data="getNodeUpdateData"
+              @get-node-add-data="getNodeAddData"
+              @delete-tree-node="deleteTreeNode"
+              @submit="submitTreeData"
+              @select-Boom-Tree="selectBoomTree"
+              @edit="editTreeData"
+              @reload-tree="reloadTree"
+              @change-select-key="handleChangeSelectKey" />
+          </a-spin>
+        </Pane>
 
-      <!-- 右侧内容区域（布局与 parameter/index 列表区一致） -->
-      <Pane class="splitpane-cls activity-right-pane" :size="rightTreePaneSize">
-        <div class="calc-config-pane">
-          <a-card class="calc-toolbar-card">
-            <a-form class="calc-toolbar-form" layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
-              <a-form-item name="pageName">
-                <a-input v-model:value="pageName" style="width: 220px" allow-clear :placeholder="$t('请输入活动名称')" />
-              </a-form-item>
-              <a-form-item class="activity-toolbar-btns">
-                <a-button type="primary" @click="loadParameterListData">
-                  <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-                  {{ $t('查询') }}
-                </a-button>
-                <a-button type="primary" @click="handleAddOrUpdate(undefined)">
-                  <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-                  {{ $t('添加') }}
-                </a-button>
-                <!--删除按钮（批量删除需二次确认）-->
-                <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(undefined)">
-                  <a-button type="primary" danger :disabled="deleteFlag">
-                    <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
-                    {{ $t('删除') }}
+        <!-- 右侧内容区域（布局与 parameter/index 列表区一致） -->
+        <Pane class="splitpane-cls activity-right-pane" :size="rightTreePaneSize">
+          <div class="calc-config-pane">
+            <a-card class="calc-toolbar-card">
+              <a-form class="calc-toolbar-form" layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
+                <a-form-item name="pageName">
+                  <a-input v-model:value="pageName" style="width: 220px" allow-clear :placeholder="$t('请输入活动名称')" />
+                </a-form-item>
+                <a-form-item class="activity-toolbar-btns">
+                  <a-button type="primary" @click="loadParameterListData">
+                    <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+                    {{ $t('查询') }}
                   </a-button>
-                </a-popconfirm>
-                <!--导入数据按钮-->
-                <a-button type="primary" @click="handleUploadFile()">
-                  <EpcIcon type="icon-daiyanshou1" style="font-size: 12px" />
-                  {{ $t('另存为') }}
-                </a-button>
-                <!--导出数据按钮-->
-                <a-button type="primary" :loading="exportLoading" @click="exportParameData()">
-                  <EpcIcon type="icon-daochu" style="font-size: 12px" />
-                  {{ $t('导出') }}
-                </a-button>
-              </a-form-item>
-            </a-form>
-          </a-card>
+                  <a-button type="primary" @click="handleAddOrUpdate(undefined)">
+                    <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+                    {{ $t('添加') }}
+                  </a-button>
+                  <!--删除按钮（批量删除需二次确认）-->
+                  <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(undefined)">
+                    <a-button type="primary" danger :disabled="deleteFlag">
+                      <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+                      {{ $t('删除') }}
+                    </a-button>
+                  </a-popconfirm>
+                  <!--导入数据按钮-->
+                  <a-button type="primary" @click="handleUploadFile()">
+                    <EpcIcon type="icon-daiyanshou1" style="font-size: 12px" />
+                    {{ $t('另存为') }}
+                  </a-button>
+                  <!--导出数据按钮-->
+                  <a-button type="primary" :loading="exportLoading" @click="exportParameData()">
+                    <EpcIcon type="icon-daochu" style="font-size: 12px" />
+                    {{ $t('导出') }}
+                  </a-button>
+                </a-form-item>
+              </a-form>
+            </a-card>
 
-          <a-card class="calc-table-card">
-            <a-table
-              class="exe-config-table"
-              :scroll="{ x: activityTableScrollX, y: 'calc(100vh - 300px)' }"
-              :row-key="getActivityTableRowKey"
-              :columns="columns"
-              :data-source="activityTableDisplayList"
-              :pagination="pagination"
-              :row-selection="rowSelection"
-              :customRow="customRow"
-              bordered
-              table-layout="fixed"
-              :locale="locale"
-              :loading="loading"
-              :row-class-name="getActivityTableRowClassName"
-              @resize-column="handleResizeColumn">
-              <template #headerCell="{ column }">
-                <template v-if="isActivityTableSelectionColumn(column)">
-                  <span />
-                </template>
-                <template v-else-if="isSortableActivityColumn(column) || isFilterableActivityColumn(column)">
-                  <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableActivityColumn(column) }">
-                    <span
-                      class="header-title-sort"
-                      :class="{ 'header-title-sort--disabled': !isSortableActivityColumn(column) }"
-                      @click.stop="toggleActivityColumnSort(column)">
-                      <span>{{ column.title }}</span>
-                      <span v-if="isSortableActivityColumn(column)" class="header-sort-icon">
-                        <CaretUpOutlined v-if="getActivitySortOrder(String(column.dataIndex)) === 'ascend'" />
-                        <CaretDownOutlined v-else-if="getActivitySortOrder(String(column.dataIndex)) === 'descend'" />
-                        <CaretUpOutlined v-else class="header-sort-icon--muted" />
+            <a-card class="calc-table-card">
+              <a-table
+                class="exe-config-table"
+                :scroll="{ x: activityTableScrollX, y: 'calc(100vh - 300px)' }"
+                :row-key="getActivityTableRowKey"
+                :columns="columns"
+                :data-source="activityTableDisplayList"
+                :pagination="pagination"
+                :row-selection="rowSelection"
+                :customRow="customRow"
+                bordered
+                table-layout="fixed"
+                :locale="locale"
+                :loading="loading"
+                :row-class-name="getActivityTableRowClassName"
+                @resize-column="handleResizeColumn">
+                <template #headerCell="{ column }">
+                  <template v-if="isActivityTableSelectionColumn(column)">
+                    <span />
+                  </template>
+                  <template v-else-if="isSortableActivityColumn(column) || isFilterableActivityColumn(column)">
+                    <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableActivityColumn(column) }">
+                      <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableActivityColumn(column) }" @click.stop="toggleActivityColumnSort(column)">
+                        <span>{{ column.title }}</span>
+                        <span v-if="isSortableActivityColumn(column)" class="header-sort-icon">
+                          <CaretUpOutlined v-if="getActivitySortOrder(String(column.dataIndex)) === 'ascend'" />
+                          <CaretDownOutlined v-else-if="getActivitySortOrder(String(column.dataIndex)) === 'descend'" />
+                          <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                        </span>
                       </span>
-                    </span>
-                    <span v-if="isFilterableActivityColumn(column)" class="header-filter-anchor">
-                      <a-popover
-                        trigger="click"
-                        placement="bottomRight"
-                        :open="getActivityFilterOpen(String(column.dataIndex))"
-                        @openChange="handleActivityFilterOpenChange(String(column.dataIndex), $event)">
-                        <template #content>
-                          <div class="header-filter-pop">
-                            <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`${$t('搜索')} ${column.title}`" allow-clear />
-                            <div class="header-filter-actions">
-                              <a-button type="primary" size="small" @click="applyActivityColumnFilter(String(column.dataIndex))">
-                                <SearchOutlined />
-                                {{ $t('确定') }}
-                              </a-button>
-                              <a-button size="small" @click="resetActivityColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                      <span v-if="isFilterableActivityColumn(column)" class="header-filter-anchor">
+                        <a-popover
+                          trigger="click"
+                          placement="bottomRight"
+                          :open="getActivityFilterOpen(String(column.dataIndex))"
+                          @openChange="handleActivityFilterOpenChange(String(column.dataIndex), $event)">
+                          <template #content>
+                            <div class="header-filter-pop">
+                              <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`${$t('搜索')} ${column.title}`" allow-clear />
+                              <div class="header-filter-actions">
+                                <a-button type="primary" size="small" @click="applyActivityColumnFilter(String(column.dataIndex))">
+                                  <SearchOutlined />
+                                  {{ $t('确定') }}
+                                </a-button>
+                                <a-button size="small" @click="resetActivityColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                              </div>
                             </div>
-                          </div>
-                        </template>
-                        <FilterOutlined class="header-query-icon" />
-                      </a-popover>
+                          </template>
+                          <FilterOutlined class="header-query-icon" />
+                        </a-popover>
+                      </span>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="header-cell-main header-cell-main--static">
+                      <span class="header-title-sort header-title-sort--disabled">
+                        <span>{{ column.title }}</span>
+                      </span>
+                    </div>
+                  </template>
+                </template>
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.dataIndex === 'knowledge'">
+                    <span style="display: flex; justify-content: center; align-items: center">
+                      <span v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: var(--ant-primary-color)" title="查看知识">
+                        <ShareAltOutlined style="font-size: 16px" />
+                      </span>
+                      <span v-else style="color: #bfbfbf">—</span>
                     </span>
-                  </div>
+                  </template>
+                  <template v-else-if="column.dataIndex === 'operation'">
+                    <div class="calc-operation-links" @click.stop>
+                      <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
+                      <a @click.stop.prevent="showPageConfigModal(record)">{{ $t('配置') }}</a>
+                      <a @click.stop.prevent="priviewPageConfigModal(record)">{{ $t('预览') }}</a>
+                      <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
+                      <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
+                        <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                      </a-popconfirm>
+                    </div>
+                  </template>
+                  <template v-else-if="column.dataIndex === 'pageType'">
+                    <span v-if="record.pageType === '1'">{{ $t('设计配置页面') }}</span>
+                    <span v-else-if="record.pageType === '2'">{{ $t('计算集成页面') }}</span>
+                    <span v-else-if="record.pageType === '3'">{{ $t('自定义页面') }}</span>
+                  </template>
+                  <template v-else>
+                    {{ record[column.dataIndex] }}
+                  </template>
                 </template>
-                <template v-else>
-                  <div class="header-cell-main header-cell-main--static">
-                    <span class="header-title-sort header-title-sort--disabled">
-                      <span>{{ column.title }}</span>
-                    </span>
-                  </div>
-                </template>
-              </template>
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.dataIndex === 'knowledge'">
-                  <span style="display: flex; justify-content: center; align-items: center">
-                    <span v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: var(--ant-primary-color)" title="查看知识">
-                      <ShareAltOutlined style="font-size: 16px" />
-                    </span>
-                    <span v-else style="color: #bfbfbf">—</span>
-                  </span>
-                </template>
-                <template v-else-if="column.dataIndex === 'operation'">
-                  <div class="calc-operation-links" @click.stop>
-                    <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
-                    <a @click.stop.prevent="showPageConfigModal(record)">{{ $t('配置') }}</a>
-                    <a @click.stop.prevent="priviewPageConfigModal(record)">{{ $t('预览') }}</a>
-                    <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
-                    <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                      <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
-                    </a-popconfirm>
-                  </div>
-                </template>
-                <template v-else-if="column.dataIndex === 'pageType'">
-                  <span v-if="record.pageType === '1'">{{ $t('设计配置页面') }}</span>
-                  <span v-else-if="record.pageType === '2'">{{ $t('计算集成页面') }}</span>
-                  <span v-else-if="record.pageType === '3'">{{ $t('自定义页面') }}</span>
-                </template>
-                <template v-else>
-                  {{ record[column.dataIndex] }}
-                </template>
-              </template>
-            </a-table>
-          </a-card>
-        </div>
-      </Pane>
-    </Splitpanes>
+              </a-table>
+            </a-card>
+          </div>
+        </Pane>
+      </Splitpanes>
 
-    <!-- 叠在分隔条上的折叠/展开（略低于中线拖动手柄，避免抢拖动） -->
-    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-      <button
-        type="button"
-        class="splitpanes-tree-collapse-wrap__toggle"
-        :style="splitToggleStyle"
-        @click="toggleLeftTreePanel"
-        @mousedown.stop>
-        <LeftOutlined v-if="!leftTreeCollapsed" />
-        <RightOutlined v-else />
-      </button>
-    </Tooltip>
+      <!-- 叠在分隔条上的折叠/展开（略低于中线拖动手柄，避免抢拖动） -->
+      <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+        <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="splitToggleStyle" @click="toggleLeftTreePanel" @mousedown.stop>
+          <LeftOutlined v-if="!leftTreeCollapsed" />
+          <RightOutlined v-else />
+        </button>
+      </Tooltip>
     </div>
 
     <!-- 知识配置弹窗 -->
     <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="() => getListData('change')" type="2" />
 
     <!-- 分享知识弹窗：展示关联知识列表 -->
-    <draggable-modal
-      v-model:visible="shareModalVisible"
-      :title="shareModalTitle"
-      width="860px"
-      :footer="null"
-      centered
-      @cancel="closeShareModal">
+    <draggable-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="860px" :footer="null" centered @cancel="closeShareModal">
       <a-spin :spinning="shareLoading">
         <div class="share-knowledge-list min-h-[400px]">
           <template v-if="shareList.length > 0">
@@ -1240,6 +1270,29 @@ const {
       :image-list="previewCheckImageList"
       @close="closeActivityCheckPreviewModal" />
   </div>
+  <a-drawer
+    v-if="shouldShowDrawer"
+    :title="`产品平台选择`"
+    placement="left"
+    :style="drawerStyle"
+    :closable="false"
+    :mask="true"
+    :visible="titleVisible"
+    :get-container="false"
+    :wrap-style="{ position: 'absolute' }"
+    @blur="onCloseDrawer"
+    @close="onCloseDrawer">
+    <div v-for="(item, index) in titleList" :key="index">
+      <div style="display: flex; background-color: #ecf5ff; margin: 15px 10px 0 10px; border-radius: 10px; height: 60px; cursor: pointer" @click="updateMenu(item)">
+        <img src="@/assets/images/jc.png" v-if="index == 0" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <img src="@/assets/images/ct.png" v-else-if="index == 1" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <img src="@/assets/images/hj.png" v-else alt="menu" style="width: 50px; height: 50px; margin: 5px" />
+        <a-badge>
+          <div class="menuLi">{{ item.categoryName }}</div>
+        </a-badge>
+      </div>
+    </div>
+  </a-drawer>
 </template>
 
 <style lang="less" scoped>
@@ -1252,10 +1305,34 @@ const {
   padding-bottom: 5px !important;
 }
 .drawerContent {
-  position: sticky;
-  bottom: 20px !important;
-  display: flex;
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - 84px);
   background-color: #ffffff !important;
+}
+
+:deep(.ant-drawer-content-wrapper) {
+  width: 480px !important;
+}
+
+:deep(.b-body) {
+  height: calc(100vh - 125px);
+  overflow: auto;
+}
+
+:deep(.ant-drawer-body) {
+  padding: 2px;
+}
+
+.menuLi {
+  display: inline-block;
+  margin: 20px 0 0 10px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.menuLi:hover {
+  transform: translateY(-2px);
+  color: #165dff;
 }
 
 /* ---------- 与 parameter/index.vue 列表区一致 ---------- */

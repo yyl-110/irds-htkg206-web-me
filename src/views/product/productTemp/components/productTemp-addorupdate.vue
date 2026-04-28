@@ -20,6 +20,7 @@ const visible = computed(() => {
   return props.modalVisible;
 });
 const formRef = ref<FormInstance>();
+const menuId = ref<any>();
 const formData = reactive({
   tempNum: '',
   tempName: '',
@@ -51,6 +52,7 @@ async function savePageInfo() {
   data.tempName = formData.tempName;
   data.remarks = formData.remarks;
   data.creator = userStore.getUser.id;
+  data.menuId = menuId.value;
   // 保存信息
   if (id.value != undefined && id.value > 0) {
     data.id = id.value;
@@ -70,7 +72,7 @@ async function savePageInfo() {
 }
 
 // 初始化数据
-function noticeInfoAddOrUpdate(record: any) {
+function noticeInfoAddOrUpdate(record: any, menu: any) {
   if (record) {
     id.value = record.id;
     formData.tempNum = record.tempNum;
@@ -78,6 +80,7 @@ function noticeInfoAddOrUpdate(record: any) {
     formData.remarks = record.remarks;
     formData.status = record.status;
     formData.versionNum = record.versionNum;
+    menuId.value = menu;
     title.value = '产品模板编辑';
   } else {
     id.value = 0;
@@ -87,6 +90,7 @@ function noticeInfoAddOrUpdate(record: any) {
     formData.status = '';
     formData.versionNum = '';
     title.value = '产品模板创建';
+    menuId.value = menu;
   }
 }
 function customGetContainer() {
