@@ -852,6 +852,7 @@ function mapTableConfig(item: any) {
   };
 }
 function mapComponentForApi(item: any, index: number, operationType: 'insert' | 'update') {
+  const componentParamId = item?.parameterId ?? item?.paramId ?? null;
   const mapped = {
     id: operationType === 'insert' ? null : (item?.id ?? null),
     parentId: item?.parentId ?? 0,
@@ -870,7 +871,10 @@ function mapComponentForApi(item: any, index: number, operationType: 'insert' | 
     libraryParam: item?.libraryParam ?? '',
     paramValue: item?.paramValue ?? null,
   } as Record<string, any>;
-  if (item?.parameterId !== undefined) mapped.parameterId = item?.parameterId ?? null;
+  if (item?.parameterId !== undefined || item?.paramId !== undefined) {
+    mapped.parameterId = componentParamId;
+    mapped.paramId = componentParamId;
+  }
   if (item?.knowledgeType !== undefined) mapped.knowledgeType = item?.knowledgeType ?? null;
   if (item?.knowledgeContent !== undefined) mapped.knowledgeContent = item?.knowledgeContent ?? null;
   if (item?.knowledgeId !== undefined) mapped.knowledgeId = item?.knowledgeId ?? null;
@@ -1022,6 +1026,7 @@ function handleSaveParameter(row: any) {
   } else if (selectedComponent.value) {
     selectedComponent.value.paramCode = code;
     selectedComponent.value.parameterId = parameterId;
+    selectedComponent.value.paramId = parameterId;
     if (name) {
       const c = selectedComponent.value as any;
       const subtype = String(c?.customProps?.threeDSubtype ?? '');
@@ -2313,7 +2318,8 @@ watch(
   component => {
     if (!component) return;
     if (!component.customProps || typeof component.customProps !== 'object') component.customProps = {};
-    if (component.parameterId === undefined) component.parameterId = null;
+    if (component.parameterId === undefined) component.parameterId = component.paramId ?? null;
+    if (component.paramId === undefined) component.paramId = component.parameterId ?? null;
     if (component.componentType === 'TEXTAREA') ensureTextareaDefaults(component);
     if (['INPUT', 'TEXTAREA'].includes(component.componentType)) ensureTextLikeDefaults(component);
     if (component.componentType === 'DATE') ensureDateDefaults(component);

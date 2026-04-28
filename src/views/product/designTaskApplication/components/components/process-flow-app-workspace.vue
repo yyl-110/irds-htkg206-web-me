@@ -2,15 +2,7 @@
 import { computed, h, nextTick, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  EditOutlined,
-  LeftOutlined,
-  QuestionCircleOutlined,
-  RightOutlined,
-  SearchOutlined,
-} from '@ant-design/icons-vue';
+import { CheckCircleOutlined, ClockCircleOutlined, EditOutlined, LeftOutlined, QuestionCircleOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
@@ -19,7 +11,9 @@ import ProcessFlowAppCheckNodePreview from './process-flow-app-check-node-previe
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
+import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 type FlowNode = {
+  id?: string | number;
   bpmnElementId?: string;
   nodeName?: string;
   activityType?: string | number;
@@ -78,6 +72,9 @@ const finishFlowLoading = ref(false);
 const toolbarActionLoadingIndex = ref<number | null>(null);
 const nodePreviewRef = ref<any>(null);
 const checkNodePreviewRef = ref<any>(null);
+const currentActivityParamList = ref<any[]>([]);
+const knowledgeLoading = ref(false);
+const knowledgeKeyword = ref('');
 const activityImagePaneStyle = computed<Record<string, string>>(() => {
   const mt = Number(activityImageMarginTop.value);
   const width = Number(activityImageWidth.value);
@@ -233,6 +230,61 @@ const selectedNodeTitle = computed(() => {
   if (!node) return String(workspaceData.value?.appName ?? '--');
   return String(node.nodeName ?? '--');
 });
+
+function normalizeTextForSearch(v: unknown) {
+  return String(v ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+const filteredKnowledgeList = computed<any[]>(() => {
+  const list = Array.isArray(currentActivityParamList.value) ? currentActivityParamList.value : [];
+  const kw = normalizeTextForSearch(knowledgeKeyword.value);
+  if (!kw) return list;
+  return list.filter((item: any) => {
+    const title = normalizeTextForSearch(item?.file?.title);
+    const remark = normalizeTextForSearch(item?.remark);
+    const versionNum = normalizeTextForSearch(item?.versionNum);
+    const content = normalizeTextForSearch(item?.file?.content);
+    return title.includes(kw) || remark.includes(kw) || versionNum.includes(kw) || content.includes(kw);
+  });
+});
+
+function escapeRegExp(v: string) {
+  return v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function escapeHtml(v: unknown) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function highlightPlainText(v: unknown) {
+  const text = String(v ?? '');
+  const kw = String(knowledgeKeyword.value ?? '').trim();
+  if (!kw) return escapeHtml(text);
+  const parts = text.split(new RegExp(`(${escapeRegExp(kw)})`, 'ig'));
+  const kwLower = kw.toLowerCase();
+  return parts
+    .map(part => {
+      if (part.toLowerCase() === kwLower) return `<span class="workspace-kw-highlight">${escapeHtml(part)}</span>`;
+      return escapeHtml(part);
+    })
+    .join('');
+}
+
+function highlightRichHtml(v: unknown) {
+  const html = String(v ?? '');
+  const kw = String(knowledgeKeyword.value ?? '').trim();
+  if (!kw || !html) return html;
+  return html.replace(new RegExp(escapeRegExp(kw), 'ig'), m => `<span class="workspace-kw-highlight">${m}</span>`);
+}
 
 /** 解析 node-page-detail 返回的 `button` 字段（逗号分隔） */
 function parseNodeDetailButtonLabels(raw: unknown): string[] {
@@ -498,6 +550,18 @@ async function requestNodeDetailByKey(key: string) {
     }
   } finally {
     nodeDetailLoading.value = false;
+  }
+
+  knowledgeLoading.value = true;
+  try {
+    const paramRes = await AdminApiSystemParameter.getParameterActList({ businessId: detailObj?.activityPageId, type: '2' });
+    const list = paramRes?.data?.data;
+    currentActivityParamList.value = Array.isArray(list) ? list : [];
+  } catch {
+    // 左侧树切换时参数接口失败不阻断节点展示
+    currentActivityParamList.value = [];
+  } finally {
+    knowledgeLoading.value = false;
   }
 
   const taskId = route.query.taskId ?? workspaceData.value?.taskId ?? '';
@@ -773,6 +837,17 @@ async function goNextNode() {
   const values = Array.from(dedup.values());
   if (!values.length) {
     message.warning('当前节点暂无可提交参数');
+    return;
+  }
+  const activityId = String(nodeDetailData.value?.id ?? selectedNode.value?.id ?? '').trim();
+  if (!activityId) {
+    message.warning('缺少活动ID，无法调取活动参数');
+    return;
+  }
+  try {
+    await AdminApiSystemParameter.getParameterActList({ businessId: activityId, type: '2' });
+  } catch {
+    message.error('活动参数获取失败，无法提交');
     return;
   }
   const data: Record<string, any> = {
@@ -1073,7 +1148,7 @@ onMounted(() => {
         <div class="workspace-right-inner">
           <a-tabs v-model:activeKey="knowledgeRightActiveKey" class="workspace-knowledge-tabs">
             <a-tab-pane key="design" tab="设计知识">
-              <a-input-search placeholder="请输入" class="workspace-knowledge-search">
+              <a-input-search v-model:value="knowledgeKeyword" placeholder="请输入标题/内容关键字" class="workspace-knowledge-search" allow-clear>
                 <template #enterButton>
                   <a-button type="primary">
                     <SearchOutlined class="workspace-knowledge-search__icon" />
@@ -1081,7 +1156,25 @@ onMounted(() => {
                   </a-button>
                 </template>
               </a-input-search>
-              <div class="knowledge-text">我是设计知识，包括文本关联知识和页面关联知识</div>
+              <a-spin :spinning="knowledgeLoading">
+                <div class="workspace-knowledge-list">
+                  <template v-if="filteredKnowledgeList.length > 0">
+                    <div v-for="(item, idx) in filteredKnowledgeList" :key="item?.id ?? item?.knowledgeParseId ?? idx" class="workspace-knowledge-item">
+                      <div class="workspace-knowledge-meta">
+                        <a-tag color="blue"><span v-html="highlightPlainText(item.file?.title || '知识文档')" /></a-tag>
+                        <a-tag v-if="item.remark" color="default"><span v-html="highlightPlainText(item.remark)" /></a-tag>
+                        <a-tag v-if="item.versionNum" color="cyan">V<span v-html="highlightPlainText(item.versionNum)" /></a-tag>
+                      </div>
+                      <div v-if="item.file?.picture" class="workspace-knowledge-pictures">
+                        <a-image :src="item.file?.picture" :width="240" class="workspace-knowledge-img" />
+                      </div>
+                      <div v-if="item.file?.content" class="workspace-knowledge-content" v-html="highlightRichHtml(item.file.content)" />
+                      <a-divider v-if="idx < filteredKnowledgeList.length - 1" style="margin: 12px 0" />
+                    </div>
+                  </template>
+                  <div v-else-if="!knowledgeLoading" class="workspace-knowledge-empty">暂无关联知识</div>
+                </div>
+              </a-spin>
             </a-tab-pane>
             <a-tab-pane key="log" tab="操作日志">
               <div class="workspace-right-tab-body">暂无操作日志</div>
@@ -1310,9 +1403,45 @@ onMounted(() => {
   background: #fff;
 }
 
-.knowledge-text {
-  margin-top: 14px;
+.workspace-knowledge-list {
+  margin-top: 12px;
+  min-height: 220px;
+}
+
+.workspace-knowledge-item {
+  padding: 2px 0;
+}
+
+.workspace-knowledge-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workspace-knowledge-pictures {
+  margin-top: 10px;
+}
+
+.workspace-knowledge-img {
+  max-width: 100%;
+}
+
+.workspace-knowledge-content {
+  margin-top: 10px;
   color: #333;
   line-height: 22px;
+  word-break: break-word;
+}
+
+.workspace-knowledge-empty {
+  margin-top: 10px;
+  color: #8c8c8c;
+}
+
+:deep(.workspace-kw-highlight) {
+  background-color: #fff1b8;
+  color: #262626;
+  padding: 0 1px;
+  border-radius: 2px;
 }
 </style>
