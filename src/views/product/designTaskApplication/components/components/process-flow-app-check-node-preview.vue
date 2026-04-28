@@ -11,6 +11,9 @@ const props = defineProps<{
   savedParamValues?: any[] | null;
   nodeDetailData?: Record<string, any> | null;
 }>();
+const emit = defineEmits<{
+  (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
+}>();
 
 const calcCheckPreviewTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']);
 const calcIoParamComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'DATA_VIEW']);
@@ -73,6 +76,14 @@ function knowledgeHintText(item: any): string {
 }
 function hasKnowledgeHint(item: any): boolean {
   return knowledgeHintText(item) !== '';
+}
+function onParamTitleClick(item: any) {
+  const paramNum = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  if (!paramNum) return;
+  emit('param-title-click', {
+    paramNum,
+    paramName: String(item?.paramName ?? '').trim(),
+  });
 }
 function isFullRowComponent(type: string) {
   return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'].includes(type);
@@ -281,7 +292,7 @@ defineExpose({
       <div v-for="(item, index) in previewList" :key="item.id || `${item.componentType}-${index}`" class="component-card" :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
         <div class="component-preview-wrap">
           <div v-if="item.componentType !== 'TITLE' && item.componentType !== 'DIVIDER' && item.componentType !== 'DATA_VIEW' && item.componentType !== 'CALC_BUTTON'" class="component-title">
-            <span>{{ item.paramName || '未命名组件' }}</span>
+            <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '未命名组件' }}</span>
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
@@ -302,7 +313,7 @@ defineExpose({
             class="preview-field" />
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
-            <div class="component-title"><span>{{ item.paramName || '数据浏览' }}</span></div>
+            <div class="component-title"><span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '数据浏览' }}</span></div>
             <div class="data-view-preview-row">
               <a-input v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" placeholder="请选择参数" disabled class="data-view-preview-input browse-adjoined-input" />
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index)">浏览</a-button>
@@ -369,6 +380,9 @@ defineExpose({
   font-size: 13px;
   color: #444;
   margin-bottom: 8px;
+}
+.component-title-text--clickable {
+  cursor: pointer;
 }
 .preview-field {
   width: var(--activity-preview-component-width);

@@ -16,6 +16,9 @@ const props = defineProps<{
   savedParamValues?: any[] | null;
   savedTables?: any[] | null;
 }>();
+const emit = defineEmits<{
+  (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
+}>();
 
 const userStore = useUserStore();
 const previewFieldValueMap = ref<Record<string, string>>({});
@@ -77,6 +80,14 @@ function knowledgeHintText(item: any): string {
 }
 function hasKnowledgeHint(item: any): boolean {
   return knowledgeHintText(item) !== '';
+}
+function onParamTitleClick(item: any) {
+  const paramNum = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  if (!paramNum) return;
+  emit('param-title-click', {
+    paramNum,
+    paramName: String(item?.paramName ?? '').trim(),
+  });
 }
 
 const previewList = computed(() => {
@@ -1528,7 +1539,7 @@ defineExpose({
               !isModelSelect3DItem(item)
             "
             class="component-title">
-            <span>{{ item.paramName || '未命名组件' }}</span>
+            <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '未命名组件' }}</span>
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
@@ -1570,7 +1581,7 @@ defineExpose({
 
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
             <div class="component-title">
-              <span>{{ item.paramName || '数据浏览' }}</span>
+              <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '数据浏览' }}</span>
               <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
                 <ExclamationCircleOutlined class="component-knowledge-hint" />
               </a-tooltip>
@@ -1598,7 +1609,7 @@ defineExpose({
 
           <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
             <div class="component-title">
-              <span>{{ item.paramName || '单选项' }}</span>
+              <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '单选项' }}</span>
             </div>
             <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
             <a-radio-group v-else v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
@@ -1612,7 +1623,7 @@ defineExpose({
 
           <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
             <div class="component-title">
-              <span>{{ item.paramName || '文件上传' }}</span>
+              <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '文件上传' }}</span>
             </div>
             <a-upload-dragger
               :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
@@ -1637,7 +1648,9 @@ defineExpose({
               'fixed-table-preview--simple-file': String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB_SIMPLE',
             }">
             <div class="component-title fixed-table-preview-title-row">
-              <span class="fixed-table-preview-title-text">{{ item.customProps?.tableTitle || item.paramName || '表格' }}</span>
+              <span class="fixed-table-preview-title-text component-title-text--clickable" @click="onParamTitleClick(item)">{{
+                item.customProps?.tableTitle || item.paramName || '表格'
+              }}</span>
               <div v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
                 <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
                 <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
@@ -1853,6 +1866,9 @@ defineExpose({
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
+}
+.component-title-text--clickable {
+  cursor: pointer;
 }
 .component-knowledge-hint {
   color: #1677ff;
