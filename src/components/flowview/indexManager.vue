@@ -65,64 +65,9 @@ const loadFlowCanvas = async xmlString => {
   try {
     await bpmnViewer.value.importXML(xmlString);
     fitViewport();
-    await nextTick();
-    applyNodeStatusStyles(props.flowData?.nodeStatusMap);
-    setTimeout(() => applyNodeStatusStyles(props.flowData?.nodeStatusMap), 180);
   } catch (err) {
     console.error('BPMN加载失败:', err.message, err.warnings);
   }
-};
-
-const resolveNodeStatusColor = statusRaw => {
-  const status = String(statusRaw ?? '').trim();
-  if (status.includes('已完成')) return { fill: '#f6ffed', stroke: '#52c41a' };
-  if (status.includes('进行中') || status.includes('设计中')) return { fill: '#e6f7ff', stroke: '#1890ff' };
-  if (status.includes('待确认')) return { fill: '#fff7e6', stroke: '#fa8c16' };
-  if (status.includes('未开始')) return { fill: '#fafafa', stroke: '#999999' };
-  return null;
-};
-
-const applyNodeStatusStyles = statusMapRaw => {
-  if (!bpmnViewer.value || !statusMapRaw || typeof statusMapRaw !== 'object') return;
-  const statusMap = new Map(
-    Object.entries(statusMapRaw)
-      .map(([k, v]) => [String(k ?? '').trim(), String(v ?? '').trim()])
-      .filter(([k]) => !!k),
-  );
-  if (!statusMap.size) return;
-  const completedStyle = resolveNodeStatusColor('已完成');
-  const allCompleted = Array.from(statusMap.values()).every(status => String(status ?? '').includes('已完成'));
-  const elementRegistry = bpmnViewer.value.get('elementRegistry');
-  const root = flowCanvas.value;
-  if (!root || !elementRegistry?.get) return;
-  const domNodes = root.querySelectorAll('.djs-element[data-element-id]');
-  domNodes.forEach(dom => {
-    const elementId = String(dom.getAttribute('data-element-id') ?? '').trim();
-    if (!elementId) return;
-    const el = elementRegistry.get(elementId);
-    if (!el || Array.isArray(el?.waypoints)) return;
-    const nodeName = String(el?.businessObject?.name ?? '').trim();
-    const elementType = String(el?.type ?? '');
-    let style = nodeName ? resolveNodeStatusColor(statusMap.get(nodeName)) : null;
-    // 开始节点默认按已完成样式渲染
-    if (!style && elementType === 'bpmn:StartEvent') style = completedStyle;
-    // 仅当左侧全部活动已完成时，结束节点也按已完成样式渲染
-    if (!style && allCompleted && elementType === 'bpmn:EndEvent') style = completedStyle;
-    if (!style) return;
-    const visual = dom.querySelector('.djs-visual');
-    if (!visual) return;
-    const shapes = visual.querySelectorAll('rect, polygon, path, ellipse, circle');
-    shapes.forEach(shape => {
-      // 主体图形统一填充背景色，确保不仅是边框变色
-      shape.setAttribute('fill', style.fill);
-      shape.style.fill = style.fill;
-      const stroke = String(shape.getAttribute('stroke') ?? '').trim().toLowerCase();
-      if (!stroke || stroke !== 'none') {
-        shape.setAttribute('stroke', style.stroke);
-        shape.style.stroke = style.stroke;
-      }
-    });
-  });
 };
 
 const fitViewport = () => {
@@ -173,7 +118,6 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   min-height: 0;
-  max-height: 100%;
   /* bpmn-js 右下角 BPMN.IO 水印 */
   :deep(.bjs-powered-by) {
     display: none !important;
@@ -184,7 +128,6 @@ onUnmounted(() => {
     width: 100%;
     min-height: 0;
     height: 100%;
-    max-height: 100%;
     overflow: hidden;
     border: 1px solid #f0f0f0;
     background: #fafafa;

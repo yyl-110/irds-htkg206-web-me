@@ -9,7 +9,7 @@ import { ProcessFlowListPageRequestDTOModel } from '@/api/models/processTask/Pro
 import { sortermethod } from '@/utils/tools';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import Empty from '@/components/Empty/index.vue';
-import FlowView from '@/components/flowview/index.vue';
+import FlowView from '@/components/flowview/indexManager.vue';
 import { useUserStore } from '@/store/modules/user';
 import { useRouter } from 'vue-router';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
@@ -602,10 +602,7 @@ defineExpose({
           </template>
           <template v-else-if="isSortableProcessFlowColumn(column) || isFilterableProcessFlowColumn(column)">
             <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableProcessFlowColumn(column) }">
-              <span
-                class="header-title-sort"
-                :class="{ 'header-title-sort--disabled': !isSortableProcessFlowColumn(column) }"
-                @click.stop="toggleProcessFlowColumnSort(column)">
+              <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableProcessFlowColumn(column) }" @click.stop="toggleProcessFlowColumnSort(column)">
                 <span>{{ column.title }}</span>
                 <span v-if="isSortableProcessFlowColumn(column)" class="header-sort-icon">
                   <CaretUpOutlined v-if="getProcessFlowSortOrder(String(column.dataIndex)) === 'ascend'" />
@@ -687,7 +684,7 @@ defineExpose({
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
-                <a href="#" @click.prevent>撤回发布协同</a>
+                <a href="#" @click.prevent>撤回协同</a>
               </a-popconfirm>
               <a-popconfirm
                 v-if="!isAppPublished(record)"
@@ -751,22 +748,13 @@ defineExpose({
       </template>
     </a-modal>
 
-    <a-modal
-      v-model:visible="flowViewVisible"
-      title="流程图"
-      :width="1000"
-      centered
-      destroy-on-close
-      :mask-closable="true"
-      @cancel="closeFlowView">
+    <a-modal v-model:visible="flowViewVisible" title="流程图" :width="1000" centered destroy-on-close :mask-closable="true" @cancel="closeFlowView">
       <div class="process-panel__flow-view-wrap">
         <FlowView :flow-data="flowViewData" />
       </div>
       <template #footer>
         <div class="process-panel__flow-view-footer">
-          <a-button type="primary" @click="closeFlowView">
-            <EpcIcon type="icon-quxiao" style="font-size: 14px" /> 关闭
-          </a-button>
+          <a-button type="primary" @click="closeFlowView"> <EpcIcon type="icon-quxiao" style="font-size: 14px" /> 关闭 </a-button>
         </div>
       </template>
     </a-modal>

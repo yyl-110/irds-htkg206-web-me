@@ -8,6 +8,7 @@ import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/us
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import ProcessFlowAppNodePreview from './process-flow-app-node-preview.vue';
 import ProcessFlowAppCheckNodePreview from './process-flow-app-check-node-preview.vue';
+import FlowView from '@/components/flowview/index.vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
@@ -62,6 +63,8 @@ const rightCollapsed = ref(false);
 const knowledgeRightActiveKey = ref<'design' | 'log' | 'flow'>('design');
 const minExpanded = 12;
 const nodeDetailLoading = ref(false);
+const flowViewLoading = ref(false);
+const flowViewData = ref<{ xmlData?: string; nodeStatusMap?: Record<string, string> }>({});
 const nodeDetailData = ref<Record<string, any> | null>(null);
 const activityImageUrl = ref('');
 const activityImageMarginTop = ref(0);
@@ -189,6 +192,11 @@ const allNodeMap = computed(() => {
 const selectedNode = computed<FlowNode | null>(() => {
   if (!selectedNodeKey.value) return null;
   return allNodeMap.value.get(selectedNodeKey.value) ?? null;
+});
+const isRootNodeSelected = computed(() => {
+  if (!selectedNodeKey.value) return false;
+  const node = allNodeMap.value.get(selectedNodeKey.value);
+  return node == null;
 });
 
 const orderedActivityNodeKeys = computed<string[]>(() => {
@@ -673,9 +681,43 @@ async function onParamTitleClick(payload: { paramNum?: string; paramName?: strin
   }
 }
 
+async function requestDesignTaskBasicInfo() {
+  const taskId = String(route.query.taskId ?? workspaceData.value?.taskId ?? '').trim();
+  if (!taskId) return;
+  flowViewLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.getXmlInfo({ id: taskId });
+    const xml = String(res?.data?.data?.bpmnXml ?? '').trim();
+    if (!xml) {
+      flowViewData.value = {};
+      message.warning('暂无流程图数据');
+      return;
+    }
+    const nodeStatusMap: Record<string, string> = {};
+    flattenFlowNodes(workspaceData.value?.pages).forEach((node: FlowNode) => {
+      const name = String(node?.nodeName ?? '').trim();
+      if (!name) return;
+      nodeStatusMap[name] = String(node?.nodeStatus ?? '').trim();
+    });
+    flowViewData.value = { xmlData: xml, nodeStatusMap };
+  } catch {
+    flowViewData.value = {};
+    message.error('获取流程图失败');
+    // 根节点点击时接口失败不阻断页面交互
+  } finally {
+    flowViewLoading.value = false;
+  }
+}
+
 async function onSelectTree(keys: (string | number)[]) {
   const k = String(keys?.[0] ?? '');
   selectedNodeKey.value = k;
+  const targetNode = allNodeMap.value.get(k);
+  if (!targetNode) {
+    await requestDesignTaskBasicInfo();
+    return;
+  }
+  flowViewData.value = {};
   await requestNodeDetailByKey(k);
 }
 
@@ -1106,9 +1148,16 @@ onMounted(() => {
       <Pane :size="leftPaneSize" :min-size="leftCollapsed ? 0 : minExpanded" :class="['workspace-left', { 'workspace-left--collapsed': leftCollapsed }]">
         <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
       </Pane>
-      <Pane :size="centerPaneSize" :min-size="20" class="workspace-center">
-        <div class="workspace-center-body">
-          <a-spin :spinning="nodeDetailLoading" class="workspace-center-spin">
+      <Pane :size="centerPaneSize" :min-size="20" :class="['workspace-center', { 'workspace-center--flow': isRootNodeSelected }]">
+        <div :class="['workspace-center-body', { 'workspace-center-body--flow': isRootNodeSelected }]">
+          <div v-if="isRootNodeSelected" class="workspace-flow-mode">
+            <a-spin :spinning="flowViewLoading" class="workspace-flow-spin">
+              <div class="workspace-flowview-wrap">
+                <FlowView :flow-data="flowViewData" />
+              </div>
+            </a-spin>
+          </div>
+          <a-spin v-else :spinning="nodeDetailLoading" class="workspace-center-spin">
             <div class="workspace-preview-scroll-row">
               <div class="workspace-preview-main">
                 <ProcessFlowAppCheckNodePreview
@@ -1132,7 +1181,7 @@ onMounted(() => {
             </div>
           </a-spin>
         </div>
-        <div class="workspace-center-footer">
+        <div v-if="!isRootNodeSelected" class="workspace-center-footer">
           <a-button
             type="primary"
             :loading="saveFlowLoading"
@@ -1205,9 +1254,6 @@ onMounted(() => {
             <a-tab-pane key="log" tab="操作日志">
               <div class="workspace-right-tab-body">暂无操作日志</div>
             </a-tab-pane>
-            <a-tab-pane key="flow" tab="设计流程">
-              <div class="workspace-right-tab-body">暂无设计流程信息</div>
-            </a-tab-pane>
           </a-tabs>
         </div>
       </Pane>
@@ -1267,6 +1313,10 @@ onMounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.workspace-center--flow {
+  padding: 0 !important;
 }
 
 .workspace-right {
@@ -1373,6 +1423,39 @@ onMounted(() => {
   overflow: auto;
 }
 
+.workspace-center-body--flow {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: calc(100vh - 120px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.workspace-flow-mode {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-flow-spin {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.workspace-flow-spin :deep(.ant-spin-nested-loading),
+.workspace-flow-spin :deep(.ant-spin-container) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .workspace-preview-scroll-row {
   display: flex;
   align-items: flex-start;
@@ -1415,6 +1498,45 @@ onMounted(() => {
 .workspace-center-spin :deep(.ant-spin-container) {
   min-height: 100%;
   height: auto;
+}
+
+.workspace-flowview-wrap {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: calc(100vh - 120px);
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.workspace-flowview-wrap :deep(.containers.main-box) {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.workspace-flowview-wrap :deep(.flowview-toolbar) {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.workspace-flowview-wrap :deep(.canvas) {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100% !important;
+  min-height: calc(100vh - 120px) !important;
+  overflow: hidden;
+}
+
+.workspace-flowview-wrap :deep(.canvas svg) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.workspace-flowview-wrap :deep(.canvas svg .viewport) {
+  pointer-events: all;
 }
 
 .workspace-center-footer {
