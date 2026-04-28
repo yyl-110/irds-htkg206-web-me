@@ -30,6 +30,7 @@ const previewUploadFileMap = ref<Record<string, any[]>>({});
 const richTextEditorRefMap = ref<Record<string, any>>({});
 const richTextValueMap = ref<Record<string, string>>({});
 const previewTableCellMap = ref<Record<string, string>>({});
+const previewTableRowCountMap = ref<Record<string, number>>({});
 const inputRangeBlurredMap = ref<Record<string, boolean>>({});
 const inputLastValidValueMap = ref<Record<string, string>>({});
 const previewFileCollabFileIdMap = ref<Record<string, string>>({});
@@ -877,14 +878,32 @@ function setPreviewTableCellValue(item: any, componentIndex: number, bodyRow: nu
   previewTableCellMap.value = { ...previewTableCellMap.value, [k]: v };
 }
 function getPreviewTableBodyRowCountForTable(item: any, componentIndex: number) {
+  const key = getPreviewItemKey(item, componentIndex);
+  const overrideRows = Number(previewTableRowCountMap.value[key]);
+  if (Number.isFinite(overrideRows) && overrideRows >= 1) return Math.min(50, overrideRows);
   if (String(item?.customProps?.tableBizType ?? '') === 'FILE_COLLAB') {
-    const key = getPreviewItemKey(item, componentIndex);
     const o = fileCollabPreviewRowCountMap.value[key];
     const base = Math.max(1, Number(item?.customProps?.tableBodyRows) || 1);
     if (o != null && Number.isFinite(o) && o >= 1) return Math.min(50, o);
     return base;
   }
   return Math.max(1, Number(item?.customProps?.tableBodyRows) || 1);
+}
+function isRowExpandTable(item: any) {
+  return String(item?.customProps?.tableSubtype ?? '')
+    .trim()
+    .toUpperCase() === 'ROW_EXPAND';
+}
+function onRowExpandPreviewAddRow(item: any, componentIndex: number) {
+  if (isOutputIoType(item)) return;
+  if (!isRowExpandTable(item)) return;
+  const key = getPreviewItemKey(item, componentIndex);
+  const cur = getPreviewTableBodyRowCountForTable(item, componentIndex);
+  if (cur >= 50) {
+    message.warning('表格行数最多为 50');
+    return;
+  }
+  previewTableRowCountMap.value = { ...previewTableRowCountMap.value, [key]: cur + 1 };
 }
 function getFileCollabRowKey(item: any, componentIndex: number, bodyRow: number) {
   return `${getPreviewItemKey(item, componentIndex)}::${bodyRow}`;
@@ -1561,6 +1580,7 @@ watch(
     const tableRestore = applySavedTablesToPreviewMap(list, props.savedTables);
     previewTableCellMap.value = tableRestore.cellMap;
     previewFileCollabFileIdMap.value = tableRestore.fileIdMap;
+    previewTableRowCountMap.value = {};
     inputRangeBlurredMap.value = nextBlurred;
     inputLastValidValueMap.value = nextLastValid;
     void nextTick(() => {
@@ -1764,6 +1784,9 @@ defineExpose({
               <div v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
                 <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
                 <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
+              </div>
+              <div v-else-if="isRowExpandTable(item)" class="file-collab-preview-toolbar">
+                <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onRowExpandPreviewAddRow(item, index)">添加行</a-button>
               </div>
             </div>
             <div class="fixed-table-preview-scroll">
@@ -2129,7 +2152,9 @@ defineExpose({
   background: #fafafa;
 }
 .fixed-table-preview-title-row {
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .fixed-table-preview-title-text {
   font-size: 14px;

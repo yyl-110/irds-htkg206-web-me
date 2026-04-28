@@ -910,10 +910,6 @@ async function goNextNode() {
   const dedup = new Map<string, any>();
   [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
   const values = Array.from(dedup.values());
-  if (!values.length) {
-    message.warning('当前节点暂无可提交参数');
-    return;
-  }
   try {
     await AdminApiSystemParameter.getParameterActList({ businessId: activityPageId, type: '2' });
   } catch {
@@ -1013,10 +1009,6 @@ async function finishFlow() {
   const dedup = new Map<string, any>();
   [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
   const values = Array.from(dedup.values());
-  if (!values.length) {
-    message.warning('当前节点暂无可提交参数');
-    return;
-  }
   const data: Record<string, any> = {
     bpmnElementId: currentNodeKey,
     taskId,
@@ -1143,7 +1135,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div ref="workspacePageRef" class="workspace-page splitpanes-tree-collapse-wrap">
+  <div ref="workspacePageRef" :class="['workspace-page', 'splitpanes-tree-collapse-wrap', { 'workspace-page--flow': isRootNodeSelected }]">
     <Splitpanes class="default-theme workspace-splitpanes" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
       <Pane :size="leftPaneSize" :min-size="leftCollapsed ? 0 : minExpanded" :class="['workspace-left', { 'workspace-left--collapsed': leftCollapsed }]">
         <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
@@ -1418,6 +1410,10 @@ onMounted(() => {
 }
 
 :deep(.workspace-splitpanes .splitpanes__splitter) {
+  border-left: 1px solid #e6e7e9 !important;
+}
+
+.workspace-page--flow :deep(.workspace-splitpanes .splitpanes__splitter) {
   border-left: none !important;
   background: transparent !important;
   box-shadow: none !important;
