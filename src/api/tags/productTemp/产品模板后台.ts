@@ -175,6 +175,65 @@ export class AdminApiProductTemp {
     });
 
   /**
+   * 查询全量结构树（首轮结构勾选）
+   * @request POST /business-service/business/product-temp/wbs-all-tree-list
+   */
+  static getWbsAllTreeList = (
+    query: {
+      tempId: number | string;
+      menuId?: number | string;
+      parentId?: number | string | null;
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/wbs-all-tree-list`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
+
+  /**
+   * 保存已勾选结构（仅结构，不绑定任务）
+   * @request POST /business-service/business/product-temp/wbs-structure/save
+   */
+  static saveWbsStructure = (
+    query: {
+      tempId: number | string;
+      menuId?: number | string;
+      tree: any[];
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/wbs-structure/save`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
+
+  /**
+   * 查询已保存结构树
+   * @request POST /business-service/business/product-temp/getTempInfo
+   */
+  static getTempInfo = (
+    query: {
+      tempId: number | string;
+      menuId?: number | string;
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/business-service/business/product-temp/getTempInfo`,
+      method: "POST",
+      body: query,
+      secure: true,
+      ...params,
+    });
+
+  /**
    * 保存模板 WBS 快照
    * @summary 保存节点选择 + 任务单选 + 节点必选项，并回传最新树 [cite: 91]
    * @request POST /business-service/business/product-temp/wbs-snapshot/save [cite: 90]
@@ -200,7 +259,7 @@ export class AdminApiProductTemp {
    * @request POST /business-service/business/product-temp/wbs-snapshot/move-up [cite: 127]
    */
   static moveUpNode = (
-    query: { tempId: number | string; nodeId: number | string },
+    query: { tempId: number | string; nodeId: number | string; menuId?: number | string },
     params: RequestParams = {},
   ) =>
     httpClient.request<any, any>({
@@ -216,7 +275,7 @@ export class AdminApiProductTemp {
    * @request POST /business-service/business/product-temp/wbs-snapshot/move-down [cite: 133]
    */
   static moveDownNode = (
-    query: { tempId: number | string; nodeId: number | string },
+    query: { tempId: number | string; nodeId: number | string; menuId?: number | string },
     params: RequestParams = {},
   ) =>
     httpClient.request<any, any>({
@@ -232,7 +291,7 @@ export class AdminApiProductTemp {
    * @request POST /business-service/business/product-temp/wbs-snapshot/delete-node [cite: 139]
    */
   static deleteWbsNode = (
-    query: { tempId: number | string; nodeId: number | string },
+    query: { tempId: number | string; nodeId: number | string; menuId?: number | string },
     params: RequestParams = {},
   ) =>
     httpClient.request<any, any>({

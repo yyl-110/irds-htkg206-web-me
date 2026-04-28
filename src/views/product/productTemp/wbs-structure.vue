@@ -48,6 +48,8 @@ export type WbsRow = {
   menuId?: string;
   /** 接口字段 parentId */
   parentId?: string;
+  /** 接口字段 taskCount */
+  taskCount?: number;
   children?: WbsRow[];
 };
 
@@ -81,6 +83,7 @@ function mapApiNodeToWbsRow(node: any, index: number, prefix: string): WbsRow {
     selected: !!node.selected,
     menuId: node.menuId != null ? String(node.menuId) : undefined,
     parentId: node.parentId != null ? String(node.parentId) : undefined,
+    taskCount: node.taskCount == null ? undefined : Number(node.taskCount),
     children: children.length ? children : undefined,
   };
 }
@@ -88,9 +91,19 @@ function mapApiNodeToWbsRow(node: any, index: number, prefix: string): WbsRow {
 /** 将接口 tree 数组转为 WbsRow[] 并填充计算字段 */
 function transformApiTree(apiTree: any[]): WbsRow[] {
   const rows = apiTree.map((node: any, i: number) => mapApiNodeToWbsRow(node, i, ''));
+  assignDefaultTaskFlow(rows);
   applyPlanLevelByTreeDepth(rows);
   syncTaskFlowLabel(rows);
   return rows;
+}
+
+function assignDefaultTaskFlow(rows: WbsRow[]): void {
+  for (const row of rows) {
+    if (!row.taskFlowSelectValue && Array.isArray(row.taskOptions) && row.taskOptions.length > 0) {
+      row.taskFlowSelectValue = row.taskOptions[0].value;
+    }
+    if (row.children?.length) assignDefaultTaskFlow(row.children);
+  }
 }
 
 // ─── 辅助函数 ───────────────────────────────────────────────
@@ -143,6 +156,53 @@ function onTaskFlowSelectChange(record: WbsRow) {
   record.taskFlow = taskFlowLabelFromSelectValue(record.taskFlowSelectValue, record);
 }
 
+function collectAllKeys(rows: WbsRow[]): string[] {
+  const out: string[] = [];
+  const walk = (nodes: WbsRow[]) => {
+    nodes.forEach((n) => {
+      out.push(n.id);
+      if (n.children?.length) walk(n.children);
+    });
+  };
+  walk(rows);
+  return out;
+}
+
+function expandAllTableRows() {
+  expandedRowKeys.value = collectAllKeys(tableData.value);
+}
+
+function collapseAllTableRows() {
+  expandedRowKeys.value = [];
+}
+
+function onTableExpand(expanded: boolean, record: WbsRow) {
+  const key = record.id;
+  const set = new Set(expandedRowKeys.value);
+  if (expanded) {
+    set.add(key);
+  } else {
+    set.delete(key);
+  }
+  expandedRowKeys.value = Array.from(set);
+}
+
+function onTableExpandedRowsChange(keys: (string | number)[]) {
+  expandedRowKeys.value = (keys || []).map((k) => String(k));
+}
+
+function expandAllStructureTree() {
+  structureExpandedKeys.value = collectAllKeys(structureTreeRows.value);
+}
+
+function collapseAllStructureTree() {
+  structureExpandedKeys.value = [];
+}
+
+function onStructureExpand(keys: (string | number)[]) {
+  structureExpandedKeys.value = (keys || []).map((k) => String(k));
+}
+
 // ─── 路由 & 状态 ────────────────────────────────────────────
 
 const route = useRoute();
@@ -151,6 +211,14 @@ const router = useRouter();
 const tempId = computed(() => (route.query.id as string) || '');
 const loading = ref<boolean>(false);
 const tableData = ref<WbsRow[]>([]);
+const pageMode = ref<'structure-select' | 'edit-saved'>('edit-saved');
+const structureModalVisible = ref<boolean>(false);
+const structureModalLoading = ref<boolean>(false);
+const structureTreeRows = ref<WbsRow[]>([]);
+const checkedStructureKeys = ref<string[]>([]);
+const expandedRowKeys = ref<string[]>([]);
+const structureExpandedKeys = ref<string[]>([]);
+const saveLoading = ref<boolean>(false);
 
 const pageTitle = computed(() => {
   const name = (route.query.tempName as string) || '';
@@ -172,7 +240,7 @@ function createWbsColumns(): TableColumnsType<WbsRow> {
     { title: t('任务层级'), dataIndex: 'planLevel', key: 'planLevel', width: 120, align: 'center', ellipsis: true, resizable: true },
     { title: t('是否必选项'), dataIndex: 'required', key: 'required', width: 96, align: 'center', resizable: true },
     { title: t('关联任务流程'), dataIndex: 'taskFlow', key: 'taskFlow', width: 220, align: 'left', ellipsis: true, resizable: true },
-    { title: t('操作'), key: 'operation', dataIndex: 'operation', width: 180, align: 'center', fixed: 'right', resizable: false },
+    { title: t('操作'), key: 'operation', dataIndex: 'operation', width: 130, align: 'center', fixed: 'right', resizable: false },
   ];
 }
 
@@ -190,13 +258,32 @@ async function fetchWbsTree() {
   if (!tempId.value) return;
   loading.value = true;
   try {
-    const res = await AdminApiProductTemp.getWbsTreeList({ tempId: tempId.value, menuId: 1 });
+    const res = await AdminApiProductTemp.getTempInfo({ tempId: tempId.value, menuId: 1 });
     const apiTree = res?.data?.data?.tree ?? res?.data?.tree ?? [];
     tableData.value = transformApiTree(apiTree);
+    expandedRowKeys.value = collectAllKeys(tableData.value);
+    pageMode.value = 'edit-saved';
   } catch (err: any) {
-    message.error(err?.message || t('加载WBS树失败'));
+    message.error(err?.message || t('加载已保存WBS结构失败'));
   } finally {
     loading.value = false;
+  }
+}
+
+async function fetchAllWbsTree() {
+  if (!tempId.value) return;
+  structureModalLoading.value = true;
+  try {
+    const res = await AdminApiProductTemp.getWbsAllTreeList({ tempId: tempId.value, menuId: 1 });
+    const apiTree = res?.data?.data?.tree ?? res?.data?.tree ?? [];
+    const allRows = transformApiTree(apiTree);
+    structureTreeRows.value = filterRowsByTaskCount(allRows);
+    structureExpandedKeys.value = collectAllKeys(structureTreeRows.value);
+    checkedStructureKeys.value = collectSelectedKeys(structureTreeRows.value);
+  } catch (err: any) {
+    message.error(err?.message || t('加载全量WBS结构失败'));
+  } finally {
+    structureModalLoading.value = false;
   }
 }
 
@@ -204,7 +291,8 @@ async function fetchWbsTree() {
 function mapToSaveTree(rows: WbsRow[]): any[] {
   return rows.map(row => ({
     id: row.id,
-    name: row.nodeName,
+    // 兜底清洗：仅提交纯节点名称，避免把“展示态数量后缀（xx）”写回后端
+    name: normalizeNodeName(row.nodeName),
     parentId: row.parentId,
     sort: row.serialNo,
     selected: row.selected,
@@ -214,30 +302,101 @@ function mapToSaveTree(rows: WbsRow[]): any[] {
   }));
 }
 
+function normalizeNodeName(name?: string): string {
+  const s = String(name ?? '');
+  return s
+    .replace(/\s*（\d+）\s*$/u, '')
+    .replace(/\s*\(\d+\)\s*$/u, '')
+    .trim();
+}
+
 // validation logic is moved inline inline over to onSave
 
-// ─── 节点编辑状态 ─────────────────────────────────────────────
-const editingId = ref<string>('');
-const editingRequired = ref<boolean>(false);
-const editingTaskFlowSelectValue = ref<string | undefined>(undefined);
-
-function onAddRoot() { message.info(t('新增节点（演示）')); }
-
-function onEdit(record: WbsRow) {
-  editingId.value = record.id;
-  editingRequired.value = record.required;
-  editingTaskFlowSelectValue.value = record.taskFlowSelectValue;
+function collectSelectedKeys(rows: WbsRow[]): string[] {
+  const out: string[] = [];
+  const walk = (nodes: WbsRow[]) => {
+    nodes.forEach((n) => {
+      if (n.selected) out.push(n.id);
+      if (n.children?.length) walk(n.children);
+    });
+  };
+  walk(rows);
+  return out;
 }
 
-function onSaveEdit(record: WbsRow) {
-  record.required = editingRequired.value;
-  record.taskFlowSelectValue = editingTaskFlowSelectValue.value;
-  record.taskFlow = taskFlowLabelFromSelectValue(record.taskFlowSelectValue, record);
-  editingId.value = '';
+function filterRowsByTaskCount(rows: WbsRow[]): WbsRow[] {
+  const out: WbsRow[] = [];
+  for (const row of rows) {
+    const children = row.children?.length ? filterRowsByTaskCount(row.children) : undefined;
+    if (Number(row.taskCount || 0) <= 0) {
+      continue;
+    }
+    out.push({
+      ...row,
+      children: children && children.length ? children : undefined,
+    });
+  }
+  return out;
 }
 
-function onCancelEdit() {
-  editingId.value = '';
+function applySelectedByCheckedKeys(rows: WbsRow[], selectedKeys: Set<string>) {
+  rows.forEach((row) => {
+    row.selected = selectedKeys.has(row.id);
+    if (row.children?.length) {
+      applySelectedByCheckedKeys(row.children, selectedKeys);
+    }
+  });
+}
+
+function mapRowsToTreeData(rows: WbsRow[]): any[] {
+  return rows.map((row) => ({
+    key: row.id,
+    title: row.nodeName || row.wbsCode,
+    children: row.children?.length ? mapRowsToTreeData(row.children) : undefined,
+  }));
+}
+
+function onStructureCheckedKeysChange(keys: any) {
+  checkedStructureKeys.value = Array.isArray(keys)
+    ? keys.map((k: any) => String(k))
+    : (keys?.checked || []).map((k: any) => String(k));
+}
+
+async function onAddRoot() {
+  structureModalVisible.value = true;
+  await fetchAllWbsTree();
+}
+
+function onStructureModalCancel() {
+  structureModalVisible.value = false;
+}
+
+async function onStructureModalOk() {
+  if (!tempId.value) return;
+  const selectedKeys = new Set(checkedStructureKeys.value);
+  applySelectedByCheckedKeys(structureTreeRows.value, selectedKeys);
+  try {
+    structureModalLoading.value = true;
+    const res = await AdminApiProductTemp.saveWbsStructure({
+      tempId: tempId.value,
+      menuId: 1,
+      tree: mapToSaveTree(structureTreeRows.value),
+    });
+    message.success(WeiI18n.$t('结构保存成功'));
+    structureModalVisible.value = false;
+    const savedTree = res?.data?.data?.tree ?? res?.data?.tree;
+    if (savedTree && Array.isArray(savedTree) && savedTree.length > 0) {
+      tableData.value = transformApiTree(savedTree);
+      expandedRowKeys.value = collectAllKeys(tableData.value);
+    } else {
+      await fetchWbsTree();
+    }
+    pageMode.value = 'edit-saved';
+  } catch (err: any) {
+    message.error(err?.message || WeiI18n.$t('结构保存失败'));
+  } finally {
+    structureModalLoading.value = false;
+  }
 }
 
 async function onDelete(record: WbsRow) {
@@ -276,7 +435,7 @@ async function onMoveUp(record: WbsRow) {
   }
   
   try {
-    await AdminApiProductTemp.moveUpNode({ tempId: tempId.value, nodeId: record.id });
+    await AdminApiProductTemp.moveUpNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     await fetchWbsTree();
   } catch (err: any) { message.error(err?.message || t('上移失败')); }
 }
@@ -296,7 +455,7 @@ async function onMoveDown(record: WbsRow) {
   }
 
   try {
-    await AdminApiProductTemp.moveDownNode({ tempId: tempId.value, nodeId: record.id });
+    await AdminApiProductTemp.moveDownNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     await fetchWbsTree();
   } catch (err: any) { message.error(err?.message || t('下移失败')); }
 }
@@ -305,46 +464,44 @@ function goBack() { router.back(); }
 
 async function onSave() {
   if (!tempId.value) return;
-
-  if (editingId.value) {
-    message.warning(t('请确保所有列表都为完成状态'));
-    return;
-  }
   
-  const validateTasks = (rows: WbsRow[]): boolean => {
-    for (const row of rows) {
-      // 校验: 对于选中节点，且其后端返回的 taskList 不为空时，必须选择一个 taskId
-      const hasTaskList = Array.isArray(row._rawTaskList) && row._rawTaskList.length > 0;
-      if (row.selected && hasTaskList && !row.taskFlowSelectValue) {
-        message.warning(`节点【${row.nodeName}】必须选择关联任务流程`);
-        return false;
-      }
-      if (row.children?.length && !validateTasks(row.children)) {
-        return false;
-      }
-    }
-    return true;
-  };
-
-  if (!validateTasks(tableData.value)) {
-    return;
-  }
-
   try {
+    saveLoading.value = true;
+    const validateTasks = (rows: WbsRow[]): boolean => {
+      for (const row of rows) {
+        // 校验: 对于选中节点，且其后端返回的 taskList 不为空时，必须选择一个 taskId
+        const hasTaskList = Array.isArray(row._rawTaskList) && row._rawTaskList.length > 0;
+        if (row.selected && hasTaskList && !row.taskFlowSelectValue) {
+          message.warning(`节点【${row.nodeName}】必须选择关联任务流程`);
+          return false;
+        }
+        if (row.children?.length && !validateTasks(row.children)) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    if (!validateTasks(tableData.value)) {
+      return;
+    }
+
     const res = await AdminApiProductTemp.saveWbsSnapshot({
       tempId: tempId.value,
       menuId: 1,
       tree: mapToSaveTree(tableData.value),
     });
     message.success(WeiI18n.$t('保存成功'));
-    
+
     const savedTree = res?.data?.data?.tree ?? res?.data?.tree;
     if (savedTree && Array.isArray(savedTree) && savedTree.length > 0) {
       tableData.value = transformApiTree(savedTree);
+      expandedRowKeys.value = collectAllKeys(tableData.value);
     } else {
       await fetchWbsTree();
     }
   } catch (err: any) { message.error(err?.message || WeiI18n.$t('保存失败')); }
+  finally { saveLoading.value = false; }
 }
 
 onMounted(() => { fetchWbsTree(); });
@@ -359,8 +516,10 @@ onMounted(() => { fetchWbsTree(); });
             <template #icon>
               <PlusOutlined />
             </template>
-            {{ $t('新增') }}
+            {{ $t('新增（全量结构）') }}
           </a-button>
+          <a-button @click="expandAllTableRows">{{ $t('全展开') }}</a-button>
+          <a-button @click="collapseAllTableRows">{{ $t('全收起') }}</a-button>
         </div>
         <div class="wbs-top-bar__right">{{ t('模版名称') }}：{{ pageTitle }}</div>
       </div>
@@ -374,8 +533,10 @@ onMounted(() => { fetchWbsTree(); });
         bordered
         :loading="loading"
         :scroll="{ x: scrollX }"
-        default-expand-all-rows
+        :expanded-row-keys="expandedRowKeys"
         :expand-icon-column-index="1"
+        @expand="onTableExpand"
+        @expandedRowsChange="onTableExpandedRowsChange"
         @resize-column="handleResizeColumn">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'wbsCode'">
@@ -389,33 +550,27 @@ onMounted(() => { fetchWbsTree(); });
           </template>
           <template v-else-if="column.key === 'required'">
             <a-switch
-              :checked="editingId === record.id ? editingRequired : record.required"
-              :disabled="editingId !== record.id"
+              :checked="record.required"
               checked-children="ON"
               un-checked-children="OFF"
-              @change="(val) => { if (editingId === record.id) editingRequired = val }"
+              @change="(val) => { record.required = !!val }"
               @click.stop
             />
           </template>
           <template v-else-if="column.key === 'taskFlow'">
             <a-select
-              v-if="editingId === record.id && isTaskFlowDropdownRow(record)"
-              v-model:value="editingTaskFlowSelectValue"
+              v-if="isTaskFlowDropdownRow(record)"
+              v-model:value="record.taskFlowSelectValue"
               :options="record.taskOptions"
               class="wbs-taskflow-select"
               dropdown-class-name="wbs-taskflow-select-dropdown"
-              allow-clear
               :placeholder="t('请选择')"
+              @change="() => onTaskFlowSelectChange(record)"
               @click.stop />
             <span v-else class="wbs-taskflow-text">{{ record.taskFlow }}</span>
           </template>
           <template v-else-if="column.key === 'operation'">
-            <span v-if="editingId === record.id" class="wbs-ops">
-              <a class="wbs-ops__link" @click.prevent="onSaveEdit(record)">{{ $t('完成') }}</a>
-              <a class="wbs-ops__link" @click.prevent="onCancelEdit()">{{ $t('取消') }}</a>
-            </span>
-            <span v-else class="wbs-ops">
-              <a class="wbs-ops__link" @click.prevent="onEdit(record)">{{ $t('编辑') }}</a>
+            <span class="wbs-ops">
               <a class="wbs-ops__link" @click.prevent="onMoveUp(record)">{{ $t('上移') }}</a>
               <a class="wbs-ops__link" @click.prevent="onMoveDown(record)">{{ $t('下移') }}</a>
               <a-popconfirm
@@ -429,10 +584,34 @@ onMounted(() => { fetchWbsTree(); });
         </template>
       </a-table>
       <div class="wbs-footer-actions">
-        <a-button type="primary" @click="onSave">{{ $t('保存') }}</a-button>
+        <a-button type="primary" :loading="saveLoading" @click="onSave">{{ $t('保存') }}</a-button>
         <a-button @click="goBack">{{ $t('返回') }}</a-button>
       </div>
     </a-card>
+
+    <a-modal
+      v-model:visible="structureModalVisible"
+      :title="$t('选择模板结构')"
+      :confirm-loading="structureModalLoading"
+      width="680px"
+      @ok="onStructureModalOk"
+      @cancel="onStructureModalCancel"
+    >
+      <div style="margin-bottom: 8px; display: flex; gap: 8px;">
+        <a-button size="small" @click="expandAllStructureTree">{{ $t('全展开') }}</a-button>
+        <a-button size="small" @click="collapseAllStructureTree">{{ $t('全收起') }}</a-button>
+      </div>
+      <a-spin :spinning="structureModalLoading">
+        <a-tree
+          checkable
+          :expanded-keys="structureExpandedKeys"
+          :tree-data="mapRowsToTreeData(structureTreeRows)"
+          :checked-keys="checkedStructureKeys"
+          @expand="onStructureExpand"
+          @update:checkedKeys="onStructureCheckedKeysChange"
+        />
+      </a-spin>
+    </a-modal>
   </div>
 </template>
 
