@@ -33,6 +33,7 @@ export type WbsTaskNode = {
   serialNo: number;
   wbsCode: string;
   taskName: string;
+  relatedTaskFlow?: string;
   startDate: string;
   endDate: string;
   durationWorkdays: number;
@@ -42,6 +43,9 @@ export type WbsTaskNode = {
   resource: string;
   /** 负责人用户 id（每行仅一人，用于再次打开时回显） */
   responsibleUserId?: string;
+  manager?: string;
+  /** 管理者用户 id（每行仅一人，用于再次打开时回显） */
+  managerUserId?: string;
   children?: WbsTaskNode[];
 };
 
@@ -53,6 +57,7 @@ function buildDemoTaskTree(): WbsTaskNode[] {
       serialNo: 1,
       wbsCode: '1',
       taskName: '第一阶段——项目启动阶段',
+      relatedTaskFlow: '',
       startDate: '2026-05-01',
       endDate: '2026-06-15',
       durationWorkdays: 36,
@@ -60,12 +65,14 @@ function buildDemoTaskTree(): WbsTaskNode[] {
       predecessor: '',
       status: 'delayed',
       resource: '项目经理',
+      manager: '项目经理',
       children: [
         {
           id: 't1-1',
           serialNo: 2,
           wbsCode: '1.1',
           taskName: '确定项目目标和范围',
+          relatedTaskFlow: '',
           startDate: '2026-05-01',
           endDate: '2026-05-10',
           durationWorkdays: 8,
@@ -73,12 +80,14 @@ function buildDemoTaskTree(): WbsTaskNode[] {
           predecessor: '',
           status: 'completed',
           resource: '项目经理',
+          manager: '项目经理',
         },
         {
           id: 't1-2',
           serialNo: 3,
           wbsCode: '1.2',
           taskName: '组建项目团队',
+          relatedTaskFlow: '',
           startDate: '2026-05-08',
           endDate: '2026-05-18',
           durationWorkdays: 9,
@@ -86,12 +95,14 @@ function buildDemoTaskTree(): WbsTaskNode[] {
           predecessor: '2FS',
           status: 'completed',
           resource: '项目经理',
+          manager: '项目经理',
         },
         {
           id: 't1-3',
           serialNo: 4,
           wbsCode: '1.3',
           taskName: '制定项目章程',
+          relatedTaskFlow: '',
           startDate: '2026-05-15',
           endDate: '2026-05-28',
           durationWorkdays: 10,
@@ -99,6 +110,7 @@ function buildDemoTaskTree(): WbsTaskNode[] {
           predecessor: '3FS',
           status: 'in_progress',
           resource: '质量经理',
+          manager: '质量经理',
         },
       ],
     },
@@ -107,6 +119,7 @@ function buildDemoTaskTree(): WbsTaskNode[] {
       serialNo: 5,
       wbsCode: '2',
       taskName: '第二阶段——规划与设计',
+      relatedTaskFlow: '',
       startDate: '2026-06-01',
       endDate: '2026-08-30',
       durationWorkdays: 65,
@@ -114,12 +127,14 @@ function buildDemoTaskTree(): WbsTaskNode[] {
       predecessor: '4FS',
       status: 'in_progress',
       resource: '项目经理',
+      manager: '项目经理',
       children: [
         {
           id: 't2-1',
           serialNo: 6,
           wbsCode: '2.1',
           taskName: '需求调研与分析',
+          relatedTaskFlow: '',
           startDate: '2026-06-01',
           endDate: '2026-06-28',
           durationWorkdays: 20,
@@ -127,12 +142,14 @@ function buildDemoTaskTree(): WbsTaskNode[] {
           predecessor: '',
           status: 'in_progress',
           resource: '质量经理',
+          manager: '质量经理',
         },
         {
           id: 't2-2',
           serialNo: 7,
           wbsCode: '2.2',
           taskName: '技术方案设计',
+          relatedTaskFlow: '',
           startDate: '2026-06-20',
           endDate: '2026-07-25',
           durationWorkdays: 24,
@@ -140,6 +157,7 @@ function buildDemoTaskTree(): WbsTaskNode[] {
           predecessor: '6FS',
           status: 'pending',
           resource: '项目经理',
+          manager: '项目经理',
         },
       ],
     },
@@ -194,19 +212,9 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
     { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', resizable: true },
     { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 108, ellipsis: true, resizable: true },
     { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, resizable: true },
+    { title: '关联任务流程', dataIndex: 'relatedTaskFlow', key: 'relatedTaskFlow', width: 160, ellipsis: true, resizable: true },
     { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 124, align: 'center', resizable: true },
     { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 124, align: 'center', resizable: true },
-    {
-      title: '工期(天)',
-      key: 'duration',
-      width: 88,
-      align: 'center',
-      resizable: true,
-      customRender: ({ record }) => {
-        const d = computeTaskDurationDays(record);
-        return d == null ? '--' : String(d);
-      },
-    },
     {
       title: '进度',
       key: 'progress',
@@ -217,6 +225,7 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
     },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
+    { title: '管理者', dataIndex: 'manager', key: 'manager', width: 168, ellipsis: true, resizable: true },
     { title: '状态', key: 'status', dataIndex: 'status', width: 112, align: 'center', resizable: true },
     {
       title: '操作',
@@ -270,6 +279,7 @@ const responsiblePickerVisible = ref(false);
 const responsiblePickerUsers = ref<ResponsiblePickerUser[]>([]);
 const responsiblePickerDepts = ref<ResponsiblePickerDept[]>([]);
 const responsiblePickerTarget = ref<WbsTaskNode | null>(null);
+const responsiblePickerField = ref<'responsible' | 'manager'>('responsible');
 const responsiblePickerKeyword = ref('');
 /** 选中用户 id，或 RESPONSIBLE_PICKER_NONE 表示不指定 */
 const responsiblePickerSelectedUserId = ref<string>(RESPONSIBLE_PICKER_NONE);
@@ -295,10 +305,12 @@ function formatResponsibleUserRow(u: ResponsiblePickerUser) {
   return `${u.name} / ${u.username} / ${dept}`;
 }
 
-async function openResponsiblePicker(record: WbsTaskNode) {
+async function openResponsiblePicker(record: WbsTaskNode, field: 'responsible' | 'manager' = 'responsible') {
   responsiblePickerTarget.value = record;
+  responsiblePickerField.value = field;
   responsiblePickerKeyword.value = '';
-  responsiblePickerSelectedUserId.value = record.responsibleUserId ?? RESPONSIBLE_PICKER_NONE;
+  responsiblePickerSelectedUserId.value =
+    (field === 'responsible' ? record.responsibleUserId : record.managerUserId) ?? RESPONSIBLE_PICKER_NONE;
   try {
     const res = await AdminApiSystemDept.getDeptInfo({} as any);
     if (res.data?.code === 200) {
@@ -330,17 +342,30 @@ function confirmResponsiblePicker() {
     return;
   }
   const uid = responsiblePickerSelectedUserId.value;
+  const isResponsible = responsiblePickerField.value === 'responsible';
   if (!uid || uid === RESPONSIBLE_PICKER_NONE) {
-    target.responsibleUserId = undefined;
-    target.resource = '';
-    message.success('已清空负责人');
+    if (isResponsible) {
+      target.responsibleUserId = undefined;
+      target.resource = '';
+      message.success('已清空负责人');
+    } else {
+      target.managerUserId = undefined;
+      target.manager = '';
+      message.success('已清空管理者');
+    }
     closeResponsiblePicker();
     return;
   }
   const u = responsiblePickerUsers.value.find(x => x.id === uid);
-  target.responsibleUserId = uid;
-  target.resource = u?.name ?? uid;
-  message.success('负责人已更新');
+  if (isResponsible) {
+    target.responsibleUserId = uid;
+    target.resource = u?.name ?? uid;
+    message.success('负责人已更新');
+  } else {
+    target.managerUserId = uid;
+    target.manager = u?.name ?? uid;
+    message.success('管理者已更新');
+  }
   closeResponsiblePicker();
 }
 
@@ -1105,7 +1130,17 @@ watch(ganttCollapsed, () => {
           <template v-else-if="column.key === 'resource'">
             <div class="task-wbs-responsible-cell">
               <span class="task-wbs-responsible-text" :title="record.resource">{{ record.resource }}</span>
-              <a-button type="primary" size="small" @click.stop="openResponsiblePicker(record)">浏览</a-button>
+              <a-button type="primary" size="small" @click.stop="openResponsiblePicker(record, 'responsible')">
+                浏览
+              </a-button>
+            </div>
+          </template>
+          <template v-else-if="column.key === 'manager'">
+            <div class="task-wbs-responsible-cell">
+              <span class="task-wbs-responsible-text" :title="record.manager">{{ record.manager }}</span>
+              <a-button type="primary" size="small" @click.stop="openResponsiblePicker(record, 'manager')">
+                浏览
+              </a-button>
             </div>
           </template>
           <template v-else-if="column.key === 'status'">
@@ -1147,7 +1182,7 @@ watch(ganttCollapsed, () => {
 
       <a-modal
         v-model:visible="responsiblePickerVisible"
-        title="选择负责人"
+        :title="responsiblePickerField === 'responsible' ? '选择负责人' : '选择管理者'"
         width="560px"
         :mask-closable="false"
         destroy-on-close
@@ -1749,11 +1784,21 @@ watch(ganttCollapsed, () => {
   align-items: center;
   justify-content: center;
   width: 100%;
+  height: 100%;
 }
 
 .task-wbs-date-picker {
   width: 100%;
   max-width: 118px;
+}
+
+.task-wbs-date-picker :deep(.ant-picker-input > input) {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.task-wbs-date-picker :deep(.ant-picker-input) {
+  align-items: center;
 }
 
 .task-wbs-ops__btn {
