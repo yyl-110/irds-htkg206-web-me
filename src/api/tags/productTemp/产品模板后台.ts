@@ -182,13 +182,8 @@ export class AdminApiProductTemp {
   static saveWbsSnapshot = (
     query: {
       tempId: number | string;
-      menuId: number | string;
+      menuId?: number | string;
       tree: any[];
-      nodeTaskSelections: Array<{
-        nodeId: string | number;
-        taskId: string | number;
-        requiredFlag: 0 | 1;
-      }>;
     },
     params: RequestParams = {},
   ) =>

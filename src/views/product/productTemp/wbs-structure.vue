@@ -75,7 +75,7 @@ function mapApiNodeToWbsRow(node: any, index: number, prefix: string): WbsRow {
     planLevel: '',
     required: node.requiredFlag === 1,
     taskFlow: '',
-    taskFlowSelectValue: selectedTask?.taskId,
+    taskFlowSelectValue: node.taskId ? String(node.taskId) : (selectedTask?.taskId ? String(selectedTask.taskId) : undefined),
     taskOptions,
     _rawTaskList: taskList,
     selected: !!node.selected,
@@ -190,7 +190,7 @@ async function fetchWbsTree() {
   if (!tempId.value) return;
   loading.value = true;
   try {
-    const res = await AdminApiProductTemp.getWbsTreeList({ tempId: tempId.value });
+    const res = await AdminApiProductTemp.getWbsTreeList({ tempId: tempId.value, menuId: 1 });
     const apiTree = res?.data?.data?.tree ?? res?.data?.tree ?? [];
     tableData.value = transformApiTree(apiTree);
   } catch (err: any) {
@@ -204,29 +204,17 @@ async function fetchWbsTree() {
 function mapToSaveTree(rows: WbsRow[]): any[] {
   return rows.map(row => ({
     id: row.id,
+    name: row.nodeName,
+    parentId: row.parentId,
+    sort: row.serialNo,
     selected: row.selected,
+    requiredFlag: row.required ? 1 : 0,
+    taskId: row.taskFlowSelectValue,
     children: row.children ? mapToSaveTree(row.children) : [],
   }));
 }
 
-/** 收集所有节点的任务选择 & 必选标记 */
-function collectNodeTaskSelections(rows: WbsRow[]): Array<any> {
-  const result: Array<any> = [];
-  for (const row of rows) {
-    const item: any = {
-      nodeId: row.id,
-      requiredFlag: row.required ? 1 : 0,
-    };
-    if (row.taskOptions && row.taskOptions.length > 0) {
-      item.taskId = row.taskFlowSelectValue;
-      item._hasTasks = true;
-      item._nodeName = row.nodeName;
-    }
-    result.push(item);
-    if (row.children?.length) result.push(...collectNodeTaskSelections(row.children));
-  }
-  return result;
-}
+// validation logic is moved inline inline over to onSave
 
 // ─── 节点编辑状态 ─────────────────────────────────────────────
 const editingId = ref<string>('');
@@ -256,14 +244,37 @@ async function onDelete(record: WbsRow) {
   if (!tempId.value) return;
   if (record.children?.length) { message.warning(t('该节点包含子节点，无法删除')); return; }
   try {
-    await AdminApiProductTemp.deleteWbsNode({ tempId: tempId.value, nodeId: record.id });
+    await AdminApiProductTemp.deleteWbsNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     message.success(`${t('删除成功')}：${record.nodeName}`);
     await fetchWbsTree();
   } catch (err: any) { message.error(err?.message || t('删除失败')); }
 }
 
+function findSiblings(rows: WbsRow[], targetId: string): WbsRow[] | null {
+  for (const row of rows) {
+    if (row.id === targetId) return rows;
+    if (row.children?.length) {
+      const found = findSiblings(row.children, targetId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 async function onMoveUp(record: WbsRow) {
   if (!tempId.value) return;
+  const siblings = findSiblings(tableData.value, record.id);
+  if (siblings) {
+    if (siblings.length === 1) {
+      message.warning(t('同级仅有一条数据，无法移动'));
+      return;
+    }
+    if (siblings[0].id === record.id) {
+      message.warning(t('已经是第一条，无法上移'));
+      return;
+    }
+  }
+  
   try {
     await AdminApiProductTemp.moveUpNode({ tempId: tempId.value, nodeId: record.id });
     await fetchWbsTree();
@@ -272,6 +283,18 @@ async function onMoveUp(record: WbsRow) {
 
 async function onMoveDown(record: WbsRow) {
   if (!tempId.value) return;
+  const siblings = findSiblings(tableData.value, record.id);
+  if (siblings) {
+    if (siblings.length === 1) {
+      message.warning(t('同级仅有一条数据，无法移动'));
+      return;
+    }
+    if (siblings[siblings.length - 1].id === record.id) {
+      message.warning(t('已经是最后一条，无法下移'));
+      return;
+    }
+  }
+
   try {
     await AdminApiProductTemp.moveDownNode({ tempId: tempId.value, nodeId: record.id });
     await fetchWbsTree();
@@ -282,31 +305,42 @@ function goBack() { router.back(); }
 
 async function onSave() {
   if (!tempId.value) return;
-  const menuId = (route.query.menuId as string) || '';
+
+  if (editingId.value) {
+    message.warning(t('请确保所有列表都为完成状态'));
+    return;
+  }
   
-  const selections = collectNodeTaskSelections(tableData.value);
-  for (const item of selections) {
-    if (item._hasTasks && !item.taskId) {
-      message.warning(`节点【${item._nodeName}】必须选择关联任务流程`);
-      return;
+  const validateTasks = (rows: WbsRow[]): boolean => {
+    for (const row of rows) {
+      // 校验: 对于选中节点，且其后端返回的 taskList 不为空时，必须选择一个 taskId
+      const hasTaskList = Array.isArray(row._rawTaskList) && row._rawTaskList.length > 0;
+      if (row.selected && hasTaskList && !row.taskFlowSelectValue) {
+        message.warning(`节点【${row.nodeName}】必须选择关联任务流程`);
+        return false;
+      }
+      if (row.children?.length && !validateTasks(row.children)) {
+        return false;
+      }
     }
-    delete item._hasTasks;
-    delete item._nodeName;
+    return true;
+  };
+
+  if (!validateTasks(tableData.value)) {
+    return;
   }
 
   try {
     const res = await AdminApiProductTemp.saveWbsSnapshot({
       tempId: tempId.value,
-      menuId,
+      menuId: 1,
       tree: mapToSaveTree(tableData.value),
-      nodeTaskSelections: selections,
     });
     message.success(WeiI18n.$t('保存成功'));
     
-    // 保存成功后直接用返回的 tree 覆盖本地状态，避免额外请求
-    const apiTree = res?.data?.data?.tree ?? res?.data?.tree;
-    if (apiTree) {
-      tableData.value = transformApiTree(apiTree);
+    const savedTree = res?.data?.data?.tree ?? res?.data?.tree;
+    if (savedTree && Array.isArray(savedTree) && savedTree.length > 0) {
+      tableData.value = transformApiTree(savedTree);
     } else {
       await fetchWbsTree();
     }
