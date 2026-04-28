@@ -6,7 +6,17 @@ import * as echarts from 'echarts';
 import { message, Modal } from 'ant-design-vue';
 import { sortermethod } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon';
-import { ReloadOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined } from '@ant-design/icons-vue';
+import {
+  ReloadOutlined,
+  SearchOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  EllipsisOutlined,
+  HighlightOutlined,
+  UserAddOutlined,
+  SwapOutlined,
+  ProfileOutlined,
+} from '@ant-design/icons-vue';
 import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
 import { encryptValue } from '@/utils';
@@ -206,6 +216,18 @@ function getGreeting() {
   }
 }
 
+function syncLoginUserInfo() {
+  const currentUser = (userStore.getUser || {}) as Record<string, any>;
+  userInfoObj.value.name = currentUser.nickname || currentUser.userName || '';
+  userInfoObj.value.departName =
+    currentUser.departName ||
+    currentUser.departmentName ||
+    currentUser.deptName ||
+    currentUser.orgName ||
+    currentUser.userCategoryName ||
+    '';
+}
+
 async function getNoticePage() {
   // requestNoticeParams.currentPage = 1;
   // requestNoticeParams.numberPage = 10;
@@ -236,6 +258,7 @@ async function seeDetailFun(id: string) {
 
 // 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
 onMounted(() => {
+  syncLoginUserInfo();
   getNoticePage();
   getGreeting();
   // 每分钟更新一次，确保时间准确
@@ -261,16 +284,13 @@ onUnmounted(() => {
       <div class="lf-cont" :style="{ marginRight: isShowRigth == '展开' ? '0' : '16px' }">
         <div class="top-wrap items-center !rounded-[6px] border border-[#EAEAF1] !bg-white">
           <!-- 左侧用户信息 -->
-          <div class="user-info w-[250px] flex-shrink-0 pl-[24px]">
+          <div class="user-info w-[320px] flex-shrink-0 pl-[24px]">
             <div class="pic">
               <img src="../../assets/workbench/people.png" alt="" />
               <i :class="userInfoObj.sex == '女' ? 'women' : 'man'"></i>
             </div>
             <div class="info">
-              <div class="name !mb-[8px]">{{ greetingText }}，{{ userInfoObj.name }}</div>
-              <div class="job">
-                部门：<span>{{ userInfoObj.departName || '暂无' }}</span>
-              </div>
+              <div class="name">{{ greetingText }}，{{ userInfoObj.name }}</div>
             </div>
           </div>
           
@@ -367,7 +387,14 @@ onUnmounted(() => {
                                 :class="getTagClass(tag)">{{ tag
                                 }}</span>
                             </div>
-                            <ellipsis-outlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
+                            <a-dropdown :trigger="['hover']">
+                              <ellipsis-outlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
+                              <template #overlay>
+                                <a-menu>
+                                  <a-menu-item key="reject">驳回</a-menu-item>
+                                </a-menu>
+                              </template>
+                            </a-dropdown>
                           </div>
 
                           <div class="tc-body mt-[16px] space-y-[12px] text-[14px] text-[#6A696E]">
@@ -403,10 +430,26 @@ onUnmounted(() => {
                               <span>{{ item.creatorName }}</span>
                             </div>
                             <div class="tc-actions ml-auto flex items-center gap-[12px]">
-                              <a class="text-primary cursor-pointer text-[14px]">设计</a>
-                              <a class="text-primary cursor-pointer text-[14px]">指派</a>
-                              <a class="text-primary cursor-pointer text-[14px]">转办</a>
-                              <a class="text-primary cursor-pointer text-[14px]">详情</a>
+                              <a-tooltip title="设计">
+                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                  <highlight-outlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip title="指派">
+                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                  <user-add-outlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip title="转办">
+                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                  <swap-outlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip title="详情">
+                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                  <profile-outlined />
+                                </a>
+                              </a-tooltip>
                             </div>
                           </div>
                         </div>
@@ -455,10 +498,26 @@ onUnmounted(() => {
                         </template>
                         <template v-if="column.key === 'action'">
                           <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                            <a class="text-primary cursor-pointer text-[14px]">设计</a>
-                            <a class="text-primary cursor-pointer text-[14px]">指派</a>
-                            <a class="text-primary cursor-pointer text-[14px]">转办</a>
-                            <a class="text-primary cursor-pointer text-[14px]">详情</a>
+                            <a-tooltip title="设计">
+                              <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                <highlight-outlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip title="指派">
+                              <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                <user-add-outlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip title="转办">
+                              <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                <swap-outlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip title="详情">
+                              <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                <profile-outlined />
+                              </a>
+                            </a-tooltip>
                           </div>
                         </template>
                       </template>
@@ -929,6 +988,32 @@ onUnmounted(() => {
     border: 1px solid #FAAD14;
     color: #FAAD14;
     background: #FFFBE6;
+  }
+}
+
+.tc-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ant-primary-color, #124dd6);
+  transition: all 0.2s;
+
+  &:hover {
+    color: #1a58e8;
+    transform: translateY(-1px);
+  }
+}
+
+.user-info {
+  .info {
+    display: flex;
+    align-items: center;
+    height: 64px;
+
+    .name {
+      margin-bottom: 0;
+      transform: translateY(2px);
+    }
   }
 }
 

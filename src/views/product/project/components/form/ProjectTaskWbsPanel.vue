@@ -564,7 +564,7 @@ const flatRows = computed(() => flattenVisible(treeData.value, expandedRowKeys.v
 /** 与甘特行同高（含底部分隔线），与左侧表格行高一一对应 */
 const ROW_H = 48;
 /** 与 .gantt-bar 高度一致，用于依赖箭头锚点 */
-const GANTT_BAR_H = 26;
+const GANTT_BAR_H = 13;
 
 const timelineBounds = computed(() => {
   let min = dayjs('2099-12-31');
@@ -1240,7 +1240,6 @@ watch(ganttCollapsed, () => {
           :style="{
             width: `${timelineWidthPx}px`,
             '--gantt-content-min-h': `${ganttGridMinHeightPx}px`,
-            backgroundImage: `repeating-linear-gradient(to right, #fafafa 0, #fafafa ${pxPerDay - 1}px, #f0f0f0 ${pxPerDay - 1}px, #f0f0f0 ${pxPerDay}px)`,
           }">
           <div
             v-for="row in flatRows"
@@ -1250,13 +1249,22 @@ watch(ganttCollapsed, () => {
             <div class="gantt-row__grid-bg" />
             <div
               v-if="barMetrics(row).width > 0"
+              class="gantt-bar__label-top"
+              :title="`${row.taskName} ${row.progress}%`"
+              :style="{
+                left: `${barMetrics(row).left}px`,
+                width: `${barMetrics(row).width}px`,
+              }">
+              {{ row.taskName }} {{ row.progress }}%
+            </div>
+            <div
+              v-if="barMetrics(row).width > 0"
               class="gantt-bar"
               :style="{
                 left: `${barMetrics(row).left}px`,
                 width: `${barMetrics(row).width}px`,
               }">
               <div class="gantt-bar__progress" :style="{ width: `${Math.min(100, Math.max(0, row.progress))}%` }" />
-              <span class="gantt-bar__label">{{ row.taskName }} {{ row.progress }}%</span>
             </div>
           </div>
           <svg
@@ -1766,6 +1774,7 @@ watch(ganttCollapsed, () => {
   scrollbar-width: thin;
   scrollbar-gutter: stable;
   position: relative;
+  background: #f5f5f5;
 }
 
 .gantt-grid {
@@ -1773,6 +1782,7 @@ watch(ganttCollapsed, () => {
   /* 行数少时也铺满 .gantt-body 可视高，使竖向网格线延伸到底，避免下方大块留白 */
   min-height: max(100%, var(--gantt-content-min-h, 0px));
   box-sizing: border-box;
+  background: #f5f5f5;
 }
 
 .gantt-links-layer {
@@ -1787,7 +1797,7 @@ watch(ganttCollapsed, () => {
 .gantt-row {
   position: relative;
   box-sizing: border-box;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: none;
 }
 
 .gantt-row__grid-bg {
@@ -1801,10 +1811,10 @@ watch(ganttCollapsed, () => {
   top: 50%;
   transform: translateY(-50%);
   z-index: 4;
-  height: 26px;
+  height: 13px;
   border-radius: 3px;
-  background: #69b1ff;
-  box-shadow: 0 0 0 1px rgba(24, 144, 255, 0.25) inset;
+  background: #0b78e3;
+  box-shadow: 0 0 0 1px rgba(11, 120, 227, 0.22) inset;
   overflow: hidden;
   min-width: 2px;
 }
@@ -1814,22 +1824,21 @@ watch(ganttCollapsed, () => {
   left: 0;
   top: 0;
   bottom: 0;
-  background: #1890ff;
+  background: #0b78e3;
   border-radius: 3px 0 0 3px;
   max-width: 100%;
 }
 
-.gantt-bar__label {
-  position: relative;
-  z-index: 1;
-  display: block;
+.gantt-bar__label-top {
+  position: absolute;
+  z-index: 5;
+  top: 1px;
   padding: 0 6px;
   font-size: 11px;
-  line-height: 26px;
-  color: #fff;
+  line-height: 1.2;
+  color: #000;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.35);
 }
 </style>
