@@ -1167,7 +1167,7 @@ const {
     </div>
 
     <!-- 知识配置弹窗 -->
-    <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="getListData" type="2" />
+    <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="() => getListData('change')" type="2" />
 
     <!-- 分享知识弹窗：展示关联知识列表 -->
     <draggable-modal
