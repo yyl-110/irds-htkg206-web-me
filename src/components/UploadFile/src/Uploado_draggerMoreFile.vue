@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import type { UploadChangeParam, UploadFile, UploadProps } from 'ant-design-vue';
 import { message, Upload } from 'ant-design-vue';
+import { UploadOutlined } from '@ant-design/icons-vue';
 import { useUserStore } from '@/store/modules/user';
 import UploadModal from '@/views/product/components/upload-modal.vue';
 
@@ -75,6 +76,7 @@ function onModalConfirm() {
 <template>
   <div class="upload-box" :style="{ width: width }">
     <a-button type="primary" :disabled="disabled" @click="uploadModalVisible = true">
+      <UploadOutlined />
       {{ $t('打开上传') }}
     </a-button>
     <p class="Attention">{{ $t('文件大小最大300兆') }}（{{ $t('最多选择') }} {{ maxFileCount }} {{ $t('个文件') }}）</p>

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import type { UploadChangeParam, UploadFile, UploadProps } from 'ant-design-vue';
 import { message, Upload } from 'ant-design-vue';
+import { UploadOutlined } from '@ant-design/icons-vue';
 import { useUserStore } from '@/store/modules/user';
 import UploadModal from '@/views/product/components/upload-modal.vue';
 
@@ -104,6 +105,7 @@ const hintText = computed(() =>
 <template>
   <div class="upload-box" :style="{ width: width }">
     <a-button type="primary" @click="uploadModalVisible = true">
+      <UploadOutlined />
       {{ $t('打开上传') }}
     </a-button>
     <p class="Attention">{{ hintText }}</p>
