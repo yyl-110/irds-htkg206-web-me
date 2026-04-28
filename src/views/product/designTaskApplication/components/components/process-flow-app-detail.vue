@@ -143,7 +143,15 @@ async function designFlow(record: Record<string, any>) {
 }
 
 function goBack() {
-  router.back();
+  const returnPath = String(route.query.returnPath ?? '').trim();
+  if (returnPath) {
+    router.push(returnPath);
+    return;
+  }
+  router.push({
+    path: '/designTaskApplication',
+    query: { t: String(Date.now()) },
+  });
 }
 
 loadDetailData();
@@ -152,7 +160,6 @@ void loadAppList();
 
 <template>
   <div class="detail-page">
-    <div class="detail-page__title">{{ pageTitle }}</div>
     <div class="detail-page__toolbar">
       <a-input v-model:value="queryAppCode" placeholder="请输入独立应用编号" allow-clear class="detail-page__search" />
       <a-input v-model:value="queryAppName" placeholder="请输入独立应用名称" allow-clear class="detail-page__search" />

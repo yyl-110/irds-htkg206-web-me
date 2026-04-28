@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { SearchOutlined } from '@ant-design/icons-vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ProcessFlowListPageRequestDTOModel } from '@/api/models/processTask/ProcessFlowListPageRequestDTOModel';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 
@@ -20,6 +20,7 @@ const keyword = ref('');
 const listData = ref<any[]>([]);
 const requestParams = reactive(new ProcessFlowListPageRequestDTOModel());
 const router = useRouter();
+const route = useRoute();
 const bgImages = [
   new URL('@/assets/images/process-bg-1.png', import.meta.url).href,
   new URL('@/assets/images/process-bg-2.png', import.meta.url).href,
@@ -83,6 +84,7 @@ function actionNode(item: any) {
     path: '/internal/design-task-app-detail',
     query: {
       cacheKey,
+      returnPath: route.fullPath,
     },
   });
   emit('actionNode', item);
@@ -95,9 +97,13 @@ async function loadFlowListData() {
     requestParams.treeId = props.treeNodeKey ?? '';
     requestParams.pageNo = 1;
     requestParams.pageSize = 10000;
-    const res = await AdminApiSystemProcessTask.taskBasicInfoPage(requestParams);
-    const list = res?.data?.data?.list;
-    listData.value = Array.isArray(list) ? list : [];
+    if (requestParams.treeId != '') {
+      const res = await AdminApiSystemProcessTask.taskBasicInfoPage(requestParams);
+      const list = res?.data?.data?.list;
+      listData.value = Array.isArray(list) ? list : [];
+    } else {
+      listData.value = [];
+    }
   } catch (e) {
     listData.value = [];
     message.error('流程列表加载失败');

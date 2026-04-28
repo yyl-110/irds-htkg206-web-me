@@ -117,7 +117,7 @@ function buildTreeNodes(nodes: FlowNode[] | undefined): TreeItem[] {
 function resolveNodeStatusStyle(statusRaw: unknown) {
   const status = String(statusRaw ?? '').trim();
   if (status.includes('未开始')) return { color: '#999999', icon: ClockCircleOutlined };
-  if (status.includes('进行中') || status.includes('设计中')) return { color: '#1890ff', icon: EditOutlined };
+  if (status.includes('进行中') || status.includes('设计中')) return { color: '#faad14', icon: EditOutlined };
   if (status.includes('待确认')) return { color: '#fa8c16', icon: QuestionCircleOutlined };
   if (status.includes('已完成')) return { color: '#52c41a', icon: CheckCircleOutlined };
   return null;
@@ -219,6 +219,10 @@ const currentActivityIndex = computed(() => orderedActivityNodeKeys.value.findIn
 const canGoPrev = computed(() => currentActivityIndex.value > 0);
 const canGoNext = computed(() => currentActivityIndex.value >= 0 && currentActivityIndex.value < orderedActivityNodeKeys.value.length - 1);
 const isLastActivity = computed(() => currentActivityIndex.value >= 0 && currentActivityIndex.value === orderedActivityNodeKeys.value.length - 1);
+const isCurrentNodeNotStarted = computed(() => {
+  const status = String(nodeDetailData.value?.nodeStatus ?? selectedNode.value?.nodeStatus ?? '').trim();
+  return status.includes('未开始');
+});
 const selectedNodeActivityType = computed(() => {
   const raw = selectedNode.value || {};
   const detail = nodeDetailData.value || {};
@@ -1040,6 +1044,10 @@ async function finishFlow() {
   }
 }
 
+function goBackPage() {
+  router.back();
+}
+
 const centerPaneSize = computed(() => Math.max(0, 100 - leftPaneSize.value - rightPaneSize.value));
 
 function computeLeftPercentFromWidthPx(px: number): number {
@@ -1075,10 +1083,6 @@ function toggleLeftPanel() {
     leftPaneBeforeCollapse.value = leftPaneSize.value || computeLeftPercentFromWidthPx(DEFAULT_LEFT_WIDTH_PX);
     leftCollapsed.value = true;
     leftPaneSize.value = 0;
-    if (rightCollapsed.value) {
-      rightCollapsed.value = false;
-      rightPaneSize.value = rightPaneBeforeCollapse.value || computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX);
-    }
     return;
   }
   leftCollapsed.value = false;
@@ -1090,10 +1094,6 @@ function toggleRightPanel() {
     rightPaneBeforeCollapse.value = rightPaneSize.value || computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX);
     rightCollapsed.value = true;
     rightPaneSize.value = 0;
-    if (leftCollapsed.value) {
-      leftCollapsed.value = false;
-      leftPaneSize.value = leftPaneBeforeCollapse.value || computeLeftPercentFromWidthPx(DEFAULT_LEFT_WIDTH_PX);
-    }
     return;
   }
   rightCollapsed.value = false;
@@ -1166,6 +1166,8 @@ onMounted(() => {
                   :components-json="nodeDetailData?.componentsJson"
                   :saved-param-values="nodeDetailData?.savedParamValues"
                   :node-detail-data="nodeDetailData"
+                  :task-id="String(route.query.taskId ?? workspaceData?.taskId ?? '')"
+                  :activity-id="String(nodeDetailData?.activityPageId ?? '')"
                   @param-title-click="onParamTitleClick" />
                 <ProcessFlowAppNodePreview
                   v-else
@@ -1173,6 +1175,8 @@ onMounted(() => {
                   :components-json="nodeDetailData?.componentsJson"
                   :saved-param-values="nodeDetailData?.savedParamValues"
                   :saved-tables="nodeDetailData?.savedTables"
+                  :task-id="String(route.query.taskId ?? workspaceData?.taskId ?? '')"
+                  :activity-id="String(nodeDetailData?.activityPageId ?? '')"
                   @param-title-click="onParamTitleClick" />
               </div>
               <div v-if="activityImageUrl" class="workspace-preview-image-pane" :style="activityImagePaneStyle">
@@ -1181,7 +1185,7 @@ onMounted(() => {
             </div>
           </a-spin>
         </div>
-        <div v-if="!isRootNodeSelected" class="workspace-center-footer">
+        <div v-if="!isRootNodeSelected && !isCurrentNodeNotStarted" class="workspace-center-footer">
           <a-button
             type="primary"
             :loading="saveFlowLoading"
@@ -1217,6 +1221,9 @@ onMounted(() => {
             @click="finishFlow"
             ><EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成</a-button
           >
+          <a-button :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null" @click="goBackPage">
+            <EpcIcon type="icon-fanhui" style="font-size: 12px" />返 回
+          </a-button>
         </div>
       </Pane>
       <Pane :size="rightPaneSize" :min-size="rightCollapsed ? 0 : minExpanded" :class="['workspace-right', { 'workspace-right--collapsed': rightCollapsed }]">
@@ -1282,11 +1289,13 @@ onMounted(() => {
 }
 
 .workspace-left {
-  padding: 12px;
+  padding: 1px;
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
   overflow: auto;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-left--collapsed {
@@ -1313,10 +1322,13 @@ onMounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-center--flow {
   padding: 0 !important;
+  border: none !important;
 }
 
 .workspace-right {
@@ -1327,6 +1339,8 @@ onMounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-right-inner {
@@ -1404,7 +1418,9 @@ onMounted(() => {
 }
 
 :deep(.workspace-splitpanes .splitpanes__splitter) {
-  border-left: 1px solid #e6e7e9 !important;
+  border-left: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 :deep(.workspace-splitpanes .splitpanes__splitter::before),
@@ -1431,6 +1447,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-flow-mode {
@@ -1440,12 +1458,16 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-flow-spin {
   flex: 1 1 auto;
   height: 100%;
   min-height: 0;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-flow-spin :deep(.ant-spin-nested-loading),
@@ -1454,6 +1476,8 @@ onMounted(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-preview-scroll-row {
@@ -1506,6 +1530,7 @@ onMounted(() => {
   min-height: calc(100vh - 120px);
   overflow: hidden;
   background: #fafafa;
+  border: none !important;
 }
 
 .workspace-flowview-wrap :deep(.containers.main-box) {
@@ -1514,6 +1539,15 @@ onMounted(() => {
   width: 100%;
   height: 100% !important;
   min-height: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.workspace-flowview-wrap :deep(.djs-container),
+.workspace-flowview-wrap :deep(.djs-container > svg) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-flowview-wrap :deep(.flowview-toolbar) {
@@ -1528,11 +1562,15 @@ onMounted(() => {
   height: 100% !important;
   min-height: calc(100vh - 120px) !important;
   overflow: hidden;
+  border: none !important;
+  outline: none !important;
 }
 
 .workspace-flowview-wrap :deep(.canvas svg) {
   width: 100% !important;
   height: 100% !important;
+  border: none !important;
+  outline: none !important;
 }
 
 .workspace-flowview-wrap :deep(.canvas svg .viewport) {

@@ -4,12 +4,15 @@ import { message } from 'ant-design-vue';
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { useUserStore } from '@/store/modules/user';
 
 const props = defineProps<{
   componentsJson?: Record<string, any> | null;
   savedParamValues?: any[] | null;
   nodeDetailData?: Record<string, any> | null;
+  taskId?: string | number | null;
+  activityId?: string | number | null;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
@@ -27,6 +30,10 @@ const previewFieldValueMap = ref<Record<string, string>>({});
 const calcSubmitting = ref(false);
 const reportDownloading = ref(false);
 const calculatedReportValue = ref<Array<{ paramCode: string; paramValue: string }>>([]);
+const impactEvalModalVisible = ref(false);
+const impactSelectedParamCode = ref('');
+const impactAnalyzing = ref(false);
+const impactResultRows = ref<Array<{ key: string; activityName: string; taskCreatorName: string; taskName: string; taskStatus: string }>>([]);
 
 const showReportOutputButton = computed(() => previewList.value.some((c: any) => String(c?.componentType) === 'CALC_BUTTON'));
 
@@ -87,6 +94,65 @@ function onParamTitleClick(item: any) {
 }
 function isFullRowComponent(type: string) {
   return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'].includes(type);
+}
+const impactScopeTypes = new Set(['INPUT', 'RICH_TEXT', 'SELECT', 'AUTO_COMPLETE', 'RADIO']);
+const impactParamOptions = computed(() =>
+  previewList.value
+    .filter((item: any) => impactScopeTypes.has(String(item?.componentType || '').toUpperCase()))
+    .map((item: any) => ({
+      label: `${String(item?.paramName ?? '未命名参数')}（${String(item?.paramCode ?? '-') || '-'}）`,
+      value: String(item?.paramCode ?? '').trim(),
+    }))
+    .filter((item: any) => item.value !== ''),
+);
+const impactColumns = [
+  { title: '活动名称', dataIndex: 'activityName', key: 'activityName', ellipsis: true },
+  { title: '负责人', dataIndex: 'taskCreatorName', key: 'taskCreatorName', width: 180, ellipsis: true },
+  { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 200, ellipsis: true },
+  { title: '任务状态', dataIndex: 'taskStatus', key: 'taskStatus', width: 200, ellipsis: true },
+];
+function onImpactEvalEntryClick() {
+  impactEvalModalVisible.value = true;
+  impactResultRows.value = [];
+}
+function onImpactEvalModalClose() {
+  impactEvalModalVisible.value = false;
+}
+async function onImpactAnalyzeClick() {
+  const selected = String(impactSelectedParamCode.value || '').trim();
+  if (!selected) {
+    message.warning('请先选择参数');
+    return;
+  }
+  const taskId = String(props.taskId ?? '').trim();
+  const activityId = String(props.activityId ?? props.nodeDetailData?.activityPageId ?? '').trim();
+  if (!taskId) {
+    message.warning('未获取到任务ID');
+    return;
+  }
+  if (!activityId) {
+    message.warning('未获取到当前活动ID');
+    return;
+  }
+  impactAnalyzing.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.evaluateImpact({
+      activityId,
+      taskId,
+      paramCode: selected,
+    });
+    const raw = res?.data?.data;
+    const taskList = Array.isArray(raw?.impactedTasks) ? raw.impactedTasks : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
+    impactResultRows.value = taskList.map((row: any, idx: number) => ({
+      key: String(row?.taskId ?? row?.id ?? `${selected}-${idx}`),
+      activityName: String(row?.activityName ?? '-'),
+      taskCreatorName: String(row?.taskCreatorName ?? '-'),
+      taskName: String(row?.taskName ?? '-'),
+      taskStatus: String(row?.taskStatus ?? '-'),
+    }));
+  } finally {
+    impactAnalyzing.value = false;
+  }
 }
 
 function showModuleInfo(item: any, index: number) {
@@ -287,11 +353,37 @@ defineExpose({
 
 <template>
   <div class="activity-preview-canvas">
+    <a-tooltip title="参数影响分析" placement="left">
+      <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
+    </a-tooltip>
+    <a-modal v-model:visible="impactEvalModalVisible" title="影响评估" width="920px" :footer="null" @cancel="onImpactEvalModalClose">
+      <div class="impact-eval-modal-content">
+        <div class="impact-eval-toolbar">
+          <a-select v-model:value="impactSelectedParamCode" :options="impactParamOptions" placeholder="请选择参数" class="impact-eval-param-select" allow-clear />
+          <a-button type="primary" :loading="impactAnalyzing" @click="onImpactAnalyzeClick">分析</a-button>
+        </div>
+        <a-table
+          :columns="impactColumns"
+          :data-source="impactResultRows"
+          :pagination="false"
+          :loading="impactAnalyzing"
+          size="small"
+          bordered
+          row-key="key"
+          :scroll="{ y: 300 }" />
+      </div>
+    </a-modal>
     <div v-if="previewList.length === 0" class="activity-preview-empty">暂无组件配置</div>
     <div v-else class="component-list">
-      <div v-for="(item, index) in previewList" :key="item.id || `${item.componentType}-${index}`" class="component-card" :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
+      <div
+        v-for="(item, index) in previewList"
+        :key="item.id || `${item.componentType}-${index}`"
+        class="component-card"
+        :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
         <div class="component-preview-wrap">
-          <div v-if="item.componentType !== 'TITLE' && item.componentType !== 'DIVIDER' && item.componentType !== 'DATA_VIEW' && item.componentType !== 'CALC_BUTTON'" class="component-title">
+          <div
+            v-if="item.componentType !== 'TITLE' && item.componentType !== 'DIVIDER' && item.componentType !== 'DATA_VIEW' && item.componentType !== 'CALC_BUTTON'"
+            class="component-title">
             <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '未命名组件' }}</span>
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
@@ -303,7 +395,12 @@ defineExpose({
             <div v-if="item.customProps?.hasDivider" class="title-divider-line"></div>
           </template>
 
-          <a-input v-else-if="item.componentType === 'INPUT'" v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" :placeholder="item.customProps?.placeholder || '请输入'" :disabled="isOutputIoType(item)" class="preview-field" />
+          <a-input
+            v-else-if="item.componentType === 'INPUT'"
+            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+            :placeholder="item.customProps?.placeholder || '请输入'"
+            :disabled="isOutputIoType(item)"
+            class="preview-field" />
           <a-textarea
             v-else-if="item.componentType === 'TEXTAREA'"
             v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
@@ -313,9 +410,15 @@ defineExpose({
             class="preview-field" />
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
-            <div class="component-title"><span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '数据浏览' }}</span></div>
+            <div class="component-title">
+              <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '数据浏览' }}</span>
+            </div>
             <div class="data-view-preview-row">
-              <a-input v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" placeholder="请选择参数" disabled class="data-view-preview-input browse-adjoined-input" />
+              <a-input
+                v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                placeholder="请选择参数"
+                disabled
+                class="data-view-preview-input browse-adjoined-input" />
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index)">浏览</a-button>
             </div>
           </div>
@@ -350,12 +453,18 @@ defineExpose({
         </div>
       </div>
     </div>
-    <ModuleLibraryPickerModal v-model:visible="modulePickerVisible" :category-id="modulePickerCategoryId" :menu-id="modulePickerMenuId" :allow-select-row="true" @confirm="onModulePickerConfirm" />
+    <ModuleLibraryPickerModal
+      v-model:visible="modulePickerVisible"
+      :category-id="modulePickerCategoryId"
+      :menu-id="modulePickerMenuId"
+      :allow-select-row="true"
+      @confirm="onModulePickerConfirm" />
   </div>
 </template>
 
 <style scoped lang="less">
 .activity-preview-canvas {
+  position: relative;
   height: 100%;
   overflow: visible;
   padding: 12px 16px;
@@ -364,6 +473,32 @@ defineExpose({
   --activity-preview-wide-component-width: 650px;
   --activity-preview-grid-column-gap: 150px;
   --activity-preview-grid-row-gap: 32px;
+}
+.param-impact-scope-entry {
+  position: absolute;
+  top: 8px;
+  right: -10px;
+  z-index: 5;
+  color: #1677ff;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+.impact-eval-modal-content {
+  color: #595959;
+  line-height: 1.8;
+  min-height: 420px;
+}
+.impact-eval-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.impact-eval-param-select {
+  width: 360px;
+  max-width: 100%;
 }
 .component-list {
   display: grid;

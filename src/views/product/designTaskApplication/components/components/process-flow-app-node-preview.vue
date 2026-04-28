@@ -8,6 +8,7 @@ import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { downloadFileFromStream } from '@/utils/file';
 import * as XLSX from 'xlsx';
 
@@ -15,6 +16,8 @@ const props = defineProps<{
   componentsJson?: Record<string, any> | null;
   savedParamValues?: any[] | null;
   savedTables?: any[] | null;
+  taskId?: string | number | null;
+  activityId?: string | number | null;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
@@ -36,6 +39,10 @@ const importParamsModalVisible = ref(false);
 const importParamsModalLoading = ref(false);
 const importParamsSelectedFile = ref<File | null>(null);
 const importParamsFileInputKey = ref(0);
+const impactEvalModalVisible = ref(false);
+const impactSelectedParamCode = ref('');
+const impactAnalyzing = ref(false);
+const impactResultRows = ref<Array<{ key: string; activityName: string; taskCreatorName: string; taskName: string; taskStatus: string }>>([]);
 const fileCollabUploadTarget = ref<{ item: any; componentIndex: number; bodyRow: number } | null>(null);
 const modulePickerVisible = ref(false);
 const modulePickerCategoryId = ref('');
@@ -88,6 +95,65 @@ function onParamTitleClick(item: any) {
     paramNum,
     paramName: String(item?.paramName ?? '').trim(),
   });
+}
+function onImpactEvalEntryClick() {
+  impactEvalModalVisible.value = true;
+  impactResultRows.value = [];
+}
+function onImpactEvalModalClose() {
+  impactEvalModalVisible.value = false;
+}
+const impactScopeTypes = new Set(['INPUT', 'RICH_TEXT', 'SELECT', 'AUTO_COMPLETE', 'RADIO']);
+const impactParamOptions = computed(() =>
+  previewList.value
+    .filter((item: any) => impactScopeTypes.has(String(item?.componentType || '').toUpperCase()))
+    .map((item: any) => ({
+      label: `${String(item?.paramName ?? '未命名参数')}（${String(item?.paramCode ?? '-') || '-'}）`,
+      value: String(item?.paramCode ?? '').trim(),
+    }))
+    .filter((item: any) => item.value !== ''),
+);
+const impactColumns = [
+  { title: '活动名称', dataIndex: 'activityName', key: 'activityName', ellipsis: true },
+  { title: '负责人', dataIndex: 'taskCreatorName', key: 'taskCreatorName', width: 180, ellipsis: true },
+  { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 200, ellipsis: true },
+  { title: '任务状态', dataIndex: 'taskStatus', key: 'taskStatus', width: 200, ellipsis: true },
+];
+async function onImpactAnalyzeClick() {
+  const selected = String(impactSelectedParamCode.value || '').trim();
+  if (!selected) {
+    message.warning('请先选择参数');
+    return;
+  }
+  const taskId = String(props.taskId ?? '').trim();
+  const activityId = String(props.activityId ?? '').trim();
+  if (!taskId) {
+    message.warning('未获取到任务ID');
+    return;
+  }
+  if (!activityId) {
+    message.warning('未获取到当前活动ID');
+    return;
+  }
+  impactAnalyzing.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.evaluateImpact({
+      activityId,
+      taskId,
+      paramCode: selected,
+    });
+    const raw = res?.data?.data;
+    const taskList = Array.isArray(raw?.impactedTasks) ? raw.impactedTasks : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
+    impactResultRows.value = taskList.map((row: any, idx: number) => ({
+      key: String(row?.taskId ?? row?.id ?? `${selected}-${idx}`),
+      activityName: String(row?.activityName ?? '-'),
+      taskCreatorName: String(row?.taskCreatorName ?? '-'),
+      taskName: String(row?.taskName ?? '-'),
+      taskStatus: String(row?.taskStatus ?? '-'),
+    }));
+  } finally {
+    impactAnalyzing.value = false;
+  }
 }
 
 const previewList = computed(() => {
@@ -225,9 +291,21 @@ function findValueByColumnKeywords(row: any, columns: any[], keywords: string[])
   return String(row?.[col.dataIndex] ?? '').trim();
 }
 function findValueByParameterNums(row: any, columns: any[], parameterNums: string[]) {
-  const wanted = parameterNums.map(x => String(x ?? '').trim().toUpperCase()).filter(Boolean);
+  const wanted = parameterNums
+    .map(x =>
+      String(x ?? '')
+        .trim()
+        .toUpperCase(),
+    )
+    .filter(Boolean);
   if (!wanted.length) return '';
-  const col = (Array.isArray(columns) ? columns : []).find((c: any) => wanted.includes(String(c?.parameterNum ?? '').trim().toUpperCase()));
+  const col = (Array.isArray(columns) ? columns : []).find((c: any) =>
+    wanted.includes(
+      String(c?.parameterNum ?? '')
+        .trim()
+        .toUpperCase(),
+    ),
+  );
   if (!col) return '';
   return String(row?.[col.dataIndex] ?? '').trim();
 }
@@ -235,7 +313,9 @@ function findValueByRowKeyKeywords(row: any, keywords: string[]) {
   if (row == null || typeof row !== 'object') return '';
   const entries = Object.entries(row as Record<string, unknown>);
   for (const [k, v] of entries) {
-    const keyLower = String(k ?? '').trim().toLowerCase();
+    const keyLower = String(k ?? '')
+      .trim()
+      .toLowerCase();
     if (!keyLower) continue;
     if (keywords.some(kw => keyLower.includes(String(kw).toLowerCase()))) {
       const text = String(v ?? '').trim();
@@ -677,11 +757,7 @@ function showModuleTableBrowse(item: any, componentIndex: number, bodyRowIndex: 
   modulePickerTargetFieldKey.value = '';
   modulePickerVisible.value = true;
 }
-function getTableCellInheritConfig(
-  item: any,
-  bodyRow: number,
-  col: number,
-): { inheritType: string; paramCode: string; tableNumber: string; tableCellRef: string } | null {
+function getTableCellInheritConfig(item: any, bodyRow: number, col: number): { inheritType: string; paramCode: string; tableNumber: string; tableCellRef: string } | null {
   // 后端返回存在两种位置：component.cellParamInheritMap / component.customProps.cellParamInheritMap
   const rawMap = item?.cellParamInheritMap ?? item?.customProps?.cellParamInheritMap;
   if (!rawMap) return null;
@@ -704,7 +780,9 @@ function getTableCellInheritConfig(
   if (!entry || typeof entry !== 'object') {
     const entries = Object.entries(mapObj);
     const hit = entries.find(([k]) => {
-      const kk = String(k ?? '').trim().replace(/\s+/g, '');
+      const kk = String(k ?? '')
+        .trim()
+        .replace(/\s+/g, '');
       if (kk === key) return true;
       const m = /^(\d+)\D+(\d+)$/.exec(kk);
       if (!m) return false;
@@ -714,7 +792,9 @@ function getTableCellInheritConfig(
   }
   if (!entry || typeof entry !== 'object') return null;
   return {
-    inheritType: String(entry?.cellInheritType ?? '').trim().toUpperCase(),
+    inheritType: String(entry?.cellInheritType ?? '')
+      .trim()
+      .toUpperCase(),
     paramCode: String(entry?.cellParamCode ?? '').trim(),
     tableNumber: String(entry?.cellTableNumber ?? '').trim(),
     tableCellRef: String(entry?.cellTableCellRef ?? '').trim(),
@@ -742,7 +822,9 @@ function getTableCellUniqueCode(item: any, bodyRow: number, col: number): string
   if (!entry || typeof entry !== 'object') {
     const entries = Object.entries(mapObj);
     const hit = entries.find(([k]) => {
-      const kk = String(k ?? '').trim().replace(/\s+/g, '');
+      const kk = String(k ?? '')
+        .trim()
+        .replace(/\s+/g, '');
       if (kk === key) return true;
       const m = /^(\d+)\D+(\d+)$/.exec(kk);
       if (!m) return false;
@@ -1239,7 +1321,11 @@ function parseImportParamsExcelFromArrayBuffer(buf: ArrayBuffer): { values: unkn
     defval: '',
   }) as unknown[][];
   if (!Array.isArray(matrix) || matrix.length < 2) return { values: [] };
-  const headerRow = (matrix[0] || []).map(c => String(c ?? '').trim().replace(/\s+/g, ''));
+  const headerRow = (matrix[0] || []).map(c =>
+    String(c ?? '')
+      .trim()
+      .replace(/\s+/g, ''),
+  );
   const findCol = (must: string) => headerRow.findIndex(h => h === must || h.includes(must.replace(/\s/g, '')));
   const nameIdx = findCol('参数名称');
   let codeIdx = findCol('参数代号');
@@ -1497,6 +1583,26 @@ defineExpose({
 
 <template>
   <div class="activity-preview-canvas">
+    <a-tooltip title="参数影响范围" placement="left">
+      <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
+    </a-tooltip>
+    <a-modal v-model:visible="impactEvalModalVisible" title="影响评估" width="920px" :footer="null" @cancel="onImpactEvalModalClose">
+      <div class="impact-eval-modal-content">
+        <div class="impact-eval-toolbar">
+          <a-select v-model:value="impactSelectedParamCode" :options="impactParamOptions" placeholder="请选择参数" class="impact-eval-param-select" allow-clear />
+          <a-button type="primary" :loading="impactAnalyzing" @click="onImpactAnalyzeClick">分析</a-button>
+        </div>
+        <a-table
+          :columns="impactColumns"
+          :data-source="impactResultRows"
+          :pagination="false"
+          :loading="impactAnalyzing"
+          size="small"
+          bordered
+          row-key="key"
+          :scroll="{ y: 300 }" />
+      </div>
+    </a-modal>
     <a-modal
       v-model:visible="importParamsModalVisible"
       title="导入参数"
@@ -1587,7 +1693,11 @@ defineExpose({
               </a-tooltip>
             </div>
             <div class="data-view-preview-row">
-              <a-input v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" placeholder="请选择参数" disabled class="data-view-preview-input browse-adjoined-input" />
+              <a-input
+                v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                placeholder="请选择参数"
+                disabled
+                class="data-view-preview-input browse-adjoined-input" />
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
             </div>
           </div>
@@ -1660,13 +1770,13 @@ defineExpose({
               <table class="fixed-table-preview-grid">
                 <thead>
                   <tr>
-                            <th
-                              v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
-                              :key="`h-${c}`"
-                              :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
-                              :style="getFixedTableColumnPreviewStyle(item, c)">
-                              {{ getFixedTableHeaderLabel(item, c) }}
-                            </th>
+                    <th
+                      v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
+                      :key="`h-${c}`"
+                      :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
+                      :style="getFixedTableColumnPreviewStyle(item, c)">
+                      {{ getFixedTableHeaderLabel(item, c) }}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1827,6 +1937,7 @@ defineExpose({
   overflow: hidden;
 }
 .activity-preview-canvas {
+  position: relative;
   height: 100%;
   flex: 1;
   overflow: visible;
@@ -1840,6 +1951,32 @@ defineExpose({
   --activity-preview-table-width: 700px;
   --activity-preview-grid-column-gap: 150px;
   --activity-preview-grid-row-gap: 32px;
+}
+.param-impact-scope-entry {
+  position: absolute;
+  top: 8px;
+  right: -10px;
+  z-index: 5;
+  color: #1677ff;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+.impact-eval-modal-content {
+  color: #595959;
+  line-height: 1.8;
+  min-height: 420px;
+}
+.impact-eval-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.impact-eval-param-select {
+  width: 360px;
+  max-width: 100%;
 }
 .component-list {
   display: grid;

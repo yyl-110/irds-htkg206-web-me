@@ -490,6 +490,27 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 评估活动参数改动影响范围（返回受影响任务与活动信息）
+   *
+   * @tags  评估活动参数改动影响范围（返回受影响任务与活动信息）
+   * @name evaluateImpact
+   * @summary  评估活动参数改动影响范围（返回受影响任务与活动信息）
+   * @request POST:/business-service/business/standalone-app/evaluate-impact
+   * @secure
+   */
+  static evaluateImpact = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/evaluate-impact`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 独立应用导出报告
    *
    * @tags  独立应用导出报告
