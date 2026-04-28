@@ -17,6 +17,7 @@ const router = useRoute();
 const loadingTree = ref<boolean>(false);
 const userStore = useUserStore();
 const titleVisible = ref<boolean>(false);
+const shouldShowDrawer = ref<boolean>(false);
 const titleList = ref<any>([]);
 const ProjectInfoListRef = ref();
 const menuId = ref<string>('');
@@ -77,18 +78,22 @@ async function getMenuListData() {
     if (skipDrawerOnReturn) {
       sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);
       if (Array.isArray(res.data.data) && res.data.data.length > 0) {
+        shouldShowDrawer.value = false;
         menuId.value = res.data.data[0].id;
         titleVisible.value = false;
-        drawerStyle.value = ref({});
+        drawerStyle.value = {};
         ProjectInfoListRef.value.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
       }
       return;
     }
     if (res.data.data.length == 1) {
-      drawerStyle.value = ref({});
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      drawerStyle.value = {};
       menuId.value = res.data.data[0].id;
       ProjectInfoListRef.value.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
     } else {
+      shouldShowDrawer.value = true;
       titleVisible.value = true;
     }
   } catch (error) {
@@ -96,7 +101,7 @@ async function getMenuListData() {
   }
 }
 function onClose() {
-  drawerStyle.value = ref({});
+  drawerStyle.value = {};
   titleVisible.value = false;
 }
 
@@ -116,6 +121,7 @@ onMounted(() => {
     <ProjectInfoList ref="ProjectInfoListRef" :menuId="menuId" @getListData="getListData" />
   </div>
   <a-drawer
+    v-if="shouldShowDrawer"
     :title="`产品平台选择`"
     placement="left"
     :style="drawerStyle"

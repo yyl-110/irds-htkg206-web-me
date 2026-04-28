@@ -15,6 +15,7 @@ const router = useRoute();
 const loadingTree = ref<boolean>(false);
 const userStore = useUserStore();
 const titleVisible = ref<boolean>(false);
+const shouldShowDrawer = ref<boolean>(false);
 const titleList = ref<any>([]);
 const designTaskComRef = ref();
 const menuId = ref<string>('');
@@ -50,6 +51,7 @@ async function getMenuListData() {
     if (skipDrawerOnReturn) {
       sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);
       if (Array.isArray(res.data.data) && res.data.data.length > 0) {
+        shouldShowDrawer.value = false;
         menuId.value = res.data.data[0].id;
         titleVisible.value = false;
         resetDrawerStyle();
@@ -58,10 +60,13 @@ async function getMenuListData() {
       return;
     }
     if (res.data.data.length == 1) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
       resetDrawerStyle();
       menuId.value = res.data.data[0].id;
       designTaskComRef.value.initInfoList(menuId.value, res.data.data[0].categoryName);
     } else {
+      shouldShowDrawer.value = true;
       titleVisible.value = true;
     }
   } catch (error) {
@@ -89,6 +94,7 @@ onMounted(() => {
     <ProjectInfoList ref="designTaskComRef" :menuId="menuId" />
   </div>
   <a-drawer
+    v-if="shouldShowDrawer"
     :title="`产品平台选择`"
     placement="left"
     :style="drawerStyle"
