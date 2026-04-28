@@ -15,12 +15,12 @@ export class AdminApiActivityPage {
    * @request /business-service/business/system-activity-design-tree/query-activity-tree
    * @secure
    */
-  static getActivityTree = <Req extends ActivityPageRequestDTOModel = ActivityPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static getActivityTree = <Req extends Record<string, any> = Record<string, any>>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/system-activity-design-tree/query-activity-tree`,
         method: 'GET',
-        body: query,
+        query: query,
         secure: true,
         ...params,
       },

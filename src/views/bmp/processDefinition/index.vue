@@ -21,6 +21,7 @@
       :bpmn-modeler="modeler"
       :currentNode="currentNode"
       :task-id="controlForm.taskId"
+      :menu-id="controlForm.menuId"
       :prefix="controlForm.prefix"
       :flag="flag"
       class="process-panel" />
@@ -72,6 +73,7 @@ const processDesigner = ref(null);
 const controlForm = reactive({
   processId: '',
   taskId: '',
+  menuId: '',
   processName: '',
   simulation: true,
   labelEditing: false,
@@ -95,6 +97,8 @@ onActivated(async () => {
   }
   const qTaskId = route.query?.taskId;
   controlForm.taskId = qTaskId != null ? String(qTaskId).trim() : '';
+  const qMenuId = route.query?.menuId;
+  controlForm.menuId = qMenuId != null ? String(qMenuId).trim() : '';
   const cachedXml = controlForm.taskId ? sessionStorage.getItem(`designTaskBpmnXml:${controlForm.taskId}`) || '' : '';
   if (route.query?.currentNode) {
     currentNode.value = JSON.parse(route.query?.currentNode) || null;

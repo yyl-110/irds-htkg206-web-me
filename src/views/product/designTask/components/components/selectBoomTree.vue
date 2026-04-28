@@ -1,16 +1,8 @@
 <script lang="ts">
-import {
-  defineComponent,
-  inject,
-  reactive,
-  ref,
-  toRefs,
-  computed,
-  nextTick,
-} from "vue";
-import "@ckeditor/ckeditor5-build-classic/build/translations/zh-cn";
+import { defineComponent, inject, reactive, ref, toRefs, computed, nextTick } from 'vue';
+import '@ckeditor/ckeditor5-build-classic/build/translations/zh-cn';
 export default defineComponent({
-  name: "selectBoomTree",
+  name: 'selectBoomTree',
   props: {
     modalVisible: {
       type: Boolean,
@@ -31,7 +23,7 @@ export default defineComponent({
 
     const confirmSelectTreeNode = () => {
       isPending.value = true;
-      context.emit("confirmSelectTreeNode");
+      context.emit('confirmSelectTreeNode');
       // 模拟异步操作完成后重置加载状态
       setTimeout(() => {
         isPending.value = false;
@@ -39,16 +31,16 @@ export default defineComponent({
     };
 
     const cancelSelectTreeNode = () => {
-      context.emit("cancelSelectTreeNode");
+      context.emit('cancelSelectTreeNode');
     };
 
     const handleSelectTreeNode = (selectedKeys: any[], info: any) => {
-      context.emit("handleSelectTreeNode", selectedKeys, info);
+      context.emit('handleSelectTreeNode', selectedKeys, info);
     };
 
     function customGetContainer() {
       // 返回自定义挂载节点
-      return document.querySelector(".modal-container");
+      return document.querySelector('.modal-container');
     }
 
     return {
@@ -75,8 +67,7 @@ export default defineComponent({
       style="width: 40%"
       :confirm-loading="isPending"
       :mask-closable="false"
-      :z-index="2000"
-    >
+      :z-index="2000">
       <a-directory-tree
         style="height: calc(100vh - 533px); width: 100%; overflow-y: auto"
         :show-icon="true"
@@ -84,18 +75,17 @@ export default defineComponent({
         :expand-action="false"
         default-expand-all
         :selected-keys="[selectTreeSelectedKeys]"
-        @select="handleSelectTreeNode"
-      >
+        @select="handleSelectTreeNode">
         <template #title="item">
           {{ item.partName }}
         </template>
       </a-directory-tree>
       <template #footer>
         <a-button type="primary" @click="confirmSelectTreeNode">
-          {{ $t("确定") }}
+          {{ $t('确定') }}
         </a-button>
         <a-button @click="cancelSelectTreeNode">
-          {{ $t("取消") }}
+          {{ $t('取消') }}
         </a-button>
       </template>
     </a-modal>

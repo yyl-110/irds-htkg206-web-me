@@ -191,13 +191,11 @@ const skipParentOnEdit = ref<boolean>(false);
  */
 function addTree() {
   pretreatment.value = [];
-  if (checkedNode()) {
-    title.value = '新增节点';
-    if (props.treeData?.length === 0) {
-      emit('getNodeAddData', '');
-    } else {
-      emit('getNodeAddData', selectedNode.value);
-    }
+  title.value = '新增节点';
+  if (props.treeData?.length === 0) {
+    emit('getNodeAddData', '');
+  } else {
+    emit('getNodeAddData', selectedNode.value);
   }
 }
 
@@ -484,8 +482,7 @@ function parseUploadFileRecord(raw: unknown): { id: string; fileUrl?: string; di
   if (!raw || typeof raw !== 'object') return { id: '' };
   const body = raw as Record<string, unknown>;
   const code = body.code;
-  const ok =
-    code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200';
+  const ok = code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200';
   if (!ok) return { id: '' };
   let record: Record<string, unknown> = body;
   const nested = body.data;
@@ -495,20 +492,8 @@ function parseUploadFileRecord(raw: unknown): { id: string; fileUrl?: string; di
     record = nested as Record<string, unknown>;
   }
   const id = String(record.id ?? record.queryId ?? '').trim();
-  const fileUrl =
-    record.fileUrl != null
-      ? String(record.fileUrl)
-      : record.filePath != null
-        ? String(record.filePath)
-        : record.url != null
-          ? String(record.url)
-          : undefined;
-  const displayName =
-    record.oldFileName != null
-      ? String(record.oldFileName)
-      : record.fileName != null
-        ? String(record.fileName)
-        : undefined;
+  const fileUrl = record.fileUrl != null ? String(record.fileUrl) : record.filePath != null ? String(record.filePath) : record.url != null ? String(record.url) : undefined;
+  const displayName = record.oldFileName != null ? String(record.oldFileName) : record.fileName != null ? String(record.fileName) : undefined;
   return { id, fileUrl, displayName };
 }
 

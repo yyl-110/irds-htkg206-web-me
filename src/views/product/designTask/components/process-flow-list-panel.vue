@@ -526,6 +526,7 @@ async function handleToolbarConfig(record?: FlowRow) {
   }
   const taskName = String(row.processName ?? '').trim();
   const taskId = String(row.id ?? '').trim();
+  const menuId = props.menuId != null ? String(props.menuId).trim() : '';
   try {
     const res = await AdminApiSystemProcessTask.getXmlInfo({ id: taskId });
     const xml = String(res?.data?.data?.bpmnXml ?? '').trim();
@@ -545,6 +546,7 @@ async function handleToolbarConfig(record?: FlowRow) {
       flag: 1,
       ...(taskName ? { processName: taskName } : {}),
       ...(taskId ? { taskId } : {}),
+      ...(menuId ? { menuId } : {}),
     },
   });
 }

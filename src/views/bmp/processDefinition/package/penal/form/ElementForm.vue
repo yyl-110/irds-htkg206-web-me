@@ -113,6 +113,10 @@ const props = defineProps({
     type: [String, Number],
     default: '',
   },
+  menuId: {
+    type: [String, Number],
+    default: '',
+  },
 });
 // 响应式数据
 const bpmnElement = ref(null);
@@ -146,6 +150,11 @@ function formKeyMapStorageKey() {
 
 /** 切换节点或重新同步时递增，丢弃过期的异步回查结果 */
 let fieldListHydrateGeneration = 0;
+
+function getMenuIdParam() {
+  const m = props.menuId != null ? props.menuId : '';
+  return m ? { menuId: m } : {};
+}
 
 /** 表格行：活动名称与节点「名称」一致；活动类型优先节点 pageType，否则用关联活动数据 */
 const formFieldDisplayRows = computed(() => {
@@ -256,7 +265,9 @@ function getFirstNodeId(nodes) {
 
 const loadActivityTree = async () => {
   try {
-    const res = await AdminApiActivityPage.getActivityTree({});
+    const res = await AdminApiActivityPage.getActivityTree({
+      ...getMenuIdParam(),
+    });
     const treeData = Array.isArray(res?.data?.data) ? res.data.data : [];
     activityTreeData.value = treeData;
     const firstId = getFirstNodeId(treeData);
@@ -284,6 +295,7 @@ const getList = async () => {
     treeId: currentTreeId.value,
     pageNo: pageNum.value,
     pageSize: pageSize.value,
+    ...getMenuIdParam(),
   };
   try {
     loading.value = true;
@@ -418,7 +430,9 @@ function flattenTreeNodes(nodes, acc = []) {
 async function tryHydrateFieldByFormKey(formKey, requestElementId, hydrateToken) {
   if (!formKey) return;
   try {
-    const treeRes = await AdminApiActivityPage.getActivityTree({});
+    const treeRes = await AdminApiActivityPage.getActivityTree({
+      ...getMenuIdParam(),
+    });
     if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
       return;
     }
@@ -435,6 +449,7 @@ async function tryHydrateFieldByFormKey(formKey, requestElementId, hydrateToken)
         treeId,
         pageNo: 1,
         pageSize: 200,
+        ...getMenuIdParam(),
       });
       if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
         return;

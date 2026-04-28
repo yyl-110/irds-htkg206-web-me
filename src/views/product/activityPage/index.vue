@@ -316,6 +316,7 @@ async function getListData(type?: string) {
   loadingTree.value = true;
   try {
     const data: any = {};
+    data.menuId = menuId.value;
     const res = await AdminApiActivityPage.getActivityTree(data);
     console.log(res);
     loadingTree.value = false;
@@ -453,11 +454,14 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
 
 /** 获取节点添加数据 */
 async function getNodeAddData(selectedKeys: any) {
+  const parentNode = currentNode.value ?? selectedKeys ?? {};
+  const parentName = String(parentNode?.partName ?? '');
+  const parentKey = parentNode?.key ?? 0;
   treeNodeColmoun.value = [
     {
       title: WeiI18n.t('父节点名称').value,
       key: 'parentName',
-      value: currentNode.value.partName,
+      value: parentName,
       type: 'input',
       hidden: false,
       disabled: true,
@@ -478,7 +482,7 @@ async function getNodeAddData(selectedKeys: any) {
     {
       title: WeiI18n.t('父节点ID').value,
       key: 'pid',
-      value: currentNode.value.key,
+      value: parentKey,
       type: 'input',
       disabled: true,
       hidden: true,
@@ -700,6 +704,7 @@ async function submitTreeData(nodeList: any) {
   const data: any = {};
   data.name = nodeList.categoryName;
   data.parentId = nodeList.pid;
+  data.menuId = menuId.value;
   const res = await AdminApiActivityPage.saveActivityTree(data);
   await getListData();
   message.success(WeiI18n.t('保存成功').value);
@@ -712,6 +717,7 @@ async function editTreeData(nodeList: any, selectedKeys: any) {
   data.name = nodeList.categoryName;
   data.parentId = nodeList.pid;
   data.id = nodeList.id;
+  data.menuId = menuId.value;
   const res = await AdminApiActivityPage.editActivityTree(data);
   await getListData('change');
   message.success(WeiI18n.t('修改成功').value);

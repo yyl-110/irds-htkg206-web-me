@@ -17,7 +17,7 @@
             表单
           </div>
         </template>
-        <ElementForm :id="elementId" :type="elementType" :task-id="taskId" :elementBusinessObject="elementBusinessObject" :currentNode="currentNode" />
+        <ElementForm :id="elementId" :type="elementType" :task-id="taskId" :menu-id="menuId" :elementBusinessObject="elementBusinessObject" :currentNode="currentNode" />
       </a-collapse-panel>
     </a-collapse>
   </div>
@@ -57,6 +57,10 @@ const props = defineProps({
   },
   /** 设计任务 id，用于隔离「活动关联」本地缓存，避免不同流程里 BPMN 元素 id（如 Activity_1）复用导致串数据 */
   taskId: {
+    type: [String, Number],
+    default: '',
+  },
+  menuId: {
     type: [String, Number],
     default: '',
   },
