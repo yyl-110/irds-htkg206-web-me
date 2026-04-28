@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { nextTick, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
@@ -18,6 +18,7 @@ const loadingTree = ref<boolean>(false);
 const userStore = useUserStore();
 const titleVisible = ref<boolean>(false);
 const shouldShowDrawer = ref<boolean>(false);
+const projectListVisible = ref<boolean>(false);
 const titleList = ref<any>([]);
 const ProjectInfoListRef = ref();
 const menuId = ref<string>('');
@@ -65,8 +66,10 @@ async function getListData(type?: string) {
 /** 新功能----------------------------------------------------- */
 const updateMenu = async (item: any) => {
   menuId.value = item.id;
+  projectListVisible.value = true;
   onClose();
-  ProjectInfoListRef.value.getResourcesByParent(menuId.value, item.categoryName);
+  await nextTick();
+  ProjectInfoListRef.value?.getResourcesByParent(menuId.value, item.categoryName);
 };
 
 /** 获取分类数据 */
@@ -81,18 +84,23 @@ async function getMenuListData() {
         shouldShowDrawer.value = false;
         menuId.value = res.data.data[0].id;
         titleVisible.value = false;
+        projectListVisible.value = true;
         drawerStyle.value = {};
-        ProjectInfoListRef.value.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
+        await nextTick();
+        ProjectInfoListRef.value?.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
       }
       return;
     }
     if (res.data.data.length == 1) {
       shouldShowDrawer.value = false;
       titleVisible.value = false;
+      projectListVisible.value = true;
       drawerStyle.value = {};
       menuId.value = res.data.data[0].id;
-      ProjectInfoListRef.value.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
+      await nextTick();
+      ProjectInfoListRef.value?.getResourcesByParent(menuId.value, res.data.data[0].categoryName);
     } else {
+      projectListVisible.value = false;
       shouldShowDrawer.value = true;
       titleVisible.value = true;
     }
@@ -118,7 +126,7 @@ onMounted(() => {
 
 <template>
   <div class="drawerContent">
-    <ProjectInfoList ref="ProjectInfoListRef" :menuId="menuId" @getListData="getListData" />
+    <ProjectInfoList v-if="projectListVisible" ref="ProjectInfoListRef" :menuId="menuId" @getListData="getListData" />
   </div>
   <a-drawer
     v-if="shouldShowDrawer"
@@ -126,6 +134,7 @@ onMounted(() => {
     placement="left"
     :style="drawerStyle"
     :closable="false"
+    :mask="true"
     :visible="titleVisible"
     :get-container="false"
     :wrap-style="{ position: 'absolute' }"
