@@ -72,6 +72,7 @@ const finishFlowLoading = ref(false);
 const toolbarActionLoadingIndex = ref<number | null>(null);
 const nodePreviewRef = ref<any>(null);
 const checkNodePreviewRef = ref<any>(null);
+const activityKnowledgeList = ref<any[]>([]);
 const currentActivityParamList = ref<any[]>([]);
 const knowledgeLoading = ref(false);
 const knowledgeKeyword = ref('');
@@ -556,9 +557,12 @@ async function requestNodeDetailByKey(key: string) {
   try {
     const paramRes = await AdminApiSystemParameter.getParameterActList({ businessId: detailObj?.activityPageId, type: '2' });
     const list = paramRes?.data?.data;
-    currentActivityParamList.value = Array.isArray(list) ? list : [];
+    const normalizedList = Array.isArray(list) ? list : [];
+    activityKnowledgeList.value = normalizedList;
+    currentActivityParamList.value = normalizedList;
   } catch {
     // 左侧树切换时参数接口失败不阻断节点展示
+    activityKnowledgeList.value = [];
     currentActivityParamList.value = [];
   } finally {
     knowledgeLoading.value = false;
@@ -641,6 +645,31 @@ async function requestNodeDetailByKey(key: string) {
     };
   } catch {
     // task-param-map 失败不阻断节点详情展示
+  }
+}
+
+async function onParamTitleClick(payload: { paramNum?: string; paramName?: string } | null | undefined) {
+  const activityPageId = String(nodeDetailData.value?.activityPageId ?? '').trim();
+  if (!activityPageId) return;
+  const paramNum = String(payload?.paramNum ?? '').trim();
+  if (!paramNum) {
+    currentActivityParamList.value = activityKnowledgeList.value.slice();
+    return;
+  }
+  knowledgeLoading.value = true;
+  try {
+    const res = await AdminApiSystemParameter.getParameterActList({
+      businessId: activityPageId,
+      paramNum,
+      type: '1',
+    });
+    const list = res?.data?.data;
+    const normalizedList = Array.isArray(list) ? list : [];
+    currentActivityParamList.value = normalizedList.length ? normalizedList : activityKnowledgeList.value.slice();
+  } catch {
+    currentActivityParamList.value = activityKnowledgeList.value.slice();
+  } finally {
+    knowledgeLoading.value = false;
   }
 }
 
@@ -839,13 +868,8 @@ async function goNextNode() {
     message.warning('当前节点暂无可提交参数');
     return;
   }
-  const activityId = String(nodeDetailData.value?.id ?? selectedNode.value?.id ?? '').trim();
-  if (!activityId) {
-    message.warning('缺少活动ID，无法调取活动参数');
-    return;
-  }
   try {
-    await AdminApiSystemParameter.getParameterActList({ businessId: activityId, type: '2' });
+    await AdminApiSystemParameter.getParameterActList({ businessId: activityPageId, type: '2' });
   } catch {
     message.error('活动参数获取失败，无法提交');
     return;
@@ -1092,13 +1116,15 @@ onMounted(() => {
                   ref="checkNodePreviewRef"
                   :components-json="nodeDetailData?.componentsJson"
                   :saved-param-values="nodeDetailData?.savedParamValues"
-                  :node-detail-data="nodeDetailData" />
+                  :node-detail-data="nodeDetailData"
+                  @param-title-click="onParamTitleClick" />
                 <ProcessFlowAppNodePreview
                   v-else
                   ref="nodePreviewRef"
                   :components-json="nodeDetailData?.componentsJson"
                   :saved-param-values="nodeDetailData?.savedParamValues"
-                  :saved-tables="nodeDetailData?.savedTables" />
+                  :saved-tables="nodeDetailData?.savedTables"
+                  @param-title-click="onParamTitleClick" />
               </div>
               <div v-if="activityImageUrl" class="workspace-preview-image-pane" :style="activityImagePaneStyle">
                 <img :src="activityImageUrl" alt="活动示意图" class="workspace-preview-image" />
