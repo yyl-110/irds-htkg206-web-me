@@ -343,6 +343,27 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 申请件号
+   *
+   * @tags 管理后台 - 申请件号
+   * @name nextNo
+   * @summary 申请件号
+   * @request GET:/business-service/business/serial-number-rule/next-no
+   * @secure
+   */
+  static nextNo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/serial-number-rule/next-no`,
+        method: 'GET',
+        secure: true,
+        query: query,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 创建独立应用
    *
    * @tags 管理后台 - 创建独立应用

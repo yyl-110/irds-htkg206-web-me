@@ -448,19 +448,87 @@ function getModelSelectPreviewButtons(item: any) {
   if (p.btnAssembleModel) buttons.push('装配模型');
   return buttons;
 }
-function handle3dPreviewButtonClick(btn: string, item: any, index: number) {
+function open3dComponentModel(item: any, index: number) {
+  const templateName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'templateName')] ?? '').trim();
+  if (!templateName) {
+    message.warning('模板名称为空');
+    return;
+  }
+  const newModelNum = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelName')] ?? '').trim();
+  const dotIndex = templateName.lastIndexOf('.');
+  const modelType = dotIndex > 0 ? templateName.slice(dotIndex + 1).toLowerCase() : 'prt';
+  const modelNum = dotIndex > 0 ? templateName.slice(0, dotIndex) : templateName;
+  console.log(modelNum, modelType, newModelNum);
+  void openModuleInfoNew(modelNum, modelType, newModelNum, '', '');
+}
+function openModelSelect3dModel(item: any, index: number) {
+  const modelPartNo = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelSelectName')] ?? '').trim();
+  if (!modelPartNo) {
+    message.warning('模型名称为空');
+    return;
+  }
+  const dotIndex = modelPartNo.lastIndexOf('.');
+  const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
+  const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
+  console.log(modelNum, modelType);
+  void openModuleInfoNew(modelNum, modelType, '', '', '');
+}
+function openRowModel(item: any, componentIndex: number, bodyRow: number) {
+  const modelPartNo = String(getPreviewTableCellValue(item, componentIndex, bodyRow, 2) ?? '').trim();
+  if (!modelPartNo) {
+    message.warning('当前行模型件号为空');
+    return;
+  }
+  const dotIndex = modelPartNo.lastIndexOf('.');
+  const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
+  const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
+  void openModuleInfoNew(modelNum, modelType, '', '', '');
+}
+async function handle3dPreviewButtonClick(btn: string, item: any, index: number) {
   const text = String(btn ?? '').trim();
   if (text === '申请件号') {
-    showModuleInfo(item, index, 'templateBrowse');
+    try {
+      const res = await AdminApiSystemProcessTask.nextNo({ ruleCode: 'template' });
+      const code = res?.data?.code as number | string | undefined;
+      const ok = code === 0 || code === 200 || code === '0' || code === '200';
+      if (!ok) {
+        message.error(String(res?.data?.msg ?? '申请件号失败'));
+        return;
+      }
+      const applyNo = String(res?.data?.data ?? '').trim();
+      if (!applyNo) {
+        message.warning('未返回件号');
+        return;
+      }
+      const targetKey = getPreview3dSubKey(item, index, 'modelName');
+      previewFieldValueMap.value = {
+        ...previewFieldValueMap.value,
+        [targetKey]: applyNo,
+      };
+    } catch {
+      message.error('申请件号失败');
+    }
     return;
   }
   if (text === '打开模型' || text === '生成模型') {
-
-    alert(JSON.stringify(item));
+    if (isModelSelect3DItem(item)) {
+      openModelSelect3dModel(item, index);
+    } else {
+      open3dComponentModel(item, index);
+    }
     return;
   }
   if (text === '装配模型') {
-    message.info('装配模型（示例）');
+    const templateName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'templateName')] ?? '').trim();
+    if (!templateName) {
+      message.warning('模板名称为空');
+      return;
+    }
+    const dotIndex = templateName.lastIndexOf('.');
+    const modelType = dotIndex > 0 ? templateName.slice(dotIndex + 1).toLowerCase() : 'prt';
+    const modelNum = dotIndex > 0 ? templateName.slice(0, dotIndex) : templateName;
+    const newModelNum = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelName')] ?? '').trim();
+    void assembleModuleInfoNew(modelNum, modelType, '', newModelNum, '', '');
     return;
   }
   message.info(`${text}（示例）`);
@@ -892,9 +960,11 @@ function getPreviewTableBodyRowCountForTable(item: any, componentIndex: number) 
   return Math.max(1, Number(item?.customProps?.tableBodyRows) || 1);
 }
 function isRowExpandTable(item: any) {
-  return String(item?.customProps?.tableSubtype ?? '')
-    .trim()
-    .toUpperCase() === 'ROW_EXPAND';
+  return (
+    String(item?.customProps?.tableSubtype ?? '')
+      .trim()
+      .toUpperCase() === 'ROW_EXPAND'
+  );
 }
 function onRowExpandPreviewAddRow(item: any, componentIndex: number) {
   if (isOutputIoType(item)) return;
@@ -981,15 +1051,7 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
     return;
   }
   if (t === '打开模型' || t === '生成模型') {
-    const modelPartNo = String(getPreviewTableCellValue(item, componentIndex, bodyRow, 2) ?? '').trim();
-    if (!modelPartNo) {
-      message.warning('当前行模型件号为空');
-      return;
-    }
-    const dotIndex = modelPartNo.lastIndexOf('.');
-    const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
-    const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
-    void openModuleInfoNew(modelNum, modelType, '', '', '');
+    openRowModel(item, componentIndex, bodyRow);
     return;
   }
   if (t === '装配模型') {
@@ -1001,7 +1063,7 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
     const dotIndex = modelPartNo.lastIndexOf('.');
     const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
     const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
-    void assembleModuleInfoNew(modelNum, modelType, '','', '', '');
+    void assembleModuleInfoNew(modelNum, modelType, '', '', '', '');
     return;
   }
   if (t === '打开图纸') {
@@ -1015,7 +1077,6 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
     void openDrawingInfoNew(modelNum);
     return;
   }
-  
 }
 async function downloadFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
   const rowKey = getFileCollabRowKey(item, componentIndex, bodyRow);
@@ -1649,15 +1710,7 @@ defineExpose({
           <a-select v-model:value="impactSelectedParamCode" :options="impactParamOptions" placeholder="请选择参数" class="impact-eval-param-select" allow-clear />
           <a-button type="primary" :loading="impactAnalyzing" @click="onImpactAnalyzeClick">分析</a-button>
         </div>
-        <a-table
-          :columns="impactColumns"
-          :data-source="impactResultRows"
-          :pagination="false"
-          :loading="impactAnalyzing"
-          size="small"
-          bordered
-          row-key="key"
-          :scroll="{ y: 300 }" />
+        <a-table :columns="impactColumns" :data-source="impactResultRows" :pagination="false" :loading="impactAnalyzing" size="small" bordered row-key="key" :scroll="{ y: 300 }" />
       </div>
     </a-modal>
     <a-modal
