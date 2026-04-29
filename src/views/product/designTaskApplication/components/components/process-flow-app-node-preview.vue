@@ -457,7 +457,6 @@ function open3dComponentModel(item: any, index: number) {
   const dotIndex = templateName.lastIndexOf('.');
   const modelType = dotIndex > 0 ? templateName.slice(dotIndex + 1).toLowerCase() : 'prt';
   const modelNum = dotIndex > 0 ? templateName.slice(0, dotIndex) : templateName;
-  console.log(modelNum, modelType, newModelNum);
   void openModuleInfoNew(modelNum, modelType, newModelNum, '', '');
 }
 function openModelSelect3dModel(item: any, index: number) {
@@ -469,7 +468,6 @@ function openModelSelect3dModel(item: any, index: number) {
   const dotIndex = modelPartNo.lastIndexOf('.');
   const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
   const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
-  console.log(modelNum, modelType);
   void openModuleInfoNew(modelNum, modelType, '', '', '');
 }
 function openRowModel(item: any, componentIndex: number, bodyRow: number) {
@@ -518,16 +516,30 @@ async function handle3dPreviewButtonClick(btn: string, item: any, index: number)
     return;
   }
   if (text === '装配模型') {
-    const templateName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'templateName')] ?? '').trim();
-    if (!templateName) {
-      message.warning('模板名称为空');
-      return;
+    if (isModelSelect3DItem(item)) {
+      const modelPartNo = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelSelectName')] ?? '').trim();
+      if (!modelPartNo) {
+        message.warning('模型名称为空');
+        return;
+      }
+      const dotIndex = modelPartNo.lastIndexOf('.');
+      const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
+      const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
+      console.log(modelNum, modelType);
+      void assembleModuleInfoNew(modelNum, modelType, '', '', '', '');
+    } else {
+      const templateName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'templateName')] ?? '').trim();
+      if (!templateName) {
+        message.warning('模板名称为空');
+        return;
+      }
+      const dotIndex = templateName.lastIndexOf('.');
+      const modelType = dotIndex > 0 ? templateName.slice(dotIndex + 1).toLowerCase() : 'prt';
+      const modelNum = dotIndex > 0 ? templateName.slice(0, dotIndex) : templateName;
+      const newModelNum = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelName')] ?? '').trim();
+      console.log(modelNum, modelType, newModelNum);
+      void assembleModuleInfoNew(modelNum, modelType, '', newModelNum, '', '');
     }
-    const dotIndex = templateName.lastIndexOf('.');
-    const modelType = dotIndex > 0 ? templateName.slice(dotIndex + 1).toLowerCase() : 'prt';
-    const modelNum = dotIndex > 0 ? templateName.slice(0, dotIndex) : templateName;
-    const newModelNum = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelName')] ?? '').trim();
-    void assembleModuleInfoNew(modelNum, modelType, '', newModelNum, '', '');
     return;
   }
   message.info(`${text}（示例）`);
