@@ -30,6 +30,10 @@ const parameterNum = ref<string>('');
 const selectNodeKeys = ref<string>('');
 const currentNode = ref<any>();
 const processFlowListRef = ref<any>(null);
+const isTaskNodeSelected = computed(() => {
+  const t = currentNode.value?.categoryType;
+  return t === 2 || String(t) === '2';
+});
 /** 列表数据 */
 const dataSource = ref<Array<any>>([]);
 /** 列表请求参数 */
@@ -184,6 +188,23 @@ async function getNodeAddData(selectedKeys: any) {
       ],
     },
     {
+      title: WeiI18n.t('节点类别').value,
+      key: 'type',
+      value: '',
+      type: 'select',
+      hidden: false,
+      rules: [
+        {
+          required: true,
+          message: WeiI18n.t('节点类别不能为空').value,
+        },
+      ],
+      selectStr: [
+        { label: '分类节点', value: 1 },
+        { label: '任务节点', value: 2 },
+      ],
+    },
+    {
       title: WeiI18n.t('父节点ID').value,
       key: 'pid',
       value: parentKey,
@@ -228,7 +249,9 @@ async function selectNode(node: any) {
   } else {
     currentNodeLevel.value = 3;
   }
-  loadParameterListData();
+  if (isTaskNodeSelected.value) {
+    loadParameterListData();
+  }
 }
 
 async function loadParameterListData() {
@@ -265,6 +288,23 @@ async function getNodeUpdateData(selectedKeys: any) {
           required: true,
           message: WeiI18n.t('节点名称不能为空').value,
         },
+      ],
+    },
+    {
+      title: WeiI18n.t('节点类别').value,
+      key: 'type',
+      value: selectedKeys.categoryType,
+      type: 'select',
+      hidden: false,
+      rules: [
+        {
+          required: true,
+          message: WeiI18n.t('节点类别不能为空').value,
+        },
+      ],
+      selectStr: [
+        { label: '分类节点', value: 1 },
+        { label: '任务节点', value: 2 },
       ],
     },
     {
@@ -405,6 +445,7 @@ async function submitTreeData(nodeList: any) {
   data.name = nodeList.name;
   data.parentId = nodeList.pid || 0;
   data.menuId = menuId.value;
+  data.type = nodeList.type;
   const res = await AdminApiSystemProcessTask.createDesignTaskTree(data);
   await getListData();
   message.success(WeiI18n.t('保存成功').value);
@@ -417,6 +458,7 @@ async function editTreeData(nodeList: any, selectedKeys: any) {
   data.parentId = nodeList.pid;
   data.id = nodeList.id;
   data.menuId = menuId.value;
+  data.type = nodeList.type;
   const res = await AdminApiSystemProcessTask.updateDesignTaskTree(data);
   await getListData('change');
   message.success(WeiI18n.t('修改成功').value);
@@ -443,7 +485,8 @@ async function handleChangeSelectKey(searchValue: string) {
   treeData.value = treeNodes;
 }
 
-const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } =
+  useSplitpanesTreeCollapse();
 defineExpose({ initInfoList });
 </script>
 
@@ -476,7 +519,7 @@ defineExpose({ initInfoList });
 
         <!-- 右侧内容区域 -->
         <Pane class="splitpane-cls" :size="rightTreePaneSize">
-          <ProcessFlowListPanel ref="processFlowListRef" :menu-id="menuId" :tree-node-key="selectNodeKeys" />
+          <ProcessFlowListPanel v-if="isTaskNodeSelected" ref="processFlowListRef" :menu-id="menuId" :tree-node-key="selectNodeKeys" />
         </Pane>
       </Splitpanes>
       <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
