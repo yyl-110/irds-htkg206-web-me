@@ -404,3 +404,22 @@ export async function getLocSkeletonParametersInFirstCsysNew(
     return undefined;
   }
 }
+
+
+// 同步子模型
+export async function flowSynchronizeChildrenModelsToWeb(moduleNum?: string | null): Promise<any> {
+  try {
+    const modelName = moduleNum ?? '';
+    const ret = await sendMessage(
+      'ApiSynchronizeChildrenModelsToWeb',
+      { ModelName: modelName },
+      { timeoutMs: 120000 },
+    );
+    console.log('[webSocketNew] ApiSynchronizeChildrenModelsToWeb 返回:', ret);
+    return ret;
+  } catch (err) {
+    console.error('[webSocketNew] ApiSynchronizeChildrenModelsToWeb 失败:', err);
+    message.error(err instanceof Error && err.message ? err.message : '同步子模型失败');
+    return undefined;
+  }
+}

@@ -13,6 +13,10 @@ import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
+import {
+  flowSynchronizeChildrenModelsToWeb,
+  setModelParameterInFirstCsysNew,
+} from '@/libs/webSocketNew';
 type FlowNode = {
   id?: string | number;
   bpmnElementId?: string;
@@ -313,7 +317,49 @@ const nodeDetailToolbarButtons = computed(() => parseNodeDetailButtonLabels(node
 
 /** 再生模型 */
 async function handleToolbarRegenerateModel(): Promise<boolean> {
-  return (await checkNodePreviewRef.value?.runToolbarAction?.('再生模型')) === true;
+  const fromCheckPreview = checkNodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const fromNodePreview = nodePreviewRef.value?.getCurrentSaveParamValues?.();
+  const sourceValues = (Array.isArray(fromCheckPreview) && fromCheckPreview.length ? fromCheckPreview : fromNodePreview) || [];
+  const parametersStr = sourceValues
+    .filter((row: any) => String(row?.paramKey ?? '').trim())
+    .map((row: any) => {
+      const name = String(row?.paramKey ?? '').trim();
+      const value = String(row?.paramValue ?? '');
+      return `{"Name": "${name}","Type": "double","Value": "${value}","Description": ""}`;
+    })
+    .join(',');
+
+  try {
+    const response = await flowSynchronizeChildrenModelsToWeb('');
+    if (!response || response.ReturnStatus !== 0) {
+      message.info('遇到了错误');
+      return false;
+    }
+
+    const models = Array.isArray(response.Models) ? response.Models : [];
+    if (!models.length) {
+      message.info('未找到被装配模型');
+      return false;
+    }
+
+    // 根据 ModelName + ModelType 去重
+    const distinctModels = models.filter((element: any, index: number, self: any[]) => {
+      const modelName = String(element?.ModelName ?? '');
+      const modelType = String(element?.ModelType ?? '');
+      return self.findIndex((x: any) => String(x?.ModelName ?? '') === modelName && String(x?.ModelType ?? '') === modelType) === index;
+    });
+
+    await Promise.all(
+      distinctModels.map((item: any) =>
+        setModelParameterInFirstCsysNew(String(item?.ModelName ?? ''), String(item?.ModelType ?? ''), parametersStr),
+      ),
+    );
+    message.success('再生模型完成');
+    return true;
+  } catch {
+    message.error('再生模型失败');
+    return false;
+  }
 }
 
 /** 导出报告 */
@@ -508,6 +554,7 @@ function resolveToolbarActionHandler(label: string): (() => Promise<boolean>) | 
 }
 
 async function onNodeDetailToolbarAction(label: string, index: number) {
+  alert(label)
   const text = String(label ?? '').trim();
   if (!text) return;
   if (saveFlowLoading.value || submitFlowLoading.value || finishFlowLoading.value) return;
