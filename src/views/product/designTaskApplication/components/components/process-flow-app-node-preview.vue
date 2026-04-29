@@ -119,7 +119,6 @@ const impactColumns = [
   { title: '活动名称', dataIndex: 'activityName', key: 'activityName', ellipsis: true },
   { title: '负责人', dataIndex: 'taskCreatorName', key: 'taskCreatorName', width: 180, ellipsis: true },
   { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 200, ellipsis: true },
-  { title: '任务状态', dataIndex: 'taskStatus', key: 'taskStatus', width: 200, ellipsis: true },
 ];
 async function onImpactAnalyzeClick() {
   const selected = String(impactSelectedParamCode.value || '').trim();
@@ -145,13 +144,13 @@ async function onImpactAnalyzeClick() {
       paramCode: selected,
     });
     const raw = res?.data?.data;
-    const taskList = Array.isArray(raw?.impactedTasks) ? raw.impactedTasks : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
+    const taskList = Array.isArray(raw?.impactedActivities) ? raw.impactedActivities : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
     impactResultRows.value = taskList.map((row: any, idx: number) => ({
       key: String(row?.taskId ?? row?.id ?? `${selected}-${idx}`),
       activityName: String(row?.activityName ?? '-'),
-      taskCreatorName: String(row?.taskCreatorName ?? '-'),
-      taskName: String(row?.taskName ?? '-'),
-      taskStatus: String(row?.taskStatus ?? '-'),
+      taskCreatorName: raw.taskCreatorName,
+      taskName: raw.taskName,
+      taskStatus: raw.taskName,
     }));
   } finally {
     impactAnalyzing.value = false;

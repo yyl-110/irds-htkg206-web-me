@@ -109,7 +109,6 @@ const impactColumns = [
   { title: '活动名称', dataIndex: 'activityName', key: 'activityName', ellipsis: true },
   { title: '负责人', dataIndex: 'taskCreatorName', key: 'taskCreatorName', width: 180, ellipsis: true },
   { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 200, ellipsis: true },
-  { title: '任务状态', dataIndex: 'taskStatus', key: 'taskStatus', width: 200, ellipsis: true },
 ];
 function onImpactEvalEntryClick() {
   impactEvalModalVisible.value = true;
@@ -142,13 +141,13 @@ async function onImpactAnalyzeClick() {
       paramCode: selected,
     });
     const raw = res?.data?.data;
-    const taskList = Array.isArray(raw?.impactedTasks) ? raw.impactedTasks : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
+    const taskList = Array.isArray(raw?.impactedActivities) ? raw.impactedActivities : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
     impactResultRows.value = taskList.map((row: any, idx: number) => ({
       key: String(row?.taskId ?? row?.id ?? `${selected}-${idx}`),
       activityName: String(row?.activityName ?? '-'),
-      taskCreatorName: String(row?.taskCreatorName ?? '-'),
-      taskName: String(row?.taskName ?? '-'),
-      taskStatus: String(row?.taskStatus ?? '-'),
+      taskCreatorName: raw.taskCreatorName,
+      taskName: raw.taskName,
+      taskStatus: raw.taskName,
     }));
   } finally {
     impactAnalyzing.value = false;
@@ -362,15 +361,7 @@ defineExpose({
           <a-select v-model:value="impactSelectedParamCode" :options="impactParamOptions" placeholder="请选择参数" class="impact-eval-param-select" allow-clear />
           <a-button type="primary" :loading="impactAnalyzing" @click="onImpactAnalyzeClick">分析</a-button>
         </div>
-        <a-table
-          :columns="impactColumns"
-          :data-source="impactResultRows"
-          :pagination="false"
-          :loading="impactAnalyzing"
-          size="small"
-          bordered
-          row-key="key"
-          :scroll="{ y: 300 }" />
+        <a-table :columns="impactColumns" :data-source="impactResultRows" :pagination="false" :loading="impactAnalyzing" size="small" bordered row-key="key" :scroll="{ y: 300 }" />
       </div>
     </a-modal>
     <div v-if="previewList.length === 0" class="activity-preview-empty">暂无组件配置</div>
