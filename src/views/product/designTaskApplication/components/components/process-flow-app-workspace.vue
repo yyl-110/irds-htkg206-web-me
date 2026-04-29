@@ -2,7 +2,7 @@
 import { computed, h, nextTick, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import { CheckCircleOutlined, ClockCircleOutlined, EditOutlined, LeftOutlined, QuestionCircleOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { CheckOutlined, ClockCircleOutlined, EditOutlined, LeftOutlined, PlayCircleOutlined, QuestionCircleOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
@@ -120,10 +120,10 @@ function buildTreeNodes(nodes: FlowNode[] | undefined): TreeItem[] {
 
 function resolveNodeStatusStyle(statusRaw: unknown) {
   const status = String(statusRaw ?? '').trim();
-  if (status.includes('未开始')) return { color: '#999999', icon: ClockCircleOutlined };
+  if (status.includes('未开始')) return { color: '#999999', icon: PlayCircleOutlined };
   if (status.includes('进行中') || status.includes('设计中')) return { color: '#faad14', icon: EditOutlined };
-  if (status.includes('待确认')) return { color: '#fa8c16', icon: QuestionCircleOutlined };
-  if (status.includes('已完成')) return { color: '#52c41a', icon: CheckCircleOutlined };
+  if (status.includes('待确认')) return { color: '#722ed1', icon: ClockCircleOutlined };
+  if (status.includes('已完成')) return { color: '#52c41a', icon: CheckOutlined };
   return null;
 }
 
@@ -131,10 +131,17 @@ function renderNodeTitle(item: FlowNode) {
   const name = String(item.nodeName ?? '未命名活动');
   const style = resolveNodeStatusStyle(item.nodeStatus);
   if (!style) return name;
-  return h('span', { class: 'workspace-tree-node-title', style: { color: style.color } }, [
+  return h(
+    'span',
+    {
+      class: 'workspace-tree-node-title',
+      style: { color: style.color },
+    },
+    [
     h(style.icon, { style: { marginRight: '6px', color: style.color, fontSize: '13px' } }),
     h('span', null, name),
-  ]);
+    ],
+  );
 }
 
 function flattenFlowNodes(nodes: FlowNode[] | undefined): FlowNode[] {
@@ -159,7 +166,7 @@ function resolveRootStatusByChildren(nodes: FlowNode[] | undefined): '进行中'
 
 function renderRootTitle(name: string, nodes: FlowNode[] | undefined) {
   const status = resolveRootStatusByChildren(nodes);
-  const style = status === '已完成' ? { color: '#52c41a', icon: CheckCircleOutlined } : { color: '#1890ff', icon: EditOutlined };
+  const style = status === '已完成' ? { color: '#52c41a', icon: CheckOutlined } : { color: '#1890ff', icon: EditOutlined };
   return h('span', { class: 'workspace-tree-node-title workspace-tree-node-title--root', style: { color: style.color } }, [
     h(style.icon, { style: { marginRight: '6px', color: style.color, fontSize: '13px' } }),
     h('span', null, name),

@@ -951,6 +951,9 @@ function getPreviewTableCellValue(item: any, componentIndex: number, bodyRow: nu
   return '';
 }
 function isPreviewTableCellReadonly(item: any, bodyRow: number, col: number): boolean {
+  // MODULE_LIB_READ 的“模型件号/模型名称”列在预览态中不允许编辑：只读置灰
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  if (biz === 'MODULE_LIB_READ' && (col === 2 || col === 3)) return true;
   const inherit = getTableCellInheritConfig(item, bodyRow, col);
   return !!inherit && (inherit.inheritType === 'FROM_PARAM' || inherit.inheritType === 'FIXED');
 }

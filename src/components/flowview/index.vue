@@ -77,7 +77,7 @@ const resolveNodeStatusColor = statusRaw => {
   const status = String(statusRaw ?? '').trim();
   if (status.includes('已完成')) return { fill: '#f6ffed', stroke: '#52c41a' };
   if (status.includes('进行中') || status.includes('设计中')) return { fill: '#fffbe6', stroke: '#faad14' };
-  if (status.includes('待确认')) return { fill: '#fff7e6', stroke: '#fa8c16' };
+  if (status.includes('待确认')) return { fill: '#f5f0ff', stroke: '#722ed1' };
   if (status.includes('未开始')) return { fill: '#fafafa', stroke: '#999999' };
   return null;
 };
