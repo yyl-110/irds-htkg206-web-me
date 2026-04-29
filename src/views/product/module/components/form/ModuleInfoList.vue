@@ -23,6 +23,10 @@ import { openDrawingInfoNew, openModuleInfoNew,assembleModuleInfoNew } from '@/l
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
+import moduleIcon1 from '@/assets/images/module1.png';
+import moduleIcon2 from '@/assets/images/module2.png';
+import moduleIcon3 from '@/assets/images/module3.png';
+import moduleIcon4 from '@/assets/images/module4.png';
 
 defineProps({
   /** 反馈详情 id */
@@ -401,7 +405,7 @@ async function modalInit() {
       dataIndex: 'operation',
       key: 'operation',
       align: 'center',
-      width: 168,
+      width: 180,
       fixed: 'right',
       resizable: false,
       ellipsis: false,
@@ -1460,16 +1464,16 @@ defineExpose({ initData, selectAllModuleInfo });
             <template v-else-if="column.dataIndex === 'operation'">
               <div class="model-vxe-op-icons" @click.stop>
                 <a-tooltip title="打开模型" placement="topLeft">
-                  <EpcIcon class="act-btns" type="icon-folder-opened" @click="openMx([record])" />
+                  <img class="act-btns" :src="moduleIcon1" alt="打开模型" @click="openMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="装配模型" placement="topLeft">
-                  <EpcIcon class="act-btns" style="font-size: 17px" type="icon-element-plus" @click="fitoutMx([record])" />
+                  <img class="act-btns" style="width: 28px; " :src="moduleIcon2" alt="装配模型" @click="fitoutMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="打开二维图" placement="topLeft">
-                  <EpcIcon class="act-btns" type="icon-picture" @click="openEwt([record])" />
+                  <img class="act-btns" style="width: 28px; " :src="moduleIcon3" alt="打开二维图" @click="openEwt([record])" />
                 </a-tooltip>
                 <a-tooltip title="参数化设计" placement="topLeft">
-                  <EpcIcon class="act-btns" type="icon-a-3Dbeifen" @click="argsMx([record])" />
+                  <img class="act-btns" :src="moduleIcon4" alt="参数化设计" @click="argsMx([record])" />
                 </a-tooltip>
               </div>
             </template>
@@ -1902,10 +1906,10 @@ defineExpose({ initData, selectAllModuleInfo });
 .model-vxe-op-icons {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   width: 100%;
-  row-gap: 6px;
+  row-gap: 0;
   column-gap: 0;
 
   > * {
@@ -1913,7 +1917,7 @@ defineExpose({ initData, selectAllModuleInfo });
     display: inline-flex;
     align-items: center;
     margin: 0;
-    padding: 2px @model-vxe-op-line-gap;
+    padding: 2px 6px;
     line-height: inherit;
     font-size: inherit;
     border: none;
@@ -1942,14 +1946,21 @@ defineExpose({ initData, selectAllModuleInfo });
   }
 
   .act-btns {
-    font-size: 15px;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
     cursor: pointer;
 
     &:hover {
-      color: #0d53e2;
       transform: translateY(-2px);
       transition: all 0.3s ease;
     }
+  }
+
+  .act-btns--mid-1,
+  .act-btns--mid-2 {
+    width: 24px;
+    height: 24px;
   }
 }
 
