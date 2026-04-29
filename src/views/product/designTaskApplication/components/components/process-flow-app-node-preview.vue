@@ -3,7 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { message } from 'ant-design-vue';
-import { ExclamationCircleOutlined, InboxOutlined } from '@ant-design/icons-vue';
+import { ExclamationCircleOutlined, EyeOutlined, InboxOutlined } from '@ant-design/icons-vue';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { useUserStore } from '@/store/modules/user';
@@ -12,6 +12,9 @@ import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台�
 import { openModuleInfoNew, assembleModuleInfoNew, openDrawingInfoNew } from '@/libs/webSocketNew';
 import { downloadFileFromStream } from '@/utils/file';
 import * as XLSX from 'xlsx';
+import moduleIcon1 from '@/assets/images/module1.png';
+import moduleIcon2 from '@/assets/images/module2.png';
+import moduleIcon3 from '@/assets/images/module3.png';
 
 const props = defineProps<{
   componentsJson?: Record<string, any> | null;
@@ -759,12 +762,18 @@ function getWorkspaceTableOperationButtons(item: any) {
   if (biz === 'BASIC_RESOURCE_LIB_READ') return ['浏览'];
   if (biz === 'MODULE_LIB_READ') {
     const buttons = ['浏览'];
-    if (p.btnOpenDrawing) buttons.push('打开图纸');
     if (p.btnOpenModel) buttons.push('打开模型');
     if (p.btnAssembleModel) buttons.push('装配模型');
+    if (p.btnOpenDrawing) buttons.push('打开图纸');
     return buttons;
   }
   return [];
+}
+function getWorkspaceTableOperationIcon(btn: string) {
+  if (btn === '打开模型') return moduleIcon1;
+  if (btn === '装配模型') return moduleIcon2;
+  if (btn === '打开图纸') return moduleIcon3;
+  return '';
 }
 function getFixedTableHeaderLabel(item: any, colIndex: number) {
   if (isWorkspaceTableOperationColumn(item, colIndex)) return '操作';
@@ -798,7 +807,11 @@ function getFixedTableColumnPreviewStyle(item: any, colIndex: number) {
     if (biz === 'FILE_COLLAB') {
       return { width: '216px', minWidth: '216px' } as Record<string, string>;
     }
-    if (biz === 'FILE_COLLAB_SIMPLE' || biz === 'MODULE_LIB_READ') {
+    if (biz === 'MODULE_LIB_READ') {
+      // 操作列按最多 4 个图标展示宽度收敛，避免占用过多表格空间
+      return { width: '112px', minWidth: '112px' } as Record<string, string>;
+    }
+    if (biz === 'FILE_COLLAB_SIMPLE') {
       const n = getWorkspaceTableOperationButtons(item).length;
       const w = Math.min(300, Math.max(88, 58 * n + 36));
       return { width: `${w}px`, minWidth: `${w}px` } as Record<string, string>;
@@ -1917,15 +1930,30 @@ defineExpose({
                       <template v-if="c === 1 && String(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</template>
                       <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
                         <div class="fixed-table-cell-op-btns">
-                          <a
-                            v-for="btn in getWorkspaceTableOperationButtons(item)"
-                            :key="`preview-table-op-${index}-${r}-${btn}`"
-                            href="javascript:void(0)"
-                            class="fixed-table-cell-op-link"
-                            :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }"
-                            @click.prevent="onPreviewTableOpClick(btn, item, index, r)">
-                            {{ btn }}
-                          </a>
+                          <template v-for="btn in getWorkspaceTableOperationButtons(item)" :key="`preview-table-op-${index}-${r}-${btn}`">
+                            <a-tooltip v-if="btn === '浏览'" :title="btn" placement="topLeft">
+                              <EyeOutlined
+                                class="fixed-table-cell-op-glyph"
+                                :class="{ 'fixed-table-cell-op-glyph--disabled': isOutputIoType(item) }"
+                                @click="!isOutputIoType(item) && onPreviewTableOpClick(btn, item, index, r)" />
+                            </a-tooltip>
+                            <a-tooltip v-else-if="getWorkspaceTableOperationIcon(btn)" :title="btn" placement="topLeft">
+                              <img
+                                class="fixed-table-cell-op-icon"
+                                :src="getWorkspaceTableOperationIcon(btn)"
+                                :alt="btn"
+                                :class="{ 'fixed-table-cell-op-icon--disabled': isOutputIoType(item) }"
+                                @click="!isOutputIoType(item) && onPreviewTableOpClick(btn, item, index, r)" />
+                            </a-tooltip>
+                            <a
+                              v-else
+                              href="javascript:void(0)"
+                              class="fixed-table-cell-op-link"
+                              :class="{ 'fixed-table-cell-op-link--disabled': isOutputIoType(item) }"
+                              @click.prevent="onPreviewTableOpClick(btn, item, index, r)">
+                              {{ btn }}
+                            </a>
+                          </template>
                         </div>
                       </template>
                       <a-input
@@ -1952,7 +1980,7 @@ defineExpose({
                     placeholder="请选择参数"
                     disabled
                     class="template-browse-3d-input template-browse-3d-input--grey" />
-                  <a-button type="primary" size="small" class="template-browse-3d-action-btn" @click="showModuleInfo(item, index, 'templateBrowse')">浏览</a-button>
+                  <a-button type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'templateBrowse')">浏览</a-button>
                 </div>
               </div>
               <div class="template-browse-3d-group">
@@ -2025,7 +2053,7 @@ defineExpose({
                 placeholder="请输入"
                 disabled
                 class="template-browse-3d-input template-browse-3d-input--grey" />
-              <a-button type="primary" size="small" class="template-browse-3d-action-btn" @click="showModuleInfo(item, index, 'modelSelectBrowse')">浏览</a-button>
+              <a-button type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'modelSelectBrowse')">浏览</a-button>
               <a-button
                 v-for="btn in getModelSelectPreviewButtons(item)"
                 :key="`preview-model-select-btn-${btn}`"
@@ -2288,6 +2316,26 @@ defineExpose({
   cursor: not-allowed;
   text-decoration-color: rgba(0, 0, 0, 0.25);
 }
+.fixed-table-cell-op-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  cursor: pointer;
+}
+.fixed-table-cell-op-icon--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.fixed-table-cell-op-glyph {
+  font-size: 16px;
+  color: #1677ff;
+  cursor: pointer;
+  line-height: 1;
+}
+.fixed-table-cell-op-glyph--disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
+}
 .template-browse-3d-preview,
 .model-select-3d-preview {
   width: 100%;
@@ -2338,6 +2386,9 @@ defineExpose({
   height: 32px;
   padding: 0 10px;
   border-radius: 4px;
+}
+.template-browse-3d-browse-btn {
+  min-width: 88px;
 }
 .three-d-preview-btn-grid {
   display: flex;

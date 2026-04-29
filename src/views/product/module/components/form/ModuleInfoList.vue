@@ -18,8 +18,8 @@ import Empty from '@/components/Empty/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { handleEpcDownload } from '@/utils/file';
- 
-import { openDrawingInfoNew, openModuleInfoNew,assembleModuleInfoNew } from '@/libs/webSocketNew';
+
+import { openDrawingInfoNew, openModuleInfoNew, assembleModuleInfoNew } from '@/libs/webSocketNew';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
@@ -93,7 +93,7 @@ const dataSource = ref<any>([]);
 
 const selectedRowkeys = ref<any[]>([]);
 type ModuleSortOrder = 'ascend' | 'descend' | '';
-const sortState = ref<{ key: string, order: ModuleSortOrder }>({ key: '', order: '' });
+const sortState = ref<{ key: string; order: ModuleSortOrder }>({ key: '', order: '' });
 /** 表头筛选：与 exeConfigTab 一致，仅前三列数据列可筛（当前页数据） */
 const moduleFilterableColumnKeys = ref<string[]>([]);
 const moduleTableColumnFilter = ref<Record<string, string>>({});
@@ -115,16 +115,14 @@ const moduleTableDisplayList = computed(() => {
     const filterValue = String(moduleTableColumnFilter.value[key] ?? '')
       .trim()
       .toLowerCase();
-    if (!filterValue)
-      return;
+    if (!filterValue) return;
     list = list.filter((item: any) =>
       String(item?.[key] ?? '')
         .toLowerCase()
         .includes(filterValue),
     );
   });
-  if (!sortState.value.key || !sortState.value.order)
-    return list;
+  if (!sortState.value.key || !sortState.value.order) return list;
   const key = sortState.value.key;
   const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
   return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
@@ -386,8 +384,7 @@ async function modalInit() {
           col.fixed = 'left';
           col.resizable = moduleDataColIndex !== 0;
         }
-        if (moduleDataColIndex < 3)
-          filterKeys.push(String(dataKey));
+        if (moduleDataColIndex < 3) filterKeys.push(String(dataKey));
         (col as any).metaId = resData[i].id;
         parm.push(col);
         moduleDataColIndex++;
@@ -411,8 +408,7 @@ async function modalInit() {
       ellipsis: false,
     });
     columns.value = parm;
-  }
-  else {
+  } else {
     moduleFilterableColumnKeys.value = [];
     moduleTableColumnFilter.value = {};
     moduleTableFilterOpenMap.value = {};
@@ -1411,10 +1407,7 @@ defineExpose({ initData, selectAllModuleInfo });
             </template>
             <template v-else>
               <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isModuleFilterableColumn(column) }">
-                <span
-                  class="header-title-sort"
-                  :class="{ 'header-title-sort--disabled': !isSortableModuleColumn(column) }"
-                  @click.stop="toggleModuleColumnSort(column)">
+                <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableModuleColumn(column) }" @click.stop="toggleModuleColumnSort(column)">
                   <span>{{ column.title }}</span>
                   <span v-if="isSortableModuleColumn(column)" class="header-sort-icon">
                     <CaretUpOutlined v-if="getModuleSortOrder(String(column.dataIndex)) === 'ascend'" />
@@ -1430,10 +1423,7 @@ defineExpose({ initData, selectAllModuleInfo });
                     @openChange="handleModuleFilterOpenChange(String(column.dataIndex), $event)">
                     <template #content>
                       <div class="header-filter-pop">
-                        <a-input
-                          v-model:value="moduleTableColumnFilter[String(column.dataIndex)]"
-                          :placeholder="`搜索 ${column.title}`"
-                          allow-clear />
+                        <a-input v-model:value="moduleTableColumnFilter[String(column.dataIndex)]" :placeholder="`搜索 ${column.title}`" allow-clear />
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyModuleColumnFilter(String(column.dataIndex))">
                             <SearchOutlined />
@@ -1467,10 +1457,10 @@ defineExpose({ initData, selectAllModuleInfo });
                   <img class="act-btns" :src="moduleIcon1" alt="打开模型" @click="openMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="装配模型" placement="topLeft">
-                  <img class="act-btns" style="width: 28px; " :src="moduleIcon2" alt="装配模型" @click="fitoutMx([record])" />
+                  <img class="act-btns" style="width: 28px" :src="moduleIcon2" alt="装配模型" @click="fitoutMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="打开二维图" placement="topLeft">
-                  <img class="act-btns" style="width: 28px; " :src="moduleIcon3" alt="打开二维图" @click="openEwt([record])" />
+                  <img class="act-btns" style="width: 28px" :src="moduleIcon3" alt="打开二维图" @click="openEwt([record])" />
                 </a-tooltip>
                 <a-tooltip title="参数化设计" placement="topLeft">
                   <img class="act-btns" :src="moduleIcon4" alt="参数化设计" @click="argsMx([record])" />
@@ -1581,13 +1571,7 @@ defineExpose({ initData, selectAllModuleInfo });
       </a-checkbox-group>
     </div>
 
-    <a-table
-      ref="elementTable"
-      :scroll="{ x: 'max-content' }"
-      :pagination="false"
-      :columns="tabularColumn"
-      :data-source="tabularData"
-      :row-class-name="setFixedRowClass" />
+    <a-table ref="elementTable" :scroll="{ x: 'max-content' }" :pagination="false" :columns="tabularColumn" :data-source="tabularData" :row-class-name="setFixedRowClass" />
     <template #footer>
       <a-button type="primary" @click="handlefileSave"> 确定 </a-button>
       <a-button type="text" @click="tabularflag = false"> 取消 </a-button>
@@ -1601,13 +1585,7 @@ defineExpose({ initData, selectAllModuleInfo });
     @template-download="templateDownload"
     @import-successful-fun="importSuccessfulFun"
     @close="batchflag = false" />
-  <a-drawer
-    v-model:visible="pageFlagDrawer"
-    class="module-detail-drawer"
-    title="模块详情"
-    placement="right"
-    :closable="false"
-    width="800">
+  <a-drawer v-model:visible="pageFlagDrawer" class="module-detail-drawer" title="模块详情" placement="right" :closable="false" width="800">
     <!--    详情页面 -->
     <div class="dalIconList2" style="margin-top: 0">
       <div :class="{ seDalIcon: parmType == 0, dalIcon: parmType != 0 }" @click="toParm(0)">

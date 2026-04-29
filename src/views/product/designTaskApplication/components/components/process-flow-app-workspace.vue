@@ -77,6 +77,7 @@ const saveFlowLoading = ref(false);
 const submitFlowLoading = ref(false);
 const finishFlowLoading = ref(false);
 const toolbarActionLoadingIndex = ref<number | null>(null);
+const hasUnsavedChanges = ref(true);
 const nodePreviewRef = ref<any>(null);
 const checkNodePreviewRef = ref<any>(null);
 const activityKnowledgeList = ref<any[]>([]);
@@ -712,6 +713,12 @@ async function requestNodeDetailByKey(key: string) {
   } catch {
     // task-param-map 失败不阻断节点详情展示
   }
+  hasUnsavedChanges.value = false;
+}
+
+function onPreviewContentMutated() {
+  if (nodeDetailLoading.value || isRootNodeSelected.value || isCurrentNodeNotStarted.value) return;
+  hasUnsavedChanges.value = true;
 }
 
 async function onParamTitleClick(payload: { paramNum?: string; paramName?: string } | null | undefined) {
@@ -897,6 +904,7 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
     const res = await AdminApiSystemProcessTask.saveParams(data);
     const code = res?.data?.code;
     if (code === 0 || code === 200 || code === '0' || code === '200') {
+      hasUnsavedChanges.value = false;
       message.success(options?.successMessage || '保存成功');
       return true;
     }
@@ -1205,7 +1213,7 @@ onMounted(() => {
           </div>
           <a-spin v-else :spinning="nodeDetailLoading" class="workspace-center-spin">
             <div class="workspace-preview-scroll-row">
-              <div class="workspace-preview-main">
+              <div class="workspace-preview-main" @input.capture="onPreviewContentMutated" @change.capture="onPreviewContentMutated">
                 <ProcessFlowAppCheckNodePreview
                   v-if="isCalcNodePreview"
                   ref="checkNodePreviewRef"
@@ -1235,7 +1243,7 @@ onMounted(() => {
           <a-button
             type="primary"
             :loading="saveFlowLoading"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
+            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null || !hasUnsavedChanges"
             @click="saveFlowInfo"
             ><EpcIcon type="icon-baocun" style="font-size: 12px" />保 存</a-button
           >
