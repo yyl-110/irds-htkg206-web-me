@@ -7,6 +7,8 @@ import { EyeOutlined, MessageOutlined, StarOutlined, StarFilled, ShareAltOutline
 import { message } from 'ant-design-vue';
 import shareCell from '@/views/knowledge/components/share.vue';
 import HttpRequestConfig from '@/httpRequest/config';
+import { downloadFileFromStream } from '@/utils/file';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 
 const router = useRouter();
 
@@ -108,8 +110,15 @@ const closeShare = () => {
 };
 
 //下载
-const download = () => {
-  window.location.href = import.meta.env.VITE_BASE_HTMLPREVIEW_URL + '/base-service/fileManagerController/download.json?fileId=' + props.textData.fileId;
+const download = async () => {
+  // window.location.href = import.meta.env.VITE_BASE_HTMLPREVIEW_URL + '/base-service/fileManagerController/download.json?fileId=' + props.textData.fileId;
+  const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: props.textData.fileId } as any);
+  //根据fileID查找文件信息
+  const fileInfo = await AdminApiSystemUploadFile.getFileByIds({ fileIds: props.textData.fileId } as any);
+  console.log('fileInfo:', fileInfo);
+  const stream = (res as any)?.data !== undefined ? (res as any).data : res;
+    console.log('res:',res)
+    downloadFileFromStream(stream, fileInfo.data[0].oldFileName || '知识文件.doc');
 };
 
 const deleteData = async () => {

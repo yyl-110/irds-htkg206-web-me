@@ -395,4 +395,25 @@ export class AdminApiSystemUploadFile {
       },
       CommonResultFileUploadResponseDTOModel,
     );
+
+  /** 根据文件ID集合获取文件信息 */
+  static getFileByIds = <
+    Req extends {
+      fileIds?: string[] | string;
+    } = {
+      fileIds?: string[] | string;
+    },
+  >(
+    data: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<FileUploadResponseDTOModel[], any>(
+      {
+        path: `system-service/fileManagerController/getFileByIds`,
+        method: 'GET',
+        query: data,
+        secure: true,
+        ...params,
+      },
+    );
 }

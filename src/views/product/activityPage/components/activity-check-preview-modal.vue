@@ -491,7 +491,7 @@ function handle3dPreviewButtonClick(btn: string, item: any, index: number) {
     return;
   }
   if (text === '打开模型' || text === '生成模型') {
-    message.info('打开模型（示例）');
+    message.info('打开模型（示例）3');
     return;
   }
   if (text === '装配模型') {

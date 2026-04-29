@@ -9,6 +9,7 @@ import ModuleLibraryPickerModal from '../../../activityPage/components/module-li
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
+import { openModuleInfoNew, assembleModuleInfoNew, openDrawingInfoNew } from '@/libs/webSocketNew';
 import { downloadFileFromStream } from '@/utils/file';
 import * as XLSX from 'xlsx';
 
@@ -454,7 +455,8 @@ function handle3dPreviewButtonClick(btn: string, item: any, index: number) {
     return;
   }
   if (text === '打开模型' || text === '生成模型') {
-    message.info('打开模型（示例）');
+
+    alert(JSON.stringify(item));
     return;
   }
   if (text === '装配模型') {
@@ -978,7 +980,42 @@ function onPreviewTableOpClick(btn: string, item: any, componentIndex: number, b
     showModuleTableBrowse(item, componentIndex, bodyRow);
     return;
   }
-  message.info(`${t}（示例）`);
+  if (t === '打开模型' || t === '生成模型') {
+    const modelPartNo = String(getPreviewTableCellValue(item, componentIndex, bodyRow, 2) ?? '').trim();
+    if (!modelPartNo) {
+      message.warning('当前行模型件号为空');
+      return;
+    }
+    const dotIndex = modelPartNo.lastIndexOf('.');
+    const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
+    const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
+    void openModuleInfoNew(modelNum, modelType, '', '', '');
+    return;
+  }
+  if (t === '装配模型') {
+    const modelPartNo = String(getPreviewTableCellValue(item, componentIndex, bodyRow, 2) ?? '').trim();
+    if (!modelPartNo) {
+      message.warning('当前行模型件号为空');
+      return;
+    }
+    const dotIndex = modelPartNo.lastIndexOf('.');
+    const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
+    const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
+    void assembleModuleInfoNew(modelNum, modelType, '','', '', '');
+    return;
+  }
+  if (t === '打开图纸') {
+    const modelPartNo = String(getPreviewTableCellValue(item, componentIndex, bodyRow, 2) ?? '').trim();
+    if (!modelPartNo) {
+      message.warning('当前行模型件号为空');
+      return;
+    }
+    const dotIndex = modelPartNo.lastIndexOf('.');
+    const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
+    void openDrawingInfoNew(modelNum);
+    return;
+  }
+  
 }
 async function downloadFileCollabRow(item: any, componentIndex: number, bodyRow: number) {
   const rowKey = getFileCollabRowKey(item, componentIndex, bodyRow);

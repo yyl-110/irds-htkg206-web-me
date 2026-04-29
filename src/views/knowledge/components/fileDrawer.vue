@@ -24,6 +24,8 @@ import shareCell from "./share.vue";
 import comment from "@/components/Comment/index.vue";
 import Video from "./videoImg.vue";
 import { useUserStore } from "@/store/modules/user";
+import { downloadFileFromStream } from '@/utils/file';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 
 const router = useRouter();
 interface IOpenParams {
@@ -194,9 +196,12 @@ const followFun = (item) => {
 };
 
 // 下载
-const downFun = (item) => {
-  window.location.href = `${import.meta.env.VITE_BASE_PREVIEW_URL
-    }/base-server/fileManagerController/download.json?fileId=${item.fileId}`;
+const downFun = async (item :any) => {
+  // window.location.href = `${import.meta.env.VITE_BASE_PREVIEW_URL
+  //   }/base-server/fileManagerController/download.json?fileId=${item.fileId}`;
+  const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: item.fileId } as any);
+    const stream = (res as any)?.data !== undefined ? (res as any).data : res;
+    downloadFileFromStream(stream, item.oldFileName);
 };
 
 const getVideoHide = (val) => {
