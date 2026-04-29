@@ -16,6 +16,7 @@ import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/Produ
 import { useUserStore } from '@/store/modules/user';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import ExeConfigTab from './components/exeConfigTab.vue';
+import ProcessFlowListPanel from './components/process-check-flow-list-panel.vue';
 // 树结构相关属性
 const treeData = ref<any[]>([]);
 const selectedKeys = ref<string>('');
@@ -479,16 +480,8 @@ function showShareModal(record: any) {
   shareModalVisible.value = true;
 }
 
-const {
-  leftTreeCollapsed,
-  leftTreePaneSize,
-  rightTreePaneSize,
-  minExpanded,
-  onSplitpanesResized,
-  toggleLeftTreePanel,
-  splitToggleStyle,
-  splitpanesTreeCollapseWrapClass,
-} = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } =
+  useSplitpanesTreeCollapse();
 
 /** 右侧计算配置页签：excel / matlab / exe */
 const calcConfigActiveKey = ref('excel');
@@ -501,64 +494,58 @@ function handleExeAction(action: string) {
 <template>
   <div class="drawerContent h-full">
     <div :class="splitpanesTreeCollapseWrapClass">
-    <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
-      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
-        <a-spin :spinning="loadingTree" tip="加载中...">
-          <Tree
-            ref="treePage"
-            :operate-flag="true"
-            :tree-data="treeData"
-            bomType="unBom"
-            :selected-keys="selectedKeys"
-            :expanded-keys="expandedKeys"
-            @select-node="selectNode"
-            @up-Node="upNode"
-            @down-Node="downNode"
-            @get-node-update-data="getNodeUpdateData"
-            @get-node-add-data="getNodeAddData"
-            @delete-tree-node="deleteTreeNode"
-            @submit="submitTreeData"
-            @select-Boom-Tree="selectBoomTree"
-            @edit="editTreeData"
-            @reload-tree="reloadTree"
-            @change-select-key="handleChangeSelectKey" />
-        </a-spin>
-      </Pane>
+      <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
+        <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
+          <a-spin :spinning="loadingTree" tip="加载中...">
+            <Tree
+              ref="treePage"
+              :operate-flag="true"
+              :tree-data="treeData"
+              bomType="unBom"
+              :selected-keys="selectedKeys"
+              :expanded-keys="expandedKeys"
+              @select-node="selectNode"
+              @up-Node="upNode"
+              @down-Node="downNode"
+              @get-node-update-data="getNodeUpdateData"
+              @get-node-add-data="getNodeAddData"
+              @delete-tree-node="deleteTreeNode"
+              @submit="submitTreeData"
+              @select-Boom-Tree="selectBoomTree"
+              @edit="editTreeData"
+              @reload-tree="reloadTree"
+              @change-select-key="handleChangeSelectKey" />
+          </a-spin>
+        </Pane>
 
-      <!-- 右侧内容区域 -->
-      <Pane class="splitpane-cls splitpane-cls--right" :size="rightTreePaneSize">
-        <a-card :bordered="false" class="calc-config-card">
-          <a-tabs v-model:activeKey="calcConfigActiveKey" class="calc-config-tabs">
-            <a-tab-pane key="excel">
-              <template #tab>excel计算配置</template>
-              <div class="calc-config-pane" />
-            </a-tab-pane>
-            <a-tab-pane key="matlab">
-              <template #tab>matlab计算配置</template>
-              <div class="calc-config-pane" />
-            </a-tab-pane>
-            <a-tab-pane key="exe">
-              <template #tab>exe计算配置</template>
-              <ExeConfigTab
-                :tree-id="String(selectNodeKeys || selectedKeys || '')"
-                :current-node-name="currentNode?.partName"
-                @action="handleExeAction" />
-            </a-tab-pane>
-          </a-tabs>
-        </a-card>
-      </Pane>
-    </Splitpanes>
-    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-      <button
-        type="button"
-        class="splitpanes-tree-collapse-wrap__toggle"
-        :style="splitToggleStyle"
-        @click="toggleLeftTreePanel"
-        @mousedown.stop>
-        <LeftOutlined v-if="!leftTreeCollapsed" />
-        <RightOutlined v-else />
-      </button>
-    </Tooltip>
+        <!-- 右侧内容区域 -->
+        <Pane class="splitpane-cls splitpane-cls--right" :size="rightTreePaneSize">
+          <a-card :bordered="false" class="calc-config-card">
+            <a-tabs v-model:activeKey="calcConfigActiveKey" class="calc-config-tabs">
+              <a-tab-pane key="excel">
+                <template #tab>excel计算配置</template>
+                <div class="calc-config-pane">
+                  <ProcessFlowListPanel :tree-node-key="selectNodeKeys || selectedKeys" />
+                </div>
+              </a-tab-pane>
+              <a-tab-pane key="matlab">
+                <template #tab>matlab计算配置</template>
+                <div class="calc-config-pane" />
+              </a-tab-pane>
+              <a-tab-pane key="exe">
+                <template #tab>exe计算配置</template>
+                <ExeConfigTab :tree-id="String(selectNodeKeys || selectedKeys || '')" :current-node-name="currentNode?.partName" @action="handleExeAction" />
+              </a-tab-pane>
+            </a-tabs>
+          </a-card>
+        </Pane>
+      </Splitpanes>
+      <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+        <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="splitToggleStyle" @click="toggleLeftTreePanel" @mousedown.stop>
+          <LeftOutlined v-if="!leftTreeCollapsed" />
+          <RightOutlined v-else />
+        </button>
+      </Tooltip>
     </div>
 
     <!-- 其他弹窗/组件 -->

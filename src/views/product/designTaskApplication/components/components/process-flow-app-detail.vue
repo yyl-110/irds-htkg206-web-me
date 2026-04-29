@@ -23,14 +23,18 @@ const createForm = ref({
 });
 
 const pageTitle = computed(() => String(detailData.value?.processName ?? detailData.value?.categoryName ?? '设计任务应用'));
-const tableColumns = [
-  { title: '独立应用编号', dataIndex: 'appCode', key: 'appCode' },
-  { title: '独立应用名称', dataIndex: 'appName', key: 'appName' },
+const isCheckEntry = computed(() => String(route.query.entry ?? '').trim() === 'check');
+const appCodeLabel = computed(() => (isCheckEntry.value ? '计算应用编号' : '独立应用编号'));
+const appNameLabel = computed(() => (isCheckEntry.value ? '计算应用名称' : '独立应用名称'));
+const createActionLabel = computed(() => (isCheckEntry.value ? '创建计算' : '创建流程'));
+const tableColumns = computed(() => [
+  { title: appCodeLabel.value, dataIndex: 'appCode', key: 'appCode' },
+  { title: appNameLabel.value, dataIndex: 'appName', key: 'appName' },
   { title: '创建人', dataIndex: 'creatorName', key: 'creatorName' },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
   { title: '状态', key: 'status' },
   { title: '操作', key: 'action' },
-];
+]);
 
 function loadDetailData() {
   const cacheKey = String(route.query.cacheKey ?? '');
@@ -81,11 +85,11 @@ async function confirmCreateFlow() {
   const appCode = String(createForm.value.appCode ?? '').trim();
   const appName = String(createForm.value.appName ?? '').trim();
   if (!appCode) {
-    message.warning('请输入独立应用编号');
+    message.warning(`请输入${appCodeLabel.value}`);
     return;
   }
   if (!appName) {
-    message.warning('请输入独立应用名称');
+    message.warning(`请输入${appNameLabel.value}`);
     return;
   }
   createFlowLoading.value = true;
@@ -99,14 +103,14 @@ async function confirmCreateFlow() {
     const res = await AdminApiSystemProcessTask.createApp(payload);
     const code = res?.data?.code;
     if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
-      message.error(String(res?.data?.msg ?? '创建流程失败'));
+      message.error(String(res?.data?.msg ?? `${createActionLabel.value}失败`));
       return;
     }
-    message.success('创建流程成功');
+    message.success(`${createActionLabel.value}成功`);
     createFlowModalVisible.value = false;
     await loadAppList();
   } catch (e) {
-    message.error('创建流程失败');
+    message.error(`${createActionLabel.value}失败`);
   } finally {
     createFlowLoading.value = false;
   }
@@ -161,10 +165,10 @@ void loadAppList();
 <template>
   <div class="detail-page">
     <div class="detail-page__toolbar">
-      <a-input v-model:value="queryAppCode" placeholder="请输入独立应用编号" allow-clear class="detail-page__search" />
-      <a-input v-model:value="queryAppName" placeholder="请输入独立应用名称" allow-clear class="detail-page__search" />
+      <a-input v-model:value="queryAppCode" :placeholder="`请输入${appCodeLabel}`" allow-clear class="detail-page__search" />
+      <a-input v-model:value="queryAppName" :placeholder="`请输入${appNameLabel}`" allow-clear class="detail-page__search" />
       <a-button type="primary" @click="loadAppList">查询</a-button>
-      <a-button type="primary" @click="openCreateModal"><EpcIcon type="icon-tianjia1" style="font-size: 12px" />创建流程</a-button>
+      <a-button type="primary" @click="openCreateModal"><EpcIcon type="icon-tianjia1" style="font-size: 12px" />{{ createActionLabel }}</a-button>
       <a-button @click="goBack"><EpcIcon type="icon-fanhui" style="font-size: 12px" />返回</a-button>
     </div>
     <a-table :columns="tableColumns" :data-source="appList" :loading="listLoading" row-key="appId" :pagination="false" bordered>
@@ -177,18 +181,18 @@ void loadAppList();
         </template>
       </template>
     </a-table>
-    <a-modal v-model:visible="createFlowModalVisible" title="创建流程" :confirm-loading="createFlowLoading" @ok="confirmCreateFlow" @cancel="createFlowModalVisible = false">
+    <a-modal v-model:visible="createFlowModalVisible" :title="createActionLabel" :confirm-loading="createFlowLoading" @ok="confirmCreateFlow" @cancel="createFlowModalVisible = false">
       <div class="create-flow-form">
         <div class="create-flow-form__row">
-          <span class="create-flow-form__label">独立应用编号:</span>
+          <span class="create-flow-form__label">{{ appCodeLabel }}:</span>
           <div class="create-flow-form__code-input-wrap">
             <a-input v-model:value="createForm.appCode" placeholder="请点击申请编号" disabled />
           </div>
           <a-button class="create-flow-form__apply-btn" type="primary" @click="applyAppCode"><EpcIcon type="icon-tianjia1" style="font-size: 12px" />申请编号</a-button>
         </div>
         <div class="create-flow-form__row">
-          <span class="create-flow-form__label">独立应用名称:</span>
-          <a-input v-model:value="createForm.appName" placeholder="请输入独立应用名称" />
+          <span class="create-flow-form__label">{{ appNameLabel }}:</span>
+          <a-input v-model:value="createForm.appName" :placeholder="`请输入${appNameLabel}`" />
         </div>
         <div class="create-flow-form__row">
           <span class="create-flow-form__label">密级:</span>

@@ -153,15 +153,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     width: 120,
   },
   {
-    title: '发布协同',
-    dataIndex: 'collabStatus',
-    key: 'collabStatus',
-    align: 'center',
-    resizable: true,
-    width: 120,
-  },
-  {
-    title: '独立应用',
+    title: '计算应用',
     dataIndex: 'appStatus',
     key: 'appStatus',
     align: 'center',
@@ -189,7 +181,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'left',
-    width: 260,
+    width: 250,
     fixed: 'right',
     resizable: false,
   },
@@ -294,7 +286,7 @@ async function loadFlowListData() {
   try {
     requestParams.menuId = props.menuId ?? '';
     requestParams.treeId = props.treeNodeKey ?? '';
-    requestParams.releaseType = 1;
+    requestParams.releaseType = 2;
     const res = await AdminApiSystemProcessTask.taskBasicInfoPage(requestParams);
     console.log('loadFlowListData res:', res);
     tableData.value = Array.isArray(res.data.data.list) ? res.data.data.list : [];
@@ -332,10 +324,10 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   try {
     if (isPublished) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '撤回发布协同成功' : '撤回发布独立应用成功');
+      message.success(publishType === 'COLLAB' ? '撤回发布协同成功' : '撤回发布计算应用成功');
     } else {
       await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布独立应用成功');
+      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布计算应用成功');
     }
     await loadFlowListData();
   } catch (error) {
@@ -492,7 +484,7 @@ async function handleFlowFormOk() {
       processName: flowFormModel.processName.trim(),
       confidentialLevel: flowFormModel.confidentialLevel,
       ownerName: userStore.getUser.nickname,
-      releaseType: 1,
+      releaseType: 2,
     };
     if (flowFormMode.value === 'add') {
       await AdminApiSystemProcessTask.createTaskBasicInfo(payload);
@@ -673,31 +665,13 @@ defineExpose({
           <template v-else-if="column.dataIndex === 'operation'">
             <div class="calc-operation-links" @click.stop>
               <a-popconfirm
-                v-if="!isCollabPublished(record)"
-                placement="topLeft"
-                title="确定要发布协同吗？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
-                <a href="#" @click.prevent>发布协同</a>
-              </a-popconfirm>
-              <a-popconfirm
-                v-else
-                placement="topLeft"
-                title="确定要取消发布协同吗？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
-                <a href="#" @click.prevent>撤回协同</a>
-              </a-popconfirm>
-              <a-popconfirm
                 v-if="!isAppPublished(record)"
                 placement="topLeft"
                 title="确定要发布独立应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>发布独立应用</a>
+                <a href="#" @click.prevent>发布计算应用</a>
               </a-popconfirm>
               <a-popconfirm
                 v-else
@@ -706,7 +680,7 @@ defineExpose({
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>取消独立应用</a>
+                <a href="#" @click.prevent>取消计算应用</a>
               </a-popconfirm>
               <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
               <span v-else class="operation-disabled">配置</span>

@@ -97,6 +97,7 @@ async function loadFlowListData() {
     requestParams.treeId = props.treeNodeKey ?? '';
     requestParams.pageNo = 1;
     requestParams.pageSize = 10000;
+    requestParams.releaseType = 1;
     if (requestParams.treeId != '') {
       const res = await AdminApiSystemProcessTask.taskBasicInfoPage(requestParams);
       const list = res?.data?.data?.list;

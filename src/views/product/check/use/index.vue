@@ -16,12 +16,12 @@ import checkExeBg from '@/assets/images/check-exe.png';
 import checkMatlabBg from '@/assets/images/check-matlab.png';
 import checkExcelBg from '@/assets/images/check-excel.png';
 
-import {
-  download,
-} from '@/libs/webSocketNew';
-
+import { download } from '@/libs/webSocketNew';
+import { useRoute, useRouter } from 'vue-router';
 
 const userStore = useUserStore();
+const router = useRouter();
+const route = useRoute();
 const treeData = ref<any[]>([]);
 const selectedKeys = ref<string>('');
 const expandedKeys = ref<any>();
@@ -127,17 +127,8 @@ function appendCheckTypeSuffix(baseTitle: string, item: any): string {
 
 function mapItemToCard(item: any, index: number): ChecklistCard {
   const rawTitle =
-    String(
-      item?.checkName ??
-        item?.checkTitle ??
-        item?.summarName ??
-        item?.applicationName ??
-        item?.parameterName ??
-        item?.calcName ??
-        item?.name ??
-        item?.title ??
-        '--',
-    ).trim() || '--';
+    String(item?.checkName ?? item?.checkTitle ?? item?.summarName ?? item?.applicationName ?? item?.parameterName ?? item?.calcName ?? item?.name ?? item?.title ?? '--').trim() ||
+    '--';
   const title = appendCheckTypeSuffix(rawTitle, item);
   const authorText = pickFirstText(item, [
     'createName',
@@ -389,6 +380,19 @@ async function handleChangeSelectKey(searchValue: string) {
 async function checkContentStart(card: ChecklistCard) {
   const raw = card.raw as Record<string, unknown>;
   const ct = Number(raw?.checkType);
+  if (ct === 1 || raw?.checkType === '1') {
+    const cacheKey = `designTaskAppDetail:${String(raw?.id ?? Date.now())}:${Date.now()}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify(raw ?? {}));
+    router.push({
+      path: '/internal/design-task-app-detail',
+      query: {
+        cacheKey,
+        returnPath: route.fullPath,
+        entry: 'check',
+      },
+    });
+    return;
+  }
   if (ct !== 3 && raw?.checkType !== '3') {
     message.info('当前类型暂未配置详情请求');
     return;
@@ -435,16 +439,8 @@ async function checkContentStart(card: ChecklistCard) {
   }
 }
 
-const {
-  leftTreeCollapsed,
-  leftTreePaneSize,
-  rightTreePaneSize,
-  minExpanded,
-  onSplitpanesResized,
-  toggleLeftTreePanel,
-  splitToggleStyle,
-  splitpanesTreeCollapseWrapClass,
-} = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } =
+  useSplitpanesTreeCollapse();
 </script>
 
 <template>
@@ -470,12 +466,7 @@ const {
         <Pane class="splitpane-cls splitpane-cls--right" :size="rightTreePaneSize">
           <div class="checklist-pane">
             <div class="checklist-toolbar">
-              <a-input
-                v-model:value="checklistKeyword"
-                placeholder="请输入查询条件"
-                allow-clear
-                class="checklist-toolbar__input"
-                @pressEnter="onChecklistSearch">
+              <a-input v-model:value="checklistKeyword" placeholder="请输入查询条件" allow-clear class="checklist-toolbar__input" @pressEnter="onChecklistSearch">
                 <template #prefix>
                   <SearchOutlined class="checklist-toolbar__search-icon" />
                 </template>
@@ -484,13 +475,10 @@ const {
             <a-spin :spinning="checklistLoading" class="checklist-spin">
               <div v-if="checklistCards.length" class="checklist-grid">
                 <div v-for="card in checklistCards" :key="String(card.id)" class="checklist-card" @click="checkContentStart(card)">
-                  <div
-                    class="checklist-card__hero"
-                    :style="{ backgroundImage: `url(${card.heroBgUrl})` }">
+                  <div class="checklist-card__hero" :style="{ backgroundImage: `url(${card.heroBgUrl})` }">
                     <div class="checklist-card__hero-stack">
                       <span class="checklist-card__hero-title" :title="card.title">{{ card.title }}</span>
                       <div class="checklist-card__hero-meta" :title="`类型：${card.typeLabel}${card.infoLine ? ' · ' + card.infoLine : ''}`">
-                        
                         <span v-if="card.infoLine" class="checklist-card__hero-meta-info">{{ card.infoLine }}</span>
                       </div>
                     </div>
@@ -508,12 +496,7 @@ const {
         </Pane>
       </Splitpanes>
       <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-        <button
-          type="button"
-          class="splitpanes-tree-collapse-wrap__toggle"
-          :style="splitToggleStyle"
-          @click="toggleLeftTreePanel"
-          @mousedown.stop>
+        <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="splitToggleStyle" @click="toggleLeftTreePanel" @mousedown.stop>
           <LeftOutlined v-if="!leftTreeCollapsed" />
           <RightOutlined v-else />
         </button>
@@ -569,7 +552,9 @@ const {
   border: 1px solid #d9d9d9;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .checklist-toolbar__input :deep(.ant-input-affix-wrapper:hover) {
@@ -626,7 +611,9 @@ const {
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: transform 0.28s ease, box-shadow 0.28s ease;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease;
   will-change: transform;
 }
 
@@ -667,7 +654,9 @@ const {
   inset: 0;
   background: linear-gradient(135deg, rgba(0, 40, 90, 0.35) 0%, rgba(0, 0, 0, 0.12) 100%);
   pointer-events: none;
-  transition: opacity 0.28s ease, background 0.28s ease;
+  transition:
+    opacity 0.28s ease,
+    background 0.28s ease;
 }
 
 .checklist-card:hover .checklist-card__hero::before {
@@ -688,7 +677,9 @@ const {
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
-  transition: color 0.28s ease, text-shadow 0.28s ease;
+  transition:
+    color 0.28s ease,
+    text-shadow 0.28s ease;
   width: 100%;
 }
 
