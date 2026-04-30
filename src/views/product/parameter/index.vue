@@ -844,7 +844,8 @@ async function submitTreeData(nodeList: any) {
   data.parentId = nodeList.pid;
   data.type = nodeList.categoryType;
   const res = await AdminApiSystemProduct.addProductModuleTree(data);
-  await getListData();
+  await getListData('change');
+  Selectafterchanges();
   message.success(WeiI18n.t('保存成功').value);
 }
 

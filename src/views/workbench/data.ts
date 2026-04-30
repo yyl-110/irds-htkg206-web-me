@@ -5,6 +5,9 @@ export interface TaskItem {
   startTime: string;
   endTime: string;
   type: string;
+  category: 'assign' | 'product' | 'app' | 'compute';
+  status: 'todo' | 'done';
+  scene: 'product' | 'app' | 'compute' | 'general';
   progress: number;
   delayDays?: number;
   remainDays?: number;
@@ -13,12 +16,19 @@ export interface TaskItem {
 }
 
 export const WORKBENCH_TABS = [
-  { title: '待办', name: 'todo' },
+  { title: '设计任务', name: 'todo' },
   { title: '待审核', name: 'audit' },
-  { title: '已办', name: 'done' },
-  { title: '已转办', name: 'transfer' },
-  { title: '已审批', name: 'approval' }
 ];
+
+export const WORKBENCH_SECONDARY_TABS = [
+  { title: '待办', value: 'todo' },
+  { title: '已办', value: 'done' },
+  { title: '已转办', value: 'transfer' },
+  { title: '产品设计待办', value: 'product' },
+  { title: '独立应用待办', value: 'app' },
+  { title: '计算待办', value: 'compute' },
+  { title: '全部', value: 'all' },
+] as const;
 
 export const MOCK_TODO_LIST: TaskItem[] = [
   {
@@ -27,7 +37,10 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     tags: ['延', '待办'],
     startTime: '2026年6月21日',
     endTime: '2026年7月21日',
-    type: '重大改进项目',
+    type: '任务指派',
+    category: 'assign',
+    status: 'todo',
+    scene: 'general',
     progress: 24,
     delayDays: 32,
     creatorName: '李建明',
@@ -39,7 +52,10 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     tags: ['转', '待办'],
     startTime: '2026年6月21日',
     endTime: '2026年7月21日',
-    type: '重大改进项目',
+    type: '独立应用',
+    category: 'app',
+    status: 'todo',
+    scene: 'app',
     progress: 14,
     remainDays: 4,
     creatorName: '李建明',
@@ -51,7 +67,10 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     tags: ['待办'],
     startTime: '2026年6月21日',
     endTime: '2026年7月21日',
-    type: '重大改进项目',
+    type: '计算',
+    category: 'compute',
+    status: 'todo',
+    scene: 'compute',
     progress: 50,
     remainDays: 10,
     creatorName: '李建明',
@@ -63,9 +82,26 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     tags: ['待办'],
     startTime: '2026年6月21日',
     endTime: '2026年7月21日',
-    type: '重大改进项目',
-    progress: 34,
-    remainDays: 15,
+    type: '产品设计',
+    category: 'product',
+    status: 'done',
+    scene: 'product',
+    progress: 100,
+    creatorName: '李建明',
+    creatorAvatar: '',
+  },
+  {
+    id: 5,
+    title: '新能源驱动总成壳体外观与工艺优化',
+    tags: ['待办'],
+    startTime: '2026年6月25日',
+    endTime: '2026年7月30日',
+    type: '产品设计',
+    category: 'product',
+    status: 'todo',
+    scene: 'product',
+    progress: 32,
+    remainDays: 12,
     creatorName: '李建明',
     creatorAvatar: '',
   }

@@ -9,6 +9,7 @@ import Tree from '@/components/tree/tree.vue';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { ProductTreeInfoRequestDTOModel } from '@/api/models/product/ProductTreeInfoRequestDTOModel';
+import { findNodeByIdFromKey } from '@/utils/tools';
 import { useUserStore } from '@/store/modules/user';
 import ParameterDefinition from './conmmonets/parameterDefinition.vue';
 import GBOMDefinition from './conmmonets/GBOMDefinition.vue';
@@ -41,7 +42,7 @@ const loadingTree = ref<boolean>(false);
 /** 列表数据 */
 const dataSource = ref<Array<any>>([]);
 /** 获取分类数据 */
-async function getListData() {
+async function getListData(targetKey?: string) {
   loadingTree.value = true;
   try {
     // 使用正确的API获取产品树数据
@@ -54,8 +55,15 @@ async function getListData() {
       treeData.value = treeNodes;
       // 默认选中第一个节点
       if (treeNodes.length > 0) {
-        selectedKeys.value = treeNodes[0].key;
-        expandedKeys.value = treeNodes[0].key;
+        const keepKey = String(targetKey || currentNodeData.value?.key || selectedKeys.value || '');
+        const targetNode = keepKey ? findNodeByIdFromKey(treeNodes, keepKey, 'key') : null;
+        const nextNode = targetNode || treeNodes[0];
+        selectedKeys.value = nextNode.key;
+        expandedKeys.value = nextNode.key;
+        currentNodeData.value = nextNode;
+        nextTick(() => {
+          selectNode(nextNode);
+        });
       }
     }
   } catch (error) {
@@ -240,14 +248,14 @@ async function downNode(selectedKeys: any) {
   treeRequestParams.id = selectedKeys.key;
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.moveDownProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(selectedKeys?.key || ''));
 }
 
 async function upNode(selectedKeys: any) {
   treeRequestParams.id = selectedKeys.key;
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.moveUpProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(selectedKeys?.key || ''));
 }
 
 async function selectNode(selectedKeys: any) {
@@ -415,7 +423,7 @@ async function submitTreeData(nodeList: any, selectedKeys: any) {
   console.log(treeRequestParams);
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.addProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(selectedKeys?.key || currentNodeData.value?.key || ''));
   message.success(WeiI18n.t('保存成功').value);
 }
 
@@ -430,7 +438,7 @@ async function editTreeData(nodeList: any, selectedKeys: any) {
   treeRequestParams.id = nodeList.id;
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.updateProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(nodeList?.id || selectedKeys?.key || currentNodeData.value?.key || ''));
   message.success(WeiI18n.t('修改成功').value);
 }
 

@@ -19,6 +19,7 @@ import {
   SendOutlined,
 } from '@ant-design/icons-vue';
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
+import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
 
 dayjs.extend(isoWeek);
 
@@ -30,6 +31,8 @@ export type TaskWbsStatus = 'delayed' | 'completed' | 'in_progress' | 'pending';
 
 export type WbsTaskNode = {
   id: string;
+  /** 节点类型：1分类节点 2任务节点 */
+  type?: number;
   serialNo: number;
   wbsCode: string;
   taskName: string;
@@ -166,6 +169,67 @@ function buildDemoTaskTree(): WbsTaskNode[] {
 
 const treeData = ref<WbsTaskNode[]>(buildDemoTaskTree());
 
+function mapTaskStatus(status?: string): TaskWbsStatus {
+  if (status === 'COMPLETED') return 'completed';
+  if (status === 'DESIGNING' || status === 'CHANGING') return 'in_progress';
+  return 'pending';
+}
+
+function toDateOnly(v?: string): string {
+  if (!v) return '';
+  return String(v).slice(0, 10);
+}
+
+function mapApiNodeToWbs(node: any, serialSeed: { v: number }): WbsTaskNode {
+  const serialNo = serialSeed.v++;
+  const children = Array.isArray(node?.children)
+    ? node.children.map((c: any) => mapApiNodeToWbs(c, serialSeed))
+    : undefined;
+  const progressNum = Number(node?.completionRate ?? 0);
+  return {
+    id: String(node?.id ?? `${serialNo}`),
+    type: Number(node?.type ?? 2),
+    serialNo,
+    wbsCode: String(node?.wbsCode ?? ''),
+    taskName: String(node?.nodeName ?? ''),
+    relatedTaskFlow: '',
+    startDate: toDateOnly(node?.planStartTime),
+    endDate: toDateOnly(node?.planEndTime),
+    durationWorkdays: Number(node?.taskTime ?? 0),
+    progress: Number.isFinite(progressNum) ? progressNum : 0,
+    predecessor: '',
+    status: mapTaskStatus(node?.taskStatus),
+    resource: node?.chargeUserid ? String(node.chargeUserid) : '',
+    responsibleUserId: node?.chargeUserid ? String(node.chargeUserid) : undefined,
+    manager: node?.adminUserid ? String(node.adminUserid) : '',
+    managerUserId: node?.adminUserid ? String(node.adminUserid) : undefined,
+    children: children && children.length ? children : undefined,
+  };
+}
+
+async function fetchProjectWbsTree() {
+  if (!props.projectId) {
+    treeData.value = [];
+    return;
+  }
+  try {
+    const res = await AdminApiProjectTemp.projectWbsTreeList({ projectId: props.projectId });
+    const apiTree = res?.data?.data ?? [];
+    if (Array.isArray(apiTree) && apiTree.length) {
+      const seed = { v: 1 };
+      treeData.value = apiTree.map((n: any) => mapApiNodeToWbs(n, seed));
+    } else {
+      treeData.value = [];
+    }
+  } catch {
+    treeData.value = buildDemoTaskTree();
+    message.warning('加载项目WBS失败，已展示示例数据');
+  } finally {
+    expandAllForTree(treeData.value);
+    columns.value = createTaskColumns();
+  }
+}
+
 /** 与表格树展开一致，甘特行数与左侧可见行一一对应 */
 const expandedRowKeys = ref<string[]>([]);
 
@@ -187,10 +251,9 @@ function expandAllForTree(nodes: WbsTaskNode[]) {
 watch(
   () => props.projectId,
   () => {
-    treeData.value = buildDemoTaskTree();
-    expandAllForTree(treeData.value);
-    columns.value = createTaskColumns();
+    void fetchProjectWbsTree();
   },
+  { immediate: true },
 );
 
 watch(treeData, () => expandAllForTree(treeData.value));
@@ -212,9 +275,17 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
     { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', resizable: true },
     { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 108, ellipsis: true, resizable: true },
     { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, resizable: true },
-    { title: '关联任务流程', dataIndex: 'relatedTaskFlow', key: 'relatedTaskFlow', width: 160, ellipsis: true, resizable: true },
     { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 124, align: 'center', resizable: true },
     { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 124, align: 'center', resizable: true },
+    {
+      title: '工期(天)',
+      key: 'durationWorkdays',
+      dataIndex: 'durationWorkdays',
+      width: 84,
+      align: 'center',
+      resizable: true,
+      customRender: ({ record }) => computeTaskDurationDays(record) ?? record.durationWorkdays ?? '-',
+    },
     {
       title: '进度',
       key: 'progress',
@@ -225,7 +296,6 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
     },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
-    { title: '管理者', dataIndex: 'manager', key: 'manager', width: 168, ellipsis: true, resizable: true },
     { title: '状态', key: 'status', dataIndex: 'status', width: 112, align: 'center', resizable: true },
     {
       title: '操作',
@@ -259,6 +329,10 @@ function onTaskDelete(record: WbsTaskNode) {
 
 function onTaskPublish(record: WbsTaskNode) {
   message.info(`发布：${record.taskName}`);
+}
+
+function onTaskStart(record: WbsTaskNode) {
+  message.info(`启动：${record.taskName}`);
 }
 
 function onTaskChangeRequest(record: WbsTaskNode) {
@@ -543,7 +617,7 @@ const tableBodyHeight = ref(420);
 /** 左侧表格区域宽度（px），null 表示用 CSS 默认比例；收起甘特前会记忆 */
 const leftPaneWidthPx = ref<number | null>(null);
 const leftPaneWidthBeforeCollapse = ref<number | null>(null);
-const ganttCollapsed = ref(false);
+const ganttCollapsed = ref(true);
 const splitterDragging = ref(false);
 const splitRootRef = ref<HTMLElement | null>(null);
 
@@ -1099,6 +1173,9 @@ watch(ganttCollapsed, () => {
         row-key="id"
         @resize-column="handleResizeColumn">
         <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'wbsCode'">
+            {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `— ${record.wbsCode}` : record.wbsCode }}
+          </template>
           <template v-if="column.key === 'startDate'">
             <div class="task-wbs-date-cell">
               <a-date-picker
@@ -1135,21 +1212,16 @@ watch(ganttCollapsed, () => {
               </a-button>
             </div>
           </template>
-          <template v-else-if="column.key === 'manager'">
-            <div class="task-wbs-responsible-cell">
-              <span class="task-wbs-responsible-text" :title="record.manager">{{ record.manager }}</span>
-              <a-button type="primary" size="small" @click.stop="openResponsiblePicker(record, 'manager')">
-                浏览
-              </a-button>
-            </div>
-          </template>
           <template v-else-if="column.key === 'status'">
             <div class="task-wbs-status-cell">
-              <a-tag :color="wbsStatusTagColor(record.status)" size="small">{{ statusLabel(record.status) }}</a-tag>
+              <span class="task-wbs-status-pill" :class="`is-${record.status}`">{{ statusLabel(record.status) }}</span>
             </div>
           </template>
           <template v-else-if="column.key === 'operation'">
-            <a-space :size="2" wrap class="task-wbs-ops">
+            <a-space v-if="record.type === 1" :size="6" wrap class="task-wbs-ops">
+              <a-button type="primary" size="small" @click.stop="onTaskStart(record)">启动</a-button>
+            </a-space>
+            <a-space v-else :size="6" wrap class="task-wbs-ops">
               <a-tooltip title="发布">
                 <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskPublish(record)">
                   <template #icon><SendOutlined /></template>
@@ -1213,6 +1285,7 @@ watch(ganttCollapsed, () => {
       </a-modal>
     </div>
     <div
+      v-if="!ganttCollapsed"
       class="project-task-wbs__splitter"
       :class="{ 'is-collapsed': ganttCollapsed }"
       :style="{ flex: `0 0 ${SPLITTER_HIT_PX}px`, width: `${SPLITTER_HIT_PX}px` }"
@@ -1227,7 +1300,7 @@ watch(ganttCollapsed, () => {
         <LeftOutlined v-else />
       </button>
     </div>
-    <div class="project-task-wbs__right" :style="rightPaneDynamicStyle">
+    <div v-if="!ganttCollapsed" class="project-task-wbs__right" :style="rightPaneDynamicStyle">
       <div class="gantt-right-chrome" :style="{ height: `${ganttChromeHeightPx}px` }">
         <div class="gantt-timeline-header">
           <div ref="ganttHeaderScrollRef" class="gantt-timeline-header__tracks">
@@ -1688,23 +1761,26 @@ watch(ganttCollapsed, () => {
 
 .project-task-wbs-table :deep(.ant-table-thead > tr > th) {
   background: #f5f5f5;
-  font-size: 13px;
-  padding: 8px;
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 8px;
   vertical-align: middle;
 }
 
 .project-task-wbs-table :deep(.ant-table-tbody > tr) {
-  height: 35px;
+  height: 34px;
   box-sizing: border-box;
 }
 
 .project-task-wbs-table :deep(.ant-table-tbody > tr > td) {
-  font-size: 13px;
-  padding: 4px 8px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.78);
+  padding: 3px 8px;
   vertical-align: middle;
-  height: 35px;
+  height: 34px;
   box-sizing: border-box;
-  line-height: 20px;
+  line-height: 18px;
 }
 
 .task-wbs-status-cell {
@@ -1712,6 +1788,45 @@ watch(ganttCollapsed, () => {
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+
+.task-wbs-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 0 8px;
+  height: 22px;
+  border-radius: 2px;
+  border: 1px solid #d9d9d9;
+  background: #fafafa;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.task-wbs-status-pill.is-completed {
+  color: #1677ff;
+  border-color: #b7d5ff;
+  background: #eff6ff;
+}
+
+.task-wbs-status-pill.is-in_progress {
+  color: #d48806;
+  border-color: #ffe58f;
+  background: #fffbe6;
+}
+
+.task-wbs-status-pill.is-delayed {
+  color: #cf1322;
+  border-color: #ffccc7;
+  background: #fff1f0;
+}
+
+.task-wbs-status-pill.is-pending {
+  color: rgba(0, 0, 0, 0.65);
+  border-color: #d9d9d9;
+  background: #fafafa;
 }
 
 .task-wbs-responsible-cell {
@@ -1777,6 +1892,7 @@ watch(ganttCollapsed, () => {
   align-items: center;
   justify-content: center;
   flex-wrap: nowrap;
+  gap: 0;
 }
 
 .task-wbs-date-cell {
@@ -1802,13 +1918,23 @@ watch(ganttCollapsed, () => {
 }
 
 .task-wbs-ops__btn {
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px !important;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
+  color: #1677ff;
+}
+
+.task-wbs-ops__btn:hover {
+  color: #4096ff;
+}
+
+.task-wbs-ops__btn.ant-btn-dangerous {
+  color: #ff4d4f;
 }
 
 .gantt-body {

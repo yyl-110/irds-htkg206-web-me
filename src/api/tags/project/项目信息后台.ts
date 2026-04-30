@@ -152,4 +152,22 @@ export class AdminApiProjectTemp {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 按项目ID查询WBS树表
+   */
+  static projectWbsTreeList = <Req extends { projectId: string | number } = { projectId: string | number }>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/tree-list`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

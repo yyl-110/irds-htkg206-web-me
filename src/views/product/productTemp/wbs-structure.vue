@@ -30,6 +30,8 @@ export type WbsRow = {
   wbsCode: string;
   /** 节点名称（接口字段 name） */
   nodeName: string;
+  /** 节点类型（接口字段 type：1分类节点 2任务节点） */
+  type?: number | null;
   /** 任务层级（根据树深度计算） */
   planLevel: string;
   /** 是否必选项（接口字段 requiredFlag: 0|1） */
@@ -74,6 +76,7 @@ function mapApiNodeToWbsRow(node: any, index: number, prefix: string): WbsRow {
     serialNo: node.sort ?? (index + 1),
     wbsCode,
     nodeName: node.name ?? '',
+    type: node.type ?? undefined,
     planLevel: '',
     required: node.requiredFlag === 1,
     taskFlow: '',
@@ -146,7 +149,7 @@ function syncTaskFlowLabel(rows: WbsRow[]): void {
     if (isTaskFlowDropdownRow(row)) {
       row.taskFlow = taskFlowLabelFromSelectValue(row.taskFlowSelectValue, row);
     } else {
-      row.taskFlow = `${row.nodeName ?? ''}流程`;
+      row.taskFlow = '';
     }
     if (row.children?.length) syncTaskFlowLabel(row.children);
   }
@@ -297,6 +300,7 @@ function mapToSaveTree(rows: WbsRow[]): any[] {
     sort: row.serialNo,
     selected: row.selected,
     requiredFlag: row.required ? 1 : 0,
+    type: row.type ?? null,
     taskId: row.taskFlowSelectValue,
     children: row.children ? mapToSaveTree(row.children) : [],
   }));
@@ -342,6 +346,10 @@ function filterRowsByTaskCount(rows: WbsRow[]): WbsRow[] {
 function applySelectedByCheckedKeys(rows: WbsRow[], selectedKeys: Set<string>) {
   rows.forEach((row) => {
     row.selected = selectedKeys.has(row.id);
+    if (row.selected) {
+      // 结构勾选阶段：默认“是否必选项”为是
+      row.required = true;
+    }
     if (row.children?.length) {
       applySelectedByCheckedKeys(row.children, selectedKeys);
     }

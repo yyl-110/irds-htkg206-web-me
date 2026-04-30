@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/modules/user';
-import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { computed, defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import * as echarts from 'echarts';
 import { message, Modal } from 'ant-design-vue';
@@ -11,6 +11,7 @@ import {
   SearchOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
+  FilterOutlined,
   EllipsisOutlined,
   HighlightOutlined,
   UserAddOutlined,
@@ -22,7 +23,7 @@ import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
 import { encryptValue } from '@/utils';
 import Empty from '@/components/Empty/index.vue';
 import NoticeDetail from './components/notice-detail.vue';
-import { WORKBENCH_TABS, MOCK_TODO_LIST } from './data';
+import { WORKBENCH_TABS, WORKBENCH_SECONDARY_TABS, MOCK_TODO_LIST, type TaskItem } from './data';
 /** 列表请求参数 */
 const requestNoticeParams = reactive(new NoticePageRequestDTOModel());
 const router = useRouter();
@@ -47,31 +48,118 @@ const activeName = ref('todo');
 const taskIndex = ref('1');
 
 const searchQuery = ref('');
-const secondaryFilter = ref('');
+const secondaryFilter = ref<(typeof WORKBENCH_SECONDARY_TABS)[number]['value']>('todo');
+const auditFilter = ref<'todo' | 'done' | 'transfer' | 'all'>('todo');
 const viewMode = ref('grid'); // 'grid' | 'list'
 
-const mockTodoList = ref(MOCK_TODO_LIST);
+const secondaryTabs = WORKBENCH_SECONDARY_TABS;
+const auditSecondaryTabs = [
+  { title: '待办', value: 'todo' },
+  { title: '已办', value: 'done' },
+  { title: '已转办', value: 'transfer' },
+  { title: '全部', value: 'all' },
+] as const;
+const mockTodoList = ref<TaskItem[]>(MOCK_TODO_LIST);
+const filteredTodoList = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase();
+  let list = mockTodoList.value.filter(item =>
+    !keyword || item.title.toLowerCase().includes(keyword),
+  );
+
+  switch (secondaryFilter.value) {
+    case 'done':
+      return list.filter(item => item.status === 'done');
+    case 'transfer':
+      return list.filter(item => item.tags.includes('转'));
+    case 'product':
+      return list.filter(item => item.status === 'todo' && item.scene === 'product');
+    case 'app':
+      return list.filter(item => item.status === 'todo' && item.scene === 'app');
+    case 'compute':
+      return list.filter(item => item.status === 'todo' && item.scene === 'compute');
+    case 'all':
+      return list;
+    case 'todo':
+    default:
+      return list.filter(item => item.status === 'todo');
+  }
+});
+const filteredAuditList = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase();
+  const list = mockTodoList.value.filter(item =>
+    !keyword || item.title.toLowerCase().includes(keyword),
+  );
+
+  switch (auditFilter.value) {
+    case 'done':
+      return list.filter(item => item.status === 'done');
+    case 'transfer':
+      return list.filter(item => item.tags.includes('转'));
+    case 'all':
+      return list;
+    case 'todo':
+    default:
+      return list.filter(item => item.status === 'todo');
+  }
+});
 // 定义问候语文本
 const greetingText = ref('');
 // 定时器标识，用于清除定时器
 let timer = null;
 
 const todoColumns = ref([
-  { title: '任务名称', dataIndex: 'title', key: 'title', ellipsis: true, width: 250, fixed: 'left', resizable: true },
-  { title: '标签', dataIndex: 'tags', key: 'tags', width: 150, resizable: true },
-  { title: '任务类型', dataIndex: 'type', key: 'type', width: 120, resizable: true },
-  { title: '项目时间', key: 'time', width: 200, resizable: true },
-  { title: '当前进度', dataIndex: 'progress', key: 'progress', width: 150, resizable: true },
-  { title: '状态', key: 'status', width: 120, resizable: true },
-  { title: '创建人', dataIndex: 'creatorName', key: 'creatorName', width: 120, resizable: true },
-  { title: '操作', key: 'action', width: 220, align: 'center', fixed: 'right', resizable: true }
+  {
+    title: '任务名称',
+    dataIndex: 'title',
+    key: 'title',
+    ellipsis: true,
+    width: 250,
+    fixed: 'left',
+    resizable: true,
+    customFilterDropdown: true,
+    onFilter: (value: string, record: any) =>
+      record.title.toLowerCase().includes(String(value).toLowerCase()),
+    sorter: (a: TaskItem, b: TaskItem) => a.title.localeCompare(b.title),
+  },
+  {
+    title: '任务类型',
+    dataIndex: 'type',
+    key: 'type',
+    width: 120,
+    resizable: true,
+    sorter: (a: TaskItem, b: TaskItem) => a.type.localeCompare(b.type),
+  },
+  {
+    title: '项目时间',
+    key: 'time',
+    width: 240,
+    resizable: true,
+    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+  },
+  {
+    title: '当前进度',
+    dataIndex: 'progress',
+    key: 'progress',
+    width: 220,
+    resizable: true,
+    sorter: (a: TaskItem, b: TaskItem) => a.progress - b.progress,
+  },
+  { title: '操作', key: 'action', width: 140, align: 'center', fixed: 'right', resizable: true }
 ]);
 
 const handleResizeColumn = (width: number, col: any) => {
   col.width = width;
 };
+const rowKey = (record: any) => record.id;
 const rowClassName = (_record: any, index: number) =>
   index % 2 === 1 ? "table-striped" : "";
+
+const getTimeSortValue = (task: TaskItem) => {
+  if (!hasTimelineInfo(task)) return 0;
+  const start = task.startTime.replace('年', '-').replace('月', '-').replace('日', '');
+  const timestamp = new Date(start).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
 
 // 待办任务统计 mock 数据
 const todoChartData = ref({
@@ -175,6 +263,23 @@ const getTagClass = (tag: string) => {
   if (tag === '待办') return 'tag-yellow';
   return 'tag-default';
 }
+
+const canRejectOrTransfer = (task: TaskItem) => ['assign', 'product'].includes(task.category);
+const canDesign = (task: TaskItem) => task.category !== 'assign';
+const canAssign = (task: TaskItem) => task.category === 'assign';
+const hasTimelineInfo = (task: TaskItem) => task.category === 'product';
+const tableTodoList = computed(() =>
+  filteredTodoList.value.map(item => ({
+    ...item,
+    displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
+  })),
+);
+const tableAuditList = computed(() =>
+  filteredAuditList.value.map(item => ({
+    ...item,
+    displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
+  })),
+);
 
 /** 列表请求参数 */
 const requestParams = reactive(new NoticePageRequestDTOModel());
@@ -324,7 +429,7 @@ onUnmounted(() => {
         <div class="work-wrap">
           <a-tabs v-model:activeKey="activeName" class="work_nav_top">
             <template #rightExtra>
-              <a-input v-model:value="searchQuery" placeholder="请输入项目名称/项目编号" style="width: 240px; border-radius: 4px;">
+              <a-input v-model:value="searchQuery" placeholder="请输入任务名称" style="width: 240px; border-radius: 4px;">
                 <template #suffix>
                   <search-outlined style="color: rgba(0,0,0,.45)" />
                 </template>
@@ -346,20 +451,14 @@ onUnmounted(() => {
               <div class="task-content h-full flex flex-col" v-if="item.name === 'todo'">
                 <div class="filter-bar flex justify-between items-center mb-[16px] mt-[8px]">
                   <div class="capsule-group flex gap-[12px]">
-                    <div class="capsule" :class="{ active: secondaryFilter === '' }" @click="secondaryFilter = ''">全部
-                    </div>
-                    <div class="capsule" :class="{ active: secondaryFilter === 'delay' }"
-                      @click="secondaryFilter = 'delay'">延期待办
-                    </div>
-                    <div class="capsule" :class="{ active: secondaryFilter === 'transfer' }"
-                      @click="secondaryFilter = 'transfer'">
-                      转办待办</div>
-                    <div class="capsule" :class="{ active: secondaryFilter === '5days' }"
-                      @click="secondaryFilter = '5days'">近5日待办
-                    </div>
-                    <div class="capsule" :class="{ active: secondaryFilter === '15days' }"
-                      @click="secondaryFilter = '15days'">
-                      近15日待办
+                    <div
+                      v-for="subTab in secondaryTabs"
+                      :key="subTab.value"
+                      class="capsule"
+                      :class="{ active: secondaryFilter === subTab.value }"
+                      @click="secondaryFilter = subTab.value"
+                    >
+                      {{ subTab.title }}
                     </div>
                   </div>
                   <div class="view-toggles flex gap-[16px] text-[18px]">
@@ -375,7 +474,7 @@ onUnmounted(() => {
                 <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
                   <template v-if="viewMode === 'grid'">
                     <a-row :gutter="[16, 16]">
-                      <a-col flex="0 0 380px" style="width: 380px; max-width: 380px;" v-for="item in mockTodoList" :key="item.id">
+                      <a-col flex="0 0 380px" style="width: 380px; max-width: 380px;" v-for="item in filteredTodoList" :key="item.id">
                         <div class="task-card">
                           <div class="tc-header flex justify-between items-start">
                             <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">
@@ -383,11 +482,11 @@ onUnmounted(() => {
                                 :title="item.title">{{
                                   item.title
                                 }}</span>
-                              <span v-for="tag in item.tags" :key="tag" class="tc-tag flex-shrink-0"
+                              <span v-for="tag in item.tags.filter(tag => tag !== '待办')" :key="tag" class="tc-tag flex-shrink-0"
                                 :class="getTagClass(tag)">{{ tag
                                 }}</span>
                             </div>
-                            <a-dropdown :trigger="['hover']">
+                            <a-dropdown v-if="canRejectOrTransfer(item)" :trigger="['hover']">
                               <ellipsis-outlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
                               <template #overlay>
                                 <a-menu>
@@ -400,7 +499,7 @@ onUnmounted(() => {
                           <div class="tc-body mt-[16px] space-y-[12px] text-[14px] text-[#6A696E]">
                             <div class="flex">
                               <span class="w-[75px] flex-shrink-0">项目时间：</span>
-                              <span>{{ item.startTime }} ~ {{ item.endTime }}</span>
+                              <span>{{ hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/' }}</span>
                             </div>
                             <div class="flex">
                               <span class="w-[75px] flex-shrink-0">任务类型：</span>
@@ -411,8 +510,8 @@ onUnmounted(() => {
                                 <span class="w-[75px] flex-shrink-0">当前进度：</span>
                                 <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
                               </div>
-                              <span v-if="item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
-                              <span v-else-if="item.remainDays" class="text-[#6A696E]">距截止还剩 {{ item.remainDays }}
+                              <span v-if="hasTimelineInfo(item) && item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
+                              <span v-else-if="hasTimelineInfo(item) && item.remainDays" class="text-[#6A696E]">距截止还剩 {{ item.remainDays }}
                                 天</span>
                             </div>
                             <a-progress :percent="item.progress" :show-info="false" :stroke-width="8"
@@ -430,17 +529,17 @@ onUnmounted(() => {
                               <span>{{ item.creatorName }}</span>
                             </div>
                             <div class="tc-actions ml-auto flex items-center gap-[12px]">
-                              <a-tooltip title="设计">
+                              <a-tooltip v-if="canDesign(item)" title="设计">
                                 <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                   <highlight-outlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip title="指派">
+                              <a-tooltip v-if="canAssign(item)" title="指派">
                                 <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                   <user-add-outlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip title="转办">
+                              <a-tooltip v-if="canRejectOrTransfer(item)" title="转办">
                                 <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                   <swap-outlined />
                                 </a>
@@ -460,24 +559,42 @@ onUnmounted(() => {
                   <template v-else>
                     <a-table 
                       :columns="todoColumns" 
-                      :data-source="mockTodoList" 
+                      :data-source="tableTodoList" 
                       :row-class-name="rowClassName"
                       :pagination="false"
-                      :row-key="record => record.id"
+                      :row-key="rowKey"
                       bordered
                       class="workbench-main-table bg-white"
                       :scroll="{ x: 1330 }"
                       @resizeColumn="handleResizeColumn"
                     >
+                      <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+                        <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
+                          <a-input
+                            :value="selectedKeys[0]"
+                            placeholder="搜索任务名称"
+                            allow-clear
+                            @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
+                            @pressEnter="confirm()"
+                          />
+                          <div class="mt-[10px] flex gap-[8px]">
+                            <a-button type="primary" size="small" @click="confirm()">确定</a-button>
+                            <a-button size="small" @click="clearFilters({ confirm: true })">重置</a-button>
+                          </div>
+                        </div>
+                      </template>
+                      <template #customFilterIcon="{ filtered, column }">
+                        <filter-outlined
+                          v-if="column.key === 'title'"
+                          :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }"
+                        />
+                      </template>
                       <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'title'">
                           <span class="font-bold text-[#313133]">{{ record.title }}</span>
                         </template>
-                        <template v-if="column.key === 'tags'">
-                          <span v-for="tag in record.tags" :key="tag" class="tc-tag flex-shrink-0 inline-block mr-[4px]" :class="getTagClass(tag)">{{ tag }}</span>
-                        </template>
                         <template v-if="column.key === 'time'">
-                          {{ record.startTime }} ~ {{ record.endTime }}
+                          {{ record.displayTime }}
                         </template>
                         <template v-if="column.key === 'progress'">
                           <div class="flex items-center gap-[8px]">
@@ -485,30 +602,19 @@ onUnmounted(() => {
                             <a-progress class="flex-1 !mb-0" :percent="record.progress" :show-info="false" :stroke-width="8" :trail-color="'#F0F0F0'" :class="record.delayDays ? 'delay-progress' : 'normal-progress'" />
                           </div>
                         </template>
-                        <template v-if="column.key === 'status'">
-                          <span v-if="record.delayDays" class="text-[#FF4D4F]">已延期 {{ record.delayDays }} 天</span>
-                          <span v-else-if="record.remainDays" class="text-[#6A696E]">距截止还剩 {{ record.remainDays }} 天</span>
-                        </template>
-                        <template v-if="column.key === 'creatorName'">
-                          <div class="flex items-center">
-                            <img v-if="record.creatorAvatar" :src="record.creatorAvatar" class="w-[20px] h-[20px] rounded-full mr-[6px]" />
-                            <img v-else src="../../assets/workbench/people.png" class="w-[20px] h-[20px] rounded-full mr-[6px]" />
-                            <span>{{ record.creatorName }}</span>
-                          </div>
-                        </template>
                         <template v-if="column.key === 'action'">
                           <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                            <a-tooltip title="设计">
+                            <a-tooltip v-if="canDesign(record)" title="设计">
                               <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                 <highlight-outlined />
                               </a>
                             </a-tooltip>
-                            <a-tooltip title="指派">
+                            <a-tooltip v-if="canAssign(record)" title="指派">
                               <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                 <user-add-outlined />
                               </a>
                             </a-tooltip>
-                            <a-tooltip title="转办">
+                            <a-tooltip v-if="canRejectOrTransfer(record)" title="转办">
                               <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                 <swap-outlined />
                               </a>
@@ -523,6 +629,94 @@ onUnmounted(() => {
                       </template>
                     </a-table>
                   </template>
+                </div>
+              </div>
+              <div class="task-content h-full flex flex-col" v-else-if="item.name === 'audit'">
+                <div class="filter-bar flex justify-between items-center mb-[16px] mt-[8px]">
+                  <div class="capsule-group flex gap-[12px]">
+                    <div
+                      v-for="subTab in auditSecondaryTabs"
+                      :key="subTab.value"
+                      class="capsule"
+                      :class="{ active: auditFilter === subTab.value }"
+                      @click="auditFilter = subTab.value"
+                    >
+                      {{ subTab.title }}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
+                  <a-table
+                    :columns="todoColumns"
+                    :data-source="tableAuditList"
+                    :row-class-name="rowClassName"
+                    :pagination="false"
+                    :row-key="rowKey"
+                    bordered
+                    class="workbench-main-table bg-white"
+                    :scroll="{ x: 1330 }"
+                    @resizeColumn="handleResizeColumn"
+                  >
+                    <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+                      <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
+                        <a-input
+                          :value="selectedKeys[0]"
+                          placeholder="搜索任务名称"
+                          allow-clear
+                          @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
+                          @pressEnter="confirm()"
+                        />
+                        <div class="mt-[10px] flex gap-[8px]">
+                          <a-button type="primary" size="small" @click="confirm()">确定</a-button>
+                          <a-button size="small" @click="clearFilters({ confirm: true })">重置</a-button>
+                        </div>
+                      </div>
+                    </template>
+                    <template #customFilterIcon="{ filtered, column }">
+                      <filter-outlined
+                        v-if="column.key === 'title'"
+                        :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }"
+                      />
+                    </template>
+                    <template #bodyCell="{ column, record }">
+                      <template v-if="column.key === 'title'">
+                        <span class="font-bold text-[#313133]">{{ record.title }}</span>
+                      </template>
+                      <template v-if="column.key === 'time'">
+                        {{ record.displayTime }}
+                      </template>
+                      <template v-if="column.key === 'progress'">
+                        <div class="flex items-center gap-[8px]">
+                          <span class="text-[#313133] font-bold w-[30px]">{{ record.progress }}%</span>
+                          <a-progress class="flex-1 !mb-0" :percent="record.progress" :show-info="false" :stroke-width="8" :trail-color="'#F0F0F0'" :class="record.delayDays ? 'delay-progress' : 'normal-progress'" />
+                        </div>
+                      </template>
+                      <template v-if="column.key === 'action'">
+                        <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
+                          <a-tooltip v-if="canDesign(record)" title="设计">
+                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                              <highlight-outlined />
+                            </a>
+                          </a-tooltip>
+                          <a-tooltip v-if="canAssign(record)" title="指派">
+                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                              <user-add-outlined />
+                            </a>
+                          </a-tooltip>
+                          <a-tooltip v-if="canRejectOrTransfer(record)" title="转办">
+                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                              <swap-outlined />
+                            </a>
+                          </a-tooltip>
+                          <a-tooltip title="详情">
+                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                              <profile-outlined />
+                            </a>
+                          </a-tooltip>
+                        </div>
+                      </template>
+                    </template>
+                  </a-table>
                 </div>
               </div>
             </a-tab-pane>
@@ -955,12 +1149,20 @@ onUnmounted(() => {
   border: 1px solid #EAEAF1;
   border-radius: 8px;
   padding: 16px;
+  height: 100%;
+  min-height: 243px;
+  display: flex;
+  flex-direction: column;
   transition: all 0.3s;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     border-color: var(--ant-primary-color, #124dd6);
   }
+}
+
+.tc-body {
+  min-height: 92px;
 }
 
 .tc-tag {

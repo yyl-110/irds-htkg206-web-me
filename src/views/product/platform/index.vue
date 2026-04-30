@@ -48,7 +48,7 @@ const loadingTree = ref<boolean>(false);
 /** 列表数据 */
 const dataSource = ref<Array<any>>([]);
 /** 获取分类数据 */
-async function getListData() {
+async function getListData(targetKey?: string) {
   loadingTree.value = true;
   try {
     // 使用正确的API获取产品树数据
@@ -61,9 +61,16 @@ async function getListData() {
       treeData.value = treeNodes;
       // 默认选中第一个节点
       if (treeNodes.length > 0) {
-        selectedKeys.value = treeNodes[0].key;
-        expandedKeys.value = treeNodes[0].key;
-        currentNodeData.value = treeNodes[0];
+        const keepKey = String(targetKey || treenode.value?.key || selectedKeys.value || '');
+        const targetNode = keepKey ? findNodeByIdFromKey(treeNodes, keepKey, 'key') : null;
+        const nextNode = targetNode || treeNodes[0];
+        selectedKeys.value = nextNode.key;
+        expandedKeys.value = nextNode.key;
+        currentNodeData.value = nextNode;
+        treenode.value = nextNode;
+        nextTick(() => {
+          selectNode(nextNode);
+        });
       }
     }
   } catch (error) {
@@ -264,14 +271,14 @@ async function downNode(selectedKeys: any) {
   treeRequestParams.id = selectedKeys.key;
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.moveDownProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(selectedKeys?.key || ''));
 }
 
 async function upNode(selectedKeys: any) {
   treeRequestParams.id = selectedKeys.key;
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.moveUpProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(selectedKeys?.key || ''));
 }
 
 async function selectNode(selectedKeys: any) {
@@ -483,7 +490,7 @@ async function submitTreeData(nodeList: any, selectedKeys: any) {
   }
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.addProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(selectedKeys?.key || treenode.value?.key || ''));
   message.success(WeiI18n.t('保存成功').value);
 }
 
@@ -503,7 +510,7 @@ async function editTreeData(nodeList: any, selectedKeys: any) {
   }
   // 这里可以根据需要实现提交树节点数据的逻辑
   const res = await AdminApiSystemProduct.updateProductTree(treeRequestParams);
-  await getListData();
+  await getListData(String(nodeList?.id || selectedKeys?.key || treenode.value?.key || ''));
   const rootNode = findNodeByIdFromKey(treeData.value, treenode.value.key, 'key');
   nextTick(() => {
     treenode.value = rootNode;
