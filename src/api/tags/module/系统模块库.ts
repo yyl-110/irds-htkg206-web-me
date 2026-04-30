@@ -53,6 +53,27 @@ export class AdminApiSystemModule {
     );
 
   /**
+   * 获取基础资源库
+   *
+   * @tags 获取基础资源库
+   * @name getResourceLibraryTree
+   * @summary 获取基础资源库
+   * @request /business-service/business/library-category/getResourceLibraryTree
+   * @secure
+   */
+  static getResourceLibraryTree = <Req extends ModuleMenuPageRequestDTOModel = ModuleMenuPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-category/getResourceLibraryTree`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 参数字典查询
    *
    * @tags 参数字典查询

@@ -447,7 +447,8 @@ async function submitTreeData(nodeList: any) {
   data.menuId = menuId.value;
   data.type = nodeList.type;
   const res = await AdminApiSystemProcessTask.createDesignTaskTree(data);
-  await getListData();
+  await getListData('change');
+  Selectafterchanges();
   message.success(WeiI18n.t('保存成功').value);
 }
 

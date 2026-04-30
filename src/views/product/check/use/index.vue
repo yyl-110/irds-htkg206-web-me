@@ -348,7 +348,8 @@ async function submitTreeData(nodeList: any) {
   data.categoryName = nodeList.categoryName;
   data.parentId = nodeList.pid;
   await AdminApiSystemParameter.createCheckTree(data);
-  await getListData();
+  await getListData('change');
+  Selectafterchanges();
   message.success(WeiI18n.t('保存成功').value);
 }
 

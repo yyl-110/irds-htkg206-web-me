@@ -618,7 +618,8 @@ async function submitTreeData(nodeList: any) {
   data.parentId = nodeList.pid;
   data.fileId = nodeList.fileId;
   const res = await AdminApiSystemProduct.addEmptyNodetoManagement(data);
-  await getListData();
+  await getListData('change');
+  Selectafterchanges();
   message.success(WeiI18n.t('保存成功').value);
 }
 
