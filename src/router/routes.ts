@@ -1,5 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router';
-import { UserOutlined } from '@ant-design/icons-vue';
+import { UserOutlined, DashboardOutlined } from '@ant-design/icons-vue';
 import { demoRoutes } from './demoRoutes';
 // import Main from '@/views/Main.vue'
 
@@ -16,6 +16,40 @@ export const routes: RouteRecordRaw[] = [
       hidden: true,
       title: '登录页',
     },
+  },
+  {
+    name: '/platformBoard',
+    path: '/platformBoard',
+    component: () => import('@/views/platformBoard/index.vue'),
+    meta: {
+      title: '平台看板',
+      icon: DashboardOutlined,
+      keepAlive: false,
+    },
+  },
+  {
+    name: 'PlatformBoardDemand',
+    path: '/demand',
+    component: () => import('@/views/platformBoard/subViews/Demand/index.vue'),
+    meta: { hidden: true, title: '需求分析' },
+  },
+  {
+    name: 'PlatformBoardBase',
+    path: '/base',
+    component: () => import('@/views/platformBoard/subViews/Base/index.vue'),
+    meta: { hidden: true, title: '基础数据' },
+  },
+  {
+    name: 'PlatformBoardProduct',
+    path: '/product',
+    component: () => import('@/views/platformBoard/subViews/Product/index.vue'),
+    meta: { hidden: true, title: '产品定义' },
+  },
+  {
+    name: 'PlatformBoardSystem',
+    path: '/system',
+    component: () => import('@/views/platformBoard/subViews/System/index.vue'),
+    meta: { hidden: true, title: '系统设置' },
   },
 
   {

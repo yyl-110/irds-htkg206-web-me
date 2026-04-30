@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'MyFont';
+  src: url('@/assets/data-screen/fonts/youshe.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   --color-highlight: 59, 130, 246;
   --color-primary: 22, 93, 255;

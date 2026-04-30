@@ -11,6 +11,8 @@ import {
   LineChart,
   PieChart,
   RadarChart,
+  FunnelChart,
+  PictorialBarChart,
 } from 'echarts/charts'
 // 引入 echarts components
 import {
@@ -35,6 +37,8 @@ export class VueEchartsHandler {
       BarChart,
       GaugeChart,
       RadarChart,
+      FunnelChart,
+      PictorialBarChart,
       GridComponent,
       ToolboxComponent,
       LineChart,
