@@ -584,7 +584,7 @@ function openWbsStructure(record: any) {
 .drawerContent {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 84px);
+  // min-height: calc(100vh - 84px);
   background-color: #ffffff !important;
 }
 

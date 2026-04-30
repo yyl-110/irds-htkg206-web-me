@@ -148,7 +148,7 @@ onMounted(() => {
 .drawerContent {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 84px);
+  // min-height: calc(100vh - 84px);
   background-color: #ffffff !important;
 }
 :deep(.marginstyle) {

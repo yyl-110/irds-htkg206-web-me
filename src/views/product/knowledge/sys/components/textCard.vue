@@ -193,12 +193,9 @@ const handleEditCard = () => {
             <share-alt-outlined /><span>{{ JSON.parse(textData.counting).shared }}</span>
           </div>
         </a-tooltip>
-        <a-tooltip :mouse-enter-delay="0.5" title="下载" placement="topLeft">
+        <a-tooltip :mouse-enter-delay="0.5" title="下载" placement="topLeft" v-if="textData.allowDownload === 0">
           <div class="act-list elStarFilled" @click="download">
             <DownloadOutlined />
-            <span>
-              {{ textData.downloaded }}
-            </span>
           </div>
         </a-tooltip>
       </div>

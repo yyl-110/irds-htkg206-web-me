@@ -1039,7 +1039,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
 
 <template>
   <div class="drawerContent h-full">
-    <div :class="splitpanesTreeCollapseWrapClass">
+    <div :class="splitpanesTreeCollapseWrapClass" class="h-full">
       <!-- 左侧树结构 -->
       <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
@@ -1313,7 +1313,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
 .drawerContent {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 84px);
+  // min-height: calc(100vh - 84px);
   background-color: #ffffff !important;
 }
 
