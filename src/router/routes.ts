@@ -22,6 +22,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/platformBoard',
     component: () => import('@/views/platformBoard/index.vue'),
     meta: {
+      hidden: true,
       title: '平台看板',
       icon: DashboardOutlined,
       keepAlive: false,
