@@ -52,6 +52,23 @@ export class AdminApiSystemParameter {
     );
 
   /**
+   * 参数在活动页表单（component_param_codes）中的使用明细
+   *
+   * @request POST:/system-service/system/parameter-info/query-parameter-page-usage-detail
+   */
+  static getParameterPageUsageDetail = (body: { parameterId: number }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-info/query-parameter-page-usage-detail`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 获得参数单位信息
    *
    * @tags 管理后台 - 参数单位

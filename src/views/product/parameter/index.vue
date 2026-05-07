@@ -298,6 +298,14 @@ const columns = ref<TableColumnType<Menus>[]>([
     align: 'center',
     width: 80,
   },
+  {
+    title: WeiI18n.$t('参数使用次数'),
+    dataIndex: 'pageComponentUsageCount',
+    key: 'pageComponentUsageCount',
+    align: 'center',
+    resizable: true,
+    width: 120,
+  },
   /** 固定右侧列不建议 resizable（与 exeConfigTab 一致） */
   {
     title: WeiI18n.t('操作').value,
@@ -349,6 +357,7 @@ function isSortableParameterColumn(column: any) {
   const di = column?.dataIndex;
   if (!di || di === 'operation') return false;
   if (di === 'knowledge') return false;
+  if (di === 'pageComponentUsageCount') return false;
   return true;
 }
 
@@ -1129,6 +1138,50 @@ function closeShareModal() {
   shareModalTitle.value = '';
 }
 
+/** 活动页表单引用次数明细 */
+const pageUsageModalVisible = ref(false);
+const pageUsageLoading = ref(false);
+const pageUsageList = ref<Array<{ parameterNum?: string; activityPageId?: number; activityName?: string; parameterName?: string }>>([]);
+const pageUsageModalTitle = ref('');
+
+async function openPageUsageDetailModal(record: any) {
+  const n = Number(record?.pageComponentUsageCount ?? 0);
+  if (!record?.id || Number.isNaN(n) || n <= 0) {
+    return;
+  }
+  pageUsageModalTitle.value = `${record?.parameterName ?? ''}（${record?.parameterNum ?? ''}）- ${WeiI18n.$t('活动页使用明细')}`;
+  pageUsageModalVisible.value = true;
+  pageUsageList.value = [];
+  try {
+    pageUsageLoading.value = true;
+    const res = await AdminApiSystemParameter.getParameterPageUsageDetail({ parameterId: Number(record.id) });
+    const ok = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200';
+    if (ok) {
+      const raw = res.data?.data;
+      pageUsageList.value = Array.isArray(raw) ? raw : [];
+    } else {
+      message.error(res?.data?.msg || WeiI18n.$t('加载失败').value || '加载失败');
+    }
+  } catch (e) {
+    console.error('openPageUsageDetailModal', e);
+    message.error(WeiI18n.$t('加载失败').value || '加载失败');
+  } finally {
+    pageUsageLoading.value = false;
+  }
+}
+
+function closePageUsageDetailModal() {
+  pageUsageModalVisible.value = false;
+  pageUsageList.value = [];
+  pageUsageModalTitle.value = '';
+}
+
+const pageUsageColumns: TableColumnType<any>[] = [
+  { title: WeiI18n.$t('参数代码'), dataIndex: 'parameterNum', key: 'parameterNum', width: 140, ellipsis: true },
+  { title: WeiI18n.$t('参数名称'), dataIndex: 'parameterName', key: 'parameterName', width: 160, ellipsis: true },
+  { title: WeiI18n.$t('活动名称'), dataIndex: 'activityName', key: 'activityName', ellipsis: true },
+];
+
 const {
   leftTreeCollapsed,
   leftTreePaneSize,
@@ -1313,6 +1366,18 @@ const {
                   <TableCellOverflowTooltip :text="String(record.parameterName ?? '')" />
                 </template>
 
+                <template v-else-if="column.dataIndex === 'pageComponentUsageCount'">
+                  <span style="display: flex; justify-content: center; align-items: center">
+                    <a
+                      v-if="Number(record.pageComponentUsageCount) > 0"
+                      @click.stop.prevent="openPageUsageDetailModal(record)"
+                      style="cursor: pointer">
+                      {{ record.pageComponentUsageCount }}
+                    </a>
+                    <span v-else style="color: #bfbfbf">{{ record.pageComponentUsageCount ?? 0 }}</span>
+                  </span>
+                </template>
+
                 <!-- 参数知识列：用图标代替，不直接渲染内容 -->
                 <template v-else-if="column.dataIndex === 'knowledge'">
                   <span style="display: flex; justify-content: center; align-items: center">
@@ -1404,6 +1469,28 @@ const {
 
     <!-- 知识配置弹窗 -->
    <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="() => getListData('change')" type="1" />
+
+    <!-- 参数活动页使用次数明细 -->
+    <a-modal
+      v-model:visible="pageUsageModalVisible"
+      :title="pageUsageModalTitle"
+      width="720px"
+      :footer="null"
+      destroy-on-close
+      @cancel="closePageUsageDetailModal">
+      <a-spin :spinning="pageUsageLoading">
+        <a-table
+          :columns="pageUsageColumns"
+          :data-source="pageUsageList"
+          :pagination="false"
+          size="small"
+          row-key="activityPageId"
+          :locale="{ emptyText: $t('暂无数据') }" />
+      </a-spin>
+      <div style="text-align: right; margin-top: 12px">
+        <a-button @click="closePageUsageDetailModal">{{ $t('关闭') }}</a-button>
+      </div>
+    </a-modal>
 
     <!-- 分享知识弹窗：展示关联知识列表 -->
     <draggable-modal
