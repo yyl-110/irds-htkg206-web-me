@@ -362,4 +362,40 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 自定义页面关联参数：查询已关联列表
+   * （后端路径以实际联调为准，返回 data: { parameterIds?: number[] }，兼容 parameterIdList）
+   *
+   * @request GET /business-service/business/business-customize-page-parameter/custom-page-param-relation
+   */
+  static getCustomPageParamRelation = <Req extends Record<string, any> = Record<string, any>>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/business-customize-page-parameter/custom-page-param-relation`,
+        method: 'GET',
+        query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 自定义页面关联参数：保存
+   * body: { activityPageId, parameterIds: string[] }（雪花 ID 建议传字符串，避免 JSON 数字精度问题）
+   *
+   * @request POST /business-service/business/business-customize-page-parameter/save
+   */
+  static saveCustomPageParamRelation = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/business-customize-page-parameter/save`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
