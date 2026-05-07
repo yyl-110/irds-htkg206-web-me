@@ -74,8 +74,7 @@ export const getBoolDictOptions = useDictStore.getBoolDictOptions.bind(useDictSt
 export function getDictObj(dictType: string, value: any) {
   const dictOptions: DictDataType[] = getDictOptions(dictType)
   dictOptions.forEach((dict: DictDataType) => {
-    if (dict.value === value.toString())
-      return dict
+    if (dict.value === value.toString()) return dict
   })
 }
 
@@ -129,6 +128,15 @@ export enum DICT_TYPE {
   BPM_PROCESS_INSTANCE_RESULT = 'bpm_process_instance_result',
   BPM_TASK_ASSIGN_SCRIPT = 'bpm_task_assign_script',
   BPM_OA_LEAVE_TYPE = 'bpm_oa_leave_type',
+  // ========== BPM 模块(新) ==========
+  BPM_MODEL_TYPE = 'bpm_model_type',
+  BM_TASK_CANDIDATE_STRATEGY = 'bpm_task_candidate_strategy',
+  BM_TASK_STATUS = 'bpm_task_status',
+  BPM_PROCESS_LISTENER_TYPE = 'bpm_process_listener_type',
+  M_PROCESS_LISTENER_VALUE_TYPE = 'bpm_process_listener_value_type',
+  BPM_TASK_CANDIDATE_STRATEGY = 'bpm_task_candidate_strategy',
+  BPM_TASK_STATUS = 'bpm_task_status',
+  BPM_PROCESS_LISTENER_VALUE_TYPE = 'bpm_process_listener_value_type',
 
   // ========== PAY 模块 ==========
   PAY_CHANNEL_WECHAT_VERSION = 'pay_channel_wechat_version', // 微信渠道版本

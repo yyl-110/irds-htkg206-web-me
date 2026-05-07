@@ -1,4 +1,7 @@
 import { createApp } from 'vue';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import 'ant-design-vue/dist/antd.variable.min.css';
 import './sheets/tailwind.css';
 import './sheets/index.css';
@@ -41,11 +44,14 @@ import { setupAuth } from '@/directives/index';
 import { registerStore } from '@/store';
 import { useProjectUiStore } from '@/store/modules/layout/projectUi';
 import { initAccessTokenRefreshSchedule } from '@/utils/accessTokenRefresh';
+import { Icon } from '@/wei-components/WeiIcon';
 
 import 'splitpanes/dist/splitpanes.css';
 import 'animate.css';
 
 const app = createApp(App);
+/** BPM / 多处模板使用 `<Icon icon="ep:xxx" />`，需全局注册 */
+app.component('Icon', Icon);
 // const vConsole = new VConsole()
 // vConsole.destroy()
 const pinia = createPinia();
@@ -64,6 +70,7 @@ app.use(pinia);
 registerStore(); // 注册pinia状态库
 useProjectUiStore().applyDomEffects();
 app.use(router);
+app.use(ElementPlus, { locale: zhCn });
 app.use(Antd);
 app.use(Vant);
 app.use(CkeditorPlugin);

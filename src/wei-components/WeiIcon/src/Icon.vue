@@ -64,9 +64,11 @@ async function updateIcon(icon: ComponentProp['icon']) {
 
 watch(
   () => props.icon,
-  (icon: ComponentProp['icon']) => {
+  async (icon: ComponentProp['icon']) => {
+    await nextTick();
     updateIcon(icon);
-  }
+  },
+  { immediate: true },
 );
 </script>
 
