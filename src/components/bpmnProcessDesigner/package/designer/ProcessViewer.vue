@@ -341,7 +341,7 @@ import {
 import * as TaskApi from '@/api/bpm/task'
 import { useMessage } from '@/hooks/web/useMessage'
 // 导入用户store
-import { useUserStoreWithOut } from '@/store/modules/user'
+import { useUserStore } from '@/store/modules/user'
 // 导入流程转办配置
 import transferConfigService, { TransferConfig } from '@/api/bpm/transferUtils'
 const props = defineProps({
@@ -1088,8 +1088,6 @@ const handleUserSelectConfirm = (_, users: UserVO[]) => {
   }
 }
 
-const userStore = useUserStoreWithOut()
-
 // 响应式数据
 const showTransferBtn = ref(false)
 const checkingPermission = ref(false)
@@ -1103,7 +1101,7 @@ const hasProcessData = computed(() => {
 
 // 计算属性 - 是否有足够的用户数据
 const hasUserData = computed(() => {
-  return userStore.getUser && userStore.getUser?.id && userStore.getUser?.roleNames
+  return useUserStore().getUser && useUserStore().getUser?.id && useUserStore().getUser?.roleNames
 })
 
 // 计算属性 - 是否可以检查权限
@@ -1113,7 +1111,7 @@ const canCheckPermission = computed(() => {
 // 计算属性 - 当前登录用户是否为流程发起人
 const isInitiator = computed(() => {
   const startUserId = processInstance.value.startUser?.id || ''
-  if (startUserId === userStore.getUser.id) {
+  if (startUserId === useUserStore().getUser.id) {
     return true
   } else {
     return false
@@ -1130,7 +1128,7 @@ const checkTransferPermission = async (): Promise<void> => {
     const hasInitiatorPermission = transferConfig.value['initiatorEnabled'] && isInitiator.value
 
     // 检查管理员权限
-    const user = userStore.getUser
+    const user = useUserStore().getUser
     // 先判断 user 是否存在，避免访问 roleNames 时报错
     const roleNames = user ? user.roleNames : null
 
@@ -1154,7 +1152,7 @@ const checkTransferPermission = async (): Promise<void> => {
 
 // 监听流程信息和用户信息变化
 watch(
-  () => [processInstance.value, userStore.getUser],
+  () => [processInstance.value, useUserStore().getUser],
   async (newVal, oldVal) => {
     // 只有当有实际变化时才检查权限
     if (JSON.stringify(newVal) !== JSON.stringify(oldVal) && canCheckPermission.value) {
