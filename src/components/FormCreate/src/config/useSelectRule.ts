@@ -1,4 +1,4 @@
-import { generateUUID } from '@/utils'
+import { generateUUID } from '@/utils/bpmTools'
 import { localeProps, makeRequiredRule } from '@/components/FormCreate/src/utils'
 import { selectRule } from '@/components/FormCreate/src/config/selectRule'
 import { SelectRuleOption } from '@/components/FormCreate/src/type'
@@ -24,7 +24,7 @@ export const useSelectRule = (option: SelectRuleOption) => {
         field: generateUUID(),
         title: label,
         info: '',
-        $required: false
+        $required: false,
       }
     },
     props(_, { t }) {
@@ -32,6 +32,6 @@ export const useSelectRule = (option: SelectRuleOption) => {
         option.props = []
       }
       return localeProps(t, name + '.props', [makeRequiredRule(), ...option.props, ...rules])
-    }
+    },
   }
 }

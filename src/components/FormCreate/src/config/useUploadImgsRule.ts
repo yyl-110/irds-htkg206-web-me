@@ -1,4 +1,4 @@
-import { generateUUID } from '@/utils'
+import { generateUUID } from '@/utils/bpmTools'
 import { localeProps, makeRequiredRule } from '@/components/FormCreate/src/utils'
 
 export const useUploadImgsRule = () => {
@@ -14,7 +14,7 @@ export const useUploadImgsRule = () => {
         field: generateUUID(),
         title: label,
         info: '',
-        $required: false
+        $required: false,
       }
     },
     props(_, { t }) {
@@ -24,7 +24,7 @@ export const useUploadImgsRule = () => {
           type: 'switch',
           field: 'drag',
           title: '拖拽上传',
-          value: false
+          value: false,
         },
         {
           type: 'select',
@@ -40,45 +40,45 @@ export const useUploadImgsRule = () => {
             { label: 'image/svg+xml', value: 'image/svg+xml' },
             { label: 'image/tiff', value: 'image/tiff' },
             { label: 'image/webp', value: 'image/webp' },
-            { label: 'image/x-icon', value: 'image/x-icon' }
+            { label: 'image/x-icon', value: 'image/x-icon' },
           ],
           props: {
-            multiple: true
-          }
+            multiple: true,
+          },
         },
         {
           type: 'inputNumber',
           field: 'fileSize',
           title: '大小限制(MB)',
           value: 5,
-          props: { min: 0 }
+          props: { min: 0 },
         },
         {
           type: 'inputNumber',
           field: 'limit',
           title: '数量限制',
           value: 5,
-          props: { min: 0 }
+          props: { min: 0 },
         },
         {
           type: 'input',
           field: 'height',
           title: '组件高度',
-          value: '150px'
+          value: '150px',
         },
         {
           type: 'input',
           field: 'width',
           title: '组件宽度',
-          value: '150px'
+          value: '150px',
         },
         {
           type: 'input',
           field: 'borderradius',
           title: '组件边框圆角',
-          value: '8px'
-        }
+          value: '8px',
+        },
       ])
-    }
+    },
   }
 }

@@ -34,3 +34,16 @@ export const defaultProps = {
   isLeaf: 'leaf',
   emitPath: false, // 用于 cascader 组件：在选中节点改变时，是否返回由该节点所在的各级菜单的值所组成的数组，若设置 false，则只返回该节点的值
 }
+/**
+ * 解析 JSON 字符串
+ *
+ * @param str
+ */
+export function jsonParse(str: string) {
+  try {
+    return JSON.parse(str)
+  } catch (e) {
+    console.warn(`str[${str}] 不是一个 JSON 字符串`)
+    return str
+  }
+}

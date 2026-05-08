@@ -1,4 +1,4 @@
-import { generateUUID } from '@/utils'
+import { generateUUID } from '@/utils/bpmTools'
 import { localeProps, makeRequiredRule } from '@/components/FormCreate/src/utils'
 
 export const useUploadFileRule = () => {
@@ -14,7 +14,7 @@ export const useUploadFileRule = () => {
         field: generateUUID(),
         title: label,
         info: '',
-        $required: false
+        $required: false,
       }
     },
     props(_, { t }) {
@@ -30,51 +30,51 @@ export const useUploadFileRule = () => {
             { label: 'xls', value: 'xls' },
             { label: 'ppt', value: 'ppt' },
             { label: 'txt', value: 'txt' },
-            { label: 'pdf', value: 'pdf' }
+            { label: 'pdf', value: 'pdf' },
           ],
           props: {
-            multiple: true
-          }
+            multiple: true,
+          },
         },
         {
           type: 'switch',
           field: 'autoUpload',
           title: '是否在选取文件后立即进行上传',
-          value: true
+          value: true,
         },
         {
           type: 'switch',
           field: 'drag',
           title: '拖拽上传',
-          value: false
+          value: false,
         },
         {
           type: 'switch',
           field: 'isShowTip',
           title: '是否显示提示',
-          value: true
+          value: true,
         },
         {
           type: 'inputNumber',
           field: 'fileSize',
           title: '大小限制(MB)',
           value: 5,
-          props: { min: 0 }
+          props: { min: 0 },
         },
         {
           type: 'inputNumber',
           field: 'limit',
           title: '数量限制',
           value: 5,
-          props: { min: 0 }
+          props: { min: 0 },
         },
         {
           type: 'switch',
           field: 'disabled',
           title: '是否禁用',
-          value: false
-        }
+          value: false,
+        },
       ])
-    }
+    },
   }
 }

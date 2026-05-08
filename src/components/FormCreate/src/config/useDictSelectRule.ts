@@ -1,4 +1,4 @@
-import { generateUUID } from '@/utils'
+import { generateUUID } from '@/utils/bpmTools'
 import * as DictDataApi from '@/api/system/dict/dict.type'
 import { localeProps, makeRequiredRule } from '@/components/FormCreate/src/utils'
 import { selectRule } from '@/components/FormCreate/src/config/selectRule'
@@ -20,7 +20,7 @@ export const useDictSelectRule = () => {
     dictOptions.value =
       data?.map((item: DictDataApi.DictTypeVO) => ({
         label: item.name,
-        value: item.type
+        value: item.type,
       })) ?? []
   })
   return {
@@ -33,7 +33,7 @@ export const useDictSelectRule = () => {
         field: generateUUID(),
         title: label,
         info: '',
-        $required: false
+        $required: false,
       }
     },
     props(_, { t }) {
@@ -44,7 +44,7 @@ export const useDictSelectRule = () => {
           field: 'dictType',
           title: '字典类型',
           value: '',
-          options: dictOptions.value
+          options: dictOptions.value,
         },
         {
           type: 'select',
@@ -54,11 +54,11 @@ export const useDictSelectRule = () => {
           options: [
             { label: '数字', value: 'int' },
             { label: '字符串', value: 'str' },
-            { label: '布尔值', value: 'bool' }
-          ]
+            { label: '布尔值', value: 'bool' },
+          ],
         },
-        ...rules
+        ...rules,
       ])
-    }
+    },
   }
 }

@@ -1,7 +1,7 @@
-import request from '@/config/axios'
+import request from '@/httpRequest'
 import { isEmpty } from '@/utils/is'
 import { ApiSelectProps } from '@/components/FormCreate/src/type'
-import { jsonParse } from '@/utils'
+import { jsonParse } from '@/utils/bpmTools'
 
 export const useApiSelect = (option: ApiSelectProps) => {
   return defineComponent({
@@ -10,53 +10,53 @@ export const useApiSelect = (option: ApiSelectProps) => {
       // 选项标签
       labelField: {
         type: String,
-        default: () => option.labelField ?? 'label'
+        default: () => option.labelField ?? 'label',
       },
       // 选项的值
       valueField: {
         type: String,
-        default: () => option.valueField ?? 'value'
+        default: () => option.valueField ?? 'value',
       },
       // api 接口
       url: {
         type: String,
-        default: () => option.url ?? ''
+        default: () => option.url ?? '',
       },
       // 请求类型
       method: {
         type: String,
-        default: 'GET'
+        default: 'GET',
       },
       // 选项解析函数
       parseFunc: {
         type: String,
-        default: ''
+        default: '',
       },
       // 请求参数
       data: {
         type: String,
-        default: ''
+        default: '',
       },
       // 选择器类型，下拉框 select、多选框 checkbox、单选框 radio
       selectType: {
         type: String,
-        default: 'select'
+        default: 'select',
       },
       // 是否多选
       multiple: {
         type: Boolean,
-        default: false
+        default: false,
       },
       // 是否远程搜索
       remote: {
         type: Boolean,
-        default: false
+        default: false,
       },
       // 远程搜索时携带的参数
       remoteField: {
         type: String,
-        default: 'label'
-      }
+        default: 'label',
+      },
     },
     setup(props) {
       const attrs = useAttrs()
@@ -112,16 +112,14 @@ export const useApiSelect = (option: ApiSelectProps) => {
           return
         }
         // 情况三：不是 yudao-vue-pro 标准返回
-        console.warn(
-          `接口[${props.url}] 返回结果不是 yudao-vue-pro 标准返回建议采用自定义解析函数处理`
-        )
+        console.warn(`接口[${props.url}] 返回结果不是 yudao-vue-pro 标准返回建议采用自定义解析函数处理`)
       }
 
       function parseOptions0(data: any[]) {
         if (Array.isArray(data)) {
           options.value = data.map((item: any) => ({
             label: parseExpression(item, props.labelField),
-            value: parseExpression(item, props.valueField)
+            value: parseExpression(item, props.valueField),
           }))
           return
         }
@@ -150,7 +148,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
           const result = data[expr.trim()] // 去除前后空白，以防用户输入带空格的属性名
           if (!result) {
             console.warn(
-              `接口选择器选项模版[${template}][${expr.trim()}] 解析值失败结果为[${result}], 请检查属性名称是否存在于接口返回值中,存在则忽略此条！！！`
+              `接口选择器选项模版[${template}][${expr.trim()}] 解析值失败结果为[${result}], 请检查属性名称是否存在于接口返回值中,存在则忽略此条！！！`,
             )
           }
           return result
@@ -184,8 +182,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
               loading={loading.value}
               {...attrs}
               remote={props.remote}
-              {...(props.remote && { remoteMethod: remoteMethod })}
-            >
+              {...(props.remote && { remoteMethod: remoteMethod })}>
               {options.value.map((item, index) => (
                 <el-option key={index} label={item.label} value={item.value} />
               ))}
@@ -198,8 +195,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
             loading={loading.value}
             {...attrs}
             remote={props.remote}
-            {...(props.remote && { remoteMethod: remoteMethod })}
-          >
+            {...(props.remote && { remoteMethod: remoteMethod })}>
             {options.value.map((item, index) => (
               <el-option key={index} label={item.label} value={item.value} />
             ))}
@@ -210,7 +206,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
         if (isEmpty(options.value)) {
           options.value = [
             { label: '选项1', value: '选项1' },
-            { label: '选项2', value: '选项2' }
+            { label: '选项2', value: '选项2' },
           ]
         }
         return (
@@ -225,7 +221,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
         if (isEmpty(options.value)) {
           options.value = [
             { label: '选项1', value: '选项1' },
-            { label: '选项2', value: '选项2' }
+            { label: '选项2', value: '选项2' },
           ]
         }
         return (
@@ -249,6 +245,6 @@ export const useApiSelect = (option: ApiSelectProps) => {
                 : buildSelect()}
         </>
       )
-    }
+    },
   })
 }

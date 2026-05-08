@@ -1,4 +1,4 @@
-import { generateUUID } from '@/utils'
+import { generateUUID } from '@/utils/bpmTools'
 import { localeProps, makeRequiredRule } from '@/components/FormCreate/src/utils'
 
 export const useEditorRule = () => {
@@ -14,7 +14,7 @@ export const useEditorRule = () => {
         field: generateUUID(),
         title: label,
         info: '',
-        $required: false
+        $required: false,
       }
     },
     props(_, { t }) {
@@ -23,10 +23,10 @@ export const useEditorRule = () => {
         {
           type: 'input',
           field: 'height',
-          title: '高度'
+          title: '高度',
         },
-        { type: 'switch', field: 'readonly', title: '是否只读' }
+        { type: 'switch', field: 'readonly', title: '是否只读' },
       ])
-    }
+    },
   }
 }

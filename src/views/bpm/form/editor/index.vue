@@ -6,7 +6,7 @@
         <template #handle>
           <el-button size="small" type="success" plain @click="handleSave">
             <Icon class="mr-5px" icon="ep:plus" />
-            {{ $t('保存') }}
+            {{ '保存' }}
           </el-button>
         </template>
       </fc-designer>
@@ -14,46 +14,50 @@
   </ContentWrap>
 
   <!-- 表单保存的弹窗 -->
-  <Dialog v-model="dialogVisible" title="$t('保存表单')" width="600">
+  <Dialog v-model="dialogVisible" title="('保存表单')" width="600">
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px">
-      <el-form-item :label="$t('表单名')" prop="name">
-        <el-input v-model="formData.name" :placeholder="$t('请输入表单名')" />
+      <el-form-item :label="'表单名'" prop="name">
+        <el-input v-model="formData.name" :placeholder="'请输入表单名'" />
       </el-form-item>
-      <el-form-item :label="$t('状态')" prop="status">
+      <el-form-item :label="'状态'" prop="status">
         <el-radio-group v-model="formData.status">
-          <el-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :value="dict.value">
-            {{ $t(dict.label) }}
+          <el-radio
+            v-for="dict in useDict.getDictOptions(DICT_TYPE.COMMON_STATUS)"
+            :key="dict.value"
+            :value="dict.value">
+            {{ dict.label }}
           </el-radio>
         </el-radio-group>
       </el-form-item>
-      <el-form-item :label="$t('备注')" prop="remark">
-        <el-input v-model="formData.remark" :placeholder="$t('请输入备注')" type="textarea" />
+      <el-form-item :label="'备注'" prop="remark">
+        <el-input v-model="formData.remark" :placeholder="'请输入备注'" type="textarea" />
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button :disabled="formLoading" type="primary" @click="submitForm">{{ $t('确 定') }}</el-button>
-      <el-button @click="dialogVisible = false">{{ $t('取 消') }}</el-button>
+      <el-button :disabled="formLoading" type="primary" @click="submitForm">{{ '确 定' }}</el-button>
+      <el-button @click="dialogVisible = false">{{ '取 消' }}</el-button>
     </template>
   </Dialog>
 </template>
 <script lang="ts" setup>
-import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
+import { DICT_TYPE } from '@/utils/dict'
 import { CommonStatusEnum } from '@/utils/constants'
 import * as FormApi from '@/api/bpm/form'
+import { useDictStore } from '@/store/modules/dict'
 import FcDesigner from '@form-create/designer'
 import { encodeConf, encodeFields, setConfAndFields } from '@/utils/formCreate'
-import { useTagsViewStore } from '@/store/modules/tagsView'
+// import { useTagsViewStore } from '@/store/modules/tagsView'
 import { useFormCreateDesigner } from '@/components/FormCreate'
 import { useRoute } from 'vue-router'
-
+/** 获取字典 */
+const useDict = useDictStore()
 defineOptions({ name: 'BpmFormEditor' })
 import { useMessage } from '@/hooks/web/useMessage'
-const { t } = useI18n() // 国际化
 const message = useMessage() // 消息
 const route = useRoute() // 路由
 const { push, currentRoute } = useRouter() // 路由
 const { query } = useRoute() // 路由信息
-const { delView } = useTagsViewStore() // 视图操作
+// const { delView } = useTagsViewStore() // 视图操作
 
 // 表单设计器配置
 const designerConfig = ref({
@@ -94,8 +98,8 @@ const formData = ref({
   remark: '',
 })
 const formRules = reactive({
-  name: [{ required: true, message: t('表单名不能为空'), trigger: 'blur' }],
-  status: [{ required: true, message: t('开启状态不能为空'), trigger: 'blur' }],
+  name: [{ required: true, message: '表单名不能为空', trigger: 'blur' }],
+  status: [{ required: true, message: '开启状态不能为空', trigger: 'blur' }],
 })
 const formRef = ref() // 表单 Ref
 
@@ -118,10 +122,10 @@ const submitForm = async () => {
     data.fields = encodeFields(designer) // 表单字段
     if (!data.id) {
       await FormApi.createForm(data)
-      message.success(t('新增成功'))
+      message.success('新增成功')
     } else {
       await FormApi.updateForm(data)
-      message.success(t('修改成功'))
+      message.success('修改成功')
     }
     dialogVisible.value = false
     close()
@@ -131,7 +135,7 @@ const submitForm = async () => {
 }
 /** 关闭按钮 */
 const close = () => {
-  delView(unref(currentRoute))
+  // delView(unref(currentRoute))
   push('/bpm/manager/form')
 }
 
@@ -157,7 +161,7 @@ onMounted(async () => {
 })
 </script>
 
-<style>
+<style lang="scss">
 .my-designer {
   ._fc-l,
   ._fc-m,
