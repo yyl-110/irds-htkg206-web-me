@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useUserStore } from '@/store/modules/user';
-import { computed, defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { computed, defineComponent, ref, watch, onMounted, onUnmounted, onActivated, nextTick } from 'vue';
+import dayjs from 'dayjs';
 import { useRouter, useRoute } from 'vue-router';
 import * as echarts from 'echarts';
 import { message, Modal } from 'ant-design-vue';
@@ -17,16 +18,31 @@ import {
   UserAddOutlined,
   SwapOutlined,
   ProfileOutlined,
+  FormOutlined,
+  ApartmentOutlined,
+  MobileOutlined,
+  CloudServerOutlined,
+  SettingOutlined,
 } from '@ant-design/icons-vue';
 import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
+import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
 import { encryptValue } from '@/utils';
 import Empty from '@/components/Empty/index.vue';
 import NoticeDetail from './components/notice-detail.vue';
-import { WORKBENCH_TABS, WORKBENCH_SECONDARY_TABS, MOCK_TODO_LIST, type TaskItem } from './data';
+import {
+  WORKBENCH_TABS,
+  WORKBENCH_SECONDARY_TABS,
+  TASK_KIND_LABEL,
+  TASK_KIND_ACTIONS,
+  type TaskItem,
+  type WorkbenchTaskKind,
+} from './data';
 /** 列表请求参数 */
 const requestNoticeParams = reactive(new NoticePageRequestDTOModel());
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const locale = ref({
   cancelSort: WeiI18n.t('点击取消排序').value,
@@ -49,21 +65,17 @@ const taskIndex = ref('1');
 
 const searchQuery = ref('');
 const secondaryFilter = ref<(typeof WORKBENCH_SECONDARY_TABS)[number]['value']>('todo');
-const auditFilter = ref<'todo' | 'done' | 'transfer' | 'all'>('todo');
 const viewMode = ref('grid'); // 'grid' | 'list'
 
 const secondaryTabs = WORKBENCH_SECONDARY_TABS;
-const auditSecondaryTabs = [
-  { title: '待办', value: 'todo' },
-  { title: '已办', value: 'done' },
-  { title: '已转办', value: 'transfer' },
-  { title: '全部', value: 'all' },
-] as const;
-const mockTodoList = ref<TaskItem[]>(MOCK_TODO_LIST);
+const todoList = ref<TaskItem[]>([]);
+/** 设计任务列表：数据来自 /business/workbench-todo-card/page */
+const todoListLoading = ref(false);
+
 const filteredTodoList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase();
-  let list = mockTodoList.value.filter(item =>
-    !keyword || item.title.toLowerCase().includes(keyword),
+  let list = todoList.value.filter(
+    item => !keyword || item.title.toLowerCase().includes(keyword),
   );
 
   switch (secondaryFilter.value) {
@@ -71,12 +83,12 @@ const filteredTodoList = computed(() => {
       return list.filter(item => item.status === 'done');
     case 'transfer':
       return list.filter(item => item.tags.includes('转'));
-    case 'product':
-      return list.filter(item => item.status === 'todo' && item.scene === 'product');
+    case 'wbs':
+      return list.filter(item => item.status === 'todo' && item.taskKind === 'wbs');
     case 'app':
-      return list.filter(item => item.status === 'todo' && item.scene === 'app');
+      return list.filter(item => item.status === 'todo' && item.taskKind === 'standalone');
     case 'compute':
-      return list.filter(item => item.status === 'todo' && item.scene === 'compute');
+      return list.filter(item => item.status === 'todo' && item.taskKind === 'compute');
     case 'all':
       return list;
     case 'todo':
@@ -84,24 +96,11 @@ const filteredTodoList = computed(() => {
       return list.filter(item => item.status === 'todo');
   }
 });
-const filteredAuditList = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase();
-  const list = mockTodoList.value.filter(item =>
-    !keyword || item.title.toLowerCase().includes(keyword),
-  );
-
-  switch (auditFilter.value) {
-    case 'done':
-      return list.filter(item => item.status === 'done');
-    case 'transfer':
-      return list.filter(item => item.tags.includes('转'));
-    case 'all':
-      return list;
-    case 'todo':
-    default:
-      return list.filter(item => item.status === 'todo');
-  }
-});
+/**
+ * 【待审核】与「设计任务」分域：不使用 workbench-todo-card 数据（否则会混入 WBS/独立应用等待办卡片）。
+ * OA 等业务接口接入后在此替换为独立数据源；接入前恒为空列表。
+ */
+const filteredAuditList = computed((): TaskItem[] => []);
 // 定义问候语文本
 const greetingText = ref('');
 // 定时器标识，用于清除定时器
@@ -122,12 +121,13 @@ const todoColumns = ref([
     sorter: (a: TaskItem, b: TaskItem) => a.title.localeCompare(b.title),
   },
   {
-    title: '任务类型',
+    title: '任务大类',
     dataIndex: 'type',
     key: 'type',
-    width: 120,
+    width: 148,
     resizable: true,
-    sorter: (a: TaskItem, b: TaskItem) => a.type.localeCompare(b.type),
+    sorter: (a: TaskItem, b: TaskItem) =>
+      a.taskKind.localeCompare(b.taskKind) || a.type.localeCompare(b.type),
   },
   {
     title: '项目时间',
@@ -150,7 +150,7 @@ const todoColumns = ref([
 const handleResizeColumn = (width: number, col: any) => {
   col.width = width;
 };
-const rowKey = (record: any) => record.id;
+const rowKey = (record: TaskItem) => String(record.id);
 const rowClassName = (_record: any, index: number) =>
   index % 2 === 1 ? "table-striped" : "";
 
@@ -268,6 +268,277 @@ const canRejectOrTransfer = (task: TaskItem) => ['assign', 'product'].includes(t
 const canDesign = (task: TaskItem) => task.category !== 'assign';
 const canAssign = (task: TaskItem) => task.category === 'assign';
 const hasTimelineInfo = (task: TaskItem) => task.category === 'product';
+
+function formatProjectDateCn(v: unknown): string {
+  if (v == null || v === '') return '';
+  const d = dayjs(v as string);
+  return d.isValid() ? d.format('YYYY年M月D日') : '';
+}
+
+/** 对齐后端 card_kind（WorkbenchCardKindEnum）与 JSON 里的 taskKind slug */
+function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
+  const raw = String(v ?? '').trim();
+  const s = raw.toLowerCase().replace(/-/g, '_');
+  if (s === 'wbs' || s === 'standalone' || s === 'compute' || s === 'other') {
+    return s as WorkbenchTaskKind;
+  }
+  if (s === 'standalone_app') return 'standalone';
+  return 'other';
+}
+
+/** 仅 WBS 协同卡片展示右上角「⋯」驳回入口；独立应用 / 计算 / 其他不展示 */
+function showWbsRejectMenu(task: TaskItem): boolean {
+  return task.taskKind === 'wbs' && canRejectOrTransfer(task);
+}
+
+function inferCategoryForTaskItem(taskType: string, taskKind: WorkbenchTaskKind): TaskItem['category'] {
+  if (taskType.includes('指派')) return 'assign';
+  if (taskKind === 'standalone') return 'app';
+  if (taskKind === 'compute') return 'compute';
+  return 'product';
+}
+
+function inferSceneForTaskItem(taskKind: WorkbenchTaskKind): TaskItem['scene'] {
+  if (taskKind === 'standalone') return 'app';
+  if (taskKind === 'compute') return 'compute';
+  if (taskKind === 'wbs') return 'product';
+  return 'general';
+}
+
+/** 将 workbench-todo-card/page 单行映射为首页卡片 TaskItem（含 taskKind、标签、延期/剩余天） */
+function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
+  const taskKind = normalizeTaskKindFromApi(row.taskKind ?? row.cardKind);
+  const st = String(row.status ?? '').toUpperCase();
+  const tags: string[] = [];
+  if (st === 'TRANSFERRED') {
+    tags.push('转');
+    tags.push('待办');
+  } else {
+    if (st === 'TODO') tags.push('待办');
+    if (st === 'TODO' && (Number(row.overdueDays) || 0) > 0) tags.push('延');
+  }
+  const startTime = formatProjectDateCn(row.projectStartDate);
+  const endTime = formatProjectDateCn(row.projectEndDate);
+  const taskTypeStr = String(row.taskType ?? '');
+  const progress = Math.min(100, Math.max(0, Number(row.progress ?? 0)));
+  const overdue = Math.max(0, Number(row.overdueDays) || 0);
+  const uiStatus: 'todo' | 'done' = st === 'DONE' ? 'done' : 'todo';
+  let remainDays: number | undefined;
+  if (st === 'TODO' && overdue === 0 && row.projectEndDate) {
+    const end = dayjs(String(row.projectEndDate)).startOf('day');
+    if (end.isValid()) {
+      const d = end.diff(dayjs().startOf('day'), 'day');
+      if (d >= 0) remainDays = d;
+    }
+  }
+  const taskIdRaw = row.taskId ?? row.task_id;
+  const standaloneRaw = row.standaloneAppId ?? row.standalone_app_id;
+  return {
+    id: row.id != null ? String(row.id) : '',
+    title: String(row.title ?? ''),
+    tags,
+    startTime,
+    endTime,
+    type: taskTypeStr,
+    category: inferCategoryForTaskItem(taskTypeStr, taskKind),
+    status: uiStatus,
+    scene: inferSceneForTaskItem(taskKind),
+    taskKind,
+    progress,
+    delayDays: overdue > 0 ? overdue : undefined,
+    remainDays,
+    creatorName: String(row.creatorName ?? ''),
+    creatorAvatar: '',
+    taskId: taskIdRaw != null && taskIdRaw !== '' ? taskIdRaw : undefined,
+    standaloneAppId: standaloneRaw != null && standaloneRaw !== '' ? standaloneRaw : undefined,
+  };
+}
+
+/** 对接 GET/POST /business/workbench-todo-card/page，仅驱动「设计任务」Tab（含 WBS/独立应用/计算等） */
+async function loadTodoListFromApi() {
+  const uid = userStore.getUser?.id;
+  if (uid == null) {
+    todoList.value = [];
+    return;
+  }
+  todoListLoading.value = true;
+  try {
+    const kw = searchQuery.value.trim();
+    const res = await AdminApiProjectTemp.workbenchTodoCardPage({
+      pageNo: 1,
+      pageSize: 500,
+      assigneeUserId: String(uid),
+      ...(kw ? { keyword: kw } : {}),
+    });
+    const code = res?.data?.code;
+    const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined;
+    const raw = payload?.list;
+    if ((code === 0 || code === 200) && Array.isArray(raw)) {
+      todoList.value = raw.map(mapWorkbenchApiRowToTaskItem);
+    } else {
+      todoList.value = [];
+    }
+  } catch {
+    message.error('加载待办列表失败');
+    todoList.value = [];
+  } finally {
+    todoListLoading.value = false;
+  }
+}
+
+function taskCardKindClass(task: TaskItem): string {
+  const map: Record<WorkbenchTaskKind, string> = {
+    wbs: 'task-card--kind-wbs',
+    standalone: 'task-card--kind-standalone',
+    compute: 'task-card--kind-compute',
+    other: 'task-card--kind-other',
+  };
+  return map[task.taskKind] ?? 'task-card--kind-other';
+}
+
+function taskKindBadgeLabel(task: TaskItem): string {
+  return TASK_KIND_LABEL[task.taskKind] ?? TASK_KIND_LABEL.other;
+}
+
+type TaskActionKey = 'assign' | 'transfer' | 'detail' | 'design' | 'change';
+
+/** 类型维度允许的按钮 ∩ 业务权限；仅已办展示详情；已办独立应用另展示变更；已办不展示设计 */
+function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
+  if (action === 'detail') {
+    return task.status === 'done';
+  }
+  if (action === 'change') {
+    return task.status === 'done' && task.taskKind === 'standalone';
+  }
+  if (action === 'design' && task.status === 'done') {
+    return false;
+  }
+  const allowed = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other;
+  if (!allowed.includes(action)) return false;
+  if (action === 'assign') return canAssign(task);
+  if (action === 'transfer') return canRejectOrTransfer(task);
+  if (action === 'design') return canDesign(task);
+  return true;
+}
+
+/** 与 design-task-app-detail「设计」一致：project-pages → workspace */
+async function openDesignWorkspace(task: TaskItem) {
+  let appId: string | undefined =
+    task.standaloneAppId != null ? String(task.standaloneAppId).trim() : '';
+  if (!appId || appId === '0') {
+    const tid = task.taskId != null ? String(task.taskId).trim() : '';
+    if (tid) {
+      try {
+        const res = await AdminApiSystemProcessTask.appList({ taskId: tid });
+        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined;
+        const first = Array.isArray(list) && list.length ? list[0] : null;
+        const aid = first?.appId ?? first?.id;
+        if (aid != null && aid !== '') {
+          appId = String(aid).trim();
+        }
+      } catch {
+        // 忽略，后面统一提示
+      }
+    }
+  }
+  if (!appId || appId === '0') {
+    message.warning('当前任务暂无关联独立应用，无法进入设计页面');
+    return;
+  }
+  try {
+    const res = await AdminApiSystemProcessTask.projectPages({ appId });
+    const payload = res?.data?.data as Record<string, unknown> | undefined;
+    if (!payload || typeof payload !== 'object') {
+      message.error('流程页面数据为空');
+      return;
+    }
+    const cacheKey = `designTaskAppWorkspace:${String(payload.appId ?? appId)}:${Date.now()}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    const taskId = String(task.taskId ?? '').trim();
+    const targetAppId = String((payload.appId as string | number | undefined) ?? appId).trim();
+    await router.push({
+      path: '/internal/design-task-app-workspace',
+      query: { cacheKey, taskId, appId: targetAppId },
+    });
+  } catch {
+    message.error('获取流程页面失败');
+  }
+}
+
+/** 已办进入设计任务应用列表页 */
+function openTaskAppDetail(task: TaskItem) {
+  if (task.status !== 'done') {
+    return;
+  }
+  const tid = task.taskId ?? task.id;
+  if (tid == null || tid === '') {
+    message.warning('缺少任务标识，无法打开详情');
+    return;
+  }
+  const taskObj = {
+    id: tid,
+    processName: task.title,
+    categoryName: task.title,
+  };
+  const cacheKey = `designTaskAppDetail:${String(tid)}:${Date.now()}`;
+  sessionStorage.setItem(cacheKey, JSON.stringify(taskObj));
+  void router.push({
+    path: '/internal/design-task-app-detail',
+    query: { cacheKey, returnPath: route.fullPath },
+  });
+}
+
+/** 已办独立应用：后端撤销末节点完成态后进入设计页（末节点「设计中」） */
+async function openChangeWorkspace(task: TaskItem) {
+  if (task.status !== 'done' || task.taskKind !== 'standalone') {
+    return;
+  }
+  let appId: string | undefined =
+    task.standaloneAppId != null ? String(task.standaloneAppId).trim() : '';
+  if (!appId || appId === '0') {
+    const tid = task.taskId != null ? String(task.taskId).trim() : '';
+    if (tid) {
+      try {
+        const res = await AdminApiSystemProcessTask.appList({ taskId: tid });
+        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined;
+        const first = Array.isArray(list) && list.length ? list[0] : null;
+        const aid = first?.appId ?? first?.id;
+        if (aid != null && aid !== '') {
+          appId = String(aid).trim();
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  if (!appId || appId === '0') {
+    message.warning('当前任务暂无关联独立应用，无法变更');
+    return;
+  }
+  const taskIdStr = String(task.taskId ?? '').trim();
+  if (!taskIdStr) {
+    message.warning('缺少任务标识');
+    return;
+  }
+  const hideLoading = message.loading('变更处理中，请稍候…', 0);
+  try {
+    const res = await AdminApiSystemProcessTask.reopenLastNodeForChange({
+      appId,
+      taskId: taskIdStr,
+    });
+    const code = res?.data?.code;
+    if (!(code === 0 || code === 200)) {
+      message.error(String(res?.data?.msg ?? '变更失败'));
+      return;
+    }
+    await openDesignWorkspace(task);
+    await loadTodoListFromApi();
+  } catch {
+    message.error('变更失败');
+  } finally {
+    hideLoading();
+  }
+}
 const tableTodoList = computed(() =>
   filteredTodoList.value.map(item => ({
     ...item,
@@ -333,6 +604,24 @@ function syncLoginUserInfo() {
     '';
 }
 
+/** 对接后端 WorkbenchTodoCardSummaryVO，驱动首页顶部数字条 */
+async function loadWorkbenchSummary() {
+  const uid = userStore.getUser?.id;
+  if (uid == null) return;
+  try {
+    const res = await AdminApiProjectTemp.workbenchTodoCardSummary({
+      assigneeUserId: String(uid),
+    });
+    const code = res?.data?.code;
+    const payload = res?.data?.data as Record<string, number> | undefined;
+    if ((code === 0 || code === 200) && payload && typeof payload === 'object') {
+      projectStatistics.value = payload;
+    }
+  } catch {
+    /** 汇总失败时保留默认 0，不打断首页 */
+  }
+}
+
 async function getNoticePage() {
   // requestNoticeParams.currentPage = 1;
   // requestNoticeParams.numberPage = 10;
@@ -362,8 +651,26 @@ async function seeDetailFun(id: string) {
 }
 
 // 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
+let todoSearchDebounce: ReturnType<typeof setTimeout> | null = null;
+watch(searchQuery, () => {
+  if (todoSearchDebounce) clearTimeout(todoSearchDebounce);
+  todoSearchDebounce = setTimeout(() => {
+    void loadTodoListFromApi();
+  }, 400);
+});
+
+watch(
+  () => userStore.getUser?.id,
+  () => {
+    void loadWorkbenchSummary();
+    void loadTodoListFromApi();
+  },
+);
+
 onMounted(() => {
   syncLoginUserInfo();
+  void loadWorkbenchSummary();
+  void loadTodoListFromApi();
   getNoticePage();
   getGreeting();
   // 每分钟更新一次，确保时间准确
@@ -371,6 +678,17 @@ onMounted(() => {
   nextTick(() => {
     initTodoChart();
   });
+});
+
+/** 从设计工作台等子页 router.back 返回时 Main keep-alive 不会触发 onMounted，需在此刷新列表与顶部指标（跳过首次与 onMounted 重复的一次） */
+const skipWorkbenchActivatedRefreshOnce = ref(true);
+onActivated(() => {
+  if (skipWorkbenchActivatedRefreshOnce.value) {
+    skipWorkbenchActivatedRefreshOnce.value = false;
+    return;
+  }
+  void loadWorkbenchSummary();
+  void loadTodoListFromApi();
 });
 
 // 页面卸载时清除定时器，避免内存泄漏
@@ -437,14 +755,16 @@ onUnmounted(() => {
             </template>
             <a-tab-pane v-for="item in tabs" :key="item.name">
               <template #tab>
-                <div :class="['text-[16px]', { 'font-bold': activeName === item.name }]"
+                <div
+                  class="flex items-center gap-1 text-[16px]"
+                  :class="{ 'font-bold': activeName === item.name }"
                   :style="{ color: activeName === item.name ? '#124dd6' : '' }">
-                  {{ item.title }}<span
-                    v-if="item.name === 'todo' && projectStatistics.todoNum > 0">&nbsp;&nbsp;&nbsp;</span>
-                  <a-badge v-if="item.name === 'todo' && projectStatistics.todoNum > 0"
-                    style="position: absolute; left: 43px; top: -0px; display: flex; justify-content: center"
-                    :count="projectStatistics.todoNum" :overflow-count="99">
-                  </a-badge>
+                  <span>{{ item.title }}</span>
+                  <!-- 角标仅挂在「设计任务」上；勿用固定 left 像素，否则会叠到「待审核」标签上 -->
+                  <a-badge
+                    v-if="item.name === 'todo' && (projectStatistics.todoNum ?? 0) > 0"
+                    :count="projectStatistics.todoNum"
+                    :overflow-count="99" />
                 </div>
               </template>
 
@@ -471,11 +791,21 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
+                <a-spin :spinning="todoListLoading" class="flex-1 min-h-0 flex flex-col">
+                  <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
                   <template v-if="viewMode === 'grid'">
                     <a-row :gutter="[16, 16]">
-                      <a-col flex="0 0 380px" style="width: 380px; max-width: 380px;" v-for="item in filteredTodoList" :key="item.id">
-                        <div class="task-card">
+                      <a-col flex="0 0 380px" style="width: 380px; max-width: 380px;" v-for="item in filteredTodoList" :key="String(item.id)">
+                        <div class="task-card" :class="taskCardKindClass(item)">
+                          <div class="task-card__type-ribbon">
+                            <span class="task-card__type-ribbon-inner">
+                              <ApartmentOutlined v-if="item.taskKind === 'wbs'" />
+                              <MobileOutlined v-else-if="item.taskKind === 'standalone'" />
+                              <CloudServerOutlined v-else-if="item.taskKind === 'compute'" />
+                              <SettingOutlined v-else />
+                              {{ taskKindBadgeLabel(item) }}
+                            </span>
+                          </div>
                           <div class="tc-header flex justify-between items-start">
                             <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">
                               <span class="title-text truncate font-bold text-[16px] text-[#313133]"
@@ -486,7 +816,7 @@ onUnmounted(() => {
                                 :class="getTagClass(tag)">{{ tag
                                 }}</span>
                             </div>
-                            <a-dropdown v-if="canRejectOrTransfer(item)" :trigger="['hover']">
+                            <a-dropdown v-if="showWbsRejectMenu(item)" :trigger="['hover']">
                               <ellipsis-outlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
                               <template #overlay>
                                 <a-menu>
@@ -529,24 +859,38 @@ onUnmounted(() => {
                               <span>{{ item.creatorName }}</span>
                             </div>
                             <div class="tc-actions ml-auto flex items-center gap-[12px]">
-                              <a-tooltip v-if="canDesign(item)" title="设计">
-                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                              <a-tooltip v-if="taskActionAllowed(item, 'design')" title="设计">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openDesignWorkspace(item)">
                                   <highlight-outlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip v-if="canAssign(item)" title="指派">
+                              <a-tooltip v-if="taskActionAllowed(item, 'assign')" title="指派">
                                 <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                   <user-add-outlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip v-if="canRejectOrTransfer(item)" title="转办">
+                              <a-tooltip v-if="taskActionAllowed(item, 'transfer')" title="转办">
                                 <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                   <swap-outlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip title="详情">
-                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                              <a-tooltip v-if="taskActionAllowed(item, 'detail')" title="详情">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openTaskAppDetail(item)">
                                   <profile-outlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip v-if="taskActionAllowed(item, 'change')" title="变更">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openChangeWorkspace(item)">
+                                  <form-outlined />
                                 </a>
                               </a-tooltip>
                             </div>
@@ -593,6 +937,12 @@ onUnmounted(() => {
                         <template v-if="column.key === 'title'">
                           <span class="font-bold text-[#313133]">{{ record.title }}</span>
                         </template>
+                        <template v-if="column.key === 'type'">
+                          <div class="flex flex-col gap-[2px]">
+                            <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
+                            <span class="text-[12px] text-[#8c8c8c]">{{ record.type }}</span>
+                          </div>
+                        </template>
                         <template v-if="column.key === 'time'">
                           {{ record.displayTime }}
                         </template>
@@ -604,24 +954,38 @@ onUnmounted(() => {
                         </template>
                         <template v-if="column.key === 'action'">
                           <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                            <a-tooltip v-if="canDesign(record)" title="设计">
-                              <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                            <a-tooltip v-if="taskActionAllowed(record, 'design')" title="设计">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openDesignWorkspace(record)">
                                 <highlight-outlined />
                               </a>
                             </a-tooltip>
-                            <a-tooltip v-if="canAssign(record)" title="指派">
+                            <a-tooltip v-if="taskActionAllowed(record, 'assign')" title="指派">
                               <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                 <user-add-outlined />
                               </a>
                             </a-tooltip>
-                            <a-tooltip v-if="canRejectOrTransfer(record)" title="转办">
+                            <a-tooltip v-if="taskActionAllowed(record, 'transfer')" title="转办">
                               <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                                 <swap-outlined />
                               </a>
                             </a-tooltip>
-                            <a-tooltip title="详情">
-                              <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                            <a-tooltip v-if="taskActionAllowed(record, 'detail')" title="详情">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openTaskAppDetail(record)">
                                 <profile-outlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip v-if="taskActionAllowed(record, 'change')" title="变更">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openChangeWorkspace(record)">
+                                <form-outlined />
                               </a>
                             </a-tooltip>
                           </div>
@@ -629,26 +993,15 @@ onUnmounted(() => {
                       </template>
                     </a-table>
                   </template>
-                </div>
+                  </div>
+                </a-spin>
               </div>
               <div class="task-content h-full flex flex-col" v-else-if="item.name === 'audit'">
-                <div class="filter-bar flex justify-between items-center mb-[16px] mt-[8px]">
-                  <div class="capsule-group flex gap-[12px]">
-                    <div
-                      v-for="subTab in auditSecondaryTabs"
-                      :key="subTab.value"
-                      class="capsule"
-                      :class="{ active: auditFilter === subTab.value }"
-                      @click="auditFilter = subTab.value"
-                    >
-                      {{ subTab.title }}
-                    </div>
-                  </div>
-                </div>
                 <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
                   <a-table
                     :columns="todoColumns"
                     :data-source="tableAuditList"
+                    :locale="{ emptyText: '暂无待审核数据' }"
                     :row-class-name="rowClassName"
                     :pagination="false"
                     :row-key="rowKey"
@@ -682,6 +1035,12 @@ onUnmounted(() => {
                       <template v-if="column.key === 'title'">
                         <span class="font-bold text-[#313133]">{{ record.title }}</span>
                       </template>
+                      <template v-if="column.key === 'type'">
+                        <div class="flex flex-col gap-[2px]">
+                          <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
+                          <span class="text-[12px] text-[#8c8c8c]">{{ record.type }}</span>
+                        </div>
+                      </template>
                       <template v-if="column.key === 'time'">
                         {{ record.displayTime }}
                       </template>
@@ -693,24 +1052,38 @@ onUnmounted(() => {
                       </template>
                       <template v-if="column.key === 'action'">
                         <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                          <a-tooltip v-if="canDesign(record)" title="设计">
-                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                          <a-tooltip v-if="taskActionAllowed(record, 'design')" title="设计">
+                            <a
+                              href="#"
+                              class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                              @click.prevent.stop="openDesignWorkspace(record)">
                               <highlight-outlined />
                             </a>
                           </a-tooltip>
-                          <a-tooltip v-if="canAssign(record)" title="指派">
+                          <a-tooltip v-if="taskActionAllowed(record, 'assign')" title="指派">
                             <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                               <user-add-outlined />
                             </a>
                           </a-tooltip>
-                          <a-tooltip v-if="canRejectOrTransfer(record)" title="转办">
+                          <a-tooltip v-if="taskActionAllowed(record, 'transfer')" title="转办">
                             <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
                               <swap-outlined />
                             </a>
                           </a-tooltip>
-                          <a-tooltip title="详情">
-                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                          <a-tooltip v-if="taskActionAllowed(record, 'detail')" title="详情">
+                            <a
+                              href="#"
+                              class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                              @click.prevent.stop="openTaskAppDetail(record)">
                               <profile-outlined />
+                            </a>
+                          </a-tooltip>
+                          <a-tooltip v-if="taskActionAllowed(record, 'change')" title="变更">
+                            <a
+                              href="#"
+                              class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                              @click.prevent.stop="openChangeWorkspace(record)">
+                              <form-outlined />
                             </a>
                           </a-tooltip>
                         </div>
@@ -1150,7 +1523,7 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 16px;
   height: 100%;
-  min-height: 243px;
+  min-height: 248px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s;
@@ -1158,6 +1531,77 @@ onUnmounted(() => {
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     border-color: var(--ant-primary-color, #124dd6);
+  }
+}
+
+.task-card__type-ribbon {
+  margin: -4px 0 10px;
+}
+
+.task-card__type-ribbon-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.task-card--kind-wbs {
+  border-left: 4px solid #1a58e8;
+  background: linear-gradient(180deg, rgba(26, 88, 232, 0.06) 0%, #fff 56px);
+
+  &:hover {
+    border-color: #1a58e8;
+  }
+
+  .task-card__type-ribbon-inner {
+    color: #1a58e8;
+    background: rgba(26, 88, 232, 0.1);
+  }
+}
+
+.task-card--kind-standalone {
+  border-left: 4px solid #722ed1;
+  background: linear-gradient(180deg, rgba(114, 46, 209, 0.06) 0%, #fff 56px);
+
+  &:hover {
+    border-color: #722ed1;
+  }
+
+  .task-card__type-ribbon-inner {
+    color: #722ed1;
+    background: rgba(114, 46, 209, 0.1);
+  }
+}
+
+.task-card--kind-compute {
+  border-left: 4px solid #fa8c16;
+  background: linear-gradient(180deg, rgba(250, 140, 22, 0.07) 0%, #fff 56px);
+
+  &:hover {
+    border-color: #fa8c16;
+  }
+
+  .task-card__type-ribbon-inner {
+    color: #d46b08;
+    background: rgba(250, 140, 22, 0.12);
+  }
+}
+
+.task-card--kind-other {
+  border-left: 4px solid #8c8c8c;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, #fff 56px);
+
+  &:hover {
+    border-color: #8c8c8c;
+  }
+
+  .task-card__type-ribbon-inner {
+    color: #595959;
+    background: rgba(0, 0, 0, 0.06);
   }
 }
 
