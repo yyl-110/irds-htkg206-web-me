@@ -252,10 +252,20 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'design-task-app-workspace',
         name: 'DesignTaskAppWorkspace',
-        component: () => import('@/views/product/designTaskApplication/components/components/process-flow-app-workspace.vue'),
+        component: () => import('@/views/product/workbench/AppDesignWorkspace.vue'),
         meta: {
           hidden: true,
           title: '设计任务应用页面',
+          noCache: true,
+        },
+      },
+      {
+        path: 'wbs-design-workspace',
+        name: 'WbsDesignWorkspace',
+        component: () => import('@/views/product/workbench/WbsDesignWorkspace.vue'),
+        meta: {
+          hidden: true,
+          title: 'WBS 协同设计',
           noCache: true,
         },
       },

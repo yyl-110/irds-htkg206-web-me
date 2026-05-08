@@ -21,8 +21,12 @@ export interface TaskItem {
   creatorAvatar: string;
   /** 设计任务业务 id（用于应用列表、设计页 query） */
   taskId?: number | string;
+  /** 项目 id（WBS 协同设计页 query） */
+  projectId?: number | string;
   /** 独立应用 id，优先用于进入设计工作台 */
   standaloneAppId?: number | string;
+  /** WBS 行 id（business_workbench_todo_card.project_wbs_id），已办协同任务发起变更用 */
+  projectWbsId?: number | string;
 }
 
 /** 类型展示名 */
@@ -39,10 +43,10 @@ export const TASK_KIND_LABEL: Record<WorkbenchTaskKind, string> = {
  */
 export const TASK_KIND_ACTIONS: Record<
   WorkbenchTaskKind,
-  Array<'assign' | 'transfer' | 'detail' | 'design'>
+  Array<'assign' | 'transfer' | 'detail' | 'design' | 'change'>
 > = {
-  /** WBS：指派、转办、详情、设计 */
-  wbs: ['assign', 'transfer', 'detail', 'design'],
+  /** WBS：指派、转办、详情、设计；已办另由 taskActionAllowed 开放「变更」 */
+  wbs: ['assign', 'transfer', 'detail', 'design', 'change'],
   /** 独立应用：偏执行与协同 */
   standalone: ['transfer', 'detail', 'design'],
   /** 计算任务：以查看与进入设计/计算为主 */

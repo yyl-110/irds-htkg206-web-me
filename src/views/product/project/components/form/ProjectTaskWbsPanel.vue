@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { TableColumnsType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import localeDatePickerZh from 'ant-design-vue/es/date-picker/locale/zh_CN';
@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import {
+  BellOutlined,
   ColumnWidthOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -20,8 +21,11 @@ import {
 } from '@ant-design/icons-vue';
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
+import { useUserStore } from '@/store/modules/user';
 
 dayjs.extend(isoWeek);
+
+const userStore = useUserStore();
 
 const props = defineProps<{
   projectId: string | number;
@@ -33,6 +37,18 @@ export type WbsTaskNode = {
   id: string;
   /** 节点类型：1分类节点 2任务节点 */
   type?: number;
+  /** 父节点 ID，根节点为 0 或空 */
+  parentId?: string;
+  /** 被指派人（下级负责人），来自后端 assigneeUserId */
+  assigneeUserId?: string;
+  /** 关联发布任务 business_task_basic_info.id */
+  bindTaskId?: string;
+  /** 0 未发布 1 已发布 */
+  publishStatus?: number;
+  /** UNASSIGNED / ASSIGNED / PUBLISHED */
+  assignStatus?: string;
+  /** 后端 taskStatus：NOT_STARTED / DESIGNING / … */
+  taskStatusRaw?: string;
   serialNo: number;
   wbsCode: string;
   taskName: string;
@@ -50,6 +66,18 @@ export type WbsTaskNode = {
   /** 管理者用户 id（每行仅一人，用于再次打开时回显） */
   managerUserId?: string;
   children?: WbsTaskNode[];
+};
+
+/** 后端 task-param/list 单项（含上游同步提示） */
+type WbsTaskParamItem = {
+  paramKey?: string;
+  paramName?: string;
+  paramValue?: string;
+  needConfirmSyncFromUpstream?: boolean;
+  upstreamLatestValue?: string;
+  producerTaskId?: string | number;
+  producerTaskName?: string;
+  upstreamBound?: boolean;
 };
 
 /** 与示意界面一致的示例树（后续可接项目 WBS 接口，用 projectId 拉取） */
@@ -169,6 +197,263 @@ function buildDemoTaskTree(): WbsTaskNode[] {
 
 const treeData = ref<WbsTaskNode[]>(buildDemoTaskTree());
 
+const projectCreatorId = ref('');
+const projectCreatorName = ref('');
+/** 项目计划周期（分配分类节点时下级无日期时兜底） */
+const projectPlanStart = ref('');
+const projectPlanEnd = ref('');
+const userIdToName = ref<Map<string, string>>(new Map());
+const publishLoadingId = ref<string | null>(null);
+/** 任务行「发布」纸飞机 loading（与分类「启动」区分） */
+const publishTaskLoadingId = ref<string | null>(null);
+
+/** 已完成任务发起变更：是否同步上游最新 + 提交 loading */
+const wbsChangeModalVisible = ref(false);
+const wbsChangeTarget = ref<WbsTaskNode | null>(null);
+const wbsChangeApplyLatest = ref<0 | 1>(0);
+const wbsChangeSubmitLoading = ref(false);
+
+/** 按 bindTaskId 统计待确认同步的参数条数（用于铃铛角标） */
+const wbsParamPendingByTaskId = ref<Record<string, number>>({});
+const wbsParamHintsLoading = ref(false);
+
+const paramSyncModalVisible = ref(false);
+const paramSyncLoading = ref(false);
+const paramSyncConfirmLoading = ref(false);
+const paramSyncTarget = ref<WbsTaskNode | null>(null);
+const paramSyncPendingList = ref<WbsTaskParamItem[]>([]);
+
+const paramSyncTableColumns: TableColumnsType<WbsTaskParamItem> = [
+  { title: '参数编码', dataIndex: 'paramKey', key: 'paramKey', width: 120, ellipsis: true },
+  { title: '名称', dataIndex: 'paramName', key: 'paramName', width: 100, ellipsis: true },
+  { title: '本任务值', dataIndex: 'paramValue', key: 'paramValue', ellipsis: true },
+  { title: '上游最新值', dataIndex: 'upstreamLatestValue', key: 'upstreamLatestValue', ellipsis: true },
+  { title: '上游任务', dataIndex: 'producerTaskName', key: 'producerTaskName', width: 120, ellipsis: true },
+];
+
+function collectTaskNodesWithBind(nodes: WbsTaskNode[]): WbsTaskNode[] {
+  const out: WbsTaskNode[] = [];
+  const walk = (arr: WbsTaskNode[]) => {
+    for (const n of arr) {
+      if (Number(n.type) === 2 && n.bindTaskId) {
+        out.push(n);
+      }
+      if (n.children?.length) {
+        walk(n.children);
+      }
+    }
+  };
+  walk(nodes);
+  return out;
+}
+
+async function refreshWbsParamPendingHints() {
+  if (!props.projectId || !treeData.value?.length) {
+    wbsParamPendingByTaskId.value = {};
+    return;
+  }
+  const tasks = collectTaskNodesWithBind(treeData.value);
+  if (!tasks.length) {
+    wbsParamPendingByTaskId.value = {};
+    return;
+  }
+  wbsParamHintsLoading.value = true;
+  const next: Record<string, number> = {};
+  try {
+    for (const n of tasks) {
+      const tid = n.bindTaskId;
+      if (!tid) {
+        continue;
+      }
+      try {
+        const res = await AdminApiProjectTemp.wbsTaskParamList({
+          projectId: props.projectId,
+          taskId: tid,
+        });
+        const raw = (res?.data as { data?: unknown } | undefined)?.data;
+        const list = Array.isArray(raw) ? (raw as WbsTaskParamItem[]) : [];
+        const cnt = list.filter(x => x?.needConfirmSyncFromUpstream).length;
+        if (cnt > 0) {
+          next[String(tid)] = cnt;
+        }
+      } catch {
+        /* 未发布协同或无绑定等：忽略单任务错误 */
+      }
+    }
+  } finally {
+    wbsParamPendingByTaskId.value = next;
+    wbsParamHintsLoading.value = false;
+  }
+}
+
+async function openParamSyncModal(record: WbsTaskNode) {
+  if (!props.projectId || !record.bindTaskId) {
+    return;
+  }
+  paramSyncTarget.value = record;
+  paramSyncModalVisible.value = true;
+  paramSyncLoading.value = true;
+  paramSyncPendingList.value = [];
+  try {
+    const res = await AdminApiProjectTemp.wbsTaskParamList({
+      projectId: props.projectId,
+      taskId: record.bindTaskId,
+    });
+    const raw = (res?.data as { data?: unknown } | undefined)?.data;
+    const list = Array.isArray(raw) ? (raw as WbsTaskParamItem[]) : [];
+    paramSyncPendingList.value = list.filter(x => x?.needConfirmSyncFromUpstream);
+    if (!paramSyncPendingList.value.length) {
+      message.info('当前无需与上游同步');
+      paramSyncModalVisible.value = false;
+    }
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { msg?: string } }; message?: string };
+    message.error(err?.response?.data?.msg ?? err?.message ?? '加载参数失败');
+    paramSyncModalVisible.value = false;
+  } finally {
+    paramSyncLoading.value = false;
+  }
+}
+
+function closeParamSyncModal() {
+  paramSyncModalVisible.value = false;
+  paramSyncTarget.value = null;
+  paramSyncPendingList.value = [];
+}
+
+async function confirmParamSyncFromUpstream() {
+  const record = paramSyncTarget.value;
+  if (!record?.bindTaskId || !props.projectId) {
+    throw new Error('sync-fail');
+  }
+  const keys = paramSyncPendingList.value.map(x => String(x.paramKey ?? '').trim()).filter(Boolean);
+  if (!keys.length) {
+    closeParamSyncModal();
+    return;
+  }
+  paramSyncConfirmLoading.value = true;
+  try {
+    const res = await AdminApiProjectTemp.wbsTaskParamConfirmSync({
+      projectId: props.projectId,
+      consumerTaskId: record.bindTaskId,
+      consumerWbsId: record.id,
+      paramKeys: keys,
+    });
+    if ((res?.data as { code?: number } | undefined)?.code !== 200) {
+      message.error(String((res?.data as { msg?: string } | undefined)?.msg ?? '同步失败'));
+      throw new Error('sync-fail');
+    }
+    message.success('已更新为本任务参数（与上游一致）');
+    closeParamSyncModal();
+    await refreshWbsParamPendingHints();
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'sync-fail') {
+      throw e;
+    }
+    const err = e as { response?: { data?: { msg?: string } }; message?: string };
+    message.error(err?.response?.data?.msg ?? err?.message ?? '同步失败');
+    throw new Error('sync-fail');
+  } finally {
+    paramSyncConfirmLoading.value = false;
+  }
+}
+
+/** 表格日期校验失败会回滚 record，但用户已在日历里选过日期；分配时用此兜底与树上数据合并 */
+const wbsLastPickedPlanDates = ref<Record<string, { start?: string; end?: string }>>({});
+
+function touchWbsPickedPlan(nodeId: string, part: 'start' | 'end', val: string) {
+  const id = String(nodeId);
+  const next = { ...wbsLastPickedPlanDates.value };
+  const prev = next[id] ?? {};
+  next[id] = part === 'start' ? { ...prev, start: val } : { ...prev, end: val };
+  wbsLastPickedPlanDates.value = next;
+}
+
+function clearWbsPickedPlan(nodeId: string) {
+  const id = String(nodeId);
+  if (!wbsLastPickedPlanDates.value[id]) return;
+  const next = { ...wbsLastPickedPlanDates.value };
+  delete next[id];
+  wbsLastPickedPlanDates.value = next;
+}
+
+/**
+ * 合并计划日期候选：仅 null/undefined 或空串、纯空白视为「未填」，才继续用下一项。
+ * 若用 `a ?? b`，当 a 为 '' 时不会落到 b，会导致树上空串盖住用户日历兜底缓存。
+ */
+function pickFirstNonEmptyPlanDate(...candidates: (string | number | undefined | null)[]): string {
+  for (const c of candidates) {
+    if (c == null) continue;
+    const t = String(c).trim();
+    if (t) return t;
+  }
+  return '';
+}
+
+/** ant-design-vue 3 DatePicker 的 update:value 可能比 change 更可靠，用于写入兜底缓存 */
+function onPickerValueTouch(record: WbsTaskNode, part: 'start' | 'end', v: unknown) {
+  const str = toDateString(v);
+  if (str) touchWbsPickedPlan(record.id, part, str);
+}
+
+function isWbsRoot(n: WbsTaskNode): boolean {
+  const p = n.parentId;
+  return p === undefined || p === null || p === '' || p === '0';
+}
+
+async function loadProjectCreatorInfo() {
+  if (!props.projectId) return;
+  try {
+    const res = await AdminApiProjectTemp.getProjectInfoEditFile({ id: props.projectId } as any);
+    const data = res?.data?.data as {
+      creator?: number;
+      creatorName?: string;
+      planStartTime?: string;
+      planEndTime?: string;
+    } | undefined;
+    projectCreatorId.value = data?.creator != null ? String(data.creator) : '';
+    projectCreatorName.value = data?.creatorName ?? '';
+    projectPlanStart.value = data?.planStartTime ? String(data.planStartTime).slice(0, 10) : '';
+    projectPlanEnd.value = data?.planEndTime ? String(data.planEndTime).slice(0, 10) : '';
+  } catch {
+    projectCreatorId.value = '';
+    projectCreatorName.value = '';
+    projectPlanStart.value = '';
+    projectPlanEnd.value = '';
+  }
+}
+
+async function loadUserIdToNameMap() {
+  try {
+    const res = await AdminApiSystemDept.getDeptInfo({} as any);
+    const users =
+      (res.data?.data as { adminUserResponseDTO?: { id: number | string; name: string }[] } | undefined)?.adminUserResponseDTO ?? [];
+    const m = new Map<string, string>();
+    for (const u of users) m.set(String(u.id), u.name);
+    userIdToName.value = m;
+  } catch {
+    userIdToName.value = new Map();
+  }
+}
+
+function decorateWbsTree(nodes: WbsTaskNode[]) {
+  for (const n of nodes) {
+    if (isWbsRoot(n)) {
+      n.assigneeUserId = undefined;
+      n.responsibleUserId = projectCreatorId.value || undefined;
+      n.resource =
+        projectCreatorName.value || (projectCreatorId.value ? `用户${projectCreatorId.value}` : '');
+    } else if (n.assigneeUserId) {
+      n.responsibleUserId = n.assigneeUserId;
+      n.resource = userIdToName.value.get(n.assigneeUserId) ?? n.assigneeUserId;
+    } else {
+      n.responsibleUserId = undefined;
+      n.resource = '';
+    }
+    if (n.children?.length) decorateWbsTree(n.children);
+  }
+}
+
 function mapTaskStatus(status?: string): TaskWbsStatus {
   if (status === 'COMPLETED') return 'completed';
   if (status === 'DESIGNING' || status === 'CHANGING') return 'in_progress';
@@ -186,9 +471,23 @@ function mapApiNodeToWbs(node: any, serialSeed: { v: number }): WbsTaskNode {
     ? node.children.map((c: any) => mapApiNodeToWbs(c, serialSeed))
     : undefined;
   const progressNum = Number(node?.completionRate ?? 0);
+  const parentRaw = node?.parentId;
+  const parentId =
+    parentRaw === undefined || parentRaw === null ? undefined : String(parentRaw);
+  const assigneeRaw = node?.assigneeUserId;
+  const assigneeUserId =
+    assigneeRaw !== undefined && assigneeRaw !== null ? String(assigneeRaw) : undefined;
+  const bindRaw = node?.bindTaskId;
+  const bindTaskId = bindRaw !== undefined && bindRaw !== null ? String(bindRaw) : undefined;
   return {
     id: String(node?.id ?? `${serialNo}`),
     type: Number(node?.type ?? 2),
+    parentId,
+    assigneeUserId,
+    bindTaskId,
+    publishStatus: node?.publishStatus !== undefined ? Number(node.publishStatus) : undefined,
+    assignStatus: node?.assignStatus ? String(node.assignStatus) : undefined,
+    taskStatusRaw: node?.taskStatus != null ? String(node.taskStatus) : undefined,
     serialNo,
     wbsCode: String(node?.wbsCode ?? ''),
     taskName: String(node?.nodeName ?? ''),
@@ -199,8 +498,8 @@ function mapApiNodeToWbs(node: any, serialSeed: { v: number }): WbsTaskNode {
     progress: Number.isFinite(progressNum) ? progressNum : 0,
     predecessor: '',
     status: mapTaskStatus(node?.taskStatus),
-    resource: node?.chargeUserid ? String(node.chargeUserid) : '',
-    responsibleUserId: node?.chargeUserid ? String(node.chargeUserid) : undefined,
+    resource: '',
+    responsibleUserId: undefined,
     manager: node?.adminUserid ? String(node.adminUserid) : '',
     managerUserId: node?.adminUserid ? String(node.adminUserid) : undefined,
     children: children && children.length ? children : undefined,
@@ -213,16 +512,33 @@ async function fetchProjectWbsTree() {
     return;
   }
   try {
+    await Promise.all([loadProjectCreatorInfo(), loadUserIdToNameMap()]);
     const res = await AdminApiProjectTemp.projectWbsTreeList({ projectId: props.projectId });
     const apiTree = res?.data?.data ?? [];
     if (Array.isArray(apiTree) && apiTree.length) {
       const seed = { v: 1 };
       treeData.value = apiTree.map((n: any) => mapApiNodeToWbs(n, seed));
+      decorateWbsTree(treeData.value);
+      rollupCategoryPlanDates(treeData.value);
+      wbsLastPickedPlanDates.value = {};
+      void refreshWbsParamPendingHints();
     } else {
       treeData.value = [];
+      wbsLastPickedPlanDates.value = {};
+      wbsParamPendingByTaskId.value = {};
     }
   } catch {
+    try {
+      await loadProjectCreatorInfo();
+      await loadUserIdToNameMap();
+    } catch {
+      /* ignore */
+    }
     treeData.value = buildDemoTaskTree();
+    decorateWbsTree(treeData.value);
+    rollupCategoryPlanDates(treeData.value);
+    wbsLastPickedPlanDates.value = {};
+    wbsParamPendingByTaskId.value = {};
     message.warning('加载项目WBS失败，已展示示例数据');
   } finally {
     expandAllForTree(treeData.value);
@@ -260,6 +576,11 @@ watch(treeData, () => expandAllForTree(treeData.value));
 
 expandAllForTree(treeData.value);
 
+/** 从工作台/设计页返回时刷新进度与参数提醒，保持 WBS 与工作台一致 */
+onActivated(() => {
+  void fetchProjectWbsTree();
+});
+
 const SCROLL_X_BUFFER_PX = 48;
 
 /** 工期(天)：结束日与开始日按自然日计算，含起止两日，即 dayjs 的 end.diff(start,'day') + 1 */
@@ -275,6 +596,7 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
     { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', resizable: true },
     { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 108, ellipsis: true, resizable: true },
     { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, resizable: true },
+    { title: '类型', key: 'nodeKind', dataIndex: 'nodeKind', width: 72, align: 'center', resizable: true },
     { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 124, align: 'center', resizable: true },
     { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 124, align: 'center', resizable: true },
     {
@@ -301,7 +623,7 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
       title: '操作',
       key: 'operation',
       dataIndex: 'operation',
-      width: 220,
+      width: 288,
       align: 'center',
       fixed: 'right',
       resizable: false,
@@ -320,26 +642,125 @@ function handleResizeColumn(w: number, col: { width?: number | string }) {
 }
 
 function onTaskEdit(record: WbsTaskNode) {
+  if (!canEditAsAssignee(record)) {
+    message.warning('仅负责人可操作');
+    return;
+  }
   message.info(`编辑：${record.taskName}`);
 }
 
 function onTaskDelete(record: WbsTaskNode) {
+  if (!canEditAsAssignee(record)) {
+    message.warning('仅负责人可操作');
+    return;
+  }
   message.warning(`删除：${record.taskName}`);
 }
 
-function onTaskPublish(record: WbsTaskNode) {
-  message.info(`发布：${record.taskName}`);
+async function onTaskPublish(record: WbsTaskNode) {
+  if (!canEditAsAssignee(record)) {
+    message.warning('仅负责人可操作');
+    return;
+  }
+  publishTaskLoadingId.value = record.id;
+  try {
+    const res = await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
+    if ((res?.data as { code?: number } | undefined)?.code === 200) {
+      message.success('已推送至工作台待办');
+      await fetchProjectWbsTree();
+      await refreshWbsParamPendingHints();
+    } else {
+      message.error(String((res?.data as { msg?: string } | undefined)?.msg ?? '发布失败'));
+    }
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { msg?: string } }; message?: string };
+    message.error(err?.response?.data?.msg ?? err?.message ?? '发布失败');
+  } finally {
+    publishTaskLoadingId.value = null;
+  }
 }
 
-function onTaskStart(record: WbsTaskNode) {
-  message.info(`启动：${record.taskName}`);
+async function onTaskStart(record: WbsTaskNode) {
+  if (!canShowStartButton(record)) return;
+  publishLoadingId.value = record.id;
+  try {
+    const res = await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
+    if (res?.data?.code === 200) {
+      message.success('已推送至工作台待办');
+      await fetchProjectWbsTree();
+    } else {
+      message.error((res?.data as any)?.msg ?? '发布失败');
+    }
+  } catch (e: any) {
+    message.error(e?.response?.data?.msg ?? e?.message ?? '发布失败');
+  } finally {
+    publishLoadingId.value = null;
+  }
 }
 
 function onTaskChangeRequest(record: WbsTaskNode) {
-  message.info(`变更：${record.taskName}`);
+  if (!canEditAsAssignee(record)) {
+    message.warning('仅负责人可操作');
+    return;
+  }
+  if (String(record.taskStatusRaw ?? '') !== 'COMPLETED') {
+    message.warning('仅已完成任务可发起变更');
+    return;
+  }
+  if (!record.bindTaskId) {
+    message.warning('当前节点未绑定设计任务');
+    return;
+  }
+  wbsChangeTarget.value = record;
+  wbsChangeApplyLatest.value = 0;
+  wbsChangeModalVisible.value = true;
+}
+
+function closeWbsChangeModal() {
+  wbsChangeModalVisible.value = false;
+  wbsChangeTarget.value = null;
+}
+
+async function executeWbsTaskChange() {
+  const record = wbsChangeTarget.value;
+  if (!record?.id) {
+    throw new Error('wbs-change-fail');
+  }
+  const applyLatest = wbsChangeApplyLatest.value === 1 ? 1 : 0;
+  const wbsIdStr = String(record.id).trim();
+  wbsChangeSubmitLoading.value = true;
+  try {
+    const mc = await AdminApiProjectTemp.projectWbsMarkChange({ id: wbsIdStr });
+    if ((mc?.data as { code?: number } | undefined)?.code !== 200) {
+      message.error(String((mc?.data as { msg?: string } | undefined)?.msg ?? '标记变更失败'));
+      throw new Error('wbs-change-fail');
+    }
+    const ro = await AdminApiProjectTemp.projectWbsReopenTask({ id: wbsIdStr, applyLatestValue: applyLatest });
+    if ((ro?.data as { code?: number } | undefined)?.code !== 200) {
+      message.error(String((ro?.data as { msg?: string } | undefined)?.msg ?? '确认变更失败'));
+      throw new Error('wbs-change-fail');
+    }
+    message.success('已发起变更。协同设计请从工作台待办进入该任务（WBS 协同与独立应用互不关联）');
+    closeWbsChangeModal();
+    await fetchProjectWbsTree();
+    await refreshWbsParamPendingHints();
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'wbs-change-fail') {
+      throw e;
+    }
+    const err = e as { response?: { data?: { msg?: string } }; message?: string };
+    message.error(err?.response?.data?.msg ?? err?.message ?? '变更失败');
+    throw new Error('wbs-change-fail');
+  } finally {
+    wbsChangeSubmitLoading.value = false;
+  }
 }
 
 function onTaskUnpublish(record: WbsTaskNode) {
+  if (!canEditAsAssignee(record)) {
+    message.warning('仅负责人可操作');
+    return;
+  }
   message.info(`撤销发布：${record.taskName}`);
 }
 
@@ -380,7 +801,24 @@ function formatResponsibleUserRow(u: ResponsiblePickerUser) {
 }
 
 async function openResponsiblePicker(record: WbsTaskNode, field: 'responsible' | 'manager' = 'responsible') {
-  responsiblePickerTarget.value = record;
+  if (field === 'responsible') {
+    if (isWbsRoot(record)) {
+      message.warning('顶层节点负责人为项目创建人，无需在此分配');
+      return;
+    }
+    if (!canShowBrowseResponsible(record)) {
+      message.warning('仅上一级负责人可为下级分配人员');
+      return;
+    }
+    if (!browseAssignEnabled(record)) {
+      message.warning('任务已开始或已发布，无法分配人员');
+      return;
+    }
+  } else if (!canModifyRowFields(record)) {
+    message.warning('无权修改管理者');
+    return;
+  }
+  responsiblePickerTarget.value = findNodeById(treeData.value, String(record.id)) ?? record;
   responsiblePickerField.value = field;
   responsiblePickerKeyword.value = '';
   responsiblePickerSelectedUserId.value =
@@ -409,7 +847,7 @@ function closeResponsiblePicker() {
   responsiblePickerTarget.value = null;
 }
 
-function confirmResponsiblePicker() {
+async function confirmResponsiblePicker() {
   const target = responsiblePickerTarget.value;
   if (!target) {
     closeResponsiblePicker();
@@ -417,30 +855,119 @@ function confirmResponsiblePicker() {
   }
   const uid = responsiblePickerSelectedUserId.value;
   const isResponsible = responsiblePickerField.value === 'responsible';
-  if (!uid || uid === RESPONSIBLE_PICKER_NONE) {
-    if (isResponsible) {
-      target.responsibleUserId = undefined;
-      target.resource = '';
-      message.success('已清空负责人');
-    } else {
+
+  if (!isResponsible) {
+    if (!uid || uid === RESPONSIBLE_PICKER_NONE) {
       target.managerUserId = undefined;
       target.manager = '';
       message.success('已清空管理者');
+    } else {
+      const u = responsiblePickerUsers.value.find(x => x.id === uid);
+      target.managerUserId = uid;
+      target.manager = u?.name ?? uid;
+      message.success('管理者已更新');
     }
     closeResponsiblePicker();
     return;
   }
-  const u = responsiblePickerUsers.value.find(x => x.id === uid);
-  if (isResponsible) {
-    target.responsibleUserId = uid;
-    target.resource = u?.name ?? uid;
-    message.success('负责人已更新');
-  } else {
-    target.managerUserId = uid;
-    target.manager = u?.name ?? uid;
-    message.success('管理者已更新');
+
+  if (!uid || uid === RESPONSIBLE_PICKER_NONE) {
+    message.warning('暂不支持清空负责人，如需调整请联系管理员');
+    closeResponsiblePicker();
+    return;
   }
-  closeResponsiblePicker();
+  if (!canShowBrowseResponsible(target)) {
+    message.warning('无权分配下一级负责人');
+    closeResponsiblePicker();
+    return;
+  }
+  if (!browseAssignEnabled(target)) {
+    message.warning('任务已开始或已发布，无法分配');
+    closeResponsiblePicker();
+    return;
+  }
+
+  /**
+   * 必须用 treeData 上的节点做校验：表格里刚选的日期写在数据源上；弹窗里的 target 可能与树引用不一致。
+   * 任务节点：先读后端的「界面上的计划日期」，不要在此时 rollup（rollup 只服务分类汇总展示）。
+   */
+  const row = findNodeById(treeData.value, String(target.id)) ?? target;
+  const isCategoryNode = Number(row.type) === 1;
+
+  let planStart = '';
+  let planEnd = '';
+
+  if (!isCategoryNode) {
+    /** 等表格/Picker 把值写回数据源后再读；合并树上节点、弹窗引用与最近一次日历选择（校验回滚后 record 可能仍为空） */
+    await nextTick();
+    const treeRow = findNodeById(treeData.value, String(target.id)) ?? row;
+    const picked = wbsLastPickedPlanDates.value[String(target.id)] ?? {};
+    const sd = pickFirstNonEmptyPlanDate(treeRow.startDate, target.startDate, picked.start);
+    const ed = pickFirstNonEmptyPlanDate(treeRow.endDate, target.endDate, picked.end);
+    if (!sd || !ed) {
+      message.warning('任务节点请先填写计划开始与完成时间');
+      return;
+    }
+    planStart = sd;
+    planEnd = ed;
+  } else {
+    rollupCategoryPlanDates(treeData.value);
+    const after = findNodeById(treeData.value, String(target.id)) ?? row;
+    planStart =
+      String(after.startDate ?? '').trim() ||
+      projectPlanStart.value ||
+      dayjs().startOf('day').format('YYYY-MM-DD');
+    planEnd =
+      String(after.endDate ?? '').trim() ||
+      projectPlanEnd.value ||
+      planStart;
+    if (dayjs(planEnd).isBefore(dayjs(planStart), 'day')) {
+      planEnd = planStart;
+    }
+  }
+
+  const nodeIdStr = String(target.id).trim();
+  const assigneeIdStr = String(uid).trim();
+  if (!/^\d+$/.test(nodeIdStr) || !/^\d+$/.test(assigneeIdStr)) {
+    message.error('节点或人员 ID 无效');
+    return;
+  }
+
+  const ps = dayjs(planStart).startOf('day');
+  const pe = dayjs(planEnd).startOf('day');
+  if (!ps.isValid() || !pe.isValid()) {
+    message.error('计划时间无效，请检查日期数据');
+    return;
+  }
+  /** 与全局 Jackson 一致：cirpoint-common JacksonObjectMapper 使用 yyyy-MM-dd HH:mm:ss（空格，非 ISO T） */
+  const planStartTime = ps.format('YYYY-MM-DD HH:mm:ss');
+  const planEndTime = pe.format('YYYY-MM-DD HH:mm:ss');
+
+  const u = responsiblePickerUsers.value.find(x => x.id === uid);
+  try {
+    const res = await AdminApiProjectTemp.projectWbsAssignUser({
+      id: nodeIdStr,
+      assigneeUserId: assigneeIdStr,
+      planStartTime,
+      planEndTime,
+    });
+    if (res?.data?.code === 200) {
+      target.responsibleUserId = uid;
+      target.assigneeUserId = uid;
+      target.resource = u?.name ?? uid;
+      clearWbsPickedPlan(String(target.id));
+      message.success('分配成功');
+      closeResponsiblePicker();
+      await fetchProjectWbsTree();
+    }
+    /** 非 200 业务码已由 axios 响应拦截器统一提示 */
+  } catch (e: unknown) {
+    /** 仅在网络异常等无业务响应体时兜底提示，避免与拦截器重复 */
+    const err = e as { response?: { data?: unknown }; message?: string };
+    if (!err?.response) {
+      message.error(err?.message ?? '网络异常，请稍后重试');
+    }
+  }
 }
 
 /** 在树中定位节点及其直接上级 */
@@ -457,6 +984,65 @@ function findNodeContext(
     }
   }
   return null;
+}
+
+function canAssignResponsible(record: WbsTaskNode): boolean {
+  if (isWbsRoot(record)) return false;
+  const uid = String(userStore.getUser.id);
+  const ctx = findNodeContext(treeData.value, record.id);
+  const parent = ctx?.parent;
+  if (!parent) return false;
+  if (isWbsRoot(parent)) return uid === projectCreatorId.value;
+  return !!parent.assigneeUserId && uid === String(parent.assigneeUserId);
+}
+
+function canEditAsAssignee(record: WbsTaskNode): boolean {
+  return !!record.assigneeUserId && String(userStore.getUser.id) === String(record.assigneeUserId);
+}
+
+/** 分类节点不维护自身计划时间（展示为下级合集）；任务节点：根仅创建人；已分配仅负责人；未分配由上一级填 */
+function canModifyRowFields(record: WbsTaskNode): boolean {
+  if (record.type === 1) return false;
+  if (isWbsRoot(record)) return String(userStore.getUser.id) === projectCreatorId.value;
+  if (record.assigneeUserId) return canEditAsAssignee(record);
+  return canAssignResponsible(record);
+}
+
+/** 未开始且未发布才可选人分配 */
+function isWbsTaskNotStarted(record: WbsTaskNode): boolean {
+  const ts = record.taskStatusRaw ?? '';
+  return ts === '' || ts === 'NOT_STARTED';
+}
+
+function isWbsTaskUnpublished(record: WbsTaskNode): boolean {
+  return record.publishStatus !== 1 && String(record.assignStatus ?? '') !== 'PUBLISHED';
+}
+
+function browseAssignEnabled(record: WbsTaskNode): boolean {
+  return isWbsTaskNotStarted(record) && isWbsTaskUnpublished(record);
+}
+
+function canShowBrowseResponsible(record: WbsTaskNode): boolean {
+  return !isWbsRoot(record) && canAssignResponsible(record);
+}
+
+function canClickStart(record: WbsTaskNode): boolean {
+  const uid = String(userStore.getUser.id);
+  if (!record.assigneeUserId) return false;
+  if (uid === String(record.assigneeUserId)) return true;
+  const ctx = findNodeContext(treeData.value, record.id);
+  const parent = ctx?.parent;
+  if (!parent) return false;
+  if (isWbsRoot(parent) && uid === projectCreatorId.value) return true;
+  if (parent.assigneeUserId && uid === String(parent.assigneeUserId)) return true;
+  return false;
+}
+
+function canShowStartButton(record: WbsTaskNode): boolean {
+  if (record.type !== 1 || isWbsRoot(record)) return false;
+  if (!record.bindTaskId) return false;
+  if (record.publishStatus === 1 || record.assignStatus === 'PUBLISHED') return false;
+  return canClickStart(record);
 }
 
 /** 子树内所有子孙（不含 node 自身）的最小开始、最大完成 */
@@ -479,8 +1065,54 @@ function syncDurationWorkdays(record: WbsTaskNode) {
   if (d != null) record.durationWorkdays = d;
 }
 
+/** 从当前树数据取节点，避免表格行引用与 treeData 脱离导致日期仍为空 */
+function findNodeById(nodes: WbsTaskNode[], id: string): WbsTaskNode | null {
+  for (const n of nodes) {
+    if (String(n.id) === String(id)) return n;
+    if (n.children?.length) {
+      const hit = findNodeById(n.children, id);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+/**
+ * 分类节点(type=1)的展示用起止时间 = 下一级子树中「任务/子分类」有效区间的并集（最早开始 ~ 最晚完成）
+ * 任务节点保留自身 plan 时间
+ */
+function rollupCategoryPlanDates(nodes: WbsTaskNode[]) {
+  function walk(n: WbsTaskNode): { minS: Dayjs | null; maxE: Dayjs | null } {
+    const isCategory = Number(n.type) === 1;
+    if (!isCategory) {
+      const s = dayjs(n.startDate).startOf('day');
+      const e = dayjs(n.endDate).startOf('day');
+      return { minS: s.isValid() ? s : null, maxE: e.isValid() ? e : null };
+    }
+    if (!n.children?.length) {
+      n.startDate = '';
+      n.endDate = '';
+      syncDurationWorkdays(n);
+      return { minS: null, maxE: null };
+    }
+    let minS: Dayjs | null = null;
+    let maxE: Dayjs | null = null;
+    for (const c of n.children) {
+      const eff = walk(c);
+      if (eff.minS && (!minS || eff.minS.isBefore(minS))) minS = eff.minS;
+      if (eff.maxE && (!maxE || eff.maxE.isAfter(maxE))) maxE = eff.maxE;
+    }
+    n.startDate = minS?.isValid() ? minS.format('YYYY-MM-DD') : '';
+    n.endDate = maxE?.isValid() ? maxE.format('YYYY-MM-DD') : '';
+    syncDurationWorkdays(n);
+    return { minS, maxE };
+  }
+  for (const r of nodes) walk(r);
+}
+
 /** 校验当前行日期与上级、下级区间关系；通过返回 null */
 function validateTaskDates(record: WbsTaskNode): string | null {
+  if (record.type === 1) return null;
   const s = dayjs(record.startDate).startOf('day');
   const e = dayjs(record.endDate).startOf('day');
   const today = dayjs().startOf('day');
@@ -556,10 +1188,12 @@ function onTaskStartDateChange(record: WbsTaskNode, v: string | null) {
   }
   record.startDate = v;
   record.endDate = nextEndStr;
+  rollupCategoryPlanDates(treeData.value);
   const err = validateTaskDates(record);
   if (err) {
     record.startDate = snapS;
     record.endDate = snapE;
+    rollupCategoryPlanDates(treeData.value);
     message.warning(err);
     return;
   }
@@ -574,10 +1208,12 @@ function onTaskEndDateChange(record: WbsTaskNode, v: string | null) {
   const snapS = record.startDate;
   const snapE = record.endDate;
   record.endDate = v;
+  rollupCategoryPlanDates(treeData.value);
   const err = validateTaskDates(record);
   if (err) {
     record.startDate = snapS;
     record.endDate = snapE;
+    rollupCategoryPlanDates(treeData.value);
     message.warning(err);
     return;
   }
@@ -600,16 +1236,27 @@ function makeDisabledTaskEnd(record: WbsTaskNode) {
 }
 
 function makeOnTaskStartChange(record: WbsTaskNode) {
-  return (v: unknown) => {
-    const str = toDateString(v);
-    if (str) onTaskStartDateChange(record, str);
+  /** ant-design-vue 3：`change(date, dateString)`，优先用 dateString 避免 Dayjs 形态差异导致 toDateString 失败 */
+  return (v: unknown, dateString?: string) => {
+    const fromApi =
+      typeof dateString === 'string' && dateString.trim().length > 0 ? dateString.trim() : null;
+    const str = fromApi ?? toDateString(v);
+    if (str) {
+      touchWbsPickedPlan(record.id, 'start', str);
+      onTaskStartDateChange(record, str);
+    }
   };
 }
 
 function makeOnTaskEndChange(record: WbsTaskNode) {
-  return (v: unknown) => {
-    const str = toDateString(v);
-    if (str) onTaskEndDateChange(record, str);
+  return (v: unknown, dateString?: string) => {
+    const fromApi =
+      typeof dateString === 'string' && dateString.trim().length > 0 ? dateString.trim() : null;
+    const str = fromApi ?? toDateString(v);
+    if (str) {
+      touchWbsPickedPlan(record.id, 'end', str);
+      onTaskEndDateChange(record, str);
+    }
   };
 }
 
@@ -617,7 +1264,8 @@ const tableBodyHeight = ref(420);
 /** 左侧表格区域宽度（px），null 表示用 CSS 默认比例；收起甘特前会记忆 */
 const leftPaneWidthPx = ref<number | null>(null);
 const leftPaneWidthBeforeCollapse = ref<number | null>(null);
-const ganttCollapsed = ref(true);
+/** 默认展开甘特图，进度条与工作台一致（可与左侧表格对照） */
+const ganttCollapsed = ref(false);
 const splitterDragging = ref(false);
 const splitRootRef = ref<HTMLElement | null>(null);
 
@@ -1158,6 +1806,15 @@ watch(ganttCollapsed, () => {
     class="project-task-wbs"
     :class="{ 'is-split-dragging': splitterDragging }">
     <div ref="tableWrapRef" class="project-task-wbs__left" :style="leftPaneDynamicStyle">
+      <div v-if="projectId" class="project-task-wbs__sync-toolbar">
+        <span class="project-task-wbs__sync-toolbar-label">参数协同</span>
+        <a-button type="link" size="small" :loading="wbsParamHintsLoading" @click="refreshWbsParamPendingHints">
+          局部同步提醒
+        </a-button>
+        <a-button v-if="ganttCollapsed" type="link" size="small" @click="toggleGanttCollapsed">
+          展开甘特图
+        </a-button>
+      </div>
       <a-table
         class="project-task-wbs-table"
         :style="tableWbsBodyCssVars"
@@ -1176,6 +1833,9 @@ watch(ganttCollapsed, () => {
           <template v-if="column.key === 'wbsCode'">
             {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `— ${record.wbsCode}` : record.wbsCode }}
           </template>
+          <template v-else-if="column.key === 'nodeKind'">
+            <span>{{ record.type === 1 ? '分类' : '任务' }}</span>
+          </template>
           <template v-if="column.key === 'startDate'">
             <div class="task-wbs-date-cell">
               <a-date-picker
@@ -1186,7 +1846,9 @@ watch(ganttCollapsed, () => {
                 value-format="YYYY-MM-DD"
                 size="small"
                 placeholder="开始"
+                :disabled="!canModifyRowFields(record)"
                 :disabled-date="makeDisabledTaskStart(record)"
+                @update:value="(v: unknown) => onPickerValueTouch(record, 'start', v)"
                 @change="makeOnTaskStartChange(record)" />
             </div>
           </template>
@@ -1200,14 +1862,21 @@ watch(ganttCollapsed, () => {
                 value-format="YYYY-MM-DD"
                 size="small"
                 placeholder="完成"
+                :disabled="!canModifyRowFields(record)"
                 :disabled-date="makeDisabledTaskEnd(record)"
+                @update:value="(v: unknown) => onPickerValueTouch(record, 'end', v)"
                 @change="makeOnTaskEndChange(record)" />
             </div>
           </template>
           <template v-else-if="column.key === 'resource'">
             <div class="task-wbs-responsible-cell">
               <span class="task-wbs-responsible-text" :title="record.resource">{{ record.resource }}</span>
-              <a-button type="primary" size="small" @click.stop="openResponsiblePicker(record, 'responsible')">
+              <a-button
+                v-if="canShowBrowseResponsible(record)"
+                type="primary"
+                size="small"
+                :disabled="!browseAssignEnabled(record)"
+                @click.stop="openResponsiblePicker(record, 'responsible')">
                 浏览
               </a-button>
             </div>
@@ -1218,36 +1887,78 @@ watch(ganttCollapsed, () => {
             </div>
           </template>
           <template v-else-if="column.key === 'operation'">
-            <a-space v-if="record.type === 1" :size="6" wrap class="task-wbs-ops">
-              <a-button type="primary" size="small" @click.stop="onTaskStart(record)">启动</a-button>
-            </a-space>
-            <a-space v-else :size="6" wrap class="task-wbs-ops">
-              <a-tooltip title="发布">
-                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskPublish(record)">
-                  <template #icon><SendOutlined /></template>
-                </a-button>
+            <div class="task-wbs-ops-wrap">
+              <a-tooltip
+                v-if="
+                  Number(record.type) === 2 &&
+                  record.bindTaskId &&
+                  (wbsParamPendingByTaskId[String(record.bindTaskId)] ?? 0) > 0
+                "
+                title="有参数与上游产出不一致，点击查看或同步为上游最新值">
+                <a-badge
+                  :count="wbsParamPendingByTaskId[String(record.bindTaskId)]"
+                  :number-style="{
+                    backgroundColor: '#fa8c16',
+                    fontSize: '10px',
+                    minWidth: '16px',
+                    height: '16px',
+                    lineHeight: '16px',
+                    padding: '0 4px',
+                  }">
+                  <a-button
+                    type="link"
+                    size="small"
+                    class="task-wbs-ops__btn task-wbs-ops__sync-bell"
+                    :loading="paramSyncLoading && paramSyncTarget?.id === record.id"
+                    @click.stop="openParamSyncModal(record)">
+                    <template #icon><BellOutlined /></template>
+                  </a-button>
+                </a-badge>
               </a-tooltip>
-              <a-tooltip title="变更">
-                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskChangeRequest(record)">
-                  <template #icon><FormOutlined /></template>
+              <a-space v-if="record.type === 1" :size="6" wrap class="task-wbs-ops">
+                <a-button
+                  v-if="canShowStartButton(record)"
+                  type="primary"
+                  size="small"
+                  :loading="publishLoadingId === record.id"
+                  @click.stop="onTaskStart(record)">
+                  启动
                 </a-button>
-              </a-tooltip>
-              <a-tooltip title="撤销发布">
-                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskUnpublish(record)">
-                  <template #icon><RollbackOutlined /></template>
-                </a-button>
-              </a-tooltip>
-              <a-tooltip title="编辑">
-                <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskEdit(record)">
-                  <template #icon><EditOutlined /></template>
-                </a-button>
-              </a-tooltip>
-              <a-tooltip title="删除">
-                <a-button type="link" size="small" danger class="task-wbs-ops__btn" @click.stop="onTaskDelete(record)">
-                  <template #icon><DeleteOutlined /></template>
-                </a-button>
-              </a-tooltip>
-            </a-space>
+              </a-space>
+              <a-space v-else-if="canEditAsAssignee(record)" :size="6" wrap class="task-wbs-ops">
+                <a-tooltip title="发布到工作台待办">
+                  <a-button
+                    type="link"
+                    size="small"
+                    class="task-wbs-ops__btn"
+                    :loading="publishTaskLoadingId === record.id"
+                    @click.stop="onTaskPublish(record)">
+                    <template #icon><SendOutlined /></template>
+                  </a-button>
+                </a-tooltip>
+                <a-tooltip title="变更">
+                  <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskChangeRequest(record)">
+                    <template #icon><FormOutlined /></template>
+                  </a-button>
+                </a-tooltip>
+                <a-tooltip title="撤销发布">
+                  <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskUnpublish(record)">
+                    <template #icon><RollbackOutlined /></template>
+                  </a-button>
+                </a-tooltip>
+                <a-tooltip title="编辑">
+                  <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskEdit(record)">
+                    <template #icon><EditOutlined /></template>
+                  </a-button>
+                </a-tooltip>
+                <a-tooltip title="删除">
+                  <a-button type="link" size="small" danger class="task-wbs-ops__btn" @click.stop="onTaskDelete(record)">
+                    <template #icon><DeleteOutlined /></template>
+                  </a-button>
+                </a-tooltip>
+              </a-space>
+              <span v-else class="task-wbs-ops task-wbs-ops--muted">仅负责人可见操作</span>
+            </div>
           </template>
         </template>
       </a-table>
@@ -1282,6 +1993,56 @@ watch(ganttCollapsed, () => {
           <a-button @click="closeResponsiblePicker">取消</a-button>
           <a-button type="primary" @click="confirmResponsiblePicker">确定</a-button>
         </template>
+      </a-modal>
+
+      <a-modal
+        v-model:visible="paramSyncModalVisible"
+        title="参数与上游不一致"
+        width="820px"
+        :confirm-loading="paramSyncConfirmLoading"
+        :mask-closable="false"
+        destroy-on-close
+        ok-text="同步为上游最新值"
+        cancel-text="暂不处理"
+        @ok="confirmParamSyncFromUpstream"
+        @cancel="closeParamSyncModal">
+        <a-spin :spinning="paramSyncLoading">
+          <p class="project-task-wbs__sync-modal-hint">
+            上游任务中同名参数已更新，与本任务当前保存值不同。选择「同步」将用上游最新值覆盖本任务；「暂不处理」则保留本任务已有值。
+          </p>
+          <a-table
+            size="small"
+            bordered
+            :pagination="false"
+            row-key="paramKey"
+            :columns="paramSyncTableColumns"
+            :data-source="paramSyncPendingList"
+            :scroll="{ x: 760 }" />
+        </a-spin>
+      </a-modal>
+
+      <a-modal
+        v-model:visible="wbsChangeModalVisible"
+        title="发起任务变更"
+        width="520px"
+        :confirm-loading="wbsChangeSubmitLoading"
+        :mask-closable="false"
+        destroy-on-close
+        ok-text="确认并进入设计"
+        cancel-text="取消"
+        @ok="executeWbsTaskChange"
+        @cancel="closeWbsChangeModal">
+        <p class="project-task-wbs__sync-modal-hint">
+          仅<strong>已完成</strong>任务可发起变更。协同侧的「末节点重开」仅通过本页的<strong>WBS 标记变更与确认重开</strong>完成，与独立应用无关。继续设计请从<strong>工作台待办</strong>进入该协同任务。
+        </p>
+        <a-radio-group v-model:value="wbsChangeApplyLatest" class="project-task-wbs__change-radio">
+          <div class="project-task-wbs__change-radio-row">
+            <a-radio :value="1">采用上游最新参数值</a-radio>
+          </div>
+          <div class="project-task-wbs__change-radio-row">
+            <a-radio :value="0">保留本任务当前已存参数值</a-radio>
+          </div>
+        </a-radio-group>
       </a-modal>
     </div>
     <div
@@ -1436,6 +2197,49 @@ watch(ganttCollapsed, () => {
   flex-direction: column;
   background: #fff;
   box-shadow: none;
+}
+
+.project-task-wbs__sync-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 12px 4px;
+}
+
+.project-task-wbs__sync-toolbar-label {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.task-wbs-ops-wrap {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.task-wbs-ops__sync-bell {
+  color: #fa8c16 !important;
+}
+
+.project-task-wbs__sync-modal-hint {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.5;
+}
+
+.project-task-wbs__change-radio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-task-wbs__change-radio-row {
+  line-height: 1.5;
 }
 
 .project-task-wbs__splitter {
@@ -1893,6 +2697,12 @@ watch(ganttCollapsed, () => {
   justify-content: center;
   flex-wrap: nowrap;
   gap: 0;
+}
+
+.task-wbs-ops--muted {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
 }
 
 .task-wbs-date-cell {
