@@ -7,7 +7,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, nextTick } from 'vue';
 import * as echarts from "echarts";
-import { ref } from "vue";
 
 const props = defineProps({
   chartData: {

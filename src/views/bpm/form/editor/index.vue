@@ -1,7 +1,7 @@
 <template>
   <ContentWrap :body-style="{ padding: '0px' }" class="!mb-0">
-    <!-- 表单设计器 -->
-    <div class="h-[calc(100vh-var(--top-tool-height)-var(--app-content-padding)-2px)]">
+    <!-- 表单设计器：与 BPM 全屏页一致扣除顶栏/标签栏/页脚，底部留白 20px -->
+    <div class="bpm-form-editor-canvas">
       <fc-designer class="my-designer" ref="designer" :config="designerConfig">
         <template #handle>
           <el-button size="small" type="success" plain @click="handleSave">
@@ -14,7 +14,7 @@
   </ContentWrap>
 
   <!-- 表单保存的弹窗 -->
-  <Dialog v-model="dialogVisible" title="('保存表单')" width="600">
+  <Dialog v-model="dialogVisible" title="保存表单" width="600">
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px">
       <el-form-item :label="'表单名'" prop="name">
         <el-input v-model="formData.name" :placeholder="'请输入表单名'" />
@@ -22,7 +22,7 @@
       <el-form-item :label="'状态'" prop="status">
         <el-radio-group v-model="formData.status">
           <el-radio
-            v-for="dict in useDict.getDictOptions(DICT_TYPE.COMMON_STATUS)"
+            v-for="dict in useDict.getIntDictOptions(DICT_TYPE.COMMON_STATUS)"
             :key="dict.value"
             :value="dict.value">
             {{ dict.label }}
@@ -49,6 +49,14 @@ import { encodeConf, encodeFields, setConfAndFields } from '@/utils/formCreate'
 // import { useTagsViewStore } from '@/store/modules/tagsView'
 import { useFormCreateDesigner } from '@/components/FormCreate'
 import { useRoute } from 'vue-router'
+import type { FormInstance } from 'element-plus'
+import { Dialog } from '@/components/Dialog'
+
+/** 与字典 int 选项一致，避免接口 number 与字典 string 混用导致 radio 无法回显（1 !== '1'） */
+function normalizeFormStatus(status: unknown): number {
+  const n = Number(status)
+  return n === CommonStatusEnum.DISABLE ? CommonStatusEnum.DISABLE : CommonStatusEnum.ENABLE
+}
 /** 获取字典 */
 const useDict = useDictStore()
 defineOptions({ name: 'BpmFormEditor' })
@@ -98,10 +106,10 @@ const formData = ref({
   remark: '',
 })
 const formRules = reactive({
-  name: [{ required: true, message: '表单名不能为空', trigger: 'blur' }],
-  status: [{ required: true, message: '开启状态不能为空', trigger: 'blur' }],
+  name: [{ required: true, message: '表单名不能为空', trigger: ['blur', 'change'] }],
+  status: [{ required: true, message: '开启状态不能为空', trigger: ['change', 'blur'] }],
 })
-const formRef = ref() // 表单 Ref
+const formRef = ref<FormInstance>()
 
 /** 处理保存按钮 */
 const handleSave = () => {
@@ -110,11 +118,14 @@ const handleSave = () => {
 
 /** 提交表单 */
 const submitForm = async () => {
-  // 校验表单
-  if (!formRef) return
-  const valid = await formRef.value.validate()
-  if (!valid) return
-  // 提交请求
+  const elForm = formRef.value
+  if (!elForm) return
+  try {
+    await nextTick()
+    await elForm.validate()
+  } catch {
+    return
+  }
   formLoading.value = true
   try {
     const data = formData.value as FormApi.FormVO
@@ -147,22 +158,45 @@ onMounted(async () => {
     return
   }
   // 场景二：修改表单
-  const data = await FormApi.getForm(id)
-  formData.value = data
-  setConfAndFields(designer, data.conf, data.fields)
+  const res = await FormApi.getForm(id)
+  if (res.data.code !== 200) return
+
+  const row = res.data.data
+  formData.value = {
+    ...row,
+    status: normalizeFormStatus(row.status),
+  }
+  setConfAndFields(designer, row.conf, row.fields)
 
   if (route.query.type !== 'copy') {
     return
   }
-  // 场景三： 复制表单
-  const { id: foo, ...copied } = data
-  formData.value = copied
+  // 场景三：复制表单
+  const { id: _id, ...copied } = row
+  formData.value = {
+    ...copied,
+    status: normalizeFormStatus(copied.status),
+  }
   formData.value.name += '_copy'
 })
 </script>
 
 <style lang="scss">
+/* 与 processInstance 等全屏页同一套高度变量，缺省为 0 避免 calc 无效 */
+.bpm-form-editor-canvas {
+  box-sizing: border-box;
+  height: calc(
+    100vh - var(--top-tool-height, 0px) - var(--tags-view-height, 0px) - var(--app-footer-height, 0px) - var(
+        --app-content-padding,
+        0px
+      ) -
+      20px
+  );
+  min-height: 0;
+  overflow: hidden;
+}
 .my-designer {
+  height: 100%;
   ._fc-l,
   ._fc-m,
   ._fc-r {

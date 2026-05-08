@@ -6,6 +6,7 @@ import { setConfAndFields2 } from '@/utils/formCreate'
 import { useMessage } from '@/hooks/web/useMessage'
 import { ContentWrap } from '@/components/ContentWrap'
 import { DictTag } from '@/components/DictTag'
+import { Dialog } from '@/components/Dialog'
 defineOptions({ name: 'BpmForm' })
 const message = useMessage() // 消息弹窗
 const { currentRoute, push } = useRouter() // 路由
@@ -98,7 +99,9 @@ const detailData = ref({
 async function openDetail(rowId: number) {
   // 设置表单
   const data = await FormApi.getForm(rowId)
-  setConfAndFields2(detailData, data.conf, data.fields)
+  if (data.data.code !== 200) return
+  setConfAndFields2(detailData, data.data.data.conf, data.data.data.fields)
+  console.log(detailData, 'detailData')
   // 弹窗打开
   detailVisible.value = true
 }
@@ -148,11 +151,11 @@ watch(
         <el-table-column align="center" label="表单名" prop="name" />
         <el-table-column align="center" label="状态" prop="status">
           <template #default="scope">
-            <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="scope.row.status" />
+            <DictTag :type="DICT_TYPE.COMMON_STATUS" :value="scope.row.status" />
           </template>
         </el-table-column>
         <el-table-column align="center" label="备注" prop="remark" />
-        <el-table-column :formatter="dateFormatter" align="center" label="创建时间" prop="createTime" />
+        <el-table-column :formatter="dateFormatter" align="center" label="创建时间" prop="creationDate" />
         <el-table-column align="center" label="操作">
           <template #default="scope">
             <el-button v-hasPermi="['bpm:form:update']" link type="primary" @click="openForm('copy', scope.row.id)">

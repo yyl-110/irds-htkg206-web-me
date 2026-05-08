@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import process from 'node:process'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import vueJsx from '@vitejs/plugin-vue-jsx'
 // import Components from 'unplugin-vue-components/vite' // antd 按需加载
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
@@ -16,6 +17,8 @@ import { addCharsetToCssPlugin } from './src/plugins/addCharsetToCss/index'
 export default defineConfig({
   plugins: [
     vue(),
+    /** 否则 SFC 内 `<script lang="tsx">` 会按 React JSX 编译，运行时报 `React is not defined` */
+    vueJsx(),
     // Components({
     //   // dts: true, // enabled by default if `typescript` is installed
     //   // resolvers: [ AntDesignVueResolver() ],
