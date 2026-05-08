@@ -286,7 +286,7 @@ async function handleDelete(id: string | number) {
   // Modal.confirm({
   //   title: "`${$t('确定要删除吗')}?`",
   //   async onOk() {
-  await AdminApiSystemRole.deleteRole({ id: Number(id) });
+  await AdminApiSystemRole.deleteRole({ id: String(id) });
   message.success(WeiI18n.$t('删除成功'));
   handleFinish();
   //   },

@@ -1,159 +1,185 @@
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 import type { TableColumnType } from 'ant-design-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
-import { LoginLogResponseDTOModel } from '@/api/models/log/LoginLogResponseDTOModel';
+import { OperateLogSearchDTOModel } from '@/api/models/log/OperateLogSearchDTOModel';
 import { AdminApiLog } from '@/api/tags/管理后台日志管理';
 import Empty from '@/components/Empty/index.vue';
+import OperateLogDetailModal from '@/components/log/OperateLogDetailModal.vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { sortermethod } from '@/utils/tools';
-import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretUpOutlined, FileExcelOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
+import {
+  buildSeadminLogExportBody,
+  exportOperateLogRowsToExcel,
+  fetchAllSeadminOperateLogs,
+} from '@/utils/logOperateExcelExport';
 
 const loading = ref(false);
-/** 时间对象 */
-const dateRangeParams = ref([]);
 /** 列表请求参数 */
-const requestParams = reactive(new LoginLogResponseDTOModel());
+const requestParams = reactive(new OperateLogSearchDTOModel());
 /** 初始化绑定分页请求参数 */
 const { pagination } = usePagination(requestParams, getListData);
 pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
 pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
 pagination.showQuickJumper = false;
 
-type LoginListRow = Record<string, any> & { id: number | string };
-type LoginSortOrder = 'ascend' | 'descend' | '';
+type OperateListRow = Record<string, any> & { id: number | string };
+type OperateSortOrder = 'ascend' | 'descend' | '';
 
-const loginTableSortState = ref<{ key: string; order: LoginSortOrder }>({ key: '', order: '' });
-const loginTableFilterValueMap = ref<Record<string, string>>({ username: '' });
-const loginTableFilterOpenMap = ref<Record<string, boolean>>({});
+const operateTableSortState = ref<{ key: string; order: OperateSortOrder }>({ key: '', order: '' });
+const operateTableFilterValueMap = ref<Record<string, string>>({ username: '' });
+const operateTableFilterOpenMap = ref<Record<string, boolean>>({});
 
-function isLoginTableSortableColumn(column: { dataIndex?: unknown }) {
+function isOperateTableSortableColumn(column: { dataIndex?: unknown }) {
   const k = column?.dataIndex;
   return Boolean(k && k !== 'operation');
 }
 
-function isLoginTableFilterableColumn(column: { dataIndex?: unknown }) {
+function isOperateTableFilterableColumn(column: { dataIndex?: unknown }) {
   return column?.dataIndex === 'username';
 }
 
-function setLoginTableFilterOpen(key: string, open: boolean) {
-  loginTableFilterOpenMap.value = { ...loginTableFilterOpenMap.value, [key]: open };
+function setOperateTableFilterOpen(key: string, open: boolean) {
+  operateTableFilterOpenMap.value = { ...operateTableFilterOpenMap.value, [key]: open };
 }
 
-function getLoginTableFilterOpen(key: string) {
-  return Boolean(loginTableFilterOpenMap.value[key]);
+function getOperateTableFilterOpen(key: string) {
+  return Boolean(operateTableFilterOpenMap.value[key]);
 }
 
-function handleLoginTableFilterOpenChange(key: string, open: boolean) {
+function handleOperateTableFilterOpenChange(key: string, open: boolean) {
   if (open && key === 'username') {
-    loginTableFilterValueMap.value = { ...loginTableFilterValueMap.value, username: String(requestParams.username ?? '') };
+    operateTableFilterValueMap.value = { ...operateTableFilterValueMap.value, username: String(requestParams.userName ?? '') };
   }
-  setLoginTableFilterOpen(key, open);
+  setOperateTableFilterOpen(key, open);
 }
 
-function onLoginUsernameFilterOpenChange(vis: boolean) {
-  handleLoginTableFilterOpenChange('username', vis);
+function onOperateUsernameFilterOpenChange(vis: boolean) {
+  handleOperateTableFilterOpenChange('username', vis);
 }
 
-function getLoginTableSortOrder(dataIndex: string): LoginSortOrder {
-  return loginTableSortState.value.key === dataIndex ? loginTableSortState.value.order : '';
+function getOperateTableSortOrder(dataIndex: string): OperateSortOrder {
+  return operateTableSortState.value.key === dataIndex ? operateTableSortState.value.order : '';
 }
 
-function toggleLoginTableColumnSort(column: { dataIndex?: unknown }) {
-  if (!isLoginTableSortableColumn(column)) return;
+function toggleOperateTableColumnSort(column: { dataIndex?: unknown }) {
+  if (!isOperateTableSortableColumn(column)) return;
   const key = String(column.dataIndex);
-  if (loginTableSortState.value.key !== key) {
-    loginTableSortState.value = { key, order: 'ascend' };
+  if (operateTableSortState.value.key !== key) {
+    operateTableSortState.value = { key, order: 'ascend' };
     return;
   }
-  if (loginTableSortState.value.order === 'ascend') {
-    loginTableSortState.value = { key, order: 'descend' };
+  if (operateTableSortState.value.order === 'ascend') {
+    operateTableSortState.value = { key, order: 'descend' };
     return;
   }
-  if (loginTableSortState.value.order === 'descend') {
-    loginTableSortState.value = { key: '', order: '' };
+  if (operateTableSortState.value.order === 'descend') {
+    operateTableSortState.value = { key: '', order: '' };
     return;
   }
-  loginTableSortState.value = { key, order: 'ascend' };
+  operateTableSortState.value = { key, order: 'ascend' };
 }
 
 /** 数据 */
-const dataSource = ref<LoginListRow[]>([]);
+const dataSource = ref<OperateListRow[]>([]);
 
-const loginTableDisplayList = computed(() => {
+const operateTableDisplayList = computed(() => {
   const list = [...dataSource.value];
-  if (!loginTableSortState.value.key || !loginTableSortState.value.order) return list;
-  const k = loginTableSortState.value.key;
-  const sorted = [...list].sort((a: LoginListRow, b: LoginListRow) => sortermethod(a[k] as any, b[k] as any));
-  return loginTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
+  if (!operateTableSortState.value.key || !operateTableSortState.value.order) return list;
+  const k = operateTableSortState.value.key;
+  const sorted = [...list].sort((a: OperateListRow, b: OperateListRow) => sortermethod(a[k] as any, b[k] as any));
+  return operateTableSortState.value.order === 'ascend' ? sorted : sorted.reverse();
 });
 
-const columns = ref<TableColumnType<LoginListRow>[]>([
+const columns = ref<TableColumnType<OperateListRow>[]>([
   {
     title: WeiI18n.t('操作用户').value,
-    dataIndex: 'username',
-    key: 'username',
-    width: 280,
+    dataIndex: 'userNickname',
+    key: 'userNickname',
+    width: 260,
     resizable: true,
     align: 'left',
     fixed: 'left',
     ellipsis: { showTitle: true },
   },
   {
-    title: WeiI18n.t('操作IP').value,
-    dataIndex: 'userIp',
-    key: 'userIp',
-    width: 280,
+    title: WeiI18n.t('功能分类').value,
+    dataIndex: 'module',
+    key: 'module',
+    width: 360,
+    resizable: true,
+    align: 'left',
+    ellipsis: { showTitle: true },
+  },
+  {
+    title: WeiI18n.t('操作内容').value,
+    dataIndex: 'name',
+    key: 'name',
+    width: 200,
     resizable: true,
     align: 'left',
   },
   {
-    title: WeiI18n.t('地址').value,
-    dataIndex: 'ipRegion',
-    key: 'ipRegion',
-    width: 280,
-    resizable: true,
-    align: 'left',
-  },
-  {
-    title: WeiI18n.t('用户登录时间').value,
+    title: WeiI18n.t('操作时间').value,
     dataIndex: 'createTime',
     key: 'createTime',
-    resizable: true,
     width: 280,
+    resizable: true,
     align: 'center',
   },
-
+  {
+    title: WeiI18n.t('操作').value,
+    dataIndex: 'operation',
+    key: 'operation',
+    width: 100,
+    align: 'center',
+    fixed: 'right',
+  },
 ]);
 
-const LOGIN_TABLE_SCROLL_BUFFER = 24;
-const loginTableScrollX = computed(() => {
+const operateDetailModalOpen = ref(false);
+const operateDetailRow = ref<OperateListRow | null>(null);
+
+watch(operateDetailModalOpen, open => {
+  if (!open)
+    operateDetailRow.value = null;
+});
+
+function openOperateDetail(record: OperateListRow) {
+  operateDetailRow.value = record;
+  operateDetailModalOpen.value = true;
+}
+
+const OPERATE_TABLE_SCROLL_BUFFER = 24;
+const operateTableScrollX = computed(() => {
   let sum = 0;
   for (const col of columns.value) {
     const w = col.width;
     sum += typeof w === 'number' ? w : Number(w) || 0;
   }
-  return sum + LOGIN_TABLE_SCROLL_BUFFER;
+  return sum + OPERATE_TABLE_SCROLL_BUFFER;
 });
 
-function applyLoginTableColumnFilter(key: string) {
+function applyOperateTableColumnFilter(key: string) {
   if (key === 'username') {
-    requestParams.username = String(loginTableFilterValueMap.value.username ?? '').trim() as any;
+    requestParams.userName = String(operateTableFilterValueMap.value.username ?? '').trim() as any;
   }
   pagination.current = 1;
   requestParams.pageNo = 1;
-  setLoginTableFilterOpen(key, false);
+  setOperateTableFilterOpen(key, false);
   void getListData();
 }
 
-function resetLoginTableColumnFilter(key: string) {
+function resetOperateTableColumnFilter(key: string) {
   if (key === 'username') {
-    loginTableFilterValueMap.value = { ...loginTableFilterValueMap.value, username: '' };
-    requestParams.username = '' as any;
+    operateTableFilterValueMap.value = { ...operateTableFilterValueMap.value, username: '' };
+    requestParams.userName = '' as any;
   }
   pagination.current = 1;
   requestParams.pageNo = 1;
-  setLoginTableFilterOpen(key, false);
+  setOperateTableFilterOpen(key, false);
   void getListData();
 }
 
@@ -168,15 +194,15 @@ const locale = ref({
   }),
 });
 
-function handleResizeColumn(w: number, col: TableColumnType<LoginListRow>) {
+function handleResizeColumn(w: number, col: TableColumnType<OperateListRow>) {
   col.width = w;
 }
 
-function loginTableRowClassName(_record: LoginListRow, index: number) {
+function operateTableRowClassName(_record: OperateListRow, index: number) {
   return index % 2 === 0 ? 'odd' : 'even';
 }
 
-function loginRowKey(record: LoginListRow) {
+function operateRowKey(record: OperateListRow) {
   return record.id;
 }
 
@@ -184,16 +210,16 @@ function loginRowKey(record: LoginListRow) {
  * @description 获取数据列表
  */
 async function getListData() {
-  if (dateRangeParams.value.length > 0) {
+  if (dateRangeParams.value && dateRangeParams.value.length > 0) {
     requestParams.createTime = dateRangeParams.value as any;
   }
-  requestParams.username = requestParams.username;
-  requestParams.createTime = requestParams.createTime;
+  requestParams.userName = requestParams.userName;
+  requestParams.moduleName = "6";
   loading.value = true;
   try {
-    const res = await AdminApiLog.getLoginLogPageList(requestParams);
+    const res = await AdminApiLog.getSeadminLogPageList(requestParams);
     if (res.data.code === 200) {
-      const page = res.data.data as { list?: LoginListRow[]; total?: number } | undefined;
+      const page = res.data.data as { list?: OperateListRow[]; total?: number } | undefined;
       dataSource.value = page?.list || [];
       pagination.total = page?.total;
     }
@@ -208,9 +234,11 @@ onMounted(() => {
 
 /** 表单对象 */
 const formRef = ref();
+/** 时间对象 */
+const dateRangeParams = ref([]);
 
 /** 表单样式 label对象 */
-const labelCol = ref({ style: { width: '100px', height: '50px' } });
+const labelCol = ref({ style: { width: '100px' } });
 
 /** 表单 布局对象 */
 const wrapperCol = ref({ span: 14 });
@@ -220,35 +248,59 @@ const wrapperCol = ref({ span: 14 });
  */
 function handleReset() {
   dateRangeParams.value = [];
-  requestParams.username = '' as any;
+  requestParams.userName = '' as any;
   formRef.value?.resetFields();
   requestParams.pageNo = 1;
   pagination.current = 1;
   getListData();
 }
-
 /** 查询表格数据 */
 function handleFinish() {
   requestParams.pageNo = 1;
   pagination.current = 1;
   getListData();
 }
+
+const LOG_EXPORT_MODULE = '6';
+const LOG_EXPORT_FILE_PREFIX = '审查操作日志';
+
+const exportLoading = ref(false);
+
+async function handleExportExcel() {
+  exportLoading.value = true;
+  try {
+    const query = buildSeadminLogExportBody(requestParams, dateRangeParams.value as any, LOG_EXPORT_MODULE);
+    const rows = await fetchAllSeadminOperateLogs(query);
+    if (!rows.length) {
+      message.warning(WeiI18n.$t('暂无数据'));
+      return;
+    }
+    await exportOperateLogRowsToExcel(rows, LOG_EXPORT_FILE_PREFIX);
+    message.success(WeiI18n.$t('导出成功'));
+  }
+  catch (e: any) {
+    message.error(e?.message || WeiI18n.$t('导出失败'));
+  }
+  finally {
+    exportLoading.value = false;
+  }
+}
 </script>
 
 <template>
-  <div class="drawerContent login-log-page-root">
-    <a-card class="login-log-list-card">
-      <div class="login-log-list-body-scroll">
+  <div class="drawerContent operate-log-page-root">
+    <a-card class="operate-log-list-card">
+      <div class="operate-log-list-body-scroll">
         <a-form
           ref="formRef"
-          class="form_css calc-toolbar-form login-log-toolbar-form"
+          class="form_css calc-toolbar-form operate-log-toolbar-form"
           layout="inline"
           :label-col="labelCol"
           :wrapper-col="wrapperCol"
           :model="requestParams"
           @finish="handleFinish">
-          <a-form-item name="username">
-            <a-input v-model:value="requestParams.username" style="width: 220px; text-align: left" :placeholder="$t('请输入操作用户')" />
+          <a-form-item name="name">
+            <a-input v-model:value="requestParams.userName" style="width: 220px; text-align: left" :placeholder="$t('请输入操作用户')" />
           </a-form-item>
           <a-form-item name="createTime">
             <a-range-picker
@@ -256,12 +308,16 @@ function handleFinish() {
               format="YYYY-MM-DD"
               value-format="YYYY-MM-DD HH:mm:ss"
               style="width: 340px; text-align: left"
-              :placeholder="[$t('选择开始日期'), $t('选择结束日期')]" />
+              :placeholder="[$t('请选择开始日期'), $t('请选择结束日期')]" />
           </a-form-item>
-          <a-form-item class="login-log-toolbar-form__actions">
+          <a-form-item class="operate-log-toolbar-form__actions">
             <a-button type="primary" html-type="submit">
               <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
               {{ $t('查询') }}
+            </a-button>
+            <a-button type="primary" style="margin-left: 8px" :loading="exportLoading" @click="handleExportExcel">
+              <FileExcelOutlined style="font-size: 14px" />
+              {{ $t('导出') }}
             </a-button>
             <!-- <a-button @click="handleReset" style="margin-left: 8px">
             <EpcIcon type="icon-zhongzhi" style="font-size: 12px" />
@@ -271,51 +327,51 @@ function handleFinish() {
         </a-form>
 
         <a-table
-          class="login-log-list-table exe-config-table parameter-table-spaced"
+          class="operate-log-list-table exe-config-table parameter-table-spaced"
           bordered
           table-layout="fixed"
-          :scroll="{ x: loginTableScrollX }"
+          :scroll="{ x: operateTableScrollX }"
           :pagination="false"
           :loading="loading"
-          :row-key="loginRowKey"
+          :row-key="operateRowKey"
           :locale="locale"
-          :data-source="loginTableDisplayList"
+          :data-source="operateTableDisplayList"
           :columns="columns"
-          :row-class-name="loginTableRowClassName"
+          :row-class-name="operateTableRowClassName"
           @resize-column="handleResizeColumn">
           <template #headerCell="{ column }">
-            <template v-if="isLoginTableSortableColumn(column) || isLoginTableFilterableColumn(column)">
-              <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isLoginTableFilterableColumn(column) }">
+            <template v-if="isOperateTableSortableColumn(column) || isOperateTableFilterableColumn(column)">
+              <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isOperateTableFilterableColumn(column) }">
                 <span
                   class="header-title-sort"
-                  :class="{ 'header-title-sort--disabled': !isLoginTableSortableColumn(column) }"
-                  @click.stop="toggleLoginTableColumnSort(column)">
+                  :class="{ 'header-title-sort--disabled': !isOperateTableSortableColumn(column) }"
+                  @click.stop="toggleOperateTableColumnSort(column)">
                   <span>{{ column.title }}</span>
-                  <span v-if="isLoginTableSortableColumn(column)" class="header-sort-icon">
-                    <CaretUpOutlined v-if="getLoginTableSortOrder(String(column.dataIndex)) === 'ascend'" />
-                    <CaretDownOutlined v-else-if="getLoginTableSortOrder(String(column.dataIndex)) === 'descend'" />
+                  <span v-if="isOperateTableSortableColumn(column)" class="header-sort-icon">
+                    <CaretUpOutlined v-if="getOperateTableSortOrder(String(column.dataIndex)) === 'ascend'" />
+                    <CaretDownOutlined v-else-if="getOperateTableSortOrder(String(column.dataIndex)) === 'descend'" />
                     <CaretUpOutlined v-else class="header-sort-icon--muted" />
                   </span>
                 </span>
-                <span v-if="isLoginTableFilterableColumn(column)" class="header-filter-anchor" @mousedown.stop>
+                <span v-if="isOperateTableFilterableColumn(column)" class="header-filter-anchor" @mousedown.stop>
                   <a-popover
                     trigger="click"
                     placement="bottomRight"
-                    :open="getLoginTableFilterOpen('username')"
-                    @openChange="onLoginUsernameFilterOpenChange">
+                    :open="getOperateTableFilterOpen('username')"
+                    @openChange="onOperateUsernameFilterOpenChange">
                     <template #content>
                       <div class="header-filter-pop">
                         <a-input
-                          v-model:value="loginTableFilterValueMap.username"
+                          v-model:value="operateTableFilterValueMap.username"
                           :placeholder="`${$t('搜索')} ${column.title}`"
                           allow-clear
-                          @pressEnter="applyLoginTableColumnFilter('username')" />
+                          @pressEnter="applyOperateTableColumnFilter('username')" />
                         <div class="header-filter-actions">
-                          <a-button type="primary" size="small" @click="applyLoginTableColumnFilter('username')">
+                          <a-button type="primary" size="small" @click="applyOperateTableColumnFilter('username')">
                             <SearchOutlined />
                             {{ $t('确定') }}
                           </a-button>
-                          <a-button size="small" @click="resetLoginTableColumnFilter('username')">{{ $t('重置') }}</a-button>
+                          <a-button size="small" @click="resetOperateTableColumnFilter('username')">{{ $t('重置') }}</a-button>
                         </div>
                       </div>
                     </template>
@@ -334,16 +390,17 @@ function handleFinish() {
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.dataIndex === 'operation'">
-              <div style="height: 22px; display: flex; align-items: center">
-                <!-- <a @click.stop="handleDetail(record)">{{ $t('查看') }}</a> -->
-              </div>
+              <a class="operate-log-detail-link" @click="openOperateDetail(record)">{{ $t('详情') }}</a>
             </template>
             <template v-else>
               <span>{{ record[String(column.dataIndex || '')] }}</span>
             </template>
           </template>
         </a-table>
-        <div class="login-log-list-pagination">
+
+        <OperateLogDetailModal v-model:visible="operateDetailModalOpen" :detail="operateDetailRow" />
+
+        <div class="operate-log-list-pagination">
           <a-pagination v-bind="pagination" class="ant-table-pagination" />
         </div>
       </div>
@@ -353,7 +410,7 @@ function handleFinish() {
 
 <style lang="less" scoped>
 /* 填满主内容区，避免整页被顶出主布局 */
-.drawerContent.login-log-page-root {
+.drawerContent.operate-log-page-root {
   height: 100%;
   min-height: 0;
   min-width: 0;
@@ -370,7 +427,7 @@ function handleFinish() {
   gap: 4px;
 }
 
-.login-log-toolbar-form {
+.operate-log-toolbar-form {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -378,16 +435,16 @@ function handleFinish() {
   column-gap: 0;
 }
 
-.login-log-toolbar-form :deep(.ant-form-item) {
+.operate-log-toolbar-form :deep(.ant-form-item) {
   margin-bottom: 0;
   margin-right: 0;
 }
 
-.login-log-toolbar-form :deep(.ant-form-item:not(:last-child)) {
+.operate-log-toolbar-form :deep(.ant-form-item:not(:last-child)) {
   margin-right: 16px;
 }
 
-.login-log-toolbar-form__actions :deep(.ant-form-item-control-input-content) {
+.operate-log-toolbar-form__actions :deep(.ant-form-item-control-input-content) {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
@@ -397,7 +454,7 @@ function handleFinish() {
   margin-bottom: 0;
 }
 
-.login-log-list-card {
+.operate-log-list-card {
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -418,7 +475,7 @@ function handleFinish() {
   }
 }
 
-.login-log-list-body-scroll {
+.operate-log-list-body-scroll {
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -428,7 +485,7 @@ function handleFinish() {
   box-sizing: border-box;
 }
 
-.login-log-list-pagination {
+.operate-log-list-pagination {
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
@@ -436,11 +493,11 @@ function handleFinish() {
   padding-bottom: 16px;
 }
 
-.login-log-list-card :deep(.parameter-table-spaced) {
+.operate-log-list-card :deep(.parameter-table-spaced) {
   margin-top: 16px;
 }
 
-.login-log-list-card :deep(.ant-table-thead > tr > th) {
+.operate-log-list-card :deep(.ant-table-thead > tr > th) {
   border-right: 1px solid #e8e8e8;
   text-align: center !important;
   vertical-align: middle;
@@ -451,35 +508,35 @@ function handleFinish() {
   border-bottom: 1px solid #e8e8e8;
 }
 
-.login-log-list-card :deep(.ant-table-thead .ant-table-column-sorters) {
+.operate-log-list-card :deep(.ant-table-thead .ant-table-column-sorters) {
   justify-content: center !important;
 }
 
-.login-log-list-card :deep(.ant-table-thead .ant-table-column-title) {
+.operate-log-list-card :deep(.ant-table-thead .ant-table-column-title) {
   flex: none;
 }
 
-.login-log-list-card :deep(.ant-table-tbody > tr.odd > td) {
+.operate-log-list-card :deep(.ant-table-tbody > tr.odd > td) {
   background: #ffffff;
 }
 
-.login-log-list-card :deep(.ant-table-tbody > tr.even > td) {
+.operate-log-list-card :deep(.ant-table-tbody > tr.even > td) {
   background: #f7f9fc;
 }
 
-.login-log-list-card :deep(.ant-table-tbody > tr > td) {
+.operate-log-list-card :deep(.ant-table-tbody > tr > td) {
   border-right: none !important;
 }
 
-.login-log-list-card :deep(.ant-table-tbody > tr > td:last-child) {
+.operate-log-list-card :deep(.ant-table-tbody > tr > td:last-child) {
   border-right: 1px solid #e8e8e8 !important;
 }
 
-.login-log-list-card :deep(.ant-table-tbody > tr:last-child > td) {
+.operate-log-list-card :deep(.ant-table-tbody > tr:last-child > td) {
   border-bottom: 1px solid #e8e8e8 !important;
 }
 
-.login-log-list-table.exe-config-table.parameter-table-spaced {
+.operate-log-list-table.exe-config-table.parameter-table-spaced {
   :deep(.ant-table-content),
   :deep(.ant-table-body) {
     padding-bottom: 14px;
@@ -508,6 +565,10 @@ function handleFinish() {
   :deep(.ant-table-cell-fix-right-first) {
     box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
   }
+}
+
+.operate-log-detail-link {
+  cursor: pointer;
 }
 
 .header-query-icon {

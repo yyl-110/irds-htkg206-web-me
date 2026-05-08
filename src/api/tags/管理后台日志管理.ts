@@ -165,4 +165,57 @@ export class AdminApiLog {
       },
       CommonResultPageResultOperateLogPOModel
     );
+  
+  
+   /**
+   * @description 安全保密员操作日志记录
+   * @tags 系统日志 - 安全保密员操作日志记录
+   * @name getOperateLogPageList
+   * @summary 安全保密员操作日志记录
+   * @request GET:/system/statistics-log/seadmin-log-list
+   * @secure
+   */
+  static getSeadminLogPageList = <
+    Req extends OperateLogSearchDTOModel = OperateLogSearchDTOModel,
+  >(
+    query: Req,
+    params: RequestParams = {}
+  ) =>
+    httpClient.request<CommonResultPageResultOperateLogPOModel, any>(
+      {
+        path: `/system-service/system/statistics-log/seadmin-log-list`,
+        method: "POST",
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultPageResultOperateLogPOModel
+    );
+  
+  
+  
+   /**
+   * @description 安全保密员操作日志记录
+   * @tags 系统日志 - 安全保密员操作日志记录
+   * @name expSeadminLogPageList
+   * @summary 安全保密员操作日志记录
+   * @request GET:/system/statistics-log/exp-log-list
+   * @secure
+   */
+  static expSeadminLogPageList = <
+    Req extends OperateLogSearchDTOModel = OperateLogSearchDTOModel,
+  >(
+    query: Req,
+    params: RequestParams = {}
+  ) =>
+    httpClient.request<CommonResultPageResultOperateLogPOModel, any>(
+      {
+        path: `/system-service/system/statistics-log/exp-log-list`,
+        method: "POST",
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultPageResultOperateLogPOModel
+    );
 }

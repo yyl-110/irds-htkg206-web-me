@@ -209,18 +209,12 @@ export class AdminApiSystemRole {
   static deleteRole = <
     Req extends {
       /**
-       * 角色编号
+       * 角色编号（雪花 ID 须用字符串传参，避免 JS Number 精度丢失）
        * @format int64
-       * @example 1024
        */
-      id: number;
+      id: string | number;
     } = {
-      /**
-       * 角色编号
-       * @format int64
-       * @example 1024
-       */
-      id: number;
+      id: string | number;
     },
   >(
     query: Req,

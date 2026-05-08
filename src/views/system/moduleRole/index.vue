@@ -271,11 +271,11 @@ function handleFinish() {
  * 删除资源
  * @param id id
  */
-async function handleDelete(id: number) {
+async function handleDelete(id: string | number) {
   // Modal.confirm({
   //   title: "`${$t('确定要删除吗')}?`",
   //   async onOk() {
-  await AdminApiSystemRole.deleteRole({ id });
+  await AdminApiSystemRole.deleteRole({ id: String(id) });
   message.success(WeiI18n.$t('删除成功'));
   handleFinish();
   //   },
