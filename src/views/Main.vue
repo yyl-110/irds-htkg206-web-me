@@ -262,7 +262,8 @@ onBeforeMount(() => {
           class="layout-container"
           v-overlay-scrollbar
           :class="[
-            !layoutStore.homepage && route.name === 'ProductProjectEditor'
+            !layoutStore.homepage &&
+            (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor')
               ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
                 ? 'p-[16px] pt-[16px] pl-[11px]'
@@ -271,7 +272,9 @@ onBeforeMount(() => {
           <div
             class="layout-router-host min-h-0 flex w-full min-w-0 flex-1 flex-col"
             :class="{
-              'layout-router-host--fill': !layoutStore.homepage && route.name === 'ProductProjectEditor',
+              'layout-router-host--fill':
+                !layoutStore.homepage &&
+                (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor'),
             }">
             <pre style="display: none">{{ caches }}</pre>
             <router-view v-slot="{ Component, route }">

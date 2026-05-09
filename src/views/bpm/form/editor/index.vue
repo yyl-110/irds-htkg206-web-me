@@ -1,17 +1,19 @@
 <template>
-  <ContentWrap :body-style="{ padding: '0px' }" class="!mb-0">
-    <!-- 表单设计器：与 BPM 全屏页一致扣除顶栏/标签栏/页脚，底部留白 20px -->
-    <div class="bpm-form-editor-canvas">
-      <fc-designer class="my-designer" ref="designer" :config="designerConfig">
-        <template #handle>
-          <el-button size="small" type="success" plain @click="handleSave">
-            <Icon class="mr-5px" icon="ep:plus" />
-            {{ '保存' }}
-          </el-button>
-        </template>
-      </fc-designer>
-    </div>
-  </ContentWrap>
+  <div class="bpm-form-editor-page">
+    <ContentWrap :body-style="{ padding: '0px' }" class="!mb-0 bpm-form-editor-wrap">
+      <!-- 表单设计器：高度跟随 Main 主区 flex，避免 100vh 与内边距叠出整页滚动条 -->
+      <div class="bpm-form-editor-canvas">
+        <fc-designer class="my-designer" ref="designer" :config="designerConfig">
+          <template #handle>
+            <el-button size="small" type="success" plain @click="handleSave">
+              <Icon class="mr-5px" icon="ep:plus" />
+              {{ '保存' }}
+            </el-button>
+          </template>
+        </fc-designer>
+      </div>
+    </ContentWrap>
+  </div>
 
   <!-- 表单保存的弹窗 -->
   <Dialog v-model="dialogVisible" title="保存表单" width="600">
@@ -182,19 +184,47 @@ onMounted(async () => {
 </script>
 
 <style lang="scss">
-/* 与 processInstance 等全屏页同一套高度变量，缺省为 0 避免 calc 无效 */
+.bpm-form-editor-page {
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bpm-form-editor-wrap {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  :deep(.el-card) {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  :deep(.el-card__body) {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+}
+
 .bpm-form-editor-canvas {
   box-sizing: border-box;
-  height: calc(
-    100vh - var(--top-tool-height, 0px) - var(--tags-view-height, 0px) - var(--app-footer-height, 0px) - var(
-        --app-content-padding,
-        0px
-      ) -
-      20px
-  );
+  flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
 }
+
 .my-designer {
   height: 100%;
   ._fc-l,

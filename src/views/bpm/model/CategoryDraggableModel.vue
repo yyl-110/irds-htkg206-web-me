@@ -377,10 +377,10 @@ watchEffect(() => {
       <el-tooltip v-if="isCategorySorting" content="拖动排序">
         <Icon :size="22" icon="ic:round-drag-indicator" class="ml-10px category-drag-icon cursor-move text-#8a909c" />
       </el-tooltip>
-      <h3 class="ml-20px mr-8px text-18px mb-0">
+      <h3 class="ml-20px mr-8px text-15px mb-0">
         {{ categoryInfo.name }}
       </h3>
-      <div class="color-gray-600 text-16px">({{ categoryInfo.modelList?.length || 0 }})</div>
+      <div class="color-gray-600 text-15px">({{ categoryInfo.modelList?.length || 0 }})</div>
     </div>
     <!-- 头部：操作 -->
     <div v-show="!isCategorySorting" class="flex-1 flex">

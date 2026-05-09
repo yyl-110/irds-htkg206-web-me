@@ -4,6 +4,7 @@ import { message } from 'ant-design-vue'
 import type { CategoryVO } from '@/api/bpm/category'
 import { CategoryApi } from '@/api/bpm/category'
 import { CommonStatusEnum } from '@/utils/constants'
+import { Dialog } from '@/components/Dialog'
 /** BPM 流程分类 表单 */
 defineOptions({ name: 'CategoryForm' })
 
@@ -11,7 +12,7 @@ defineOptions({ name: 'CategoryForm' })
 
 /** 提交表单 */
 const emit = defineEmits(['success'])
-const { t } = useI18n() // 路由对象
+const {} = useI18n() // 路由对象
 
 const dialogVisible = ref(false) // 弹窗的是否展示
 const dialogTitle = ref('') // 弹窗的标题
@@ -26,18 +27,18 @@ const formData = ref({
   sort: undefined,
 })
 const formRules = reactive({
-  name: [{ required: true, message: t('分类名不能为空'), trigger: 'blur' }],
-  code: [{ required: true, message: t('分类标志不能为空'), trigger: 'blur' }],
-  status: [{ required: true, message: t('分类状态不能为空'), trigger: 'blur' }],
-  sort: [{ required: true, message: t('分类排序不能为空'), trigger: 'blur' }],
+  name: [{ required: true, message: '分类名不能为空', trigger: 'blur' }],
+  code: [{ required: true, message: '分类标志不能为空', trigger: 'blur' }],
+  status: [{ required: true, message: '分类状态不能为空', trigger: 'blur' }],
+  sort: [{ required: true, message: '分类排序不能为空', trigger: 'blur' }],
 })
 const formRef = ref() // 表单 Ref
 
 function getIntDictOptions(): any[] {
   // 获得通用的 DictDataType 列表
   const dictOption: any[] = [
-    { label: t('开启'), value: 0 },
-    { label: t('关闭'), value: 1 },
+    { label: '开启', value: 0 },
+    { label: '关闭', value: 1 },
   ]
   return dictOption
 }
@@ -49,14 +50,15 @@ function getIntDictOptions(): any[] {
  */
 async function open(type: string, id?: number) {
   dialogVisible.value = true
-  dialogTitle.value = t(`action.${type}`)
+  dialogTitle.value = type === 'create' ? '新增分类' : '修改分类'
   formType.value = type
   resetForm()
   // 修改时，设置数据
   if (id) {
     formLoading.value = true
     try {
-      formData.value = await CategoryApi.getCategory(id)
+      const res = await CategoryApi.getCategory(id)
+      formData.value = res.data.data
     } finally {
       formLoading.value = false
     }
@@ -72,10 +74,10 @@ async function submitForm() {
     const data = formData.value as unknown as CategoryVO
     if (formType.value === 'create') {
       await CategoryApi.createCategory(data)
-      message.success(t('新增成功'))
+      message.success('新增成功')
     } else {
       await CategoryApi.updateCategory(data)
-      message.success(t('修改成功'))
+      message.success('修改成功')
     }
     dialogVisible.value = false
     // 发送操作成功的事件
@@ -102,32 +104,32 @@ function resetForm() {
 <template>
   <Dialog v-model="dialogVisible" :title="dialogTitle">
     <el-form ref="formRef" v-loading="formLoading" :model="formData" :rules="formRules" label-width="100px">
-      <el-form-item :label="$t('分类名')" prop="name">
-        <el-input v-model="formData.name" :placeholder="$t('请输入分类名')" />
+      <el-form-item :label="'分类名'" prop="name">
+        <el-input v-model="formData.name" :placeholder="'请输入分类名'" />
       </el-form-item>
-      <el-form-item :label="$t('分类标志')" prop="code">
-        <el-input v-model="formData.code" :placeholder="$t('请输入分类标志')" />
+      <el-form-item :label="'分类标志'" prop="code">
+        <el-input v-model="formData.code" :placeholder="'请输入分类标志'" />
       </el-form-item>
-      <el-form-item :label="$t('分类描述')" prop="description">
-        <el-input v-model="formData.description" type="textarea" :placeholder="$t('请输入分类描述')" />
+      <el-form-item :label="'分类描述'" prop="description">
+        <el-input v-model="formData.description" type="textarea" :placeholder="'请输入分类描述'" />
       </el-form-item>
-      <el-form-item :label="$t('分类状态')" prop="status">
+      <el-form-item :label="'分类状态'" prop="status">
         <el-radio-group v-model="formData.status">
           <el-radio v-for="dict in getIntDictOptions()" :key="dict.value" :value="dict.value">
-            {{ $t(dict.label) }}
+            {{ dict.label }}
           </el-radio>
         </el-radio-group>
       </el-form-item>
-      <el-form-item :label="$t('分类排序')" prop="sort">
-        <el-input-number v-model="formData.sort" :placeholder="$t('请输入分类排序')" class="!w-1/1" :precision="0" />
+      <el-form-item :label="'分类排序'" prop="sort">
+        <el-input-number v-model="formData.sort" :placeholder="'请输入分类排序'" class="!w-1/1" :precision="0" />
       </el-form-item>
     </el-form>
     <template #footer>
       <el-button type="primary" :disabled="formLoading" @click="submitForm">
-        {{ $t('确 定') }}
+        {{ '确 定' }}
       </el-button>
       <el-button @click="dialogVisible = false">
-        {{ $t('取 消') }}
+        {{ '取 消' }}
       </el-button>
     </template>
   </Dialog>

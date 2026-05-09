@@ -25,7 +25,7 @@ const prefixCls = getPrefixCls('content-wrap')
   <ElCard :body-style="bodyStyle" class="mb-15px" :class="[prefixCls]" shadow="never" style="height: 100%">
     <template v-if="title" #header>
       <div class="flex items-center">
-        <span class="text-16px font-700">{{ title }}</span>
+        <span class="text-13px font-700">{{ title }}</span>
         <ElTooltip v-if="message" effect="dark" placement="right">
           <template #content>
             <div class="max-w-200px">
