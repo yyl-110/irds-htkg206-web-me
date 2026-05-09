@@ -4,9 +4,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
-import * as echarts from 'echarts';
+<script setup>
+import * as echarts from "echarts";
 const chartOption = ref({});
 
 const props = defineProps({
@@ -18,15 +17,17 @@ const props = defineProps({
 
 const initChart = () => {
   /* 项目完成率列表 */
-  const completePercentList = props.chartData.map(item => Math.round((item.completeNums / item.taskNums) * 100));
+  const completePercentList = props.chartData.map((item) =>
+    Math.round((item.completeNums / item.taskNums) * 100)
+  );
   /* 未完成率列表 */
-  const unCompletePercentList = completePercentList.map(item => 100 - item);
+  const unCompletePercentList = completePercentList.map((item) => (100 - item));
 
   chartOption.value = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
-        type: 'shadow',
+        type: "shadow",
         label: {
           show: true,
         },
@@ -42,32 +43,32 @@ const initChart = () => {
           已完成: ${completeNums}<br />
           <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:#24E2E2;"></span>
           未完成: ${uncompletes}`;
-      },
+      }
     },
     grid: {
-      left: '10%',
-      top: '10%',
-      right: '5%',
-      bottom: '25%',
+      left: "10%",
+      top: "10%",
+      right: "5%",
+      bottom: "25%",
     },
     legend: {
       show: true,
-      right: '5%',
-      top: '1%',
+      right: "5%",
+      bottom: "5%",
       textStyle: {
-        color: '#ffffff',
+        color: "#ffffff",
         fontSize: 16,
       },
       itemWidth: 16,
       itemHeight: 16,
-      data: ['已完成', '未完成'],
+      data: ["已完成", "未完成"],
     },
     xAxis: {
-      data: props.chartData.map(item => item.projectName),
+      data: props.chartData.map((item) => item.projectName),
       axisLine: {
         show: true, //隐藏X轴轴线
         lineStyle: {
-          color: '#163a5f',
+          color: "#163a5f",
           width: 2,
         },
       },
@@ -78,31 +79,31 @@ const initChart = () => {
       axisLabel: {
         show: true,
         textStyle: {
-          color: '#ffffff', //X轴文字颜色
-          fontSize: 13,
+          color: "#ffffff", //X轴文字颜色
+          fontSize: 16,
         },
         interval: 0,
         rotate: 45, // 文字倾斜角度(可选45、90等)
         formatter: function (value) {
           // 如果文字过长可以截取
-          return value.length > 6 ? value.substring(0, 6) + '...' : value;
+          return value.length > 6 ? value.substring(0, 6) + "..." : value;
         },
       },
     },
     yAxis: [
       {
-        type: 'value',
-        name: '%',
+        type: "value",
+        name: "%",
         nameTextStyle: {
-          color: '#ffffff',
+          color: "#ffffff",
           fontSize: 16,
-          padding: [0, 0, -2, -30],
+          padding: [0, 0, 12, -30]
         },
         splitLine: {
           show: false,
           lineStyle: {
             width: 1,
-            color: '#CED2DB',
+            color: "#CED2DB",
           },
         },
         axisTick: {
@@ -111,35 +112,35 @@ const initChart = () => {
         axisLine: {
           show: true, //隐藏X轴轴线
           lineStyle: {
-            color: '#163a5f',
+            color: "#163a5f",
             width: 2,
           },
         },
         axisLabel: {
           show: true,
           textStyle: {
-            color: '#ffffff',
+            color: "#ffffff",
             fontSize: 16,
           },
           formatter: function (value) {
             // 将原始数值转换为百分比显示
             return value;
-          },
+          }
         },
-        max: 100,
+        max: 100
       },
       {
-        type: 'value',
-        name: '',
+        type: "value",
+        name: "",
         nameTextStyle: {
-          color: '#ffffff',
+          color: "#ffffff",
           fontSize: 16,
         },
         splitLine: {
           show: false,
           lineStyle: {
             width: 1,
-            color: '#CED2DB',
+            color: "#CED2DB",
           },
         },
         axisTick: {
@@ -148,14 +149,14 @@ const initChart = () => {
         axisLine: {
           show: false, //隐藏X轴轴线
           lineStyle: {
-            color: '#163a5f',
+            color: "#163a5f",
             width: 2,
           },
         },
         axisLabel: {
           show: false,
           textStyle: {
-            color: '#43CF7C',
+            color: "#43CF7C",
             fontSize: 14,
           },
         },
@@ -163,8 +164,8 @@ const initChart = () => {
     ],
     series: [
       {
-        name: '已完成',
-        type: 'bar',
+        name: "已完成",
+        type: "bar",
         stack: '项目数',
         barWidth: 32,
         // showBackground: true,
@@ -173,18 +174,18 @@ const initChart = () => {
         //   borderRadius: [10, 10, 0, 0]
         // },
         itemStyle: {
-          color: '#43CF7C',
+          color: "#43CF7C",
           // barBorderRadius: [10, 10, 0, 0],
         },
         data: completePercentList,
       },
       {
-        name: '未完成',
-        type: 'bar',
+        name: "未完成",
+        type: "bar",
         stack: '项目数',
         barWidth: 32,
         itemStyle: {
-          color: '#24E2E2',
+          color: "#24E2E2",
           barBorderRadius: [10, 10, 0, 0],
         },
         data: unCompletePercentList,
@@ -196,10 +197,9 @@ const initChart = () => {
 watch(
   () => props.chartData,
   () => {
-    console.log('props.chartData:', props.chartData);
+    console.log('props.chartData:', props.chartData)
     initChart();
-  },
-  { deep: true }
+  }, { deep: true }
 );
 </script>
 

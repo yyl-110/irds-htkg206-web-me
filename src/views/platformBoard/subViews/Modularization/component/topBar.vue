@@ -6,43 +6,40 @@
 
 <script setup>
 import * as echarts from "echarts";
-import rank from "@/assets/data-screen/module/rank.png";
-import lightPoint from "@/assets/data-screen/common/lightPoint.png";
+import rank from '@/assets/data-screen/module/rank.png'
+import lightPoint from '@/assets/data-screen/common/lightPoint.png'
+
 const chartOption = ref({});
-const myChart = ref(null);
+const myChart = ref(null)
 
 const props = defineProps({
   chartData: {
-    type: Array,
-    default: () => [],
-  },
-});
+    type: Object,
+    default: () => { }
+  }
+})
 
 const initChart = () => {
-  const dataList = props.chartData
-    .map((item) => ({
-      name: item.groupName,
-      value: item["count(*)"],
-    }))
-    .sort((a, b) => b.value - a.value); // value 降序排序
+  let dataList = props.chartData.map(item => ({ name: item.categoryName, value: item.nums }))
 
-  let dataBg = dataList.map((item) => ({
-    value: 1,
-    name: item.name,
-    barValue: item.value,
-  }));
+  const rowsToShow = 10;  // 每屏展示 10 条数据
+  const totalRows = dataList.length;
+
+  // 根据数据量和每次展示的行数，计算dataZoom的显示范围
+  const endPercent = (rowsToShow / totalRows) * 100;  // 计算结束百分比
+
 
   chartOption.value = {
     grid: {
-      left: 10,
+      left: '0',
       top: 8,
       bottom: 8,
-      right: 10,
+      right: 20,
       containLabel: true,
     },
     tooltip: {
       trigger: "item",
-      formatter(params) {
+      formatter (params) {
         let res = "";
         const { marker, name, value } = params;
         if (name !== "") {
@@ -51,6 +48,25 @@ const initChart = () => {
         return res;
       },
     },
+    dataZoom: [{
+      type: "slider",
+      show: true,
+      yAxisIndex: [0, 1],
+      width: 6, //组件宽度
+      backgroundColor: "transparent", //两边未选中的滑动条区域的颜色
+      borderRadius: 100,
+      borderColor: "transparent", //滚动条边框颜色
+      fillerColor: "transparent", //选中的滑动条区域的颜色
+      left: "96%", //滚动条位置
+      start: 0, //数据窗口范围的起始百分比
+      end: endPercent,
+      realtime: true, //是否实时更新
+      zoomLock: true,
+      filterMode: 'empty',
+      handleSize: '0px',
+      showDetail: false,
+      showDataShadow: false,
+    },],
     xAxis: [
       {
         type: "value",
@@ -66,26 +82,28 @@ const initChart = () => {
         type: "category",
         inverse: true,
         axisLabel: {
-          margin: 30,
-          align: "center",
           textStyle: {
             rich: {
               bg: {
-                color: "#fff",
-                fontSize: 23,
+                color: '#fff',
+                fontSize: 20,
                 lineHeight: 33,
                 backgroundColor: {
-                  image: rank,
+                  image: rank
                 },
                 height: 33,
                 width: 30,
                 padding: [4, 0, 0, 0],
-              },
+              }
             },
           },
-          formatter: function (value, index) {
-            return "{bg|" + (index + 1) + "}";
+          formatter: function (value) {
+            const inx = dataList.findIndex(item => item.name === value);
+            return `{bg|${inx + 1}}`;
           },
+          align: "center",
+          //调整文字上右下左
+          padding: [0, 30, 0, 0],
         },
         splitLine: {
           show: false,
@@ -96,7 +114,7 @@ const initChart = () => {
         axisLine: {
           show: false,
         },
-        data: dataList.map((item) => item.name),
+        data: dataList.map(item => item.name)
       },
       {
         inverse: true,
@@ -104,12 +122,13 @@ const initChart = () => {
         axisLine: "none",
         show: true,
         axisLabel: {
+          margin: 10,
           color: "rgba(96, 98, 102, 1)",
           fontSize: 20,
           rich: {
             a: {
-              width: 80,
-              fontSize: 16,
+              width: 40,
+              fontSize: 20,
               color: "#00F3FD",
               padding: [0, 10, 0, 0],
             },
@@ -119,8 +138,8 @@ const initChart = () => {
             },
           },
           formatter: function (value, index) {
-            const { name } = dataList[index];
-            return `{a|${value}人次}{b|${name}}`;
+            const { name } = dataList[index]
+            return `{a|${value}}{b|${name}}`;
           },
         },
         data: dataList,
@@ -133,7 +152,7 @@ const initChart = () => {
         zlevel: 1,
         showBackground: true,
         backgroundStyle: {
-          color: "#0B2233",
+          color: '#0B2233',
           borderRadius: 8,
         },
         itemStyle: {
@@ -147,14 +166,14 @@ const initChart = () => {
             colorStops: [
               {
                 offset: 0,
-                color: "rgba(1,192,247,0)",
+                color: 'rgba(1,192,247,0)',
               },
               {
                 offset: 1,
                 color: "#00F6FF",
               },
             ],
-          },
+          }
         },
         barWidth: 6,
         data: dataList,
@@ -163,7 +182,7 @@ const initChart = () => {
       {
         name: "小圈圈",
         type: "scatter",
-        symbol: "image://" + lightPoint,
+        symbol: 'image://' + lightPoint,
         symbolSize: 40,
         emphasis: {
           scale: false,
@@ -177,19 +196,9 @@ const initChart = () => {
   };
 };
 
-onMounted(() => {
-  if (myChart.value) {
-    initChart();
-  }
-});
-
-watch(
-  () => props.chartData,
-  () => {
-    initChart();
-  },
-  { deep: true }
-);
+watch(() => props.chartData, () => {
+  initChart();
+}, { deep: true })
 </script>
 
 <style lang="less" scoped></style>

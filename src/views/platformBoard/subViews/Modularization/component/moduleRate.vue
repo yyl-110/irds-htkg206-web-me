@@ -1,43 +1,34 @@
 <template>
-  <div style="width: 100%; height: 100%">
+  <div style="width: 90%; height: 100%">
     <v-chart :option="chartOption" class="chart" />
   </div>
 </template>
 
 <script setup>
-import { getReportSystemLoginUser } from "@/api/data-screen";
 import * as echarts from "echarts";
-
-const chartData = ref([])
 const chartOption = ref({});
+
+const props = defineProps({
+  chartData: {
+    type: Object,
+    default: () => { },
+  },
+});
 const initChart = () => {
-  let xData = chartData.value.map(item => item.userType);
-  let seriesData = [
-    {
-      name: "总人数",
-      value: chartData.value.map(item => item.totalLogins),
-    },
-    {
-      name: "近一月访问人数",
-      value: chartData.value.map(item => item.lastMonthLogins),
-    },
-    {
-      name: "近一周访问人数",
-      value: chartData.value.map(item => item.lastWeekLogins)
-    },
-  ];
+  const xData = props.chartData.map(item => item.nameCN)
+  const seriesData = [{ name: '模块化率', value: props.chartData.map(item => item.para6 || 0) }]
   const colorList = [
-    ["#FFFFFF", "#00E5E3"],
-    ["#ffffff", "#D43030"],
-    ["#F5F5F5", "#F7D111"],
+    ["#49A9EE", "#49A9EE"],
+    ["rgba(165,214,63,.25)", "#A6D63E"],
+    ["rgba(255,195,0,.25)", "#FFC300"],
   ];
 
   chartOption.value = {
     grid: {
       left: "0",
-      right: "20",
-      bottom: "13%",
-      top: "10%",
+      right: "0",
+      bottom: "10%",
+      top: "20%",
       containLabel: true,
     },
     color: ["#1DB750", "#C7F36A"],
@@ -66,9 +57,9 @@ const initChart = () => {
         fontSize: 14,
       },
       axisLine: {
-        show: true, //隐藏X轴轴线
+        show: false, //隐藏X轴轴线
         lineStyle: {
-          color: "#3875AE",
+          color: "#555f58",
         },
       },
       axisLabel: {
@@ -77,6 +68,11 @@ const initChart = () => {
           color: "#fff", //坐标轴字颜色
         },
         margin: 15,
+        rotate: 45, // 文字倾斜角度(可选45、90等)
+        formatter: function (value) {
+          // 如果文字过长可以截取
+          return value.length > 8 ? value.substring(0, 8) + '...' : value;
+        }
       },
       axisTick: {
         show: false, //隐藏X轴刻度
@@ -89,10 +85,11 @@ const initChart = () => {
       type: "category",
     },
     yAxis: {
+      max: 100,
       axisLine: {
-        show: true, //隐藏X轴轴线
+        show: false, //隐藏X轴轴线
         lineStyle: {
-          color: "#3875AE",
+          color: "rgba(220,220,220,0.3)",
         },
       },
       axisTick: {
@@ -106,10 +103,9 @@ const initChart = () => {
       },
       splitLine: {
         //网格线
-        show: true,
+        show: false,
         lineStyle: {
-          color: '#334984',
-          type: 'dashed',
+          color: "rgba(220,220,220,0.3)",
         },
       },
     },
@@ -140,22 +136,9 @@ const initChart = () => {
   };
 };
 
-const fetchData = async () => {
-  try {
-    const res = await getReportSystemLoginUser({})
-    if (res.code === '0') {
-      chartData.value = res.data
-      initChart();
-      console.log('res:', res.data)
-    }
-  } catch (error) {
-    console.log('error:', error)
-  }
-};
-
-onMounted(() => {
-  fetchData()
-});
+watch(() => props.chartData, () => {
+  initChart();
+}, { deep: true })
 </script>
 
 <style lang="less" scoped></style>

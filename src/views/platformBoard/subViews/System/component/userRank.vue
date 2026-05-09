@@ -5,7 +5,7 @@
         <div class="item" v-for="(item, index) in userList" :key="index">
           <div style="flex-shrink: 0;" class="wrap">
             <!-- <img :src="avatar1" alt=""> -->
-            <div class="rankIndex">{{ index + 1 }}</div>
+            <div class="rankIndex" :style="{ backgroundImage: index < 3 ? `url(${bgImg[index]})` : `url(${rank})`,}">{{ index + 1 }}</div>
             <span>{{ item.name }}</span>
           </div>
           <div class="dept">{{ item.groupName }}</div>
@@ -15,12 +15,20 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
+<script setup>
 import seamlessScroll from '@/components/data-screen/seamless-scroll.vue'
 import avatar1 from '@/assets/data-screen/base/avatar1.png'
 import avatar2 from '@/assets/data-screen/base/avatar2.png'
 import rank from "@/assets/data-screen/module/rank.png";
+import first from "@/assets/data-screen/module/first.png";
+import second from "@/assets/data-screen/module/second.png";
+import third from "@/assets/data-screen/module/third.png";
+
+const bgImg = {
+  0: first,
+  1: second,
+  2: third,
+}
 
 const props = defineProps({
   userList: {
@@ -51,10 +59,11 @@ const props = defineProps({
       align-items: center;
       position: relative;
       padding-left: 10px;
+
       .rankIndex {
         width: 30px;
         height: 33px;
-        background-image: url('@/assets/data-screen/module/rank.png');
+        // background-image: url('@/assets/data-screen/module/rank.png');
         background-size: 100% 100%;
         background-repeat: no-repeat;
         color: #fff;

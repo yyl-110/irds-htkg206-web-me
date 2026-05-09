@@ -4,9 +4,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
-import * as echarts from 'echarts';
+<script setup>
+import * as echarts from "echarts";
 
 const props = defineProps({
   chartData: {
@@ -17,30 +16,32 @@ const props = defineProps({
 const chartOption = ref({});
 
 const initChart = () => {
-  let typeList = ['数量'];
+  let typeList = ["数量", "近期新增"];
   let Ydata = [],
     seriesData = [];
   let type = [[], []];
   let maxCount = 0;
-  props.chartData.forEach(item => {
-    Ydata.push(item.nodeName);
-    type[1].push(item.progress);
-    type[0].push('0');
+  props.chartData.forEach((item) => {
+    Ydata.push(item.title);
+    type[1].push(item.totalCount);
+    type[0].push(item.recentMonthCount);
     // 更新最大值
-    if (item.progress > maxCount) {
-      maxCount = item.progress;
+    if (item.totalCount > maxCount) {
+      maxCount = item.totalCount;
     }
   });
   // 计算所有堆叠柱之和的最大值
-  const maxBgValue = Math.max(...props.chartData.map(item => item.progress));
+  const maxBgValue = Math.max(
+    ...props.chartData.map((item) => item.recentMonthCount + item.totalCount)
+  );
 
   // 背景柱数据都用这个最大值
   const maxBgArr = props.chartData.map(() => maxBgValue);
 
   seriesData = [
     {
-      type: 'bar',
-      barGap: '-100%',
+      type: "bar",
+      barGap: "-100%",
       barWidth: 14,
       xAxisIndex: 0,
       // yAxisIndex: 1,
@@ -57,24 +58,24 @@ const initChart = () => {
       },
       label: {
         show: false,
-        color: '#fff',
+        color: "#fff",
         position: 'right',
-        offset: [-100, 28], // 向右和向下偏移10像素
-        formatter: params => {
+        offset: [-100, 28],// 向右和向下偏移10像素
+        formatter: (params) => {
           return `${params.name}${type[1][params.dataIndex]}`;
         },
       },
     },
     {
       name: typeList[0],
-      type: 'bar',
-      stack: 'sum',
+      type: "bar",
+      stack: "sum",
       barWidth: 14,
       itemStyle: {
         normal: {
           barBorderRadius: 20,
           color: {
-            type: 'linear',
+            type: "linear",
             x: 0,
             y: 0,
             x2: 1,
@@ -82,11 +83,11 @@ const initChart = () => {
             colorStops: [
               {
                 offset: 0,
-                color: '#00E0DB',
+                color: "#00E0DB",
               },
               {
                 offset: 1,
-                color: '#50EFB1',
+                color: "#50EFB1",
               },
             ],
           },
@@ -94,24 +95,58 @@ const initChart = () => {
       },
       label: {
         position: [0, 20],
-        color: '#fff',
-        align: 'left',
+        color: "#fff",
+        align: "left",
         show: true,
-        formatter: params => {
+        formatter: (params) => {
           return `${params.name}${params.value}`;
         },
       },
       z: 1,
       data: type[1],
     },
+    {
+      name: typeList[1],
+      type: "bar",
+      stack: "sum",
+      barWidth: 14,
+      itemStyle: {
+        normal: {
+          barBorderRadius: 20,
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 1,
+            y2: 0,
+            colorStops: [
+              {
+                offset: 0,
+                color: "#F8D03F",
+              },
+              {
+                offset: 1,
+                color: "#FC4768",
+              },
+            ],
+          },
+        },
+      },
+      label: {
+        show: false,
+      },
+      data: type[0],
+      // yAxisIndex: 1,
+      z: 2,
+    }
   ];
 
   chartOption.value = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
         lineStyle: {
-          color: 'rgba(0, 255, 233,0)',
+          color: "rgba(0, 255, 233,0)",
         },
       },
     },
@@ -124,7 +159,7 @@ const initChart = () => {
     },
     xAxis: {
       show: false,
-      type: 'value',
+      type: "value",
       axisTick: {
         show: false,
       },
@@ -134,7 +169,7 @@ const initChart = () => {
     },
     yAxis: [
       {
-        type: 'category',
+        type: "category",
         axisLine: {
           show: false,
         },
@@ -144,12 +179,12 @@ const initChart = () => {
         axisLabel: {
           show: false,
           fontSize: 16,
-          color: '#fff',
+          color: "#fff",
         },
         data: Ydata,
       },
       {
-        type: 'category',
+        type: "category",
         axisLine: {
           show: false,
         },
@@ -160,7 +195,7 @@ const initChart = () => {
           show: false, // 显示右侧标签
         },
         data: Ydata,
-        position: 'right', // 设置位置为右侧
+        position: "right", // 设置位置为右侧
         yAxisIndex: 1,
       },
     ],

@@ -2,8 +2,7 @@
   <v-chart :option="chartOption" class="chart" />
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
+<script setup>
 import * as echarts from "echarts";
 
 const chartOption = computed(() => {

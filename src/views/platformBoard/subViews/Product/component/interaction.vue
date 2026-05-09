@@ -1,268 +1,165 @@
 <template>
-  <div style="width: 90%; height: 100%">
-    <v-chart :option="chartOption" class="chart" style="margin-left: 40px" />
+  <div style="width: 86%; height: 100%">
+    <v-chart :option="chartOption" class="chart" />
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
-import * as echarts from 'echarts';
+<script setup>
+import { deliveryReport } from "@/api/data-screen";
+import { useIndexStore } from "@/store/data-screen";
+import * as echarts from "echarts";
+import { storeToRefs } from "pinia";
+const indexStore = useIndexStore();
+const { selectPhaseId } = storeToRefs(indexStore);
 
 const chartOption = ref({});
 
 const props = defineProps({
   chartData: {
     type: Object,
-    default: () => {},
+    default: () => { },
   },
 });
 
-// 定义分段名称映射 - 对应每个分段的实际产品型号
-const segmentNames = {
-  动车组产品平台: {
-    1: 'CRH5型动车组',
-    2: 'CRH380型动车组',
-    3: 'CR300BF型动车组',
-    4: 'CR400BF型动车组',
-    5: 'CR450型动车组',
-  },
-  铁路客车产品平台: {
-    1: '25G/T型铁路客车',
-    2: 'CR200J动力集中动车组',
-  },
-  城际列车产品平台: {
-    1: 'CRH3A型动车组',
-    2: 'CJ5E型动车组',
-  },
-  市域列车产品平台: {
-    1: '市域A型车',
-    2: '市域B型车',
-    3: '市域C型车',
-    4: '市域D型车',
-  },
-  地铁列车产品平台: {
-    1: '地铁A型列车',
-    2: '地铁B型列车',
-    3: '地铁C型列车',
-  },
-  有轨电车产品平台: {
-    1: '100%低地板列车',
-    2: '70%低地板列车',
-    3: '中高地板铰接列车',
-  },
-  磁浮列车产品平台: {
-    1: '小型磁浮列车',
-    2: '中低速磁浮列车',
-    3: '常导高速磁浮列车',
-    4: '超导高速磁浮列车',
-  },
-  单轨列车产品平台: {
-    1: 'A型单轨列车',
-    2: 'B型单轨列车',
-    3: 'S型单轨列车',
-  },
-  特种制式列车产品平台: {
-    1: '电子导向列车',
-    2: '胶轮导轨列车',
-    3: '直线电机列车',
-    4: '齿轨山地列车',
-  },
-};
-
 const initChart = () => {
   const keys = Object.keys(props.chartData);
-  let xData = keys.map(item => props.chartData[item].name);
-  let seriesData = keys.map(item => props.chartData[item].num);
-
-  console.log('xData:', xData);
-  console.log('seriesData:', seriesData);
-
-  // 生成颜色列表
-  const generateColors = count => {
-    const baseColors = ['#e74a05', '#80d3f8', '#c58048', '#07fc46', '#667ffb', '#1ce6c7', '#fd5502', '#1ce6c7', '#15728C', '#92D1DE'];
-    let colors = [];
-    for (let i = 0; i < count; i++) {
-      colors.push(baseColors[i % baseColors.length]);
-    }
-    return colors;
-  };
-
-  // 获取最大分段数来生成颜色
-  const maxSegments = Math.max(...seriesData);
-  const colorList = generateColors(maxSegments);
+  let xData = keys;
+  let seriesData = [
+    {
+      name: "总文档数",
+      value: keys.map((item) => props.chartData[item].total_docs),
+    },
+    {
+      name: "已发布数",
+      value: keys.map((item) => props.chartData[item].completed_docs),
+    },
+    {
+      name: "在签审数",
+      value: keys.map((item) => props.chartData[item].reviewing_docs),
+    },
+  ];
+  const colorList = [
+    ["#15728C", "#92D1DE"],
+    ["#6A5FDC", "#6A5FDC"],
+    ["#FF8D1A", "#FF8D1A"],
+  ];
 
   chartOption.value = {
     grid: {
-      left: '2%',
-      right: '2%',
-      bottom: '10%', // 增加底部空间用于显示X轴标签
-      top: '3%',
+      left: "0",
+      right: "0",
+      bottom: "20%",
+      top: "20",
       containLabel: true,
     },
+    color: ["#1DB750", "#C7F36A"],
     tooltip: {
-      trigger: 'item',
-      formatter: function (params) {
-        const platformName = params.name;
-        const segmentIndex = params.seriesIndex;
-        const segmentNumber = segmentIndex + 1;
-
-        let segmentName = '';
-        if (segmentNames[platformName] && segmentNames[platformName][segmentNumber]) {
-          segmentName = segmentNames[platformName][segmentNumber];
-        } else {
-          segmentName = `产品型号${segmentNumber}`;
-        }
-
-        return `
-          <div style="font-size: 12px; padding: 8px; min-width: 180px;">
-            <div style="font-weight: bold; margin-bottom: 6px; color: #1890ff; padding-bottom: 3px;">
-              ${platformName}
-            </div>
-            <div style="display: flex; align-items: center;">
-              <span style="display: inline-block; width: 12px; height: 12px; background: ${params.color}; margin-right: 8px; border-radius: 2px;"></span>
-              <span style="font-size: 13px;">${segmentName}</span>
-            </div>
-          </div>
-        `;
-      },
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#1890ff',
-      borderWidth: 1,
-      textStyle: {
-        color: '#333',
-      },
+      trigger: "axis",
     },
     legend: {
-      show: false,
+      data: seriesData.map(item => item.name),
+      x: "right",
+      bottom: "5%",
+      align: "left",
+      itemHeight: 13,
+      icon: "rect",
+      itemWidth: 22,
+      itemGap: 20,
+      textStyle: {
+        fontSize: 12,
+        color: "#CCCCCC",
+      },
     },
     xAxis: {
-      type: 'category',
-      data: xData,
+      showBackground: true,
+      nameTextStyle: {
+        color: "#c0c3cd",
+        padding: [0, 0, -10, 0],
+        fontSize: 14,
+      },
       axisLine: {
-        show: false,
+        show: false, //隐藏X轴轴线
+        lineStyle: {
+          color: "#555f58",
+        },
       },
       axisLabel: {
         interval: 0,
-        rotate: 30, // 减小旋转角度
         textStyle: {
-          color: '#fff',
-          fontSize: 11, // 减小字体大小
-          fontWeight: 'normal',
+          color: "#fff", //坐标轴字颜色
         },
-        margin: 10, // 减小边距
-        // 截断过长的标签
-        formatter: function (value) {
-          if (value.length > 6) {
-            return value.substring(0, 6) + '...';
-          }
-          return value;
-        },
+        margin: 15,
       },
       axisTick: {
-        show: false,
+        show: false, //隐藏X轴刻度
       },
       splitLine: {
+        //网格线
         show: false,
       },
+      data: xData,
+      type: "category",
     },
     yAxis: {
-      type: 'value',
-      name: '',
-      nameTextStyle: {
-        color: 'transparent', // 隐藏名称
-      },
       axisLine: {
-        show: true,
+        show: false, //隐藏X轴轴线
+        lineStyle: {
+          color: "rgba(220,220,220,0.3)",
+        },
       },
       axisTick: {
-        show: true,
+        show: false, //隐藏X轴刻度
       },
       axisLabel: {
-        show: true,
         textStyle: {
-          fontSize: 12, // 减小字体大小
-          color: '#CCCCCC',
-          fontWeight: 'normal',
+          fontSize: 12,
+          color: "#CCCCCC",
         },
       },
       splitLine: {
+        //网格线
         show: false,
+        lineStyle: {
+          color: "rgba(220,220,220,0.3)",
+        },
       },
-      min: 0,
-      max: maxSegments,
-      interval: 1, // 确保显示整数刻度
     },
     series: (function () {
       let series = [];
-
-      for (let i = 0; i < maxSegments; i++) {
-        let datas = [];
-        let segmentNumber = i + 1;
-
-        for (let j = 0; j < seriesData.length; j++) {
-          if (seriesData[j] > i) {
-            datas.push(1);
-          } else {
-            datas.push(0);
-          }
-        }
-
+      for (let i = 0; i < seriesData.length; i++) {
         let serie = {
-          name: `产品型号${segmentNumber}`,
-          type: 'bar',
-          stack: 'total',
-          barWidth: '25px', // 减小柱状图宽度
-          barMinHeight: 1, // 设置最小高度
-          data: datas,
+          name: seriesData[i].name,
+          type: "bar",
+          barWidth: "16",
+          data: seriesData[i].value,
+          label: {
+            show: true,
+            color: "#fff",
+            fontSize: 12,
+            position: "top",
+          },
           itemStyle: {
-            color: colorList[i],
-          },
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(255, 255, 255, 0.5)',
-            },
-          },
-          tooltip: {
-            formatter: function (params) {
-              const platformName = params.name;
-              const segmentNum = segmentNumber;
-
-              let productName = '';
-              if (segmentNames[platformName] && segmentNames[platformName][segmentNum]) {
-                productName = segmentNames[platformName][segmentNum];
-              } else {
-                productName = `产品型号${segmentNum}`;
-              }
-
-              return `
-                <div style="font-size: 12px; padding: 6px;">
-                  <div style="font-weight: bold; color: #1890ff; margin-bottom: 4px;">${platformName}</div>
-                  <div>产品型号: <strong>${productName}</strong></div>
-                </div>
-              `;
+            normal: {
+              color: new echarts.graphic.LinearGradient(0, 1, 0, 0, [
+                { offset: 0, color: colorList[i][0] },
+                { offset: 1, color: colorList[i][1] },
+              ]),
             },
           },
         };
-
         series.push(serie);
       }
-
       return series;
     })(),
   };
 };
 
-// 监听数据变化
 watch(
   () => props.chartData,
-  val => {
-    if (val && Object.keys(val).length > 0) {
-      initChart();
-    }
+  (val) => {
+    initChart();
   },
-  { deep: true, immediate: true }
+  { deep: true }
 );
 </script>
 

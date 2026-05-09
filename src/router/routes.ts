@@ -30,27 +30,27 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     name: 'PlatformBoardDemand',
-    path: '/demand',
-    component: () => import('@/views/platformBoard/subViews/Demand/index.vue'),
-    meta: { hidden: true, title: '需求分析' },
+    path: '/module',
+    component: () => import('@/views/platformBoard/subViews/Modularization/index.vue'),
+    meta: { hidden: true, title: '模块化看板' },
   },
   {
     name: 'PlatformBoardBase',
     path: '/base',
     component: () => import('@/views/platformBoard/subViews/Base/index.vue'),
-    meta: { hidden: true, title: '基础数据' },
+    meta: { hidden: true, title: '基础资源看板' },
   },
   {
     name: 'PlatformBoardProduct',
     path: '/product',
     component: () => import('@/views/platformBoard/subViews/Product/index.vue'),
-    meta: { hidden: true, title: '产品定义' },
+    meta: { hidden: true, title: '产品设计看板' },
   },
   {
     name: 'PlatformBoardSystem',
     path: '/system',
     component: () => import('@/views/platformBoard/subViews/System/index.vue'),
-    meta: { hidden: true, title: '系统设置' },
+    meta: { hidden: true, title: '系统运行看板' },
   },
 
   {

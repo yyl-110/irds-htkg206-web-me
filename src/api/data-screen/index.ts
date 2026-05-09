@@ -1,33 +1,38 @@
-import request from './request';
+import httpRequest from "@/httpRequest";
 
 /**
  * 报表--基础资源看板
  * @return {*}
  */
-export function getReportKnowledgeList() {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/getReportKnowledgeList',
-    method: 'post',
+export function getReportKnowledgeList(data: { type: string | number }) {
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/getReportKnowledgeList",
+    method: "POST",
+    data,
   });
 }
 /**
  * 模块化看板
  * @return {*}
  */
-export function getReportModuleList() {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/getReportModuleList',
-    method: 'post',
+export function getReportModuleList(data: { projectId: string | number }) {
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/getReportModuleList",
+    method: "POST",
+    data,
   });
 }
 /**
  * 报表--产品设计看板
  * @return {*}
  */
-export function getReportProjectList(data: { projectId: string | number; phaseId: string | number }) {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/getReportProjectList',
-    method: 'post',
+export function getReportProjectList(data: {
+  projectId: string | number;
+  phaseId: string | number;
+}) {
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/getReportProjectList",
+    method: "POST",
     data,
   });
 }
@@ -36,9 +41,9 @@ export function getReportProjectList(data: { projectId: string | number; phaseId
  * @return {*}
  */
 export function getReportProjectPhaseList() {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/getReportProjectPhaseList',
-    method: 'post',
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/getReportProjectPhaseList",
+    method: "POST",
   });
 }
 /**
@@ -46,9 +51,9 @@ export function getReportProjectPhaseList() {
  * @return {*}
  */
 export function getReportSystemList() {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/getReportSystemList',
-    method: 'post',
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/getReportSystemList",
+    method: "POST",
   });
 }
 /**
@@ -56,9 +61,9 @@ export function getReportSystemList() {
  * @return {*}
  */
 export function pdmPicReport(data: any) {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/pdmPicReport',
-    method: 'post',
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/pdmPicReport",
+    method: "POST",
     data,
   });
 }
@@ -67,9 +72,9 @@ export function pdmPicReport(data: any) {
  * @return {*}
  */
 export function getReportSystemLoginUser(data: any) {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/getReportSystemLoginUser',
-    method: 'post',
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/getReportSystemLoginUser",
+    method: "POST",
     data,
   });
 }
@@ -78,9 +83,9 @@ export function getReportSystemLoginUser(data: any) {
  * @return {*}
  */
 export function deliveryReport(data: any) {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/deliveryReport',
-    method: 'post',
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/deliveryReport",
+    method: "POST",
     data,
   });
 }
@@ -89,57 +94,9 @@ export function deliveryReport(data: any) {
  * @return {*}
  */
 export function getModelVisitReport(data: any) {
-  return request({
-    url: '/cirpoint-base-api/reportinfo/getModelVisitReport',
-    method: 'post',
-    data,
-  });
-}
-
-/**
- * 需求管理
- * @return {*}
- */
-export function compareReportInfo(data: any) {
-  return request({
-    url: '/cirpoint-demand-api/demand-report/compareReportInfo',
-    method: 'get',
-    data,
-  });
-}
-
-/**
- * 需求管理看板数据
- * @return {*}
- */
-export function chartReportInfo(data: any) {
-  return request({
-    url: '/cirpoint-demand-api/demand-report/chartReportInfo',
-    method: 'get',
-    params: data,
-  });
-}
-
-/**
- * 根据时间和分页进行列表数据查询
- * @return {*}
- */
-export function demandReportPage(params: any) {
-  return request({
-    url: '/cirpoint-demand-api/demand-report/demandReportPage',
-    method: 'get',
-    params,
-  });
-}
-
-/**
- * 获取所有的产品规划
- * @return {*}
- */
-export function getProductPlanList(data: any) {
-  return request({
-    url: '/cirpoint-demand-api/demand-report/getAllProductPlanList',
-    method: 'post',
+  return httpRequest({
+    url: "/cirpoint-base-api/reportinfo/getModelVisitReport",
+    method: "POST",
     data,
   });
 }
