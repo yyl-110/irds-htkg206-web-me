@@ -235,8 +235,8 @@ const columns = ref<TableColumnType<LibraryListRow>[]>([
     title: WeiI18n.$t('操作'),
     dataIndex: 'operation',
     key: 'operation',
-    align: 'left',
-    width: 280,
+    align: 'center',
+    width: 200,
     fixed: 'right',
     resizable: false,
   },
@@ -617,8 +617,9 @@ function handleFinish() {
                   {{ $t('删除') }}
                 </a-button>
               </a-popconfirm>
-              <a-divider type="vertical" v-if="record.categoryType !== 2" />
-              <a @click="seeDetailFun(record)" v-if="record.categoryType !== 2">{{ $t('属性配置') }}</a>
+              <a-divider type="vertical"  />
+              <a v-if="record.categoryType !== 2" @click="seeDetailFun(record)">{{ $t('属性配置') }}</a>
+              <a-button v-else type="link" disabled class="p-0 text-[12px] h-auto">{{ $t('属性配置') }}</a-button>
             </template>
             <template v-else>
               <span>{{ record[String(column.dataIndex || '')] }}</span>

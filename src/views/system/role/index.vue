@@ -119,7 +119,7 @@ const columns = ref<TableColumnType<RolePOModel>[]>([
     title: WeiI18n.$t('操作'),
     dataIndex: 'operation',
     align: 'center',
-    width: 300,
+    width: 230,
     fixed: 'right',
   },
 ]);

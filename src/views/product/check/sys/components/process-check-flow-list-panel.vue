@@ -180,7 +180,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
-    align: 'left',
+    align: 'center',
     width: 250,
     fixed: 'right',
     resizable: false,
