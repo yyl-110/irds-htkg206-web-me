@@ -4,7 +4,7 @@
       <div class="boardContainer">
         <header class="header">
           <img src="@/assets/data-screen/common/back.png" alt="" class="back" @click="back" />
-          <img src="@/assets/data-screen/common/systemTitle.png" alt="" class="title" />
+          <img src="@/assets/data-screen/common/baseTitle.png" alt="" class="title" />
           <!-- 时间 -->
           <time-clock />
         </header>

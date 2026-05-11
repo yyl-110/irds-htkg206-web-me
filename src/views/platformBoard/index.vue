@@ -5,15 +5,12 @@
     <video autoplay muted loop playsinline preload="auto" class="video-bg">
       <source :src="bgVideo" type="video/mp4" />
     </video>
-    
+
     <screen-container :width="1920" :height="1080">
       <div class="boardContainer">
         <header class="header">
-          <a-button type="link" class="back-btn" @click="router.back()" style="position: absolute; left: 40px; top: 40px; color: #fff; z-index: 100;">
-            <template #icon><left-outlined /></template>
-            返回
-          </a-button>
-          <img src="@/assets/data-screen/home/title.png" alt="" />
+          <img src="@/assets/data-screen/common/back.png" alt="" class="back" @click="router.back()" />
+          <img src="@/assets/data-screen/home/title.png" alt="" class="title" />
         </header>
         <main>
           <img src="@/assets/data-screen/home/LOGO.png" alt="" class="logo" />
@@ -86,8 +83,8 @@ onMounted(() => {
 const list = [
   { topurl: module1_1, topinsideurl: module3_2, mainurl: module3_3, bottomurl: module1_4, id: 1, path: '/product', name: '产品设计' },
   { topurl: module1_1, topinsideurl: module2_2, mainurl: module2_3, bottomurl: module1_4, id: 2, path: '/module', name: '模块化看板' },
-  { topurl: module1_1, topinsideurl: module1_2, mainurl: module1_3, bottomurl: module1_4, id: 3, path: '/system', name: '知识中心看板' },
-  { topurl: module1_1, topinsideurl: module4_2, mainurl: module4_3, bottomurl: module1_4, id: 4, path: '/base', name: '基础资源看板' },
+  { topurl: module1_1, topinsideurl: module1_2, mainurl: module1_3, bottomurl: module1_4, id: 3, path: '/base', name: '知识中心看板' },
+  { topurl: module1_1, topinsideurl: module4_2, mainurl: module4_3, bottomurl: module1_4, id: 4, path: '/system', name: '基础资源看板' },
 ];
 
 const goTo = (item: any) => {
@@ -139,7 +136,7 @@ body {
   }
 
   .boardContainer {
-    width: 100%!important;
+    width: 100% !important;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -152,20 +149,21 @@ body {
       display: flex;
       align-items: center;
       position: relative;
-      
+
       .logo {
         position: absolute;
         width: 350px;
         top: -25px;
         left: 100px;
       }
-      
+
       .topWrap {
         display: inline-block;
         width: 194px;
         height: 194px;
         position: relative;
         top: 160px;
+
         .inside {
           width: 62.18px;
           height: 60.72px;
@@ -173,21 +171,21 @@ body {
           top: -128px;
         }
       }
-      
+
       .mainWrap {
         width: 184px;
         height: 110px;
         position: relative;
         top: 120px;
       }
-      
-      > div {
+
+      >div {
         width: 50%;
         margin-top: 150px;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
-        
+
         &:nth-of-type(1) {
           padding-left: 240px;
         }
@@ -195,13 +193,13 @@ body {
         &:nth-of-type(4) {
           padding-right: 240px;
         }
-        
+
         &:hover {
           transform: translateY(-10px) scale(1.1);
           filter: brightness(1.1);
         }
       }
-      
+
       img {
         width: 292px;
       }
@@ -225,8 +223,16 @@ body {
       background-size: 100% 100%;
       background-position: center center;
       padding-top: 33px;
+      position: relative;
+      .back {
+        width: 35px;
+        position: absolute;
+        left: 80px;
+        top: 18%;
+        cursor: pointer;
+      }
 
-      img {
+      .title {
         width: 596px;
       }
     }

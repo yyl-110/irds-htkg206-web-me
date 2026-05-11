@@ -3,10 +3,7 @@
     <screen-container :width="1920" :height="1080">
       <div class="boardContainer">
         <header class="header">
-          <a-button type="link" class="back-btn" @click="back" style="position: absolute; left: 80px; top: 50%; transform: translateY(-50%); color: #fff; z-index: 100;">
-            <template #icon><left-outlined /></template>
-            返回
-          </a-button>
+          <img src="@/assets/data-screen/common/back.png" alt="" class="back" @click="back" />
           <img src="@/assets/data-screen/product/title.png" alt="" class="title" />
           <!-- 时间 -->
           <time-clock />
@@ -227,13 +224,13 @@ watch(
       background-size: 100% 100%;
       position: relative;
 
-      .back-btn {
+      .back {
+        width: 35px;
         position: absolute;
         left: 80px;
         top: 50%;
         transform: translateY(-50%);
-        color: #fff;
-        z-index: 100;
+        cursor: pointer;
       }
 
       .title {
