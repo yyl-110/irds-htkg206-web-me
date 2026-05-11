@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { nextTick, onActivated, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import type { Dayjs } from 'dayjs';
@@ -62,6 +62,9 @@ const projectFormLabelCol = { style: { width: '120px' } };
 const projectFormWrapperCol = { span: 18 };
 
 const projectId = ref<any>();
+/** 供任务管理 Tab 立即判断创建人权限（避免子组件重复请求尚未返回时无操作按钮） */
+const projectCreatorForWbs = ref<string | undefined>();
+const projectCreatorNameForWbs = ref<string | undefined>();
 
 function disabledPlanStartDate(current: Dayjs) {
   if (!current) return false;
@@ -90,6 +93,8 @@ watch(
 
 function resetProjectForm() {
   projectFormTab.value = '1';
+  projectCreatorForWbs.value = undefined;
+  projectCreatorNameForWbs.value = undefined;
   projectForm.projectNum = '';
   projectForm.productPlatform = '';
   projectForm.projectName = '';
@@ -159,26 +164,62 @@ function goBack() {
   router.back();
 }
 
-onMounted(async () => {
-  resetProjectForm();
-  const id = route.query.id;
-  projectForm.productPlatform = route.query.categoryName as string;
-  projectForm.productPlatformId = route.query.categoryId as string;
-  if (!id) return;
+/** keep-alive 再次进入时不会执行 onMounted，须同步路由并拉取详情，否则任务管理拿不到 creator / WBS 权限异常 */
+async function applyRouteQueryAndLoadProject() {
+  const idRaw = route.query.id;
+  if (idRaw === undefined || idRaw === null || idRaw === '') return;
+  const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
   projectId.value = id;
-  const raw = sessionStorage.getItem(PROJECT_EDITOR_DRAFT_KEY);
-  if (!raw) return;
+  projectForm.productPlatform = (route.query.categoryName as string) ?? projectForm.productPlatform;
+  projectForm.productPlatformId = (route.query.categoryId as string) ?? projectForm.productPlatformId;
+  const tabQ = route.query.tab;
+  if (tabQ === '3' || tabQ === 3) {
+    projectFormTab.value = '3';
+  }
   try {
     await getProjectInfo();
   } catch {
     /* ignore */
   }
-  sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
+}
+
+/** 首次挂载会先 onMounted 再 onActivated，避免同一帧内重复请求项目详情 */
+const skipNextEditorActivatedLoad = ref(false);
+
+onMounted(async () => {
+  resetProjectForm();
+  projectForm.productPlatform = route.query.categoryName as string;
+  projectForm.productPlatformId = route.query.categoryId as string;
+  await applyRouteQueryAndLoadProject();
+  skipNextEditorActivatedLoad.value = true;
+  const raw = sessionStorage.getItem(PROJECT_EDITOR_DRAFT_KEY);
+  if (raw) sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
 });
+
+onActivated(() => {
+  if (skipNextEditorActivatedLoad.value) {
+    skipNextEditorActivatedLoad.value = false;
+    return;
+  }
+  void applyRouteQueryAndLoadProject();
+});
+
+watch(
+  () => route.query.id,
+  (n, o) => {
+    if (n !== o && n != null && n !== '') {
+      void applyRouteQueryAndLoadProject();
+    }
+  },
+);
 
 async function getProjectInfo() {
   const res = await AdminApiProjectTemp.getProjectInfoEditFile({ id: projectId.value });
-  const projectDto = res.data.data;
+  const projectDto = (res as any)?.data?.data ?? (res as any)?.data;
+  if (!projectDto) return;
+  projectCreatorForWbs.value =
+    projectDto.creator !== undefined && projectDto.creator !== null ? String(projectDto.creator) : undefined;
+  projectCreatorNameForWbs.value = projectDto.creatorName ?? undefined;
   projectForm.projectNum = projectDto.projectNum;
   projectForm.productPlatform = projectDto.productPlatform;
   projectForm.productPlatformId = projectDto.productPlatformId;
@@ -221,7 +262,11 @@ async function getProjectInfo() {
         </a-tab-pane>
         <a-tab-pane v-if="projectId" key="3" :tab="$t('任务管理')" class="project-editor-tabs-pane--wbs">
           <div class="project-editor-tab-wbs">
-            <ProjectTaskWbsPanel v-if="projectFormTab === '3'" :project-id="projectId" />
+            <ProjectTaskWbsPanel
+              v-if="projectFormTab === '3'"
+              :project-id="projectId"
+              :project-creator-id="projectCreatorForWbs"
+              :project-creator-name="projectCreatorNameForWbs" />
           </div>
         </a-tab-pane>
       </a-tabs>

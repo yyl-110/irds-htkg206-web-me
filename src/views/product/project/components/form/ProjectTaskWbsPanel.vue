@@ -29,7 +29,45 @@ const userStore = useUserStore();
 
 const props = defineProps<{
   projectId: string | number;
+  /** 父页已请求 getProjectInfoEditFile 时传入，优先用于创建人权限判断，避免进入路径不同导致子组件请求为空 */
+  projectCreatorId?: string | number | null;
+  projectCreatorName?: string | null;
 }>();
+
+/** 路由 / 父组件偶发传入数组或异常类型时统一成单个 projectId */
+function normalizedProjectId(): string | number | undefined {
+  const raw = props.projectId as unknown;
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  if (Array.isArray(raw)) {
+    const first = raw[0];
+    if (first === undefined || first === null || first === '') return undefined;
+    return first as string | number;
+  }
+  return raw as string | number;
+}
+
+/** 用户 id 比对（兼容 Long 转 JSON 精度、字符串与数字混用） */
+function normalizeUserIdString(v: unknown): string {
+  if (v === undefined || v === null) return '';
+  const s = String(v).trim();
+  return s === '' || s === 'undefined' || s === 'null' ? '' : s;
+}
+
+function sameUserId(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  const sa = normalizeUserIdString(a);
+  const sb = normalizeUserIdString(b);
+  if (!sa || !sb) return false;
+  if (sa === sb) return true;
+  if (/^\d+$/.test(sa) && /^\d+$/.test(sb)) {
+    try {
+      return BigInt(sa) === BigInt(sb);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
 
 export type TaskWbsStatus = 'delayed' | 'completed' | 'in_progress' | 'pending';
 
@@ -66,6 +104,11 @@ export type WbsTaskNode = {
   /** 管理者用户 id（每行仅一人，用于再次打开时回显） */
   managerUserId?: string;
   children?: WbsTaskNode[];
+  /**
+   * mapApiNodeToWbs 递归映射时写入的直接父节点引用。
+   * Long id 若以 JSON number 下发会丢精度，仅用 id/parentId 字符串比对可能找不到父级；权限判断优先用此引用。
+   */
+  __parent?: WbsTaskNode;
 };
 
 /** 后端 task-param/list 单项（含上游同步提示） */
@@ -199,6 +242,20 @@ const treeData = ref<WbsTaskNode[]>(buildDemoTaskTree());
 
 const projectCreatorId = ref('');
 const projectCreatorName = ref('');
+
+/** 创建人 id：父组件 props 优先于本组件 loadProjectCreatorInfo */
+const effectiveCreatorId = computed(() => {
+  const p = props.projectCreatorId;
+  if (p !== undefined && p !== null && p !== '') return String(p).trim();
+  return projectCreatorId.value;
+});
+
+const effectiveCreatorName = computed(() => {
+  const p = props.projectCreatorName;
+  if (p !== undefined && p !== null && String(p).trim() !== '') return String(p);
+  return projectCreatorName.value;
+});
+
 /** 项目计划周期（分配分类节点时下级无日期时兜底） */
 const projectPlanStart = ref('');
 const projectPlanEnd = ref('');
@@ -402,11 +459,12 @@ function isWbsRoot(n: WbsTaskNode): boolean {
 }
 
 async function loadProjectCreatorInfo() {
-  if (!props.projectId) return;
+  const pid = normalizedProjectId();
+  if (!pid) return;
   try {
-    const res = await AdminApiProjectTemp.getProjectInfoEditFile({ id: props.projectId } as any);
-    const data = res?.data?.data as {
-      creator?: number;
+    const res = await AdminApiProjectTemp.getProjectInfoEditFile({ id: pid } as any);
+    const data = (res?.data?.data ?? res?.data) as {
+      creator?: number | string;
       creatorName?: string;
       planStartTime?: string;
       planEndTime?: string;
@@ -439,10 +497,19 @@ async function loadUserIdToNameMap() {
 function decorateWbsTree(nodes: WbsTaskNode[]) {
   for (const n of nodes) {
     if (isWbsRoot(n)) {
-      n.assigneeUserId = undefined;
-      n.responsibleUserId = projectCreatorId.value || undefined;
+      /** 保留后端写入的根 assigneeUserId，供下级「谁能分配」判断；仅在与创建人不一致时再补创建人 */
+      const cid = effectiveCreatorId.value;
+      if (!n.assigneeUserId && cid) {
+        n.assigneeUserId = cid;
+      }
+      n.responsibleUserId = n.assigneeUserId || cid || undefined;
+      const assigneeLabel =
+        (n.assigneeUserId ? userIdToName.value.get(String(n.assigneeUserId)) : '') || '';
       n.resource =
-        projectCreatorName.value || (projectCreatorId.value ? `用户${projectCreatorId.value}` : '');
+        effectiveCreatorName.value ||
+        assigneeLabel ||
+        (cid ? `用户${cid}` : '') ||
+        (n.assigneeUserId ? `用户${n.assigneeUserId}` : '');
     } else if (n.assigneeUserId) {
       n.responsibleUserId = n.assigneeUserId;
       n.resource = userIdToName.value.get(n.assigneeUserId) ?? n.assigneeUserId;
@@ -465,22 +532,42 @@ function toDateOnly(v?: string): string {
   return String(v).slice(0, 10);
 }
 
-function mapApiNodeToWbs(node: any, serialSeed: { v: number }): WbsTaskNode {
+/** API 节点 id 转为展示用字符串；Long 若以 JSON number 下发可能丢精度，树映射时已写入 __parent，权限不依赖 id 比对 */
+function apiRawIdToDisplayString(raw: unknown, serialFallback: number): string {
+  if (raw === undefined || raw === null) return `${serialFallback}`;
+  if (typeof raw === 'string') return raw.trim();
+  return String(raw);
+}
+
+function mapApiNodeToWbs(
+  node: any,
+  serialSeed: { v: number },
+  /** 嵌套 JSON 若省略 parentId，用语义父节点 id 补上，避免子节点被误判为根、权限链断裂 */
+  inferredParentId?: string,
+  /** 递归构建树时传入已映射的父节点，写入 __parent，避免仅靠 id 查找父级失败 */
+  parentMapped: WbsTaskNode | null = null,
+): WbsTaskNode {
   const serialNo = serialSeed.v++;
-  const children = Array.isArray(node?.children)
-    ? node.children.map((c: any) => mapApiNodeToWbs(c, serialSeed))
-    : undefined;
   const progressNum = Number(node?.completionRate ?? 0);
   const parentRaw = node?.parentId;
-  const parentId =
+  let parentId =
     parentRaw === undefined || parentRaw === null ? undefined : String(parentRaw);
+  if (
+    (parentId === undefined || parentId === '') &&
+    inferredParentId !== undefined &&
+    inferredParentId !== ''
+  ) {
+    parentId = inferredParentId;
+  }
   const assigneeRaw = node?.assigneeUserId;
   const assigneeUserId =
     assigneeRaw !== undefined && assigneeRaw !== null ? String(assigneeRaw) : undefined;
   const bindRaw = node?.bindTaskId;
   const bindTaskId = bindRaw !== undefined && bindRaw !== null ? String(bindRaw) : undefined;
-  return {
-    id: String(node?.id ?? `${serialNo}`),
+  const selfId = apiRawIdToDisplayString(node?.id, serialNo);
+
+  const mapped: WbsTaskNode = {
+    id: selfId,
     type: Number(node?.type ?? 2),
     parentId,
     assigneeUserId,
@@ -502,22 +589,34 @@ function mapApiNodeToWbs(node: any, serialSeed: { v: number }): WbsTaskNode {
     responsibleUserId: undefined,
     manager: node?.adminUserid ? String(node.adminUserid) : '',
     managerUserId: node?.adminUserid ? String(node.adminUserid) : undefined,
-    children: children && children.length ? children : undefined,
+    children: undefined,
   };
+  if (parentMapped) {
+    mapped.__parent = parentMapped;
+  }
+
+  const children = Array.isArray(node?.children)
+    ? node.children.map((c: any) => mapApiNodeToWbs(c, serialSeed, selfId, mapped))
+    : undefined;
+  if (children?.length) {
+    mapped.children = children;
+  }
+  return mapped;
 }
 
 async function fetchProjectWbsTree() {
-  if (!props.projectId) {
+  const pid = normalizedProjectId();
+  if (!pid) {
     treeData.value = [];
     return;
   }
   try {
     await Promise.all([loadProjectCreatorInfo(), loadUserIdToNameMap()]);
-    const res = await AdminApiProjectTemp.projectWbsTreeList({ projectId: props.projectId });
+    const res = await AdminApiProjectTemp.projectWbsTreeList({ projectId: pid });
     const apiTree = res?.data?.data ?? [];
     if (Array.isArray(apiTree) && apiTree.length) {
       const seed = { v: 1 };
-      treeData.value = apiTree.map((n: any) => mapApiNodeToWbs(n, seed));
+      treeData.value = apiTree.map((n: any) => mapApiNodeToWbs(n, seed, undefined, null));
       decorateWbsTree(treeData.value);
       rollupCategoryPlanDates(treeData.value);
       wbsLastPickedPlanDates.value = {};
@@ -807,7 +906,7 @@ async function openResponsiblePicker(record: WbsTaskNode, field: 'responsible' |
       return;
     }
     if (!canShowBrowseResponsible(record)) {
-      message.warning('仅上一级负责人可为下级分配人员');
+      message.warning('仅「直接上一级」负责人可为下级分配人员（请层层指定）');
       return;
     }
     if (!browseAssignEnabled(record)) {
@@ -973,11 +1072,12 @@ async function confirmResponsiblePicker() {
 /** 在树中定位节点及其直接上级 */
 function findNodeContext(
   nodes: WbsTaskNode[],
-  id: string,
+  id: string | number,
   parent: WbsTaskNode | null = null,
 ): { node: WbsTaskNode; parent: WbsTaskNode | null } | null {
+  const sid = String(id);
   for (const n of nodes) {
-    if (n.id === id) return { node: n, parent };
+    if (String(n.id) === sid) return { node: n, parent };
     if (n.children?.length) {
       const hit = findNodeContext(n.children, id, n);
       if (hit) return hit;
@@ -986,24 +1086,41 @@ function findNodeContext(
   return null;
 }
 
+/** 取直接父节点：优先 API 映射写入的 __parent，避免雪花 id 精度问题导致 findNodeContext 失败 */
+function getWbsParentNode(record: WbsTaskNode): WbsTaskNode | null {
+  if (record.__parent) return record.__parent;
+  return findNodeContext(treeData.value, record.id)?.parent ?? null;
+}
+
 function canAssignResponsible(record: WbsTaskNode): boolean {
   if (isWbsRoot(record)) return false;
-  const uid = String(userStore.getUser.id);
-  const ctx = findNodeContext(treeData.value, record.id);
-  const parent = ctx?.parent;
+  const parent = getWbsParentNode(record);
   if (!parent) return false;
-  if (isWbsRoot(parent)) return uid === projectCreatorId.value;
-  return !!parent.assigneeUserId && uid === String(parent.assigneeUserId);
+  /** 根下一层：项目创建人或顶层已写入的负责人（后端 init）可向下分配 */
+  if (isWbsRoot(parent)) {
+    return (
+      sameUserId(userStore.getUser.id, effectiveCreatorId.value) ||
+      (!!parent.assigneeUserId && sameUserId(userStore.getUser.id, parent.assigneeUserId))
+    );
+  }
+  /** 仅「直接上一级」负责人可为当前节点分配人员（层层传递；不按创建人跨级代分配） */
+  if (parent.assigneeUserId && sameUserId(userStore.getUser.id, parent.assigneeUserId)) return true;
+  return false;
 }
 
 function canEditAsAssignee(record: WbsTaskNode): boolean {
-  return !!record.assigneeUserId && String(userStore.getUser.id) === String(record.assigneeUserId);
+  return !!record.assigneeUserId && sameUserId(userStore.getUser.id, record.assigneeUserId);
 }
 
 /** 分类节点不维护自身计划时间（展示为下级合集）；任务节点：根仅创建人；已分配仅负责人；未分配由上一级填 */
 function canModifyRowFields(record: WbsTaskNode): boolean {
   if (record.type === 1) return false;
-  if (isWbsRoot(record)) return String(userStore.getUser.id) === projectCreatorId.value;
+  if (isWbsRoot(record)) {
+    return (
+      sameUserId(userStore.getUser.id, effectiveCreatorId.value) ||
+      (!!record.assigneeUserId && sameUserId(userStore.getUser.id, record.assigneeUserId))
+    );
+  }
   if (record.assigneeUserId) return canEditAsAssignee(record);
   return canAssignResponsible(record);
 }
@@ -1027,20 +1144,23 @@ function canShowBrowseResponsible(record: WbsTaskNode): boolean {
 }
 
 function canClickStart(record: WbsTaskNode): boolean {
-  const uid = String(userStore.getUser.id);
   if (!record.assigneeUserId) return false;
-  if (uid === String(record.assigneeUserId)) return true;
-  const ctx = findNodeContext(treeData.value, record.id);
-  const parent = ctx?.parent;
+  if (sameUserId(userStore.getUser.id, record.assigneeUserId)) return true;
+  const parent = getWbsParentNode(record);
   if (!parent) return false;
-  if (isWbsRoot(parent) && uid === projectCreatorId.value) return true;
-  if (parent.assigneeUserId && uid === String(parent.assigneeUserId)) return true;
+  if (
+    isWbsRoot(parent) &&
+    (sameUserId(userStore.getUser.id, effectiveCreatorId.value) ||
+      (!!parent.assigneeUserId && sameUserId(userStore.getUser.id, parent.assigneeUserId)))
+  )
+    return true;
+  if (parent.assigneeUserId && sameUserId(userStore.getUser.id, parent.assigneeUserId)) return true;
   return false;
 }
 
 function canShowStartButton(record: WbsTaskNode): boolean {
+  /** 仅分类节点展示「启动」：推送工作台给当前节点负责人；模板可无 bindTaskId，关联设计任务后再协同 */
   if (record.type !== 1 || isWbsRoot(record)) return false;
-  if (!record.bindTaskId) return false;
   if (record.publishStatus === 1 || record.assignStatus === 'PUBLISHED') return false;
   return canClickStart(record);
 }
@@ -1120,10 +1240,10 @@ function validateTaskDates(record: WbsTaskNode): string | null {
   if (s.isBefore(today, 'day')) return '开始时间不能早于今天';
   if (e.isBefore(s, 'day')) return '完成时间不能早于开始时间';
 
-  const ctx = findNodeContext(treeData.value, record.id);
-  if (ctx?.parent) {
-    const ps = dayjs(ctx.parent.startDate).startOf('day');
-    const pe = dayjs(ctx.parent.endDate).startOf('day');
+  const parent = getWbsParentNode(record);
+  if (parent) {
+    const ps = dayjs(parent.startDate).startOf('day');
+    const pe = dayjs(parent.endDate).startOf('day');
     if (ps.isValid() && pe.isValid() && (s.isBefore(ps, 'day') || e.isAfter(pe, 'day'))) {
       return '任务日期需在上级任务时间范围内';
     }
@@ -1147,9 +1267,9 @@ function disabledTaskStartDate(record: WbsTaskNode, current: Dayjs | undefined):
   const today = dayjs().startOf('day');
   if (cur.isBefore(today, 'day')) return true;
 
-  const ctx = findNodeContext(treeData.value, record.id);
-  if (ctx?.parent) {
-    const ps = dayjs(ctx.parent.startDate).startOf('day');
+  const parent = getWbsParentNode(record);
+  if (parent) {
+    const ps = dayjs(parent.startDate).startOf('day');
     if (ps.isValid() && cur.isBefore(ps, 'day')) return true;
   }
 
@@ -1165,9 +1285,9 @@ function disabledTaskEndDate(record: WbsTaskNode, current: Dayjs | undefined): b
   if (!start.isValid()) return false;
   if (cur.isBefore(start, 'day')) return true;
 
-  const ctx = findNodeContext(treeData.value, record.id);
-  if (ctx?.parent) {
-    const pe = dayjs(ctx.parent.endDate).startOf('day');
+  const parent = getWbsParentNode(record);
+  if (parent) {
+    const pe = dayjs(parent.endDate).startOf('day');
     if (pe.isValid() && cur.isAfter(pe, 'day')) return true;
   }
 
