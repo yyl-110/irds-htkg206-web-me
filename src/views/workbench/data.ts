@@ -72,7 +72,7 @@ export const WORKBENCH_SECONDARY_TABS = [
   { title: '待办', value: 'todo' },
   { title: '已办', value: 'done' },
   { title: '已转办', value: 'transfer' },
-  { title: 'WBS系统待办', value: 'wbs' },
+  { title: 'WBS协同待办', value: 'wbs' },
   { title: '独立应用待办', value: 'app' },
   { title: '计算待办', value: 'compute' },
   { title: '全部', value: 'all' },
