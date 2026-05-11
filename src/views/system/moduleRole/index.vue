@@ -119,7 +119,7 @@ const columns = ref<TableColumnType<RolePOModel>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'center',
-    width: 300,
+    width: 230,
     fixed: 'right',
   },
 ]);

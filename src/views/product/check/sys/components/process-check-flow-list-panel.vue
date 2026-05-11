@@ -180,7 +180,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
-    align: 'left',
+    align: 'center',
     width: 250,
     fixed: 'right',
     resizable: false,
@@ -324,14 +324,14 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   try {
     if (isPublished) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '撤回发布协同成功' : '撤回发布计算应用成功');
+      message.success(publishType === 'COLLAB' ? '撤销发布协同成功' : '撤销发布计算应用成功');
     } else {
       await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
       message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布计算应用成功');
     }
     await loadFlowListData();
   } catch (error) {
-    message.error(isPublished ? '撤回发布失败' : '发布失败');
+    message.error(isPublished ? '撤销发布失败' : '发布失败');
   }
 }
 

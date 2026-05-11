@@ -204,7 +204,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
-    align: 'left',
+    align: 'center',
     width: 280,
     fixed: 'right',
     resizable: false,

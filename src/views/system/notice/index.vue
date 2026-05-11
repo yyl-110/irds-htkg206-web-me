@@ -68,8 +68,8 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
   {
     title: WeiI18n.$t('操作'),
     dataIndex: 'operation',
-    align: 'left',
-    width: 300,
+    align: 'center',
+    width: 200,
     fixed: 'right',
     resizable: false,
   },

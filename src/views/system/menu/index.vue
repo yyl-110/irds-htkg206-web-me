@@ -130,10 +130,10 @@ const columns = ref<TableColumnType<Menus>[]>([
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
-    align: 'left',
+    align: 'center',
     fixed: 'right',
     resizable: false,
-    width: 200,
+    width: 180,
   },
 ]);
 
@@ -269,7 +269,7 @@ const { resetFields } = useForm(requestParams);
             </span>
           </template>
           <template v-if="column.dataIndex === 'operation'">
-            <div style="height: 22px; display: flex; align-items: center">
+            <div style="height: 22px; display: flex; align-items: center; justify-content: center">
               <!-- v-hasPermi="['system:menu:update']" -->
               <a @click.stop="handleAddOrUpdate(record.id)">{{ $t('修改') }}</a>
               <!-- v-hasPermi="['system:menu:update']" -->
