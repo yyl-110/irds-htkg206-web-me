@@ -35,7 +35,7 @@ export interface TaskItem {
 
 /** 类型展示名 */
 export const TASK_KIND_LABEL: Record<WorkbenchTaskKind, string> = {
-  wbs: 'WBS系统任务',
+  wbs: 'WBS协同任务',
   standalone: '独立应用任务',
   compute: '计算任务',
   other: '其他任务',
