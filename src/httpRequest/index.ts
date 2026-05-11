@@ -7,6 +7,7 @@ import { get, set } from 'lodash-es';
 import { BaseModel } from '@/utils/BaseModel';
 import HttpRequestConfig from './config';
 import errorCode from './errorCode';
+import { parseJsonPreservingLongIntegers } from './jsonLongInt';
 import { service } from './service';
 import { type HttpRequestResponse, ResponseError } from './typings';
 import { getConfigByAxiosConfig, pendingRequests } from './pending';
@@ -210,7 +211,7 @@ function blobOrArrayBufferToJson(data: Blob | ArrayBuffer): Promise<object> {
     reader.onload = () => {
       try {
         const text = reader.result as string;
-        const json = JSON.parse(text);
+        const json = parseJsonPreservingLongIntegers(text) as object;
         resolve(json);
       } catch (error) {
         reject(new Error('Failed to parse data as JSON.'));

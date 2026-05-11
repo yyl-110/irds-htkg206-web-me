@@ -42,7 +42,7 @@ const authModel = ref<InstanceType<typeof AuthManagementData>>();
 const visibleRoleEditor = ref<boolean>(false);
 const leftLoading = ref<boolean>(false);
 interface GroupData {
-  id: number;
+  id: string | number;
   deptId?: number;
   name: string;
   nickname?: string;
@@ -58,7 +58,7 @@ const grpuVisible = ref<boolean>(false);
 const targetKeys = ref<string[]>();
 /** 当前操作的数据 */
 const editableData = ref<RolePOModel>();
-const targetKeys2 = ref<number[]>([]);
+const targetKeys2 = ref<string[]>([]);
 /** 用户组数据 */
 const groupData = ref<Array<GroupData>>([]);
 
@@ -231,7 +231,7 @@ function transferItemRender(item: GroupData) {
 }
 
 function transferRowKey(item: GroupData) {
-  return item.id;
+  return String(item.id);
 }
 
 function roleTableRowClassName(_record: RolePOModel, index: number) {
@@ -392,9 +392,9 @@ async function handleAddUsers(record: any) {
   const res = await AdminApiSystemPermission.getUsersByRole({
     roleId: record.id,
   });
-  currentRoleId.value = record.id;
+  currentRoleId.value = String(record.id);
   targetKeys2.value =
-    res.data.data?.flatMap(item => (item.id != null ? [Number(item.id)] : [])) ?? [];
+    res.data.data?.flatMap(item => (item.id != null ? [String(item.id)] : [])) ?? [];
   record.loading_Management = false;
   grpuVisible.value = true;
   getUserSelectData();
@@ -425,18 +425,16 @@ const locale = ref({
 
 /** submit */
 async function handleResetOk() {
-  const rid = Number(currentRoleId.value);
-  if (!currentRoleId.value || !Number.isFinite(rid)) throw new Error('Missing role id');
-  const userIds: Array<number> = [];
+  const roleIdStr = currentRoleId.value?.trim();
+  if (!roleIdStr)
+    throw new Error('Missing role id');
+  const userIds = (targetKeys2.value ?? []).map(String);
   const deptIds: Array<number> = [];
-  targetKeys2.value?.forEach((item: any) => {
-    userIds.push(item);
-  });
-  const params: PermissionAssignUsersRoleRequestDTO = {
-    roleIds: [rid],
+  const params = {
+    roleIds: [roleIdStr],
     userIds,
     deptIds,
-  };
+  } as unknown as PermissionAssignUsersRoleRequestDTO;
   await AdminApiSystemPermission.assignUsersRole(params);
   WeiMessage.success(WeiI18n.$t('操作成功'));
   grpuVisible.value = false;

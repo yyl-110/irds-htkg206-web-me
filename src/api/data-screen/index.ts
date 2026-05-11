@@ -1,12 +1,12 @@
 import httpRequest from "@/httpRequest";
 
 /**
- * 报表--基础资源看板
+ * 报表--知识中心看板
  * @return {*}
  */
 export function getReportKnowledgeList(data: { type: string | number }) {
   return httpRequest({
-    url: "/cirpoint-base-api/reportinfo/getReportKnowledgeList",
+    url: "/knowledge-service/knowledgeReport/knowledgeList",
     method: "POST",
     data,
   });

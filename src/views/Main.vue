@@ -227,8 +227,8 @@ onBeforeMount(() => {
               v-if="projectUi.showSider && !projectUi.collapseInHeader"
               class="sider-footer-collapse flex flex-shrink-0 justify-center border-t py-2">
               <a-button type="text" size="small" class="sider-collapse-bottom-btn" @click="collapsed = !collapsed">
-                <MenuFoldOutlined v-if="collapsed" class="text-base" />
-                <MenuUnfoldOutlined v-else class="text-base" />
+                <MenuUnfoldOutlined v-if="collapsed" class="text-base" />
+                <MenuFoldOutlined v-else class="text-base" />
               </a-button>
             </div>
           </aside>
@@ -243,8 +243,8 @@ onBeforeMount(() => {
               type="text"
               size="small"
               @click="collapsed = !collapsed">
-              <MenuFoldOutlined v-if="collapsed" class="text-base" />
-              <MenuUnfoldOutlined v-else class="text-base" />
+              <MenuUnfoldOutlined v-if="collapsed" class="text-base" />
+              <MenuFoldOutlined v-else class="text-base" />
             </a-button>
           </div>
           <div
