@@ -39,7 +39,7 @@ onBeforeMount(() => {
     flex: 1;
     height: 100%;
     font-size: 24px;
-    background: @forth-bg-color;
+    background: darken(#414446, 12%);
     color: rgb(144, 160, 174);
     display: flex;
     align-items: center;

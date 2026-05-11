@@ -40,8 +40,6 @@ import { router } from '@/router';
 import { setupAuth } from '@/directives/index';
 import { registerStore } from '@/store';
 import { useProjectUiStore } from '@/store/modules/layout/projectUi';
-import { initAccessTokenRefreshSchedule } from '@/utils/accessTokenRefresh';
-
 import 'splitpanes/dist/splitpanes.css';
 import 'animate.css';
 
@@ -85,4 +83,4 @@ app.use(requestPlugin);
 // app.component('VChart', VChart)
 // includeWeiComponents(app)
 app.mount('#app');
-initAccessTokenRefreshSchedule();
+void import('@/utils/accessTokenRefresh').then(m => m.initAccessTokenRefreshSchedule());

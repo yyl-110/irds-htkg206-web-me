@@ -257,8 +257,8 @@ defineExpose({ tableRef });
 .my-input-left {
   display: inline-block;
   width: 100px;
-  textoverflow: ellipsis;
-  whitespace: 'nowrap';
+  text-overflow: ellipsis;
+  white-space: nowrap;
   line-height: 11px;
 }
 </style>
