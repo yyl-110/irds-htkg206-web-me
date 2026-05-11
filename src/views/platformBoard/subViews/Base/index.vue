@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import screenContainer from '@/components/data-screen/screen-container.vue';
+import screenContainer from '../../components/screen-container.vue';
 import timeClock from "../../components/time-clock.vue";
 import Title from "../../components/title.vue";
 import knowledgeRank from "./component/knowledgeRank.vue";

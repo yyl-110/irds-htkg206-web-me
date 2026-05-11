@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import seamlessScroll from '@/components/data-screen/seamless-scroll.vue'
+import seamlessScroll from '../../../components/seamless-scroll.vue'
 import avatar1 from '@/assets/data-screen/base/avatar1.png'
 import avatar2 from '@/assets/data-screen/base/avatar2.png'
 import rank from "@/assets/data-screen/module/rank.png";

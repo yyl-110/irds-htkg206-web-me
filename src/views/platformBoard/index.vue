@@ -43,7 +43,7 @@ import {
   InfoCircleOutlined,
   LeftOutlined,
 } from '@ant-design/icons-vue';
-import ScreenContainer from '@/components/data-screen/screen-container.vue';
+import ScreenContainer from './components/screen-container.vue';
 import { useIndexStore } from '@/store/data-screen';
 import { getReportProjectPhaseList } from '@/api/data-screen';
 
@@ -84,10 +84,10 @@ onMounted(() => {
 });
 
 const list = [
-  { topurl: module1_1, topinsideurl: module3_2, mainurl: module3_3, bottomurl: module1_4, id: 1, path: '/demand', name: '需求分析' },
-  { topurl: module1_1, topinsideurl: module2_2, mainurl: module2_3, bottomurl: module1_4, id: 2, path: '/base', name: '基础数据' },
-  { topurl: module1_1, topinsideurl: module1_2, mainurl: module1_3, bottomurl: module1_4, id: 3, path: '/product', name: '产品定义' },
-  { topurl: module1_1, topinsideurl: module4_2, mainurl: module4_3, bottomurl: module1_4, id: 4, path: '/system', name: '系统设置' },
+  { topurl: module1_1, topinsideurl: module3_2, mainurl: module3_3, bottomurl: module1_4, id: 1, path: '/product', name: '产品设计' },
+  { topurl: module1_1, topinsideurl: module2_2, mainurl: module2_3, bottomurl: module1_4, id: 2, path: '/module', name: '模块化看板' },
+  { topurl: module1_1, topinsideurl: module1_2, mainurl: module1_3, bottomurl: module1_4, id: 3, path: '/system', name: '知识中心看板' },
+  { topurl: module1_1, topinsideurl: module4_2, mainurl: module4_3, bottomurl: module1_4, id: 4, path: '/base', name: '基础资源看板' },
 ];
 
 const goTo = (item: any) => {

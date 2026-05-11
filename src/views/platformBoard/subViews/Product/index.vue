@@ -15,7 +15,7 @@
           <a-row style="height: 100%; padding: 30px" :gutter="18">
             <a-col :span="12">
               <div class="overview">
-                <Title text="项目概览" showSelect :optionsProject="projectList" />
+                <Title text="项目概览" showSelect showTime :timeOptions="timeOptions" @changeTime="changeTime" :defaultTime="timeType" />
                 <div class="list">
                   <div class="item" v-for="(item, index) in list" :key="index">
                     <div>
@@ -38,34 +38,16 @@
             </a-col>
             <a-col :span="12">
               <div class="board">
-                <Title text="项目交付看板" showSelect showPhase :phaseId="interactionPhaseId"
+                <Title text="独立应用使用情况TOP10" showSelect showPhase :phaseId="interactionPhaseId"
                   @changePhase="changeInteractionPhase" />
                 <div class="wrap">
                   <interaction :chartData="deliveryInfo" />
                 </div>
               </div>
               <div class="picture">
-                <Title text="二维图纸进展" />
+                <Title text="各科室应用使用情况" />
                 <div class="pieWrap">
-                  <div class="row1">
-                    <div class="pieItem" v-for="(item, index) in pdmPicReportList.slice(0, 3)" :key="index">
-                      <div class="pie">
-                        <pie :data="item.value" />
-                      </div>
-                      <span>{{ item.title }}</span>
-                    </div>
-                  </div>
-                  <div class="row2">
-                    <div class="pieItem" v-for="(item, index) in pdmPicReportList.slice(3)" :key="index">
-                      <div class="pie">
-                        <pie :data="item.value" />
-                      </div>
-                      <span>{{ item.title }}</span>
-                    </div>
-                  </div>
-                  <div class="hint">
-                    图纸签审进度%=完成签审图纸数量/已出图纸数量
-                  </div>
+                  <dept-line />
                 </div>
               </div>
             </a-col>
@@ -81,14 +63,14 @@ import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from "pinia";
 import { LeftOutlined } from '@ant-design/icons-vue';
-import ScreenContainer from '@/components/data-screen/screen-container.vue';
+import ScreenContainer from '../../components/screen-container.vue';
 import timeClock from "../../components/time-clock.vue";
 import Title from "../../components/title.vue";
 import Overview from "./component/overview.vue";
 import interaction from "./component/interaction.vue";
-import pie from "./component/picPie.vue";
 import completePie from "./component/completePie.vue";
 import productLine from "./component/productLine.vue";
+import deptLine from "./component/deptLine.vue";
 import { deliveryReport, getReportProjectList, pdmPicReport } from "@/api/data-screen";
 import { useIndexStore } from "@/store/data-screen";
 
@@ -104,6 +86,20 @@ const interactionPhaseId = ref('-1'); // 项目交付看板阶段id
 const taskPhaseId = ref("-1"); // 项目任务阶段id
 
 const list = ref<any[]>([]);
+const timeType = ref(new Date().getFullYear().toString())
+
+const timeOptions = computed(() => {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 5 }, (_, i) => {
+    const year = currentYear - i;
+    return {
+      value: year.toString(),
+      label: `${year}年`
+    };
+  });
+});
+
+const changeTime = () => {}
 
 const back = () => {
   router.back();
@@ -322,65 +318,15 @@ watch(
         width: 100%;
         background: rgba(2, 2, 2, 0.4);
         flex: 1;
+        display: flex;
+        flex-direction: column;
 
         .pieWrap {
+          flex: 1;
+          width: 100%;
+           display: flex;
+          justify-content: center;
           margin-top: 20px;
-
-          .hint {
-            color: #fff;
-            width: 100%;
-            text-align: right;
-            margin-top: 10px;
-            padding-right: 20px;
-          }
-
-          .row1 {
-            display: flex;
-            justify-content: space-around;
-            padding: 0 10%;
-
-            .pieItem {
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              align-items: center;
-
-              .pie {
-                width: 145px;
-                height: 145px;
-              }
-
-              span {
-                color: #fff;
-                font-size: 18px;
-                line-height: 24px;
-              }
-            }
-          }
-
-          .row2 {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
-
-            .pieItem {
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              align-items: center;
-
-              .pie {
-                width: 145px;
-                height: 145px;
-              }
-
-              span {
-                color: #fff;
-                font-size: 18px;
-                line-height: 24px;
-              }
-            }
-          }
         }
       }
 

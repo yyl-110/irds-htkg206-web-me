@@ -1,7 +1,7 @@
 <template>
   <div class="moduleBoardWrap">
     <div class="scrollBoard">
-      <!-- <scroll-board :config="config" style="width:100%;height:100%" /> -->
+      <ScrollBoard :config="config" style="width:100%;height:100%" />
     </div>
     <div class="lineWrap">
       <v-chart :option="chartOption" class="chart" />
@@ -11,7 +11,7 @@
 
 <script setup>
 import * as echarts from 'echarts'
-// import ScrollBoard from '@/views/platformBoard/components/scroll-board.vue'
+import ScrollBoard from '@/views/platformBoard/components/ScrollBoard.vue'
 import dayjs from 'dayjs';
 import { monthMap } from './data';
 
@@ -182,6 +182,33 @@ const initChart = () => {
   };
 };
 
+
+// ====== Mock 数据（预览用，不影响原有逻辑）======
+const mockData = () => {
+  config.value = {
+    header: ['', '1月', '2月', '3月', '4月', '5月', '6月'],
+    data: [
+      ['技术文档', '45', '67', '89', '56', '78', '92'],
+      ['操作手册', '32', '41', '58', '63', '47', '71'],
+      ['培训资料', '78', '92', '105', '87', '96', '113'],
+      ['规范标准', '23', '35', '42', '38', '29', '51'],
+      ['案例库', '56', '64', '73', '81', '69', '88'],
+    ],
+    columnWidth: [95],
+    align: ['center'],
+    headerBGC: '#043C64',
+    oddRowBGC: '#051841',
+    evenRowBGC: 'transparent',
+    waitTime: 100000000000000,
+    rowNum: 7,
+  }
+}
+
+onMounted(() => {
+  if (!props.chartData || !props.chartData.length) {
+    mockData()
+  }
+})
 
 watch(() => props.chartData, () => {
   initTable()

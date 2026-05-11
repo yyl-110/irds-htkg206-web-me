@@ -4,17 +4,17 @@
     <div class="selectWrap" v-if="showSelect">
       <!-- 项目筛选 -->
       <a-select @change="changeProject" :value="value1" class="select" placeholder="选择项目" size="large"
-        style="width: 197px" v-if="optionsProject && optionsProject.length">
-        <a-select-option v-for="item in optionsProject" :key="item.value" :label="item.label" :value="item.value" />
+        style="width: 197px" v-if="optionsProject && optionsProject.length" :dropdownMatchSelectWidth="false">
+        <a-select-option v-for="item in optionsProject" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
       </a-select>
       <!-- 阶段筛选 -->
       <a-select @change="changePhase" :value="value2" class="select" placeholder="选择阶段" size="large"
-        style="width: 197px" v-if="showPhase">
-        <a-select-option v-for="item in phaseList" :key="item.value" :label="item.label" :value="item.value" />
+        style="width: 197px" v-if="showPhase" :dropdownMatchSelectWidth="false">
+        <a-select-option v-for="item in phaseList" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
       </a-select>
       <a-select @change="changeTime" :value="value3" class="select" placeholder="选择时间" size="large"
-        style="width: 197px" v-if="showTime">
-        <a-select-option v-for="item in timeOptions" :key="item.value" :label="item.label" :value="item.value" />
+        style="width: 197px" v-if="showTime" :dropdownMatchSelectWidth="false">
+        <a-select-option v-for="item in timeOptions" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
       </a-select>
     </div>
     <div class="btnWrap" v-if="showBtn">
@@ -183,6 +183,9 @@ watch(
     height: 49px!important;
     cursor: pointer;
     align-items: center;
+    .ant-select-selection-item {
+      text-align: center;
+    }
 
     .ant-select-selection-placeholder {
       color: #fff;
@@ -191,10 +194,10 @@ watch(
       font-weight: bold;
     }
 
-    .ant-select-arrow {
-      position: absolute;
-      right: 21px;
-    }
+  }
+  :deep(.ant-select-arrow) {
+    right: 21px;
+    color: #fff;
   }
 
   :deep(.a-input__wrapper) {

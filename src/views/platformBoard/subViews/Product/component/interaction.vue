@@ -22,6 +22,7 @@ const props = defineProps({
 });
 
 const initChart = () => {
+  if (!props.chartData || !Object.keys(props.chartData).length) return;
   const keys = Object.keys(props.chartData);
   let xData = keys;
   let seriesData = [

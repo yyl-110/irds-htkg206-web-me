@@ -41,9 +41,9 @@
             </a-col>
             <a-col :span="9" style="height: 40%">
               <div class="moduleRate">
-                <Title text="项目模块化率" />
+                <Title text="各科室模块库录入情况" />
                 <div class="wrap">
-                  <module-rate :chartData="moduleInfo?.moduleRateList" />
+                  <dept-module />
                 </div>
               </div>
             </a-col>
@@ -64,11 +64,11 @@
 </template>
 
 <script setup>
-import screenContainer from '@/components/data-screen/screen-container.vue';
+import screenContainer from '../../components/screen-container.vue';
 import timeClock from "../../components/time-clock.vue";
 import Title from "../../components/title.vue";
 import evaluate from "./component/evaluate.vue";
-import moduleRate from "./component/moduleRate.vue";
+import deptModule from "./component/deptModule.vue";
 import statistics from "./component/statistics.vue";
 import moduleBoard from "./component/moduleBoard.vue";
 import topBar from "./component/topBar.vue";
@@ -144,6 +144,7 @@ watch(
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
     .header {
       width: 100%;

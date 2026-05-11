@@ -16,6 +16,7 @@ const props = defineProps({
 
 const chartOption = ref({});
 const initChart = () => {
+  if (!props.data || !props.data.length) return;
   console.log("props.data", props.data.map((item) => item.nodeName));
   let chartData = {
     color: "0,205,151",

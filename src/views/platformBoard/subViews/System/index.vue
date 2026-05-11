@@ -66,7 +66,7 @@
 </template>
 
 <script setup>
-import ScreenContainer from '@/components/data-screen/screen-container.vue';
+import ScreenContainer from '../../components/screen-container.vue';
 import timeClock from "../../components/time-clock.vue";
 import Title from "../../components/title.vue";
 import visitBoard from "./component/visitBoard.vue";

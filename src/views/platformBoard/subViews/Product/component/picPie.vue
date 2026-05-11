@@ -16,8 +16,9 @@ const props = defineProps({
 
 const chartOption = ref({});
 const initChart = () => {
+  if (!props.data || props.data.totalCount == null) return;
   let max = props.data.totalCount;
-  let value = props.data.archivedCount;
+  let value = props.data.archivedCount || 0;
 
   const rate = max ? ((value * 100) / max).toFixed(1) : 0;
   chartOption.value = {
@@ -94,10 +95,12 @@ const initChart = () => {
 };
 watch(
   () => props.data,
-  () => {
-    initChart();
+  (val) => {
+    if (val && val.totalCount != null) {
+      initChart();
+    }
   },
-  { immediate: true, deep: true }
+  { deep: true }
 );
 </script>
 

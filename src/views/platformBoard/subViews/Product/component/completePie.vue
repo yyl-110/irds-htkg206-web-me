@@ -289,8 +289,10 @@ onUnmounted(() => {
 
 watch(
   () => props.chartData,
-  () => {
-    initChart();
+  (val) => {
+    if (val && val.length) {
+      initChart();
+    }
   }, { deep: true }
 );
 </script>

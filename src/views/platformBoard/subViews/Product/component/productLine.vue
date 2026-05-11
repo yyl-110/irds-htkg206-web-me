@@ -16,6 +16,7 @@ const props = defineProps({
 });
 
 const initChart = () => {
+  if (!props.chartData || !props.chartData.length) return;
   /* 项目完成率列表 */
   const completePercentList = props.chartData.map((item) =>
     Math.round((item.completeNums / item.taskNums) * 100)
@@ -196,9 +197,11 @@ const initChart = () => {
 
 watch(
   () => props.chartData,
-  () => {
-    console.log('props.chartData:', props.chartData)
-    initChart();
+  (val) => {
+    if (val && val.length) {
+      console.log('props.chartData:', val)
+      initChart();
+    }
   }, { deep: true }
 );
 </script>

@@ -1,7 +1,7 @@
 <template>
   <div class="moduleBoardWrap">
     <div class="scrollBoard">
-      <!-- <scroll-board :config="config" style="width:100%;height:100%" /> -->
+      <ScrollBoard :config="config" style="width:100%;height:100%" />
     </div>
     <div class="lineWrap">
       <v-chart :option="chartOption" class="chart" />
@@ -11,7 +11,7 @@
 
 <script setup>
 import * as echarts from 'echarts'
-// import { ScrollBoard } from '@kjgl77/datav-vue3'
+import ScrollBoard from '@/views/platformBoard/components/ScrollBoard.vue'
 import _ from 'lodash-es'
 import dayjs from 'dayjs';
 const props = defineProps({
@@ -161,6 +161,37 @@ const initChart = () => {
   };
 };
 
+
+// ====== Mock 数据（预览用，不影响原有逻辑）======
+const mockData = () => {
+  config.value = {
+    header: ['系统', '1月', '2月', '3月', '4月', '5月', '6月'],
+    data: [
+      ['管理系统', '128', '256', '312', '198', '276', '345'],
+      ['监控平台', '87', '143', '201', '165', '189', '224'],
+      ['数据中心', '342', '298', '376', '412', '389', '456'],
+      ['运维系统', '56', '78', '92', '104', '87', '115'],
+      ['安全平台', '213', '187', '245', '278', '256', '301'],
+      ['网关服务', '167', '198', '223', '189', '214', '267'],
+      ['日志系统', '94', '112', '134', '156', '143', '178'],
+      ['消息队列', '278', '312', '356', '334', '367', '401'],
+    ],
+    columnWidth: [80],
+    align: ['center'],
+    headerBGC: '#043C64',
+    oddRowBGC: '#051841',
+    evenRowBGC: 'transparent',
+    rowNum: 5,
+    waitTime: 2000,
+  }
+}
+
+onMounted(() => {
+  // 没有真实数据时使用 mock 数据预览
+  if (!props.chartData || !Object.keys(props.chartData).length) {
+    mockData()
+  }
+})
 
 watch(() => props.chartData, () => {
   initTable();
