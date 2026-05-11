@@ -39,6 +39,7 @@ import { debounce } from '@/hooks/useDebonce'
 import { AdminApiSystemLanguage } from '@/api/tags/管理后台多语言'
 import { removeWatermark } from '@/utils/watermark'
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
+import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台'
 
 defineOptions({
   /** 多根节点时父级传入的 class（如 ml-auto）不会合并，须单根承接 $attrs */
@@ -52,7 +53,7 @@ const userNum = ref<number>(1)
 const badgeNum = ref<number>()
 const router = useRouter()
 const route = useRoute()
-const taskMessage = ref<any[]>(['Racing car sprays burning fuel into crowd.'])
+const taskMessage = ref<{ showString: string }[]>([])
 const langtype = localStorage.getItem('wei-language') || navigator.language
 const LoginMethod = localStorage.getItem('Login-method') || ''
 const onLineNum = ref<number>();
@@ -301,13 +302,53 @@ onMounted(() => {
 function goPage(item: any) {
   console.log(item, 'item')
 }
+function formatWorkbenchBellLine(row: Record<string, unknown>): string {
+  const title = row.title != null && String(row.title).trim() !== '' ? String(row.title) : '待办'
+  const kind = row.taskType != null && String(row.taskType).trim() !== '' ? String(row.taskType) : ''
+  return kind ? `${title}（${kind}）` : title
+}
+
+/**
+ * 顶部铃铛：旧版 POST /cirpoint-module-api/ckProjectInfo/getTaskMessage 已不在当前业务服务注册，改为工作台待办汇总 + 列表。
+ */
 async function getTaskMessageList(type: boolean = false) {
   isTaskMessage.value = type
-  const res = await AdminApiSystemUser.getTaskMessage({ userId: `${userStore.getUser.id}` })
-  if (res.data.code == 0) {
-    const data: any = res.data.data
-    taskMessage.value = data.resultArrayList
-    badgeNum.value = data.size
+  const uid = userStore.getUser?.id
+  if (uid == null)
+    return
+  try {
+    const res = await AdminApiProjectTemp.workbenchTodoCardSummary({
+      assigneeUserId: String(uid),
+    })
+    const code = res?.data?.code
+    const payload = res?.data?.data as Record<string, unknown> | undefined
+    if ((code === 0 || code === 200) && payload && typeof payload === 'object') {
+      const n = Number(payload.totalNum ?? payload.todoNum ?? 0)
+      badgeNum.value = Number.isFinite(n) ? n : 0
+    }
+    else {
+      badgeNum.value = 0
+    }
+    if (type) {
+      const pageRes = await AdminApiProjectTemp.workbenchTodoCardPage({
+        pageNo: 1,
+        pageSize: 40,
+        assigneeUserId: String(uid),
+        status: 'TODO',
+      })
+      const pCode = pageRes?.data?.code
+      const pageData = pageRes?.data?.data as { list?: Record<string, unknown>[] } | undefined
+      const list = pageData?.list
+      if ((pCode === 0 || pCode === 200) && Array.isArray(list))
+        taskMessage.value = list.map(row => ({ showString: formatWorkbenchBellLine(row) }))
+      else
+        taskMessage.value = []
+    }
+  }
+  catch {
+    badgeNum.value = 0
+    if (type)
+      taskMessage.value = []
   }
 }
 async function getOnLineNum() {

@@ -253,6 +253,22 @@ function formatProjectPlanDate(val: unknown) {
   return useRender.renderDateNoTime(val);
 }
 
+/** 与后端 creator 比对（兼容 Long / 字符串 / 精度） */
+function isProjectCreator(record: ProjectListRow): boolean {
+  const cid = record?.creator;
+  const uid = userStore.getUser?.id as unknown;
+  if (cid === undefined || cid === null || uid === undefined || uid === null) return false;
+  const cs = String(cid).trim();
+  const us = String(uid).trim();
+  if (!cs || !us) return false;
+  if (cs === us) return true;
+  try {
+    return BigInt(cs) === BigInt(us);
+  } catch {
+    return false;
+  }
+}
+
 /** 获取公告列表数据 */
 async function getResources() {
   loading.value = true;
@@ -490,20 +506,24 @@ defineExpose({ getResourcesByParent });
             </template>
             <template v-else-if="column.dataIndex === 'operation'">
               <div class="project-list-adm-op-cell">
-                <template v-if="record.projectStatus == '1'">
-                  <a @click="noticeAdd(record)">{{ $t('编辑') }}</a>
-                  <a-divider type="vertical" />
-                  <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
-                    <a-button type="link" danger class="p-0">
-                      {{ $t('删除') }}
-                    </a-button>
-                  </a-popconfirm>
-                </template>
-                <template v-else>
-                  <span class="operation-disabled">{{ $t('编辑') }}</span>
-                  <a-divider type="vertical" />
-                  <span class="operation-disabled">{{ $t('删除') }}</span>
-                </template>
+                <a
+                  v-if="record.wbsCategoryAssignee === true || isProjectCreator(record)"
+                  @click="noticeAdd(record)">
+                  {{ $t('编辑') }}
+                </a>
+                <span v-else class="operation-disabled">{{ $t('编辑') }}</span>
+                <a-divider type="vertical" />
+                <a-popconfirm
+                  v-if="record.projectStatus == '1' || isProjectCreator(record)"
+                  :title="`${$t('确定要删除吗')}?`"
+                  ok-text="确定"
+                  cancel-text="取消"
+                  @confirm="handleDelete(record.id)">
+                  <a-button type="link" danger class="p-0">
+                    {{ $t('删除') }}
+                  </a-button>
+                </a-popconfirm>
+                <span v-else class="operation-disabled">{{ $t('删除') }}</span>
               </div>
             </template>
             <template v-else>
