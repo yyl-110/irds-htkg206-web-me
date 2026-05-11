@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineComponent, nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineComponent, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
@@ -78,6 +78,21 @@ const wbsChangeTargetTask = ref<TaskItem | null>(null)
 const wbsChangeApplyLatest = ref<0 | 1>(0)
 const wbsChangeSubmitLoading = ref(false)
 
+/** 转办弹窗 */
+const transferModalVisible = ref(false)
+const transferTargetTask = ref<TaskItem | null>(null)
+const transferSelectedUserId = ref<string | undefined>(undefined)
+const transferSubmitLoading = ref(false)
+const transferCandidateOptions = ref<Array<{ userId: string; displayName: string }>>([])
+const transferCandidatesLoading = ref(false)
+
+const transferSelectOptions = computed(() =>
+  transferCandidateOptions.value.map(u => ({
+    value: u.userId,
+    label: u.displayName,
+  })),
+)
+
 const filteredTodoList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
   const list = todoList.value.filter(
@@ -86,20 +101,21 @@ const filteredTodoList = computed(() => {
 
   switch (secondaryFilter.value) {
     case 'done':
-      return list.filter(item => item.status === 'done')
+      return list.filter(item => item.status === 'done' && !item.viewOnly)
     case 'transfer':
-      return list.filter(item => item.tags.includes('转'))
-    case 'wbs':
-      return list.filter(item => item.status === 'todo' && item.taskKind === 'wbs')
-    case 'app':
-      return list.filter(item => item.status === 'todo' && item.taskKind === 'standalone')
-    case 'compute':
-      return list.filter(item => item.status === 'todo' && item.taskKind === 'compute')
-    case 'all':
+      /** 数据来自 transfer-out-page，均为已转办视图 */
       return list
+    case 'wbs':
+      return list.filter(item => item.status === 'todo' && !item.viewOnly && item.taskKind === 'wbs')
+    case 'app':
+      return list.filter(item => item.status === 'todo' && !item.viewOnly && item.taskKind === 'standalone')
+    case 'compute':
+      return list.filter(item => item.status === 'todo' && !item.viewOnly && item.taskKind === 'compute')
+    case 'all':
+      return list.filter(item => !item.viewOnly)
     case 'todo':
     default:
-      return list.filter(item => item.status === 'todo')
+      return list.filter(item => item.status === 'todo' && !item.viewOnly)
   }
 })
 /**
@@ -271,13 +287,43 @@ function getTagClass(tag: string) {
     return 'tag-red'
   if (tag === '转')
     return 'tag-blue'
+  if (tag === '已转办')
+    return 'tag-blue'
   if (tag === '待办')
     return 'tag-yellow'
   return 'tag-default'
 }
 
-const canRejectOrTransfer = (task: TaskItem) => ['assign', 'product'].includes(task.category)
+/** 待办且类型支持转办（与 TASK_KIND_ACTIONS 一致；当前仅 WBS 含 transfer） */
+function canRejectOrTransfer(task: TaskItem): boolean {
+  if (task.viewOnly)
+    return false
+  const actions = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other
+  return actions.includes('transfer')
+}
 const canDesign = (task: TaskItem) => task.category !== 'assign'
+
+/**
+ * WBS 卡片：后端 publish 分类节点时 taskType 为「分类协同…」，卡片用于提醒负责人继续分配下级，非独立协同设计任务
+ */
+function isWbsCategoryCollaborationWorkbenchTask(task: TaskItem): boolean {
+  if (task.taskKind !== 'wbs')
+    return false
+  const t = String(task.type ?? '')
+  return t.includes('分类协同') || t.includes('分类节点')
+}
+
+/** 已办「变更」仅适用于 WBS 设计任务（协同任务）；分类协同只做人员分配，无变更流程 */
+function isWbsDesignTaskEligibleForChange(task: TaskItem): boolean {
+  return task.taskKind === 'wbs' && !isWbsCategoryCollaborationWorkbenchTask(task)
+}
+
+/** 设计按钮提示：分类协同 → 任务管理；真实协同任务 → 协同设计 */
+function designWorkspaceTooltip(task: TaskItem): string {
+  if (isWbsCategoryCollaborationWorkbenchTask(task))
+    return '任务管理（分配下级）'
+  return '协同设计'
+}
 const canAssign = (task: TaskItem) => task.category === 'assign'
 const hasTimelineInfo = (task: TaskItem) => task.category === 'product'
 
@@ -391,6 +437,28 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
       projectWbsIdRaw !== undefined && projectWbsIdRaw !== null && projectWbsIdRaw !== ''
         ? projectWbsIdRaw
         : undefined,
+    assigneeDisplayName:
+      row.assigneeDisplayName != null && String(row.assigneeDisplayName).trim() !== ''
+        ? String(row.assigneeDisplayName)
+        : undefined,
+  }
+}
+
+/**
+ * 「我已转办」与 page 同源字段；只读并带「已转办」标签
+ * @param row
+ */
+function mapTransferOutRowToTaskItem(row: Record<string, unknown>): TaskItem {
+  const base = mapWorkbenchApiRowToTaskItem(row)
+  const tags = Array.from(new Set([...base.tags.filter(t => t !== '待办'), '已转办']))
+  return {
+    ...base,
+    tags,
+    viewOnly: true,
+    assigneeDisplayName:
+      row.assigneeDisplayName != null && String(row.assigneeDisplayName).trim() !== ''
+        ? String(row.assigneeDisplayName)
+        : base.assigneeDisplayName,
   }
 }
 
@@ -404,6 +472,23 @@ async function loadTodoListFromApi() {
   todoListLoading.value = true
   try {
     const kw = searchQuery.value.trim()
+    if (secondaryFilter.value === 'transfer') {
+      const res = await AdminApiProjectTemp.workbenchTodoTransferOutPage({
+        pageNo: 1,
+        pageSize: 500,
+        ...(kw ? { keyword: kw } : {}),
+      })
+      const code = res?.data?.code
+      const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined
+      const raw = payload?.list
+      if ((code === 0 || code === 200) && Array.isArray(raw)) {
+        todoList.value = raw.map(mapTransferOutRowToTaskItem)
+      }
+      else {
+        todoList.value = []
+      }
+      return
+    }
     const res = await AdminApiProjectTemp.workbenchTodoCardPage({
       pageNo: 1,
       pageSize: 500,
@@ -447,11 +532,14 @@ type TaskActionKey = 'assign' | 'transfer' | 'detail' | 'design' | 'change'
 
 /**
  * 类型维度允许的按钮 ∩ 业务权限；仅已办展示详情；已办独立应用另展示变更；已办不展示设计
- * 已办：不展示指派/转办（完成后仅保留详情；独立应用另保留变更）
+ * 已办：不展示指派/转办（完成后仅保留详情）；WBS 仅「协同任务」展示变更，分类协同不展示
  * @param task
  * @param action
  */
 function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
+  if (task.viewOnly) {
+    return false
+  }
   if (action === 'detail') {
     return task.status === 'done'
   }
@@ -461,6 +549,8 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
     if (task.taskKind === 'standalone')
       return true
     if (task.taskKind === 'wbs') {
+      if (!isWbsDesignTaskEligibleForChange(task))
+        return false
       const wid = task.projectWbsId
       return wid !== undefined && wid !== null && String(wid).trim() !== ''
     }
@@ -478,11 +568,38 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
     return false
   if (action === 'assign')
     return canAssign(task)
-  if (action === 'transfer')
+  if (action === 'transfer') {
+    if ((task.progress ?? 0) > 0)
+      return false
     return canRejectOrTransfer(task)
+  }
   if (action === 'design')
     return canDesign(task)
   return true
+}
+
+/**
+ * 「WBS分配」类待办：进入项目信息编辑 — 任务管理，用于为下层节点分配负责人（需先拉取项目创建人信息）
+ */
+function openWbsPersonAssignFromWorkbench(task: TaskItem) {
+  const title = String(task.title ?? '')
+  if (!title.startsWith('【WBS分配】')) {
+    message.info('请在项目任务管理中为下级分配负责人')
+    return
+  }
+  const projectId = task.projectId != null ? String(task.projectId).trim() : ''
+  if (!projectId) {
+    message.warning('待办缺少项目标识')
+    return
+  }
+  router.push({
+    path: '/internal/project-info-editor',
+    query: {
+      id: projectId,
+      tab: '3',
+      wbsAssignEntry: '1',
+    },
+  })
 }
 
 /**
@@ -492,6 +609,22 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
 async function openDesignWorkspace(task: TaskItem) {
   if (task.taskKind === 'wbs') {
     const projectId = task.projectId != null ? String(task.projectId).trim() : ''
+    /** 分类节点无独立「协同设计任务」：由发布/启动推送到工作台，用于提醒进入项目 WBS 继续分配人员 */
+    if (isWbsCategoryCollaborationWorkbenchTask(task)) {
+      if (!projectId) {
+        message.warning('待办缺少项目标识，无法进入任务管理')
+        return
+      }
+      await router.push({
+        path: '/internal/project-info-editor',
+        query: {
+          id: projectId,
+          tab: '3',
+          wbsAssignEntry: '1',
+        },
+      })
+      return
+    }
     const taskId = task.taskId != null ? String(task.taskId).trim() : ''
     if (!taskId) {
       message.warning('缺少任务标识，无法进入协同设计')
@@ -524,8 +657,10 @@ async function openDesignWorkspace(task: TaskItem) {
         },
       })
     }
-    catch {
-      message.error('加载协同设计工作台失败')
+    catch (e: unknown) {
+      const err = e as { response?: { data?: { msg?: string, message?: string } } }
+      const serverMsg = err?.response?.data?.msg ?? err?.response?.data?.message
+      message.error(typeof serverMsg === 'string' && serverMsg.trim() ? serverMsg : '加载协同设计工作台失败')
     }
     finally {
       hide()
@@ -612,6 +747,88 @@ function closeWbsChangeModal() {
   wbsChangeTargetTask.value = null
 }
 
+async function openTransferModal(task: TaskItem) {
+  if ((task.progress ?? 0) > 0) {
+    message.warning('任务已开始执行（进度大于 0），不可转办')
+    return
+  }
+  const pid = task.projectId != null ? String(task.projectId).trim() : ''
+  if (!pid) {
+    message.warning('缺少项目信息，无法转办')
+    return
+  }
+  transferTargetTask.value = task
+  transferSelectedUserId.value = undefined
+  transferCandidateOptions.value = []
+  transferModalVisible.value = true
+  await loadTransferCandidates(pid)
+}
+
+function closeTransferModal() {
+  transferModalVisible.value = false
+  transferTargetTask.value = null
+}
+
+async function loadTransferCandidates(projectId: string) {
+  transferCandidatesLoading.value = true
+  transferCandidateOptions.value = []
+  try {
+    const res = await AdminApiProjectTemp.workbenchTodoTransferCandidates({ projectId })
+    const code = res?.data?.code
+    const raw = res?.data?.data as unknown
+    const list = Array.isArray(raw) ? raw : (raw as { list?: unknown[] })?.list
+    if ((code === 0 || code === 200) && Array.isArray(list)) {
+      transferCandidateOptions.value = list
+        .map((row: Record<string, unknown>) => ({
+          userId: String(row.userId ?? row.user_id ?? ''),
+          displayName: String(row.displayName ?? row.display_name ?? ''),
+        }))
+        .filter(u => u.userId.trim() !== '')
+        .map(u => ({
+          ...u,
+          displayName: u.displayName.trim() !== '' ? u.displayName : u.userId,
+        }))
+    }
+  }
+  catch {
+    message.error('加载项目团队成员失败')
+  }
+  finally {
+    transferCandidatesLoading.value = false
+  }
+}
+
+async function submitWorkbenchTransfer() {
+  const task = transferTargetTask.value
+  const toId = transferSelectedUserId.value
+  if (!task || !toId) {
+    message.warning('请选择接收人')
+    return
+  }
+  transferSubmitLoading.value = true
+  try {
+    const res = await AdminApiProjectTemp.workbenchTodoCardTransfer({
+      cardId: String(task.id),
+      toAssigneeUserId: String(toId),
+    })
+    const code = res?.data?.code
+    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
+      message.error(String(res?.data?.msg ?? '转办失败'))
+      return
+    }
+    closeTransferModal()
+    message.success('转办成功')
+    await loadTodoListFromApi()
+    await loadWorkbenchSummary()
+  }
+  catch {
+    message.error('转办失败')
+  }
+  finally {
+    transferSubmitLoading.value = false
+  }
+}
+
 /**
  * 已办 WBS：标记变更并确认重开 → 进入协同设计（与 ProjectTaskWbsPanel 变更流程一致）
  */
@@ -662,6 +879,10 @@ async function openChangeWorkspace(task: TaskItem) {
   if (task.status !== 'done')
     return
   if (task.taskKind === 'wbs') {
+    if (isWbsCategoryCollaborationWorkbenchTask(task)) {
+      message.info('分类协同任务不包含设计变更，请在任务管理中分配下级')
+      return
+    }
     const wid = task.projectWbsId
     if (wid === undefined || wid === null || String(wid).trim() === '') {
       message.warning('待办缺少 WBS 节点标识，无法发起变更')
@@ -852,6 +1073,10 @@ watch(searchQuery, () => {
   }, 400)
 })
 
+watch(secondaryFilter, () => {
+  void loadTodoListFromApi()
+})
+
 watch(
   () => userStore.getUser?.id,
   () => {
@@ -946,7 +1171,7 @@ onUnmounted(() => {
                 {{ projectStatistics.forwardNum ?? 0 }}
               </div>
               <div class="type !mb-0" style="margin-top: 8px;">
-                转办待办
+                我已转办
               </div>
             </div>
             <div class="sta-list">
@@ -1060,6 +1285,10 @@ onUnmounted(() => {
                                 <span class="w-[75px] flex-shrink-0">任务类型：</span>
                                 <span>{{ item.type }}</span>
                               </div>
+                              <div v-if="item.viewOnly && item.assigneeDisplayName" class="flex">
+                                <span class="w-[75px] flex-shrink-0">当前承办：</span>
+                                <span class="text-[#313133] font-medium">{{ item.assigneeDisplayName }}</span>
+                              </div>
                               <div class="flex justify-between items-center pr-[10px]">
                                 <div class="flex">
                                   <span class="w-[75px] flex-shrink-0">当前进度：</span>
@@ -1090,7 +1319,7 @@ onUnmounted(() => {
                                 <span>{{ item.creatorName }}</span>
                               </div>
                               <div class="tc-actions ml-auto flex items-center gap-[12px]">
-                                <a-tooltip v-if="taskActionAllowed(item, 'design')" title="设计">
+                                <a-tooltip v-if="taskActionAllowed(item, 'design')" :title="designWorkspaceTooltip(item)">
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
@@ -1100,12 +1329,19 @@ onUnmounted(() => {
                                   </a>
                                 </a-tooltip>
                                 <a-tooltip v-if="taskActionAllowed(item, 'assign')" title="指派">
-                                  <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                  <a
+                                    href="#"
+                                    class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                    @click.prevent.stop="openWbsPersonAssignFromWorkbench(item)"
+                                  >
                                     <UserAddOutlined />
                                   </a>
                                 </a-tooltip>
                                 <a-tooltip v-if="taskActionAllowed(item, 'transfer')" title="转办">
-                                  <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                  <a
+                                    href="#"
+                                    class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                    @click.prevent.stop="openTransferModal(item)">
                                     <SwapOutlined />
                                   </a>
                                 </a-tooltip>
@@ -1192,7 +1428,7 @@ onUnmounted(() => {
                           </template>
                           <template v-if="column.key === 'action'">
                             <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                              <a-tooltip v-if="taskActionAllowed(record, 'design')" title="设计">
+                              <a-tooltip v-if="taskActionAllowed(record, 'design')" :title="designWorkspaceTooltip(record)">
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
@@ -1202,12 +1438,19 @@ onUnmounted(() => {
                                 </a>
                               </a-tooltip>
                               <a-tooltip v-if="taskActionAllowed(record, 'assign')" title="指派">
-                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)"
+                                >
                                   <UserAddOutlined />
                                 </a>
                               </a-tooltip>
                               <a-tooltip v-if="taskActionAllowed(record, 'transfer')" title="转办">
-                                <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openTransferModal(record)">
                                   <SwapOutlined />
                                 </a>
                               </a-tooltip>
@@ -1297,7 +1540,7 @@ onUnmounted(() => {
                       </template>
                       <template v-if="column.key === 'action'">
                         <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                          <a-tooltip v-if="taskActionAllowed(record, 'design')" title="设计">
+                          <a-tooltip v-if="taskActionAllowed(record, 'design')" :title="designWorkspaceTooltip(record)">
                             <a
                               href="#"
                               class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
@@ -1307,12 +1550,19 @@ onUnmounted(() => {
                             </a>
                           </a-tooltip>
                           <a-tooltip v-if="taskActionAllowed(record, 'assign')" title="指派">
-                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                            <a
+                              href="#"
+                              class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                              @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)"
+                            >
                               <UserAddOutlined />
                             </a>
                           </a-tooltip>
                           <a-tooltip v-if="taskActionAllowed(record, 'transfer')" title="转办">
-                            <a class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none">
+                            <a
+                              href="#"
+                              class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                              @click.prevent.stop="openTransferModal(record)">
                               <SwapOutlined />
                             </a>
                           </a-tooltip>
@@ -1433,6 +1683,34 @@ onUnmounted(() => {
         </a-radio>
       </div>
     </a-radio-group>
+  </a-modal>
+
+  <a-modal
+    v-model:visible="transferModalVisible"
+    title="转办任务"
+    width="520px"
+    :confirm-loading="transferSubmitLoading"
+    :mask-closable="false"
+    destroy-on-close
+    ok-text="确认转办"
+    cancel-text="取消"
+    @ok="submitWorkbenchTransfer"
+    @cancel="closeTransferModal">
+    <p v-if="transferTargetTask" style="margin-bottom: 12px; color: #666;">
+      将「{{ transferTargetTask.title }}」转给他人承办，转办后您将不再可操作该任务。
+    </p>
+    <div style="margin-bottom: 8px; color: #313133;">
+      接收人
+    </div>
+    <a-select
+      v-model:value="transferSelectedUserId"
+      show-search
+      allow-clear
+      :loading="transferCandidatesLoading"
+      :options="transferSelectOptions"
+      option-filter-prop="label"
+      placeholder="请选择本项目团队成员"
+      style="width: 100%" />
   </a-modal>
 </template>
 

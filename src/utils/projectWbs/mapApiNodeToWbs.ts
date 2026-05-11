@@ -27,6 +27,8 @@ export interface WbsTaskNode {
   manager?: string
   managerUserId?: string
   children?: WbsTaskNode[]
+  /** 映射树时写入的直接父节点，避免 Long id 精度导致仅用 parentId 链断裂 */
+  __parent?: WbsTaskNode
 }
 
 export function mapTaskStatus(status?: string): TaskWbsStatus {
@@ -43,22 +45,41 @@ function toDateOnly(v?: string): string {
   return String(v).slice(0, 10)
 }
 
-export function mapApiNodeToWbs(node: any, serialSeed: { v: number }): WbsTaskNode {
+function apiRawIdToDisplayString(raw: unknown, serialFallback: number): string {
+  if (raw === undefined || raw === null)
+    return `${serialFallback}`
+  if (typeof raw === 'string')
+    return raw.trim()
+  return String(raw)
+}
+
+export function mapApiNodeToWbs(
+  node: any,
+  serialSeed: { v: number },
+  inferredParentId?: string,
+  parentMapped: WbsTaskNode | null = null,
+): WbsTaskNode {
   const serialNo = serialSeed.v++
-  const children = Array.isArray(node?.children)
-    ? node.children.map((c: any) => mapApiNodeToWbs(c, serialSeed))
-    : undefined
   const progressNum = Number(node?.completionRate ?? 0)
   const parentRaw = node?.parentId
-  const parentId
+  let parentId
     = parentRaw === undefined || parentRaw === null ? undefined : String(parentRaw)
+  if (
+    (parentId === undefined || parentId === '')
+    && inferredParentId !== undefined
+    && inferredParentId !== ''
+  ) {
+    parentId = inferredParentId
+  }
   const assigneeRaw = node?.assigneeUserId
   const assigneeUserId
     = assigneeRaw !== undefined && assigneeRaw !== null ? String(assigneeRaw) : undefined
   const bindRaw = node?.bindTaskId
   const bindTaskId = bindRaw !== undefined && bindRaw !== null ? String(bindRaw) : undefined
-  return {
-    id: String(node?.id ?? `${serialNo}`),
+  const selfId = apiRawIdToDisplayString(node?.id, serialNo)
+
+  const mapped: WbsTaskNode = {
+    id: selfId,
     type: Number(node?.type ?? 2),
     parentId,
     assigneeUserId,
@@ -80,13 +101,23 @@ export function mapApiNodeToWbs(node: any, serialSeed: { v: number }): WbsTaskNo
     responsibleUserId: undefined,
     manager: node?.adminUserid ? String(node.adminUserid) : '',
     managerUserId: node?.adminUserid ? String(node.adminUserid) : undefined,
-    children: children && children.length ? children : undefined,
+    children: undefined,
   }
+  if (parentMapped)
+    mapped.__parent = parentMapped
+
+  const children = Array.isArray(node?.children)
+    ? node.children.map((c: any) => mapApiNodeToWbs(c, serialSeed, selfId, mapped))
+    : undefined
+  if (children?.length)
+    mapped.children = children
+  return mapped
 }
 
-export function findWbsNodeById(nodes: WbsTaskNode[], id: string): WbsTaskNode | null {
+export function findWbsNodeById(nodes: WbsTaskNode[], id: string | number): WbsTaskNode | null {
+  const sid = String(id)
   for (const n of nodes) {
-    if (n.id === id)
+    if (String(n.id) === sid)
       return n
     if (n.children?.length) {
       const inner = findWbsNodeById(n.children, id)

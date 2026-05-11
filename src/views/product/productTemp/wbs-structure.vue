@@ -255,6 +255,20 @@ function wbsRowKey(r: WbsRow) { return r.id; }
 function isLeaf(record: WbsRow) { return !record.children?.length; }
 function toggleRequired(record: WbsRow) { record.required = !record.required; }
 
+/** axios 响应拦截器已对非成功业务码调用 WeiMessage；此处避免再弹一层 message.error。 */
+function notifyAxiosFailure(err: unknown, fallback: string) {
+  const e = err as { data?: { code?: number }; response?: { data?: { code?: number } }; message?: string };
+  const code = e?.data?.code ?? e?.response?.data?.code;
+  const interceptorAlreadyMessaged =
+    code !== undefined &&
+    code !== null &&
+    Number(code) !== 200 &&
+    Number(code) !== 0;
+  if (!interceptorAlreadyMessaged) {
+    message.error(e?.message || fallback);
+  }
+}
+
 // ─── API 调用 ───────────────────────────────────────────────
 
 async function fetchWbsTree() {
@@ -266,8 +280,8 @@ async function fetchWbsTree() {
     tableData.value = transformApiTree(apiTree);
     expandedRowKeys.value = collectAllKeys(tableData.value);
     pageMode.value = 'edit-saved';
-  } catch (err: any) {
-    message.error(err?.message || t('加载已保存WBS结构失败'));
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('加载已保存WBS结构失败'));
   } finally {
     loading.value = false;
   }
@@ -280,11 +294,13 @@ async function fetchAllWbsTree() {
     const res = await AdminApiProductTemp.getWbsAllTreeList({ tempId: tempId.value, menuId: 1 });
     const apiTree = res?.data?.data?.tree ?? res?.data?.tree ?? [];
     const allRows = transformApiTree(apiTree);
-    structureTreeRows.value = filterRowsByTaskCount(allRows);
+    // 展示裁剪已由后端 filterDesignTreeByTaskLeafData 完成；不可再用「本节点 taskCount」过滤：
+    // 分类节点 type=1 的 taskCount 恒为 0，会把顶层与其它父级整枝删掉，导致弹窗树空白。
+    structureTreeRows.value = allRows;
     structureExpandedKeys.value = collectAllKeys(structureTreeRows.value);
     checkedStructureKeys.value = collectSelectedKeys(structureTreeRows.value);
-  } catch (err: any) {
-    message.error(err?.message || t('加载全量WBS结构失败'));
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('加载全量WBS结构失败'));
   } finally {
     structureModalLoading.value = false;
   }
@@ -325,21 +341,6 @@ function collectSelectedKeys(rows: WbsRow[]): string[] {
     });
   };
   walk(rows);
-  return out;
-}
-
-function filterRowsByTaskCount(rows: WbsRow[]): WbsRow[] {
-  const out: WbsRow[] = [];
-  for (const row of rows) {
-    const children = row.children?.length ? filterRowsByTaskCount(row.children) : undefined;
-    if (Number(row.taskCount || 0) <= 0) {
-      continue;
-    }
-    out.push({
-      ...row,
-      children: children && children.length ? children : undefined,
-    });
-  }
   return out;
 }
 
@@ -400,8 +401,8 @@ async function onStructureModalOk() {
       await fetchWbsTree();
     }
     pageMode.value = 'edit-saved';
-  } catch (err: any) {
-    message.error(err?.message || WeiI18n.$t('结构保存失败'));
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, WeiI18n.$t('结构保存失败'));
   } finally {
     structureModalLoading.value = false;
   }
@@ -414,7 +415,9 @@ async function onDelete(record: WbsRow) {
     await AdminApiProductTemp.deleteWbsNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     message.success(`${t('删除成功')}：${record.nodeName}`);
     await fetchWbsTree();
-  } catch (err: any) { message.error(err?.message || t('删除失败')); }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('删除失败'));
+  }
 }
 
 function findSiblings(rows: WbsRow[], targetId: string): WbsRow[] | null {
@@ -445,7 +448,9 @@ async function onMoveUp(record: WbsRow) {
   try {
     await AdminApiProductTemp.moveUpNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     await fetchWbsTree();
-  } catch (err: any) { message.error(err?.message || t('上移失败')); }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('上移失败'));
+  }
 }
 
 async function onMoveDown(record: WbsRow) {
@@ -465,7 +470,9 @@ async function onMoveDown(record: WbsRow) {
   try {
     await AdminApiProductTemp.moveDownNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     await fetchWbsTree();
-  } catch (err: any) { message.error(err?.message || t('下移失败')); }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('下移失败'));
+  }
 }
 
 function goBack() { router.back(); }
@@ -508,8 +515,9 @@ async function onSave() {
     } else {
       await fetchWbsTree();
     }
-  } catch (err: any) { message.error(err?.message || WeiI18n.$t('保存失败')); }
-  finally { saveLoading.value = false; }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, WeiI18n.$t('保存失败'));
+  } finally { saveLoading.value = false; }
 }
 
 onMounted(() => { fetchWbsTree(); });

@@ -27,6 +27,10 @@ export interface TaskItem {
   standaloneAppId?: number | string;
   /** WBS 行 id（business_workbench_todo_card.project_wbs_id），已办协同任务发起变更用 */
   projectWbsId?: number | string;
+  /** 「我已转办」列表：仅展示，不可操作任务 */
+  viewOnly?: boolean;
+  /** 当前承办人展示名（服务端回填 assigneeDisplayName） */
+  assigneeDisplayName?: string;
 }
 
 /** 类型展示名 */
@@ -47,11 +51,11 @@ export const TASK_KIND_ACTIONS: Record<
 > = {
   /** WBS：指派、转办、详情、设计；已办另由 taskActionAllowed 开放「变更」 */
   wbs: ['assign', 'transfer', 'detail', 'design', 'change'],
-  /** 独立应用：偏执行与协同 */
-  standalone: ['transfer', 'detail', 'design'],
+  /** 独立应用：不支持工作台转办（仅 WBS 协同可转办） */
+  standalone: ['detail', 'design'],
   /** 计算任务：以查看与进入设计/计算为主 */
   compute: ['detail', 'design'],
-  other: ['assign', 'transfer', 'detail', 'design'],
+  other: ['assign', 'detail', 'design'],
 };
 
 /**
