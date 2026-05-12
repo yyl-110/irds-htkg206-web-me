@@ -315,8 +315,8 @@ async function getProjectInfo() {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    /* 缩小 Tab 上方空白（相对 ant 默认 24px） */
-    padding-top: 8px;
+    /* 相对 ant 默认 24px，四周留白收紧，工作区更贴边 */
+    padding: 6px 10px 10px;
   }
 }
 
@@ -336,7 +336,7 @@ async function getProjectInfo() {
 
 .project-editor-tabs :deep(.ant-tabs-nav) {
   flex-shrink: 0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .project-editor-tabs :deep(.ant-tabs-content-holder) {
@@ -383,8 +383,8 @@ async function getProjectInfo() {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-top: 5px;
-  padding: 12px 16px 0;
+  margin-top: 4px;
+  padding: 8px 10px 0;
   background: #fff;
   border-top: 1px solid #f0f0f0;
   border-radius: 2px;

@@ -263,7 +263,7 @@ onBeforeMount(() => {
           v-overlay-scrollbar
           :class="[
             !layoutStore.homepage && route.name === 'ProductProjectEditor'
-              ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--editor-fill'
+              ? 'px-[8px] pb-[8px] pt-1 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
                 ? 'p-[16px] pt-[16px] pl-[11px]'
                 : '',

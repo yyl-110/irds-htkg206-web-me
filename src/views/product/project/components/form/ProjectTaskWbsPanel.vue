@@ -8,15 +8,16 @@ import type { Dayjs } from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import {
   BellOutlined,
+  BranchesOutlined,
   ColumnWidthOutlined,
   DeleteOutlined,
   EditOutlined,
-  FormOutlined,
   LeftOutlined,
   MinusOutlined,
   PlusOutlined,
   RightOutlined,
   RollbackOutlined,
+  SearchOutlined,
   SendOutlined,
   UndoOutlined,
 } from '@ant-design/icons-vue';
@@ -589,11 +590,11 @@ function computeTaskDurationDays(record: WbsTaskNode): number | null {
 function createTaskColumns(): TableColumnsType<WbsTaskNode> {
   return [
     { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', resizable: true },
-    { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 108, ellipsis: true, resizable: true },
+    { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 160, ellipsis: true, resizable: true },
     { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, resizable: true },
     { title: '类型', key: 'nodeKind', dataIndex: 'nodeKind', width: 72, align: 'center', resizable: true },
-    { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 124, align: 'center', resizable: true },
-    { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 124, align: 'center', resizable: true },
+    { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 125, align: 'center', resizable: true },
+    { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 125, align: 'center', resizable: true },
     {
       title: '工期(天)',
       key: 'durationWorkdays',
@@ -605,12 +606,12 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
     },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
-    { title: '状态', key: 'status', dataIndex: 'status', width: 112, align: 'center', resizable: true },
+    { title: '状态', key: 'status', dataIndex: 'status', width: 90, align: 'center', resizable: true },
     {
       title: '操作',
       key: 'operation',
       dataIndex: 'operation',
-      width: 288,
+      width: 152,
       align: 'center',
       fixed: 'right',
       resizable: false,
@@ -1200,28 +1201,6 @@ function canShowTaskRestore(record: WbsTaskNode): boolean {
   return Number(record.type) === 2 && isRowRemoved(record) && isUpstreamCategoryManager(record);
 }
 
-function taskOpsFooterMuted(record: WbsTaskNode): boolean {
-  if (record.type === 1) {
-    return !canShowStartButton(record);
-  }
-  if (Number(record.type) !== 2) return false;
-  const bellVisible =
-    !isRowRemoved(record) &&
-    canEditAsAssignee(record) &&
-    !!record.bindTaskId &&
-    (wbsParamPendingByTaskId.value[String(record.bindTaskId)] ?? 0) > 0;
-  if (isRowRemoved(record)) {
-    return !canShowTaskRestore(record);
-  }
-  const mgrOpsVisible =
-    isUpstreamCategoryManager(record) &&
-    (canShowTaskPublish(record) ||
-      canShowTaskRevokePublish(record) ||
-      canShowTaskSuspend(record));
-  const assigneeOpsVisible = canEditAsAssignee(record);
-  return !mgrOpsVisible && !assigneeOpsVisible && !bellVisible;
-}
-
 /** 任务行（未移除）是否应展示操作按钮区：上级发布类操作或执行人侧操作 */
 function taskRowHasVisibleOps(record: WbsTaskNode): boolean {
   if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
@@ -1248,6 +1227,14 @@ function showTaskAssigneeAwaitHint(record: WbsTaskNode): boolean {
   );
 }
 
+/** 与点击树形展开图标一致：切换 expandedRowKeys */
+function toggleWbsRowExpanded(record: WbsTaskNode) {
+  if (!record.children?.length) return;
+  const id = record.id;
+  const keys = expandedRowKeys.value;
+  expandedRowKeys.value = keys.includes(id) ? keys.filter(k => k !== id) : [...keys, id];
+}
+
 function wbsTableCustomRow(record: WbsTaskNode) {
   const parts: string[] = [];
   if (isRowRemoved(record)) {
@@ -1256,7 +1243,30 @@ function wbsTableCustomRow(record: WbsTaskNode) {
   if (isWbsTaskCompletedReadonly(record)) {
     parts.push('task-wbs-row--completed-readonly');
   }
-  return { class: parts.join(' ') };
+  if (record.children?.length) {
+    parts.push('task-wbs-row--expandable');
+  }
+  return {
+    class: parts.join(' '),
+    onClick: (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      const raw = e.target;
+      const el = raw instanceof Element ? raw : (raw as Node).parentElement;
+      if (!el) return;
+      if (
+        el.closest('.ant-table-row-expand-icon') ||
+        el.closest('button') ||
+        el.closest('a[href]') ||
+        el.closest('.ant-picker') ||
+        el.closest('.ant-select') ||
+        el.closest('input') ||
+        el.closest('textarea')
+      ) {
+        return;
+      }
+      toggleWbsRowExpanded(record);
+    },
+  };
 }
 
 /** 子树内所有子孙（不含 node 自身）的最小开始、最大完成 */
@@ -1480,8 +1490,8 @@ const tableBodyHeight = ref(420);
 /** 左侧表格区域宽度（px），null 表示用 CSS 默认比例；收起甘特前会记忆 */
 const leftPaneWidthPx = ref<number | null>(null);
 const leftPaneWidthBeforeCollapse = ref<number | null>(null);
-/** 默认展开甘特图，进度条与工作台一致（可与左侧表格对照） */
-const ganttCollapsed = ref(false);
+/** 初始收起甘特图，表格占满；展开时再由 ensureLeftPaneWidthInitialized 分配左栏宽度 */
+const ganttCollapsed = ref(true);
 const splitterDragging = ref(false);
 const splitRootRef = ref<HTMLElement | null>(null);
 
@@ -1890,16 +1900,11 @@ const leftPaneDynamicStyle = computed(() => {
   };
 });
 
-const rightPaneDynamicStyle = computed(() => {
-  if (ganttCollapsed.value) {
-    return { display: 'none' };
-  }
-  return {
-    flex: '1 1 0',
-    minWidth: `${GANTT_MIN_W}px`,
-    minHeight: 0,
-  };
-});
+const rightPaneDynamicStyle = computed(() => ({
+  flex: '1 1 0',
+  minWidth: `${GANTT_MIN_W}px`,
+  minHeight: 0,
+}));
 
 /** 表体固定像素高，配合样式使左侧横向滚动条落在栏底，与右侧 .gantt-body 对齐 */
 const tableWbsBodyCssVars = computed(() => ({
@@ -2022,20 +2027,9 @@ watch(ganttCollapsed, () => {
     class="project-task-wbs"
     :class="{ 'is-split-dragging': splitterDragging }">
     <div ref="tableWrapRef" class="project-task-wbs__left" :style="leftPaneDynamicStyle">
-      <div v-if="projectId" class="project-task-wbs__sync-toolbar">
-        <span class="project-task-wbs__sync-toolbar-label">参数协同</span>
-        <a-button
-          type="link"
-          size="small"
-          :loading="wbsParamHintsLoading"
-          :disabled="wbsTreeLoading"
-          @click="refreshWbsParamPendingHints">
-          局部同步提醒
-        </a-button>
-        <a-button v-if="ganttCollapsed" type="link" size="small" :disabled="wbsTreeLoading" @click="toggleGanttCollapsed">
-          展开甘特图
-        </a-button>
-      </div>
+      <!-- <div v-if="projectId && ganttCollapsed" class="project-task-wbs__sync-toolbar">
+        <a-button type="link" size="small" :disabled="wbsTreeLoading" @click="toggleGanttCollapsed">展开甘特图</a-button>
+      </div> -->
       <a-table
         class="project-task-wbs-table"
         :style="tableWbsBodyCssVars"
@@ -2054,12 +2048,12 @@ watch(ganttCollapsed, () => {
         @resize-column="handleResizeColumn">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'wbsCode'">
-            {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `— ${record.wbsCode}` : record.wbsCode }}
+            {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `${record.wbsCode}` : record.wbsCode }}
           </template>
           <template v-else-if="column.key === 'nodeKind'">
             <span>{{ record.type === 1 ? '分类' : '任务' }}</span>
           </template>
-          <template v-if="column.key === 'startDate'">
+          <template v-else-if="column.key === 'startDate'">
             <div class="task-wbs-date-cell">
               <a-date-picker
                 :locale="localeDatePickerZh"
@@ -2068,7 +2062,7 @@ watch(ganttCollapsed, () => {
                 format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
                 size="small"
-                placeholder="开始"
+                placeholder="开始时间"
                 :disabled="!canModifyRowFields(record)"
                 :disabled-date="makeDisabledTaskStart(record)"
                 @update:value="(v: unknown) => onPickerValueTouch(record, 'start', v)"
@@ -2084,7 +2078,7 @@ watch(ganttCollapsed, () => {
                 format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
                 size="small"
-                placeholder="完成"
+                placeholder="完成时间"
                 :disabled="!canModifyRowFields(record)"
                 :disabled-date="makeDisabledTaskEnd(record)"
                 @update:value="(v: unknown) => onPickerValueTouch(record, 'end', v)"
@@ -2098,8 +2092,10 @@ watch(ganttCollapsed, () => {
                 v-if="canShowBrowseResponsible(record)"
                 type="primary"
                 size="small"
+                class="task-wbs-responsible-browse-btn"
                 :disabled="wbsTaskRowOpsLocked(record) || !browseAssignEnabled(record)"
                 @click.stop="openResponsiblePicker(record, 'responsible')">
+                <template #icon><SearchOutlined /></template>
                 浏览
               </a-button>
             </div>
@@ -2113,6 +2109,9 @@ watch(ganttCollapsed, () => {
             <div class="task-wbs-ops-wrap">
               <template v-if="record.type === 1">
                 <a-space v-if="canShowStartButton(record)" :size="6" wrap class="task-wbs-ops">
+                  <template #split>
+                    <span class="task-wbs-ops__split-line" aria-hidden="true" />
+                  </template>
                   <a-button
                     type="primary"
                     size="small"
@@ -2122,11 +2121,13 @@ watch(ganttCollapsed, () => {
                     启动
                   </a-button>
                 </a-space>
-                <span v-else-if="taskOpsFooterMuted(record)" class="task-wbs-ops task-wbs-ops--muted">无可用操作</span>
               </template>
               <template v-else-if="Number(record.type) === 2">
                 <template v-if="isRowRemoved(record)">
                   <a-space v-if="canShowTaskRestore(record)" :size="6" wrap class="task-wbs-ops">
+                    <template #split>
+                      <span class="task-wbs-ops__split-line" aria-hidden="true" />
+                    </template>
                     <a-tooltip title="恢复任务行">
                       <a-button
                         type="link"
@@ -2138,10 +2139,12 @@ watch(ganttCollapsed, () => {
                       </a-button>
                     </a-tooltip>
                   </a-space>
-                  <span v-else-if="taskOpsFooterMuted(record)" class="task-wbs-ops task-wbs-ops--muted">无可用操作</span>
                 </template>
                 <template v-else>
                   <a-space v-if="taskRowHasVisibleOps(record)" :size="6" wrap class="task-wbs-ops">
+                    <template #split>
+                      <span class="task-wbs-ops__split-line" aria-hidden="true" />
+                    </template>
                     <template v-if="isUpstreamCategoryManager(record)">
                       <a-tooltip v-if="canShowTaskPublish(record)" title="发布到任务负责人工作台待办">
                         <a-button
@@ -2182,7 +2185,7 @@ watch(ganttCollapsed, () => {
                             :loading="wbsOpBusyRowId === record.id"
                             @click.stop>
                             <DeleteOutlined />
-                            <span class="task-wbs-ops__btn-label">移除</span>
+                            <!-- <span class="task-wbs-ops__btn-label">移除</span> -->
                           </a-button>
                         </a-tooltip>
                       </a-popconfirm>
@@ -2221,7 +2224,7 @@ watch(ganttCollapsed, () => {
                           class="task-wbs-ops__btn"
                           :disabled="wbsTaskRowOpsLocked(record)"
                           @click.stop="onTaskChangeRequest(record)">
-                          <template #icon><FormOutlined /></template>
+                          <template #icon><BranchesOutlined /></template>
                         </a-button>
                       </a-tooltip>
                       <a-tooltip title="编辑">
@@ -2236,13 +2239,12 @@ watch(ganttCollapsed, () => {
                       </a-tooltip>
                     </template>
                   </a-space>
-                  <div v-if="showTaskAssigneeAwaitHint(record)" class="task-wbs-ops__await-hint">
+                  <!-- <div v-if="showTaskAssigneeAwaitHint(record)" class="task-wbs-ops__await-hint">
                     待上级分类负责人发布后，在工作台待办办理
-                  </div>
+                  </div> -->
 <!--                  <span-->
 <!--                    v-else-if="isWbsTaskCompletedReadonly(record)"-->
 <!--                    class="task-wbs-ops task-wbs-ops&#45;&#45;muted">已完成，请在「工作台」查看或办理</span>-->
-                  <span v-else-if="taskOpsFooterMuted(record)" class="task-wbs-ops task-wbs-ops--muted">无可用操作</span>
                 </template>
               </template>
             </div>
@@ -2333,7 +2335,6 @@ watch(ganttCollapsed, () => {
       </a-modal>
     </div>
     <div
-      v-if="!ganttCollapsed"
       class="project-task-wbs__splitter"
       :class="{ 'is-collapsed': ganttCollapsed }"
       :style="{ flex: `0 0 ${SPLITTER_HIT_PX}px`, width: `${SPLITTER_HIT_PX}px` }"
@@ -2494,17 +2495,12 @@ watch(ganttCollapsed, () => {
   padding: 8px 12px 4px;
 }
 
-.project-task-wbs__sync-toolbar-label {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
-}
-
 .task-wbs-ops-wrap {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  justify-content: flex-end;
+  justify-content: center;
   width: 100%;
 }
 
@@ -2554,7 +2550,7 @@ watch(ganttCollapsed, () => {
   cursor: default;
 }
 
-/* 参考：浅灰圆底 + 深色单箭头；收起为向右 >，展开后为向左 < */
+/* 参考：浅灰圆底 + 深色单箭头；在右侧分割条上：展开甘特为向左 <，收起为向右 > */
 .project-task-wbs__splitter-toggle {
   position: absolute;
   top: 50%;
@@ -2857,6 +2853,8 @@ watch(ganttCollapsed, () => {
   font-weight: 600;
   padding: 7px 8px;
   vertical-align: middle;
+  border-inline-start: none !important;
+  border-inline-end: none !important;
 }
 
 .project-task-wbs-table :deep(.ant-table-tbody > tr) {
@@ -2872,6 +2870,19 @@ watch(ganttCollapsed, () => {
   height: 34px;
   box-sizing: border-box;
   line-height: 18px;
+  border-inline-start: none !important;
+  border-inline-end: none !important;
+}
+
+/* bordered 表格：去掉表格外竖边与列间竖线，保留 ant 默认底边横线 */
+.project-task-wbs-table :deep(.ant-table-bordered > .ant-table-container) {
+  border-inline-start: none !important;
+  border-inline-end: none !important;
+}
+
+.project-task-wbs-table :deep(.ant-table-bordered .ant-table-cell) {
+  border-inline-start: none !important;
+  border-inline-end: none !important;
 }
 
 .task-wbs-status-cell {
@@ -2936,6 +2947,19 @@ watch(ganttCollapsed, () => {
   white-space: nowrap;
 }
 
+.task-wbs-responsible-browse-btn {
+  font-size: 12px;
+  line-height: 18px;
+  height: 22px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.task-wbs-responsible-browse-btn :deep(.anticon) {
+  font-size: 12px;
+}
+
 .task-wbs-responsible-modal {
   display: flex;
   flex-direction: column;
@@ -2986,10 +3010,17 @@ watch(ganttCollapsed, () => {
   gap: 0;
 }
 
-.task-wbs-ops--muted {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.35);
-  white-space: nowrap;
+.task-wbs-ops__split-line {
+  display: inline-block;
+  width: 1px;
+  height: 12px;
+  vertical-align: middle;
+  background: #e0e0e0;
+}
+
+.task-wbs-ops:deep(.ant-space-item-split) {
+  display: inline-flex;
+  align-items: center;
 }
 
 .task-wbs-ops__await-hint {
@@ -3010,6 +3041,10 @@ watch(ganttCollapsed, () => {
   background: #fafafa;
 }
 
+.project-task-wbs-table :deep(tr.task-wbs-row--expandable) {
+  cursor: pointer;
+}
+
 .task-wbs-date-cell {
   display: flex;
   align-items: center;
@@ -3021,11 +3056,20 @@ watch(ganttCollapsed, () => {
 .task-wbs-date-picker {
   width: 100%;
   max-width: 118px;
+  font-size: 12px;
+  min-height: 24px;
+  padding: 1px 6px 1px 8px;
+  box-sizing: border-box;
 }
 
 .task-wbs-date-picker :deep(.ant-picker-input > input) {
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 18px;
+  height: 18px;
+}
+
+.task-wbs-date-picker :deep(.ant-picker-suffix) {
+  font-size: 12px;
 }
 
 .task-wbs-date-picker :deep(.ant-picker-input) {
