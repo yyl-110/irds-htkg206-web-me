@@ -81,10 +81,10 @@ onMounted(() => {
 });
 
 const list = [
-  { topurl: module1_1, topinsideurl: module3_2, mainurl: module3_3, bottomurl: module1_4, id: 1, path: '/product', name: '产品设计' },
-  { topurl: module1_1, topinsideurl: module2_2, mainurl: module2_3, bottomurl: module1_4, id: 2, path: '/module', name: '模块化看板' },
-  { topurl: module1_1, topinsideurl: module1_2, mainurl: module1_3, bottomurl: module1_4, id: 3, path: '/base', name: '知识中心看板' },
-  { topurl: module1_1, topinsideurl: module4_2, mainurl: module4_3, bottomurl: module1_4, id: 4, path: '/system', name: '基础资源看板' },
+  { topurl: module1_1, topinsideurl: module3_2, mainurl: module3_3, bottomurl: module1_4, id: 1, path: '/boardProduct', name: '产品设计' },
+  { topurl: module1_1, topinsideurl: module2_2, mainurl: module2_3, bottomurl: module1_4, id: 2, path: '/boardModule', name: '模块化看板' },
+  { topurl: module1_1, topinsideurl: module1_2, mainurl: module1_3, bottomurl: module1_4, id: 3, path: '/boardBase', name: '知识中心看板' },
+  { topurl: module1_1, topinsideurl: module4_2, mainurl: module4_3, bottomurl: module1_4, id: 4, path: '/boardSystem', name: '基础资源看板' },
 ];
 
 const goTo = (item: any) => {
