@@ -560,13 +560,15 @@ export class AdminApiSystemUser {
       CommonResultFileUploadResponseDTOModel
     );
   /**
-   * 获得用户消息提示
+   * 获得用户消息提示（旧版 ckProjectInfo 接口；当前网关/业务服务通常无此路由 → 404）
+   * 请改用 {@link AdminApiProjectTemp.workbenchTodoCardSummary} / workbenchTodoCardPage。
    *
    * @tags 管理后台 - 用户
    * @name GetAvatar
    * @summary 获得用户消息提示
    * @request POST:/cirpoint-module-api/ckProjectInfo/getTaskMessage
    * @secure
+   * @deprecated
    */
   static getTaskMessage = <
     Req extends {

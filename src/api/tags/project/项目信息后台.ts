@@ -170,4 +170,305 @@ export class AdminApiProjectTemp {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  static projectWbsAssignUser = (body: {
+    id: string;
+    assigneeUserId: string;
+    planStartTime: string;
+    planEndTime: string;
+  }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/assign-user`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static projectWbsPublishTask = (body: { id: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/publish-task`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static projectWbsRevokePublish = (body: { id: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/revoke-publish`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static projectWbsSuspendRow = (body: { id: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/suspend-row`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static projectWbsRestoreRow = (body: { id: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/restore-row`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static projectWbsMarkChange = (body: { id: string | number }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/mark-change`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static projectWbsReopenTask = (
+    body: { id: string | number; applyLatestValue?: number },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/reopen-task`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static wbsTaskParamList = (query: { projectId: string | number; taskId: string | number }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/list`,
+        method: 'GET',
+        query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static wbsTaskParamConfirmSync = (
+    body: {
+      projectId: string | number;
+      consumerTaskId: string | number;
+      consumerWbsId: string | number;
+      paramKeys: string[];
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/confirm-sync-from-upstream`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /** 协同设计工作台：拉取 COLLAB 流程树（对齐独立应用 project-pages） */
+  static wbsCollabProjectPages = (
+    body: { projectId: string | number; taskId: string | number; bpmnElementId?: string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/collab-project-pages`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static wbsCollabNodePageDetail = (
+    body: { projectId: string | number; taskId: string | number; bpmnElementId: string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/collab-node-page-detail`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static wbsTaskParamMap = (query: { projectId: string | number; taskId: string | number }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/param-map`,
+        method: 'GET',
+        query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static wbsTaskParamSave = (body: Record<string, unknown>, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/save`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static wbsCollabNextStep = (body: Record<string, unknown>, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/collab-next-step`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static wbsTaskParamEvaluateImpact = (body: Record<string, unknown>, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/evaluate-impact`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /** 工作台首页顶部汇总（替代已下线的 ckProjectInfo/getTaskMessage 数字部分） */
+  static workbenchTodoCardSummary = (body: { assigneeUserId: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-todo-card/summary`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static workbenchTodoCardPage = (
+    body: {
+      pageNo: number;
+      pageSize: number;
+      assigneeUserId: string;
+      status?: string;
+      keyword?: string;
+      /** 默认服务端按 WBS；显式传 WBS 亦可 */
+      cardKind?: string;
+      /** 与 status=TODO 联用：DUE_5D=截止日在[今,今+5]；DUE_15D=[今,今+15]；OVERDUE=截止早于今或 overdue_days>0 */
+      timeBucket?: string;
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-todo-card/page`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static workbenchTodoTransferOutPage = (
+    body: { pageNo: number; pageSize: number; keyword?: string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-todo-card/transfer-out-page`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static workbenchTodoCardTransferCandidates = (body: { projectId: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-todo-card/transfer-candidates`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  static workbenchTodoCardTransfer = (
+    body: { cardId: string; toAssigneeUserId: string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-todo-card/transfer`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
