@@ -31,6 +31,10 @@ export interface TaskItem {
   viewOnly?: boolean;
   /** 当前承办人展示名（服务端回填 assigneeDisplayName） */
   assigneeDisplayName?: string;
+  /** WBS：服务端回填 projectName，用于标题后缀「（项目名称）」 */
+  projectDisplayName?: string;
+  /** 独立应用/计算：服务端回填 appName，用于标题后缀「（应用名称）」 */
+  appDisplayName?: string;
 }
 
 /** 类型展示名 */

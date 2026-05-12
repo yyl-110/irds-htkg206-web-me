@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import { defineComponent, inject, reactive, ref, toRefs } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import '@ckeditor/ckeditor5-build-classic/build/translations/zh-cn';
 import { message, type FormInstance } from 'ant-design-vue';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 const props = defineProps({
   /** 弹窗状态 */
   modalVisible: {
@@ -29,16 +30,48 @@ const formData = reactive({
   versionNum: '',
 });
 const formRules = {
-  tempNum: [{ required: true, message: '请输入模板编号', trigger: 'blur' }],
+  tempNum: [{ required: true, message: '请等待模板编号请码或点击请码', trigger: 'blur' }],
   tempName: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
 };
 
 const id = ref(0);
+/** 新建时可请码；编辑仅展示已有编号 */
+const canRequestTemplateNum = computed(() => !id.value || id.value <= 0);
+const tempNumApplyLoading = ref(false);
 
 /** handle close */
 function handleClose() {
   formRef.value?.resetFields();
   emit('close');
+}
+
+async function applyTemplateSerialNum() {
+  if (!canRequestTemplateNum.value) {
+    return;
+  }
+  tempNumApplyLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.nextNo({ ruleCode: 'template' });
+    const code = res?.data?.code as number | string | undefined;
+    const ok = code === 0 || code === 200 || code === '0' || code === '200';
+    if (!ok) {
+      message.error(String(res?.data?.msg ?? '请码失败'));
+      return;
+    }
+    const nextVal = String(res?.data?.data ?? '').trim();
+    if (!nextVal) {
+      message.warning('未返回模板编号');
+      return;
+    }
+    formData.tempNum = nextVal;
+    message.success('请码成功');
+  }
+  catch {
+    message.error('请码失败');
+  }
+  finally {
+    tempNumApplyLoading.value = false;
+  }
 }
 
 async function savePageInfo() {
@@ -91,6 +124,7 @@ function noticeInfoAddOrUpdate(record: any, menu: any) {
     formData.versionNum = '';
     title.value = '产品模板创建';
     menuId.value = menu;
+    void applyTemplateSerialNum();
   }
 }
 function customGetContainer() {
@@ -118,7 +152,21 @@ defineExpose({ noticeInfoAddOrUpdate });
         <a-form ref="formRef" :model="formData" :rules="formRules" layout="vertical" class="product-temp-form">
           <div class="row-fields">
             <a-form-item :label="$t('模板编号')" name="tempNum" class="row-item">
-              <a-input v-model:value="formData.tempNum" :placeholder="$t('请输入...')" />
+              <div class="template-num-with-actions">
+                <a-input
+                  v-model:value="formData.tempNum"
+                  :placeholder="canRequestTemplateNum ? $t('打开弹窗将自动请码，也可手动点击请码') : $t('模板编号')"
+                  disabled
+                />
+                <a-button
+                  v-if="canRequestTemplateNum"
+                  type="primary"
+                  :loading="tempNumApplyLoading"
+                  @click="applyTemplateSerialNum"
+                >
+                  {{ $t('请码') }}
+                </a-button>
+              </div>
             </a-form-item>
             <a-form-item :label="$t('模板名称')" name="tempName" class="row-item">
               <a-input v-model:value="formData.tempName" :placeholder="$t('请输入...')" />
@@ -184,6 +232,18 @@ defineExpose({ noticeInfoAddOrUpdate });
 
 :deep(.row-item .ant-input) {
   height: 33px;
+}
+
+.template-num-with-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.template-num-with-actions .ant-input {
+  flex: 1;
+  min-width: 0;
 }
 
 .remark-item {

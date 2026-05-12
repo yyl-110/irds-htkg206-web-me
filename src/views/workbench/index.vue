@@ -95,9 +95,14 @@ const transferSelectOptions = computed(() =>
 
 const filteredTodoList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
-  const list = todoList.value.filter(
-    item => !keyword || item.title.toLowerCase().includes(keyword),
-  )
+  const list = todoList.value.filter((item) => {
+    if (!keyword)
+      return true
+    const hay = `${item.title} ${workbenchCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
+      .trim()
+      .toLowerCase()
+    return hay.includes(keyword)
+  })
 
   switch (secondaryFilter.value) {
     case 'done':
@@ -137,9 +142,10 @@ const todoColumns = ref([
     fixed: 'left',
     resizable: true,
     customFilterDropdown: true,
-    onFilter: (value: string, record: any) =>
-      record.title.toLowerCase().includes(String(value).toLowerCase()),
-    sorter: (a: TaskItem, b: TaskItem) => a.title.localeCompare(b.title),
+    onFilter: (value: string, record: TaskItem) =>
+      workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
+    sorter: (a: TaskItem, b: TaskItem) =>
+      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
   },
   {
     title: '任务大类',
@@ -376,6 +382,26 @@ function inferSceneForTaskItem(taskKind: WorkbenchTaskKind): TaskItem['scene'] {
   return 'general'
 }
 
+function pickNonEmptyDisplay(raw: unknown): string | undefined {
+  const s = String(raw ?? '').trim()
+  return s === '' ? undefined : s
+}
+
+/**
+ * 卡片 / 列表展示标题：WBS 追加（项目名称）；独立应用与计算追加（应用名称）
+ * @param task
+ */
+function workbenchCardDisplayTitle(task: TaskItem): string {
+  const base = String(task.title ?? '').trim()
+  if (!base)
+    return ''
+  if (task.taskKind === 'wbs' && task.projectDisplayName)
+    return `${base}（${task.projectDisplayName}）`
+  if ((task.taskKind === 'standalone' || task.taskKind === 'compute') && task.appDisplayName)
+    return `${base}（${task.appDisplayName}）`
+  return base
+}
+
 /**
  * 将 workbench-todo-card/page 单行映射为首页卡片 TaskItem（含 taskKind、标签、延期/剩余天）
  * @param row
@@ -413,6 +439,8 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
   const projectIdRaw = row.projectId ?? row.project_id
   const standaloneRaw = row.standaloneAppId ?? row.standalone_app_id
   const projectWbsIdRaw = row.projectWbsId ?? row.project_wbs_id
+  const projectNameRaw = row.projectName ?? row.project_name
+  const appNameRaw = row.appName ?? row.app_name
   return {
     id: row.id != null ? String(row.id) : '',
     title: String(row.title ?? ''),
@@ -440,6 +468,8 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
       row.assigneeDisplayName != null && String(row.assigneeDisplayName).trim() !== ''
         ? String(row.assigneeDisplayName)
         : undefined,
+    projectDisplayName: pickNonEmptyDisplay(projectNameRaw),
+    appDisplayName: pickNonEmptyDisplay(appNameRaw),
   }
 }
 
@@ -752,8 +782,8 @@ function openTaskAppDetail(task: TaskItem) {
   }
   const taskObj = {
     id: tid,
-    processName: task.title,
-    categoryName: task.title,
+    processName: workbenchCardDisplayTitle(task),
+    categoryName: workbenchCardDisplayTitle(task),
   }
   const cacheKey = `designTaskAppDetail:${String(tid)}:${Date.now()}`
   sessionStorage.setItem(cacheKey, JSON.stringify(taskObj))
@@ -1275,9 +1305,9 @@ onUnmounted(() => {
                               <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">
                                 <span
                                   class="title-text truncate font-bold text-[16px] text-[#313133]"
-                                  :title="item.title"
+                                  :title="workbenchCardDisplayTitle(item)"
                                 >{{
-                                  item.title
+                                  workbenchCardDisplayTitle(item)
                                 }}</span>
                                 <span
                                   v-for="tag in item.tags.filter(tag => tag !== '待办')" :key="tag" class="tc-tag flex-shrink-0"
@@ -1430,7 +1460,7 @@ onUnmounted(() => {
                         </template>
                         <template #bodyCell="{ column, record }">
                           <template v-if="column.key === 'title'">
-                            <span class="font-bold text-[#313133]">{{ record.title }}</span>
+                            <span class="font-bold text-[#313133]">{{ workbenchCardDisplayTitle(record) }}</span>
                           </template>
                           <template v-if="column.key === 'type'">
                             <div class="flex flex-col gap-[2px]">
@@ -1542,7 +1572,7 @@ onUnmounted(() => {
                     </template>
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'title'">
-                        <span class="font-bold text-[#313133]">{{ record.title }}</span>
+                        <span class="font-bold text-[#313133]">{{ workbenchCardDisplayTitle(record) }}</span>
                       </template>
                       <template v-if="column.key === 'type'">
                         <div class="flex flex-col gap-[2px]">
@@ -1718,7 +1748,7 @@ onUnmounted(() => {
     @ok="submitWorkbenchTransfer"
     @cancel="closeTransferModal">
     <p v-if="transferTargetTask" style="margin-bottom: 12px; color: #666;">
-      将「{{ transferTargetTask.title }}」转给他人承办，转办后您将不再可操作该任务。
+      将「{{ workbenchCardDisplayTitle(transferTargetTask) }}」转给他人承办，转办后您将不再可操作该任务。
     </p>
     <div style="margin-bottom: 8px; color: #313133;">
       接收人

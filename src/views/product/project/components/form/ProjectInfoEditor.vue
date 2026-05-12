@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { nextTick, onActivated, onMounted, reactive, ref, watch } from 'vue';
+import { nextTick, onActivated, onMounted, reactive, ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import type { Dayjs } from 'dayjs';
@@ -62,6 +62,19 @@ const projectFormLabelCol = { style: { width: '120px' } };
 const projectFormWrapperCol = { span: 18 };
 
 const projectId = ref<any>();
+
+/** 基本信息里项目编号：路由带 id 或已保存拿到主键后，禁止再请码（仅展示接口/库中编号） */
+const persistedProjectIdForBasicInfo = computed(() => {
+  const idRaw = route.query.id;
+  if (idRaw !== undefined && idRaw !== null && idRaw !== '') {
+    const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
+    const s = String(id).trim();
+    if (s) return s;
+  }
+  const p = projectId.value;
+  if (p !== undefined && p !== null && String(p).trim() !== '') return String(p).trim();
+  return undefined;
+});
 /** 供任务管理 Tab 立即判断创建人权限（避免子组件重复请求尚未返回时无操作按钮） */
 const projectCreatorForWbs = ref<string | undefined>();
 const projectCreatorNameForWbs = ref<string | undefined>();
@@ -250,6 +263,7 @@ async function getProjectInfo() {
           <ProjectBasicInfoTab
             ref="basicInfoRef"
             :project-form="projectForm"
+            :persisted-project-id="persistedProjectIdForBasicInfo"
             :project-form-label-col="projectFormLabelCol"
             :project-form-wrapper-col="projectFormWrapperCol"
             :confidential-options="confidentialOptions"
