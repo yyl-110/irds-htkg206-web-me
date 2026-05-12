@@ -2239,9 +2239,9 @@ watch(ganttCollapsed, () => {
                   <div v-if="showTaskAssigneeAwaitHint(record)" class="task-wbs-ops__await-hint">
                     待上级分类负责人发布后，在工作台待办办理
                   </div>
-                  <span
-                    v-else-if="isWbsTaskCompletedReadonly(record)"
-                    class="task-wbs-ops task-wbs-ops--muted">已完成，请在「工作台」查看或办理</span>
+<!--                  <span-->
+<!--                    v-else-if="isWbsTaskCompletedReadonly(record)"-->
+<!--                    class="task-wbs-ops task-wbs-ops&#45;&#45;muted">已完成，请在「工作台」查看或办理</span>-->
                   <span v-else-if="taskOpsFooterMuted(record)" class="task-wbs-ops task-wbs-ops--muted">无可用操作</span>
                 </template>
               </template>
