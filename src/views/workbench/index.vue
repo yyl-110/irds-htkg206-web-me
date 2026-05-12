@@ -18,6 +18,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SwapOutlined,
+  UndoOutlined,
   UnorderedListOutlined,
   UserAddOutlined,
 } from '@ant-design/icons-vue'
@@ -85,6 +86,12 @@ const transferSelectedUserId = ref<string | undefined>(undefined)
 const transferSubmitLoading = ref(false)
 const transferCandidateOptions = ref<Array<{ userId: string; displayName: string }>>([])
 const transferCandidatesLoading = ref(false)
+
+/** 协同任务驳回（退回发布人或首次转出人） */
+const rejectModalVisible = ref(false)
+const rejectTargetTask = ref<TaskItem | null>(null)
+const rejectOpinion = ref('')
+const rejectSubmitLoading = ref(false)
 
 const transferSelectOptions = computed(() =>
   transferCandidateOptions.value.map(u => ({
@@ -308,6 +315,9 @@ function canRejectOrTransfer(task: TaskItem): boolean {
 }
 const canDesign = (task: TaskItem) => task.category !== 'assign'
 
+/** 后端 WBS 工作台卡片 task_type 为「协同任务」时，为真实协同设计待办（与发布任务写入一致） */
+const WBS_TASK_TYPE_COLLAB = '协同任务'
+
 /**
  * WBS 卡片：后端 publish 分类节点时 taskType 为「分类协同…」，卡片用于提醒负责人继续分配下级，非独立协同设计任务
  */
@@ -318,9 +328,9 @@ function isWbsCategoryCollaborationWorkbenchTask(task: TaskItem): boolean {
   return t.includes('分类协同') || t.includes('分类节点')
 }
 
-/** 已办「变更」仅适用于 WBS 设计任务（协同任务）；分类协同只做人员分配，无变更流程 */
+/** 已办「变更」等协同设计能力：仅 task_type 为「协同任务」的 WBS 卡片（排除分类协同、WBS 人员指派等） */
 function isWbsDesignTaskEligibleForChange(task: TaskItem): boolean {
-  return task.taskKind === 'wbs' && !isWbsCategoryCollaborationWorkbenchTask(task)
+  return task.taskKind === 'wbs' && String(task.type ?? '').trim() === WBS_TASK_TYPE_COLLAB
 }
 
 /** 设计按钮提示：分类协同 → 任务管理；真实协同任务 → 协同设计 */
@@ -355,11 +365,19 @@ function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
 }
 
 /**
- * 仅 WBS 协同卡片展示右上角「⋯」驳回入口；独立应用 / 计算 / 其他不展示
+ * 仅「协同任务」类 WBS 待办、且未开始执行时，展示右上角「⋯」驳回入口
  * @param task
  */
 function showWbsRejectMenu(task: TaskItem): boolean {
-  return task.taskKind === 'wbs' && canRejectOrTransfer(task)
+  if (task.viewOnly)
+    return false
+  if (task.taskKind !== 'wbs')
+    return false
+  if (task.status !== 'todo')
+    return false
+  if ((task.progress ?? 0) > 0)
+    return false
+  return String(task.type ?? '').trim() === WBS_TASK_TYPE_COLLAB
 }
 
 function inferCategoryForTaskItem(taskType: string, taskKind: WorkbenchTaskKind): TaskItem['category'] {
@@ -441,6 +459,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
   const projectWbsIdRaw = row.projectWbsId ?? row.project_wbs_id
   const projectNameRaw = row.projectName ?? row.project_name
   const appNameRaw = row.appName ?? row.app_name
+  const lastRejectRaw = row.lastRejectRemark ?? row.last_reject_remark
   return {
     id: row.id != null ? String(row.id) : '',
     title: String(row.title ?? ''),
@@ -470,6 +489,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
         : undefined,
     projectDisplayName: pickNonEmptyDisplay(projectNameRaw),
     appDisplayName: pickNonEmptyDisplay(appNameRaw),
+    lastRejectRemark: pickNonEmptyDisplay(lastRejectRaw),
   }
 }
 
@@ -583,7 +603,7 @@ type TaskActionKey = 'assign' | 'transfer' | 'detail' | 'design' | 'change'
 
 /**
  * 类型维度允许的按钮 ∩ 业务权限；仅已办展示详情；已办独立应用另展示变更；已办不展示设计
- * 已办：不展示指派/转办（完成后仅保留详情）；WBS 仅「协同任务」展示变更，分类协同不展示
+ * 已办：不展示指派/转办（完成后仅保留详情）；WBS 仅 task_type 为「协同任务」的卡片展示变更（分类协同、WBS 人员指派等不展示）
  * @param task
  * @param action
  */
@@ -880,6 +900,52 @@ async function submitWorkbenchTransfer() {
   }
 }
 
+function openRejectModal(task: TaskItem) {
+  rejectTargetTask.value = task
+  rejectOpinion.value = ''
+  rejectModalVisible.value = true
+}
+
+function closeRejectModal() {
+  rejectModalVisible.value = false
+  rejectTargetTask.value = null
+  rejectOpinion.value = ''
+}
+
+async function submitWorkbenchReject() {
+  const task = rejectTargetTask.value
+  const opinion = rejectOpinion.value.trim()
+  if (!task) {
+    return
+  }
+  if (!opinion) {
+    message.warning('请填写驳回意见')
+    return
+  }
+  rejectSubmitLoading.value = true
+  try {
+    const res = await AdminApiProjectTemp.workbenchTodoCardReject({
+      cardId: String(task.id),
+      opinion,
+    })
+    const code = res?.data?.code
+    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
+      message.error(String(res?.data?.msg ?? '驳回失败'))
+      return
+    }
+    closeRejectModal()
+    message.success('已驳回，任务已退回分配方工作台')
+    await loadTodoListFromApi()
+    await loadWorkbenchSummary()
+  }
+  catch {
+    message.error('驳回失败')
+  }
+  finally {
+    rejectSubmitLoading.value = false
+  }
+}
+
 /**
  * 已办 WBS：标记变更并确认重开 → 进入协同设计（与 ProjectTaskWbsPanel 变更流程一致）
  */
@@ -930,8 +996,8 @@ async function openChangeWorkspace(task: TaskItem) {
   if (task.status !== 'done')
     return
   if (task.taskKind === 'wbs') {
-    if (isWbsCategoryCollaborationWorkbenchTask(task)) {
-      message.info('分类协同任务不包含设计变更，请在任务管理中分配下级')
+    if (!isWbsDesignTaskEligibleForChange(task)) {
+      message.info('仅「协同任务」支持发起变更；分类协同请在任务管理中分配下级，人员指派类任务无协同变更流程')
       return
     }
     const wid = task.projectWbsId
@@ -1318,7 +1384,7 @@ onUnmounted(() => {
                               <a-dropdown v-if="showWbsRejectMenu(item)" :trigger="['hover']">
                                 <EllipsisOutlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
                                 <template #overlay>
-                                  <a-menu>
+                                  <a-menu @click="({ key }: { key: string }) => key === 'reject' && openRejectModal(item)">
                                     <a-menu-item key="reject">
                                       驳回
                                     </a-menu-item>
@@ -1335,6 +1401,10 @@ onUnmounted(() => {
                               <div class="flex">
                                 <span class="w-[75px] flex-shrink-0">任务类型：</span>
                                 <span>{{ item.type }}</span>
+                              </div>
+                              <div v-if="item.lastRejectRemark" class="flex text-[12px] text-[#FA8C16] leading-snug">
+                                <span class="w-[75px] flex-shrink-0">退回说明：</span>
+                                <span class="flex-1 min-w-0 break-words">{{ item.lastRejectRemark }}</span>
                               </div>
                               <div v-if="item.viewOnly && item.assigneeDisplayName" class="flex">
                                 <span class="w-[75px] flex-shrink-0">当前承办：</span>
@@ -1505,6 +1575,15 @@ onUnmounted(() => {
                                   <SwapOutlined />
                                 </a>
                               </a-tooltip>
+                              <a-tooltip v-if="showWbsRejectMenu(record)" title="驳回">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-[#FA8C16] cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openRejectModal(record)"
+                                >
+                                  <UndoOutlined />
+                                </a>
+                              </a-tooltip>
                               <a-tooltip v-if="taskActionAllowed(record, 'detail')" title="详情">
                                 <a
                                   href="#"
@@ -1615,6 +1694,15 @@ onUnmounted(() => {
                               class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
                               @click.prevent.stop="openTransferModal(record)">
                               <SwapOutlined />
+                            </a>
+                          </a-tooltip>
+                          <a-tooltip v-if="showWbsRejectMenu(record)" title="驳回">
+                            <a
+                              href="#"
+                              class="tc-action-icon text-[#FA8C16] cursor-pointer text-[16px] leading-none"
+                              @click.prevent.stop="openRejectModal(record)"
+                            >
+                              <UndoOutlined />
                             </a>
                           </a-tooltip>
                           <a-tooltip v-if="taskActionAllowed(record, 'detail')" title="详情">
@@ -1762,6 +1850,32 @@ onUnmounted(() => {
       option-filter-prop="label"
       placeholder="请选择本项目团队成员"
       style="width: 100%" />
+  </a-modal>
+
+  <a-modal
+    v-model:visible="rejectModalVisible"
+    title="驳回任务"
+    width="520px"
+    :confirm-loading="rejectSubmitLoading"
+    :mask-closable="false"
+    destroy-on-close
+    ok-text="确认驳回"
+    cancel-text="取消"
+    @ok="submitWorkbenchReject"
+    @cancel="closeRejectModal">
+    <p v-if="rejectTargetTask" style="margin-bottom: 12px; color: #666; line-height: 1.6">
+      将「{{ workbenchCardDisplayTitle(rejectTargetTask) }}」退回给任务分配方，对方将重新在工作台收到该待办。请填写驳回原因（对方可见）。
+    </p>
+    <div style="margin-bottom: 8px; color: #313133;">
+      驳回意见
+    </div>
+    <a-textarea
+      v-model:value="rejectOpinion"
+      :rows="4"
+      :maxlength="500"
+      show-count
+      placeholder="请说明不适宜承办的原因，便于对方调整分配"
+      allow-clear />
   </a-modal>
 </template>
 

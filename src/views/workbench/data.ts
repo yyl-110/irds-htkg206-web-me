@@ -35,6 +35,8 @@ export interface TaskItem {
   projectDisplayName?: string;
   /** 独立应用/计算：服务端回填 appName，用于标题后缀「（应用名称）」 */
   appDisplayName?: string;
+  /** 协同任务被驳回后，退回方可见的上一次驳回意见（服务端 lastRejectRemark） */
+  lastRejectRemark?: string;
 }
 
 /** 类型展示名 */

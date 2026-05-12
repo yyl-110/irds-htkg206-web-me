@@ -471,4 +471,21 @@ export class AdminApiProjectTemp {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /** 协同任务：当前承办人驳回，退回发布人或首次转出人并写入驳回意见 */
+  static workbenchTodoCardReject = (
+    body: { cardId: string; opinion: string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-todo-card/reject`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
