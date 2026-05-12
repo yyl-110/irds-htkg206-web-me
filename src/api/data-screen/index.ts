@@ -17,7 +17,7 @@ export function getReportKnowledgeList(data: { type: string | number }) {
  */
 export function getReportModuleList(data: { projectId: string | number }) {
   return httpRequest({
-    url: "/cirpoint-base-api/reportinfo/getReportModuleList",
+    url: "/system-service/reportinfo/getReportModuleList",
     method: "POST",
     data,
   });
@@ -52,7 +52,7 @@ export function getReportProjectPhaseList() {
  */
 export function getReportSystemList() {
   return httpRequest({
-    url: "/cirpoint-base-api/reportinfo/getReportSystemList",
+    url: "/system-service/reportinfo/getReportSystemList",
     method: "POST",
   });
 }
