@@ -335,6 +335,7 @@ async function getTaskMessageList(type: boolean = false) {
         pageSize: 40,
         assigneeUserId: String(uid),
         status: 'TODO',
+        cardKind: 'WBS',
       })
       const pCode = pageRes?.data?.code
       const pageData = pageRes?.data?.data as { list?: Record<string, unknown>[] } | undefined

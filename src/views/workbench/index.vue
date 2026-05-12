@@ -105,12 +105,11 @@ const filteredTodoList = computed(() => {
     case 'transfer':
       /** 数据来自 transfer-out-page，均为已转办视图 */
       return list
-    case 'wbs':
-      return list.filter(item => item.status === 'todo' && !item.viewOnly && item.taskKind === 'wbs')
-    case 'app':
-      return list.filter(item => item.status === 'todo' && !item.viewOnly && item.taskKind === 'standalone')
-    case 'compute':
-      return list.filter(item => item.status === 'todo' && !item.viewOnly && item.taskKind === 'compute')
+    case 'due5':
+    case 'due15':
+    case 'overdue':
+      /** 列表已由接口按 WBS + timeBucket 限定，仅做关键字与只读过滤 */
+      return list.filter(item => !item.viewOnly)
     case 'all':
       return list.filter(item => !item.viewOnly)
     case 'todo':
@@ -462,7 +461,7 @@ function mapTransferOutRowToTaskItem(row: Record<string, unknown>): TaskItem {
   }
 }
 
-/** 对接 GET/POST /business/workbench-todo-card/page，仅驱动「设计任务」Tab（含 WBS/独立应用/计算等） */
+/** 对接 /business/workbench-todo-card/page，设计任务 Tab 仅拉取 WBS 卡片（近5天/15天/延期由 timeBucket 与结束日对比） */
 async function loadTodoListFromApi() {
   const uid = userStore.getUser?.id
   if (uid == null) {
@@ -489,12 +488,34 @@ async function loadTodoListFromApi() {
       }
       return
     }
-    const res = await AdminApiProjectTemp.workbenchTodoCardPage({
+    const f = secondaryFilter.value
+    const pageBody: Parameters<typeof AdminApiProjectTemp.workbenchTodoCardPage>[0] = {
       pageNo: 1,
       pageSize: 500,
       assigneeUserId: String(uid),
+      cardKind: 'WBS',
       ...(kw ? { keyword: kw } : {}),
-    })
+    }
+    if (f === 'todo') {
+      pageBody.status = 'TODO'
+    }
+    else if (f === 'done') {
+      pageBody.status = 'DONE'
+    }
+    else if (f === 'due5') {
+      pageBody.status = 'TODO'
+      pageBody.timeBucket = 'DUE_5D'
+    }
+    else if (f === 'due15') {
+      pageBody.status = 'TODO'
+      pageBody.timeBucket = 'DUE_15D'
+    }
+    else if (f === 'overdue') {
+      pageBody.status = 'TODO'
+      pageBody.timeBucket = 'OVERDUE'
+    }
+    /** 「全部」不传 status，由后端返回当前承办人下全部 WBS 卡片（待办/已办等） */
+    const res = await AdminApiProjectTemp.workbenchTodoCardPage(pageBody)
     const code = res?.data?.code
     const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined
     const raw = payload?.list

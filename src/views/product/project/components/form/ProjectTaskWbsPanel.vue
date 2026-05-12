@@ -9,6 +9,7 @@ import isoWeek from 'dayjs/plugin/isoWeek';
 import {
   BellOutlined,
   ColumnWidthOutlined,
+  DeleteOutlined,
   EditOutlined,
   FormOutlined,
   LeftOutlined,
@@ -236,6 +237,9 @@ async function refreshWbsParamPendingHints() {
 }
 
 async function openParamSyncModal(record: WbsTaskNode) {
+  if (isWbsTaskCompletedReadonly(record)) {
+    return;
+  }
   if (!props.projectId || !record.bindTaskId) {
     return;
   }
@@ -599,14 +603,6 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
       resizable: true,
       customRender: ({ record }) => computeTaskDurationDays(record) ?? record.durationWorkdays ?? '-',
     },
-    {
-      title: '进度',
-      key: 'progress',
-      width: 72,
-      align: 'center',
-      resizable: true,
-      customRender: ({ record }) => `${record.progress}%`,
-    },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
     { title: '状态', key: 'status', dataIndex: 'status', width: 112, align: 'center', resizable: true },
@@ -633,6 +629,9 @@ function handleResizeColumn(w: number, col: { width?: number | string }) {
 }
 
 function onTaskEdit(record: WbsTaskNode) {
+  if (isWbsTaskCompletedReadonly(record)) {
+    return;
+  }
   if (!canEditAsAssignee(record)) {
     message.warning('仅负责人可操作');
     return;
@@ -641,6 +640,9 @@ function onTaskEdit(record: WbsTaskNode) {
 }
 
 async function onTaskPublish(record: WbsTaskNode) {
+  if (isWbsTaskCompletedReadonly(record)) {
+    return;
+  }
   if (!isUpstreamCategoryManager(record)) {
     message.warning('仅上级分类负责人可发布任务');
     return;
@@ -664,6 +666,9 @@ async function onTaskPublish(record: WbsTaskNode) {
 }
 
 async function onTaskStart(record: WbsTaskNode) {
+  if (isWbsTaskCompletedReadonly(record)) {
+    return;
+  }
   if (!canShowStartButton(record)) return;
   wbsOpBusyRowId.value = record.id;
   try {
@@ -682,6 +687,9 @@ async function onTaskStart(record: WbsTaskNode) {
 }
 
 async function onTaskUnpublish(record: WbsTaskNode) {
+  if (isWbsTaskCompletedReadonly(record)) {
+    return;
+  }
   if (!isUpstreamCategoryManager(record)) {
     message.warning('仅上级分类负责人可撤销发布');
     return;
@@ -705,6 +713,9 @@ async function onTaskUnpublish(record: WbsTaskNode) {
 }
 
 async function onTaskSuspendConfirm(record: WbsTaskNode) {
+  if (isWbsTaskCompletedReadonly(record)) {
+    return;
+  }
   if (!canShowTaskSuspend(record)) {
     message.warning('仅上级分类负责人可移除任务');
     return;
@@ -750,6 +761,9 @@ async function onTaskRestore(record: WbsTaskNode) {
 }
 
 function onTaskChangeRequest(record: WbsTaskNode) {
+  if (isWbsTaskCompletedReadonly(record)) {
+    return;
+  }
   if (!canEditAsAssignee(record)) {
     message.warning('仅负责人可操作');
     return;
@@ -844,6 +858,10 @@ function formatResponsibleUserRow(u: ResponsiblePickerUser) {
 }
 
 async function openResponsiblePicker(record: WbsTaskNode, field: 'responsible' | 'manager' = 'responsible') {
+  if (isWbsTaskCompletedReadonly(record)) {
+    message.warning('已完成任务不可再分配人员');
+    return;
+  }
   if (field === 'responsible') {
     if (isWbsRoot(record)) {
       message.warning('顶层节点负责人为项目创建人，无需在此分配');
@@ -1040,6 +1058,27 @@ function isRowRemoved(record: WbsTaskNode): boolean {
   return Number(record.wbsRowRemoved) === 1;
 }
 
+/** 任务行已协同完成：表格内禁止改期、改人、行内操作（工作台仍可查看进度） */
+function isWbsTaskCompletedReadonly(record: WbsTaskNode): boolean {
+  if (Number(record.type) !== 2 || isRowRemoved(record)) {
+    return false;
+  }
+  if (record.status === 'completed') {
+    return true;
+  }
+  if (String(record.taskStatusRaw ?? '').toUpperCase() === 'COMPLETED') {
+    return true;
+  }
+  if (Number(record.progress) >= 100) {
+    return true;
+  }
+  return false;
+}
+
+function wbsTaskRowOpsLocked(record: WbsTaskNode): boolean {
+  return isWbsTaskCompletedReadonly(record) || wbsOpBusyRowId.value === record.id;
+}
+
 /** 沿父链向上第一个分类节点(type=1)，与后端权限一致 */
 function findNearestCategoryAncestorNode(record: WbsTaskNode): WbsTaskNode | null {
   let p = getWbsParentNode(record);
@@ -1093,6 +1132,7 @@ function canEditAsAssignee(record: WbsTaskNode): boolean {
 /** 分类节点不维护自身计划时间（展示为下级合集）；任务节点：根仅创建人；已分配仅负责人；未分配由上一级填 */
 function canModifyRowFields(record: WbsTaskNode): boolean {
   if (isRowRemoved(record)) return false;
+  if (Number(record.type) === 2 && isWbsTaskCompletedReadonly(record)) return false;
   if (record.type === 1) return false;
   if (isWbsRoot(record)) {
     return (
@@ -1202,15 +1242,21 @@ function showTaskAssigneeAwaitHint(record: WbsTaskNode): boolean {
   return (
     Number(record.type) === 2 &&
     !isRowRemoved(record) &&
+    !isWbsTaskCompletedReadonly(record) &&
     canEditAsAssignee(record) &&
     isWbsTaskUnpublished(record)
   );
 }
 
 function wbsTableCustomRow(record: WbsTaskNode) {
-  return {
-    class: isRowRemoved(record) ? 'task-wbs-row--removed' : '',
-  };
+  const parts: string[] = [];
+  if (isRowRemoved(record)) {
+    parts.push('task-wbs-row--removed');
+  }
+  if (isWbsTaskCompletedReadonly(record)) {
+    parts.push('task-wbs-row--completed-readonly');
+  }
+  return { class: parts.join(' ') };
 }
 
 /** 子树内所有子孙（不含 node 自身）的最小开始、最大完成 */
@@ -1345,6 +1391,7 @@ function disabledTaskEndDate(record: WbsTaskNode, current: Dayjs | undefined): b
 }
 
 function onTaskStartDateChange(record: WbsTaskNode, v: string | null) {
+  if (!canModifyRowFields(record)) return;
   if (!v) return;
   const snapS = record.startDate;
   const snapE = record.endDate;
@@ -1372,6 +1419,7 @@ function onTaskStartDateChange(record: WbsTaskNode, v: string | null) {
 }
 
 function onTaskEndDateChange(record: WbsTaskNode, v: string | null) {
+  if (!canModifyRowFields(record)) return;
   if (!v) return;
   const snapS = record.startDate;
   const snapE = record.endDate;
@@ -2050,7 +2098,7 @@ watch(ganttCollapsed, () => {
                 v-if="canShowBrowseResponsible(record)"
                 type="primary"
                 size="small"
-                :disabled="!browseAssignEnabled(record)"
+                :disabled="wbsTaskRowOpsLocked(record) || !browseAssignEnabled(record)"
                 @click.stop="openResponsiblePicker(record, 'responsible')">
                 浏览
               </a-button>
@@ -2068,6 +2116,7 @@ watch(ganttCollapsed, () => {
                   <a-button
                     type="primary"
                     size="small"
+                    :disabled="wbsTaskRowOpsLocked(record)"
                     :loading="wbsOpBusyRowId === record.id"
                     @click.stop="onTaskStart(record)">
                     启动
@@ -2099,6 +2148,7 @@ watch(ganttCollapsed, () => {
                           type="link"
                           size="small"
                           class="task-wbs-ops__btn"
+                          :disabled="wbsTaskRowOpsLocked(record)"
                           :loading="wbsOpBusyRowId === record.id"
                           @click.stop="onTaskPublish(record)">
                           <template #icon><SendOutlined /></template>
@@ -2109,6 +2159,7 @@ watch(ganttCollapsed, () => {
                           type="link"
                           size="small"
                           class="task-wbs-ops__btn"
+                          :disabled="wbsTaskRowOpsLocked(record)"
                           :loading="wbsOpBusyRowId === record.id"
                           @click.stop="onTaskUnpublish(record)">
                           <template #icon><RollbackOutlined /></template>
@@ -2116,19 +2167,24 @@ watch(ganttCollapsed, () => {
                       </a-tooltip>
                       <a-popconfirm
                         v-if="canShowTaskSuspend(record)"
-                        title="确定移除该任务行吗？"
-                        ok-text="确定"
+                        title="移除此任务行？任务行将置灰展示且可恢复，相关工作台待办会取消。"
+                        ok-text="移除"
                         cancel-text="取消"
+                        ok-type="danger"
                         @confirm="onTaskSuspendConfirm(record)">
-                        <a-button
-                          type="link"
-                          size="small"
-                          danger
-                          class="task-wbs-ops__btn"
-                          :loading="wbsOpBusyRowId === record.id"
-                          @click.stop>
-                          <template #icon><MinusOutlined /></template>
-                        </a-button>
+                        <a-tooltip title="移除此任务行（可恢复）">
+                          <a-button
+                            type="link"
+                            size="small"
+                            danger
+                            class="task-wbs-ops__btn task-wbs-ops__btn--with-label"
+                            :disabled="wbsTaskRowOpsLocked(record)"
+                            :loading="wbsOpBusyRowId === record.id"
+                            @click.stop>
+                            <DeleteOutlined />
+                            <span class="task-wbs-ops__btn-label">移除</span>
+                          </a-button>
+                        </a-tooltip>
                       </a-popconfirm>
                     </template>
                     <template v-if="canEditAsAssignee(record)">
@@ -2151,6 +2207,7 @@ watch(ganttCollapsed, () => {
                             type="link"
                             size="small"
                             class="task-wbs-ops__btn task-wbs-ops__sync-bell"
+                            :disabled="wbsTaskRowOpsLocked(record)"
                             :loading="paramSyncLoading && paramSyncTarget?.id === record.id"
                             @click.stop="openParamSyncModal(record)">
                             <template #icon><BellOutlined /></template>
@@ -2158,12 +2215,22 @@ watch(ganttCollapsed, () => {
                         </a-badge>
                       </a-tooltip>
                       <a-tooltip title="变更">
-                        <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskChangeRequest(record)">
+                        <a-button
+                          type="link"
+                          size="small"
+                          class="task-wbs-ops__btn"
+                          :disabled="wbsTaskRowOpsLocked(record)"
+                          @click.stop="onTaskChangeRequest(record)">
                           <template #icon><FormOutlined /></template>
                         </a-button>
                       </a-tooltip>
                       <a-tooltip title="编辑">
-                        <a-button type="link" size="small" class="task-wbs-ops__btn" @click.stop="onTaskEdit(record)">
+                        <a-button
+                          type="link"
+                          size="small"
+                          class="task-wbs-ops__btn"
+                          :disabled="wbsTaskRowOpsLocked(record)"
+                          @click.stop="onTaskEdit(record)">
                           <template #icon><EditOutlined /></template>
                         </a-button>
                       </a-tooltip>
@@ -2172,6 +2239,9 @@ watch(ganttCollapsed, () => {
                   <div v-if="showTaskAssigneeAwaitHint(record)" class="task-wbs-ops__await-hint">
                     待上级分类负责人发布后，在工作台待办办理
                   </div>
+                  <span
+                    v-else-if="isWbsTaskCompletedReadonly(record)"
+                    class="task-wbs-ops task-wbs-ops--muted">已完成，请在「工作台」查看或办理</span>
                   <span v-else-if="taskOpsFooterMuted(record)" class="task-wbs-ops task-wbs-ops--muted">无可用操作</span>
                 </template>
               </template>
@@ -2936,6 +3006,10 @@ watch(ganttCollapsed, () => {
   opacity: 0.55;
 }
 
+.project-task-wbs-table :deep(tr.task-wbs-row--completed-readonly > td) {
+  background: #fafafa;
+}
+
 .task-wbs-date-cell {
   display: flex;
   align-items: center;
@@ -2976,6 +3050,25 @@ watch(ganttCollapsed, () => {
 
 .task-wbs-ops__btn.ant-btn-dangerous {
   color: #ff4d4f;
+}
+
+/** 带文案的操作按钮（如「移除」）：避免与 20px 纯图标按钮混用显得像「一条横线」 */
+.task-wbs-ops__btn--with-label {
+  width: auto !important;
+  min-width: auto !important;
+  height: 22px !important;
+  padding: 0 6px !important;
+  gap: 4px;
+  border-radius: 4px;
+}
+
+.task-wbs-ops__btn--with-label:hover {
+  background: rgba(255, 77, 79, 0.06);
+}
+
+.task-wbs-ops__btn-label {
+  font-size: 12px;
+  line-height: 1;
 }
 
 .gantt-body {

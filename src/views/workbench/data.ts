@@ -60,7 +60,7 @@ export const TASK_KIND_ACTIONS: Record<
 
 /**
  * 工作台顶栏两大业务域（数据源互不共用）：
- * - 设计任务：workbench-todo-card（WBS / 独立应用 / 计算等）
+ * - 设计任务：workbench-todo-card（当前列表仅 WBS；截止日在 5/15 天内、截止日超期按 projectEndDate 与当前日对比）
  * - 待审核：OA 等审批流，由独立接口接入后在此列表展示
  */
 export const WORKBENCH_TABS = [
@@ -68,13 +68,19 @@ export const WORKBENCH_TABS = [
   { title: '待审核', name: 'audit' },
 ];
 
+/**
+ * 设计任务二级筛选（与 `/business/workbench-todo-card/page` 的 timeBucket 对齐，仅 WBS）：
+ * - 截止日在 5 天内：projectEndDate ∈ [今天, 今天+5] 且未标延期
+ * - 截止日在 15 天内：projectEndDate ∈ [今天, 今天+15] 且未标延期
+ * - 截止日超期：projectEndDate 早于今天，或 overdueDays 大于 0
+ */
 export const WORKBENCH_SECONDARY_TABS = [
   { title: '待办', value: 'todo' },
   { title: '已办', value: 'done' },
   { title: '已转办', value: 'transfer' },
-  { title: 'WBS协同待办', value: 'wbs' },
-  { title: '独立应用待办', value: 'app' },
-  { title: '计算待办', value: 'compute' },
+  { title: '近5天', value: 'due5' },
+  { title: '近15天', value: 'due15' },
+  { title: '延期', value: 'overdue' },
   { title: '全部', value: 'all' },
 ] as const;
 
