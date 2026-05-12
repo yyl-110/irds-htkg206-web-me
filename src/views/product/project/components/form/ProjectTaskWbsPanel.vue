@@ -9,9 +9,11 @@ import isoWeek from 'dayjs/plugin/isoWeek';
 import {
   BellOutlined,
   BranchesOutlined,
+  CheckSquareOutlined,
   ColumnWidthOutlined,
   DeleteOutlined,
   EditOutlined,
+  FolderOutlined,
   LeftOutlined,
   MinusOutlined,
   PlusOutlined,
@@ -592,7 +594,7 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
     { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', resizable: true },
     { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 160, ellipsis: true, resizable: true },
     { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, resizable: true },
-    { title: '类型', key: 'nodeKind', dataIndex: 'nodeKind', width: 72, align: 'center', resizable: true },
+    { title: '类型', key: 'nodeKind', dataIndex: 'nodeKind', width: 88, align: 'center', resizable: true },
     { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 125, align: 'center', resizable: true },
     { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 125, align: 'center', resizable: true },
     {
@@ -615,6 +617,7 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
       align: 'center',
       fixed: 'right',
       resizable: false,
+      customCell: () => ({ class: 'task-wbs-td-operation' }),
     },
   ];
 }
@@ -2051,7 +2054,16 @@ watch(ganttCollapsed, () => {
             {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `${record.wbsCode}` : record.wbsCode }}
           </template>
           <template v-else-if="column.key === 'nodeKind'">
-            <span>{{ record.type === 1 ? '分类' : '任务' }}</span>
+            <span
+              class="task-wbs-node-kind"
+              :class="[
+                Number(record.type) === 1 ? 'task-wbs-node-kind--category' : 'task-wbs-node-kind--task',
+                isRowRemoved(record) ? 'task-wbs-node-kind--removed' : '',
+              ]">
+              <FolderOutlined v-if="Number(record.type) === 1" class="task-wbs-node-kind__icon" aria-hidden="true" />
+              <CheckSquareOutlined v-else class="task-wbs-node-kind__icon" aria-hidden="true" />
+              <span>{{ Number(record.type) === 1 ? '分类' : '任务' }}</span>
+            </span>
           </template>
           <template v-else-if="column.key === 'startDate'">
             <div class="task-wbs-date-cell">
@@ -2885,6 +2897,33 @@ watch(ganttCollapsed, () => {
   border-inline-end: none !important;
 }
 
+.task-wbs-node-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.task-wbs-node-kind__icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.task-wbs-node-kind--category .task-wbs-node-kind__icon {
+  color: #1677ff;
+}
+
+.task-wbs-node-kind--task .task-wbs-node-kind__icon {
+  color: #52c41a;
+}
+
+.task-wbs-node-kind--removed .task-wbs-node-kind__icon {
+  color: #ff4d4f;
+}
+
 .task-wbs-status-cell {
   display: flex;
   align-items: center;
@@ -3033,7 +3072,7 @@ watch(ganttCollapsed, () => {
   margin-right: auto;
 }
 
-.project-task-wbs-table :deep(tr.task-wbs-row--removed > td) {
+.project-task-wbs-table :deep(tr.task-wbs-row--removed > td:not(.task-wbs-td-operation)) {
   opacity: 0.55;
 }
 
