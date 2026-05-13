@@ -39,6 +39,8 @@ export interface TaskItem {
   lastRejectRemark?: string;
   /** 原始项目截止日期 ISO（用于前端兜底计算延期天数） */
   projectEndDateRaw?: string;
+  /** 对应 WBS 行 publish_status（0/1）；协同任务未发布时应进任务管理而非协同设计 */
+  wbsPublishStatus?: number;
 }
 
 /** 类型展示名 */

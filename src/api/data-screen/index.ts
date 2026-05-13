@@ -90,6 +90,19 @@ export function deliveryReport(data: any) {
   });
 }
 /**
+ * 产品设计看板：WBS 一级分类下协同发布任务、协同已完成、独立应用数（business-service）
+ */
+export function collabStandaloneBoard(data: {
+  projectId: string | number;
+  phaseId?: string | number;
+}) {
+  return httpRequest({
+    url: "/business-service/business/project-wbs/product-board-collab-standalone",
+    method: "POST",
+    data,
+  });
+}
+/**
  * 知识看板
  * @return {*}
  */

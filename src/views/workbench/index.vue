@@ -317,6 +317,20 @@ const canDesign = (task: TaskItem) => task.category !== 'assign'
 
 /** 后端 WBS 工作台卡片 task_type 为「协同任务」时，为真实协同设计待办（与发布任务写入一致） */
 const WBS_TASK_TYPE_COLLAB = '协同任务'
+const WBS_TASK_TYPE_CATEGORY = '分类协同（分配下级）'
+const WBS_TASK_TYPE_ASSIGN = 'WBS人员指派'
+
+/** 协同任务且接口已明确 WBS 未发布（如驳回后）：应走任务管理，不可直接进协同设计 */
+function isWbsCollabTaskUnpublishedForDesign(task: TaskItem): boolean {
+  if (task.taskKind !== 'wbs')
+    return false
+  if (String(task.type ?? '').trim() !== WBS_TASK_TYPE_COLLAB)
+    return false
+  const pub = task.wbsPublishStatus
+  if (pub === undefined || pub === null)
+    return false
+  return Number(pub) !== 1
+}
 
 /**
  * WBS 卡片：后端 publish 分类节点时 taskType 为「分类协同…」，卡片用于提醒负责人继续分配下级，非独立协同设计任务
@@ -333,10 +347,12 @@ function isWbsDesignTaskEligibleForChange(task: TaskItem): boolean {
   return task.taskKind === 'wbs' && String(task.type ?? '').trim() === WBS_TASK_TYPE_COLLAB
 }
 
-/** 设计按钮提示：分类协同 → 任务管理；真实协同任务 → 协同设计 */
+/** 设计按钮提示：分类协同 → 任务管理；协同未发布 → 重新分配发布；否则协同设计 */
 function designWorkspaceTooltip(task: TaskItem): string {
   if (isWbsCategoryCollaborationWorkbenchTask(task))
     return '任务管理（分配下级）'
+  if (isWbsCollabTaskUnpublishedForDesign(task))
+    return '任务管理（重新分配并发布）'
   return '协同设计'
 }
 const canAssign = (task: TaskItem) => task.category === 'assign'
@@ -375,9 +391,10 @@ function showWbsRejectMenu(task: TaskItem): boolean {
     return false
   if (task.status !== 'todo')
     return false
-  if ((task.progress ?? 0) > 0)
+  const t = String(task.type ?? '').trim()
+  if (t === WBS_TASK_TYPE_COLLAB && (task.progress ?? 0) > 0)
     return false
-  return String(task.type ?? '').trim() === WBS_TASK_TYPE_COLLAB
+  return t === WBS_TASK_TYPE_COLLAB || t === WBS_TASK_TYPE_CATEGORY || t === WBS_TASK_TYPE_ASSIGN
 }
 
 function inferCategoryForTaskItem(taskType: string, taskKind: WorkbenchTaskKind): TaskItem['category'] {
@@ -474,6 +491,13 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
   const projectNameRaw = row.projectName ?? row.project_name
   const appNameRaw = row.appName ?? row.app_name
   const lastRejectRaw = row.lastRejectRemark ?? row.last_reject_remark
+  const wbsPubRaw = row.wbsPublishStatus ?? row.wbs_publish_status
+  let wbsPublishStatus: number | undefined
+  if (wbsPubRaw !== undefined && wbsPubRaw !== null && String(wbsPubRaw).trim() !== '') {
+    const n = Number(wbsPubRaw)
+    if (!Number.isNaN(n))
+      wbsPublishStatus = n
+  }
   return {
     id: row.id != null ? String(row.id) : '',
     title: String(row.title ?? ''),
@@ -505,6 +529,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
     appDisplayName: pickNonEmptyDisplay(appNameRaw),
     lastRejectRemark: pickNonEmptyDisplay(lastRejectRaw),
     projectEndDateRaw,
+    wbsPublishStatus,
   }
 }
 
@@ -701,6 +726,23 @@ async function openDesignWorkspace(task: TaskItem) {
         message.warning('待办缺少项目标识，无法进入任务管理')
         return
       }
+      await router.push({
+        path: '/internal/project-info-editor',
+        query: {
+          id: projectId,
+          tab: '3',
+          wbsAssignEntry: '1',
+        },
+      })
+      return
+    }
+    /** 协同任务已驳回或未发布：须先在项目 WBS 重新分配人员并发布，不可直接进协同设计 */
+    if (isWbsCollabTaskUnpublishedForDesign(task)) {
+      if (!projectId) {
+        message.warning('待办缺少项目标识，无法进入任务管理')
+        return
+      }
+      message.info('当前任务未发布或已驳回，请先在项目任务管理中重新分配人员并发布任务')
       await router.push({
         path: '/internal/project-info-editor',
         query: {
@@ -949,7 +991,7 @@ async function submitWorkbenchReject() {
       return
     }
     closeRejectModal()
-    message.success('已驳回，任务已退回分配方工作台')
+    message.success('已驳回，任务已退回上级分配人，进度已重置')
     await loadTodoListFromApi()
     await loadWorkbenchSummary()
   }
@@ -1420,13 +1462,19 @@ onUnmounted(() => {
                                 <span class="w-[75px] flex-shrink-0">项目时间：</span>
                                 <span>{{ hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/' }}</span>
                               </div>
-                              <div class="flex">
-                                <span class="w-[75px] flex-shrink-0">任务类型：</span>
-                                <span>{{ item.type }}</span>
-                              </div>
-                              <div v-if="item.lastRejectRemark" class="flex text-[12px] text-[#FA8C16] leading-snug">
-                                <span class="w-[75px] flex-shrink-0">退回说明：</span>
-                                <span class="flex-1 min-w-0 break-words">{{ item.lastRejectRemark }}</span>
+                              <div class="tc-type-row flex items-center gap-[6px] min-w-0 text-[14px] leading-[22px]">
+                                <span class="w-[75px] flex-shrink-0 text-[#6A696E]">任务类型：</span>
+                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{ item.type }}</span>
+                                <template v-if="item.lastRejectRemark">
+                                  <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
+                                    <template #title>
+                                      <span style="white-space: pre-wrap;">驳回：{{ item.lastRejectRemark }}</span>
+                                    </template>
+                                    <span class="reject-inline flex-shrink-0 max-w-[42%] min-w-0 text-[12px] font-medium text-[#FA8C16] truncate cursor-default border-l border-[#F0F0F0] pl-[8px] ml-[2px]">
+                                      驳回：{{ item.lastRejectRemark }}
+                                    </span>
+                                  </a-tooltip>
+                                </template>
                               </div>
                               <div v-if="item.viewOnly && item.assigneeDisplayName" class="flex">
                                 <span class="w-[75px] flex-shrink-0">当前承办：</span>
@@ -1558,9 +1606,20 @@ onUnmounted(() => {
                             </div>
                           </template>
                           <template v-if="column.key === 'type'">
-                            <div class="flex flex-col gap-[2px]">
-                              <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
-                              <span class="text-[12px] text-[#8c8c8c]">{{ record.type }}</span>
+                            <div class="flex flex-col gap-[4px] min-w-0 max-w-full">
+                              <div class="flex flex-col gap-[2px]">
+                                <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
+                                <div class="flex items-center gap-[4px] min-w-0 text-[12px]">
+                                  <span class="text-[#8c8c8c] flex-shrink-0">类型</span>
+                                  <span class="text-[#8c8c8c] truncate min-w-0">{{ record.type }}</span>
+                                </div>
+                              </div>
+                              <a-tooltip v-if="record.lastRejectRemark" placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
+                                <template #title>
+                                  <span style="white-space: pre-wrap;">驳回：{{ record.lastRejectRemark }}</span>
+                                </template>
+                                <span class="text-[#FA8C16] text-[12px] truncate block max-w-full cursor-default">驳回：{{ record.lastRejectRemark }}</span>
+                              </a-tooltip>
                             </div>
                           </template>
                           <template v-if="column.key === 'time'">
@@ -1692,9 +1751,20 @@ onUnmounted(() => {
                         </div>
                       </template>
                       <template v-if="column.key === 'type'">
-                        <div class="flex flex-col gap-[2px]">
-                          <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
-                          <span class="text-[12px] text-[#8c8c8c]">{{ record.type }}</span>
+                        <div class="flex flex-col gap-[4px] min-w-0 max-w-full">
+                          <div class="flex flex-col gap-[2px]">
+                            <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
+                            <div class="flex items-center gap-[4px] min-w-0 text-[12px]">
+                              <span class="text-[#8c8c8c] flex-shrink-0">类型</span>
+                              <span class="text-[#8c8c8c] truncate min-w-0">{{ record.type }}</span>
+                            </div>
+                          </div>
+                          <a-tooltip v-if="record.lastRejectRemark" placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
+                            <template #title>
+                              <span style="white-space: pre-wrap;">驳回：{{ record.lastRejectRemark }}</span>
+                            </template>
+                            <span class="text-[#FA8C16] text-[12px] truncate block max-w-full cursor-default">驳回：{{ record.lastRejectRemark }}</span>
+                          </a-tooltip>
                         </div>
                       </template>
                       <template v-if="column.key === 'time'">
@@ -1912,7 +1982,7 @@ onUnmounted(() => {
     @ok="submitWorkbenchReject"
     @cancel="closeRejectModal">
     <p v-if="rejectTargetTask" style="margin-bottom: 12px; color: #666; line-height: 1.6">
-      将「{{ workbenchCardDisplayTitle(rejectTargetTask) }}」退回给任务分配方，对方将重新在工作台收到该待办。请填写驳回原因（对方可见）。
+      将退回给上级分配人（分配操作人或父节点负责人），对方待办将重新打开；协同/分类类已发布任务将撤销发布以便重新选人分配。请填写驳回原因（对方在任务类型旁可见摘要，悬停查看全文）。
     </p>
     <div style="margin-bottom: 8px; color: #313133;">
       驳回意见
@@ -2472,6 +2542,11 @@ onUnmounted(() => {
 
 .delay-progress :deep(.ant-progress-bg) {
   background: linear-gradient(270deg, #FF7864 2.51%, #FF584B 72.46%) !important;
+}
+
+.tc-type-row {
+  width: 100%;
+  flex-wrap: nowrap;
 }
 
 .normal-progress :deep(.ant-progress-bg) {

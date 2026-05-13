@@ -171,6 +171,23 @@ export class AdminApiProjectTemp {
       CommonResultListDeptResponseDTOModel,
     );
 
+  /** 产品设计看板：WBS 一级分类下协同任务与独立应用汇总 */
+  static projectWbsProductBoardCollabStandalone = (
+    body: { projectId: string | number; phaseId?: string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/product-board-collab-standalone`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
   static projectWbsAssignUser = (body: {
     id: string;
     assigneeUserId: string;
