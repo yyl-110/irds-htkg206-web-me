@@ -272,11 +272,11 @@
         </div>
       </template>
     </el-dialog>
-    <UserSelectFormRadio
+    <!-- <UserSelectFormRadio
       ref="userSelectFormRef"
       :operationType="currentOperationType"
       :singleType="currentOperationType === 'transfer'"
-      @confirm="handleUserSelectConfirm" />
+      @confirm="handleUserSelectConfirm" /> -->
     <!-- 任务变量弹窗 -->
     <el-dialog title="任务变量" v-model="taskVariablesDialogVisible" width="800px" :close-on-click-modal="false">
       <div class="task-variables-container">

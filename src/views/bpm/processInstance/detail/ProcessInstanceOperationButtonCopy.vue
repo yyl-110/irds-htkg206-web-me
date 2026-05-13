@@ -20,11 +20,11 @@
     </el-button>
 
     <el-button type="danger" @click="handleCancel" class="mr-20px" v-if="cancelFlag && runningTask">
-      <Icon icon="ep:close" />&nbsp; {{ $t('取消') }}
+      <Icon icon="ep:close" />&nbsp; {{ '取消' }}
     </el-button>
 
     <el-button type="info" @click="handleGoBack" class="mr-20px">
-      <Icon :size="14" icon="ep:back" />&nbsp; {{ $t('关闭') }}
+      <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }}
     </el-button>
 
     <!-- 【抄送】按钮 -->
@@ -112,7 +112,7 @@
           label-width="100px">
           <el-form-item label="新审批人" prop="assigneeUserId">
             <el-button type="info" @click="handleSelectUser" v-if="editType === 1">
-              {{ $t('选择转办对象') }}
+              {{ '选择转办对象' }}
             </el-button>
             <div v-if="transferForm.assigneeUserId" class="ml-10px">
               <el-tag>
@@ -132,11 +132,11 @@
         </el-form>
       </div>
     </el-popover>
-    <UserSelectFormRadio
+    <!-- <UserSelectFormRadio
       ref="userSelectFormRef"
       :operationType="currentOperationType"
       :singleType="currentOperationType === 'transfer'"
-      @confirm="handleUserSelectConfirm" />
+      @confirm="handleUserSelectConfirm" /> -->
     <!-- 【委派】按钮 -->
     <!-- <el-popover
       :visible="popOverVisible.delegate"
@@ -221,7 +221,7 @@
               />
             </el-select> -->
             <el-button type="info" @click="handleaddSignSelectUser" v-if="editType === 1">
-              {{ $t('选择加签对象') }}
+              {{ '选择加签对象' }}
             </el-button>
             <div v-if="addSignForm.addSignUserIds && addSignForm.addSignUserIds.length > 0" class="ml-10px">
               <el-tag
@@ -414,7 +414,6 @@
   <SignDialog ref="signRef" @success="handleSignFinish" />
 </template>
 <script lang="ts" setup>
-import { useUserStoreWithOut } from '@/store/modules/user'
 import { setConfAndFields2 } from '@/utils/formCreate'
 import * as TaskApi from '@/api/bpm/task'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
@@ -433,15 +432,13 @@ import { isEmpty } from '@/utils/is'
 import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
 import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
 import { UserVO } from '@/api/system/user'
-import UserSelectFormRadio from '@/components/UserSelectFormRadio/index.vue'
+// import UserSelectFormRadio from '@/components/UserSelectFormRadio/index.vue'
 import { useMessage } from '@/hooks/web/useMessage'
 defineOptions({ name: 'ProcessInstanceBtnContainer' })
-const { t } = useI18n()
 const router = useRouter() // 路由
 const { push } = useRouter()
 const message = useMessage() // 消息弹窗
 
-const userId = useUserStoreWithOut().getUser.id // 当前登录的编号
 const emit = defineEmits(['success', 'handleLoading']) // 定义 success 事件，用于操作成功后的回调
 
 const props = defineProps<{
@@ -484,18 +481,18 @@ const handleSelectUser = () => {
 const handleUserSelectConfirm = (_, users: UserVO[]) => {
   if (currentOperationType.value === 'transfer') {
     if (users.length === 0) {
-      window.$message.error('请选择一位用户')
+      window.message.error('请选择一位用户')
       return
     }
     if (users.length > 0) {
-      window.$message.success('选择成功')
+      window.message.success('选择成功')
     }
     transferForm.assigneeUserId = users[0].userId
     approveUser.value = users
   }
   if (currentOperationType.value === 'addSign') {
     if (users.length > 0) {
-      window.$message.success('选择成功')
+      window.message.success('选择成功')
     }
     addSignForm.addSignUserIds = users.map(user => user.userId)
     addSignUser.value = users
@@ -699,7 +696,7 @@ const openPopover = async (type: string, buttonName: string) => {
     ) {
       const variables = getUpdatedProcessInstanceVariables()
       if (!variables?.director) {
-        message.error(t('请选择主机厂所长审批节点人员'))
+        message.error('请选择主机厂所长审批节点人员')
         return
       }
     } else {
@@ -712,22 +709,18 @@ const openPopover = async (type: string, buttonName: string) => {
       const valid = await validateNormalForm()
       const valid3 = await validateAreaSaleRelease()
       if (!valid || !valid3) {
-        message.warning(t('表单校验不通过，请先完善表单!!'))
+        message.warning('表单校验不通过，请先完善表单!!')
         return
       }
     }
     // return
     initNextAssigneesFormField()
 
-    await ElMessageBox.confirm(
-      t('确认 ' + getButtonDisplayName(OperationButtonType.APPROVE) + ' 操作吗？'),
-      t('温馨提示'),
-      {
-        confirmButtonText: t('确定'),
-        cancelButtonText: t('取消'),
-        type: 'warning',
-      },
-    )
+    await ElMessageBox.confirm('确认 ' + getButtonDisplayName(OperationButtonType.APPROVE) + ' 操作吗？', '温馨提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
       .then(async () => {
         emit('handleLoading', true)
         //调用提交接口
@@ -741,7 +734,7 @@ const openPopover = async (type: string, buttonName: string) => {
     // 获取退回节点
     returnList.value = await TaskApi.getTaskListByReturn(runningTask.value.id)
     if (returnList.value.length === 0) {
-      message.warning(t('当前没有可退回的节点'))
+      message.warning('当前没有可退回的节点')
       return
     }
   }
@@ -750,7 +743,7 @@ const openPopover = async (type: string, buttonName: string) => {
   if (type === 'reject') {
     const regectLabel = getButtonDisplayName(OperationButtonType.REJECT)
     if (!props.opinion && !regectLabel?.includes('解算')) {
-      message.error(t('处理意见不能为空！'))
+      message.error('处理意见不能为空！')
       return
     }
 
@@ -761,20 +754,16 @@ const openPopover = async (type: string, buttonName: string) => {
     ) {
       const variables = getUpdatedProcessInstanceVariables()
       if (!variables?.drafter) {
-        message.error(t('请选择编制节点人员'))
+        message.error('请选择编制节点人员')
         return
       }
     }
 
-    await ElMessageBox.confirm(
-      t('确认 ' + getButtonDisplayName(OperationButtonType.REJECT) + ' 操作吗？'),
-      t('温馨提示'),
-      {
-        confirmButtonText: t('确定'),
-        cancelButtonText: t('取消'),
-        type: 'warning',
-      },
-    )
+    await ElMessageBox.confirm('确认 ' + getButtonDisplayName(OperationButtonType.REJECT) + ' 操作吗？', '温馨提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
       .then(async () => {
         emit('handleLoading', true)
         //调用提交接口
@@ -894,7 +883,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
     const valid = await validateNormalForm()
     if (!valid) {
       emit('handleLoading', false)
-      message.warning(t('表单校验不通过，请先完善表单!!'))
+      message.warning('表单校验不通过，请先完善表单!!')
       return
     }
 
@@ -931,7 +920,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
       subButton.value = false
       nextAssigneesActivityNode.value = []
       emit('handleLoading', false)
-      message.success(t('审批成功'))
+      message.success('审批成功')
       handleGoBack()
     } else {
       const variables = getUpdatedProcessInstanceVariables()
@@ -947,7 +936,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
       subButton.value = false
       emit('handleLoading', false)
       const regectLabel = getButtonDisplayName(OperationButtonType.REJECT)
-      message.success(t(regectLabel?.includes('解算') ? '重新解算成功' : '提交成功'))
+      message.success(regectLabel?.includes('解算') ? '重新解算成功' : '提交成功')
       //重新结算的需要等待，不跳回列表
 
       if (regectLabel?.includes('解算')) {
@@ -1108,9 +1097,9 @@ const handleCancel = async () => {
     message.error('处理意见不能为空！')
     return
   }
-  await ElMessageBox.confirm(t('是否取消当前审批流程'), t('温馨提示'), {
-    confirmButtonText: t('确定'),
-    cancelButtonText: t('取消'),
+  await ElMessageBox.confirm('是否取消当前审批流程', '温馨提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
     type: 'warning',
   })
     .then(async () => {
@@ -1142,7 +1131,7 @@ const handleReCreate = async () => {
 const getDeleteSignUserLabel = (task: any): string => {
   const deptName = task?.assigneeUser?.deptName || task?.ownerUser?.deptName
   const nickname = task?.assigneeUser?.nickname || task?.ownerUser?.nickname
-  return `${nickname} ( 所属部门：${deptName} )`
+  return `{nickname} ( 所属部门：{deptName} )`
 }
 /** 处理减签 */
 const handlerDeleteSign = async () => {

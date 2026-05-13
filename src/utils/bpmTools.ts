@@ -47,3 +47,21 @@ export function jsonParse(str: string) {
     return str
   }
 }
+
+// tree from list
+export const listToTree = <T = any>(list: any[], config: Partial<TreeHelperConfig> = {}): T[] => {
+  const conf = getConfig(config) as TreeHelperConfig
+  const nodeMap = new Map()
+  const result: T[] = []
+  const { id, children, pid } = conf
+
+  for (const node of list) {
+    node[children] = node[children] || []
+    nodeMap.set(node[id], node)
+  }
+  for (const node of list) {
+    const parent = nodeMap.get(node[pid])
+    ;(parent ? parent.children : result).push(node)
+  }
+  return result
+}

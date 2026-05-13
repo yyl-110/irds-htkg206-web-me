@@ -5,19 +5,18 @@
       @click="handleAudit(true, rejectFormRef)"
       class="m-r10px"
       v-if="editType === 1 && subButton">
-      <Icon icon="ep:select" /> &nbsp; {{ $t('提交') }}
+      <Icon icon="ep:select" /> &nbsp; {{ '提交' }}
     </el-button>
 
     <el-button type="danger" @click="handleCancel" class="m-r10px" v-if="editType === 1 && subButton">
-      <Icon icon="ep:close" />&nbsp; {{ $t('取消') }}
+      <Icon icon="ep:close" />&nbsp; {{ '取消' }}
     </el-button>
 
-    <el-button type="info" @click="handleGoBack"> <Icon :size="14" icon="ep:back" />&nbsp; {{ $t('关闭') }} </el-button>
+    <el-button type="info" @click="handleGoBack"> <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }} </el-button>
   </div>
 </template>
 <script lang="ts" setup>
 import { ElMessageBox } from 'element-plus'
-import { useUserStoreWithOut } from '@/store/modules/user'
 import { setConfAndFields2 } from '@/utils/formCreate'
 import * as TaskApi from '@/api/bpm/task'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
@@ -28,12 +27,9 @@ import { isEmpty } from '@/utils/is'
 
 defineOptions({ name: 'ProcessInstanceBtnContainer' })
 import { useMessage } from '@/hooks/web/useMessage'
-const { t } = useI18n()
 const router = useRouter() // 路由
 const { push } = useRouter()
 const message = useMessage() // 消息弹窗
-
-const userId = useUserStoreWithOut().getUser.id // 当前登录的编号
 const emit = defineEmits(['success']) // 定义 success 事件，用于操作成功后的回调
 
 const props = defineProps<{
@@ -103,9 +99,9 @@ const handleCancel = async () => {
     message.error('处理意见不能为空！')
     return
   }
-  await ElMessageBox.confirm(t('是否取消当前审批流程'), t('温馨提示'), {
-    confirmButtonText: t('确定'),
-    cancelButtonText: t('取消'),
+  await ElMessageBox.confirm('是否取消当前审批流程', '温馨提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
     type: 'warning',
   })
     .then(async () => {
@@ -168,7 +164,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
 
     const valid3 = await validateAreaSaleRelease()
     if (!valid3) {
-      message.warning(t('表单校验不通过，请先完善表单!!'))
+      message.warning('表单校验不通过，请先完善表单!!')
       return
     }
 

@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import Vue3Signature from 'vue3-signature'
-import * as FileApi from '@/api/infra/file'
+// import * as FileApi from '@/api/infra/file'
 import download from '@/utils/download'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n() // 国际化
@@ -39,11 +39,11 @@ defineExpose({ open })
 
 const emits = defineEmits(['success'])
 const submit = async () => {
-  message.success(t('签名上传中请稍等。。。'))
-  const res = await FileApi.updateFile({
-    file: download.base64ToFile(signature.value.save('image/png'), '签名'),
-  })
-  emits('success', res.data)
+  // message.success(t('签名上传中请稍等。。。'))
+  // const res = await FileApi.updateFile({
+  //   file: download.base64ToFile(signature.value.save('image/png'), '签名'),
+  // })
+  // emits('success', res.data)
   signDialogVisible.value = false
 }
 </script>

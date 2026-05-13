@@ -42,7 +42,7 @@
       <el-form-item :label="$t('流程状态')" prop="params.status">
         <el-select v-model="queryParams.params.status" :placeholder="$t('请选择流程状态')" clearable class="!w-240px">
           <el-option
-            v-for="dict in getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS)"
+            v-for="dict in useDict.getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS)"
             :key="dict.value"
             :label="dict.label"
             :value="dict.value" />
@@ -125,7 +125,7 @@
 
         <el-table-column label="流程名称" align="left" prop="name" min-width="180px" />
         <el-table-column :label="$t('流程分类')" align="left" prop="categoryName" min-width="180" />
-        <el-table-column :label="$t('发起人')" align="center" prop="startUser.nickname" width="80">
+        <el-table-column :label="$t('发起人')" align="center" prop="startUser.nickname" width="120">
           <template #default="scope">
             <el-tooltip :content="scope.row.startUser?.account" placement="top">
               <span>{{ scope.row.startUser?.nickname }}</span>
@@ -209,14 +209,16 @@
   </ContentWrap>
 </template>
 <script lang="ts" setup>
-import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
+import { DICT_TYPE } from '@/utils/dict'
+import { useDictStore } from '@/store/modules/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import { ElMessageBox } from 'element-plus'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import { CategoryApi } from '@/api/bpm/category'
-import * as UserApi from '@/api/system/user'
+import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
 import { useI18n } from 'vue-i18n'
 import { h } from 'vue'
+import { ContentWrap } from '@/components/ContentWrap'
 import DictTag from '@/components/DictTag/src/DictTag.vue'
 import ProcessDetailDrawer from './components/ProcessDetailDrawer.vue'
 const { t } = useI18n() // 国际化
@@ -225,7 +227,8 @@ defineOptions({ name: 'BpmProcessInstanceManager' })
 import { useMessage } from '@/hooks/web/useMessage'
 const router = useRouter() // 路由
 const message = useMessage() // 消息弹窗
-
+/** 获取字典 */
+const useDict = useDictStore()
 const loading = ref(true) // 列表的加载中
 const total = ref(0) // 列表的总页数
 const list = ref([]) // 列表的数据
@@ -274,8 +277,10 @@ const getList = async () => {
   loading.value = true
   try {
     const data = await ProcessInstanceApi.getProcessInstanceManagerPage(queryParams)
-    list.value = data.data
-    total.value = data.count
+    if (data.data.code === 200) {
+      list.value = data.data.data.data || []
+      total.value = data.data.data.count || 0
+    }
   } finally {
     loading.value = false
   }
@@ -337,14 +342,14 @@ const resetQuery = () => {
 
 /** 查看详情 */
 const handleDetail = row => {
-  router.push({
-    name: 'BpmProcessInstanceDetail',
-    query: {
-      id: row.id,
-      pageIndex: 0,
-      orderNo: row.processVariables.orderNo,
-    },
-  })
+  // router.push({
+  //   name: 'BpmProcessInstanceDetail',
+  //   query: {
+  //     id: row.id,
+  //     pageIndex: 0,
+  //     orderNo: row.processVariables.orderNo,
+  //   },
+  // })
 }
 
 /** 取消按钮操作 */
@@ -412,11 +417,11 @@ onActivated(() => {
 onMounted(async () => {
   await getList()
   const resp = await CategoryApi.getCategoryPage(queryParams2)
-  categoryList.value = resp.data || []
-  console.log(categoryList.value, 'categoryList')
-
-  const resp2 = (await UserApi.getSimpleUserList()) as any
-  userList.value = resp2 && resp2.data ? resp2.data : []
+  categoryList.value = resp.data.data.data || []
+  const resp2 = await AdminApiSystemUser.getSimpleUsers()
+  if (resp2.data.code === 200) {
+    userList.value = resp2.data.data || []
+  }
 })
 </script>
 

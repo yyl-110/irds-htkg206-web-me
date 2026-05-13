@@ -450,7 +450,7 @@
       </el-scrollbar>
 
       <!-- 用户选择弹窗 -->
-      <UserSelectFormRadio ref="userSelectFormRef" @confirm="handleUserSelectConfirm" />
+      <!-- <UserSelectFormRadio ref="userSelectFormRef" @confirm="handleUserSelectConfirm" /> -->
 
       <FeatureDetailModal ref="FeatureDetailModalRef" />
 

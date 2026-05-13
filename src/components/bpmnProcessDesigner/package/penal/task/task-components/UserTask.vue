@@ -174,7 +174,7 @@
   </el-form>
 
   <!-- 用户选择弹窗 -->
-  <UserSelectFormRadio ref="userSelectFormRef" @confirm="handleUserSelectConfirm" />
+  <!-- <UserSelectFormRadio ref="userSelectFormRef" @confirm="handleUserSelectConfirm" /> -->
 </template>
 
 <script lang="ts" setup>
@@ -184,7 +184,7 @@ import {
   FieldPermissionType,
   MULTI_LEVEL_DEPT,
 } from '@/components/SimpleProcessDesignerV2/src/consts'
-import { defaultProps,  } from '@/utils/bpmTools'
+import { defaultProps } from '@/utils/bpmTools'
 import * as RoleApi from '@/api/system/role'
 // import * as DeptApi from '@/api/system/dept'
 // import * as PostApi from '@/api/system/post'
@@ -368,20 +368,16 @@ const getUserInfo = async (userId: string) => {
   //   console.log('从缓存获取用户信息:', userId)
   //   return userCache.value.get(userId)
   // }
-
   // try {
   //   console.log('开始获取单个用户信息，userId:', userId)
-
   //   // 直接使用 findPaginationByUsers API 根据用户ID查询
   //   console.log('调用API: findPaginationByUsers，参数:', [userId])
   //   const res = await findPaginationByUsers([userId])
   //   console.log('findPaginationByUsers API响应:', res)
-
   //   console.log('API响应状态:', res?.status)
   //   console.log('API响应数据:', res?.data)
   //   console.log('API响应数据类型:', typeof res?.data)
   //   console.log('API响应数据长度:', res?.data?.length)
-
   //   let userInfo = null
   //   if (res?.data && res.data.length > 0) {
   //     userInfo = res.data[0]
@@ -397,7 +393,6 @@ const getUserInfo = async (userId: string) => {
   //     console.log('单个查询API响应数据类型:', typeof singleRes.data)
   //     userInfo = singleRes.data
   //   }
-
   //   // 输出原始用户信息，帮助调试
   //   if (userInfo) {
   //     console.log('=== 单个查询原始用户信息 ===')
@@ -412,7 +407,6 @@ const getUserInfo = async (userId: string) => {
   //     console.log('完整原始数据:', JSON.stringify(userInfo, null, 2))
   //     console.log('============================')
   //   }
-
   //   // 确保返回的用户信息包含所有必要字段
   //   const completeUserInfo = {
   //     userId: (userInfo as any)?.userId || (userInfo as any)?.id || userId,
@@ -426,11 +420,9 @@ const getUserInfo = async (userId: string) => {
   //       (userInfo as any)?.nickname ||
   //       `用户${userId}`,
   //   }
-
   //   // 缓存用户信息
   //   userCache.value.set(userId, completeUserInfo)
   //   console.log('获取用户信息成功并缓存:', completeUserInfo)
-
   //   return completeUserInfo
   // } catch (error) {
   //   console.error('获取用户信息失败:', error, 'userId:', userId)
@@ -440,10 +432,8 @@ const getUserInfo = async (userId: string) => {
   //     nickName: `用户${userId}`,
   //     psnName: `用户${userId}`,
   //   }
-
   //   // 即使失败也缓存，避免重复请求
   //   userCache.value.set(userId, fallbackInfo)
-
   //   return fallbackInfo
   // }
 }
@@ -573,21 +563,6 @@ const resetTaskForm = () => {
       // 特殊：流程表达式，只有一个 input 输入框
       userTaskForm.value.candidateParam = [businessObject.candidateParam]
     } else {
-      userTaskForm.value.candidateParam = businessObject.candidateParam.split(',').map(item => item)
-    }
-  } else {
-    userTaskForm.value.candidateParam = []
-  }
-}
-
-/** 更新 candidateStrategy 字段时，需要清空 candidateParam，并触发 bpmn 图更新 */
-const changeCandidateStrategy = () => {
-  userTaskForm.value.candidateParam = []
-  deptLevel.value = 1
-  if (userTaskForm.value.candidateStrategy === CandidateStrategy.FORM_USER) {
-    // 特殊处理表单内用户字段，当只有发起人选项时应选中发起人
-    if (!userFieldOnFormOptions.value || userFieldOnFormOptions.value.length <= 1) {
-      userTaskForm.value.candidateStrategy = CandidateStrategy.START_USER
     }
   }
   updateElementTask()
@@ -632,10 +607,6 @@ const updateSkipExpression = () => {
   // 检查 bpmnElement 是否存在
   if (!bpmnElement.value) {
     console.warn('bpmnElement 不存在，无法更新跳过表达式')
-    return
-  }
-
-  if (userTaskForm.value.skipExpression && userTaskForm.value.skipExpression !== '') {
     bpmnInstances().modeling.updateProperties(toRaw(bpmnElement.value), {
       skipExpression: userTaskForm.value.skipExpression,
     })
@@ -690,7 +661,7 @@ watch(
             userId: user.userId,
             psnName: user.psnName || user.nickName || `用户${user.userId}`,
             nickName: user.nickName || `用户${user.userId}`,
-            loginAccount: user.loginAccount || user.userId
+            loginAccount: user.loginAccount || user.userId,
           }))
 
           selectedUsers.value = formattedUserDetails
@@ -705,10 +676,9 @@ watch(
         // 如果不是用户策略，清空用户选择
         selectedUsers.value = []
       }
-
     })
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 onMounted(async () => {
@@ -719,14 +689,11 @@ onMounted(async () => {
   // const resp2 = await DeptApi.getSimpleDeptList()
   // const deptOptions = (resp2 as any).data || []
   // deptTreeOptions.value = handleTree(deptOptions, 'id')
-
   // // 获得岗位列表
   // // postOptions.value = await PostApi.getSimplePostList()
-
   // // 获得用户列表
   // const resp3 = await UserApi.getSimpleUserList()
   // userOptions.value = (resp3 as any).data?.data || []
-
   // 获得用户组列表
   // userGroupOptions.value = await UserGroupApi.getUserGroupSimpleList()
 })

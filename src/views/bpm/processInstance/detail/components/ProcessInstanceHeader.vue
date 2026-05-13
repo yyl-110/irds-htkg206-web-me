@@ -1,6 +1,6 @@
 <template>
   <div class="process-instance-header">
-    <img class="position-absolute right-20px" width="150" :src="auditIconsMap[processInstance.status]" alt="" />
+    <!-- <img class="position-absolute right-20px" width="150" :src="auditIconsMap[processInstance.status]" alt="" /> -->
     <div class="text-#878c93 h-15px">{{ $t('编号：') }}{{ id }}</div>
     <el-divider class="!my-8px" />
     <div class="flex items-center gap-5 mb-10px h-40px">
@@ -11,8 +11,7 @@
       <dict-tag
         v-if="processInstance.status"
         :type="DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS"
-        :value="processInstance.status"
-      />
+        :value="processInstance.status" />
     </div>
 
     <div class="flex items-center gap-5 mb-10px text-13px h-35px">
@@ -23,9 +22,7 @@
         </el-avatar>
         {{ processInstance?.startUser?.nickname || processInstance.startUser?.psnName }}
       </div>
-      <div class="text-#878c93">
-        {{ formatDate(processInstance.startTime) }} {{ $t('提交') }}
-      </div>
+      <div class="text-#878c93">{{ formatDate(processInstance.startTime) }} {{ $t('提交') }}</div>
     </div>
   </div>
 </template>
@@ -37,7 +34,7 @@ import { DICT_TYPE } from '@/utils/dict'
 defineProps<{
   id: string
   processInstance: any
-  auditIconsMap: Record<number, string>
+  // auditIconsMap: Record<number, string>
   taskDefinitionKey: string
   taskName: string
 }>()

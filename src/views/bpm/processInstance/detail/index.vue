@@ -3,16 +3,16 @@
     <div class="processInstance-wrap-main">
       <el-scrollbar>
         <!-- 头部信息 -->
+        <!-- :audit-icons-map="auditIconsMap" -->
         <ProcessInstanceHeader
           :id="id"
           :process-instance="processInstance"
-          :audit-icons-map="auditIconsMap"
           :task-definition-key="taskActivityId"
           :task-name="tName" />
 
         <el-tabs v-model="activeTab">
           <!-- 审批详情 -->
-          <el-tab-pane :label="$t('审批详情')" name="form">
+          <el-tab-pane :label="'审批详情'" name="form">
             <div class="form-scroll-area">
               <el-scrollbar>
                 <el-row>
@@ -70,14 +70,14 @@
           </el-tab-pane>
 
           <!-- 流程图 -->
-          <el-tab-pane :label="$t('流程图')" name="diagram">
+          <el-tab-pane :label="'流程图'" name="diagram">
             <div class="form-scroll-area diagram-container">
               <div class="diagram-toolbar">
                 <el-button type="danger" plain size="small" @click="refreshProcessDiagram">
-                  {{ $t('刷新') }}
+                  {{ '刷新' }}
                 </el-button>
                 <el-button type="primary" plain size="small" @click="showProcessVariables">
-                  {{ $t('查看流程变量') }}
+                  {{ '查看流程变量' }}
                 </el-button>
               </div>
               <ProcessInstanceSimpleViewer
@@ -93,7 +93,7 @@
           </el-tab-pane>
 
           <!-- 流转记录 -->
-          <el-tab-pane :label="$t('流转记录')" name="record">
+          <el-tab-pane :label="'流转记录'" name="record">
             <div class="form-scroll-area">
               <el-scrollbar>
                 <ProcessInstanceTaskList :loading="processInstanceLoading" :id="id" />
@@ -103,7 +103,7 @@
         </el-tabs>
 
         <!-- 操作栏按钮 -->
-        <div class="b-t-solid border-t-1px border-[var(--el-border-color)]" v-if="orderRedType">
+        <div class="b--solid border--1px border-[var(--el-border-color)]" v-if="orderRedType">
           <ProcessInstanceOperationButtonCopy
             v-if="taskType !== ETASKTYPE.ESTABLISHMENT"
             ref="operationButtonRef"
@@ -145,19 +145,19 @@
       </el-scrollbar>
 
       <!-- 弹窗和抽屉 -->
-      <UserSelectFormRadio ref="userSelectFormRef" :singleType="true" @confirm="handleUserSelectConfirm" />
-      <FeatureDetailModal ref="FeatureDetailModalRef" />
-      <BomOrderSet title="订单BOM" ref="OrderSetRef" />
-      <CustomizeFeatureDetailModal ref="CustomizeFeatureDetailModalRef" />
-      <ProjectConfigDeatil ref="projectConfigDeatilRef" />
-      <EpOnlyCompareDrawer
+      <!-- <UserSelectFormRadio ref="userSelectFormRef" :singleType="true" @confirm="handleUserSelectConfirm" /> -->
+      <!-- <FeatureDetailModal ref="FeatureDetailModalRef" /> -->
+      <!-- <BomOrderSet title="订单BOM" ref="OrderSetRef" /> -->
+      <!-- <CustomizeFeatureDetailModal ref="CustomizeFeatureDetailModalRef" /> -->
+      <!-- <ProjectConfigDeatil ref="projectConfigDeatilRef" /> -->
+      <!-- <EpOnlyCompareDrawer
         v-model="showEpCompareDrawer"
         :configNo="configNo"
         :orderID="orderID"
         :orderNo="orderNo"
-        :designModelId="designModelId" />
-      <VersionCompareDrawer ref="versionCompareDrawerRef" />
-      <SuperBom ref="refSuperBom" />
+        :designModelId="designModelId" /> -->
+      <!-- <VersionCompareDrawer ref="versionCompareDrawerRef" /> -->
+      <!-- <SuperBom ref="refSuperBom" /> -->
 
       <!-- 流程变量弹窗 -->
       <el-dialog v-model="processVariablesDialogVisible" title="流程变量" width="60%" :close-on-click-modal="false">
@@ -185,9 +185,6 @@
 <script lang="ts" setup>
 import { ref, computed, defineAsyncComponent, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { formatDate } from '@/utils/formatTime'
-import { DICT_TYPE } from '@/utils/dict'
 import { BpmModelType, BpmModelFormType } from '@/utils/constants'
 import { setConfAndFields2 } from '@/utils/formCreate'
 import { registerComponent } from '@/utils/routerHelper'
@@ -195,13 +192,11 @@ import type { ApiAttrs } from '@form-create/element-ui/types/config'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import * as UserApi from '@/api/system/user'
 import { FieldPermissionType } from '@/components/SimpleProcessDesignerV2/src/consts'
-import { ETASKTYPE } from '../components/config/constant.js'
+import { ETASKTYPE } from '../components/config/constant'
 import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
-import { TaskStatusEnum } from '@/api/bpm/task'
-import { UserVO } from '@/api/system/user'
-import { getProcOrderInfo } from '@/api/orderBom'
-import { getBusinessTypeComponent } from './businessTypes/index.js'
+import { getBusinessTypeComponent } from './businessTypes/index'
 import { useMessage } from '@/hooks/web/useMessage'
+import { ContentWrap } from '@/components/ContentWrap'
 // 导入组件
 import ProcessInstanceHeader from './components/ProcessInstanceHeader.vue'
 import ProcessInstanceBpmnViewer from './ProcessInstanceBpmnViewer.vue'
@@ -213,22 +208,19 @@ import ProcessInstanceTimeline from './ProcessInstanceTimeline.vue'
 import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
 import ProcessOpinion from './components/ProcessOpinion.vue'
 import ProcessStatusSelector from './components/ProcessStatusSelector.vue'
-import FeatureDetailModal from '@/views/ProductMgt/SalesFeature/component/FeatureDetailModal.vue'
-import BomOrderSet from '@/views/Order/component/BomOrderSet.vue'
-import CustomizeFeatureDetailModal from '@/views/ProductMgt/TechnicalFeature/component/CustomizeFeatureDetailModal.vue'
-import ProjectConfigDeatil from '@/components/ProjectConfigDetail/index.vue'
-import EpOnlyCompareDrawer from '@/components/EpOnlyCompareDrawer'
-import VersionCompareDrawer from '@/views/Order/component/VersionCompareDrawer.vue'
-import SuperBom from '@/components/SuperBom'
-import UserSelectFormRadio from '@/components/UserSelectFormRadio/index.vue'
+// import FeatureDetailModal from '@/views/ProductMgt/SalesFeature/component/FeatureDetailModal.vue'
+// import BomOrderSet from '@/views/Order/component/BomOrderSet.vue'
+// import CustomizeFeatureDetailModal from '@/views/ProductMgt/TechnicalFeature/component/CustomizeFeatureDetailModal.vue'
+// import ProjectConfigDeatil from '@/components/ProjectConfigDetail/index.vue'
+// import EpOnlyCompareDrawer from '@/components/EpOnlyCompareDrawer'
+// import VersionCompareDrawer from '@/views/Order/component/VersionCompareDrawer.vue'
+// import SuperBom from '@/components/SuperBom'
+// import UserSelectFormRadio from '@/components/UserSelectFormRadio/index.vue'
 
-import runningSvg from '@/assets/svgs/bpm/running.svg'
-import approveSvg from '@/assets/svgs/bpm/approve.svg'
-import rejectSvg from '@/assets/svgs/bpm/reject.svg'
-import cancelSvg from '@/assets/svgs/bpm/cancel.svg'
-import { truncate } from 'fs/promises'
-
-const { t } = useI18n()
+// import runningSvg from '@/assets/svgs/bpm/running.svg'
+// import approveSvg from '@/assets/svgs/bpm/approve.svg'
+// import rejectSvg from '@/assets/svgs/bpm/reject.svg'
+// import cancelSvg from '@/assets/svgs/bpm/cancel.svg'
 defineOptions({ name: 'BpmProcessInstanceDetail' })
 
 const props = defineProps<{
@@ -247,12 +239,12 @@ const processInstance = ref<any>({})
 const processDefinition = ref<any>({})
 const processModelView = ref<any>({})
 const operationButtonRef = ref()
-const auditIconsMap = {
-  [TaskStatusEnum.RUNNING]: runningSvg,
-  [TaskStatusEnum.APPROVE]: approveSvg,
-  [TaskStatusEnum.REJECT]: rejectSvg,
-  [TaskStatusEnum.CANCEL]: cancelSvg,
-}
+// const auditIconsMap = {
+//   [TaskStatusEnum.RUNNING]: runningSvg,
+//   [TaskStatusEnum.APPROVE]: approveSvg,
+//   [TaskStatusEnum.REJECT]: rejectSvg,
+//   [TaskStatusEnum.CANCEL]: cancelSvg,
+// }
 
 // 表单相关
 const fApi = ref<ApiAttrs>()
@@ -318,7 +310,7 @@ const firstTimeEditSubmit = ref(true)
 const approvEmainEnginePlantsUser = ref<any>([])
 const emainEnginePlants = ref<boolean>(false)
 const toTaskId = ref<any>('')
-const userOptions = ref<UserApi.UserVO[]>([])
+const userOptions = ref<[]>([])
 const BusinessFormComponent = ref<any>(null)
 const activityNodes = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([])
 const currentBusinessComponent = ref<any>(null)
@@ -387,7 +379,7 @@ const handleShowModal = (type: string, row: any) => {
 }
 
 const handleShowSuperBom = ({ areaSConfigId, type, bomData }) => {
-  refSuperBom.value?.show(areaSConfigId, type, bomData)
+  // refSuperBom.value?.show(areaSConfigId, type, bomData)
 }
 
 const handleShowEpCompare = ({ orderId, orderNo: orderNum, designModelId: dmId, configNo: cfgNo }) => {
@@ -411,7 +403,7 @@ const handleSelectApprover = (index: number, type: 'normal' | 'mainEngine') => {
   userSelectFormRef.value.open(0, list)
 }
 
-const handleUserSelectConfirm = (_, users: UserVO[]) => {
+const handleUserSelectConfirm = (_, users: []) => {
   debugger
   if (users) {
     window.$message.success('选择成功')
@@ -477,11 +469,11 @@ const getApprovalDetail = async () => {
     }
     const data = await ProcessInstanceApi.getApprovalDetail(param)
     if (!data) {
-      message.error(t('查询不到审批详情信息！'))
+      message.error('查询不到审批详情信息！')
       return
     }
     if (!data.processDefinition || !data.processInstance) {
-      message.error(t('查询不到流程信息！'))
+      message.error('查询不到流程信息！')
       return
     }
 

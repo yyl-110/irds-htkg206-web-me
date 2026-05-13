@@ -104,8 +104,6 @@ async function getList() {
     // 查询模型 + 分裂的列表
     const modelList = await ModelApi.getModelList(queryParams.name)
     const categoryList = await CategoryApi.getCategorySimpleList()
-    console.log(categoryList, 'categoryList')
-    console.log(modelList, 'modelList')
     // 按照 category 聚合
     // 注意：必须一次性赋值给 categoryGroup，否则每次操作后，列表会重新渲染，滚动条的位置会偏离！！！
     categoryGroup.value = categoryList.data.data.map((category: any) => ({
