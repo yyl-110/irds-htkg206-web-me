@@ -37,6 +37,8 @@ export interface TaskItem {
   appDisplayName?: string;
   /** 协同任务被驳回后，退回方可见的上一次驳回意见（服务端 lastRejectRemark） */
   lastRejectRemark?: string;
+  /** 原始项目截止日期 ISO（用于前端兜底计算延期天数） */
+  projectEndDateRaw?: string;
 }
 
 /** 类型展示名 */

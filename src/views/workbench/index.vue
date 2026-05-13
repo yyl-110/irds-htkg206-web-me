@@ -405,6 +405,11 @@ function pickNonEmptyDisplay(raw: unknown): string | undefined {
   return s === '' ? undefined : s
 }
 
+/** 待办且存在延期天数时：红色进度条、延期文案、右上角「延期」角标 */
+function workbenchShowOverdueUi(task: TaskItem): boolean {
+  return task.status === 'todo' && task.delayDays != null && task.delayDays > 0
+}
+
 /**
  * 卡片 / 列表展示标题：WBS 追加（项目名称）；独立应用与计算追加（应用名称）
  * @param task
@@ -435,18 +440,27 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
   else {
     if (st === 'TODO')
       tags.push('待办')
-    if (st === 'TODO' && (Number(row.overdueDays) || 0) > 0)
-      tags.push('延')
   }
   const startTime = formatProjectDateCn(row.projectStartDate)
   const endTime = formatProjectDateCn(row.projectEndDate)
   const taskTypeStr = String(row.taskType ?? '')
   const progress = Math.min(100, Math.max(0, Number(row.progress ?? 0)))
-  const overdue = Math.max(0, Number(row.overdueDays) || 0)
+  const apiOverdue = Math.max(0, Number(row.overdueDays) || 0)
+  let delayDays: number | undefined = apiOverdue > 0 ? apiOverdue : undefined
+  const endRaw = row.projectEndDate ?? row.project_end_date
+  const projectEndDateRaw = endRaw != null && String(endRaw).trim() !== '' ? String(endRaw) : undefined
+  if (delayDays == null && st === 'TODO' && projectEndDateRaw) {
+    const end = dayjs(projectEndDateRaw).startOf('day')
+    if (end.isValid()) {
+      const late = dayjs().startOf('day').diff(end, 'day')
+      if (late > 0)
+        delayDays = late
+    }
+  }
   const uiStatus: 'todo' | 'done' = st === 'DONE' ? 'done' : 'todo'
   let remainDays: number | undefined
-  if (st === 'TODO' && overdue === 0 && row.projectEndDate) {
-    const end = dayjs(String(row.projectEndDate)).startOf('day')
+  if (st === 'TODO' && (delayDays == null || delayDays <= 0) && projectEndDateRaw) {
+    const end = dayjs(projectEndDateRaw).startOf('day')
     if (end.isValid()) {
       const d = end.diff(dayjs().startOf('day'), 'day')
       if (d >= 0)
@@ -472,7 +486,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
     scene: inferSceneForTaskItem(taskKind),
     taskKind,
     progress,
-    delayDays: overdue > 0 ? overdue : undefined,
+    delayDays,
     remainDays,
     creatorName: String(row.creatorName ?? ''),
     creatorAvatar: '',
@@ -490,6 +504,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
     projectDisplayName: pickNonEmptyDisplay(projectNameRaw),
     appDisplayName: pickNonEmptyDisplay(appNameRaw),
     lastRejectRemark: pickNonEmptyDisplay(lastRejectRaw),
+    projectEndDateRaw,
   }
 }
 
@@ -1358,6 +1373,13 @@ onUnmounted(() => {
                       <a-row :gutter="[16, 16]">
                         <a-col v-for="item in filteredTodoList" :key="String(item.id)" flex="0 0 380px" style="width: 380px; max-width: 380px;">
                           <div class="task-card" :class="taskCardKindClass(item)">
+                            <div
+                              v-if="workbenchShowOverdueUi(item)"
+                              class="task-card__overdue-corner"
+                              :class="{ 'task-card__overdue-corner--with-menu': showWbsRejectMenu(item) }"
+                            >
+                              延期
+                            </div>
                             <div class="task-card__type-ribbon">
                               <span class="task-card__type-ribbon-inner">
                                 <ApartmentOutlined v-if="item.taskKind === 'wbs'" />
@@ -1376,7 +1398,7 @@ onUnmounted(() => {
                                   workbenchCardDisplayTitle(item)
                                 }}</span>
                                 <span
-                                  v-for="tag in item.tags.filter(tag => tag !== '待办')" :key="tag" class="tc-tag flex-shrink-0"
+                                  v-for="tag in item.tags.filter(t => t !== '待办' && !(workbenchShowOverdueUi(item) && t === '延'))" :key="tag" class="tc-tag flex-shrink-0"
                                   :class="getTagClass(tag)"
                                 >{{ tag
                                 }}</span>
@@ -1415,14 +1437,14 @@ onUnmounted(() => {
                                   <span class="w-[75px] flex-shrink-0">当前进度：</span>
                                   <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
                                 </div>
-                                <span v-if="hasTimelineInfo(item) && item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
+                                <span v-if="item.status === 'todo' && item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
                                 <span v-else-if="hasTimelineInfo(item) && item.remainDays" class="text-[#6A696E]">距截止还剩 {{ item.remainDays }}
                                   天</span>
                               </div>
                               <a-progress
                                 :percent="item.progress" :show-info="false" :stroke-width="8"
                                 trail-color="#F0F0F0"
-                                class="mt-[8px] !mb-0" :class="[item.delayDays ? 'delay-progress' : 'normal-progress']"
+                                class="mt-[8px] !mb-0" :class="workbenchShowOverdueUi(item) ? 'delay-progress' : 'normal-progress'"
                               />
                             </div>
 
@@ -1530,7 +1552,10 @@ onUnmounted(() => {
                         </template>
                         <template #bodyCell="{ column, record }">
                           <template v-if="column.key === 'title'">
-                            <span class="font-bold text-[#313133]">{{ workbenchCardDisplayTitle(record) }}</span>
+                            <div class="flex items-center gap-[8px] min-w-0">
+                              <span class="font-bold text-[#313133] truncate">{{ workbenchCardDisplayTitle(record) }}</span>
+                              <span v-if="workbenchShowOverdueUi(record)" class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]">延期</span>
+                            </div>
                           </template>
                           <template v-if="column.key === 'type'">
                             <div class="flex flex-col gap-[2px]">
@@ -1542,9 +1567,19 @@ onUnmounted(() => {
                             {{ record.displayTime }}
                           </template>
                           <template v-if="column.key === 'progress'">
-                            <div class="flex items-center gap-[8px]">
-                              <span class="text-[#313133] font-bold w-[30px]">{{ record.progress }}%</span>
-                              <a-progress class="flex-1 !mb-0" :percent="record.progress" :show-info="false" :stroke-width="8" trail-color="#F0F0F0" :class="record.delayDays ? 'delay-progress' : 'normal-progress'" />
+                            <div class="flex flex-col gap-[6px] w-full min-w-[160px]">
+                              <div class="flex items-center justify-between gap-[8px] pr-[4px]">
+                                <span class="text-[#313133] font-bold">{{ record.progress }}%</span>
+                                <span v-if="workbenchShowOverdueUi(record)" class="text-[#FF4D4F] text-[12px] whitespace-nowrap">已延期 {{ record.delayDays }} 天</span>
+                              </div>
+                              <a-progress
+                                class="!mb-0"
+                                :percent="record.progress"
+                                :show-info="false"
+                                :stroke-width="8"
+                                trail-color="#F0F0F0"
+                                :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'"
+                              />
                             </div>
                           </template>
                           <template v-if="column.key === 'action'">
@@ -1651,7 +1686,10 @@ onUnmounted(() => {
                     </template>
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'title'">
-                        <span class="font-bold text-[#313133]">{{ workbenchCardDisplayTitle(record) }}</span>
+                        <div class="flex items-center gap-[8px] min-w-0">
+                          <span class="font-bold text-[#313133] truncate">{{ workbenchCardDisplayTitle(record) }}</span>
+                          <span v-if="workbenchShowOverdueUi(record)" class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]">延期</span>
+                        </div>
                       </template>
                       <template v-if="column.key === 'type'">
                         <div class="flex flex-col gap-[2px]">
@@ -1663,9 +1701,19 @@ onUnmounted(() => {
                         {{ record.displayTime }}
                       </template>
                       <template v-if="column.key === 'progress'">
-                        <div class="flex items-center gap-[8px]">
-                          <span class="text-[#313133] font-bold w-[30px]">{{ record.progress }}%</span>
-                          <a-progress class="flex-1 !mb-0" :percent="record.progress" :show-info="false" :stroke-width="8" trail-color="#F0F0F0" :class="record.delayDays ? 'delay-progress' : 'normal-progress'" />
+                        <div class="flex flex-col gap-[6px] w-full min-w-[160px]">
+                          <div class="flex items-center justify-between gap-[8px] pr-[4px]">
+                            <span class="text-[#313133] font-bold">{{ record.progress }}%</span>
+                            <span v-if="workbenchShowOverdueUi(record)" class="text-[#FF4D4F] text-[12px] whitespace-nowrap">已延期 {{ record.delayDays }} 天</span>
+                          </div>
+                          <a-progress
+                            class="!mb-0"
+                            :percent="record.progress"
+                            :show-info="false"
+                            :stroke-width="8"
+                            trail-color="#F0F0F0"
+                            :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'"
+                          />
                         </div>
                       </template>
                       <template v-if="column.key === 'action'">
@@ -2249,6 +2297,7 @@ onUnmounted(() => {
 }
 
 .task-card {
+  position: relative;
   background: #FFFFFF;
   border: 1px solid #EAEAF1;
   border-radius: 8px;
@@ -2263,6 +2312,26 @@ onUnmounted(() => {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     border-color: var(--ant-primary-color, #124dd6);
   }
+}
+
+.task-card__overdue-corner {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  right: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #fff;
+  background: #ff4d4f;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(255, 77, 79, 0.35);
+  pointer-events: none;
+}
+
+.task-card__overdue-corner--with-menu {
+  right: 40px;
 }
 
 .task-card__type-ribbon {
