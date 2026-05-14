@@ -158,8 +158,9 @@ const todoColumns = ref([
     title: '任务大类',
     dataIndex: 'type',
     key: 'type',
-    width: 148,
+    width: 176,
     resizable: true,
+    ellipsis: true,
     sorter: (a: TaskItem, b: TaskItem) =>
       a.taskKind.localeCompare(b.taskKind) || a.type.localeCompare(b.type),
   },
@@ -174,8 +175,9 @@ const todoColumns = ref([
     title: '当前进度',
     dataIndex: 'progress',
     key: 'progress',
-    width: 220,
+    width: 248,
     resizable: true,
+    ellipsis: true,
     sorter: (a: TaskItem, b: TaskItem) => a.progress - b.progress,
   },
   { title: '操作', key: 'action', width: 140, align: 'center', fixed: 'right', resizable: true },
@@ -639,7 +641,33 @@ function taskKindBadgeLabel(task: TaskItem): string {
   return TASK_KIND_LABEL[task.taskKind] ?? TASK_KIND_LABEL.other
 }
 
-type TaskActionKey = 'assign' | 'transfer' | 'detail' | 'design' | 'change'
+/** 列表「任务大类」子类型：去掉前导「类型」等冗余，避免与表头/大类重复啰嗦 */
+function workbenchListTaskSubtypeClean(raw: unknown): string {
+  return String(raw ?? '')
+    .trim()
+    .replace(/^类型[:：\s]*/u, '')
+    .trim()
+}
+
+/** 列表单元格单行主文案：大类 + 子类型（中点连接，过长由 CSS 省略） */
+function workbenchTaskTypeListLine(task: TaskItem): string {
+  const kind = taskKindBadgeLabel(task)
+  const sub = workbenchListTaskSubtypeClean(task.type)
+  if (!sub)
+    return kind
+  return `${kind} · ${sub}`
+}
+
+/** 悬停展示完整子类型、驳回说明（列表格内不再占第二行） */
+function workbenchTaskTypeListTooltip(task: TaskItem): string {
+  const parts: string[] = []
+  const rawType = String(task.type ?? '').trim()
+  if (rawType)
+    parts.push(`子类型：${rawType}`)
+  if (task.lastRejectRemark)
+    parts.push(`驳回：${task.lastRejectRemark}`)
+  return parts.join('\n')
+}
 
 /**
  * 类型维度允许的按钮 ∩ 业务权限；仅已办展示详情；已办独立应用另展示变更；已办不展示设计
@@ -1570,7 +1598,7 @@ onUnmounted(() => {
                         :row-key="rowKey"
                         bordered
                         class="workbench-main-table bg-white"
-                        :scroll="{ x: 1330 }"
+                        :scroll="{ x: 1386 }"
                         @resize-column="handleResizeColumn"
                       >
                         <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
@@ -1606,39 +1634,31 @@ onUnmounted(() => {
                             </div>
                           </template>
                           <template v-if="column.key === 'type'">
-                            <div class="flex flex-col gap-[4px] min-w-0 max-w-full">
-                              <div class="flex flex-col gap-[2px]">
-                                <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
-                                <div class="flex items-center gap-[4px] min-w-0 text-[12px]">
-                                  <span class="text-[#8c8c8c] flex-shrink-0">类型</span>
-                                  <span class="text-[#8c8c8c] truncate min-w-0">{{ record.type }}</span>
-                                </div>
+                            <div class="wb-cell-type min-w-0 max-w-full">
+                              <div
+                                class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]"
+                                :title="workbenchTaskTypeListTooltip(record) || undefined">
+                                {{ workbenchTaskTypeListLine(record) }}
                               </div>
-                              <a-tooltip v-if="record.lastRejectRemark" placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
-                                <template #title>
-                                  <span style="white-space: pre-wrap;">驳回：{{ record.lastRejectRemark }}</span>
-                                </template>
-                                <span class="text-[#FA8C16] text-[12px] truncate block max-w-full cursor-default">驳回：{{ record.lastRejectRemark }}</span>
-                              </a-tooltip>
                             </div>
                           </template>
                           <template v-if="column.key === 'time'">
                             {{ record.displayTime }}
                           </template>
                           <template v-if="column.key === 'progress'">
-                            <div class="flex flex-col gap-[6px] w-full min-w-[160px]">
-                              <div class="flex items-center justify-between gap-[8px] pr-[4px]">
-                                <span class="text-[#313133] font-bold">{{ record.progress }}%</span>
-                                <span v-if="workbenchShowOverdueUi(record)" class="text-[#FF4D4F] text-[12px] whitespace-nowrap">已延期 {{ record.delayDays }} 天</span>
-                              </div>
+                            <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
+                              <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums">{{ record.progress }}%</span>
                               <a-progress
-                                class="!mb-0"
+                                class="wb-progress-inline flex-1 min-w-[64px] !mb-0"
                                 :percent="record.progress"
                                 :show-info="false"
                                 :stroke-width="8"
                                 trail-color="#F0F0F0"
                                 :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'"
                               />
+                              <a-tooltip v-if="workbenchShowOverdueUi(record)" :title="`已延期 ${record.delayDays} 天`">
+                                <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default">延期{{ record.delayDays }}天</span>
+                              </a-tooltip>
                             </div>
                           </template>
                           <template v-if="column.key === 'action'">
@@ -1715,7 +1735,7 @@ onUnmounted(() => {
                     :row-key="rowKey"
                     bordered
                     class="workbench-main-table bg-white"
-                    :scroll="{ x: 1330 }"
+                    :scroll="{ x: 1386 }"
                     @resize-column="handleResizeColumn"
                   >
                     <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
@@ -1751,39 +1771,31 @@ onUnmounted(() => {
                         </div>
                       </template>
                       <template v-if="column.key === 'type'">
-                        <div class="flex flex-col gap-[4px] min-w-0 max-w-full">
-                          <div class="flex flex-col gap-[2px]">
-                            <span class="text-[#313133]">{{ taskKindBadgeLabel(record) }}</span>
-                            <div class="flex items-center gap-[4px] min-w-0 text-[12px]">
-                              <span class="text-[#8c8c8c] flex-shrink-0">类型</span>
-                              <span class="text-[#8c8c8c] truncate min-w-0">{{ record.type }}</span>
-                            </div>
+                        <div class="wb-cell-type min-w-0 max-w-full">
+                          <div
+                            class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]"
+                            :title="workbenchTaskTypeListTooltip(record) || undefined">
+                            {{ workbenchTaskTypeListLine(record) }}
                           </div>
-                          <a-tooltip v-if="record.lastRejectRemark" placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
-                            <template #title>
-                              <span style="white-space: pre-wrap;">驳回：{{ record.lastRejectRemark }}</span>
-                            </template>
-                            <span class="text-[#FA8C16] text-[12px] truncate block max-w-full cursor-default">驳回：{{ record.lastRejectRemark }}</span>
-                          </a-tooltip>
                         </div>
                       </template>
                       <template v-if="column.key === 'time'">
                         {{ record.displayTime }}
                       </template>
                       <template v-if="column.key === 'progress'">
-                        <div class="flex flex-col gap-[6px] w-full min-w-[160px]">
-                          <div class="flex items-center justify-between gap-[8px] pr-[4px]">
-                            <span class="text-[#313133] font-bold">{{ record.progress }}%</span>
-                            <span v-if="workbenchShowOverdueUi(record)" class="text-[#FF4D4F] text-[12px] whitespace-nowrap">已延期 {{ record.delayDays }} 天</span>
-                          </div>
+                        <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
+                          <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums">{{ record.progress }}%</span>
                           <a-progress
-                            class="!mb-0"
+                            class="wb-progress-inline flex-1 min-w-[64px] !mb-0"
                             :percent="record.progress"
                             :show-info="false"
                             :stroke-width="8"
                             trail-color="#F0F0F0"
                             :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'"
                           />
+                          <a-tooltip v-if="workbenchShowOverdueUi(record)" :title="`已延期 ${record.delayDays} 天`">
+                            <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default">延期{{ record.delayDays }}天</span>
+                          </a-tooltip>
                         </div>
                       </template>
                       <template v-if="column.key === 'action'">
@@ -2294,6 +2306,22 @@ onUnmounted(() => {
 :deep(.workbench-main-table .ant-table-tbody > tr > td.ant-table-cell-fix-left),
 :deep(.workbench-main-table .ant-table-tbody > tr > td.ant-table-cell-fix-right) {
   background: #fff;
+}
+
+:deep(.workbench-main-table .wb-cell-progress .ant-progress) {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+:deep(.workbench-main-table .wb-cell-progress .ant-progress-outer) {
+  min-width: 0;
+}
+
+:deep(.workbench-main-table .wb-cell-type .wb-task-kind-line) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .show-right-content-btn {
