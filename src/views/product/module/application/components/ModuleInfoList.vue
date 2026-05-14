@@ -23,7 +23,8 @@ import {
   openModuleInfoNew,
   assembleModuleInfoNew,
   openDrawingInfoNew,
- } from '@/libs/webSocketNew';
+  insertModelLibraryStatisticsLog,
+} from '@/libs/webSocketNew';
 
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
@@ -721,6 +722,11 @@ async function argsMx(row: any) {
       parmDesignData.value = [];
     }
     parmDesign.value = true;
+    const rec = row[0];
+    const displayName =
+      rec?.para3 != null && String(rec.para3).trim() !== '' ? String(rec.para3) : String(rec?.para1 ?? '');
+    const modelNumStr = rec?.para1 != null ? String(rec.para1) : '';
+    insertModelLibraryStatisticsLog('参数化设计', displayName, modelNumStr);
     addModelLog(row[0], 10);
   } else {
     message.warning({
@@ -962,6 +968,12 @@ const PDMid = ref<any>();
 const pdmModelType = ref<any>();
 // 详情
 function clickEvent(row: any, key: any) {
+  if (key === 'para2') {
+    const displayName =
+      row?.para3 != null && String(row.para3).trim() !== '' ? String(row.para3) : String(row?.para1 ?? '');
+    const modelNumStr = row?.para1 != null ? String(row.para1) : String(row?.para2 ?? '');
+    insertModelLibraryStatisticsLog('数据查询', displayName, modelNumStr);
+  }
   fileData1.value = [];
   fileData2.value = [];
   parmType.value = 0;

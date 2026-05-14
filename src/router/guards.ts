@@ -90,7 +90,7 @@ export function initRouteGrauds(router: Router) {
   router.afterEach(to => {
     if (!Reflect.has(to.meta, 'id')) return; // 忽略不是接口返回的路由页面
     // 在页面跳转后请求统计日志接口传入当前页面信息
-    const fullTitles = to.matched.map(r => r.meta.title).join('-');
-    AdminApiSystemStatisticsLog.statisticsLogInsert({ moduleName: fullTitles, logType: '访问页面' });
+    //const fullTitles = to.matched.map(r => r.meta.title).join('-');
+    //AdminApiSystemStatisticsLog.statisticsLogInsert({ moduleName: fullTitles, logType: '访问页面' });
   });
 }
