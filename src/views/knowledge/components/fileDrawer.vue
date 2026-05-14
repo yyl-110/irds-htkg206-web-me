@@ -721,7 +721,7 @@ defineExpose({
         height: 26px !important;
         font-family: PingFang SC, PingFang SC;
         font-weight: 600;
-        font-size: 16px;
+        font-size: 14px;
         color: #000;
         line-height: 26px;
         width: calc(100% - 10px);
@@ -1312,7 +1312,7 @@ defineExpose({
         .ask-list-title-name {
           font-family: PingFang SC, PingFang SC;
           font-weight: 600;
-          font-size: 16px;
+          font-size: 14px;
           color: #000;
         }
 
@@ -1522,7 +1522,7 @@ defineExpose({
 
       h3 {
         height: 22px;
-        font-size: 16px;
+        font-size: 14px;
         font-family: PingFang-SC, PingFang-SC;
         font-weight: bold;
         color: #323233;

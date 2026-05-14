@@ -381,7 +381,7 @@ const getDes = () => {
       PingFang SC,
       PingFang SC;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 14px;
     color: #000;
     line-height: 26px;
     width: calc(100% - 10px);
