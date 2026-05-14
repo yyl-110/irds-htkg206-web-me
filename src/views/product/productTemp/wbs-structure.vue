@@ -179,6 +179,22 @@ function collapseAllTableRows() {
   expandedRowKeys.value = [];
 }
 
+const isWbsTableFullyExpanded = computed(() => {
+  const all = collectAllKeys(tableData.value);
+  if (all.length === 0) return false;
+  if (expandedRowKeys.value.length !== all.length) return false;
+  const exp = new Set(expandedRowKeys.value);
+  return all.every((k) => exp.has(k));
+});
+
+function toggleWbsTableExpandAll() {
+  if (isWbsTableFullyExpanded.value) {
+    collapseAllTableRows();
+  } else {
+    expandAllTableRows();
+  }
+}
+
 function onTableExpand(expanded: boolean, record: WbsRow) {
   const key = record.id;
   const set = new Set(expandedRowKeys.value);
@@ -254,6 +270,12 @@ function handleResizeColumn(w: number, col: { width?: number | string }) { col.w
 function wbsRowKey(r: WbsRow) { return r.id; }
 function isLeaf(record: WbsRow) { return !record.children?.length; }
 function toggleRequired(record: WbsRow) { record.required = !record.required; }
+
+function onRequiredSwitchChange(record: WbsRow) {
+  return (checked: boolean) => {
+    record.required = checked;
+  };
+}
 
 /** axios 响应拦截器已对非成功业务码调用 WeiMessage；此处避免再弹一层 message.error。 */
 function notifyAxiosFailure(err: unknown, fallback: string) {
@@ -534,8 +556,9 @@ onMounted(() => { fetchWbsTree(); });
             </template>
             {{ $t('新增（全量结构）') }}
           </a-button>
-          <a-button @click="expandAllTableRows">{{ $t('全展开') }}</a-button>
-          <a-button @click="collapseAllTableRows">{{ $t('全收起') }}</a-button>
+          <a-button @click="toggleWbsTableExpandAll">
+            {{ isWbsTableFullyExpanded ? $t('全收起') : $t('全展开') }}
+          </a-button>
         </div>
         <div class="wbs-top-bar__right">{{ t('模版名称') }}：{{ pageTitle }}</div>
       </div>
@@ -566,10 +589,11 @@ onMounted(() => { fetchWbsTree(); });
           </template>
           <template v-else-if="column.key === 'required'">
             <a-switch
+              class="wbs-required-switch"
               :checked="record.required"
               checked-children="ON"
               un-checked-children="OFF"
-              @change="(val) => { record.required = !!val }"
+              @change="onRequiredSwitchChange(record)"
               @click.stop
             />
           </template>
@@ -685,43 +709,116 @@ onMounted(() => { fetchWbsTree(); });
 }
 
 .wbs-table {
+  /* 本表统一 12px，含文字列与内嵌控件 */
+  --wbs-table-cell-font-size: 12px;
+  --wbs-table-cell-line-height: 1.5;
+  --wbs-table-row-height: 34px;
+
   :deep(.ant-table-thead > tr > th) {
     background: #fafafa;
+    font-size: var(--wbs-table-cell-font-size);
+    line-height: var(--wbs-table-cell-line-height);
+    height: var(--wbs-table-row-height);
+    max-height: var(--wbs-table-row-height);
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box;
+    vertical-align: middle;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    font-size: var(--wbs-table-cell-font-size);
+    line-height: var(--wbs-table-cell-line-height);
+    height: var(--wbs-table-row-height);
+    max-height: var(--wbs-table-row-height);
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box;
+    vertical-align: middle;
+  }
+
+  :deep(.ant-table-thead > tr) {
+    height: var(--wbs-table-row-height);
+  }
+
+  :deep(.ant-table-tbody > tr.ant-table-row) {
+    height: var(--wbs-table-row-height);
+  }
+
+  .wbs-required-switch:deep(.ant-switch-inner) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+    line-height: 18px;
+  }
+
+  .wbs-required-switch:deep(.ant-switch-inner-checked),
+  .wbs-required-switch:deep(.ant-switch-inner-unchecked) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select:not(.ant-select-customize-input) .ant-select-selector) {
+    min-height: 22px !important;
+    height: 22px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select-selection-item),
+  .wbs-taskflow-select:deep(.ant-select-selection-placeholder) {
+    line-height: 20px !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select-selector),
+  .wbs-taskflow-select:deep(.ant-select-selection-search-input) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+    line-height: var(--wbs-table-cell-line-height) !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select-selection-item),
+  .wbs-taskflow-select:deep(.ant-select-selection-placeholder) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+  }
+
+  .wbs-ops__link {
+    font-size: var(--wbs-table-cell-font-size);
   }
 }
 
-/* 与 ant-table 表体一致：14px（与 .ant-table-tbody 默认字号对齐） */
+/* 与表体单元格字号一致（由 .wbs-table 上 --wbs-table-cell-font-size 约束） */
 .wbs-taskflow-select {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  font-size: 14px;
+  font-size: var(--wbs-table-cell-font-size, 12px);
 }
 
 .wbs-taskflow-select :deep(.ant-select-selector) {
   display: flex !important;
   align-items: center !important;
-  font-size: 14px !important;
+  font-size: var(--wbs-table-cell-font-size, 12px) !important;
+  min-height: 22px !important;
+  height: 22px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .wbs-taskflow-select :deep(.ant-select-selection-item),
 .wbs-taskflow-select :deep(.ant-select-selection-placeholder) {
   display: flex !important;
   align-items: center !important;
-  font-size: 14px !important;
-  line-height: 1.5715 !important;
+  font-size: var(--wbs-table-cell-font-size, 12px) !important;
+  line-height: 20px !important;
 }
 
 .wbs-taskflow-select :deep(.ant-select-selection-search-input) {
-  font-size: 14px !important;
-  line-height: 1.5715 !important;
+  font-size: var(--wbs-table-cell-font-size, 12px) !important;
+  line-height: 20px !important;
 }
 
 .wbs-taskflow-text {
   display: inline-block;
   max-width: 100%;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: var(--wbs-table-cell-font-size, 12px);
+  line-height: var(--wbs-table-cell-line-height, 1.5);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -736,7 +833,7 @@ onMounted(() => { fetchWbsTree(); });
 
 .wbs-code-cell__icon {
   color: #8c8c8c;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 
@@ -775,8 +872,8 @@ onMounted(() => { fetchWbsTree(); });
 }
 
 .wbs-taskflow-select-dropdown .ant-select-item-option-content {
-  font-size: 14px;
-  line-height: 1.5715;
+  font-size: 12px;
+  line-height: 1.5;
   display: flex;
   align-items: center;
 }
