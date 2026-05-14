@@ -16,6 +16,7 @@ import {
   FolderOutlined,
   LeftOutlined,
   MinusOutlined,
+  PlayCircleOutlined,
   PlusOutlined,
   RightOutlined,
   RollbackOutlined,
@@ -2124,14 +2125,17 @@ watch(ganttCollapsed, () => {
                   <template #split>
                     <span class="task-wbs-ops__split-line" aria-hidden="true" />
                   </template>
-                  <a-button
-                    type="primary"
-                    size="small"
-                    :disabled="wbsTaskRowOpsLocked(record)"
-                    :loading="wbsOpBusyRowId === record.id"
-                    @click.stop="onTaskStart(record)">
-                    启动
-                  </a-button>
+                  <a-tooltip title="启动">
+                    <a-button
+                      type="link"
+                      size="small"
+                      class="task-wbs-ops__btn"
+                      :disabled="wbsTaskRowOpsLocked(record)"
+                      :loading="wbsOpBusyRowId === record.id"
+                      @click.stop="onTaskStart(record)">
+                      <template #icon><PlayCircleOutlined /></template>
+                    </a-button>
+                  </a-tooltip>
                 </a-space>
               </template>
               <template v-else-if="Number(record.type) === 2">

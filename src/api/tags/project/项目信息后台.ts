@@ -505,4 +505,27 @@ export class AdminApiProjectTemp {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /** 设计任务应用工作台：操作日志列表（按 bizType 区分 WBS 协同 / 独立应用等） */
+  static workspaceOperateLogList = (
+    body: {
+      bizType: string
+      taskId: string | number
+      projectId?: string | number
+      appId?: string | number
+      wbsId?: string | number
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workspace-operate-log/list`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

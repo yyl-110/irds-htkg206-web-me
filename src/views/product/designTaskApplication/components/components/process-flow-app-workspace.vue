@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, nextTick, onMounted, ref } from 'vue'
+import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { CheckOutlined, ClockCircleOutlined, EditOutlined, LeftOutlined, PlayCircleOutlined, QuestionCircleOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue'
@@ -338,6 +338,75 @@ function highlightRichHtml(v: unknown) {
   if (!kw || !html)
     return html
   return html.replace(new RegExp(escapeRegExp(kw), 'gi'), m => `<span class="workspace-kw-highlight">${m}</span>`)
+}
+
+/** 操作日志：活动展示（节点名与活动页名相同时不重复「xxx（xxx）」） */
+function formatWorkspaceOperateLogActivity(row: Record<string, any> | null | undefined) {
+  const n = String(row?.nodeName ?? '').trim()
+  const a = String(row?.activityName ?? '').trim()
+  if (!n && !a)
+    return '—'
+  if (n && !a)
+    return n
+  if (a && !n)
+    return a
+  if (n === a)
+    return n
+  if (n.toLowerCase() === a.toLowerCase())
+    return n
+  /** 一者已包含另一者全文时只展示较长/更具体的一条 */
+  if (n.includes(a))
+    return n
+  if (a.includes(n))
+    return a
+  return `${n}（${a}）`
+}
+
+/** 设计工作台右侧「操作日志」 */
+const workspaceOperateLogs = ref<any[]>([])
+const workspaceOperateLogLoading = ref(false)
+
+async function loadWorkspaceOperateLogs() {
+  /** 雪花 ID 不能用 Number()，否则精度丢失导致查不到日志；请求体用字符串由后端反序列化为 Long */
+  const taskIdStr = String(route.query.taskId ?? workspaceData.value?.taskId ?? '').trim()
+  if (!taskIdStr) {
+    workspaceOperateLogs.value = []
+    return
+  }
+  const bizType = isWbsCollabWorkspace.value ? 'WBS_COLLAB' : 'STANDALONE_APP'
+  const body: Record<string, unknown> = {
+    bizType,
+    taskId: taskIdStr,
+  }
+  const projectIdRaw = route.query.projectId ?? (workspaceData.value as any)?.projectId
+  if (projectIdRaw != null && String(projectIdRaw).trim() !== '') {
+    const p = String(projectIdRaw).trim()
+    if (/^\d+$/.test(p) && p !== '0')
+      body.projectId = p
+  }
+  if (!isWbsCollabWorkspace.value) {
+    const appR = route.query.appId ?? workspaceData.value?.appId
+    if (appR != null && String(appR).trim() !== '')
+      body.appId = String(appR).trim()
+  }
+  workspaceOperateLogLoading.value = true
+  try {
+    const res = await AdminApiProjectTemp.workspaceOperateLogList(body as any)
+    const code = res?.data?.code
+    if (code === 0 || code === 200 || code === '0' || code === '200') {
+      const list = (res?.data as any)?.data
+      workspaceOperateLogs.value = Array.isArray(list) ? list : []
+    }
+    else {
+      workspaceOperateLogs.value = []
+    }
+  }
+  catch {
+    workspaceOperateLogs.value = []
+  }
+  finally {
+    workspaceOperateLogLoading.value = false
+  }
 }
 
 /**
@@ -1151,8 +1220,10 @@ async function saveCurrentNodeParams(options?: { successMessage?: string, loadin
 
 async function saveFlowInfo() {
   const ok = await saveCurrentNodeParams({ successMessage: '保存成功', loadingType: 'save' })
-  if (ok)
+  if (ok) {
     await refreshWorkspaceTreeData()
+    void loadWorkspaceOperateLogs()
+  }
 }
 
 async function goNextNode() {
@@ -1223,6 +1294,7 @@ async function goNextNode() {
       }
       message.success('提交成功')
       hasUnsavedChanges.value = false
+      void loadWorkspaceOperateLogs()
       if (nextKey && !allNodeMap.value.has(nextKey)) {
         nextKey = ''
       }
@@ -1320,6 +1392,8 @@ async function goNextNode() {
       serverNextBpmnElementId = String((payload as Record<string, unknown>).nextBpmnElementId ?? '').trim()
     }
     message.success('提交成功')
+    hasUnsavedChanges.value = false
+    void loadWorkspaceOperateLogs()
     await refreshWorkspaceTreeData()
   }
   catch {
@@ -1405,6 +1479,7 @@ async function finishFlow() {
       }
       message.success('提交成功')
       hasUnsavedChanges.value = false
+      void loadWorkspaceOperateLogs()
       router.back()
     }
     catch {
@@ -1476,6 +1551,7 @@ async function finishFlow() {
       return
     }
     message.success('提交成功')
+    void loadWorkspaceOperateLogs()
     router.back()
   }
   catch {
@@ -1575,6 +1651,30 @@ const rightToggleStyle = computed(() => {
 
 loadWorkspaceData()
 void initDefaultSelectedNode()
+void loadWorkspaceOperateLogs()
+
+watch(
+  () => workspaceData.value,
+  () => {
+    void loadWorkspaceOperateLogs()
+  },
+  { deep: true },
+)
+
+watch(
+  () => `${String(route.query.taskId ?? '')}|${String(route.query.projectId ?? '')}|${String(route.query.appId ?? '')}|${String(route.query.workspaceMode ?? '')}`,
+  () => {
+    void loadWorkspaceOperateLogs()
+  },
+)
+
+watch(
+  () => knowledgeRightActiveKey.value,
+  (k) => {
+    if (k === 'log')
+      void loadWorkspaceOperateLogs()
+  },
+)
 
 onMounted(() => {
   nextTick(() => {
@@ -1717,8 +1817,48 @@ onMounted(() => {
               </a-spin>
             </a-tab-pane>
             <a-tab-pane key="log" tab="操作日志">
-              <div class="workspace-right-tab-body">
-                暂无操作日志
+              <div class="workspace-right-tab-body workspace-operate-log-body">
+                <a-spin :spinning="workspaceOperateLogLoading">
+                  <ul v-if="workspaceOperateLogs.length > 0" class="workspace-operate-log-timeline">
+                    <li
+                      v-for="(row, idx) in workspaceOperateLogs"
+                      :key="row?.id ?? idx"
+                      class="workspace-operate-log-timeline__item"
+                      :class="{
+                        'workspace-operate-log-timeline__item--submit': row?.action === 'SUBMIT',
+                        'workspace-operate-log-timeline__item--save': row?.action !== 'SUBMIT',
+                        'workspace-operate-log-timeline__item--last': idx === workspaceOperateLogs.length - 1,
+                      }"
+                    >
+                      <div class="workspace-operate-log-timeline__track" aria-hidden="true">
+                        <span class="workspace-operate-log-timeline__dot" />
+                        <span v-if="idx !== workspaceOperateLogs.length - 1" class="workspace-operate-log-timeline__connector" />
+                      </div>
+                      <div class="workspace-operate-log-timeline__panel">
+                        <div
+                          class="workspace-operate-log-timeline__box"
+                          :class="row?.action === 'SUBMIT' ? 'workspace-operate-log-timeline__box--submit' : 'workspace-operate-log-timeline__box--save'"
+                        >
+                          <div class="workspace-operate-log-timeline__row">
+                            <span class="workspace-operate-log-timeline__k">操作：</span>
+                            <span class="workspace-operate-log-timeline__v">{{ row?.action === 'SUBMIT' ? '提交' : '保存' }}</span>
+                          </div>
+                          <div class="workspace-operate-log-timeline__row">
+                            <span class="workspace-operate-log-timeline__k">时间：</span>
+                            <time class="workspace-operate-log-timeline__v workspace-operate-log-timeline__time">{{ row?.createTime || '—' }}</time>
+                          </div>
+                          <div class="workspace-operate-log-timeline__row">
+                            <span class="workspace-operate-log-timeline__k">活动：</span>
+                            <span class="workspace-operate-log-timeline__v">{{ formatWorkspaceOperateLogActivity(row) }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                  <div v-else-if="!workspaceOperateLogLoading" class="workspace-knowledge-empty workspace-operate-log-empty">
+                    暂无操作日志
+                  </div>
+                </a-spin>
               </div>
             </a-tab-pane>
           </a-tabs>
@@ -2086,6 +2226,124 @@ onMounted(() => {
 .workspace-knowledge-empty {
   margin-top: 10px;
   color: #8c8c8c;
+}
+
+.workspace-operate-log-body {
+  min-height: 120px;
+  color: #595959;
+}
+
+.workspace-operate-log-empty {
+  padding: 24px 8px;
+  text-align: center;
+}
+
+/* 操作日志：时间轴 */
+.workspace-operate-log-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 8px 0;
+  max-height: min(520px, calc(100vh - 220px));
+  overflow-y: auto;
+}
+
+.workspace-operate-log-timeline__item {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+}
+
+.workspace-operate-log-timeline__track {
+  flex: 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 18px;
+  min-height: 0;
+}
+
+.workspace-operate-log-timeline__dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-sizing: content-box;
+  z-index: 1;
+}
+
+.workspace-operate-log-timeline__item--save .workspace-operate-log-timeline__dot {
+  background: #1677ff;
+  box-shadow: 0 0 0 1px rgba(22, 119, 255, 0.45);
+}
+
+.workspace-operate-log-timeline__item--submit .workspace-operate-log-timeline__dot {
+  background: #52c41a;
+  box-shadow: 0 0 0 1px rgba(82, 196, 26, 0.45);
+}
+
+.workspace-operate-log-timeline__connector {
+  flex: 1 1 auto;
+  width: 2px;
+  min-height: 8px;
+  margin-top: 4px;
+  background: #e8e8e8;
+  border-radius: 1px;
+}
+
+.workspace-operate-log-timeline__item--last .workspace-operate-log-timeline__connector {
+  visibility: hidden;
+  min-height: 0;
+  flex: 0 0 0;
+}
+
+.workspace-operate-log-timeline__panel {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 14px;
+}
+
+.workspace-operate-log-timeline__item--last .workspace-operate-log-timeline__panel {
+  padding-bottom: 0;
+}
+
+.workspace-operate-log-timeline__box {
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fafafa;
+  box-sizing: border-box;
+}
+
+.workspace-operate-log-timeline__box--save {
+  border-color: #69b1ff;
+  background: #e6f4ff;
+}
+
+.workspace-operate-log-timeline__box--submit {
+  border-color: #73d13d;
+  background: #f6ffed;
+}
+
+.workspace-operate-log-timeline__row {
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.workspace-operate-log-timeline__k {
+  color: #8c8c8c;
+}
+
+.workspace-operate-log-timeline__v {
+  color: #262626;
+}
+
+.workspace-operate-log-timeline__time {
+  font-variant-numeric: tabular-nums;
 }
 
 :deep(.workspace-kw-highlight) {

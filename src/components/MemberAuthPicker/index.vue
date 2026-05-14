@@ -57,8 +57,8 @@
     </div>
 
     <div class="footer-actions">
-      <a-button type="primary" @click="handleConfirm">{{ $t('确定') }}</a-button>
       <a-button @click="handleCancel">{{ $t('取消') }}</a-button>
+      <a-button type="primary" @click="handleConfirm">{{ $t('确定') }}</a-button>
     </div>
   </a-modal>
 </template>
