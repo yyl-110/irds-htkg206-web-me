@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import type { TableColumnType } from 'ant-design-vue';
 import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue';
 import _ from 'lodash-es';
-import { CaretDownOutlined, CaretUpOutlined, CheckCircleFilled, DownOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretUpOutlined, CheckCircleFilled, DownOutlined, EyeOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import * as echarts from 'echarts';
 import addModule from '../../components/modal/addModule.vue';
 import applicationModule from '../../components/modal/applicationModule.vue';
@@ -17,7 +17,9 @@ import { EpcIcon } from '@/components/icon/EpcIcon.js';
 import Empty from '@/components/Empty/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-import { handleEpcDownload } from '@/utils/file';
+import { handleEpcDownload, previewUrlFile } from '@/utils/file';
+import Ddview from '@/components/Ddview/index.vue';
+import vizSchematicPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
 
 import {
   openModuleInfoNew,
@@ -494,7 +496,7 @@ function delModule() {
 
 async function moduleDetails(rowRecord: any) {
   pageFlagDrawer.value = true;
-  parmType.value == 0;
+  parmType.value = 'viz';
   const moduleParaList = modulePropertyInfo.value;
   modalInfo.value = moduleParaList.map((item: any) => ({
     name: item.propertyName,
@@ -962,10 +964,84 @@ async function openRadarInfo() {
 }
 const fileData1 = ref<any>([]);
 const fileData2 = ref<any>([]);
-const parmType = ref<number>(0);
+const parmType = ref<string | number>('viz');
 const pdmModuleCode = ref<any>();
 const PDMid = ref<any>();
 const pdmModelType = ref<any>();
+
+/** 详情抽屉「可视化」：当前行数据（用于 PVZ / 节点树示意图文件 ID） */
+const vizDetailRow = ref<any>(null);
+const ddViewRef = ref<any>(null);
+const schematicPreviewVisible = ref(false);
+
+function vizPickFileId(row: any, keys: string[]): string {
+  if (!row) return '';
+  for (const k of keys) {
+    const v = row[k];
+    if (v != null && String(v).trim() !== '' && String(v) !== '-1000') return String(v).trim();
+  }
+  return '';
+}
+
+/** 从分类参数字段名中解析文件类属性（兼容后台用中文列名配置） */
+function vizFileIdFromModalInfo(info: any[], keywords: string[]): string {
+  if (!info?.length) return '';
+  const kws = keywords.map(k => k.toLowerCase());
+  for (const item of info) {
+    const label = String(item?.name ?? '').toLowerCase();
+    if (kws.some(kw => label.includes(kw))) {
+      const v = item?.val;
+      if (v != null && String(v).trim() !== '' && String(v) !== '-1000') return String(v).trim();
+    }
+  }
+  return '';
+}
+
+const vizPvzFileId = computed(() => {
+  const row = vizDetailRow.value;
+  const fromRow = vizPickFileId(row, ['pvzFileId', 'lightweightFileId', 'pvzfileId', 'pvz_id']);
+  if (fromRow) return fromRow;
+  return vizFileIdFromModalInfo(modalInfo.value, ['pvz', '轻量化', 'lightweight']);
+});
+
+const vizSchematicFileId = computed(() => {
+  const row = vizDetailRow.value;
+  const fromRow = vizPickFileId(row, [
+    'nodeTreeDiagramFileId',
+    'treeDiagramFileId',
+    'schematicFileId',
+    'diagramFileId',
+    'nodeTreeImageId',
+    'treeImageFileId',
+  ]);
+  if (fromRow) return fromRow;
+  return vizFileIdFromModalInfo(modalInfo.value, ['节点树', '示意图', '树图', 'schematic', 'diagram']);
+});
+
+const vizSchematicImageUrl = computed(() => {
+  const id = vizSchematicFileId.value;
+  if (!id) return '';
+  return previewUrlFile(id);
+});
+
+/** 无示意图时使用缺省图；有文件 ID 时用预览地址 */
+const vizSchematicDisplaySrc = computed(() => vizSchematicImageUrl.value || vizSchematicPlaceholder);
+
+function openSchematicPreview() {
+  schematicPreviewVisible.value = true;
+}
+
+watch(
+  () => [pageFlagDrawer.value, parmType.value, vizPvzFileId.value, modalInfo.value?.length ?? 0] as const,
+  ([open, tab, fileId]) => {
+    if (!open || tab !== 'viz' || !fileId) return;
+    nextTick(() => {
+      ddViewRef.value?.loadModel?.(fileId, {});
+    });
+  },
+  { flush: 'post' },
+);
+
 // 详情
 function clickEvent(row: any, key: any) {
   if (key === 'para2') {
@@ -976,7 +1052,8 @@ function clickEvent(row: any, key: any) {
   }
   fileData1.value = [];
   fileData2.value = [];
-  parmType.value = 0;
+  parmType.value = 'viz';
+  vizDetailRow.value = row;
   pdmModuleCode.value = row[key];
   PDMid.value = row.id;
   pdmModelType.value = row.para4;
@@ -1640,6 +1717,28 @@ defineExpose({ initData, selectAllModuleInfo });
   <a-drawer v-model:visible="pageFlagDrawer" class="module-detail-drawer" title="模块详情" placement="right" :closable="false" width="800">
     <div ref="udfBoxRef" class="module-detail-drawer-inner px-[16px]" :style="udfBoxStyle()">
       <a-tabs v-model:activeKey="parmType" class="module-detail-udf-tabs" @change="toParm" :animated="false">
+        <a-tab-pane :key="'viz'" tab="可视化">
+          <div class="udfPage_style module-viz-tab">
+            <div class="module-viz-section module-viz-3d">
+              <div class="module-viz-section-title module-viz-section-title--3d">3D轻量化展示</div>
+              <div v-if="vizPvzFileId" class="module-viz-3d-slot">
+                <Ddview ref="ddViewRef" height="300px" />
+              </div>
+              <div v-else class="module-viz-3d-empty">
+                <span class="module-viz-empty-tip">暂无 PVZ 轻量化文件</span>
+              </div>
+            </div>
+            <div class="module-viz-section module-viz-2d">
+              <div class="module-viz-section-title module-viz-section-title--2d">2D示意图</div>
+              <div class="module-viz-2d-card">
+                <img class="module-viz-2d-img" :src="vizSchematicDisplaySrc" alt="节点树示意图" />
+                <button type="button" class="module-viz-2d-eye" aria-label="放大查看" @click.stop="openSchematicPreview">
+                  <EyeOutlined />
+                </button>
+              </div>
+            </div>
+          </div>
+        </a-tab-pane>
         <a-tab-pane :key="0" tab="分类参数">
           <div class="udfPage_style">
             <a-descriptions v-for="item in modalInfo" :key="item.id" style="margin-bottom: 20px" size="small" bordered>
@@ -1744,6 +1843,19 @@ defineExpose({ initData, selectAllModuleInfo });
       </a-tabs>
     </div>
   </a-drawer>
+  <a-modal
+    v-model:visible="schematicPreviewVisible"
+    title="节点树示意图"
+    :footer="null"
+    width="920px"
+    centered
+    destroy-on-close
+    wrap-class-name="module-viz-schematic-preview-modal"
+    @cancel="schematicPreviewVisible = false">
+    <div class="module-viz-schematic-preview-body">
+      <img class="module-viz-schematic-preview-img" :src="vizSchematicDisplaySrc" alt="节点树示意图预览" />
+    </div>
+  </a-modal>
 </template>
 
 <style lang="less" scoped>
@@ -1910,14 +2022,135 @@ defineExpose({ initData, selectAllModuleInfo });
   padding-left: 20px;
   color: #a2b7bf;
 }
-/* 详情 Drawer 内 tab 内容区：随抽屉高度伸展，仅本区超出时竖向滚动 */
+/* 详情 Drawer 内 tab 内容区：纵向滚动统一在 tabpane，避免与抽屉外层双滚动条 */
 .udfPage_style {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 100%;
+  overflow: visible;
   background: #fff;
   box-sizing: border-box;
+}
+
+.module-viz-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 8px;
+}
+
+.module-viz-3d {
+  margin-top: 20px;
+}
+
+.module-viz-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #313133;
+  margin-bottom: 8px;
+}
+
+.module-viz-section-title--3d,
+.module-viz-section-title--2d {
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.module-viz-section-title--3d::before,
+.module-viz-section-title--2d::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 14px;
+  flex-shrink: 0;
+  background: #188efe;
+  border-radius: 2px;
+}
+
+.module-viz-3d-slot {
+  height: 300px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background: #fafafa;
+
+  :deep(.db-container) {
+    height: 300px !important;
+    max-height: 300px;
+  }
+
+  :deep(.ant-spin-nested-loading),
+  :deep(.ant-spin-container) {
+    height: 100%;
+  }
+}
+
+.module-viz-3d-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #8c8c8c;
+  font-size: 13px;
+}
+
+.module-viz-2d-card {
+  position: relative;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f5f5f5;
+  min-height: 160px;
+  max-height: 260px;
+}
+
+.module-viz-2d-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.module-viz-2d-eye {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(24, 142, 254, 0.88);
+  }
+}
+
+.module-viz-schematic-preview-body {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.module-viz-schematic-preview-img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
 }
 
 .module-detail-drawer-inner {
@@ -1957,15 +2190,30 @@ defineExpose({ initData, selectAllModuleInfo });
 :deep(.module-detail-udf-tabs .ant-tabs-tabpane) {
   height: 100%;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+:deep(.module-detail-drawer .ant-drawer-content) {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  min-height: 0;
+}
+
+:deep(.module-detail-drawer .ant-drawer-wrapper-body) {
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.module-detail-drawer .ant-drawer-body) {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
   padding: 10px !important;
