@@ -143,10 +143,10 @@ const initChart = () => {
 const fetchData = async () => {
   try {
     const res = await getReportSystemLoginUser({})
-    if (res.code === '0') {
-      chartData.value = res.data
+    if (res.code === 200) {
+      chartData.value = res.data?.data
       initChart();
-      console.log('res:', res.data)
+      console.log('res:', res.data.data)
     }
   } catch (error) {
     console.log('error:', error)

@@ -8,7 +8,6 @@
           <!-- 时间 -->
           <time-clock />
         </header>
-        {{ baseInfo }}
         <main>
           <a-row style="height: 100%; padding: 30px 24px 42px" :gutter="24">
             <a-col :span="8" style="height: 50%">
@@ -83,9 +82,9 @@ const baseInfo = ref({});
 const fetchData = async () => {
   try {
     const res = await getReportSystemList({});
-    if (res.code == "0" || res.code == 200) {
+    if (res.data?.code == 200) {
       console.log(res, 999);
-      baseInfo.value = res.data;
+      baseInfo.value = res.data?.data;
     }
   } catch (error) {
     console.log("error:", error);

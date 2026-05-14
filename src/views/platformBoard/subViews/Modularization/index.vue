@@ -100,8 +100,8 @@ const changeTime = (val) => {
 const fetchData = async (type) => {
   try {
     const res = await getReportModuleList({ projectId: selectProjectId.value, year: type })
-    if (res.code === '0') {
-      moduleInfo.value = res.data
+    if (res.data.code === 200) {
+      moduleInfo.value = res.data.data
     }
   } catch (error) {
     console.log('error:', error)
