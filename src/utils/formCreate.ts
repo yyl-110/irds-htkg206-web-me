@@ -2,6 +2,8 @@
  * 针对 https://github.com/xaboy/form-create-designer 封装的工具类
  */
 
+import { isRef } from 'vue'
+
 // 编码表单 Conf
 export function encodeConf(designerRef: object) {
   // @ts-ignore
@@ -21,6 +23,9 @@ export function encodeFields(designerRef: object) {
 
 // 解码表单 Fields
 export function decodeFields(fields: string[]) {
+  if (!Array.isArray(fields) || fields.length === 0) {
+    return []
+  }
   const rule: object[] = []
   fields.forEach(item => {
     rule.push(JSON.parse(item))
@@ -37,18 +42,36 @@ export function setConfAndFields(designerRef: object, conf: string, fields: stri
 }
 
 // 设置表单的 Conf 和 Fields，适用 form-create 场景
-export function setConfAndFields2(detailPreview: object, conf: string, fields: string[], value?: object) {
+export function setConfAndFields2(
+  detailPreview: object,
+  conf: string | undefined | null,
+  fields: string[] | undefined | null,
+  value?: object,
+) {
+  let target: any = detailPreview
   if (isRef(detailPreview)) {
-    // @ts-ignore
-    detailPreview = detailPreview.value
+    target = detailPreview.value
   }
-  // @ts-ignore
-  detailPreview.option = JSON.parse(conf)
-  // @ts-ignore
-  detailPreview.rule = decodeFields(fields)
+  if (conf == null || conf === '') {
+    target.option = {}
+  } else {
+    try {
+      target.option = typeof conf === 'string' ? JSON.parse(conf) : conf
+    } catch {
+      target.option = {}
+    }
+  }
+  if (!Array.isArray(fields) || fields.length === 0) {
+    target.rule = []
+  } else {
+    try {
+      target.rule = decodeFields(fields)
+    } catch {
+      target.rule = []
+    }
+  }
   if (value) {
-    // @ts-ignore
-    detailPreview.value = value
+    target.value = value
   }
 }
 /**

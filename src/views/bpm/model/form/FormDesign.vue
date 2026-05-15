@@ -36,8 +36,17 @@ watch(
   () => modelData.value.formId,
   async newFormId => {
     if (newFormId && modelData.value.formType === BpmModelFormType.NORMAL) {
-      const data = await FormApi.getForm(newFormId)
-      setConfAndFields2(formPreview.value, data.conf, data.fields)
+      const res = await FormApi.getForm(newFormId)
+      if (res.data?.code !== 200) {
+        formPreview.value.rule = []
+        return
+      }
+      const row = res.data?.data
+      if (!row) {
+        formPreview.value.rule = []
+        return
+      }
+      setConfAndFields2(formPreview.value, row.conf, row.fields)
       // 设置只读
       formPreview.value.rule.forEach((item: any) => {
         item.props = { ...item.props, disabled: true }
@@ -71,7 +80,7 @@ defineExpose({
     <el-form-item label="表单类型" prop="formType" class="mb-20px">
       <el-radio-group v-model="modelData.formType">
         <el-radio
-          v-for="dict in useDict.getDictOptions(DICT_TYPE.BPM_MODEL_FORM_TYPE)"
+          v-for="dict in useDict.getIntDictOptions(DICT_TYPE.BPM_MODEL_FORM_TYPE)"
           :key="dict.value"
           :value="dict.value">
           {{ dict.label }}

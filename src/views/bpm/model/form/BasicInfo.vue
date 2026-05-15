@@ -6,6 +6,7 @@ import type { CategoryVO } from '@/api/bpm/category'
 // import { findPagination, findPaginationByUsers } from '@/api/system-manage/user'
 import { InformationPageRequestDTOModel } from '@/api/models/information/InformationPageRequestDTOModel'
 import { useDictStore } from '@/store/modules/dict'
+import UserSelectForm from '@/components/UserSelectForm/index.vue'
 // 国际化
 const props = defineProps({
   categoryList: {
@@ -34,7 +35,7 @@ const rules = {
   name: [{ required: true, message: '流程名称不能为空', trigger: 'blur' }],
   key: [{ required: true, message: '流程标识不能为空', trigger: 'blur' }],
   category: [{ required: true, message: '流程分类不能为空', trigger: 'blur' }],
-  type: [{ required: true, message: '是否可见不能为空', trigger: 'blur' }],
+  type: [{ required: true, message: '流程类型不能为空', trigger: 'blur' }],
   visible: [{ required: true, message: '是否可见不能为空', trigger: 'blur' }],
   managerUserIds: [{ required: true, message: '流程管理员不能为空', trigger: 'blur' }],
 }
@@ -112,6 +113,7 @@ function openStartDeptSelect() {
 /** 打开管理员选择 */
 function openManagerUserSelect() {
   currentSelectType.value = 'manager'
+  console.log(userSelectFormRef.value, 'userSelectFormRef.value')
   userSelectFormRef.value.open(0, selectedManagerUsers.value)
 }
 
@@ -243,16 +245,16 @@ defineExpose({
           :value="category.code" />
       </el-select>
     </el-form-item>
-    <el-form-item label="流程图标" class="mb-20px">
+    <!-- <el-form-item label="流程图标" class="mb-20px">
       <UploadImg v-model="modelData.icon" :limit="1" height="64px" width="64px" />
-    </el-form-item>
+    </el-form-item> -->
     <el-form-item label="流程描述" prop="description" class="mb-20px">
       <el-input v-model="modelData.description" clearable type="textarea" />
     </el-form-item>
-    <el-form-item lab el="流程类型" prop="type" class="mb-20px">
+    <el-form-item label="流程类型" prop="type" class="mb-20px">
       <el-radio-group v-model="modelData.type">
         <el-radio
-          v-for="dict in useDict.getDictOptions(DICT_TYPE.BPM_MODEL_TYPE)"
+          v-for="dict in useDict.getIntDictOptions(DICT_TYPE.BPM_MODEL_TYPE)"
           :key="dict.value"
           :value="dict.value">
           {{ dict.label }}
@@ -262,8 +264,8 @@ defineExpose({
     <el-form-item :label="$t('是否可见')" prop="visible" class="mb-20px">
       <el-radio-group v-model="modelData.visible">
         <el-radio
-          v-for="dict in useDict.getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING)"
-          :key="dict.value as string"
+          v-for="dict in useDict.getStrDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING)"
+          :key="dict.value"
           :value="dict.value">
           {{ dict.label }}
         </el-radio>
@@ -298,9 +300,9 @@ defineExpose({
           v-for="dept in selectedStartDepts"
           :key="dept.id"
           class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
-          <I c on icon="ep:office-building" class="!m-5px text-20px" />
+          <Icon icon="ep:office-building" class="!m-5px text-20px" />
           {{ dept.name }}
-          <Icon icon="ep:close" class="ml-2 cur s or-pointer hover:text-red-500" @click="handleRemoveStartDept(dept)" />
+          <Icon icon="ep:close" class="ml-2 cursor-pointer hover:text-red-500" @click="handleRemoveStartDept(dept)" />
         </div>
         <el-button type="primary" link @click="openStartDeptSelect">
           <Icon icon="ep:plus" />
@@ -310,7 +312,7 @@ defineExpose({
       </div>
     </el-form-item>
     <el-form-item label="流程管理员" prop="managerUserIds" class="mb-20px">
-      <div c l ass="flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-2">
         <div
           v-for="user in selectedManagerUsers"
           :key="user.id"

@@ -2,7 +2,7 @@
 import draggable from 'vuedraggable'
 import { cloneDeep } from 'lodash-es'
 import { message } from 'ant-design-vue'
-import { onActivated } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import CategoryForm from '../category/CategoryForm.vue'
 import CategoryDraggableModel from './CategoryDraggableModel.vue'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -11,6 +11,7 @@ import { CategoryApi } from '@/api/bpm/category'
 
 // 国际化
 defineOptions({ name: 'BpmModel' })
+const route = useRoute()
 const { push } = useRouter()
 const loading = ref(true) // 列表的加载中
 const isCategorySorting = ref(false) // 是否 category 正处于排序状态
@@ -110,7 +111,8 @@ async function getList() {
       ...category,
       modelList: modelList.data.data.filter((model: any) => model.categoryName === category.name),
     }))
-    console.log(categoryGroup.value, 'categoryGroup.value')
+    console.log(modelList, 'modelList')
+    console.log(categoryList, 'categoryList')
     loading.value = false
   } catch (error) {
     console.error(error)
@@ -119,12 +121,20 @@ async function getList() {
   }
 }
 
-const router = useRouter()
-/** 初始化 */
-onActivated(() => {
-  getList()
-  console.log('router--------', router.getRoutes())
-})
+/** 仅在本页路由激活时刷新列表；防抖合并短时间内的多次触发 */
+const debouncedGetList = useDebounceFn(() => {
+  void getList()
+}, 300)
+
+watch(
+  () => route.path,
+  path => {
+    if (path === '/bpm/model') {
+      debouncedGetList()
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

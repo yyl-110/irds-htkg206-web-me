@@ -53,7 +53,7 @@ import { useFormCreateDesigner } from '@/components/FormCreate'
 import { useRoute } from 'vue-router'
 import type { FormInstance } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-
+import { ContentWrap } from '@/components/ContentWrap'
 /** 与字典 int 选项一致，避免接口 number 与字典 string 混用导致 radio 无法回显（1 !== '1'） */
 function normalizeFormStatus(status: unknown): number {
   const n = Number(status)

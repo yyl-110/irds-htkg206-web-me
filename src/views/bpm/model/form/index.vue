@@ -19,7 +19,11 @@ import { CategoryApi } from '@/api/bpm/category'
 import * as DefinitionApi from '@/api/bpm/definition'
 import type { HttpRequestResponse } from '@/httpRequest/typings'
 import { BpmAutoApproveType, BpmModelFormType, BpmModelType } from '@/utils/constants'
+import { useDictStore } from '@/store/modules/dict'
+import { DICT_TYPE } from '@/utils/dict'
 // import { useTagsView } from '@/hooks/web/useTagsView'
+
+const dictStore = useDictStore()
 
 const { t } = useI18n() // 国际化
 const router = useRouter()
@@ -71,7 +75,7 @@ const formData: any = ref({
   formId: '',
   formCustomCreatePath: '',
   formCustomViewPath: '',
-  visible: true,
+  visible: 'true',
   startUserType: undefined,
   startUserIds: [],
   startDeptIds: [],
@@ -106,9 +110,47 @@ const formList = ref([])
 const categoryList = ref<CategoryVO[]>([])
 const deptList = ref<[]>([])
 
+/** 接口常为 number/boolean，字典单选为 int/string，与 el-radio 严格相等才能回显 */
+function normalizeModelDictEcho(m: Record<string, any>) {
+  if (m.type != null && m.type !== '') {
+    const n = Number(m.type)
+    if (!Number.isNaN(n)) m.type = n
+  }
+  if (m.visible === undefined || m.visible === null || m.visible === '') return
+
+  const v = m.visible
+  let wantTrue = false
+  if (typeof v === 'boolean') wantTrue = v
+  else if (typeof v === 'number') wantTrue = v === 1
+  else {
+    const s = String(v).trim().toLowerCase()
+    wantTrue = s === '1' || s === 'true'
+  }
+
+  const opts = dictStore.getStrDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING)
+  const strVals = new Set(opts.map(o => String(o.value)))
+  if (strVals.has('1') && strVals.has('0')) {
+    m.visible = wantTrue ? '1' : '0'
+  } else if (strVals.has('true') && strVals.has('false')) {
+    m.visible = wantTrue ? 'true' : 'false'
+  } else {
+    m.visible = wantTrue ? 'true' : 'false'
+  }
+}
+
+function visibleToApi(v: unknown): boolean {
+  if (typeof v === 'boolean') return v
+  if (typeof v === 'number') return v !== 0
+  const s = String(v).trim().toLowerCase()
+  return s === 'true' || s === '1'
+}
+
 /** 初始化数据 */
 const actionType = route.params.type as string
 async function initData() {
+  if (!dictStore.isSetDict) {
+    await dictStore.setDictMap()
+  }
   if (actionType === 'definition') {
     // 情况一：流程定义场景（恢复）
     const definitionId = route.params.id as string
@@ -123,12 +165,17 @@ async function initData() {
       data.simpleModel = JSON.parse(data.simpleModel)
     }
     formData.value = data
+    normalizeModelDictEcho(formData.value)
     formData.value.startUserType =
       formData.value.startUserIds?.length > 0 ? 1 : formData.value?.startDeptIds?.length > 0 ? 2 : 0
   } else if (['update', 'copy'].includes(actionType)) {
     // 情况二：修改场景/复制场景
     const modelId = route.params.id as string
-    formData.value = await ModelApi.getModel(modelId)
+    const res = await ModelApi.getModel(modelId)
+    if (res.data.code === 200) {
+      formData.value = res.data.data
+      normalizeModelDictEcho(formData.value)
+    }
     formData.value.startUserType =
       formData.value.startUserIds?.length > 0 ? 1 : formData.value?.startDeptIds?.length > 0 ? 2 : 0
 
@@ -213,6 +260,7 @@ async function handleSave() {
     // 更新表单数据
     const modelData = {
       ...formData.value,
+      visible: visibleToApi(formData.value.visible),
     }
 
     if (actionType === 'definition') {
@@ -263,6 +311,7 @@ async function handleDeploy() {
     // 更新表单数据
     const modelData = {
       ...formData.value,
+      visible: visibleToApi(formData.value.visible),
     }
 
     // 先保存所有数据
@@ -381,11 +430,11 @@ onBeforeUnmount(() => {
         <!-- 右侧按钮 -->
         <div class="w-200px flex items-center justify-end gap-2">
           <el-button v-if="actionType === 'update'" type="success" @click="handleDeploy">
-            {{ $t('发 布') }}
+            {{ $t('发布') }}
           </el-button>
           <el-button type="primary" @click="handleSave">
-            <span v-if="actionType === 'definition'">{{ $t('恢 复') }}</span>
-            <span v-else>{{ $t('保 存') }}</span>
+            <span v-if="actionType === 'definition'">{{ $t('恢复') }}</span>
+            <span v-else>{{ $t('保存') }}</span>
           </el-button>
         </div>
       </div>

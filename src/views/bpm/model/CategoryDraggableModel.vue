@@ -2,7 +2,6 @@
 import Sortable from 'sortablejs'
 import { cloneDeep, isEqual } from 'lodash-es'
 import { useDebounceFn } from '@vueuse/core'
-import { message } from 'ant-design-vue'
 import { DICT_TYPE } from '@/utils/dict'
 import type { CategoryVO } from '@/api/bpm/category'
 import { CategoryApi } from '@/api/bpm/category'
@@ -14,7 +13,8 @@ import { BpmModelFormType } from '@/utils/constants'
 import { checkPermi } from '@/utils/permission'
 // import { useAppStore } from '@/store/modules/app'
 import { useUserStore } from '@/store/modules/user'
-
+import { useMessage } from '@/hooks/web/useMessage'
+const message = useMessage()
 defineOptions({ name: 'BpmModel' })
 
 const props = defineProps<{
@@ -234,9 +234,11 @@ const formDetailPreview = ref({
 })
 async function handleFormDetail(row: any) {
   if (row.formType == BpmModelFormType.NORMAL) {
-    // 设置表单
-    const data = await FormApi.getForm(row.formId)
-    setConfAndFields2(formDetailPreview, data.conf, data.fields)
+    const res = await FormApi.getForm(row.formId)
+    if (res.data?.code !== 200) return
+    const formRow = res.data.data
+    if (!formRow) return
+    setConfAndFields2(formDetailPreview, formRow.conf, formRow.fields)
     // 弹窗打开
     formDetailVisible.value = true
   } else {

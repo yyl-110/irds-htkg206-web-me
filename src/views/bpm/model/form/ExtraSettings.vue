@@ -207,10 +207,12 @@ watch(
   () => modelData.value.formId,
   async (newFormId) => {
     if (newFormId && modelData.value.formType === BpmModelFormType.NORMAL) {
-      const data = await FormApi.getForm(newFormId)
-      const result: Array<{ field: string, title: string }> = []
-      if (data.fields) {
-        data.fields.forEach((fieldStr: string) => {
+      const res = await FormApi.getForm(newFormId)
+      const result: Array<{ field: string; title: string }> = []
+      const row = res.data?.data
+      const fields = row?.fields
+      if (Array.isArray(fields)) {
+        fields.forEach((fieldStr: string) => {
           parseFormFields(JSON.parse(fieldStr), result)
         })
       }
@@ -241,46 +243,43 @@ watch(
         </div>
       </div>
     </el-form-item>
-    <el-form-item v-if="modelData.processIdRule" class="mb-20px">
+    <el-form-item v-if="modelData.processIdRule" class="mb-20px bpm-process-id-rule">
       <template #label>
         <el-text size="large" tag="b">
           {{ $t('流程编码') }}
         </el-text>
       </template>
-      <div class="flex flex-col">
-        <div>
+      <div class="flex flex-col gap-8px w-full min-w-0">
+        <div
+          class="bpm-process-id-rule__row flex flex-row flex-nowrap items-center gap-8px w-full min-w-0 overflow-x-auto">
           <el-input
             v-model="modelData.processIdRule.prefix"
-            class="w-130px!"
+            class="bpm-process-id-rule__prefix flex-shrink-0"
             :placeholder="$t('前缀')"
-            :disabled="!modelData.processIdRule.enable"
-          >
+            :disabled="!modelData.processIdRule.enable">
             <template #prepend>
               <el-checkbox v-model="modelData.processIdRule.enable" />
             </template>
           </el-input>
           <el-select
             v-model="modelData.processIdRule.infix"
-            class="w-130px! ml-5px"
+            class="bpm-process-id-rule__infix flex-shrink-0"
             :placeholder="$t('中缀')"
-            :disabled="!modelData.processIdRule.enable"
-          >
+            :disabled="!modelData.processIdRule.enable">
             <el-option v-for="item in timeOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
           <el-input
             v-model="modelData.processIdRule.postfix"
-            class="w-80px! ml-5px"
+            class="bpm-process-id-rule__postfix flex-shrink-0"
             :placeholder="$t('后缀')"
-            :disabled="!modelData.processIdRule.enable"
-          />
+            :disabled="!modelData.processIdRule.enable" />
           <el-input-number
             v-model="modelData.processIdRule.length"
-            class="w-120px! ml-5px"
+            class="bpm-process-id-rule__length flex-shrink-0"
             :min="5"
-            :disabled="!modelData.processIdRule.enable"
-          />
+            :disabled="!modelData.processIdRule.enable" />
         </div>
-        <div v-if="modelData.processIdRule.enable" class="ml-22px">
+        <div v-if="modelData.processIdRule.enable">
           <el-text type="info">
             {{ $t('编码示例：') }}{{ numberExample }}
           </el-text>
@@ -470,3 +469,49 @@ watch(
     </el-form-item>
   </el-form>
 </template>
+
+<style lang="scss" scoped>
+/* 流程编码：标签与第一行控件顶部对齐（勿用 center，否则两行内容时标签会落到「编码示例」一侧） */
+.bpm-process-id-rule {
+  align-items: flex-start;
+
+  :deep(.el-form-item__label) {
+    align-self: flex-start;
+    padding-top: 6px;
+    line-height: var(--el-component-size-default);
+  }
+
+  :deep(.el-form-item__content) {
+    min-width: 0;
+  }
+}
+
+.bpm-process-id-rule__row {
+  /* 单行不换行；内容过宽时横向滚动，避免数字步进器掉到第二行 */
+  -webkit-overflow-scrolling: touch;
+}
+
+.bpm-process-id-rule__prefix {
+  width: 176px;
+  min-width: 176px;
+  max-width: 100%;
+}
+
+.bpm-process-id-rule__infix {
+  width: 128px;
+  min-width: 128px;
+  max-width: 100%;
+}
+
+.bpm-process-id-rule__postfix {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100%;
+}
+
+.bpm-process-id-rule__length {
+  width: 112px;
+  min-width: 112px;
+  max-width: 100%;
+}
+</style>
