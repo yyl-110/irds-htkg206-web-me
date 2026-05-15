@@ -265,7 +265,7 @@ onBeforeMount(() => {
             !layoutStore.homepage && route.name === 'ProductProjectEditor'
               ? 'px-[8px] pb-[8px] pt-1 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
-                ? 'p-[16px] pt-[16px] pl-[11px]'
+                ? 'p-[16px]'
                 : '',
           ]">
           <div

@@ -12,9 +12,9 @@
           <a-row style="height: 100%; padding: 30px 24px 42px" :gutter="24">
             <a-col :span="8" style="height: 50%">
               <div class="knowledge">
-                <Title text="知识看板" showSelect showTime :timeOptions="timeOptions2" @changeTime="changeKnowledgeTime" />
+                <Title text="知识看板" showSelect showTime :timeOptions="timeOptions" @changeTime="changeTime" />
                 <div class="wrap">
-                  <knowledge-bar :chartData="systemInfo?.knowledgeList" />
+                  <knowledge-bar :chartData="systemInfo?.knowledgeSummary?.categorySummary" />
                 </div>
               </div>
             </a-col>
@@ -22,7 +22,7 @@
               <div class="knowledgeTotal">
                 <Title text="知识汇总" />
                 <div class="wrap">
-                  <knowledge-total :chartData="systemInfo?.knowledgePieChart" />
+                  <knowledge-total :chartData="systemInfo?.knowledgeSummary?.knowledgeCountByCreatorDept" />
                 </div>
               </div>
             </a-col>
@@ -30,7 +30,7 @@
               <div class="knowledgeRank">
                 <Title text="知识访问次数排名 TOP10" />
                 <div class="wrap">
-                  <knowledge-rank :chartData="systemInfo?.applicationRanking" />
+                  <knowledge-rank :chartData="systemInfo?.top10Access" />
                 </div>
               </div>
             </a-col>
@@ -38,15 +38,15 @@
               <div class="resourceTotal">
                 <Title text="资源汇总" />
                 <div class="wrap">
-                  <resource-bar :chartData="systemInfo?.resourceSummaryList" />
+                  <resource-bar :chartData="systemInfo?.knowledgeSummary?.top10CreatorsByKnowledgeCount" />
                 </div>
               </div>
             </a-col>
             <a-col :span="16" style="height: 50%">
               <div class="knowledgeBoard">
-                <Title text="知识访问看板" showSelect showTime :timeOptions="timeOptions" @changeTime="changeTime" />
+                <Title text="知识访问看板"  />
                 <div class="wrap">
-                  <knowledge-board :chartData="visitReportInfo" :timeType="timeType" />
+                  <knowledge-board :chartData="systemInfo?.knowledgeSummary?.monthlyPreviewByFirstLevel" :timeType="timeType" />
                 </div>
               </div>
             </a-col>
@@ -102,21 +102,9 @@ const timeType2 = ref('1')
 const fetchData = async (type) => {
   try {
     const res = await getReportKnowledgeList({ type })
-    if (res.code === '0') {
-      systemInfo.value = res.data
-    }
-  } catch (error) {
-    console.log('error:', error)
-  }
-}
-
-const fetchModelVisitReport = async (type) => {
-  try {
-    // 1：一周。2：一个月。3：一年
-    const res = await getModelVisitReport({ type })
-    if (res.code === '0') {
-      console.log('res:', res.data)
-      visitReportInfo.value = res.data
+    if (res.data.code === '0') {
+      systemInfo.value = res.data.data?.result
+      console.log(systemInfo.value.knowledgeSummary?.categorySummary)
     }
   } catch (error) {
     console.log('error:', error)
@@ -129,17 +117,11 @@ const back = () => {
 
 const changeTime = (val) => {
   timeType.value = val
-  fetchModelVisitReport(val)
-}
-
-const changeKnowledgeTime = (val) => {
-  timeType2.value = val
   fetchData(val)
 }
 
 onMounted(() => {
   fetchData('1') // 默认查询一周
-  fetchModelVisitReport('1') // 默认查询一周
 })
 
 </script>

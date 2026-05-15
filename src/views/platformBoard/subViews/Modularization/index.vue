@@ -99,7 +99,7 @@ const changeTime = (val) => {
 
 const fetchData = async (type) => {
   try {
-    const res = await getReportModuleList({ projectId: selectProjectId.value, year: type })
+    const res = await getReportModuleList({ year: type })
     if (res.data.code === 200) {
       moduleInfo.value = res.data.data
     }
@@ -116,19 +116,19 @@ const lookList = () => {
   window.location.href = 'http://39.106.130.85:8082/bl-server/dashboard/exportUsageFrequency'
 }
 
-// onMounted(() => {
-//   fetchData()
-// })
+onMounted(() => {
+  fetchData(new Date().getFullYear())
+})
 
-watch(
-  () => selectProjectId.value,
-  () => {
-    if (selectProjectId.value) {
-      fetchData(timeType.value);
-    }
-  },
-  { immediate: true }
-);
+// watch(
+//   () => selectProjectId.value,
+//   () => {
+//     if (selectProjectId.value) {
+//       fetchData(timeType.value);
+//     }
+//   },
+//   { immediate: true }
+// );
 </script>
 
 <style lang="less" scoped>

@@ -16,8 +16,8 @@ const props = defineProps({
 });
 
 const initChart = () => {
-  const xData = props.chartData.map(item => item.title)
-  const seriesData = props.chartData.map(item => item.totalCount)
+  const xData = props.chartData.map(item => item.userName)
+  const seriesData = props.chartData.map(item => item.knowledgeCount)
   chartOption.value = {
     tooltip: {
       trigger: "axis",

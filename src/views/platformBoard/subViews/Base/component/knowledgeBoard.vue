@@ -3,190 +3,56 @@
     <div class="scrollBoard">
       <ScrollBoard :config="config" style="width:100%;height:100%" />
     </div>
-    <div class="lineWrap">
-      <v-chart :option="chartOption" class="chart" />
-    </div>
   </div>
 </template>
 
 <script setup>
-import * as echarts from 'echarts'
 import ScrollBoard from '@/views/platformBoard/components/ScrollBoard.vue'
 import dayjs from 'dayjs';
-import { monthMap } from './data';
-
 
 const props = defineProps({
   chartData: {
-    type: Array,
-    default: () => [],
+    type: Object,
+    default: () => null,
   },
-  /* 时间筛选 1半年 2一年 */
-  timeType: {
-    type: String,
-    default: '1',
-  }
 })
 
 const config = ref({})
 
-const chartOption = ref({});
-
-const getMonthList = computed(() => {
-  // 半年
-  const months = []
-  for (let i = 5; i >= 0; i--) {
-    months.push(dayjs().subtract(i, 'month').format('YYYY-MM'))
-  }
-  // 一一年
-  const yearMonths = []
-  for (let i = 11; i >= 0; i--) {
-    yearMonths.push(dayjs().subtract(i, 'month').format('YYYY-MM'))
-  }
-  return props.timeType === '1' ? months : yearMonths
-})
-
-const nameList = computed(() => props.chartData.map(item => item.categoryName))
-
-const colorList = ['#52F5F9', '#63d2e7', '#1890FF', '#FACC14', '#2FC25B']
-
-const chartDataList = ref([])
 const initTable = () => {
-  const list = []
-  const data = props.chartData.map((item, index) => {
-    const dataList = getMonthList.value.map(val => {
-      if (item.visit_month === val) {
-        return item.visit_count
-      }
-      return 0
+  const data = props.chartData
+  if (!data || !data.months || !data.firstLevelCategories) return
+
+  // 表头：第一列为分类名，后面列为月份（格式化为 M月）
+  const header = ['分类', ...data.months.map(m => dayjs(m).format('M月'))]
+
+  // 每一行：分类名 + 各月份数量（从 cells 中查找）
+  const tableData = data.firstLevelCategories.map(category => {
+    const row = [category]
+    data.months.forEach(month => {
+      const key = `${category}|${month}`
+      row.push(data.cells[key] || '0')
     })
-    list.push(dataList)
-    return [item.categoryName, ...dataList]
+    return row
   })
-  chartDataList.value = list
+
   config.value = {
-    header: ['', ...getMonthList.value.map(item => dayjs(item).format('M月'))],
-    data,
+    header,
+    data: tableData,
     columnWidth: [95],
     align: ['center'],
-    headerBGC: "#043C64",
-    oddRowBGC: "#051841",
+    headerBGC: '#043C64',
+    oddRowBGC: '#051841',
     evenRowBGC: 'transparent',
-    waitTime: 100000000000000,
-    rowNum: 7
+    waitTime: 3000,
+    rowNum: 7,
   }
 }
-const initChart = () => {
-  const seriesData = chartDataList.value.map((item, index) => (
-    {
-      name: nameList.value[index],
-      type: 'line',
-      smooth: false, //是否平滑曲线显示
-      showSymbol: true,
 
-      itemStyle: {
-        color: colorList[index],
-        borderColor: colorList[index],
-        borderWidth: 1,
-      },
-      lineStyle: {
-        normal: {
-          width: 3,
-          color: colorList[index],
-        },
-      },
-      data: item,
-    }
-  ))
-  console.log('seriesData:', seriesData)
-
-  chartOption.value = {
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(17,95,182,0.5)',
-      textStyle: {
-        color: '#fff',
-      },
-      showContent: true,
-    },
-    legend: {
-      show: false,
-    },
-    grid: {
-      left: '5%',
-      right: '0',
-      bottom: '5%',
-      top: '10%',
-      containLabel: true,
-    },
-    xAxis: {
-      axisLine: {
-        lineStyle: {
-          color: '#334984',
-        },
-      },
-      splitLine: {
-        show: false,
-      },
-      axisTick: {
-        show: false,
-      },
-      //轴线上的字
-      axisLabel: {
-        show: true,
-        textStyle: {
-          color: '#BACDF5',
-          fontSize: 12,
-          lineHeight: 20,
-        },
-        formatter: function (value) {
-          // 将每个字符换行显示
-          return value.split('').join('\n');
-        }
-      },
-      data: getMonthList.value.map(item => monthMap[dayjs(item).format('M月')])
-    },
-    yAxis: [
-      {
-        nameTextStyle: {
-          color: 'rgba(255,255,255,0.8)',
-        },
-        type: 'value',
-        axisTick: {
-          show: false,
-        },
-        //轴线上的字
-        axisLabel: {
-          show: true,
-          textStyle: {
-            fontSize: '12',
-            color: 'rgba(255,255,255,0.5)',
-          },
-        },
-        axisLine: {
-          lineStyle: {
-            color: '#397cbc',
-          },
-        },
-        //网格线
-        splitLine: {
-          show: true,
-          lineStyle: {
-            color: '#334984',
-            type: 'dashed',
-          },
-        },
-      },
-    ],
-    series: seriesData
-  };
-};
-
-
-// ====== Mock 数据（预览用，不影响原有逻辑）======
+// ====== Mock 数据（预览用）======
 const mockData = () => {
   config.value = {
-    header: ['', '1月', '2月', '3月', '4月', '5月', '6月'],
+    header: ['分类', '1月', '2月', '3月', '4月', '5月', '6月'],
     data: [
       ['技术文档', '45', '67', '89', '56', '78', '92'],
       ['操作手册', '32', '41', '58', '63', '47', '71'],
@@ -199,20 +65,13 @@ const mockData = () => {
     headerBGC: '#043C64',
     oddRowBGC: '#051841',
     evenRowBGC: 'transparent',
-    waitTime: 100000000000000,
+    waitTime: 3000,
     rowNum: 7,
   }
 }
 
-onMounted(() => {
-  if (!props.chartData || !props.chartData.length) {
-    mockData()
-  }
-})
-
 watch(() => props.chartData, () => {
   initTable()
-  initChart();
 }, { deep: true })
 
 </script>
@@ -221,21 +80,13 @@ watch(() => props.chartData, () => {
 .moduleBoardWrap {
   display: flex;
   align-items: center;
-  padding-left: 20px;
   width: 100%;
   height: 100%;
+  padding: 20px;
 
   .scrollBoard {
-    width: 60%;
+    width: 100%;
     height: 100%;
-    padding-top: 23px;
-    padding-bottom: 16px;
-  }
-
-  .lineWrap {
-    width: 40%;
-    height: 100%;
-
   }
 }
 </style>

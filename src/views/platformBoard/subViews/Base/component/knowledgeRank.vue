@@ -20,8 +20,8 @@ const chartOption = ref({});
 
 const initChart = () => {
   const dataList = props.chartData.map(item => ({
-    name: item.name,
-    value: item.number,
+    name: item.fileName,
+    value: Number(item.accessCount),
   }));
 
   const endPercent = dataList.length > 10 ? 10 / dataList.length * 100 : 100

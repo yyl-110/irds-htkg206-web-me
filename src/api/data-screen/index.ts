@@ -15,7 +15,7 @@ export function getReportKnowledgeList(data: { type: string | number }) {
  * 模块化看板
  * @return {*}
  */
-export function getReportModuleList(data: { projectId: string | number }) {
+export function getReportModuleList(data: { year: string | number }) {
   return httpRequest({
     url: "/system-service/reportinfo/getReportModuleList",
     method: "POST",

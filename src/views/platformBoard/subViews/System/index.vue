@@ -38,7 +38,7 @@
               <div class="systemUser">
                 <Title text="系统用户统计" />
                 <div class="wrap">
-                  <system-user />
+                  <system-user :chart-data="baseInfo?.userTypeLoginList" />
                 </div>
               </div>
             </a-col>
@@ -83,7 +83,6 @@ const fetchData = async () => {
   try {
     const res = await getReportSystemList({});
     if (res.data?.code == 200) {
-      console.log(res, 999);
       baseInfo.value = res.data?.data;
     }
   } catch (error) {
@@ -243,7 +242,7 @@ onMounted(() => {
           height: 0;
           display: flex;
           justify-content: center;
-          padding: 24px 12px;
+          padding: 12px;
         }
       }
     }
