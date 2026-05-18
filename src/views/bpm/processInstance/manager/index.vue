@@ -161,9 +161,9 @@
         <el-table-column :label="$t('流程编号')" align="center" prop="id" min-width="320px" />
         <el-table-column :label="$t('操作')" align="center" left fixed="right" width="190">
           <template #default="scope">
-            <el-button link type="primary" @click="handleDetail(scope.row)">
+            <!-- <el-button link type="primary" @click="handleDetail(scope.row)">
               {{ $t('详情') }}
-            </el-button>
+            </el-button> -->
             <el-button link type="primary" @click="showProcessVariables(scope.row)">
               {{ $t('流程变量') }}
             </el-button>

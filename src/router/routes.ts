@@ -283,18 +283,6 @@ export const routes: RouteRecordRaw[] = [
     },
     children: [
       {
-        path: 'manager/model',
-        component: () => import('@/views/bpm/model/index.vue'),
-        name: 'BpmModel',
-        meta: {
-          noCache: false,
-          hidden: true,
-          canTo: true,
-          title: '流程模型',
-          activeMenu: '/bpm/manager/model',
-        },
-      },
-      {
         path: 'manager/model/create',
         component: () => import('@/views/bpm/model/form/index.vue'),
         name: 'BpmModelCreate',
@@ -303,7 +291,7 @@ export const routes: RouteRecordRaw[] = [
           hidden: true,
           canTo: true,
           title: '创建流程',
-          activeMenu: '/bpm/manager/model',
+          activeMenu: '/bpm/model',
         },
       },
       {
@@ -315,7 +303,7 @@ export const routes: RouteRecordRaw[] = [
           hidden: true,
           canTo: true,
           title: '修改流程',
-          activeMenu: '/bpm/manager/model',
+          activeMenu: '/bpm/model',
         },
       },
       {
@@ -327,43 +315,7 @@ export const routes: RouteRecordRaw[] = [
           hidden: true,
           canTo: true,
           title: '设计流程表单',
-          activeMenu: '/bpm/manager/form',
-        },
-      },
-      {
-        path: 'manager/form',
-        component: () => import('@/views/bpm/form/index.vue'),
-        name: 'BpmFormList',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '设计流程表单列表',
-          activeMenu: '/bpm/manager/form',
-        },
-      },
-      {
-        path: 'manager/category',
-        component: () => import('@/views/bpm/category/index.vue'),
-        name: 'BpmFormCategory',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '流程分类',
-          activeMenu: '/bpm/manager/category',
-        },
-      },
-      {
-        path: 'manager/process-instance/manager',
-        component: () => import('@/views/bpm/processInstance/manager/index.vue'),
-        name: 'ProcessInstance',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '流程实例',
-          activeMenu: '/bpm/manager/process-instance/manager',
+          activeMenu: '/manager/form/edit',
         },
       },
       {
@@ -393,18 +345,6 @@ export const routes: RouteRecordRaw[] = [
           canTo: true,
           title: '数据报表',
           activeMenu: '/bpm/manager/model',
-        },
-      },
-      {
-        path: 'manager/process-tasnk',
-        component: () => import('@/views/bpm/task/manager/index.vue'),
-        name: 'ProcessTasnk',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '流程任务',
-          activeMenu: '/bpm/manager/process-tasnk',
         },
       },
       // ------------------------

@@ -192,10 +192,15 @@ async function initData() {
     formData.value.managerUserIds.push(useUserStore().getUser.id)
   }
   // 获取表单列表
-  formList.value = await FormApi.getFormSimpleList()
+  const res = await FormApi.getFormSimpleList()
+  if (res.data.code === 200) {
+    formList.value = res.data.data
+  }
   // 获取分类列表
-  categoryList.value = await CategoryApi.getCategorySimpleList()
-
+  const resq = await CategoryApi.getCategorySimpleList()
+  if (resq.data.code === 200) {
+    categoryList.value = resq.data.data
+  }
   // 获取部门列表
   // const response = await findDeptTree({})
   // deptList.value = response.data
@@ -204,7 +209,11 @@ async function initData() {
   currentStep.value = 0
 
   // 兼容，以前未配置更多设置的流程
-  extraSettingsRef.value.initData()
+  nextTick(() => {
+    if (extraSettingsRef.value) {
+      extraSettingsRef.value.initData()
+    }
+  })
 }
 
 /** 根据类型切换流程数据 */
@@ -290,7 +299,7 @@ async function handleSave() {
 
     // 返回列表页（排除更新的情况）
     if (actionType !== 'update') {
-      await router.push({ name: 'BpmModel' })
+      await router.push({ path: '/bpm/model' })
     }
   } catch (error: any) {
     console.error('保存失败:', error)
@@ -326,7 +335,7 @@ async function handleDeploy() {
     await ModelApi.deployModel(formData.value.id)
     message.success(t('发布成功'))
     // 返回列表页
-    await router.push({ name: 'BpmModel' })
+    await router.push({ path: '/bpm/model' })
   } catch (error: any) {
     console.error('发布失败:', error)
     message.warning(t(error.message) || t('发布失败'))
@@ -372,7 +381,7 @@ function handleBack() {
   // 先删除当前页签
   // delView(unref(router.currentRoute))
   // 跳转到列表页
-  router.push({ name: 'BpmModel' })
+  router.push({ path: '/bpm/model' })
 }
 
 /** 初始化 */

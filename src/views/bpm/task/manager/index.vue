@@ -98,11 +98,11 @@
           width="220"
           :show-overflow-tooltip="true" />
         <el-table-column align="center" :label="$t('任务编号')" prop="id" width="220" :show-overflow-tooltip="true" />
-        <el-table-column align="center" :label="$t('操作')" fixed="right" width="80">
+        <!-- <el-table-column align="center" :label="$t('操作')" fixed="right" width="80">
           <template #default="scope">
             <el-button link type="primary" @click="handleAudit(scope.row)">{{ $t('历史') }}</el-button>
           </template>
-        </el-table-column>
+        </el-table-column> -->
       </el-table>
       <!-- 分页 -->
       <Pagination

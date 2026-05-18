@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import Sortable from 'sortablejs'
+import type { SortableEvent } from 'sortablejs'
 import { cloneDeep, isEqual } from 'lodash-es'
 import { useDebounceFn } from '@vueuse/core'
 import { DICT_TYPE } from '@/utils/dict'
@@ -15,7 +16,7 @@ import { checkPermi } from '@/utils/permission'
 import { useUserStore } from '@/store/modules/user'
 import { useMessage } from '@/hooks/web/useMessage'
 const message = useMessage()
-defineOptions({ name: 'BpmModel' })
+defineOptions({ name: 'bpm/model' })
 
 const props = defineProps<{
   categoryInfo: CategoryInfoProps
@@ -260,8 +261,9 @@ function isManagerUser(row: any) {
 /** 处理模型的排序 */
 function handleModelSort() {
   // 保存初始数据
-  originalData.value = cloneDeep(props.categoryInfo.modelList)
+  originalData.value = cloneDeep(modelList.value)
   isModelSorting.value = true
+  isExpand.value = true
   initSort()
 }
 
@@ -272,6 +274,7 @@ async function handleModelSortSubmit() {
   await ModelApi.updateModelSortBatch(ids)
   // 刷新列表
   isModelSorting.value = false
+  destroyTableSortable()
   message.success('排序模型成功')
   emit('success')
 }
@@ -281,26 +284,43 @@ function handleModelSortCancel() {
   // 恢复初始数据
   modelList.value = cloneDeep(originalData.value)
   isModelSorting.value = false
+  destroyTableSortable()
 }
 
 /** 创建拖拽实例 */
 const tableRef = ref()
-const initSort = useDebounceFn(() => {
-  const table = document.querySelector(`.{props.categoryInfo.name} .el-table__body-wrapper tbody`)
-  if (!table) return
+let tableSortable: Sortable | null = null
 
-  Sortable.create(table, {
-    group: 'shared',
-    animation: 150,
-    draggable: '.el-table__row',
-    handle: '.drag-icon',
-    onEnd: ({ newDraggableIndex, oldDraggableIndex }) => {
-      if (oldDraggableIndex !== newDraggableIndex) {
-        modelList.value.splice(newDraggableIndex, 0, modelList.value.splice(oldDraggableIndex, 1)[0])
-      }
-    },
+function destroyTableSortable() {
+  tableSortable?.destroy()
+  tableSortable = null
+}
+
+const initSort = useDebounceFn(() => {
+  nextTick(() => {
+    destroyTableSortable()
+    const tbody = tableRef.value?.$el?.querySelector?.('.el-table__body-wrapper tbody')
+    if (!tbody) return
+
+    tableSortable = Sortable.create(tbody as HTMLElement, {
+      animation: 150,
+      draggable: '.el-table__row',
+      handle: '.drag-icon',
+      onEnd(evt: SortableEvent) {
+        const { newIndex, oldIndex } = evt
+        if (newIndex === undefined || oldIndex === undefined || newIndex === oldIndex) return
+        const list = [...modelList.value]
+        const [moved] = list.splice(oldIndex, 1)
+        list.splice(newIndex, 0, moved)
+        modelList.value = list
+      },
+    })
   })
 }, 200)
+
+onBeforeUnmount(() => {
+  destroyTableSortable()
+})
 
 /** 更新 modelList 模型列表 */
 const updateModeList = useDebounceFn(() => {
@@ -443,7 +463,6 @@ watchEffect(() => {
       <el-table
         v-if="modelList && modelList.length > 0"
         ref="tableRef"
-        :class="categoryInfo.name"
         :data="modelList"
         row-key="id"
         :header-cell-style="tableHeaderStyle"

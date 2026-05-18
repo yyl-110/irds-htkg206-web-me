@@ -10,10 +10,10 @@ import * as ModelApi from '@/api/bpm/model'
 import { CategoryApi } from '@/api/bpm/category'
 
 // 国际化
-defineOptions({ name: 'BpmModel' })
+defineOptions({ name: 'bpm/model' })
 const route = useRoute()
 const { push } = useRouter()
-const loading = ref(true) // 列表的加载中
+const loading = ref(false) // 列表的加载中
 const isCategorySorting = ref(false) // 是否 category 正处于排序状态
 const queryParams = reactive({
   name: undefined,
@@ -111,9 +111,6 @@ async function getList() {
       ...category,
       modelList: modelList.data.data.filter((model: any) => model.categoryName === category.name),
     }))
-    console.log(modelList, 'modelList')
-    console.log(categoryList, 'categoryList')
-    loading.value = false
   } catch (error) {
     console.error(error)
   } finally {
@@ -203,12 +200,16 @@ watch(
     <el-divider />
 
     <!-- 按照分类，展示其所属的模型列表 -->
-    <div class="px-15px -b-p">
-      <draggable v-model="categoryGroup" :disabled="!isCategorySorting" item-key="id" :animation="400">
+    <div v-loading="loading" class="px-15px -b-p position-relative min-h-200px">
+      <draggable
+        v-model="categoryGroup"
+        :disabled="!isCategorySorting"
+        item-key="id"
+        :animation="400"
+        handle=".category-drag-icon">
         <template #item="{ element }">
           <ContentWrap
             :key="element.id"
-            v-loading="loading"
             class="rounded-lg transition-all duration-300 ease-in-out hover:shadow-xl"
             :body-style="{ padding: 0 }">
             <CategoryDraggableModel
