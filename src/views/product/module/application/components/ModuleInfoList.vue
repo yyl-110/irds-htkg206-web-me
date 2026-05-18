@@ -2268,7 +2268,7 @@ defineExpose({ initData, selectAllModuleInfo });
 .top-right-actions {
   position: absolute;
   top: 16px;
-  right: 12px;
+  right: 88px;
   z-index: 10;
 }
 

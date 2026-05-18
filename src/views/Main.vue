@@ -257,6 +257,10 @@ onBeforeMount(() => {
         </a-layout-header>
         <!-- 页面标签栏 -->
         <WeiPageTabs v-if="!layoutStore.homepage && projectUi.showTabs" tab-style="card" />
+        <!-- 密级标志：独立零高图层，勿给 layout-container 加 position，以免干扰左侧抽屉定位 -->
+        <div class="workspace-miji-badge-layer" aria-hidden="true">
+          <img class="workspace-miji-badge" src="@/assets/images/miji-gk.png" alt="" />
+        </div>
         <!-- 页面容器 -->
         <a-layout-content
           class="layout-container"
@@ -567,6 +571,25 @@ onBeforeMount(() => {
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+.workspace-miji-badge-layer {
+  position: relative;
+  flex: 0 0 0;
+  height: 0;
+  overflow: visible;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.workspace-miji-badge {
+  position: absolute;
+  top: 21px;
+  right: 22px;
+  height: 20px;
+  width: auto;
+  pointer-events: none;
+  user-select: none;
 }
 
 /** 项目信息创建页：主内容区铺满白底，避免透出外层 #f3f2f7 灰边 */

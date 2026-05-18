@@ -1413,7 +1413,7 @@ onUnmounted(() => {
               </template>
 
               <div v-if="item.name === 'todo'" class="task-content h-full flex flex-col">
-                <div class="filter-bar flex justify-between items-center mb-[16px] mt-[8px]">
+                <div class="filter-bar flex justify-between items-center mb-[16px] mt-[3px]">
                   <div class="capsule-group flex gap-[12px]">
                     <div
                       v-for="subTab in secondaryTabs"
