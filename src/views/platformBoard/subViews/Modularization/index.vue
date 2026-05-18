@@ -99,7 +99,7 @@ const changeTime = (val) => {
 
 const fetchData = async (type) => {
   try {
-    const res = await getReportModuleList({ year: type })
+    const res = await getReportModuleList({ visitYear: type })
     if (res.data.code === 200) {
       moduleInfo.value = res.data.data
     }
