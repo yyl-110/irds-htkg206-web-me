@@ -30,7 +30,7 @@ export default defineComponent({
       triggerAsc: WeiI18n.t('点击升序').value,
       triggerDesc: WeiI18n.t('点击降序').value,
       emptyText: h(Empty, {
-        description: '数据为空',
+        description: '暂无数据',
         style: { paddingBottom: '50px' },
       }),
     });

@@ -40,6 +40,7 @@ import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台�
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
 import Empty from '@/components/Empty/index.vue'
+import { renderTableEmptyText } from '@/utils/emptyState'
 /** 列表请求参数 */
 const requestNoticeParams = reactive(new NoticePageRequestDTOModel())
 const router = useRouter()
@@ -49,10 +50,7 @@ const locale = ref({
   cancelSort: WeiI18n.t('点击取消排序').value,
   triggerAsc: WeiI18n.t('点击升序').value,
   triggerDesc: WeiI18n.t('点击降序').value,
-  emptyText: h({
-    description: '数据为空',
-    style: { paddingBottom: '50px' },
-  }),
+  emptyText: renderTableEmptyText('数据为空'),
 })
 const viewTypeName = ref('任务卡片')
 const isShowRigth = ref('收起')
@@ -1729,7 +1727,7 @@ onUnmounted(() => {
                   <a-table
                     :columns="todoColumns"
                     :data-source="tableAuditList"
-                    :locale="{ emptyText: '暂无待审核数据' }"
+                    :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
                     :row-class-name="rowClassName"
                     :pagination="false"
                     :row-key="rowKey"

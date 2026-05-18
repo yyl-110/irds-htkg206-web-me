@@ -4,7 +4,7 @@
 import type { VueNode } from 'ant-design-vue/es/_util/type'
 import type { CSSProperties } from 'vue'
 import { ref } from 'vue'
-import EmptyImage from './assets/empty.png'
+import EmptyImage from '@/assets/images/empty.png'
 
 export interface EmptyProps {
   prefixCls?: string

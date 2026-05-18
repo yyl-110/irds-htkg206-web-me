@@ -2978,7 +2978,9 @@ watch(
           </div>
         </template>
       </a-table-column>
-      <template #emptyText>暂无示意图配置</template>
+      <template #emptyText>
+        <a-empty description="暂无示意图配置" />
+      </template>
     </a-table>
     <div class="sketch-config-footer">
       <a-button @click="sketchConfigModalVisible = false">关闭</a-button>

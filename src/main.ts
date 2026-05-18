@@ -37,11 +37,14 @@ import { VueEchartsHandler } from './utils/echarts';
 import { initRouteGrauds } from './router/guards';
 import { WeiVxe } from './plugins/vxe';
 import { router } from '@/router';
+import { initGlobalEmptyImage } from '@/utils/emptyState';
 import { setupAuth } from '@/directives/index';
 import { registerStore } from '@/store';
 import { useProjectUiStore } from '@/store/modules/layout/projectUi';
 import 'splitpanes/dist/splitpanes.css';
 import 'animate.css';
+
+initGlobalEmptyImage();
 
 const app = createApp(App);
 // const vConsole = new VConsole()
