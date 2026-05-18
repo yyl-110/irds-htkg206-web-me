@@ -467,7 +467,7 @@ defineExpose({ open, close });
                     <span class="cppm-row-text">{{ row.label }}</span>
                   </label>
                 </template>
-                <div v-else class="cppm-empty">暂无数据</div>
+                <a-empty v-else class="cppm-empty" description="暂无数据" />
               </div>
             </div>
           </div>
@@ -491,7 +491,7 @@ defineExpose({ open, close });
                 <span class="cppm-row-text">{{ row.label }}</span>
               </label>
             </template>
-            <div v-else class="cppm-empty">暂无数据</div>
+            <a-empty v-else class="cppm-empty" description="暂无数据" />
           </div>
         </div>
       </div>

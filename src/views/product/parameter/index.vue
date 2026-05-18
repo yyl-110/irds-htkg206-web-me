@@ -14,6 +14,7 @@ import { sortermethod, findNodeByIdFromKey } from '@/utils/tools';
 import { ParameterPageRequestDTOModel } from '@/api/models/parameter/ParameterPageRequestDTOModel';
 import { ParameterInfoRequestDTOModel } from '@/api/models/parameter/ParameterInfoRequestDTOModel';
 import Empty from '@/components/Empty/index.vue';
+import { renderTableEmptyText } from '@/utils/emptyState';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import Tree from '@/components/tree/tree.vue';
@@ -88,7 +89,7 @@ const locale = ref({
   triggerAsc: WeiI18n.t('点击升序').value,
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
-    description: '数据为空',
+    description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
 });
@@ -1485,7 +1486,7 @@ const {
           :pagination="false"
           size="small"
           row-key="activityPageId"
-          :locale="{ emptyText: $t('暂无数据') }" />
+          :locale="{ emptyText: renderTableEmptyText(String($t('暂无数据'))) }" />
       </a-spin>
       <div style="text-align: right; margin-top: 12px">
         <a-button @click="closePageUsageDetailModal">{{ $t('关闭') }}</a-button>

@@ -97,10 +97,7 @@ defineExpose({ tableRef });
         :loading="loading"
         ref="tableRef">
         <template #empty>
-          <div style="width: 235px; height: 235px">
-            <img width="100%" height="auto" src="@/assets/images/empty.png" alt="暂无数据" />
-            <div>数据为空</div>
-          </div>
+          <a-empty description="数据为空" />
         </template>
         <vxe-column type="checkbox" width="60" align="center" />
         <vxe-column field="propertyName" title="属性名称" sortable width="140" align="center">

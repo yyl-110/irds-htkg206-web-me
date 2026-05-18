@@ -79,7 +79,7 @@ export default defineComponent({
           style="height: 500px; overflow-y: auto; overflow-x: hidden"
           :row-class-name="(record, index) => (index % 2 === 0 ? 'odd' : 'even')">
           <template #emptyText>
-            <p>暂无数据</p>
+            <a-empty description="暂无数据" />
           </template>
         </a-table>
       </a-card>

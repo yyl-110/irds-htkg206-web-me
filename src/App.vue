@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { renderGlobalEmpty } from '@/utils/emptyState';
 import { WeiI18n } from './utils/WeiI18n';
 import { useWeiUpdateChecker } from './hooks/useWeiUpdateChecker';
 import useRouteCache from '@/hooks/useRouteCache';
@@ -25,7 +26,7 @@ onMounted(() => {
 <template>
   <!-- 左右标识 -->
   <!-- :direction="state.direction" -->
-  <a-config-provider :locale="WeiI18n.antdvLocale">
+  <a-config-provider :locale="WeiI18n.antdvLocale" :render-empty="renderGlobalEmpty">
     <div>
       <router-view />
     </div>

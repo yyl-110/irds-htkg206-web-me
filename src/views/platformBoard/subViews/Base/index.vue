@@ -20,7 +20,7 @@
             </a-col>
             <a-col :span="8" style="height: 50%">
               <div class="knowledgeTotal">
-                <Title text="知识汇总" />
+                <Title text="各部门人员知识贡献度" />
                 <div class="wrap">
                   <knowledge-total :chartData="systemInfo?.knowledgeSummary?.knowledgeCountByCreatorDept" />
                 </div>
@@ -36,7 +36,7 @@
             </a-col>
             <a-col :span="8" style="height: 50%">
               <div class="resourceTotal">
-                <Title text="资源汇总" />
+                <Title text="知识数据管理人员贡献度TOP10" />
                 <div class="wrap">
                   <resource-bar :chartData="systemInfo?.knowledgeSummary?.top10CreatorsByKnowledgeCount" />
                 </div>

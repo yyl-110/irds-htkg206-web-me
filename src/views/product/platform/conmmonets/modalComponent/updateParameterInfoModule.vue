@@ -343,7 +343,7 @@ export default defineComponent({
       @ok="updateParaneterInfoList"
       @cancel="handleCloseList">
       <div style="max-height: 300px; overflow-y: auto">
-        <div v-if="listItems.length === 0" style="text-align: center; padding: 20px; color: #999">暂无数据</div>
+        <a-empty v-if="listItems.length === 0" description="暂无数据" />
         <div v-else>
           <div style="display: flex; font-weight: bold; padding: 8px 0; border-bottom: 1px solid #f0f0f0">
             <div style="flex: 1">参数值</div>
