@@ -122,6 +122,8 @@ const initChart = () => {
           margin: 20,
           color: "rgba(96, 98, 102, 1)",
           fontSize: 20,
+          width: 150,
+          overflow: "truncate",
           rich: {
             a: {
               width: 40,

@@ -79,7 +79,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import countTo from '../../../components/count-to.vue';
+
 const pointList = [
   { label: "标准模块", rate: "34.12%" },
   { label: "预组装模块", rate: "38.12%" },
@@ -156,11 +158,11 @@ const props = defineProps({
 
     .count-style {
       font-size: 80px;
+      font-family: "MyFont", sans-serif !important;
       background: linear-gradient(to bottom, #fff, #006fd0);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      font-family: "MyFont", sans-serif;
       display: inline-block;
       margin-top: -18px;
     }

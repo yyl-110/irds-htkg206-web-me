@@ -95,16 +95,13 @@ const timeOptions2 = [
 ];
 
 const systemInfo = ref({});
-const visitReportInfo = ref([])
 const timeType = ref('1')
-const timeType2 = ref('1')
 
 const fetchData = async (type) => {
   try {
     const res = await getReportKnowledgeList({ type })
     if (res.data.code === '0') {
       systemInfo.value = res.data.data?.result
-      console.log(systemInfo.value.knowledgeSummary?.categorySummary)
     }
   } catch (error) {
     console.log('error:', error)
