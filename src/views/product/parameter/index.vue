@@ -261,6 +261,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'remark',
     align: 'left',
     resizable: true,
+    ellipsis: true,
     width: 130,
   },
   // {
@@ -1405,10 +1406,6 @@ const {
                     <a-tag v-if="record.status === '0'" :class="['exe-status-tag', 'exe-status-tag--off']">{{ $t('未发布') }}</a-tag>
                     <a-tag v-else-if="record.status === '1'" :class="['exe-status-tag', 'exe-status-tag--on']">{{ $t('已发布') }}</a-tag>
                   </span>
-                </template>
-
-                <template v-else-if="column.dataIndex === 'remark'">
-                  <TableCellOverflowTooltip :text="String(record.remark ?? '')" variant="clamp" />
                 </template>
 
                 <!-- 操作列（与 exeConfigTab 链接区一致） -->

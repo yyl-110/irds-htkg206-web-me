@@ -259,9 +259,9 @@ watch(
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.6));
 }
 .reset-btn {
-  background: #fbbf24 !important;
-  border-color: #f59e0b !important;
-  color: #111827 !important;
+  background: #232440 !important;
+  border-color: #232440 !important;
+  color: #ffffff !important;
 }
 .reset-btn:hover {
   filter: brightness(0.95);
