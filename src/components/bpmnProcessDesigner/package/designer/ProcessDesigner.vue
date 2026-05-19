@@ -173,7 +173,7 @@ import { XmlNode, XmlNodeType, parseXmlString } from 'steady-xml'
 // })
 import hljs from 'highlight.js' // 导入代码高亮文件
 import 'highlight.js/styles/github.css' // 导入代码高亮样式
-
+import { XButton, XTextButton } from '@/components/XButton'
 defineOptions({ name: 'MyProcessDesigner' })
 
 const bpmnCanvas = ref()

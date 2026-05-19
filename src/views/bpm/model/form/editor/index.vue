@@ -8,7 +8,7 @@ import type * as ModelApi from '@/api/bpm/model'
 import { BpmModelFormType } from '@/utils/constants'
 import * as FormApi from '@/api/bpm/form'
 import { useMessage } from '@/hooks/web/useMessage'
-
+import { ContentWrap } from '@/components/ContentWrap'
 // 国际化
 defineOptions({ name: 'BpmModelEditor' })
 defineProps<{

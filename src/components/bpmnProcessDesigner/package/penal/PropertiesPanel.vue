@@ -1,5 +1,5 @@
 <template>
-  <div class="process-panel__container" :style="{ width: `${width}px`, maxHeight: '600px' }">
+  <div class="process-panel__container" :style="{ width: `${width}px`, maxHeight: '500px', marginTop: '100px' }">
     <el-collapse v-model="activeTab" v-if="isReady">
       <el-collapse-item name="base">
         <!-- class="panel-tab__title" -->
@@ -11,8 +11,7 @@
           :id-edit-disabled="idEditDisabled"
           :business-object="elementBusinessObject"
           :type="elementType"
-          :model="model"
-        />
+          :model="model" />
       </el-collapse-item>
       <el-collapse-item name="condition" v-if="elementType === 'Process'" key="message">
         <template #title><Icon icon="ep:comment" />消息与信号</template>
@@ -27,28 +26,16 @@
         <element-form :id="elementId" :type="elementType" />
       </el-collapse-item>
       <el-collapse-item name="task" v-if="isTaskCollapseItemShow(elementType)" key="task">
-        <template #title
-          ><Icon icon="ep:checked" />{{ getTaskCollapseItemName(elementType) }}</template
-        >
+        <template #title><Icon icon="ep:checked" />{{ getTaskCollapseItemName(elementType) }}</template>
         <element-task :id="elementId" :type="elementType" />
       </el-collapse-item>
       <el-collapse-item name="event" v-if="isEventCollapseItemShow(elementType)" key="event">
-        <template #title
-          ><Icon icon="ep:message-box" />{{ getEventCollapseItemName(elementType) }}</template
-        >
+        <template #title><Icon icon="ep:message-box" />{{ getEventCollapseItemName(elementType) }}</template>
         <element-event :id="elementId" :type="elementType" />
       </el-collapse-item>
-      <el-collapse-item
-        name="multiInstance"
-        v-if="elementType.indexOf('Task') !== -1"
-        key="multiInstance"
-      >
+      <el-collapse-item name="multiInstance" v-if="elementType.indexOf('Task') !== -1" key="multiInstance">
         <template #title><Icon icon="ep:help-filled" />多人审批方式</template>
-        <element-multi-instance
-          :id="elementId"
-          :business-object="elementBusinessObject"
-          :type="elementType"
-        />
+        <element-multi-instance :id="elementId" :business-object="elementBusinessObject" :type="elementType" />
       </el-collapse-item>
       <el-collapse-item name="listeners" key="listeners">
         <template #title><Icon icon="ep:bell-filled" />执行监听器</template>
@@ -68,11 +55,7 @@
       </el-collapse-item>
       <el-collapse-item name="customConfig" key="customConfig">
         <template #title><Icon icon="ep:tools" />自定义配置</template>
-        <element-custom-config
-          :id="elementId"
-          :type="elementType"
-          :business-object="elementBusinessObject"
-        />
+        <element-custom-config :id="elementId" :type="elementType" :business-object="elementBusinessObject" />
       </el-collapse-item>
     </el-collapse>
   </div>
@@ -89,6 +72,7 @@ import ElementProperties from './properties/ElementProperties.vue'
 // import ElementForm from './form/ElementForm.vue'
 import UserTaskListeners from './listeners/UserTaskListeners.vue'
 import ElementEvent from './event/ElementEvent.vue'
+import ElementCustomConfig from './custom-config/ElementCustomConfig.vue'
 import { getTaskCollapseItemName, isTaskCollapseItemShow } from './task/data'
 import { getEventCollapseItemName, isEventCollapseItemShow } from './event/data'
 
@@ -103,21 +87,21 @@ defineOptions({ name: 'MyPropertiesPanel' })
 const props = defineProps({
   bpmnModeler: {
     type: Object,
-    default: () => {}
+    default: () => {},
   },
   prefix: {
     type: String,
-    default: 'camunda'
+    default: 'camunda',
   },
   width: {
     type: Number,
-    default: 480
+    default: 480,
   },
   idEditDisabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  model: Object // 流程模型的数据
+  model: Object, // 流程模型的数据
 })
 
 const activeTab = ref('base')
@@ -145,7 +129,7 @@ const initBpmnInstances = () => {
       elementFactory: props.bpmnModeler.get('elementFactory'),
       elementRegistry: props.bpmnModeler.get('elementRegistry'),
       replace: props.bpmnModeler.get('replace'),
-      selection: props.bpmnModeler.get('selection')
+      selection: props.bpmnModeler.get('selection'),
     }
 
     // 检查所有实例是否都存在
@@ -189,8 +173,8 @@ const unwatchBpmn = watch(
     }
   },
   {
-    immediate: true
-  }
+    immediate: true,
+  },
 )
 
 const getActiveElement = () => {
@@ -198,7 +182,7 @@ const getActiveElement = () => {
 
   // 初始第一个选中元素 bpmn:Process
   initFormOnChanged(null)
-  props.bpmnModeler.on('import.done', (e) => {
+  props.bpmnModeler.on('import.done', e => {
     console.log(e, 'eeeee')
     initFormOnChanged(null)
   })
@@ -215,14 +199,14 @@ const getActiveElement = () => {
 }
 
 // 初始化数据
-const initFormOnChanged = (element) => {
+const initFormOnChanged = element => {
   if (!isReady.value || !bpmnInstances()) return
 
   let activatedElement = element
   if (!activatedElement) {
     activatedElement =
-      bpmnInstances().elementRegistry.find((el) => el.type === 'bpmn:Process') ??
-      bpmnInstances().elementRegistry.find((el) => el.type === 'bpmn:Collaboration')
+      bpmnInstances().elementRegistry.find(el => el.type === 'bpmn:Process') ??
+      bpmnInstances().elementRegistry.find(el => el.type === 'bpmn:Collaboration')
   }
   if (!activatedElement) return
 
@@ -253,6 +237,6 @@ watch(
   () => elementId.value,
   () => {
     activeTab.value = 'base'
-  }
+  },
 )
 </script>
