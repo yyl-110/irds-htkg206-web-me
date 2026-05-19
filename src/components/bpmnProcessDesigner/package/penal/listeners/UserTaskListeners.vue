@@ -6,46 +6,26 @@
         label="事件类型"
         min-width="80px"
         show-overflow-tooltip
-        :formatter="(row) => listenerEventTypeObject[row.event]"
-      />
+        :formatter="row => listenerEventTypeObject[row.event]" />
       <el-table-column label="事件id" min-width="80px" prop="id" show-overflow-tooltip />
       <el-table-column
         label="监听器类型"
         min-width="80px"
         show-overflow-tooltip
-        :formatter="(row) => listenerTypeObject[row.listenerType]"
-      />
+        :formatter="row => listenerTypeObject[row.listenerType]" />
       <el-table-column label="操作" width="90px">
         <template #default="scope">
-          <el-button size="small" link @click="openListenerForm(scope.row, scope.$index)"
-            >编辑</el-button
-          >
+          <el-button size="small" link @click="openListenerForm(scope.row, scope.$index)">编辑</el-button>
           <el-divider direction="vertical" />
-          <el-button
-            size="small"
-            link
-            style="color: #ff4d4f"
-            @click="removeListener(scope.row, scope.$index)"
+          <el-button size="small" link style="color: #ff4d4f" @click="removeListener(scope.row, scope.$index)"
             >移除</el-button
           >
         </template>
       </el-table-column>
     </el-table>
     <div class="element-drawer__button">
-      <XButton
-        size="small"
-        type="primary"
-        preIcon="ep:plus"
-        title="添加监听器"
-        @click="openListenerForm(null)"
-      />
-      <XButton
-        type="success"
-        preIcon="ep:select"
-        title="选择监听器"
-        size="small"
-        @click="openProcessListenerDialog"
-      />
+      <XButton size="small" type="primary" preIcon="ep:plus" title="添加监听器" @click="openListenerForm(null)" />
+      <XButton type="success" preIcon="ep:select" title="选择监听器" size="small" @click="openProcessListenerDialog" />
     </div>
 
     <!-- 监听器 编辑/创建 部分 -->
@@ -54,42 +34,27 @@
       title="任务监听器"
       :size="`${width}px`"
       append-to-body
-      destroy-on-close
-    >
+      destroy-on-close>
       <el-form size="small" :model="listenerForm" label-width="96px" ref="listenerFormRef">
-        <el-form-item
-          label="事件类型"
-          prop="event"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+        <el-form-item label="事件类型" prop="event" :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-select v-model="listenerForm.event">
             <el-option
               v-for="i in Object.keys(listenerEventTypeObject)"
               :key="i"
               :label="listenerEventTypeObject[i]"
-              :value="i"
-            />
+              :value="i" />
           </el-select>
         </el-form-item>
-        <el-form-item
-          label="监听器ID"
-          prop="id"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+        <el-form-item label="监听器ID" prop="id" :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-input v-model="listenerForm.id" clearable />
         </el-form-item>
-        <el-form-item
-          label="监听器类型"
-          prop="listenerType"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+        <el-form-item label="监听器类型" prop="listenerType" :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-select v-model="listenerForm.listenerType">
             <el-option
               v-for="i in Object.keys(listenerTypeObject)"
               :key="i"
               :label="listenerTypeObject[i]"
-              :value="i"
-            />
+              :value="i" />
           </el-select>
         </el-form-item>
         <el-form-item
@@ -97,8 +62,7 @@
           label="Java类"
           prop="class"
           key="listener-class"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+          :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-input v-model="listenerForm.class" clearable />
         </el-form-item>
         <el-form-item
@@ -106,8 +70,7 @@
           label="表达式"
           prop="expression"
           key="listener-expression"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+          :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-input v-model="listenerForm.expression" clearable />
         </el-form-item>
         <el-form-item
@@ -115,8 +78,7 @@
           label="代理表达式"
           prop="delegateExpression"
           key="listener-delegate"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+          :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-input v-model="listenerForm.delegateExpression" clearable />
         </el-form-item>
         <template v-if="listenerForm.listenerType === 'scriptListener'">
@@ -124,16 +86,14 @@
             label="脚本格式"
             prop="scriptFormat"
             key="listener-script-format"
-            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写脚本格式' }"
-          >
+            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写脚本格式' }">
             <el-input v-model="listenerForm.scriptFormat" clearable />
           </el-form-item>
           <el-form-item
             label="脚本类型"
             prop="scriptType"
             key="listener-script-type"
-            :rules="{ required: true, trigger: ['blur', 'change'], message: '请选择脚本类型' }"
-          >
+            :rules="{ required: true, trigger: ['blur', 'change'], message: '请选择脚本类型' }">
             <el-select v-model="listenerForm.scriptType">
               <el-option label="内联脚本" value="inlineScript" />
               <el-option label="外部脚本" value="externalScript" />
@@ -144,8 +104,7 @@
             label="脚本内容"
             prop="value"
             key="listener-script"
-            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写脚本内容' }"
-          >
+            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写脚本内容' }">
             <el-input v-model="listenerForm.value" clearable />
           </el-form-item>
           <el-form-item
@@ -153,8 +112,7 @@
             label="资源地址"
             prop="resource"
             key="listener-resource"
-            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写资源地址' }"
-          >
+            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写资源地址' }">
             <el-input v-model="listenerForm.resource" clearable />
           </el-form-item>
         </template>
@@ -173,8 +131,7 @@
             label="定时器"
             prop="eventTimeDefinitions"
             key="eventTimeDefinitions"
-            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写定时器配置' }"
-          >
+            :rules="{ required: true, trigger: ['blur', 'change'], message: '请填写定时器配置' }">
             <el-input v-model="listenerForm.eventTimeDefinitions" clearable />
           </el-form-item>
         </template>
@@ -183,43 +140,26 @@
       <el-divider />
       <p>
         <span><Icon icon="ep:menu" />注入字段：</span>
-        <el-button size="small" type="primary" @click="openListenerFieldForm(null)"
-          >添加字段</el-button
-        >
+        <el-button size="small" type="primary" @click="openListenerFieldForm(null)">添加字段</el-button>
       </p>
-      <el-table
-        :data="fieldsListOfListener"
-        size="small"
-        max-height="240"
-        fit
-        border
-        style="flex: none"
-      >
+      <el-table :data="fieldsListOfListener" size="small" max-height="240" fit border style="flex: none">
         <el-table-column label="序号" width="50px" type="index" />
         <el-table-column label="字段名称" min-width="100px" prop="name" />
         <el-table-column
           label="字段类型"
           min-width="80px"
           show-overflow-tooltip
-          :formatter="(row) => fieldTypeObject[row.fieldType]"
-        />
+          :formatter="row => fieldTypeObject[row.fieldType]" />
         <el-table-column
           label="字段值/表达式"
           min-width="100px"
           show-overflow-tooltip
-          :formatter="(row) => row.string || row.expression"
-        />
+          :formatter="row => row.string || row.expression" />
         <el-table-column label="操作" width="100px">
           <template #default="scope">
-            <el-button size="small" link @click="openListenerFieldForm(scope.row, scope.$index)"
-              >编辑</el-button
-            >
+            <el-button size="small" link @click="openListenerFieldForm(scope.row, scope.$index)">编辑</el-button>
             <el-divider direction="vertical" />
-            <el-button
-              size="small"
-              link
-              style="color: #ff4d4f"
-              @click="removeListenerField(scope.row, scope.$index)"
+            <el-button size="small" link style="color: #ff4d4f" @click="removeListenerField(scope.row, scope.$index)"
               >移除</el-button
             >
           </template>
@@ -233,39 +173,19 @@
     </el-drawer>
 
     <!-- 注入西段 编辑/创建 部分 -->
-    <el-dialog
-      title="字段配置"
-      v-model="listenerFieldFormModelVisible"
-      width="600px"
-      append-to-body
-      destroy-on-close
-    >
+    <el-dialog title="字段配置" v-model="listenerFieldFormModelVisible" width="600px" append-to-body destroy-on-close>
       <el-form
         :model="listenerFieldForm"
         size="small"
         label-width="96px"
         ref="listenerFieldFormRef"
-        style="height: 136px"
-      >
-        <el-form-item
-          label="字段名称："
-          prop="name"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+        style="height: 136px">
+        <el-form-item label="字段名称：" prop="name" :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-input v-model="listenerFieldForm.name" clearable />
         </el-form-item>
-        <el-form-item
-          label="字段类型："
-          prop="fieldType"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+        <el-form-item label="字段类型：" prop="fieldType" :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-select v-model="listenerFieldForm.fieldType">
-            <el-option
-              v-for="i in Object.keys(fieldTypeObject)"
-              :key="i"
-              :label="fieldTypeObject[i]"
-              :value="i"
-            />
+            <el-option v-for="i in Object.keys(fieldTypeObject)" :key="i" :label="fieldTypeObject[i]" :value="i" />
           </el-select>
         </el-form-item>
         <el-form-item
@@ -273,8 +193,7 @@
           label="字段值："
           prop="string"
           key="field-string"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+          :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-input v-model="listenerFieldForm.string" clearable />
         </el-form-item>
         <el-form-item
@@ -282,8 +201,7 @@
           label="表达式："
           prop="expression"
           key="field-expression"
-          :rules="{ required: true, trigger: ['blur', 'change'] }"
-        >
+          :rules="{ required: true, trigger: ['blur', 'change'] }">
           <el-input v-model="listenerFieldForm.expression" clearable />
         </el-form-item>
       </el-form>
@@ -300,21 +218,14 @@
 <script lang="ts" setup>
 import { ElMessageBox } from 'element-plus'
 import { createListenerObject, updateElementExtensions } from '../../utils'
-import {
-  initListenerForm,
-  initListenerType,
-  eventType,
-  listenerType,
-  fieldType,
-  initListenerForm2
-} from './utilSelf'
+import { initListenerForm, initListenerType, eventType, listenerType, fieldType, initListenerForm2 } from './utilSelf'
 import ProcessListenerDialog from '@/components/bpmnProcessDesigner/package/penal/listeners/ProcessListenerDialog.vue'
-
+import { XButton, XTextButton } from '@/components/XButton'
 defineOptions({ name: 'UserTaskListeners' })
 
 const props = defineProps({
   id: String,
-  type: String
+  type: String,
 })
 const prefix = inject('prefix')
 const width = inject('width')
@@ -339,17 +250,14 @@ const bpmnInstances = () => (window as any)?.bpmnInstances
 const resetListenersList = () => {
   console.log(
     bpmnInstances().bpmnElement,
-    'window.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElement'
+    'window.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElementwindow.bpmnInstances.bpmnElement',
   )
   bpmnElement.value = bpmnInstances().bpmnElement
   otherExtensionList.value = []
   bpmnElementListeners.value =
-    bpmnElement.value.businessObject?.extensionElements?.values.filter(
-      (ex) => ex.$type === `${prefix}:TaskListener`
-    ) ?? []
-  elementListenersList.value = bpmnElementListeners.value.map((listener) =>
-    initListenerType(listener)
-  )
+    bpmnElement.value.businessObject?.extensionElements?.values.filter(ex => ex.$type === `${prefix}:TaskListener`) ??
+    []
+  elementListenersList.value = bpmnElementListeners.value.map(listener => initListenerType(listener))
 }
 const openListenerForm = (listener, index?) => {
   if (listener) {
@@ -360,9 +268,9 @@ const openListenerForm = (listener, index?) => {
     editingListenerIndex.value = -1 // 标记为新增
   }
   if (listener && listener.fields) {
-    fieldsListOfListener.value = listener.fields.map((field) => ({
+    fieldsListOfListener.value = listener.fields.map(field => ({
       ...field,
-      fieldType: field.string ? 'string' : 'expression'
+      fieldType: field.string ? 'string' : 'expression',
     }))
   } else {
     fieldsListOfListener.value = []
@@ -379,15 +287,12 @@ const removeListener = (listener, index?) => {
   console.log(listener, 'listener')
   ElMessageBox.confirm('确认移除该监听器吗？', '提示', {
     confirmButtonText: '确 认',
-    cancelButtonText: '取 消'
+    cancelButtonText: '取 消',
   })
     .then(() => {
       bpmnElementListeners.value.splice(index, 1)
       elementListenersList.value.splice(index, 1)
-      updateElementExtensions(
-        bpmnElement.value,
-        otherExtensionList.value.concat(bpmnElementListeners.value)
-      )
+      updateElementExtensions(bpmnElement.value, otherExtensionList.value.concat(bpmnElementListeners.value))
     })
     .catch(() => console.info('操作取消'))
 }
@@ -405,13 +310,9 @@ const saveListenerConfig = async () => {
   }
   // 保存其他配置
   otherExtensionList.value =
-    bpmnElement.value.businessObject?.extensionElements?.values?.filter(
-      (ex) => ex.$type !== `${prefix}:TaskListener`
-    ) ?? []
-  updateElementExtensions(
-    bpmnElement.value,
-    otherExtensionList.value.concat(bpmnElementListeners.value)
-  )
+    bpmnElement.value.businessObject?.extensionElements?.values?.filter(ex => ex.$type !== `${prefix}:TaskListener`) ??
+    []
+  updateElementExtensions(bpmnElement.value, otherExtensionList.value.concat(bpmnElementListeners.value))
   // 4. 隐藏侧边栏
   listenerFormModelVisible.value = false
   listenerForm.value = {}
@@ -446,7 +347,7 @@ const removeListenerField = (field, index) => {
   console.log(field, 'field')
   ElMessageBox.confirm('确认移除该字段吗？', '提示', {
     confirmButtonText: '确 认',
-    cancelButtonText: '取 消'
+    cancelButtonText: '取 消',
   })
     .then(() => {
       fieldsListOfListener.value.splice(index, 1)
@@ -460,7 +361,7 @@ const processListenerDialogRef = ref()
 const openProcessListenerDialog = async () => {
   processListenerDialogRef.value.open('task')
 }
-const selectProcessListener = (listener) => {
+const selectProcessListener = listener => {
   const listenerForm = initListenerForm2(listener)
   const listenerObject = createListenerObject(listenerForm, true, prefix)
   bpmnElementListeners.value.push(listenerObject)
@@ -468,24 +369,20 @@ const selectProcessListener = (listener) => {
 
   // 保存其他配置
   otherExtensionList.value =
-    bpmnElement.value.businessObject?.extensionElements?.values?.filter(
-      (ex) => ex.$type !== `${prefix}:TaskListener`
-    ) ?? []
-  updateElementExtensions(
-    bpmnElement.value,
-    otherExtensionList.value.concat(bpmnElementListeners.value)
-  )
+    bpmnElement.value.businessObject?.extensionElements?.values?.filter(ex => ex.$type !== `${prefix}:TaskListener`) ??
+    []
+  updateElementExtensions(bpmnElement.value, otherExtensionList.value.concat(bpmnElementListeners.value))
 }
 
 watch(
   () => props.id,
-  (val) => {
+  val => {
     val &&
       val.length &&
       nextTick(() => {
         resetListenersList()
       })
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>

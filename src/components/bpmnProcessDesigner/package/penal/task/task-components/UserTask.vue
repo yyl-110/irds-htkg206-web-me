@@ -195,6 +195,7 @@ import ProcessExpressionDialog from './ProcessExpressionDialog.vue'
 import { ProcessExpressionVO } from '@/api/bpm/processExpression'
 import { useFormFieldsPermission } from '@/components/SimpleProcessDesignerV2/src/node'
 import { UserVO } from '@/api/system/user'
+import { XButton, XTextButton } from '@/components/XButton'
 // import { getUserById, findPaginationByUsers, findPagination } from '@/api/system-manage/user/index'
 defineOptions({ name: 'UserTask' })
 const props = defineProps({
@@ -553,19 +554,6 @@ const resetTaskForm = () => {
 
   // 改用通过extensionElements来存储数据
   return
-  if (businessObject.candidateStrategy != undefined) {
-    userTaskForm.value.candidateStrategy = parseInt(businessObject.candidateStrategy) as any
-  } else {
-    userTaskForm.value.candidateStrategy = undefined
-  }
-  if (businessObject.candidateParam && businessObject.candidateParam.length > 0) {
-    if (userTaskForm.value.candidateStrategy === 60) {
-      // 特殊：流程表达式，只有一个 input 输入框
-      userTaskForm.value.candidateParam = [businessObject.candidateParam]
-    } else {
-    }
-  }
-  updateElementTask()
 }
 
 /** 选中某个 options 时候，更新 bpmn 图  */
@@ -597,10 +585,6 @@ const updateElementTask = () => {
 
   // 改用通过extensionElements来存储数据
   return
-  bpmnInstances().modeling.updateProperties(toRaw(bpmnElement.value), {
-    candidateStrategy: userTaskForm.value.candidateStrategy,
-    candidateParam: userTaskForm.value.candidateParam.join(','),
-  })
 }
 
 const updateSkipExpression = () => {

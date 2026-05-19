@@ -31,6 +31,7 @@
 </template>
 
 <script lang="ts" setup>
+import { XButton, XTextButton } from '@/components/XButton'
 defineOptions({ name: 'ReceiveTask' })
 const props = defineProps({
   id: String,

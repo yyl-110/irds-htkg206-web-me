@@ -108,6 +108,7 @@
 </template>
 
 <script lang="ts" setup>
+import { XButton, XTextButton } from '@/components/XButton'
 defineOptions({ name: 'CallActivity' })
 const props = defineProps({
   id: String,
