@@ -232,7 +232,7 @@ defineOptions({ name: 'ElementForm' })
 
 const props = defineProps({
   id: String,
-  type: String
+  type: String,
 })
 const prefix = inject('prefix')
 const width = inject('width')
@@ -248,7 +248,7 @@ const fieldType = ref({
   boolean: '布尔类',
   date: '日期类',
   enum: '枚举类',
-  custom: '自定义类型'
+  custom: '自定义类型',
 })
 const formFieldIndex = ref(-1) // 编辑中的字段， -1 为新增
 const formFieldOptionIndex = ref(-1) // 编辑中的字段配置项， -1 为新增
@@ -277,16 +277,14 @@ const resetFormList = () => {
     bpmnInstances().moddle.create('bpmn:ExtensionElements', { values: [] })
   // 获取元素表单配置 或者 创建新的表单配置
   formData.value =
-    elExtensionElements.value.values.filter((ex) => ex.$type === `${prefix}:FormData`)?.[0] ||
+    elExtensionElements.value.values.filter(ex => ex.$type === `${prefix}:FormData`)?.[0] ||
     bpmnInstances().moddle.create(`${prefix}:FormData`, { fields: [] })
 
   // 业务标识 businessKey， 绑定在 formData 中
   businessKey.value = formData.value.businessKey
 
   // 保留剩余扩展元素，便于后面更新该元素对应属性
-  otherExtensions.value = elExtensionElements.value.values.filter(
-    (ex) => ex.$type !== `${prefix}:FormData`
-  )
+  otherExtensions.value = elExtensionElements.value.values.filter(ex => ex.$type !== `${prefix}:FormData`)
 
   // 复制原始值，填充表格
   fieldList.value = JSON.parse(JSON.stringify(formData.value.fields || []))
@@ -296,16 +294,16 @@ const resetFormList = () => {
 }
 const updateElementFormKey = () => {
   bpmnInstances().modeling.updateProperties(toRaw(bpmnELement.value), {
-    formKey: formKey.value
+    formKey: formKey.value,
   })
 }
 const updateElementBusinessKey = () => {
   bpmnInstances().modeling.updateModdleProperties(toRaw(bpmnELement.value), formData.value, {
-    businessKey: businessKey.value
+    businessKey: businessKey.value,
   })
 }
 // 根据类型调整字段type
-const changeFieldTypeType = (type) => {
+const changeFieldTypeType = type => {
   // this.$set(this.formFieldForm, "type", type === "custom" ? "" : type);
   formFieldForm.value['type'] = type === 'custom' ? '' : type
 }
@@ -320,12 +318,9 @@ const openFieldForm = (field, index) => {
     // this.$set(this.formFieldForm, "typeType", !this.fieldType[field.type] ? "custom" : field.type);
     formFieldForm.value['typeType'] = !fieldType.value[field.type] ? 'custom' : field.type
     // 初始化枚举值列表
-    field.type === 'enum' &&
-      (fieldEnumList.value = JSON.parse(JSON.stringify(FieldObject?.values || [])))
+    field.type === 'enum' && (fieldEnumList.value = JSON.parse(JSON.stringify(FieldObject?.values || [])))
     // 初始化约束条件列表
-    fieldConstraintsList.value = JSON.parse(
-      JSON.stringify(FieldObject?.validation?.constraints || [])
-    )
+    fieldConstraintsList.value = JSON.parse(JSON.stringify(FieldObject?.validation?.constraints || []))
     // 初始化自定义属性列表
     fieldPropertiesList.value = JSON.parse(JSON.stringify(FieldObject?.properties?.values || []))
   } else {
@@ -373,8 +368,7 @@ const saveFieldOption = () => {
       fieldPropertiesList.value.splice(formFieldOptionIndex.value, 1, fieldOptionForm.value)
     fieldOptionType.value === 'constraint' &&
       fieldConstraintsList.value.splice(formFieldOptionIndex.value, 1, fieldOptionForm.value)
-    fieldOptionType.value === 'enum' &&
-      fieldEnumList.value.splice(formFieldOptionIndex.value, 1, fieldOptionForm.value)
+    fieldOptionType.value === 'enum' && fieldEnumList.value.splice(formFieldOptionIndex.value, 1, fieldOptionForm.value)
   }
   fieldOptionModelVisible.value = false
   fieldOptionForm.value = {}
@@ -387,31 +381,31 @@ const saveField = () => {
   datePattern && (Field.datePattern = datePattern)
   // 构建属性
   if (fieldPropertiesList.value && fieldPropertiesList.value.length) {
-    const fieldPropertyList = fieldPropertiesList.value.map((fp) => {
+    const fieldPropertyList = fieldPropertiesList.value.map(fp => {
       return bpmnInstances().moddle.create(`${prefix}:Property`, {
         id: fp.id,
-        value: fp.value
+        value: fp.value,
       })
     })
     Field.properties = bpmnInstances().moddle.create(`${prefix}:Properties`, {
-      values: fieldPropertyList
+      values: fieldPropertyList,
     })
   }
   // 构建校验规则
   if (fieldConstraintsList.value && fieldConstraintsList.value.length) {
-    const fieldConstraintList = fieldConstraintsList.value.map((fc) => {
+    const fieldConstraintList = fieldConstraintsList.value.map(fc => {
       return bpmnInstances().moddle.create(`${prefix}:Constraint`, {
         name: fc.name,
-        config: fc.config
+        config: fc.config,
       })
     })
     Field.validation = bpmnInstances().moddle.create(`${prefix}:Validation`, {
-      constraints: fieldConstraintList
+      constraints: fieldConstraintList,
     })
   }
   // 构建枚举值
   if (fieldEnumList.value && fieldEnumList.value.length) {
-    Field.values = fieldEnumList.value.map((fe) => {
+    Field.values = fieldEnumList.value.map(fe => {
       return bpmnInstances().moddle.create(`${prefix}:Value`, { name: fe.name, id: fe.id })
     })
   }
@@ -451,28 +445,31 @@ const removeField = (field, index) => {
 const updateElementExtensions = () => {
   // 更新回扩展元素
   const newElExtensionElements = bpmnInstances().moddle.create(`bpmn:ExtensionElements`, {
-    values: otherExtensions.value.concat(formData.value)
+    values: otherExtensions.value.concat(formData.value),
   })
   // 更新到元素上
   bpmnInstances().modeling.updateProperties(toRaw(bpmnELement.value), {
-    extensionElements: newElExtensionElements
+    extensionElements: newElExtensionElements,
   })
 }
 
 const formList = ref([]) // 流程表单的下拉框的数据
 onMounted(async () => {
-  formList.value = await FormApi.getFormSimpleList()
+  const res = await FormApi.getFormSimpleList()
+  if (res.data.code === 200) {
+    formList.value = res.data.data
+  }
 })
 
 watch(
   () => props.id,
-  (val) => {
+  val => {
     val &&
       val.length &&
       nextTick(() => {
         resetFormList()
       })
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
