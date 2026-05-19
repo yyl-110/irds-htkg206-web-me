@@ -7,22 +7,16 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import {
-  BellOutlined,
-  BranchesOutlined,
-  CheckSquareOutlined,
+  CaretDownOutlined,
+  CaretRightOutlined,
   ColumnWidthOutlined,
-  DeleteOutlined,
-  EditOutlined,
   FolderOutlined,
   LeftOutlined,
   MinusOutlined,
-  PlayCircleOutlined,
   PlusOutlined,
   RightOutlined,
-  RollbackOutlined,
   SearchOutlined,
-  SendOutlined,
-  UndoOutlined,
+  SettingOutlined,
 } from '@ant-design/icons-vue';
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
@@ -114,7 +108,7 @@ export type WbsTaskNode = {
    * Long id 若以 JSON number 下发会丢精度，仅用 id/parentId 字符串比对可能找不到父级；权限判断优先用此引用。
    */
   __parent?: WbsTaskNode;
-  /** 后端 wbsRowRemoved：1 表示任务行已移除占位（仍展示置灰） */
+  /** 后端 wbsRowRemoved：1 表示任务行已删除占位（仍展示置灰） */
   wbsRowRemoved?: number;
 };
 
@@ -158,7 +152,7 @@ const effectiveCreatorName = computed(() => {
 const projectPlanStart = ref('');
 const projectPlanEnd = ref('');
 const userIdToName = ref<Map<string, string>>(new Map());
-/** 分类启动 / 任务发布·撤销·移除·恢复 等行内操作 loading */
+/** 分类启动 / 任务发布·撤销·删除·恢复 等行内操作 loading */
 const wbsOpBusyRowId = ref<string | null>(null);
 
 /** 已完成任务发起变更：是否同步上游最新 + 提交 loading */
@@ -722,14 +716,14 @@ async function onTaskSuspendConfirm(record: WbsTaskNode) {
     return;
   }
   if (!canShowTaskSuspend(record)) {
-    message.warning('仅上级分类负责人可移除任务');
+    message.warning('仅上级分类负责人可删除任务');
     return;
   }
   wbsOpBusyRowId.value = record.id;
   try {
     const res = await AdminApiProjectTemp.projectWbsSuspendRow({ id: String(record.id) });
     if ((res?.data as { code?: number } | undefined)?.code === 200) {
-      message.success('已标记移除');
+      message.success('已标记删除');
       await fetchProjectWbsTree();
       await refreshWbsParamPendingHints();
     } else {
@@ -1095,11 +1089,11 @@ function findNearestCategoryAncestorNode(record: WbsTaskNode): WbsTaskNode | nul
 }
 
 /**
- * 上级分类负责人：可「发布/撤销/移除」；任务执行人本人不可发布（仅收工作台待办）。
+ * 上级分类负责人：可「发布/撤销/删除」；任务执行人本人不可发布（仅收工作台待办）。
  * 顶层分类：创建人或该节点负责人。
  */
 function isUpstreamCategoryManager(record: WbsTaskNode): boolean {
-  /** 勿因「已移除」直接 false：上级分类负责人仍需能点「恢复」 */
+  /** 勿因「已删除」直接 false：上级分类负责人仍需能点「恢复」 */
   const uid = userStore.getUser.id;
   if (isWbsRoot(record)) {
     return (
@@ -1205,7 +1199,7 @@ function canShowTaskRestore(record: WbsTaskNode): boolean {
   return Number(record.type) === 2 && isRowRemoved(record) && isUpstreamCategoryManager(record);
 }
 
-/** 任务行（未移除）是否应展示操作按钮区：上级发布类操作或执行人侧操作 */
+/** 任务行（未删除）是否应展示操作按钮区：上级发布类操作或执行人侧操作 */
 function taskRowHasVisibleOps(record: WbsTaskNode): boolean {
   if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
   if (isUpstreamCategoryManager(record)) {
@@ -1258,7 +1252,10 @@ function wbsTableCustomRow(record: WbsTaskNode) {
       const el = raw instanceof Element ? raw : (raw as Node).parentElement;
       if (!el) return;
       if (
+        el.closest('.task-wbs-expand-icon') ||
         el.closest('.ant-table-row-expand-icon') ||
+        el.closest('.task-wbs-ops-links') ||
+        el.closest('.task-wbs-ops__link') ||
         el.closest('button') ||
         el.closest('a[href]') ||
         el.closest('.ant-picker') ||
@@ -2050,6 +2047,16 @@ watch(ganttCollapsed, () => {
         row-key="id"
         :custom-row="wbsTableCustomRow"
         @resize-column="handleResizeColumn">
+        <template #expandIcon="{ expanded: isExpanded, record, onExpand: onExp }">
+          <span
+            v-if="record.children?.length"
+            class="task-wbs-expand-icon"
+            @click.stop="onExp(record, $event)">
+            <CaretDownOutlined v-if="isExpanded" />
+            <CaretRightOutlined v-else />
+          </span>
+          <span v-else class="task-wbs-expand-placeholder" />
+        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'wbsCode'">
             {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `${record.wbsCode}` : record.wbsCode }}
@@ -2062,7 +2069,7 @@ watch(ganttCollapsed, () => {
                 isRowRemoved(record) ? 'task-wbs-node-kind--removed' : '',
               ]">
               <FolderOutlined v-if="Number(record.type) === 1" class="task-wbs-node-kind__icon" aria-hidden="true" />
-              <CheckSquareOutlined v-else class="task-wbs-node-kind__icon" aria-hidden="true" />
+              <SettingOutlined v-else class="task-wbs-node-kind__icon" aria-hidden="true" />
               <span>{{ Number(record.type) === 1 ? '分类' : '任务' }}</span>
             </span>
           </template>
@@ -2121,88 +2128,77 @@ watch(ganttCollapsed, () => {
           <template v-else-if="column.key === 'operation'">
             <div class="task-wbs-ops-wrap">
               <template v-if="record.type === 1">
-                <a-space v-if="canShowStartButton(record)" :size="6" wrap class="task-wbs-ops">
-                  <template #split>
-                    <span class="task-wbs-ops__split-line" aria-hidden="true" />
-                  </template>
-                  <a-tooltip title="启动">
-                    <a-button
-                      type="link"
-                      size="small"
-                      class="task-wbs-ops__btn"
-                      :disabled="wbsTaskRowOpsLocked(record)"
-                      :loading="wbsOpBusyRowId === record.id"
-                      @click.stop="onTaskStart(record)">
-                      <template #icon><PlayCircleOutlined /></template>
-                    </a-button>
-                  </a-tooltip>
-                </a-space>
+                <div v-if="canShowStartButton(record)" class="task-wbs-ops-links" @click.stop>
+                  <a
+                    class="task-wbs-ops__link"
+                    :class="{
+                      'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                    }"
+                    @click.stop="
+                      !wbsTaskRowOpsLocked(record) && wbsOpBusyRowId !== record.id && onTaskStart(record)
+                    ">
+                    {{ wbsOpBusyRowId === record.id ? '启动中…' : '启动' }}
+                  </a>
+                </div>
               </template>
               <template v-else-if="Number(record.type) === 2">
                 <template v-if="isRowRemoved(record)">
-                  <a-space v-if="canShowTaskRestore(record)" :size="6" wrap class="task-wbs-ops">
-                    <template #split>
-                      <span class="task-wbs-ops__split-line" aria-hidden="true" />
-                    </template>
-                    <a-tooltip title="恢复任务行">
-                      <a-button
-                        type="link"
-                        size="small"
-                        class="task-wbs-ops__btn"
-                        :loading="wbsOpBusyRowId === record.id"
-                        @click.stop="onTaskRestore(record)">
-                        <template #icon><UndoOutlined /></template>
-                      </a-button>
-                    </a-tooltip>
-                  </a-space>
+                  <div v-if="canShowTaskRestore(record)" class="task-wbs-ops-links" @click.stop>
+                    <a
+                      class="task-wbs-ops__link"
+                      :class="{ 'is-disabled': wbsOpBusyRowId === record.id }"
+                      @click.stop="wbsOpBusyRowId !== record.id && onTaskRestore(record)">
+                      {{ wbsOpBusyRowId === record.id ? '恢复中…' : '恢复' }}
+                    </a>
+                  </div>
                 </template>
                 <template v-else>
-                  <a-space v-if="taskRowHasVisibleOps(record)" :size="6" wrap class="task-wbs-ops">
-                    <template #split>
-                      <span class="task-wbs-ops__split-line" aria-hidden="true" />
-                    </template>
+                  <div v-if="taskRowHasVisibleOps(record)" class="task-wbs-ops-links" @click.stop>
                     <template v-if="isUpstreamCategoryManager(record)">
                       <a-tooltip v-if="canShowTaskPublish(record)" title="发布到任务负责人工作台待办">
-                        <a-button
-                          type="link"
-                          size="small"
-                          class="task-wbs-ops__btn"
-                          :disabled="wbsTaskRowOpsLocked(record)"
-                          :loading="wbsOpBusyRowId === record.id"
-                          @click.stop="onTaskPublish(record)">
-                          <template #icon><SendOutlined /></template>
-                        </a-button>
+                        <a
+                          class="task-wbs-ops__link"
+                          :class="{
+                            'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                          }"
+                          @click.stop="
+                            !wbsTaskRowOpsLocked(record) &&
+                              wbsOpBusyRowId !== record.id &&
+                              onTaskPublish(record)
+                          ">
+                          {{ wbsOpBusyRowId === record.id ? '发布中…' : '发布' }}
+                        </a>
                       </a-tooltip>
                       <a-tooltip v-if="canShowTaskRevokePublish(record)" title="撤销发布">
-                        <a-button
-                          type="link"
-                          size="small"
-                          class="task-wbs-ops__btn"
-                          :disabled="wbsTaskRowOpsLocked(record)"
-                          :loading="wbsOpBusyRowId === record.id"
-                          @click.stop="onTaskUnpublish(record)">
-                          <template #icon><RollbackOutlined /></template>
-                        </a-button>
+                        <a
+                          class="task-wbs-ops__link"
+                          :class="{
+                            'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                          }"
+                          @click.stop="
+                            !wbsTaskRowOpsLocked(record) &&
+                              wbsOpBusyRowId !== record.id &&
+                              onTaskUnpublish(record)
+                          ">
+                          {{ wbsOpBusyRowId === record.id ? '撤销中…' : '撤销' }}
+                        </a>
                       </a-tooltip>
                       <a-popconfirm
                         v-if="canShowTaskSuspend(record)"
-                        title="移除此任务行？任务行将置灰展示且可恢复，相关工作台待办会取消。"
-                        ok-text="移除"
+                        title="删除此任务行？任务行将置灰展示且可恢复，相关工作台待办会取消。"
+                        ok-text="删除"
                         cancel-text="取消"
                         ok-type="danger"
                         @confirm="onTaskSuspendConfirm(record)">
-                        <a-tooltip title="移除此任务行（可恢复）">
-                          <a-button
-                            type="link"
-                            size="small"
-                            danger
-                            class="task-wbs-ops__btn task-wbs-ops__btn--with-label"
-                            :disabled="wbsTaskRowOpsLocked(record)"
-                            :loading="wbsOpBusyRowId === record.id"
+                        <a-tooltip title="删除此任务行（可恢复）">
+                          <a
+                            class="task-wbs-ops__link task-wbs-ops__link--danger"
+                            :class="{
+                              'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                            }"
                             @click.stop>
-                            <DeleteOutlined />
-                            <!-- <span class="task-wbs-ops__btn-label">移除</span> -->
-                          </a-button>
+                            {{ wbsOpBusyRowId === record.id ? '删除中…' : '删除' }}
+                          </a>
                         </a-tooltip>
                       </a-popconfirm>
                     </template>
@@ -2222,39 +2218,42 @@ watch(ganttCollapsed, () => {
                             lineHeight: '16px',
                             padding: '0 4px',
                           }">
-                          <a-button
-                            type="link"
-                            size="small"
-                            class="task-wbs-ops__btn task-wbs-ops__sync-bell"
-                            :disabled="wbsTaskRowOpsLocked(record)"
-                            :loading="paramSyncLoading && paramSyncTarget?.id === record.id"
-                            @click.stop="openParamSyncModal(record)">
-                            <template #icon><BellOutlined /></template>
-                          </a-button>
+                          <a
+                            class="task-wbs-ops__link"
+                            :class="{
+                              'is-disabled':
+                                wbsTaskRowOpsLocked(record) ||
+                                (paramSyncLoading && paramSyncTarget?.id === record.id),
+                            }"
+                            @click.stop="
+                              !wbsTaskRowOpsLocked(record) &&
+                                !(paramSyncLoading && paramSyncTarget?.id === record.id) &&
+                                openParamSyncModal(record)
+                            ">
+                            {{
+                              paramSyncLoading && paramSyncTarget?.id === record.id ? '加载中…' : '参数'
+                            }}
+                          </a>
                         </a-badge>
                       </a-tooltip>
                       <a-tooltip title="变更">
-                        <a-button
-                          type="link"
-                          size="small"
-                          class="task-wbs-ops__btn"
-                          :disabled="wbsTaskRowOpsLocked(record)"
-                          @click.stop="onTaskChangeRequest(record)">
-                          <template #icon><BranchesOutlined /></template>
-                        </a-button>
+                        <a
+                          class="task-wbs-ops__link"
+                          :class="{ 'is-disabled': wbsTaskRowOpsLocked(record) }"
+                          @click.stop="!wbsTaskRowOpsLocked(record) && onTaskChangeRequest(record)">
+                          变更
+                        </a>
                       </a-tooltip>
                       <a-tooltip title="编辑">
-                        <a-button
-                          type="link"
-                          size="small"
-                          class="task-wbs-ops__btn"
-                          :disabled="wbsTaskRowOpsLocked(record)"
-                          @click.stop="onTaskEdit(record)">
-                          <template #icon><EditOutlined /></template>
-                        </a-button>
+                        <a
+                          class="task-wbs-ops__link"
+                          :class="{ 'is-disabled': wbsTaskRowOpsLocked(record) }"
+                          @click.stop="!wbsTaskRowOpsLocked(record) && onTaskEdit(record)">
+                          编辑
+                        </a>
                       </a-tooltip>
                     </template>
-                  </a-space>
+                  </div>
                   <!-- <div v-if="showTaskAssigneeAwaitHint(record)" class="task-wbs-ops__await-hint">
                     待上级分类负责人发布后，在工作台待办办理
                   </div> -->
@@ -2516,7 +2515,7 @@ watch(ganttCollapsed, () => {
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
 }
 
@@ -3045,6 +3044,97 @@ watch(ganttCollapsed, () => {
   padding: 16px 0;
 }
 
+.project-task-wbs-table :deep(.ant-table-row-expand-icon-cell),
+.project-task-wbs-table :deep(.ant-table-expand-icon-col) {
+  width: 28px !important;
+  min-width: 28px !important;
+  padding-left: 4px !important;
+  padding-right: 0 !important;
+}
+
+.project-task-wbs-table :deep(.ant-table-row-expand-icon) {
+  display: none !important;
+}
+
+.task-wbs-expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 10px;
+  vertical-align: middle;
+  transition: color 0.2s;
+}
+
+.task-wbs-expand-icon:hover {
+  color: #1677ff;
+}
+
+.task-wbs-expand-placeholder {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.task-wbs-ops-links {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0;
+  row-gap: 2px;
+}
+
+.task-wbs-ops__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #1677ff;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.task-wbs-ops__link:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 12px;
+  background: #e0e0e0;
+}
+
+.task-wbs-ops__link:hover {
+  color: #4096ff;
+}
+
+.task-wbs-ops__link--danger {
+  color: #ff4d4f;
+}
+
+.task-wbs-ops__link--danger:hover {
+  color: #ff7875;
+}
+
+.task-wbs-ops__link.is-disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.task-wbs-ops__link--danger.is-disabled {
+  color: rgba(0, 0, 0, 0.25);
+}
+
 .task-wbs-ops {
   display: inline-flex;
   align-items: center;
@@ -3139,7 +3229,7 @@ watch(ganttCollapsed, () => {
   color: #ff4d4f;
 }
 
-/** 带文案的操作按钮（如「移除」）：避免与 20px 纯图标按钮混用显得像「一条横线」 */
+/** 带文案的操作按钮（如「删除」）：避免与 20px 纯图标按钮混用显得像「一条横线」 */
 .task-wbs-ops__btn--with-label {
   width: auto !important;
   min-width: auto !important;

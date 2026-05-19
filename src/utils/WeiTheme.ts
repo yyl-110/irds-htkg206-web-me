@@ -176,7 +176,7 @@ export class WeiTheme {
     brand: new WeiTheme(WeiThemeKey.brand, '极致蓝', '探索钻研', { primaryColor: '#165DFF' }),
     red: new WeiTheme(WeiThemeKey.red, '浪漫红', '斗志奔放', { primaryColor: '#F53F3F' }),
     orange: new WeiTheme(WeiThemeKey.orange, '活力橙', '温暖欢快', { primaryColor: '#FF8D1F' }),
-    gold: new WeiTheme(WeiThemeKey.gold, '金盏花', '活力积极', { primaryColor: '#F7C034' }),
+    gold: new WeiTheme(WeiThemeKey.gold, '金盏花', '活力积极', { primaryColor: '#232440' }),
     lime: new WeiTheme(WeiThemeKey.lime, '青柠绿', '自然生机', { primaryColor: '#9FDB1D' }),
     cyan: new WeiTheme(WeiThemeKey.cyan, '碧涛青', '希望坚强', { primaryColor: '#14C9C9' }),
     purple: new WeiTheme(WeiThemeKey.purple, '暗夜紫', '优雅浪漫', { primaryColor: '#722ED1' }),

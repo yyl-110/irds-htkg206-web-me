@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { TableColumnsType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
-import { FileOutlined, FolderOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretRightOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
 
@@ -210,6 +210,48 @@ function onTableExpandedRowsChange(keys: (string | number)[]) {
   expandedRowKeys.value = (keys || []).map((k) => String(k));
 }
 
+/** 与点击树形展开图标一致：切换 expandedRowKeys */
+function toggleWbsRowExpanded(record: WbsRow) {
+  if (!record.children?.length) return;
+  const id = record.id;
+  const keys = expandedRowKeys.value;
+  expandedRowKeys.value = keys.includes(id) ? keys.filter(k => k !== id) : [...keys, id];
+}
+
+function wbsTableCustomRow(record: WbsRow) {
+  const parts: string[] = [];
+  if (record.children?.length) {
+    parts.push('wbs-row--expandable');
+  }
+  return {
+    class: parts.join(' '),
+    onClick: (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      const raw = e.target;
+      const el = raw instanceof Element ? raw : (raw as Node).parentElement;
+      if (!el) return;
+      if (
+        el.closest('.wbs-expand-icon') ||
+        el.closest('.ant-table-row-expand-icon') ||
+        el.closest('.wbs-ops') ||
+        el.closest('.wbs-ops__link') ||
+        el.closest('.wbs-required-switch-wrap') ||
+        el.closest('.ant-switch') ||
+        el.closest('.wbs-taskflow-select') ||
+        el.closest('.ant-select') ||
+        el.closest('.ant-popconfirm') ||
+        el.closest('button') ||
+        el.closest('a[href]') ||
+        el.closest('input') ||
+        el.closest('textarea')
+      ) {
+        return;
+      }
+      toggleWbsRowExpanded(record);
+    },
+  };
+}
+
 function expandAllStructureTree() {
   structureExpandedKeys.value = collectAllKeys(structureTreeRows.value);
 }
@@ -268,14 +310,6 @@ const scrollX = computed(() => columns.value.reduce((s, c) => s + (Number(c.widt
 
 function handleResizeColumn(w: number, col: { width?: number | string }) { col.width = w; }
 function wbsRowKey(r: WbsRow) { return r.id; }
-function isLeaf(record: WbsRow) { return !record.children?.length; }
-function toggleRequired(record: WbsRow) { record.required = !record.required; }
-
-function onRequiredSwitchChange(record: WbsRow) {
-  return (checked: boolean) => {
-    record.required = checked;
-  };
-}
 
 /** axios 响应拦截器已对非成功业务码调用 WeiMessage；此处避免再弹一层 message.error。 */
 function notifyAxiosFailure(err: unknown, fallback: string) {
@@ -574,28 +608,36 @@ onMounted(() => { fetchWbsTree(); });
         :scroll="{ x: scrollX }"
         :expanded-row-keys="expandedRowKeys"
         :expand-icon-column-index="1"
+        :custom-row="wbsTableCustomRow"
         @expand="onTableExpand"
         @expandedRowsChange="onTableExpandedRowsChange"
         @resize-column="handleResizeColumn">
+        <template #expandIcon="{ expanded: isExpanded, record, onExpand: onExp }">
+          <span
+            v-if="record.children?.length"
+            class="wbs-expand-icon"
+            @click.stop="onExp(record, $event)">
+            <CaretDownOutlined v-if="isExpanded" />
+            <CaretRightOutlined v-else />
+          </span>
+          <span v-else class="wbs-expand-placeholder" />
+        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'wbsCode'">
-            <span class="wbs-code-cell">
-              <component :is="isLeaf(record) ? FileOutlined : FolderOutlined" class="wbs-code-cell__icon" />
-              <span>{{ record.wbsCode }}</span>
-            </span>
+            <span class="wbs-code-text">{{ record.wbsCode }}</span>
           </template>
           <template v-else-if="column.key === 'nodeName'">
             <span class="wbs-node-name-text" :title="record.nodeName">{{ record.nodeName }}</span>
           </template>
           <template v-else-if="column.key === 'required'">
-            <a-switch
-              class="wbs-required-switch"
-              :checked="record.required"
-              checked-children="ON"
-              un-checked-children="OFF"
-              @change="onRequiredSwitchChange(record)"
-              @click.stop
-            />
+            <span class="wbs-required-switch-wrap" @click.stop>
+              <a-switch
+                v-model:checked="record.required"
+                class="wbs-required-switch"
+                checked-children="ON"
+                un-checked-children="OFF"
+              />
+            </span>
           </template>
           <template v-else-if="column.key === 'taskFlow'">
             <a-select
@@ -691,10 +733,15 @@ onMounted(() => { fetchWbsTree(); });
 .wbs-top-bar__right {
   flex: 1 1 200px;
   min-width: 0;
-  text-align: right;
+  margin-left: auto;
+  padding-right: 120px;
+  text-align: left;
   font-size: 15px;
   color: rgba(0, 0, 0, 0.88);
   line-height: 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wbs-footer-actions {
@@ -825,15 +872,56 @@ onMounted(() => { fetchWbsTree(); });
   vertical-align: middle;
 }
 
-.wbs-code-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.wbs-table :deep(.ant-table-row-expand-icon-cell),
+.wbs-table :deep(.ant-table-expand-icon-col) {
+  width: 28px !important;
+  min-width: 28px !important;
+  padding-left: 4px !important;
+  padding-right: 0 !important;
 }
 
-.wbs-code-cell__icon {
-  color: #8c8c8c;
-  font-size: 12px;
+.wbs-table :deep(.ant-table-row-expand-icon) {
+  display: none !important;
+}
+
+.wbs-expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 10px;
+  vertical-align: middle;
+  transition: color 0.2s;
+}
+
+.wbs-expand-icon:hover {
+  color: #1677ff;
+}
+
+.wbs-expand-placeholder {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.wbs-code-text {
+  font-size: var(--wbs-table-cell-font-size, 12px);
+  line-height: var(--wbs-table-cell-line-height, 1.5);
+}
+
+.wbs-required-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.wbs-table :deep(tr.wbs-row--expandable) {
+  cursor: pointer;
 }
 
 
