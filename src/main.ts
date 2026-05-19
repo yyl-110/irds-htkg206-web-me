@@ -38,6 +38,7 @@ import { initRouteGrauds } from './router/guards';
 import { WeiVxe } from './plugins/vxe';
 import { router } from '@/router';
 import { initGlobalEmptyImage } from '@/utils/emptyState';
+import AppGlobalEmpty from '@/components/AppGlobalEmpty/index.vue';
 import { setupAuth } from '@/directives/index';
 import { registerStore } from '@/store';
 import { useProjectUiStore } from '@/store/modules/layout/projectUi';
@@ -66,6 +67,8 @@ registerStore(); // 注册pinia状态库
 useProjectUiStore().applyDomEffects();
 app.use(router);
 app.use(Antd);
+/** 全局空状态：未指定 image 时统一使用 empty.png */
+app.component('AEmpty', AppGlobalEmpty);
 app.use(Vant);
 app.use(CkeditorPlugin);
 app.use(diyVueDirectives);
