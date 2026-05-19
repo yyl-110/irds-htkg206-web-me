@@ -554,6 +554,35 @@ const resetTaskForm = () => {
 
   // 改用通过extensionElements来存储数据
   return
+  // if (businessObject.candidateStrategy != undefined) {
+  //   userTaskForm.value.candidateStrategy = parseInt(businessObject.candidateStrategy) as any
+  // } else {
+  //   userTaskForm.value.candidateStrategy = undefined
+  // }
+  // if (businessObject.candidateParam && businessObject.candidateParam.length > 0) {
+  //   if (userTaskForm.value.candidateStrategy === 60) {
+  //     // 特殊：流程表达式，只有一个 input 输入框
+  //     userTaskForm.value.candidateParam = [businessObject.candidateParam]
+  //   } else {
+  //     userTaskForm.value.candidateParam = businessObject.candidateParam
+  //       .split(',')
+  //       .map((item) => item)
+  //   }
+  // } else {
+  //   userTaskForm.value.candidateParam = []
+  // }
+}
+/** 更新 candidateStrategy 字段时，需要清空 candidateParam，并触发 bpmn 图更新 */
+const changeCandidateStrategy = () => {
+  userTaskForm.value.candidateParam = []
+  deptLevel.value = 1
+  if (userTaskForm.value.candidateStrategy === CandidateStrategy.FORM_USER) {
+    // 特殊处理表单内用户字段，当只有发起人选项时应选中发起人
+    if (!userFieldOnFormOptions.value || userFieldOnFormOptions.value.length <= 1) {
+      userTaskForm.value.candidateStrategy = CandidateStrategy.START_USER
+    }
+  }
+  updateElementTask()
 }
 
 /** 选中某个 options 时候，更新 bpmn 图  */
