@@ -14,10 +14,6 @@ const props = defineProps({
     type: Array as PropType<CategoryVO[]>,
     required: true,
   },
-  // userList: {
-  //   type: Array,
-  //   required: true
-  // },
   deptList: {
     type: Array,
     required: true,
@@ -38,7 +34,6 @@ const formRef = ref()
 const selectedStartUsers = ref<any[]>([])
 const selectedStartDepts = ref<[]>([])
 const selectedManagerUsers = ref<any[]>([])
-const deptSelectFormRef = ref()
 const memberAuthUsers = ref<MemberAuthUser[]>([])
 const memberAuthDepts = ref<MemberAuthDept[]>([])
 const memberAuthUserIds = ref<string[]>([])
@@ -67,46 +62,37 @@ const queryParams = reactive({
     status: undefined,
   },
 })
-
-const userList = ref<any[]>([])
-
-// async function  initData()  {
-//   const response2 = await findPagination({...queryParams})
-//   userList.value = response2.data.data
-// }
-
+// 获取部门用户信息
+const getDeptInfo = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    memberAuthDepts.value = res.data?.data?.adminDeptResponseDTO || []
+    memberAuthUsers.value = res.data?.data?.adminUserResponseDTO || []
+  } else {
+    memberAuthDepts.value = []
+    memberAuthUsers.value = []
+  }
+}
 // 初始化选中的用户
 watch(
   () => modelData.value,
   async newVal => {
-    // // await initData()
-    // if (newVal.startUserIds?.length) {
-    //   const resp = await findPaginationByUsers(selectedStartUsers.value)
-    //   selectedStartUsers.value = resp.data
-    //   // selectedStartUsers.value = userList.value.filter((user: UserVO) =>
-    //   //   newVal.startUserIds.includes(user.id)
-    //   // ) as UserVO[]
-    // } else {
-    //   selectedStartUsers.value = []
-    // }
+    await getDeptInfo()
+    if (newVal.startUserIds?.length) {
+      selectedStartUsers.value = pickUsersByIds(modelData.value?.startUserIds || [])
+    } else {
+      selectedStartUsers.value = []
+    }
+    if (newVal.managerUserIds?.length) {
+      selectedManagerUsers.value = pickUsersByIds(modelData.value?.managerUserIds || [])
+    } else {
+      selectedManagerUsers.value = []
+    }
     // if (newVal.startDeptIds?.length) {
-    //   selectedStartDepts.value = props.deptList.filter((dept: []) =>
-    //     newVal.startDeptIds.includes(dept.id),
-    //   ) as []
+    //   selectedStartDepts.value = props.deptList.filter((dept: []) => newVal.startDeptIds.includes(dept.id)) as []
     // } else {
     //   selectedStartDepts.value = []
     // }
-    // // nextTick(() => {
-    // if (newVal.managerUserIds?.length) {
-    //   const resp = await findPaginationByUsers(newVal.managerUserIds)
-    //   selectedManagerUsers.value = resp.data
-    //   // selectedManagerUsers.value = userList.value.filter((user:any) =>
-    //   //   newVal.managerUserIds.includes(user.id)
-    //   // )
-    // } else {
-    //   selectedManagerUsers.value = []
-    // }
-    // // })
   },
   {
     immediate: true,
@@ -115,25 +101,19 @@ watch(
 
 /** 打开发起人选择 */
 function openStartUserSelect() {
-  memberAuthVisible.value = true
-  openMemberAuth()
   currentSelectType.value = 'start'
-  // userSelectFormRef.value.open(0, selectedStartUsers.value)
+  openMemberAuth({ userIds: modelData.value?.startUserIds })
 }
 
 /** 打开部门选择 */
-function openStartDeptSelect() {
-  deptSelectFormRef.value.open(selectedStartDepts.value)
-}
+function openStartDeptSelect() {}
 
 /** 打开管理员选择 */
 function openManagerUserSelect() {
-  memberAuthVisible.value = true
-  openMemberAuth()
   currentSelectType.value = 'manager'
-  // userSelectFormRef.value.open(0, selectedManagerUsers.value)
+  openMemberAuth({ userIds: modelData.value?.managerUserIds })
 }
-function getProjectTeamAuthorizedUserIds(record): string[] {
+function getProjectTeamAuthorizedUserIds(record: any) {
   const raw = record.userIds
   if (Array.isArray(raw)) return raw.map(id => String(id))
   if (typeof raw === 'string' && raw.trim()) {
@@ -144,17 +124,14 @@ function getProjectTeamAuthorizedUserIds(record): string[] {
   }
   return []
 }
-async function openMemberAuth(record?) {
-  const res = await AdminApiSystemDept.getDeptInfo({})
-  if (res.data.code === 200) {
-    memberAuthDepts.value = res.data.data.adminDeptResponseDTO || []
-    memberAuthUsers.value = res.data.data.adminUserResponseDTO || []
-  } else {
-    memberAuthDepts.value = []
-    memberAuthUsers.value = []
-  }
+async function openMemberAuth(record: any) {
   memberAuthUserIds.value = getProjectTeamAuthorizedUserIds(record)
   memberAuthVisible.value = true
+}
+
+function pickUsersByIds(userIds: string[]) {
+  const userIdSet = new Set(userIds.map(String))
+  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id))).map(u => ({ ...u, nickName: u.name }))
 }
 
 /**
@@ -162,17 +139,19 @@ async function openMemberAuth(record?) {
  * @param _
  * @param users
  */
-async function handleMemberAuthConfirm(userIds: string[]) {
-  console.log(userIds, 'userIds')
+function handleMemberAuthConfirm(userIds: string[]) {
+  const selectedUsers = pickUsersByIds(userIds)
   if (currentSelectType.value === 'start') {
+    selectedStartUsers.value = selectedUsers
     modelData.value = {
       ...modelData.value,
-      startUserIds: userIds.map(u => u.id),
+      startUserIds: userIds,
     }
   } else {
+    selectedManagerUsers.value = selectedUsers
     modelData.value = {
       ...modelData.value,
-      managerUserIds: userIds.map(u => u.id),
+      managerUserIds: userIds,
     }
   }
 }
@@ -336,7 +315,7 @@ defineExpose({
           {{ '选择人员' }}
         </el-button>
       </div>
-      <div v-if="modelData.startUserType === 2" class="mt-2 flex flex-wrap gap-2">
+      <!-- <div v-if="modelData.startUserType === 2" class="mt-2 flex flex-wrap gap-2">
         <div
           v-for="dept in selectedStartDepts"
           :key="dept.id"
@@ -350,7 +329,7 @@ defineExpose({
 
           {{ '选择部门' }}
         </el-button>
-      </div>
+      </div> -->
     </el-form-item>
     <el-form-item label="流程管理员" prop="managerUserIds" class="mb-20px">
       <div class="flex flex-wrap gap-2">
@@ -380,8 +359,6 @@ defineExpose({
     :depts="memberAuthDepts"
     :authorized-user-ids="memberAuthUserIds"
     @confirm="handleMemberAuthConfirm" />
-  <!-- 部门选择弹窗 -->
-  <DeptSelectForm ref="deptSelectFormRef" :multiple="true" :check-strictly="true" @confirm="handleDeptSelectConfirm" />
 </template>
 
 <style lang="scss" scoped>
