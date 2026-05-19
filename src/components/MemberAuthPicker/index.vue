@@ -1,11 +1,5 @@
 <template>
-  <a-modal
-    :visible="visible"
-    :title="title"
-    :width="1200"
-    :mask-closable="false"
-    :footer="null"
-    @cancel="handleCancel">
+  <a-modal :visible="visible" :title="title" :width="1200" :mask-closable="false" :footer="null" @cancel="handleCancel">
     <div class="member-auth-picker">
       <div class="picker-panel">
         <div class="panel-title">
@@ -64,139 +58,139 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue'
 
 type MemberUser = {
-  id: string;
-  name: string;
-  username: string;
-  deptId?: string;
-};
+  id: string
+  name: string
+  username: string
+  deptId?: string
+}
 
 type MemberDept = {
-  id: string;
-  name: string;
-};
+  id: string
+  name: string
+}
 
 const props = withDefaults(
   defineProps<{
-    visible: boolean;
-    title?: string;
-    users: MemberUser[];
-    depts: MemberDept[];
-    authorizedUserIds: string[];
+    visible: boolean
+    title?: string
+    users: MemberUser[]
+    depts: MemberDept[]
+    authorizedUserIds: string[]
   }>(),
   {
     title: '成员授权',
   },
-);
+)
 
 const emit = defineEmits<{
-  (e: 'update:visible', visible: boolean): void;
-  (e: 'confirm', userIds: string[]): void;
-}>();
+  (e: 'update:visible', visible: boolean): void
+  (e: 'confirm', userIds: string[]): void
+}>()
 
-const leftType = ref<'user' | 'dept'>('user');
-const leftKeyword = ref('');
-const rightKeyword = ref('');
-const leftSelectedUserIds = ref<string[]>([]);
-const leftSelectedDeptIds = ref<string[]>([]);
-const rightSelectedUserIds = ref<string[]>([]);
-const currentAuthorized = ref<string[]>([]);
+const leftType = ref<'user' | 'dept'>('user')
+const leftKeyword = ref('')
+const rightKeyword = ref('')
+const leftSelectedUserIds = ref<string[]>([])
+const leftSelectedDeptIds = ref<string[]>([])
+const rightSelectedUserIds = ref<string[]>([])
+const currentAuthorized = ref<string[]>([])
 
 watch(
   () => props.visible,
   visible => {
-    if (!visible) return;
-    currentAuthorized.value = [...props.authorizedUserIds];
-    leftType.value = 'user';
-    leftKeyword.value = '';
-    rightKeyword.value = '';
-    leftSelectedUserIds.value = [];
-    leftSelectedDeptIds.value = [];
-    rightSelectedUserIds.value = [];
+    if (!visible) return
+    currentAuthorized.value = [...props.authorizedUserIds]
+    leftType.value = 'user'
+    leftKeyword.value = ''
+    rightKeyword.value = ''
+    leftSelectedUserIds.value = []
+    leftSelectedDeptIds.value = []
+    rightSelectedUserIds.value = []
   },
   { immediate: true },
-);
+)
 
-const authorizedSet = computed(() => new Set(currentAuthorized.value));
+const authorizedSet = computed(() => new Set(currentAuthorized.value))
 
 const deptNameMap = computed(() => {
-  const map = new Map<string, string>();
-  props.depts.forEach(d => map.set(d.id, d.name));
-  return map;
-});
+  const map = new Map<string, string>()
+  props.depts.forEach(d => map.set(d.id, d.name))
+  return map
+})
 
-const leftUsers = computed(() => props.users.filter(u => !authorizedSet.value.has(u.id)));
+const leftUsers = computed(() => props.users.filter(u => !authorizedSet.value.has(u.id)))
 const leftFilteredUsers = computed(() => {
-  const keyword = leftKeyword.value.trim();
-  if (!keyword) return leftUsers.value;
+  const keyword = leftKeyword.value.trim()
+  if (!keyword) return leftUsers.value
   return leftUsers.value.filter(u => {
-    const deptName = u.deptId ? deptNameMap.value.get(u.deptId) ?? '' : '';
-    return `${u.name}${u.username}${deptName}`.includes(keyword);
-  });
-});
+    const deptName = u.deptId ? (deptNameMap.value.get(u.deptId) ?? '') : ''
+    return `${u.name}${u.username}${deptName}`.includes(keyword)
+  })
+})
 
 const leftDepts = computed(() => {
-  return props.depts.filter(d => props.users.some(u => u.deptId === d.id && !authorizedSet.value.has(u.id)));
-});
+  return props.depts.filter(d => props.users.some(u => u.deptId === d.id && !authorizedSet.value.has(u.id)))
+})
 const leftFilteredDepts = computed(() => {
-  const keyword = leftKeyword.value.trim();
-  if (!keyword) return leftDepts.value;
-  return leftDepts.value.filter(d => d.name.includes(keyword));
-});
+  const keyword = leftKeyword.value.trim()
+  if (!keyword) return leftDepts.value
+  return leftDepts.value.filter(d => d.name.includes(keyword))
+})
 
-const rightUsers = computed(() => props.users.filter(u => authorizedSet.value.has(u.id)));
+const rightUsers = computed(() => props.users.filter(u => authorizedSet.value.has(u.id)))
 const rightFilteredUsers = computed(() => {
-  const keyword = rightKeyword.value.trim();
-  if (!keyword) return rightUsers.value;
+  const keyword = rightKeyword.value.trim()
+  if (!keyword) return rightUsers.value
   return rightUsers.value.filter(u => {
-    const deptName = u.deptId ? deptNameMap.value.get(u.deptId) ?? '' : '';
-    return `${u.name}${u.username}${deptName}`.includes(keyword);
-  });
-});
+    const deptName = u.deptId ? (deptNameMap.value.get(u.deptId) ?? '') : ''
+    return `${u.name}${u.username}${deptName}`.includes(keyword)
+  })
+})
 
-const leftTitleText = computed(() => `未授权${leftType.value === 'user' ? '用户' : '部门'}`);
+const leftTitleText = computed(() => `未授权${leftType.value === 'user' ? '用户' : '部门'}`)
 const leftTitleCount = computed(() => {
   if (leftType.value === 'user') {
-    return `${leftSelectedUserIds.value.length}/${leftUsers.value.length}`;
+    return `${leftSelectedUserIds.value.length}/${leftUsers.value.length}`
   }
-  return `${leftSelectedDeptIds.value.length}/${leftDepts.value.length}`;
-});
-const rightTitleText = computed(() => '已授权用户');
-const rightTitleCount = computed(() => `${rightSelectedUserIds.value.length}/${rightUsers.value.length}`);
+  return `${leftSelectedDeptIds.value.length}/${leftDepts.value.length}`
+})
+const rightTitleText = computed(() => '已授权用户')
+const rightTitleCount = computed(() => `${rightSelectedUserIds.value.length}/${rightUsers.value.length}`)
 
 function formatUserDisplay(user: MemberUser): string {
-  const deptName = user.deptId ? deptNameMap.value.get(user.deptId) ?? '-' : '-';
-  return `${user.name}/${user.username}/${deptName}`;
+  const deptName = user.deptId ? (deptNameMap.value.get(user.deptId) ?? '-') : '-'
+  return `${user.name}/${user.username}/${deptName}`
 }
 
 function authorizeSelected() {
-  const next = new Set(currentAuthorized.value);
+  const next = new Set(currentAuthorized.value)
   for (const userId of leftSelectedUserIds.value) {
-    next.add(userId);
+    next.add(userId)
   }
   for (const deptId of leftSelectedDeptIds.value) {
-    props.users.filter(u => u.deptId === deptId).forEach(u => next.add(u.id));
+    props.users.filter(u => u.deptId === deptId).forEach(u => next.add(u.id))
   }
-  currentAuthorized.value = [...next];
-  leftSelectedUserIds.value = [];
-  leftSelectedDeptIds.value = [];
+  currentAuthorized.value = [...next]
+  leftSelectedUserIds.value = []
+  leftSelectedDeptIds.value = []
 }
 
 function removeSelected() {
-  const toRemove = new Set(rightSelectedUserIds.value);
-  currentAuthorized.value = currentAuthorized.value.filter(id => !toRemove.has(id));
-  rightSelectedUserIds.value = [];
+  const toRemove = new Set(rightSelectedUserIds.value)
+  currentAuthorized.value = currentAuthorized.value.filter(id => !toRemove.has(id))
+  rightSelectedUserIds.value = []
 }
 
 function handleCancel() {
-  emit('update:visible', false);
+  emit('update:visible', false)
 }
 
 function handleConfirm() {
-  emit('confirm', [...currentAuthorized.value]);
-  emit('update:visible', false);
+  emit('confirm', [...currentAuthorized.value])
+  emit('update:visible', false)
 }
 </script>
 

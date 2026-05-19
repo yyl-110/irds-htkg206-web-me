@@ -7,19 +7,16 @@
       :key="index"
       size="large"
       :icon="getApprovalNodeIcon(activity.status, activity.nodeType)"
-      :color="getApprovalNodeColor(activity.status)"
-    >
+      :color="getApprovalNodeColor(activity.status)">
       <template #dot>
         <div
           :style="getApprovalNodeImgBackground(getApprovalNodeIcon(activity.status, activity.nodeType))"
-          class="position-absolute left--10px top--6px rounded-full border border-solid border-#dedede w-30px h-30px flex justify-center items-center bg-#3f73f7 p-5px"
-        >
+          class="position-absolute left--10px top--6px rounded-full border border-solid border-#dedede w-30px h-30px flex justify-center items-center bg-#3f73f7 p-5px">
           <img class="w-full h-full" :src="getApprovalNodeImg(activity.nodeType)" alt="" />
           <div
             v-if="showStatusIcon"
             class="position-absolute top-17px left-17px rounded-full flex items-center p-1px border-2 border-white border-solid"
-            :style="{ backgroundColor: getApprovalNodeColor(activity.status) }"
-          >
+            :style="{ backgroundColor: getApprovalNodeColor(activity.status) }">
             <el-icon :size="11" color="#fff">
               <component :is="getApprovalNodeIcon(activity.status, activity.nodeType)" />
             </el-icon>
@@ -29,12 +26,9 @@
       <div class="flex flex-col items-start gap2" :id="`activity-task-${activity.id}-${index}`">
         <!-- 第一行：节点名称、时间 -->
         <div class="flex w-full">
-          <div class="font-bold"> {{ activity.name }}</div>
+          <div class="font-bold">{{ activity.name }}</div>
           <!-- 信息：时间 -->
-          <div
-            v-if="activity.status !== TaskStatusEnum.NOT_START"
-            class="text-#a5a5a5 text-13px mt-1 ml-auto"
-          >
+          <div v-if="activity.status !== TaskStatusEnum.NOT_START" class="text-#a5a5a5 text-13px mt-1 ml-auto">
             {{ getApprovalNodeTime(activity) }}
           </div>
         </div>
@@ -51,23 +45,18 @@
             isEmpty(activity.candidateUsers) &&
             (CandidateStrategy.START_USER_SELECT === activity.candidateStrategy ||
               CandidateStrategy.APPROVE_USER_SELECT === activity.candidateStrategy)
-          "
-        >
+          ">
           <!--  && activity.nodeType === NodeType.USER_TASK_NODE -->
 
           <el-tooltip :content="$t('添加用户')" placement="left">
-            <el-button
-              class="!px-6px"
-              @click="handleSelectUser(activity.id, customApproveUsers[activity.id])"
-            >
+            <el-button class="!px-6px" @click="handleSelectUser(activity.id, customApproveUsers[activity.id])">
               <img class="w-18px text-#ccc" src="@/assets/svgs/bpm/add-user.svg" alt="" />
             </el-button>
           </el-tooltip>
           <div
             v-for="(user, idx1) in customApproveUsers[activity.id]"
             :key="idx1"
-            class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative"
-          >
+            class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
             <el-avatar class="!m-5px" :size="28" v-if="user.avatar" :src="user.avatar" />
             <el-avatar class="!m-5px" :size="28" v-else>
               {{ user.nickname.substring(0, 1) }}
@@ -78,33 +67,23 @@
         <div v-else class="flex items-center flex-wrap mt-1 gap2">
           <!-- 情况一：遍历每个审批节点下的【进行中】task 任务 -->
           <div v-for="(task, idx) in activity.tasks" :key="idx" class="flex flex-col pr-2 gap2">
-            <div
-              class="position-relative flex flex-wrap gap2"
-              v-if="task.assigneeUser || task.ownerUser"
-            >
+            <div class="position-relative flex flex-wrap gap2" v-if="task.assigneeUser || task.ownerUser">
               <!-- 信息：头像昵称 -->
               <div
-                class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative"
-              >
+                class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
                 <template v-if="task.assigneeUser?.avatar || task.assigneeUser?.nickname">
                   <el-avatar
                     class="!m-5px"
                     :size="28"
                     v-if="task.assigneeUser?.avatar"
-                    :src="task.assigneeUser?.avatar"
-                  />
+                    :src="task.assigneeUser?.avatar" />
                   <el-avatar class="!m-5px" :size="28" v-else>
                     {{ task.assigneeUser?.nickname.substring(0, 1) }}
                   </el-avatar>
                   {{ task.assigneeUser?.nickname }}
                 </template>
                 <template v-else-if="task.ownerUser?.avatar || task.ownerUser?.nickname">
-                  <el-avatar
-                    class="!m-5px"
-                    :size="28"
-                    v-if="task.ownerUser?.avatar"
-                    :src="task.ownerUser?.avatar"
-                  />
+                  <el-avatar class="!m-5px" :size="28" v-if="task.ownerUser?.avatar" :src="task.ownerUser?.avatar" />
                   <el-avatar class="!m-5px" :size="28" v-else>
                     {{ task.ownerUser?.nickname.substring(0, 1) }}
                   </el-avatar>
@@ -114,33 +93,23 @@
                 <div
                   v-if="showStatusIcon && onlyStatusIconShow.includes(task.status)"
                   class="position-absolute top-19px left-23px rounded-full flex items-center p-1px border-2 border-white border-solid"
-                  :style="{ backgroundColor: statusIconMap2[task.status]?.color }"
-                >
+                  :style="{ backgroundColor: statusIconMap2[task.status]?.color }">
                   <Icon :size="11" :icon="statusIconMap2[task.status]?.icon" color="#FFFFFF" />
                 </div>
               </div>
             </div>
             <teleport defer :to="`#activity-task-${activity.id}-${index}`">
               <div
-                v-if="
-                  task.reason &&
-                  [NodeType.USER_TASK_NODE, NodeType.END_EVENT_NODE].includes(activity.nodeType)
-                "
-                class="text-#a5a5a5 text-13px mt-1 w-full bg-#f8f8fa p2 rounded-md"
-              >
+                v-if="task.reason && [NodeType.USER_TASK_NODE, NodeType.END_EVENT_NODE].includes(activity.nodeType)"
+                class="text-#a5a5a5 text-13px mt-1 w-full bg-#f8f8fa p2 rounded-md">
                 <!-- TODO lesan：这里如果是办理，需要是办理意见 -->
                 {{ $t('审批意见：') }}{{ $t(task.reason) }}
               </div>
               <div
                 v-if="task.signPicUrl && activity.nodeType === NodeType.USER_TASK_NODE"
-                class="text-#a5a5a5 text-13px mt-1 w-full bg-#f8f8fa p2 rounded-md"
-              >
-                {{$t(' 签名：') }}
-                <el-image
-                  class="w-90px h-40px ml-5px"
-                  :src="task.signPicUrl"
-                  :preview-src-list="[task.signPicUrl]"
-                />
+                class="text-#a5a5a5 text-13px mt-1 w-full bg-#f8f8fa p2 rounded-md">
+                {{ $t(' 签名：') }}
+                <el-image class="w-90px h-40px ml-5px" :src="task.signPicUrl" :preview-src-list="[task.signPicUrl]" />
               </div>
             </teleport>
           </div>
@@ -148,8 +117,7 @@
           <div
             v-for="(user, idx1) in activity.candidateUsers"
             :key="idx1"
-            class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative"
-          >
+            class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
             <el-avatar class="!m-5px" :size="28" v-if="user.avatar" :src="user.avatar" />
             <el-avatar class="!m-5px" :size="28" v-else>
               {{ user.nickname.substring(0, 1) }}
@@ -160,8 +128,7 @@
             <div
               v-if="showStatusIcon"
               class="position-absolute top-20px left-24px rounded-full flex items-center p-1px border-2 border-white border-solid"
-              :style="{ backgroundColor: statusIconMap2['-1']?.color }"
-            >
+              :style="{ backgroundColor: statusIconMap2['-1']?.color }">
               <Icon :size="11" :icon="statusIconMap2['-1']?.icon" color="#FFFFFF" />
             </div>
           </div>
@@ -171,7 +138,7 @@
   </el-timeline>
 
   <!-- 用户选择弹窗 -->
-  <UserSelectForm ref="userSelectFormRef" @confirm="handleUserSelectConfirm" />
+  <!-- <UserSelectForm ref="userSelectFormRef" @confirm="handleUserSelectConfirm" /> -->
 </template>
 
 <script lang="ts" setup>
@@ -197,8 +164,8 @@ withDefaults(
     showStatusIcon?: boolean // 是否显示头像右下角状态图标
   }>(),
   {
-    showStatusIcon: true // 默认值为 true
-  }
+    showStatusIcon: true, // 默认值为 true
+  },
 )
 const { push } = useRouter() // 路由
 
@@ -221,7 +188,7 @@ const statusIconMap2 = {
   // 委派中
   '6': { color: '#448ef7', icon: 'ep:loading' },
   // 审批通过中
-  '7': { color: '#00b32a', icon: 'ep:circle-check-filled' }
+  '7': { color: '#00b32a', icon: 'ep:circle-check-filled' },
 }
 
 const statusIconMap = {
@@ -241,7 +208,7 @@ const statusIconMap = {
   // 委派中
   '6': { color: '#448ef7', icon: Loading },
   // 审批通过中
-  '7': { color: '#00b32a', icon: Check }
+  '7': { color: '#00b32a', icon: Check },
 }
 
 const nodeTypeSvgMap = {
@@ -260,7 +227,7 @@ const nodeTypeSvgMap = {
   // 并行分支节点
   [NodeType.PARALLEL_BRANCH_NODE]: { color: '#14bb83', svg: parallelSvg },
   // 子流程节点
-  [NodeType.CHILD_PROCESS_NODE]: { color: '#14bb83', svg: childProcessSvg }
+  [NodeType.CHILD_PROCESS_NODE]: { color: '#14bb83', svg: childProcessSvg },
 }
 
 // 只有只有状态是 -1、0、1 才展示头像右小角状态小icon
@@ -274,16 +241,15 @@ const getApprovalNodeImg = (nodeType: NodeType) => {
 const getApprovalNodeImgBackground = (nodeType: any) => {
   debugger
   const backgroundColor = {
-    Check:'#18A058FF',  //通过
-    Loading: '#448ef7',  //当前节点
-    Minus: '#F46B6C',  //退回
-    Clock:'#C0C4CC',
+    Check: '#18A058FF', //通过
+    Loading: '#448ef7', //当前节点
+    Minus: '#F46B6C', //退回
+    Clock: '#C0C4CC',
   }
 
   return {
-  backgroundColor:backgroundColor[nodeType?.name]
+    backgroundColor: backgroundColor[nodeType?.name],
   }
-  
 }
 
 const getApprovalNodeIcon = (taskStatus: number, nodeType: NodeType) => {
@@ -339,8 +305,8 @@ const handleChildProcess = (activity: any) => {
   push({
     name: 'BpmProcessInstanceDetail',
     query: {
-      id: activity.processInstanceId
-    }
+      id: activity.processInstanceId,
+    },
   })
 }
 </script>

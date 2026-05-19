@@ -135,7 +135,10 @@ function handleModelCommand(command: string, row: any) {
 async function handleCategoryCommand(command: string, row: any) {
   switch (command) {
     case 'handleRename':
-      renameCategoryForm.value = await CategoryApi.getCategory(row.id)
+      const res = await CategoryApi.getCategory(row.id)
+      if (res.data.code === 200) {
+        renameCategoryForm.value = res.data.data
+      }
       renameCategoryVisible.value = true
       break
     case 'handleDeleteCategory':
@@ -189,11 +192,11 @@ async function handleChangeState(row: any) {
     // 修改状态的二次确认
     const id = row.id
     const statusState = state === 1 ? '停用' : '启用'
-    const content = `是否确认{statusState}流程名字为"{row.name}"的数据项?`
+    const content = `是否确认${statusState}流程名字为"{row.name}"的数据项?`
     await message.confirm(content)
     // 发起修改状态
     await ModelApi.updateModelState(id, newState)
-    message.success(`{statusState}成功`)
+    message.success(`${statusState}成功`)
     // 刷新列表
     emit('success')
   } catch {}
