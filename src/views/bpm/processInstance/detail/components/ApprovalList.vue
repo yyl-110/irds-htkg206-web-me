@@ -14,7 +14,7 @@
       </div>
       <BaseDataList
         :columns="columns"
-        :apiLists="{ query: matchTableType()?.request}"
+        :apiLists="{ query: matchTableType()?.request }"
         :defaultParams="defaultParams"
         :searchForm="searchForm"
         :serveParamsTransForm="handlearamsTransForm"
@@ -23,8 +23,7 @@
         :ifBorderTop="false"
         ref="baseTableRef"
         :style="{ paddingTop: ifSearch ? '16px' : '0' }"
-        @refreshTableData="getTableData"
-      >
+        @refreshTableData="getTableData">
         <template #order="{ row, $index }">
           <div>{{ $index + 1 }}</div>
         </template>
@@ -39,8 +38,8 @@
 </template>
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { getApprovalListByOrderNo, getProductConfigNoList } from '@/api/orderBom'
-import BaseDataList from '@/components/BaseDataList.vue'
+// import { getApprovalListByOrderNo, getProductConfigNoList } from '@/api/orderBom'
+import BaseDataList from './BaseDataList.vue'
 import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
 
 type ITableType = BpmBusinessProcessTypeEnum
@@ -48,17 +47,17 @@ type ITableType = BpmBusinessProcessTypeEnum
 const { t } = useI18n() // 国际化
 const route = useRoute()
 const router = useRouter()
-const props =  withDefaults(defineProps<{ tableType: ITableType, id?: string }>(), {
+const props = withDefaults(defineProps<{ tableType: ITableType; id?: string }>(), {
   tableType: BpmBusinessProcessTypeEnum.ORDER_CONFIG_PROCESS,
   // 产品型号审签流程获取签审列表所需id
-  id: ''
+  id: '',
 })
 // 可触发的事件
 const emit = defineEmits(['getApprovalList'])
 
 const baseTableRef = ref(null)
 const currentRow = ref({}) // 存储当前点击的表格行数据
-const searchForm = ref({ content: ''})
+const searchForm = ref({ content: '' })
 const propductInstanceId = ref('')
 const approvalDataList = ref([]) // 当前签审列表数据
 /* 列表相关配置 */
@@ -77,7 +76,7 @@ const columnsOrderApproval = ref([
   { prop: 'version', label: t('版本') },
   { prop: 'createdBy', label: t('创建人') },
   { prop: 'lastUpdatedBy', label: t('修改人') },
-  { prop: 'lastUpdatedDate', label: t('更新时间') }
+  { prop: 'lastUpdatedDate', label: t('更新时间') },
 ])
 // 产品型号审签流程表头
 const columnsProductModel = ref([
@@ -89,15 +88,15 @@ const columnsProductModel = ref([
   { prop: 'version', label: t('版本') },
   { prop: 'createdBy', label: t('创建人') },
   { prop: 'lastUpdatedBy', label: t('修改人') },
-  { prop: 'lastUpdatedDate', label: t('更新时间') }
+  { prop: 'lastUpdatedDate', label: t('更新时间') },
 ])
 const ifApprovalData = ref(true)
 const ifSearch = computed(() => props.tableType == BpmBusinessProcessTypeEnum.ORDER_CONFIG_PROCESS)
 const defaultParams = computed(() => ({ orderNo: route.query.orderNo || '', id: route.query.businessKey || '' }))
-const handlearamsTransForm = (message, type) => message;
+const handlearamsTransForm = (message, type) => message
 
 // 根据编号跳转详情，区分不同类型
-const toDetailPage = (row) => {
+const toDetailPage = row => {
   currentRow.value = row
   router.push({
     path: matchTableType().path,
@@ -118,9 +117,9 @@ const matchTableType = (type?: ITableType) => {
           modalType: 'detail',
           saleModelId: currentRow.value['saleModelId'],
           title: currentRow.value['productModel'],
-          treeId: ''
+          treeId: '',
         },
-        request: getApprovalListByOrderNo
+        // request: getApprovalListByOrderNo,
       }
     // 产品型号审签
     case BpmBusinessProcessTypeEnum.PRODUCT_MODEL_FINALIZATION_RELEASE:
@@ -133,22 +132,22 @@ const matchTableType = (type?: ITableType) => {
           configNoId: currentRow.value['id'],
           number: currentRow.value['number'],
         },
-        request: getProductConfigNoList
+        // request: getProductConfigNoList,
       }
     default:
       return {
         columns: columnsOrderApproval.value,
-        request: null
+        request: null,
       }
   }
 }
 // 查询
 const handleSearch = () => {
-  if(baseTableRef.value){
-    (baseTableRef.value as any).getTableList({
+  if (baseTableRef.value) {
+    ;(baseTableRef.value as any).getTableList({
       content: searchForm.value.content,
       ...defaultParams.value,
-      id: propductInstanceId.value
+      id: propductInstanceId.value,
     })
   }
 }
@@ -157,35 +156,42 @@ const getTableData = (list: any) => {
   ifApprovalData.value = list.length > 0
   emit('getApprovalList', list)
 }
-watch(() => props.tableType, (newVal: ITableType) => {
-  columns.value = matchTableType(newVal)?.columns as any
-}, {
-  immediate: true
-})
-watch(() => props.id, (newVal) => {
-  if(newVal){
-    propductInstanceId.value = newVal
-    nextTick(() => {
-      if(baseTableRef.value){
-        (baseTableRef.value as any).getTableList({
-          content: searchForm.value.content,
-          id: newVal
-        })
-      }
-    })
-  }
-}, {
-  immediate: true
-})
-
+watch(
+  () => props.tableType,
+  (newVal: ITableType) => {
+    columns.value = matchTableType(newVal)?.columns as any
+  },
+  {
+    immediate: true,
+  },
+)
+watch(
+  () => props.id,
+  newVal => {
+    if (newVal) {
+      propductInstanceId.value = newVal
+      nextTick(() => {
+        if (baseTableRef.value) {
+          ;(baseTableRef.value as any).getTableList({
+            content: searchForm.value.content,
+            id: newVal,
+          })
+        }
+      })
+    }
+  },
+  {
+    immediate: true,
+  },
+)
 </script>
 <style lang="scss" scoped>
-.tableinfo{
+.tableinfo {
   padding: 10px 30px 10px 10px;
-  &__header{
+  &__header {
     font-weight: 700;
   }
-  &__search{
+  &__search {
     display: flex;
     flex-direction: row;
     align-items: center;
