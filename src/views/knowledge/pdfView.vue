@@ -83,7 +83,6 @@ watch(
   border-radius: 4px;
   border: 1px solid #dcdee0;
   margin: 15px auto;
-  overflow-y: auto;
 
   :deep(.ant-btn) {
     padding: 0;

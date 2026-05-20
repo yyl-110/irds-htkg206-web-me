@@ -9,7 +9,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import * as echarts from 'echarts'
 import ScrollBoard from '@/views/platformBoard/components/ScrollBoard.vue'
 import _ from 'lodash-es'
@@ -28,16 +28,25 @@ const dataList = ref([])
 const monthList = ref([])
 
 const initTable = () => {
-  monthList.value = Object.keys(props.chartData[0]).filter(item => item !== 'systemTemp').map(item => `${dayjs(item).get('month') + 1}月`)
+  if (!props.chartData || !props.chartData.length) return;
 
-  const yearMonthList = Object.keys(props.chartData[0]).filter(item => item !== 'systemTemp');
+  const isNewApi = props.chartData[0] && 'monthlyVisitCounts' in props.chartData[0];
 
-  dataList.value = props.chartData.map(item => {
-    // 根据 monthList 的顺序提取对应的数据值
-    const values = yearMonthList.map(month => item[month] || 0);
-    return [item.systemTemp, ...values];
-  });
-  console.log('dataList.value:', dataList.value)
+  if (isNewApi) {
+    monthList.value = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+    dataList.value = props.chartData.map(item => {
+      return [item.primaryCategoryName, ...(item.monthlyVisitCounts || Array(12).fill('0'))];
+    });
+  } else {
+    monthList.value = Object.keys(props.chartData[0]).filter(item => item !== 'systemTemp').map(item => `${dayjs(item).get('month') + 1}月`)
+
+    const yearMonthList = Object.keys(props.chartData[0]).filter(item => item !== 'systemTemp');
+
+    dataList.value = props.chartData.map(item => {
+      const values = yearMonthList.map(month => item[month] || 0);
+      return [item.systemTemp, ...values];
+    });
+  }
 
   config.value = {
     header: ['', ...monthList.value],
@@ -48,36 +57,60 @@ const initTable = () => {
     oddRowBGC: "#051841",
     evenRowBGC: 'transparent',
   }
-
 }
 const initChart = () => {
-  console.log(props.chartData)
+  if (!props.chartData || !props.chartData.length) return;
+  const isNewApi = props.chartData[0] && 'monthlyVisitCounts' in props.chartData[0];
+
   const colorList = ['#52F5F9', '#0C98EB']
+  let seriesData = [];
 
-  const seriesData = props.chartData.map((item, index) => {
-    const _item = _.cloneDeep(item)
-    delete _item.systemTemp
-    const dataList = Object.values(_item)
-    return {
-      name: item.systemTemp,
-      type: 'line',
-      smooth: false, //是否平滑曲线显示
-      showSymbol: true,
-
-      itemStyle: {
-        color: colorList[index],
-        borderColor: colorList[index],
-        borderWidth: 1,
-      },
-      lineStyle: {
-        normal: {
-          width: 3,
-          color: colorList[index],
+  if (isNewApi) {
+    seriesData = props.chartData.map((item, index) => {
+      return {
+        name: item.primaryCategoryName,
+        type: 'line',
+        smooth: false,
+        showSymbol: true,
+        itemStyle: {
+          color: colorList[index % colorList.length],
+          borderColor: colorList[index % colorList.length],
+          borderWidth: 1,
         },
-      },
-      data: dataList,
-    }
-  })
+        lineStyle: {
+          normal: {
+            width: 3,
+            color: colorList[index % colorList.length],
+          },
+        },
+        data: item.monthlyVisitCounts ? item.monthlyVisitCounts.map(Number) : [],
+      }
+    });
+  } else {
+    seriesData = props.chartData.map((item, index) => {
+      const _item = _.cloneDeep(item)
+      delete _item.systemTemp
+      const dataList = Object.values(_item)
+      return {
+        name: item.systemTemp,
+        type: 'line',
+        smooth: false,
+        showSymbol: true,
+        itemStyle: {
+          color: colorList[index % colorList.length],
+          borderColor: colorList[index % colorList.length],
+          borderWidth: 1,
+        },
+        lineStyle: {
+          normal: {
+            width: 3,
+            color: colorList[index % colorList.length],
+          },
+        },
+        data: dataList,
+      }
+    });
+  }
 
   chartOption.value = {
     tooltip: {

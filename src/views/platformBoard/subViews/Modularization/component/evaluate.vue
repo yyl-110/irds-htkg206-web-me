@@ -1,11 +1,5 @@
-<template>
-  <div style="width: 100%; height: 100%">
-    <v-chart :option="chartOption" class="chart" />
-  </div>
-</template>
-
-<script setup>
-import * as echarts from "echarts";
+<script setup lang="ts">
+import * as echarts from 'echarts'
 const props = defineProps({
   chartData: {
     type: Object,
@@ -13,77 +7,60 @@ const props = defineProps({
       return {
         data: [
           {
-            name: "研发",
-            value: [
-              0,
-              0,
-              0,
-              0,
-              0
-            ]
+            name: '研发',
+            value: [0, 0, 0, 0, 0],
           },
           {
-            name: "制造",
-            value: [
-              0,
-              0,
-              0,
-              0,
-              0
-            ]
+            name: '制造',
+            value: [0, 0, 0, 0, 0],
           },
           {
-            name: "运维",
-            value: [
-              0,
-              0,
-              0,
-              0,
-              0
-            ]
-          }
+            name: '运维',
+            value: [0, 0, 0, 0, 0],
+          },
         ],
         indicator: [
           {
             max: 0,
-            name: "独立性"
+            name: '独立性',
           },
           {
             max: 0,
-            name: "通用性"
+            name: '通用性',
           },
           {
             max: 0,
-            name: "构成最少化"
+            name: '构成最少化',
           },
           {
             max: 0,
-            name: "接口简统化"
+            name: '接口简统化',
           },
           {
             max: 0,
-            name: "柔性化"
-          }
+            name: '柔性化',
+          },
         ],
-        title: ["研发", "制造", "运维"]
+        title: ['研发', '制造', '运维'],
       }
-    }
-  }
+    },
+  },
 })
 
-const chartOption = ref({});
+const chartOption = ref({})
 
 const initChart = () => {
   const colorList = ['#1890FF', '#FACC14', '#2FC25B']
   const dataList = props.chartData.data
   const nameList = props.chartData.title
-  let indicatorList = props.chartData.indicator;
+  let indicatorList = props.chartData.indicator
 
   const seriesDataList = dataList.map((item, index) => {
     return {
       ...item,
       symbolSize: [6, 6],
-      lineStyle: { //边缘颜色
+      lineStyle: {
+        //边缘颜色
         color: colorList[index],
       },
       itemStyle: {
@@ -93,15 +70,14 @@ const initChart = () => {
   })
 
   chartOption.value = {
-
     tooltip: {
-      show: false // 弹层数据去掉
+      show: false, // 弹层数据去掉
     },
     legend: {
       data: nameList,
-      icon: "circle",
+      icon: 'circle',
       show: true,
-      bottom: "5%",
+      bottom: '5%',
       center: 0,
       itemWidth: 12,
       itemHeight: 12,
@@ -118,7 +94,7 @@ const initChart = () => {
         textStyle: {
           color: '#F0F5FF',
           fontSize: 16,
-        }
+        },
       },
       // TODO:
       indicator: indicatorList,
@@ -127,36 +103,45 @@ const initChart = () => {
         show: true,
         areaStyle: {
           // 分隔区域的样式设置。
-          color: '#000A5F' // 分隔区域颜色。分隔区域会按数组中颜色的顺序依次循环设置颜色。默认是一个深浅的间隔色。
-        }
+          color: '#000A5F', // 分隔区域颜色。分隔区域会按数组中颜色的顺序依次循环设置颜色。默认是一个深浅的间隔色。
+        },
       },
       axisLine: {
         // 指向外圈文本的分隔线样式
         lineStyle: {
-          color: 'rgba(255,255,255,0)'
-        }
+          color: 'rgba(255,255,255,0)',
+        },
       },
       splitLine: {
         lineStyle: {
           type: 'solid',
           color: '#2F4276', // 分隔线颜色
-          width: 2 // 分隔线线宽
-        }
-      }
+          width: 2, // 分隔线线宽
+        },
+      },
     },
     series: [
       {
         type: 'radar',
-        data: seriesDataList
-      }
-    ]
+        data: seriesDataList,
+      },
+    ],
   }
 }
 
-
-watch(() => props.chartData, () => {
-  initChart();
-}, { deep: true })
+watch(
+  () => props.chartData,
+  () => {
+    initChart()
+  },
+  { deep: true }
+)
 </script>
+
+<template>
+  <div style="width: 100%; height: 100%">
+    <v-chart :option="chartOption" class="chart" />
+  </div>
+</template>
 
 <style lang="less" scoped></style>

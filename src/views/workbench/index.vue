@@ -1323,7 +1323,7 @@ onUnmounted(() => {
   <div class="layout h-full">
     <div class="layout-content h-full">
       <div class="lf-cont" :style="{ marginRight: isShowRigth == '展开' ? '0' : '16px' }">
-        <div class="top-wrap items-center !rounded-[6px] border border-[#EAEAF1] !bg-white">
+        <div class="top-wrap items-center !rounded-[6px] border border-[#EAEAF1] !bg-white wei-scrollbar overflow-x-auto overflow-y-hidden">
           <!-- 左侧用户信息 -->
           <div class="user-info w-[320px] flex-shrink-0 pl-[24px]">
             <div class="pic">
@@ -1342,7 +1342,7 @@ onUnmounted(() => {
 
           <!-- 右侧统计数据 -->
           <div class="statistics-info flex-1 flex justify-around items-center h-full">
-            <div class="sta-list">
+            <div class="sta-list min-w-[56px]">
               <div class="num" style="color: #FF4D4F;">
                 {{ projectStatistics.deferredNum ?? 0 }}
               </div>
@@ -1350,7 +1350,7 @@ onUnmounted(() => {
                 延期待办
               </div>
             </div>
-            <div class="sta-list">
+            <div class="sta-list min-w-[56px]">
               <div class="num" style="color: #FAAD14;">
                 {{ projectStatistics.totalNum ?? 0 }}
               </div>
@@ -1358,7 +1358,7 @@ onUnmounted(() => {
                 任务待办
               </div>
             </div>
-            <div class="sta-list">
+            <div class="sta-list min-w-[56px]">
               <div class="num" style="color: #1A58E8;">
                 {{ projectStatistics.participatedPlanProjectCount ?? 0 }}
               </div>
@@ -1366,7 +1366,7 @@ onUnmounted(() => {
                 审批待办
               </div>
             </div>
-            <div class="sta-list">
+            <div class="sta-list min-w-[56px]">
               <div class="num" style="color: #1A58E8;">
                 {{ projectStatistics.forwardNum ?? 0 }}
               </div>
@@ -1374,7 +1374,7 @@ onUnmounted(() => {
                 我已转办
               </div>
             </div>
-            <div class="sta-list">
+            <div class="sta-list min-w-[56px]">
               <div class="num" style="color: #313133;">
                 {{ projectStatistics.inNum ?? 0 }}
               </div>

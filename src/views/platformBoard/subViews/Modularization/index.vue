@@ -1,96 +1,47 @@
-<template>
-  <div class="modularizationContainer">
-    <screen-container :width="1920" :height="1080">
-      <div class="boardContainer">
-        <header class="header">
-          <img src="@/assets/data-screen/common/back.png" alt="" class="back" @click="back" />
-          <img src="@/assets/data-screen/common/moduleTitle.png" alt="" class="title" />
-          <!-- 时间 -->
-          <time-clock />
-        </header>
-        <main>
-          <a-row style="height: 100%; padding: 0 24px 42px">
-            <a-col :span="7" style="height: 60%">
-              <div class="evaluate">
-                <Title text="模块评价体系" showSelect :optionsProject="projectList">
-                  <!-- <div class="evaluateBtn">
-                    查看详情
-                    <img src="@/assets/data-screen/common/arrow.png" alt="">
-                  </div> -->
-                </Title>
-                <div class="wrap">
-                  <evaluate :chartData="moduleInfo?.moduleEvaluation" />
-                </div>
-              </div>
-            </a-col>
-            <a-col :span="10">
-              <div class="statistics">
-                <statistics :moduleTotal="moduleInfo?.moduleTotal" :moduleNumList="moduleInfo?.moduleNumList"
-                  :resNumList="moduleInfo?.resNumList" />
-              </div>
-            </a-col>
-            <a-col :span="7">
-              <div class="top">
-                <Title text="模块使用频次排名 TOP50" showBtn>
-                  <div @click="lookList">查看清单</div>
-                </Title>
-                <div class="wrap">
-                  <top-bar :chartData="moduleInfo?.useFrequencyList" />
-                </div>
-              </div>
-            </a-col>
-            <a-col :span="9" style="height: 40%">
-              <div class="moduleRate">
-                <Title text="各科室模块库录入情况" />
-                <div class="wrap">
-                  <dept-module />
-                </div>
-              </div>
-            </a-col>
-            <a-col :span="15" style="height: 40%">
-              <div class="moduleBoard">
-                <Title text="模块访问看板" showSelect showTime :timeOptions="timeOptions" @changeTime="changeTime"
-                  :defaultTime="timeType" />
-                <div class="wrap">
-                  <moduleBoard :chartData="moduleInfo?.moduleUsedList" />
-                </div>
-              </div>
-            </a-col>
-          </a-row>
-        </main>
-      </div>
-    </screen-container>
-  </div>
-</template>
-
-<script setup>
-import screenContainer from '../../components/screen-container.vue';
-import timeClock from "../../components/time-clock.vue";
-import Title from "../../components/title.vue";
-import evaluate from "./component/evaluate.vue";
-import deptModule from "./component/deptModule.vue";
-import statistics from "./component/statistics.vue";
-import moduleBoard from "./component/moduleBoard.vue";
-import topBar from "./component/topBar.vue";
-import { getReportModuleList } from "@/api/data-screen";
-import { useIndexStore } from "@/store/data-screen";
-import { storeToRefs } from "pinia";
-const indexStore = useIndexStore();
-const { projectList, selectProjectId } = storeToRefs(indexStore);
+<script setup lang="ts">
+import screenContainer from '../../components/screen-container.vue'
+import timeClock from '../../components/time-clock.vue'
+import Title from '../../components/title.vue'
+import evaluate from './component/evaluate.vue'
+import deptModule from './component/deptModule.vue'
+import statistics from './component/statistics.vue'
+import moduleBoard from './component/moduleBoard.vue'
+import topBar from './component/topBar.vue'
+import { getReportModuleList } from '@/api/data-screen'
+import { useIndexStore } from '@/store/data-screen'
+import { storeToRefs } from 'pinia'
+const indexStore = useIndexStore()
+const { projectList, selectProjectId } = storeToRefs(indexStore)
 
 const moduleInfo = ref(null)
 const timeType = ref(new Date().getFullYear().toString())
 
+const mappedModuleNumList = computed(() => {
+  if (!moduleInfo.value?.moduleKindRatioList) return []
+  return moduleInfo.value.moduleKindRatioList.map((item) => ({
+    moduleName: item.kindLabel,
+    moduleNum: item.ratioPercent,
+  }))
+})
+
+const mappedResNumList = computed(() => {
+  if (!moduleInfo.value?.firstLevelCategoryList) return []
+  return moduleInfo.value.firstLevelCategoryList.map((item) => ({
+    ...item,
+    moduleNum: Number(item.moduleNum),
+  }))
+})
+
 const timeOptions = computed(() => {
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear()
   return Array.from({ length: 5 }, (_, i) => {
-    const year = currentYear - i;
+    const year = currentYear - i
     return {
       value: year.toString(),
-      label: `${year}年`
-    };
-  });
-});
+      label: `${year}年`,
+    }
+  })
+})
 
 const changeTime = (val) => {
   timeType.value = val
@@ -109,33 +60,108 @@ const fetchData = async (type) => {
 }
 
 const back = () => {
-  window.history.back();
-};
-
-const lookList = () => {
-  window.location.href = 'http://39.106.130.85:8082/bl-server/dashboard/exportUsageFrequency'
+  window.history.back()
 }
 
 onMounted(() => {
   fetchData(new Date().getFullYear())
 })
-
-// watch(
-//   () => selectProjectId.value,
-//   () => {
-//     if (selectProjectId.value) {
-//       fetchData(timeType.value);
-//     }
-//   },
-//   { immediate: true }
-// );
 </script>
+
+<template>
+  <div class="modularizationContainer">
+    <screen-container :width="1920" :height="1080">
+      <div class="boardContainer">
+        <header class="header">
+          <img
+            src="@/assets/data-screen/common/back.png"
+            alt=""
+            class="back"
+            @click="back"
+          />
+          <img
+            src="@/assets/data-screen/common/moduleTitle.png"
+            alt=""
+            class="title"
+          />
+          <!-- 时间 -->
+          <time-clock />
+        </header>
+        <main>
+          <a-row style="height: 100%; padding: 0 24px 42px">
+            <a-col :span="7" style="height: 60%">
+              <div class="evaluate">
+                <Title
+                  text="模块评价体系"
+                  showSelect
+                  :optionsProject="projectList"
+                >
+                  <!-- <div class="evaluateBtn">
+                    查看详情
+                    <img src="@/assets/data-screen/common/arrow.png" alt="">
+                  </div> -->
+                </Title>
+                <div class="wrap">
+                  <!-- <evaluate :chartData="moduleInfo?.creatorContributorList" /> -->
+                </div>
+              </div>
+            </a-col>
+            <a-col :span="10">
+              <div class="statistics">
+                <statistics
+                  :moduleTotal="Number(moduleInfo?.moduleTotal || 0)"
+                  :moduleNumList="mappedModuleNumList"
+                  :resNumList="mappedResNumList"
+                />
+              </div>
+            </a-col>
+            <a-col :span="7">
+              <div class="top">
+                <Title text="模块使用频次排名 TOP50" />
+                <div class="wrap">
+                  <top-bar
+                    :chartData="moduleInfo?.moduleAccessCategoryRankList"
+                  />
+                </div>
+              </div>
+            </a-col>
+            <a-col :span="9" style="height: 40%">
+              <div class="moduleRate">
+                <Title text="各科室模块库录入情况" />
+                <div class="wrap">
+                  <dept-module :chartData="moduleInfo?.deptContributorList" />
+                </div>
+              </div>
+            </a-col>
+            <a-col :span="15" style="height: 40%">
+              <div class="moduleBoard">
+                <Title
+                  text="模块访问看板"
+                  showSelect
+                  showTime
+                  :timeOptions="timeOptions"
+                  @changeTime="changeTime"
+                  :defaultTime="timeType"
+                />
+                <div class="wrap">
+                  <moduleBoard
+                    :chartData="moduleInfo?.primaryCategoryMonthlyVisitList"
+                  />
+                </div>
+              </div>
+            </a-col>
+          </a-row>
+        </main>
+      </div>
+    </screen-container>
+  </div>
+</template>
 
 <style lang="less" scoped>
 .modularizationContainer {
   width: 100vw;
   height: 100vh;
-  background-image: url("@/assets/data-screen/common/commonBg.png");
+  background-image: url('@/assets/data-screen/common/commonBg.png');
   background-repeat: no-repeat;
   background-size: 100% 100%;
 
@@ -153,7 +179,7 @@ onMounted(() => {
       display: flex;
       justify-content: center;
       align-items: center;
-      background-image: url("@/assets/data-screen/common/headerBg.png");
+      background-image: url('@/assets/data-screen/common/headerBg.png');
       background-repeat: no-repeat;
       background-size: 100% 100%;
       position: relative;

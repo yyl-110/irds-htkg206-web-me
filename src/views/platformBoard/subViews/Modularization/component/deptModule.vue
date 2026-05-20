@@ -1,14 +1,6 @@
-<template>
-  <div style="width: 90%; height: 100%">
-    <v-chart :option="chartOption" class="chart" />
-  </div>
-</template>
-
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import * as echarts from 'echarts'
-
-const chartOption = ref({})
 
 const props = defineProps({
   chartData: {
@@ -17,32 +9,35 @@ const props = defineProps({
   },
 })
 
-// ====== Mock 数据 ======
-const mockChartData = {
-  '结构科': { count: 120 },
-  '电气科': { count: 85 },
-  '暖通科': { count: 65 },
-  '给排水科': { count: 45 },
-  '建筑科': { count: 150 },
-  '总图科': { count: 35 },
-  '工艺科': { count: 95 },
-  '自控科': { count: 55 },
-}
+const chartOption = ref({})
 
 const initChart = (data) => {
-  if (!data || !Object.keys(data).length) return
+  if (
+    !data ||
+    (Array.isArray(data) && !data.length) ||
+    (!Array.isArray(data) && !Object.keys(data).length)
+  )
+    return
 
-  const xData = Object.keys(data)
+  let xData = []
+  let yData = []
+
+  if (Array.isArray(data)) {
+    xData = data.map((item) => item.deptName)
+    yData = data.map((item) => Number(item.moduleNum || item.count || 0))
+  } else {
+    xData = Object.keys(data)
+    yData = xData.map((key) => data[key].count)
+  }
+
   const seriesData = [
     {
       name: '模块数量',
-      value: xData.map((key) => data[key].count),
-    }
+      value: yData,
+    },
   ]
 
-  const colorList = [
-    ['#15728C', '#92D1DE'],
-  ]
+  const colorList = [['#15728C', '#92D1DE']]
 
   chartOption.value = {
     grid: {
@@ -91,8 +86,8 @@ const initChart = (data) => {
         margin: 15,
         rotate: 45,
         formatter: function (value) {
-          return value.length > 8 ? value.substring(0, 8) + '...' : value;
-        }
+          return value.length > 8 ? value.substring(0, 8) + '...' : value
+        },
       },
       axisTick: {
         show: false,
@@ -156,13 +151,6 @@ const initChart = (data) => {
   }
 }
 
-onMounted(() => {
-  // 没有真实数据时使用 mock 数据
-  if (!props.chartData) {
-    initChart(mockChartData)
-  }
-})
-
 watch(
   () => props.chartData,
   (val) => {
@@ -173,5 +161,11 @@ watch(
   { deep: true }
 )
 </script>
+
+<template>
+  <div style="width: 90%; height: 100%">
+    <v-chart :option="chartOption" class="chart" />
+  </div>
+</template>
 
 <style lang="less" scoped></style>
