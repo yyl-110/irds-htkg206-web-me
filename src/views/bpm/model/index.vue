@@ -5,7 +5,10 @@ import { message } from 'ant-design-vue'
 import { useDebounceFn } from '@vueuse/core'
 import CategoryForm from '../category/CategoryForm.vue'
 import CategoryDraggableModel from './CategoryDraggableModel.vue'
+import type { MenuInfo } from 'ant-design-vue/es/menu/src/interface'
+import { SettingOutlined } from '@ant-design/icons-vue'
 import { ContentWrap } from '@/components/ContentWrap'
+import { EpcIcon } from '@/components/icon/EpcIcon'
 import * as ModelApi from '@/api/bpm/model'
 import { CategoryApi } from '@/api/bpm/category'
 
@@ -54,6 +57,10 @@ const formDetailPreview = ref({
  * 右上角设置按钮
  * @param command
  */
+function handleSettingsMenuClick({ key }: MenuInfo) {
+  handleCommand(String(key))
+}
+
 function handleCommand(command: string) {
   switch (command) {
     case 'handleCategoryAdd':
@@ -136,71 +143,61 @@ watch(
 
 <template>
   <ContentWrap>
-    <div class="flex justify-between pl-20px items-center pt-10px">
-      <h3 class="font-extrabold">
-        {{ '流程模型' }}
-      </h3>
+    <div class="bpm-model-toolbar-wrap">
       <!-- 搜索工作栏 -->
-      <el-form
+      <a-form
         v-if="!isCategorySorting"
         ref="queryFormRef"
+        class="calc-toolbar-form bpm-model-toolbar-form"
+        layout="inline"
         :model="queryParams"
-        :inline="true"
-        label-width="68px"
-        @submit.prevent>
-        <el-form-item prop="name" class="ml-auto">
-          <el-input
-            v-model="queryParams.name"
-            placeholder="搜索流程"
-            clearable
-            class="!w-240px"
-            @keyup.enter="handleQuery">
-            <template #prefix>
-              <Icon icon="ep:search" class="mx-10px" />
+        @finish="handleQuery">
+        <a-form-item name="name">
+          <a-input
+            v-model:value="queryParams.name"
+            style="width: 240px"
+            placeholder="请输入流程名称"
+            allow-clear />
+        </a-form-item>
+        <a-form-item class="bpm-model-toolbar-form__actions">
+          <a-button type="primary" html-type="submit">
+            <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+            查询
+          </a-button>
+          <a-button type="primary" style="margin-left: 15px" @click="openForm('create')">
+            <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+            添加流程
+          </a-button>
+          <a-dropdown placement="bottomRight">
+            <a-button style="margin-left: 15px">
+              <SettingOutlined />
+            </a-button>
+            <template #overlay>
+              <a-menu @click="handleSettingsMenuClick">
+                <a-menu-item key="handleCategoryAdd">
+                  新建分类
+                </a-menu-item>
+                <a-menu-item key="handleCategorySort">
+                  分类排序
+                </a-menu-item>
+              </a-menu>
             </template>
-          </el-input>
-        </el-form-item>
-        <!-- 右上角：新建模型、更多操作 -->
-        <el-form-item>
-          <el-button type="primary" @click="openForm('create')">
-            <Icon icon="ep:plus" class="mr-5px" />
-            {{ '新建模型' }}
-          </el-button>
-        </el-form-item>
-        <el-form-item>
-          <el-dropdown placement="bottom-end" @command="command => handleCommand(command)">
-            <el-button class="w-30px" plain>
-              <Icon icon="ep:setting" />
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="handleCategoryAdd">
-                  <Icon icon="ep:circle-plus" :size="13" class="mr-5px" />
-                  {{ '新建分类' }}
-                </el-dropdown-item>
-                <el-dropdown-item command="handleCategorySort">
-                  <Icon icon="fa:sort-amount-desc" :size="13" class="mr-5px" />
-                  {{ '分类排序' }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </el-form-item>
-      </el-form>
-      <div v-else class="mr-20px">
-        <el-button @click="handleCategorySortCancel">
-          {{ '取 消' }}
-        </el-button>
-        <el-button type="primary" @click="handleCategorySortSubmit">
-          {{ '保存排序' }}
-        </el-button>
+          </a-dropdown>
+        </a-form-item>
+      </a-form>
+      <div v-else class="bpm-model-sort-actions">
+        <a-button @click="handleCategorySortCancel">
+          取 消
+        </a-button>
+        <a-button type="primary" style="margin-left: 15px" @click="handleCategorySortSubmit">
+          保存排序
+        </a-button>
       </div>
     </div>
 
-    <el-divider />
-
     <!-- 按照分类，展示其所属的模型列表 -->
-    <div v-loading="loading" class="px-15px position-relative min-h-200px">
+    <a-spin :spinning="loading">
+    <div class="px-15px position-relative min-h-200px bpm-model-list-body">
       <draggable
         v-model="categoryGroup"
         :disabled="!isCategorySorting"
@@ -220,6 +217,7 @@ watch(
         </template>
       </draggable>
     </div>
+    </a-spin>
   </ContentWrap>
 
   <!-- 表单弹窗：添加分类 -->
@@ -231,18 +229,50 @@ watch(
 </template>
 
 <style lang="scss" scoped>
+.bpm-model-toolbar-wrap {
+  padding: 10px 20px 12px;
+}
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.bpm-model-toolbar-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 12px;
+  column-gap: 0;
+}
+
+.bpm-model-toolbar-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+  margin-right: 0;
+}
+
+.bpm-model-toolbar-form :deep(.ant-form-item:not(:last-child)) {
+  margin-right: 16px;
+}
+
+.bpm-model-toolbar-form__actions :deep(.ant-form-item-control-input-content) {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.bpm-model-sort-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.bpm-model-list-body {
+  padding-top: 4px;
+}
+
 :deep() {
-  .el-table--fit .el-table__inner-wrapper:before {
-    height: 0;
-  }
   .el-card {
     border-radius: 8px;
-  }
-  .el-form--inline .el-form-item {
-    margin-right: 10px;
-  }
-  .el-divider--horizontal {
-    margin-top: 6px;
   }
 }
 </style>

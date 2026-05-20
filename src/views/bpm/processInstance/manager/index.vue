@@ -1,237 +1,30 @@
-<template>
-  <ContentWrap class="pt-10px">
-    <!-- 搜索工作栏 -->
-    <el-form class="-mb-15px" :model="queryParams" ref="queryFormRef" :inline="true" label-width="68px">
-      <!-- <el-form-item label="发起人" prop="params.startUserId">
-        <el-select v-model="queryParams.params.startUserId" placeholder="请选择发起人" class="!w-240px">
-          <el-option
-            v-for="user in userList"
-            :key="user.id"
-            :label="user.nickName"
-            :value="user.id"
-          />
-        </el-select>
-      </el-form-item> -->
-      <el-form-item :label="$t('流程名称')" prop="params.name">
-        <el-input
-          v-model="queryParams.params.name"
-          :placeholder="$t('请输入流程名称')"
-          clearable
-          @keyup.enter="handleQuery"
-          class="!w-240px" />
-      </el-form-item>
-
-      <el-form-item :label="$t('流程主题')" prop="params.processBusinessTypeName">
-        <el-input
-          v-model="queryParams.params.processBusinessTypeName"
-          :placeholder="$t('请输入流程主题')"
-          clearable
-          @keyup.enter="handleQuery"
-          class="!w-240px" />
-      </el-form-item>
-
-      <el-form-item :label="$t('流程分类')" prop="category">
-        <el-select v-model="queryParams.params.category" :placeholder="$t('请选择流程分类')" clearable class="!w-240px">
-          <el-option
-            v-for="category in categoryList"
-            :key="category.code"
-            :label="category.name"
-            :value="category.code" />
-        </el-select>
-      </el-form-item>
-      <el-form-item :label="$t('流程状态')" prop="params.status">
-        <el-select v-model="queryParams.params.status" :placeholder="$t('请选择流程状态')" clearable class="!w-240px">
-          <el-option
-            v-for="dict in useDict.getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS)"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item :label="$t('发起时间')" prop="params.createTime">
-        <el-date-picker
-          v-model="queryParams.params.createTime"
-          value-format="YYYY-MM-DD HH:mm:ss"
-          type="daterange"
-          :start-placeholder="$t('开始日期')"
-          :end-placeholder="$t('结束日期')"
-          :default-time="[new Date('1 00:00:00'), new Date('1 23:59:59')]"
-          class="!w-240px" />
-      </el-form-item>
-      <el-form-item :label="$t('流程编号')" prop="params.processInstanceId">
-        <el-input
-          v-model="queryParams.params.processInstanceId"
-          :placeholder="$t('请输入流程实例编号')"
-          clearable
-          @keyup.enter="handleQuery"
-          class="!w-240px" />
-      </el-form-item>
-
-      <el-form-item>
-        <el-button @click="handleQuery"><Icon icon="ep:search" class="mr-5px" /> {{ $t('搜索') }}</el-button>
-        <el-button @click="resetQuery"><Icon icon="ep:refresh" class="mr-5px" /> {{ $t('重置') }}</el-button>
-      </el-form-item>
-    </el-form>
-    <div class="pt-20px">
-      <!-- 列表 -->
-      <el-table v-loading="loading" :data="list" style="width: 100%" border>
-        <el-table-column
-          label="主题"
-          align="left"
-          prop="processVariables.PROCESS_BUSINESS_TYPE_NAME"
-          min-width="500px"
-          fixed="left">
-          <template #default="scope">
-            <el-tooltip class="item" placement="top">
-              <template #content>
-                <component :is="getTipContent(scope.row, '主题')" />
-              </template>
-              <el-link
-                type="primary"
-                :underline="false"
-                @click="showProcessDetail(scope.row)"
-                class="process-title-link">
-                {{ scope.row.processVariables.PROCESS_BUSINESS_TYPE_NAME }}
-              </el-link>
-            </el-tooltip>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('任务名称')" align="center" prop="tasks" min-width="120px">
-          <template #default="scope">
-            <div type="primary" v-for="task in scope.row.tasks" :key="task.id">
-              <el-tooltip class="item" placement="top">
-                <template #content>
-                  <div v-html="getTipContent(task, '任务名称')"></div>
-                </template>
-                <el-link type="primary" :underline="false">{{ task.name }}</el-link>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('当前审批人')" align="center" prop="taskUser" min-width="120px">
-          <template #default="scope">
-            <v-if scope.row.tasks>
-              <div type="primary" v-for="user in scope.row.tasks" :key="user.id" link>
-                <el-tooltip class="item" placement="top">
-                  <template #content>
-                    <div v-html="getTipContent(user, '当前审批人')"></div>
-                  </template>
-                  <el-link type="primary" :underline="false">{{ user?.assigneeUser?.nickname }}</el-link>
-                </el-tooltip>
-              </div>
-            </v-if>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="流程名称" align="left" prop="name" min-width="180px" />
-        <el-table-column :label="$t('流程分类')" align="left" prop="categoryName" min-width="180" />
-        <el-table-column :label="$t('发起人')" align="center" prop="startUser.nickname" width="120">
-          <template #default="scope">
-            <el-tooltip :content="scope.row.startUser?.account" placement="top">
-              <span>{{ scope.row.startUser?.nickname }}</span>
-            </el-tooltip>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('发起部门')" align="center" prop="startUser.deptName" width="120" />
-        <el-table-column :label="$t('流程状态')" prop="status" width="120">
-          <template #default="scope">
-            <dict-tag :type="DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS" :value="scope.row.status" />
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="$t('发起时间')"
-          align="left"
-          prop="startTime"
-          width="170"
-          :formatter="dateFormatter"
-          sortable />
-        <el-table-column
-          :label="$t('结束时间')"
-          align="left"
-          prop="endTime"
-          width="190"
-          :formatter="dateFormatter"
-          sortable />
-        <!-- <el-table-column align="center" :label="$t('耗时')" prop="durationInMillis" width="120">
-          <template #default="scope">
-            {{ scope.row.durationInMillis > 0 ? formatPast2(scope.row.durationInMillis) : '-' }}
-          </template>
-        </el-table-column> -->
-
-        <el-table-column :label="$t('流程编号')" align="center" prop="id" min-width="320px" />
-        <el-table-column :label="$t('操作')" align="center" left fixed="right" width="190">
-          <template #default="scope">
-            <!-- <el-button link type="primary" @click="handleDetail(scope.row)">
-              {{ $t('详情') }}
-            </el-button> -->
-            <el-button link type="primary" @click="showProcessVariables(scope.row)">
-              {{ $t('流程变量') }}
-            </el-button>
-            <el-button link type="primary" v-if="scope.row.status === 1" @click="handleCancel(scope.row)">
-              <span style="color: red">{{ $t('取消') }}</span>
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <!-- 分页 -->
-      <Pagination
-        :total="total"
-        v-model:page="queryParams.pageIndex"
-        v-model:limit="queryParams.pageRows"
-        @pagination="getList" />
-    </div>
-
-    <!-- 流程变量弹窗 -->
-    <el-dialog v-model="processVariablesDialogVisible" title="流程变量" width="60%" :close-on-click-modal="false">
-      <div class="process-variables-container">
-        <el-input
-          v-model="processVariablesContent"
-          type="textarea"
-          :rows="20"
-          readonly
-          placeholder="流程变量内容将显示在这里"
-          class="process-variables-textarea"
-          style="font-weight: 800 !important" />
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="processVariablesDialogVisible = false">关闭</el-button>
-          <el-button type="primary" @click="copyProcessVariables">复制内容</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 流程详情抽屉 -->
-    <ProcessDetailDrawer
-      v-model="processDetailDrawerVisible"
-      :process-detail="currentProcessDetail"
-      @show-process-variables="showProcessVariables" />
-  </ContentWrap>
-</template>
 <script lang="ts" setup>
+import { computed, h, onActivated, onMounted, reactive, ref } from 'vue'
+import type { TableColumnType } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import { DICT_TYPE } from '@/utils/dict'
 import { useDictStore } from '@/store/modules/dict'
-import { dateFormatter } from '@/utils/formatTime'
-import { ElMessageBox } from 'element-plus'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import { CategoryApi } from '@/api/bpm/category'
-import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
-import { useI18n } from 'vue-i18n'
-import { h } from 'vue'
-import { ContentWrap } from '@/components/ContentWrap'
+import { useDateRangeParams } from '@/hooks/useDate'
+import { useRender } from '@/components/escape'
+import Empty from '@/components/Empty/index.vue'
+import { EpcIcon } from '@/components/icon/EpcIcon'
 import DictTag from '@/components/DictTag/src/DictTag.vue'
 import ProcessDetailDrawer from './components/ProcessDetailDrawer.vue'
-const { t } = useI18n() // 国际化
-// 它和【我的流程】的差异是，该菜单可以看全部的流程实例
-defineOptions({ name: 'BpmProcessInstanceManager' })
 import { useMessage } from '@/hooks/web/useMessage'
-const router = useRouter() // 路由
-const message = useMessage() // 消息弹窗
-/** 获取字典 */
-const useDict = useDictStore()
-const loading = ref(true) // 列表的加载中
-const total = ref(0) // 列表的总页数
-const list = ref([]) // 列表的数据
+import { WeiI18n } from '@/utils/WeiI18n'
+import { useI18n } from 'vue-i18n'
+
+defineOptions({ name: 'BpmProcessInstanceManager' })
+
+const { t } = useI18n()
+const msgBox = useMessage()
+const dictStore = useDictStore()
+
+const loading = ref(true)
+const total = ref(0)
+const list = ref<Record<string, any>[]>([])
 
 const queryParams = reactive({
   pageIndex: 1,
@@ -241,65 +34,118 @@ const queryParams = reactive({
     sortType: '',
   },
   params: {
-    startUserId: undefined,
-    name: '',
-    processDefinitionId: undefined,
-    processInstanceId: undefined,
-    processBusinessTypeName: undefined,
-    category: undefined,
-    status: undefined,
-    createTime: [],
-    formFieldsParams: '{}', // 新增formFieldsParams字段，存储JSON字符串
+    startUserId: undefined as number | undefined,
+    name: '' as string | undefined,
+    processDefinitionId: undefined as string | undefined,
+    processInstanceId: undefined as string | undefined,
+    processBusinessTypeName: undefined as string | undefined,
+    category: undefined as string | undefined,
+    status: undefined as number | undefined,
+    createTime: [] as string[] | undefined,
+    formFieldsParams: '{}',
   },
 })
 
-const queryParams2 = reactive({
+const categoryQueryParams = reactive({
   pageIndex: 1,
   pageRows: 9999,
   params: {},
 })
 
-const queryFormRef = ref() // 搜索的表单
-const categoryList = ref<any[]>([]) // 流程分类列表
-const userList = ref<any[]>([]) // 用户列表
+const categoryList = ref<any[]>([])
+const { dateRange, dateRangeParams } = useDateRangeParams()
 
-// 流程变量弹窗相关
-const processVariablesDialogVisible = ref(false) // 弹窗显示状态
-const processVariablesContent = ref('') // 流程变量内容
-const processInstanceId = ref('') // 当前流程实例ID
+const processVariablesDialogVisible = ref(false)
+const processVariablesContent = ref('')
+const processDetailDrawerVisible = ref(false)
+const currentProcessDetail = ref<Record<string, any>>()
 
-// 流程详情抽屉相关
-const processDetailDrawerVisible = ref(false) // 抽屉显示状态
-const currentProcessDetail = ref(null) // 当前流程详情数据
+const processInstanceStatusOptions = computed(() =>
+  dictStore.getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS),
+)
 
-/** 查询列表 */
-const getList = async () => {
-  loading.value = true
-  try {
-    const data = await ProcessInstanceApi.getProcessInstanceManagerPage(queryParams)
-    if (data.data.code === 200) {
-      list.value = data.data.data.data || []
-      total.value = data.data.data.count || 0
-    }
-  } finally {
-    loading.value = false
+type ProcessInstanceRow = Record<string, any>
+
+const columns = ref<TableColumnType<ProcessInstanceRow>[]>([
+  {
+    title: '主题',
+    dataIndex: 'subject',
+    key: 'subject',
+    width: 260,
+    align: 'left',
+    fixed: 'left',
+    ellipsis: { showTitle: false },
+  },
+  { title: '任务名称', dataIndex: 'tasks', key: 'tasks', width: 120, align: 'center' },
+  { title: '当前审批人', dataIndex: 'taskUser', key: 'taskUser', width: 120, align: 'center' },
+  { title: '流程名称', dataIndex: 'name', key: 'name', width: 180, align: 'left', ellipsis: { showTitle: true } },
+  { title: '流程分类', dataIndex: 'categoryName', key: 'categoryName', width: 180, align: 'left', ellipsis: { showTitle: true } },
+  { title: '发起人', dataIndex: 'startUser', key: 'startUser', width: 120, align: 'center' },
+  { title: '发起部门', dataIndex: 'startUserDept', key: 'startUserDept', width: 120, align: 'center', ellipsis: { showTitle: true } },
+  { title: '流程状态', dataIndex: 'status', key: 'status', width: 120, align: 'center' },
+  {
+    title: '发起时间',
+    dataIndex: 'startTime',
+    key: 'startTime',
+    width: 170,
+    align: 'left',
+    customRender: ({ text }) => useRender.renderDate(text),
+  },
+  {
+    title: '结束时间',
+    dataIndex: 'endTime',
+    key: 'endTime',
+    width: 190,
+    align: 'left',
+    customRender: ({ text }) => useRender.renderDate(text),
+  },
+  { title: '流程编号', dataIndex: 'id', key: 'id', width: 320, align: 'center', ellipsis: { showTitle: true } },
+  { title: '操作', dataIndex: 'operation', key: 'operation', width: 190, align: 'center', fixed: 'right' },
+])
+
+const BPM_PI_MANAGER_TABLE_SCROLL_BUFFER = 24
+const piManagerTableScrollX = computed(() => {
+  let sum = 0
+  for (const col of columns.value) {
+    const w = col.width
+    sum += typeof w === 'number' ? w : Number(w) || 0
   }
+  return sum + BPM_PI_MANAGER_TABLE_SCROLL_BUFFER
+})
+
+const locale = ref({
+  cancelSort: WeiI18n.t('点击取消排序').value,
+  triggerAsc: WeiI18n.t('点击升序').value,
+  triggerDesc: WeiI18n.t('点击降序').value,
+  emptyText: h(Empty, {
+    description: '暂无数据',
+    style: { paddingBottom: '50px' },
+  }),
+})
+
+function piManagerTableRowClassName(_record: ProcessInstanceRow, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even'
 }
 
-const getTipContent = (row, label) => {
+function piManagerPaginationShowTotal(totalCount: number) {
+  return `${WeiI18n.$t('共')}${totalCount}${WeiI18n.$t('条')}`
+}
+
+function piManagerPaginationBuildOptionText(prop: { value: number }) {
+  return `${prop.value}${WeiI18n.$t('条/页')}`
+}
+
+function getTipContent(row: Record<string, any>, label: string) {
   if (label === '当前审批人') {
-    return `<div>
-      <div>名称：${row.assigneeUser?.nickname}</div>
-      <div>工号：${row.assigneeUser?.account}</div>
-    </div>`
+    return h('div', [
+      h('div', `名称：${row.assigneeUser?.nickname ?? ''}`),
+      h('div', `工号：${row.assigneeUser?.account ?? ''}`),
+    ])
   }
   if (label === '任务名称') {
-    return `<div>
-      暂无任务状态
-    </div>`
+    return h('div', '暂无任务状态')
   }
   if (label === '主题') {
-    // 需要对流程状态进行h渲染，使用el tag的形式
     return h('div', [
       h('div', `流程编号：${row.id}`),
       h('div', `流程名称：${row.name}`),
@@ -317,69 +163,75 @@ const getTipContent = (row, label) => {
       h('div', `发起部门：${row.startUser?.deptName}`),
     ])
   }
-  return '暂无定义提示信息'
+  return h('div', '暂无定义提示信息')
 }
 
-/** 搜索按钮操作 */
-const handleQuery = () => {
+async function getList() {
+  loading.value = true
+  try {
+    const data = await ProcessInstanceApi.getProcessInstanceManagerPage({
+      ...queryParams,
+      params: {
+        ...queryParams.params,
+        createTime: dateRangeParams.value,
+      },
+    })
+    if (data.data.code === 200) {
+      list.value = data.data.data.data || []
+      total.value = data.data.data.count || 0
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleQuery() {
   queryParams.pageIndex = 1
-  // 构建formFieldsParams JSON字符串
-  const formFields = { PROCESS_BUSINESS_TYPE_NAME: '' }
+  const formFields: Record<string, string> = { PROCESS_BUSINESS_TYPE_NAME: '' }
   if (queryParams.params.processBusinessTypeName) {
     formFields.PROCESS_BUSINESS_TYPE_NAME = queryParams.params.processBusinessTypeName
   }
-
-  // 将JSON对象转换为字符串
   queryParams.params.formFieldsParams = JSON.stringify(formFields)
   getList()
 }
 
-/** 重置按钮操作 */
-const resetQuery = () => {
-  queryFormRef.value.resetFields()
+function resetQuery() {
+  queryParams.params.name = ''
+  queryParams.params.processBusinessTypeName = undefined
+  queryParams.params.category = undefined
+  queryParams.params.status = undefined
+  queryParams.params.processInstanceId = undefined
+  dateRange.value = null
   handleQuery()
 }
 
-/** 查看详情 */
-const handleDetail = row => {
-  // router.push({
-  //   name: 'BpmProcessInstanceDetail',
-  //   query: {
-  //     id: row.id,
-  //     pageIndex: 0,
-  //     orderNo: row.processVariables.orderNo,
-  //   },
-  // })
+function handlePagTable(page: number, pageSize: number) {
+  queryParams.pageIndex = page
+  queryParams.pageRows = pageSize
+  getList()
 }
 
-/** 取消按钮操作 */
-const handleCancel = async row => {
-  // 二次确认
-  const { value } = await ElMessageBox.prompt('请输入取消原因', '取消流程', {
-    confirmButtonText: t('确定'),
-    cancelButtonText: t('取消'),
-    inputPattern: /^[\s\S]*.*\S[\s\S]*$/, // 判断非空，且非空格
-    inputErrorMessage: '取消原因不能为空',
-  })
-  // 发起取消
-  await ProcessInstanceApi.cancelProcessInstanceByAdmin(row.id, value)
-  message.success(t('取消成功'))
-  // 刷新列表
-  await getList()
-}
-
-/** 查看流程变量 */
-const showProcessVariables = async row => {
+async function handleCancel(row: ProcessInstanceRow) {
   try {
-    processInstanceId.value = row.id
+    const { value } = await msgBox.prompt('请输入取消原因', '取消流程')
+    if (!value || !/^[\s\S]*.*\S[\s\S]*$/.test(value)) {
+      message.error('取消原因不能为空')
+      return
+    }
+    await ProcessInstanceApi.cancelProcessInstanceByAdmin(row.id, value)
+    message.success(t('取消成功'))
+    await getList()
+  } catch {
+    /* 取消或失败 */
+  }
+}
+
+async function showProcessVariables(row: ProcessInstanceRow) {
+  try {
     processVariablesContent.value = '加载中...'
     processVariablesDialogVisible.value = true
-
-    // 调用API获取流程变量
     const response = await ProcessInstanceApi.getProcessVariables(row.id)
-
-    if (response && response.data) {
-      // 格式化JSON数据，使其更易读
+    if (response?.data) {
       processVariablesContent.value = JSON.stringify(response.data, null, 2)
     } else {
       processVariablesContent.value = '暂无流程变量数据'
@@ -391,8 +243,7 @@ const showProcessVariables = async row => {
   }
 }
 
-/** 复制流程变量内容 */
-const copyProcessVariables = async () => {
+async function copyProcessVariables() {
   try {
     await navigator.clipboard.writeText(processVariablesContent.value)
     message.success('内容已复制到剪贴板')
@@ -402,58 +253,398 @@ const copyProcessVariables = async () => {
   }
 }
 
-/** 显示流程详情抽屉 */
-const showProcessDetail = row => {
+function showProcessDetail(row: ProcessInstanceRow) {
   currentProcessDetail.value = row
   processDetailDrawerVisible.value = true
 }
 
-/** 激活时 **/
 onActivated(() => {
   getList()
 })
 
-/** 初始化 **/
 onMounted(async () => {
   await getList()
-  const resp = await CategoryApi.getCategoryPage(queryParams2)
+  const resp = await CategoryApi.getCategoryPage(categoryQueryParams)
   categoryList.value = resp.data.data.data || []
-  const resp2 = await AdminApiSystemUser.getSimpleUsers()
-  if (resp2.data.code === 200) {
-    userList.value = resp2.data.data || []
-  }
 })
 </script>
 
-<style lang="scss" scoped>
-.process-variables-container {
-  .process-variables-textarea {
-    :deep(.el-textarea__inner) {
-      font-family: 'Courier New', Courier, monospace !important;
-      font-size: 12px !important;
-      font-weight: 800 !important;
-      line-height: 1.5 !important;
-      background-color: #f8f9fa !important;
-      border: 1px solid #e9ecef !important;
-      resize: vertical !important;
-    }
+<template>
+  <div class="drawerContent bpm-pi-manager-page-root">
+    <a-card class="bpm-pi-manager-list-card">
+      <div class="bpm-pi-manager-list-body-scroll">
+        <a-form
+          class="calc-toolbar-form bpm-pi-manager-toolbar-form"
+          layout="inline"
+          :model="queryParams"
+          @finish="handleQuery">
+          <a-form-item name="params.name">
+            <a-input
+              v-model:value="queryParams.params.name"
+              style="width: 200px"
+              allow-clear
+              placeholder="请输入流程名称"
+              @press-enter="handleQuery" />
+          </a-form-item>
+          <a-form-item name="params.processBusinessTypeName">
+            <a-input
+              v-model:value="queryParams.params.processBusinessTypeName"
+              style="width: 200px"
+              allow-clear
+              placeholder="请输入流程主题"
+              @press-enter="handleQuery" />
+          </a-form-item>
+          <a-form-item name="params.category">
+            <a-select
+              v-model:value="queryParams.params.category"
+              style="width: 200px; text-align: left"
+              placeholder="请选择流程分类"
+              allow-clear
+              show-search>
+              <a-select-option
+                v-for="category in categoryList"
+                :key="category.code"
+                :value="category.code">
+                {{ category.name }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item name="params.status">
+            <a-select
+              v-model:value="queryParams.params.status"
+              style="width: 200px; text-align: left"
+              placeholder="请选择流程状态"
+              allow-clear
+              show-search>
+              <a-select-option
+                v-for="dict in processInstanceStatusOptions"
+                :key="dict.value"
+                :value="dict.value">
+                {{ dict.label }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item>
+            <a-range-picker
+              v-model:value="dateRange"
+              style="width: 240px; text-align: left"
+              :placeholder="['开始日期', '结束日期']" />
+          </a-form-item>
+          <a-form-item name="params.processInstanceId">
+            <a-input
+              v-model:value="queryParams.params.processInstanceId"
+              style="width: 200px"
+              allow-clear
+              placeholder="请输入流程实例编号"
+              @press-enter="handleQuery" />
+          </a-form-item>
+          <a-form-item class="bpm-pi-manager-toolbar-form__actions">
+            <a-button type="primary" html-type="submit">
+              <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+              查询
+            </a-button>
+          </a-form-item>
+        </a-form>
+
+        <a-table
+          class="bpm-pi-manager-list-table exe-config-table parameter-table-spaced"
+          bordered
+          table-layout="fixed"
+          row-key="id"
+          :scroll="{ x: piManagerTableScrollX }"
+          :locale="locale"
+          :columns="columns"
+          :data-source="list"
+          :pagination="false"
+          :loading="loading"
+          :row-class-name="piManagerTableRowClassName">
+          <template #headerCell="{ column }">
+            <div class="header-cell-main header-cell-main--static">
+              <span class="header-title-sort header-title-sort--disabled">
+                <span>{{ column.title }}</span>
+              </span>
+            </div>
+          </template>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'subject'">
+              <a-tooltip placement="top">
+                <template #title>
+                  <component :is="getTipContent(record, '主题')" />
+                </template>
+                <a class="process-title-link" @click="showProcessDetail(record)">
+                  {{ record.processVariables?.PROCESS_BUSINESS_TYPE_NAME }}
+                </a>
+              </a-tooltip>
+            </template>
+            <template v-else-if="column.dataIndex === 'tasks'">
+              <template v-if="record.tasks?.length">
+                <div v-for="task in record.tasks" :key="task.id">
+                  <a-tooltip placement="top">
+                    <template #title>
+                      <component :is="getTipContent(task, '任务名称')" />
+                    </template>
+                    <a>{{ task.name }}</a>
+                  </a-tooltip>
+                </div>
+              </template>
+              <span v-else>-</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'taskUser'">
+              <template v-if="record.tasks?.length">
+                <div v-for="task in record.tasks" :key="task.id">
+                  <a-tooltip placement="top">
+                    <template #title>
+                      <component :is="getTipContent(task, '当前审批人')" />
+                    </template>
+                    <a>{{ task?.assigneeUser?.nickname }}</a>
+                  </a-tooltip>
+                </div>
+              </template>
+              <span v-else>-</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'startUser'">
+              <a-tooltip :title="record.startUser?.account" placement="top">
+                <span>{{ record.startUser?.nickname }}</span>
+              </a-tooltip>
+            </template>
+            <template v-else-if="column.dataIndex === 'startUserDept'">
+              {{ record.startUser?.deptName }}
+            </template>
+            <template v-else-if="column.dataIndex === 'status'">
+              <dict-tag :type="DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS" :value="record.status" />
+            </template>
+            <template v-else-if="column.dataIndex === 'operation'">
+              <a @click="showProcessVariables(record)">流程变量</a>
+              <template v-if="record.status === 1">
+                <a-divider type="vertical" />
+                <a class="del-text" @click="handleCancel(record)">取消</a>
+              </template>
+            </template>
+          </template>
+        </a-table>
+
+        <div class="bpm-pi-manager-list-pagination">
+          <a-pagination
+            v-model:current="queryParams.pageIndex"
+            v-model:page-size="queryParams.pageRows"
+            class="ant-table-pagination"
+            align="right"
+            :show-quick-jumper="false"
+            :show-size-changer="true"
+            :total="total"
+            :show-total="piManagerPaginationShowTotal"
+            :build-option-text="piManagerPaginationBuildOptionText"
+            @change="handlePagTable" />
+        </div>
+      </div>
+    </a-card>
+  </div>
+
+  <a-modal
+    v-model:open="processVariablesDialogVisible"
+    title="流程变量"
+    width="60%"
+    :mask-closable="false">
+    <a-textarea
+      v-model:value="processVariablesContent"
+      :rows="20"
+      readonly
+      placeholder="流程变量内容将显示在这里"
+      class="process-variables-textarea" />
+    <template #footer>
+      <a-button @click="processVariablesDialogVisible = false">
+        关闭
+      </a-button>
+      <a-button type="primary" @click="copyProcessVariables">
+        复制内容
+      </a-button>
+    </template>
+  </a-modal>
+
+  <ProcessDetailDrawer
+    v-model="processDetailDrawerVisible"
+    :process-detail="currentProcessDetail"
+    @show-process-variables="showProcessVariables" />
+</template>
+
+<style scoped lang="less">
+.drawerContent.bpm-pi-manager-page-root {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: static;
+  background-color: #ffffff;
+}
+
+.calc-toolbar-form {
+  gap: 4px;
+}
+
+.bpm-pi-manager-toolbar-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 12px;
+  column-gap: 0;
+}
+
+.bpm-pi-manager-toolbar-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+  margin-right: 0;
+}
+
+.bpm-pi-manager-toolbar-form :deep(.ant-form-item:not(:last-child)) {
+  margin-right: 8px;
+}
+
+.bpm-pi-manager-toolbar-form__actions :deep(.ant-form-item-control-input-content) {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.bpm-pi-manager-list-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+
+  :deep(.ant-card-body) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 12px 20px 0;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 }
 
-// 使用更高优先级的选择器确保样式生效
-:deep(.el-dialog .el-textarea__inner) {
-  font-weight: 800 !important;
+.bpm-pi-manager-list-body-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
-.dialog-footer {
+.bpm-pi-manager-list-pagination {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  margin-top: 16px;
+  padding-bottom: 16px;
 }
 
-/* 流程详情抽屉样式 */
-.process-detail-content {
-  padding: 0 10px;
+.bpm-pi-manager-list-card :deep(.parameter-table-spaced) {
+  margin-top: 16px;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-thead > tr > th) {
+  border-right: 1px solid #e8e8e8;
+  text-align: center !important;
+  vertical-align: middle;
+  background: #fafafa !important;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-thead .ant-table-column-sorters) {
+  justify-content: center !important;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-thead .ant-table-column-title) {
+  flex: none;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-tbody > tr.odd > td) {
+  background: #ffffff;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-tbody > tr.even > td) {
+  background: #f7f9fc;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-tbody > tr > td) {
+  border-right: none !important;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-tbody > tr > td:last-child) {
+  border-right: 1px solid #e8e8e8 !important;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 1px solid #e8e8e8 !important;
+}
+
+.bpm-pi-manager-list-table.exe-config-table.parameter-table-spaced {
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+.header-cell-main {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.header-cell-main--static {
+  padding-right: 0;
+}
+
+.header-title-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.header-title-sort--disabled {
+  cursor: default;
 }
 
 .process-title-link {
@@ -462,25 +653,17 @@ onMounted(async () => {
 }
 
 .process-title-link:hover {
-  color: #409eff !important;
+  color: #1677ff;
 }
 
-.process-variables,
-.process-tasks {
-  margin-top: 20px;
+.del-text {
+  color: var(--ant-error-color);
 }
 
-.process-variables h4,
-.process-tasks h4 {
-  margin-bottom: 15px;
-  color: #303133;
-  font-size: 16px;
+.process-variables-textarea {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
   font-weight: 600;
-  border-bottom: 2px solid #e4e7ed;
-  padding-bottom: 8px;
-}
-
-.mt-4 {
-  margin-top: 1rem;
+  line-height: 1.5;
 }
 </style>

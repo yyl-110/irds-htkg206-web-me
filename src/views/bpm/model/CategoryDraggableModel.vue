@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { TableColumnType } from 'ant-design-vue'
+import type { MenuInfo } from 'ant-design-vue/es/menu/src/interface'
 import Sortable from 'sortablejs'
 import type { SortableEvent } from 'sortablejs'
 import { cloneDeep, isEqual } from 'lodash-es'
@@ -58,8 +60,6 @@ interface CategoryInfoProps {
 }
 
 const { push } = useRouter() // 路由
-// useAppStore().getIsDark
-const isDark = computed(() => false) // 是否黑暗模式
 const router = useRouter() // 路由
 
 const isModelSorting = ref(false) // 是否正处于排序状态
@@ -67,15 +67,74 @@ const originalData = ref<ModelInfo[]>([]) // 原始数据
 const modelList = ref<ModelInfo[]>([]) // 模型列表
 const isExpand = ref(false) // 是否处于展开状态
 
-// 使用 computed 优化表格样式计算
-const tableHeaderStyle = computed(() => ({
-  backgroundColor: isDark.value ? '' : '#edeff0',
-  paddingLeft: '10px',
-}))
+const BPM_MODEL_TABLE_SCROLL_BUFFER = 2
+const modelTableColumns: TableColumnType[] = [
+  {
+    title: '流程名',
+    dataIndex: 'name',
+    key: 'name',
+    align: 'left',
+    width: 220,
+    fixed: 'left',
+    resizable: false,
+  },
+  {
+    title: '可见范围',
+    dataIndex: 'startUserIds',
+    key: 'startUserIds',
+    align: 'left',
+    width: 160,
+    resizable: true,
+  },
+  {
+    title: '流程类型',
+    dataIndex: 'type',
+    key: 'type',
+    align: 'left',
+    width: 120,
+    resizable: true,
+  },
+  {
+    title: '表单信息',
+    dataIndex: 'formType',
+    key: 'formType',
+    align: 'left',
+    width: 180,
+    resizable: true,
+  },
+  {
+    title: '最后发布',
+    dataIndex: 'deploymentTime',
+    key: 'deploymentTime',
+    align: 'left',
+    width: 280,
+    resizable: true,
+  },
+  {
+    title: '操作',
+    dataIndex: 'operation',
+    key: 'operation',
+    align: 'center',
+    width: 220,
+    fixed: 'right',
+  },
+]
 
-const tableCellStyle = computed(() => ({
-  paddingLeft: '10px',
-}))
+const modelTableScrollX = computed(() =>
+  modelTableColumns.reduce((acc, col) => acc + (Number(col.width) || 0), 0) + BPM_MODEL_TABLE_SCROLL_BUFFER,
+)
+
+function getModelTableRowClassName(_record: ModelInfo, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even'
+}
+
+function modelRowKey(record: ModelInfo) {
+  return record.id
+}
+
+function handleModelMenuClick(info: MenuInfo, row: ModelInfo) {
+  handleModelCommand(String(info.key), row)
+}
 
 /** 权限校验：通过 computed 解决列表的卡顿问题 */
 const hasPermiUpdate = computed(() => {
@@ -302,12 +361,12 @@ function destroyTableSortable() {
 const initSort = useDebounceFn(() => {
   nextTick(() => {
     destroyTableSortable()
-    const tbody = tableRef.value?.$el?.querySelector?.('.el-table__body-wrapper tbody')
+    const tbody = tableRef.value?.$el?.querySelector?.('.ant-table-tbody')
     if (!tbody) return
 
     tableSortable = Sortable.create(tbody as HTMLElement, {
       animation: 150,
-      draggable: '.el-table__row',
+      draggable: '.ant-table-row',
       handle: '.drag-icon',
       onEnd(evt: SortableEvent) {
         const { newIndex, oldIndex } = evt
@@ -462,169 +521,112 @@ watchEffect(() => {
 
   <!-- 模型列表 -->
   <el-collapse-transition>
-    <div v-show="isExpand">
-      <el-table
+    <div v-show="isExpand" class="category-draggable-model">
+      <a-table
         v-if="modelList && modelList.length > 0"
         ref="tableRef"
-        :data="modelList"
-        row-key="id"
-        :header-cell-style="tableHeaderStyle"
-        :cell-style="tableCellStyle"
-        :row-style="{ height: '68px' }">
-        <el-table-column label="流程名" prop="name" min-width="150">
-          <template #default="scope">
-            <div v-if="scope?.row" class="flex items-center">
-              <el-tooltip v-if="isModelSorting" content="拖动排序">
+        class="bpm-model-table exe-config-table parameter-table-spaced"
+        bordered
+        table-layout="fixed"
+        :columns="modelTableColumns"
+        :data-source="modelList"
+        :row-key="modelRowKey"
+        :scroll="{ x: modelTableScrollX }"
+        :pagination="false"
+        :row-class-name="getModelTableRowClassName">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'name'">
+            <div class="bpm-model-name-cell">
+              <a-tooltip v-if="isModelSorting" title="拖动排序">
                 <Icon icon="ic:round-drag-indicator" class="drag-icon cursor-move text-#8a909c mr-10px" />
-              </el-tooltip>
-              <el-image v-if="scope.row.icon" :src="scope.row.icon" class="h-38px w-38px mr-10px rounded" />
+              </a-tooltip>
+              <img v-if="record.icon" :src="record.icon" class="bpm-model-flow-icon bpm-model-flow-icon--img" alt="" />
               <div v-else class="flow-icon">
-                <span
-                  style="
-                    font-size: 12px;
-                    color: #fff;
-                    width: 38px;
-                    height: 38px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                  "
-                  >{{ subString(scope.row.name, 0, 2) }}</span
-                >
+                <span>{{ subString(record.name, 0, 2) }}</span>
               </div>
-              {{ scope.row.name }}
+              <span class="bpm-model-name-text">{{ record.name }}</span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="可见范围" prop="startUserIds" min-width="150">
-          <template #default="scope">
-            <template v-if="scope?.row">
-              <el-text v-if="!scope.row.startUsers?.length && !scope.row.startDepts?.length">
-                {{ '全部可见' }}
-              </el-text>
-              <el-text v-else-if="scope.row.startUsers?.length === 1">
-                {{ scope.row.startUsers[0].nickname }}
-              </el-text>
-              <el-text v-else-if="scope.row.startDepts?.length === 1">
-                {{ scope.row.startDepts[0].name }}
-              </el-text>
-              <el-text v-else-if="(scope.row.startDepts?.length ?? 0) > 1">
-                <el-tooltip
-                  class="box-item"
-                  effect="dark"
-                  placement="top"
-                  :content="(scope.row.startDepts ?? []).map(dept => dept.name).join('、')">
-                  {{ scope.row.startDepts?.[0]?.name }}{{ '等' }} {{ scope.row.startDepts?.length }}
-                  {{ '个部门可见' }}
-                </el-tooltip>
-              </el-text>
-              <el-text v-else>
-                <el-tooltip
-                  class="box-item"
-                  effect="dark"
-                  placement="top"
-                  :content="(scope.row.startUsers ?? []).map(user => user.nickname).join('、')">
-                  {{ scope.row.startUsers?.[0]?.nickname }}{{ '等' }} {{ scope.row.startUsers?.length }}
-                  {{ '人可见' }}
-                </el-tooltip>
-              </el-text>
-            </template>
-          </template>
-        </el-table-column>
-        <el-table-column label="流程类型" prop="type" min-width="120">
-          <template #default="scope">
-            <dict-tag v-if="scope?.row" :value="scope.row.type" :type="DICT_TYPE.BPM_MODEL_TYPE" />
-          </template>
-        </el-table-column>
-        <el-table-column label="表单信息" prop="formType" min-width="150">
-          <template #default="scope">
-            <template v-if="scope?.row">
-              <el-button
-                v-if="scope.row.formType === BpmModelFormType.NORMAL"
-                type="primary"
-                link
-                @click="handleFormDetail(scope.row)">
-                <span>{{ scope.row.formName }}</span>
-              </el-button>
-              <el-button
-                v-else-if="scope.row.formType === BpmModelFormType.CUSTOM"
-                type="primary"
-                link
-                @click="handleFormDetail(scope.row)">
-                <span>{{ scope.row.formCustomCreatePath }}</span>
-              </el-button>
-              <label v-else>{{ '暂无表单' }}</label>
-            </template>
-          </template>
-        </el-table-column>
-        <el-table-column label="最后发布" prop="deploymentTime" min-width="250">
-          <template #default="scope">
-            <div v-if="scope?.row" class="flex items-center">
-              <span v-if="scope.row.processDefinition" class="w-150px">
-                {{ formatDate(scope.row.processDefinition.deploymentTime) }}
+
+          <template v-else-if="column.dataIndex === 'startUserIds'">
+            <span v-if="!record.startUsers?.length && !record.startDepts?.length">全部可见</span>
+            <span v-else-if="record.startUsers?.length === 1">{{ record.startUsers[0].nickname }}</span>
+            <span v-else-if="record.startDepts?.length === 1">{{ record.startDepts[0].name }}</span>
+            <a-tooltip
+              v-else-if="(record.startDepts?.length ?? 0) > 1"
+              placement="top"
+              :title="(record.startDepts ?? []).map(dept => dept.name).join('、')">
+              <span>
+                {{ record.startDepts?.[0]?.name }}等 {{ record.startDepts?.length }} 个部门可见
               </span>
-              <el-tag v-if="scope.row.processDefinition"> v{{ scope.row.processDefinition.version }} </el-tag>
-              <el-tag v-else type="warning">
-                {{ '未部署' }}
-              </el-tag>
-              <el-tag v-if="scope.row.processDefinition?.suspensionState === 2" type="warning" class="ml-10px">
-                {{ '已停用' }}
-              </el-tag>
+            </a-tooltip>
+            <a-tooltip
+              v-else
+              placement="top"
+              :title="(record.startUsers ?? []).map(user => user.nickname).join('、')">
+              <span>
+                {{ record.startUsers?.[0]?.nickname }}等 {{ record.startUsers?.length }} 人可见
+              </span>
+            </a-tooltip>
+          </template>
+
+          <template v-else-if="column.dataIndex === 'type'">
+            <dict-tag :value="record.type" :type="DICT_TYPE.BPM_MODEL_TYPE" />
+          </template>
+
+          <template v-else-if="column.dataIndex === 'formType'">
+            <a
+              v-if="record.formType === BpmModelFormType.NORMAL"
+              class="bpm-model-form-link"
+              @click.stop.prevent="handleFormDetail(record)">
+              {{ record.formName }}
+            </a>
+            <a
+              v-else-if="record.formType === BpmModelFormType.CUSTOM"
+              class="bpm-model-form-link"
+              @click.stop.prevent="handleFormDetail(record)">
+              {{ record.formCustomCreatePath }}
+            </a>
+            <span v-else class="bpm-model-form-empty">暂无表单</span>
+          </template>
+
+          <template v-else-if="column.dataIndex === 'deploymentTime'">
+            <div class="bpm-model-deploy-cell">
+              <span v-if="record.processDefinition" class="bpm-model-deploy-time">
+                {{ formatDate(record.processDefinition.deploymentTime) }}
+              </span>
+              <a-tag v-if="record.processDefinition" color="blue" class="bpm-model-version-tag">
+                v{{ record.processDefinition.version }}
+              </a-tag>
+              <a-tag v-else color="warning">未部署</a-tag>
+              <a-tag v-if="record.processDefinition?.suspensionState === 2" color="warning" class="ml-10px">
+                已停用
+              </a-tag>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="scope">
-            <template v-if="scope?.row">
-              <el-button link type="primary" @click="openModelForm('update', scope.row.id)">
-                <!-- :disabled="!isManagerUser(scope.row)" -->
-                {{ '修改' }}
-              </el-button>
-              <el-button link type="primary" @click="openModelForm('copy', scope.row.id)">
-                <!-- :disabled="!isManagerUser(scope.row)" -->
-                {{ '复制' }}
-              </el-button>
-              <el-button link class="!ml-5px" type="primary" @click="handleDeploy(scope.row)">
-                <!-- :disabled="!isManagerUser(scope.row)" -->
-                {{ '发布' }}
-              </el-button>
-              <el-dropdown class="!align-middle ml-5px" @command="command => handleModelCommand(command, scope.row)">
-                <el-button type="primary" link>
-                  {{ '更多' }}
-                </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="handleDefinitionList">
-                      {{ '历史' }}
-                    </el-dropdown-item>
-                    <!-- <el-dropdown-item
-                    command="handleReport"
-                    v-if="
-                      scope.row.processDefinition
-                    "
-                    :disabled="!isManagerUser(scope.row)"
-                  >
-                    报表
-                  </el-dropdown-item> -->
-                    <el-dropdown-item v-if="scope.row.processDefinition" command="handleChangeState">
-                      <!-- :disabled="!isManagerUser(scope.row)" -->
-                      {{ scope.row.processDefinition.suspensionState === 1 ? '停用' : '启用' }}
-                    </el-dropdown-item>
-                    <el-dropdown-item type="danger" command="handleClean">
-                      <!-- :disabled="!isManagerUser(scope.row)" -->
-                      {{ '清理' }}
-                    </el-dropdown-item>
-                    <el-dropdown-item type="danger" command="handleDelete">
-                      <!-- :disabled="!isManagerUser(scope.row)" -->
-                      {{ '删除' }}
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+
+          <template v-else-if="column.dataIndex === 'operation'">
+            <div class="calc-operation-links" @click.stop>
+              <a @click.stop.prevent="openModelForm('update', record.id)">修改</a>
+              <a @click.stop.prevent="openModelForm('copy', record.id)">复制</a>
+              <a @click.stop.prevent="handleDeploy(record)">发布</a>
+              <a-dropdown placement="bottomRight">
+                <a @click.prevent>更多</a>
+                <template #overlay>
+                  <a-menu @click="info => handleModelMenuClick(info, record)">
+                    <a-menu-item key="handleDefinitionList">历史</a-menu-item>
+                    <a-menu-item v-if="record.processDefinition" key="handleChangeState">
+                      {{ record.processDefinition.suspensionState === 1 ? '停用' : '启用' }}
+                    </a-menu-item>
+                    <a-menu-item key="handleClean">清理</a-menu-item>
+                    <a-menu-item key="handleDelete">删除</a-menu-item>
+                  </a-menu>
                 </template>
-              </el-dropdown>
-            </template>
+              </a-dropdown>
+            </div>
           </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
     </div>
   </el-collapse-transition>
 
@@ -670,28 +672,199 @@ watchEffect(() => {
 }
 </style>
 
-<style lang="scss" scoped>
+<style lang="less" scoped>
 .flow-icon {
   display: flex;
-  width: 38px;
-  height: 38px;
-  margin-right: 10px;
-  background-color: var(--el-color-primary);
-  border-radius: 0.25rem;
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  background-color: var(--ant-color-primary, #1677ff);
+  border-radius: 4px;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+
+  span {
+    font-size: 10px;
+    color: #fff;
+    line-height: 1;
+  }
+}
+
+.bpm-model-flow-icon--img {
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.bpm-model-name-cell {
+  display: flex;
+  align-items: center;
+}
+
+.bpm-model-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bpm-model-form-link {
+  color: #1677ff;
+}
+
+.bpm-model-form-empty {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.bpm-model-deploy-cell {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  line-height: 22px;
+}
+
+.bpm-model-deploy-time {
+  min-width: 150px;
+}
+
+.bpm-model-version-tag {
+  margin: 0;
+  line-height: 18px;
 }
 
 .category-draggable-model {
-  :deep(.el-table__cell) {
-    overflow: hidden;
-    border-bottom: none !important;
+  :deep(.ant-tag) {
+    margin-inline-end: 0;
   }
 
-  // 优化表格渲染性能
-  :deep(.el-table__body) {
+  :deep(.parameter-table-spaced) {
+    margin-top: 0;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    vertical-align: middle;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-sorters) {
+    justify-content: center !important;
+  }
+
+  :deep(.ant-table-thead .ant-table-column-title) {
+    flex: none;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    border-right: none !important;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-content),
+  :deep(.ant-table-body) {
+    padding-bottom: 14px;
+    box-sizing: border-box;
+  }
+
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-left-last) {
+    box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
+
+  :deep(.ant-table-tbody) {
     will-change: transform;
     transform: translateZ(0);
+  }
+}
+
+@exe-op-links-divider: #e0e0e0;
+@exe-op-links-line-gap: 8px;
+@exe-op-links-divider-h: 1em;
+
+.calc-operation-links {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @exe-op-links-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    border: none;
+    border-radius: 0;
+    color: #1677ff;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child)::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 1px;
+      height: @exe-op-links-divider-h;
+      margin-left: -0.5px;
+      background: @exe-op-links-divider;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
   }
 }
 </style>
