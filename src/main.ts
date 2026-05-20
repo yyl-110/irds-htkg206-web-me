@@ -1,4 +1,7 @@
 import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'ant-design-vue/dist/antd.variable.min.css'
 import './sheets/tailwind.css'
 import './sheets/index.css'
@@ -37,15 +40,18 @@ import { VueEchartsHandler } from './utils/echarts'
 import { initRouteGrauds } from './router/guards'
 import { WeiVxe } from './plugins/vxe'
 import { router } from '@/router'
+import { initGlobalEmptyImage } from '@/utils/emptyState'
+import AppGlobalEmpty from '@/components/AppGlobalEmpty/index.vue'
 import { setupAuth } from '@/directives/index'
 import { registerStore } from '@/store'
 import { useProjectUiStore } from '@/store/modules/layout/projectUi'
-import { initAccessTokenRefreshSchedule } from '@/utils/accessTokenRefresh'
-
 import 'splitpanes/dist/splitpanes.css'
 import 'animate.css'
+import { Icon } from '@/wei-components/WeiIcon'
+initGlobalEmptyImage()
 
 const app = createApp(App)
+app.component('Icon', Icon)
 // const vConsole = new VConsole()
 // vConsole.destroy()
 const pinia = createPinia()
@@ -65,11 +71,13 @@ registerStore() // 注册pinia状态库
 useProjectUiStore().applyDomEffects()
 app.use(router)
 app.use(Antd)
+/** 全局空状态：未指定 image 时统一使用 empty.png */
+app.component('AEmpty', AppGlobalEmpty)
 app.use(Vant)
 app.use(CkeditorPlugin)
 app.use(diyVueDirectives)
 app.use(MovediyVueDirectives)
-
+app.use(ElementPlus, { locale: zhCn })
 // handleWeiUiVue(app); // 初始化 wei-ui-vue 组件库
 app.provide('$http', httpRequest)
 app.provide('treeDataTranslate', treeDataTranslate) // 全局挂载
@@ -85,4 +93,4 @@ app.use(requestPlugin)
 // app.component('VChart', VChart)
 // includeWeiComponents(app)
 app.mount('#app')
-initAccessTokenRefreshSchedule()
+void import('@/utils/accessTokenRefresh').then(m => m.initAccessTokenRefreshSchedule())
