@@ -17,7 +17,7 @@ import { useUserStore } from '@/store/modules/user'
 import { useMessage } from '@/hooks/web/useMessage'
 const message = useMessage()
 defineOptions({ name: 'bpm/model' })
-
+import { Dialog } from '@/components/Dialog'
 const props = defineProps<{
   categoryInfo: CategoryInfoProps
   isCategorySorting: boolean
@@ -265,7 +265,7 @@ function isManagerUser(row: any) {
 function handleModelSort() {
   // 保存初始数据
   originalData.value = cloneDeep(modelList.value)
-  isModelSorting.value = true
+  isModelSorting.value = !isModelSorting.value
   isExpand.value = true
   initSort()
 }
