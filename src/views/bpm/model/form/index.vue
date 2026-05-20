@@ -188,6 +188,7 @@ async function initData() {
     }
   } else {
     // 情况三：新增场景
+    formData.value.type = BpmModelType.BPMN
     formData.value.startUserType = 0 // 全体
     formData.value.managerUserIds.push(useUserStore().getUser.id)
   }

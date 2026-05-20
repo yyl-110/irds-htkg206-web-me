@@ -466,31 +466,6 @@ export const routes: RouteRecordRaw[] = [
           activeMenu: '/bpm/task/copy',
         },
       },
-
-      {
-        path: 'oa/leave/create',
-        component: () => import('@/views/bpm/oa/leave/create.vue'),
-        name: 'OALeaveCreate',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '发起 OA 请假',
-          activeMenu: '/bpm/oa/leave',
-        },
-      },
-      {
-        path: 'oa/leave/detail',
-        component: () => import('@/views/bpm/oa/leave/detail.vue'),
-        name: 'OALeaveDetail',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '查看 OA 请假',
-          activeMenu: '/bpm/oa/leave',
-        },
-      },
     ],
   },
 ]

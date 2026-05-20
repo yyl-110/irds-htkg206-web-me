@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { DICT_TYPE } from '@/utils/dict'
+import { BpmModelType } from '@/utils/constants'
 import type { UserVO } from '@/api/system/user'
 // import type { DeptVO } from '@/api/system/dept'
 import type { CategoryVO } from '@/api/bpm/category'
@@ -77,6 +78,10 @@ const getDeptInfo = async () => {
 watch(
   () => modelData.value,
   async newVal => {
+    if (!newVal) return
+    if (newVal.type == null || newVal.type === '') {
+      newVal.type = BpmModelType.BPMN
+    }
     await getDeptInfo()
     if (newVal.startUserIds?.length) {
       selectedStartUsers.value = pickUsersByIds(modelData.value?.startUserIds || [])
@@ -271,7 +276,7 @@ defineExpose({
     <el-form-item label="流程描述" prop="description" class="mb-20px">
       <el-input v-model="modelData.description" clearable type="textarea" />
     </el-form-item>
-    <el-form-item label="流程类型" prop="type" class="mb-20px">
+    <!-- <el-form-item label="流程类型" prop="type" class="mb-20px">
       <el-radio-group v-model="modelData.type">
         <el-radio
           v-for="dict in useDict.getIntDictOptions(DICT_TYPE.BPM_MODEL_TYPE)"
@@ -280,7 +285,7 @@ defineExpose({
           {{ dict.label }}
         </el-radio>
       </el-radio-group>
-    </el-form-item>
+    </el-form-item> -->
     <el-form-item :label="$t('是否可见')" prop="visible" class="mb-20px">
       <el-radio-group v-model="modelData.visible">
         <el-radio
