@@ -266,7 +266,7 @@ onBeforeMount(() => {
           class="layout-container"
           v-overlay-scrollbar
           :class="[
-            !layoutStore.homepage && route.name === 'ProductProjectEditor'
+            !layoutStore.homepage && (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor')
               ? 'px-[8px] pb-[8px] pt-1 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
                 ? 'p-[16px]'
