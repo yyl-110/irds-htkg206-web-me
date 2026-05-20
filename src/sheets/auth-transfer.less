@@ -1,0 +1,44 @@
+// 授权穿梭框：中间箭头加大、间距增大；列表项支持双击
+.auth-transfer {
+  .ant-transfer-operation {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    .ant-btn {
+      min-width: 44px;
+      height: 44px;
+      padding: 0;
+
+      .anticon {
+        font-size: 20px;
+      }
+    }
+  }
+
+  .auth-transfer-item-label {
+    display: inline-block;
+    width: 100%;
+    cursor: pointer;
+    user-select: none;
+  }
+}
+
+.member-auth-picker {
+  .picker-actions {
+    gap: 24px;
+  }
+
+  .picker-action-btn {
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .check-item {
+    cursor: pointer;
+    user-select: none;
+  }
+}

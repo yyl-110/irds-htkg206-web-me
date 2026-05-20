@@ -28,6 +28,7 @@ import CustomPageParamModal from './components/custom-page-param-modal.vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { downloadFileFromStream } from '@/utils/file';
 import { normalizeListSnowflakeIds, toSnowflakeIdStr } from '@/utils/snowflakeId';
+import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import draggableModal from '@/components/DraggableModal/index.vue';
@@ -1391,29 +1392,13 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
       :image-list="previewCheckImageList"
       @close="closeActivityCheckPreviewModal" />
   </div>
-  <a-drawer
+  <ProductPlatformPicker
     v-if="shouldShowDrawer"
-    :title="`产品平台选择`"
-    placement="left"
-    :style="drawerStyle"
-    :closable="false"
-    :mask="true"
     :visible="titleVisible"
-    :get-container="false"
-    :wrap-style="{ position: 'absolute' }"
-    @blur="onCloseDrawer"
-    @close="onCloseDrawer">
-    <div v-for="(item, index) in titleList" :key="index">
-      <div style="display: flex; background-color: #ecf5ff; margin: 15px 10px 0 10px; border-radius: 10px; height: 60px; cursor: pointer" @click="updateMenu(item)">
-        <img src="@/assets/images/jc.png" v-if="index == 0" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <img src="@/assets/images/ct.png" v-else-if="index == 1" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <img src="@/assets/images/hj.png" v-else alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <a-badge>
-          <div class="menuLi">{{ item.categoryName }}</div>
-        </a-badge>
-      </div>
-    </div>
-  </a-drawer>
+    :drawer-style="drawerStyle"
+    :list="titleList"
+    @select="updateMenu"
+    @close="onCloseDrawer" />
 </template>
 
 <style lang="less" scoped>

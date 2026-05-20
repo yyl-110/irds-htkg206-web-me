@@ -16,6 +16,7 @@ import { CkeditorPlugin } from '@ckeditor/ckeditor5-vue'
 import App from './App.vue'
 import '@/plugins/svgIcon'
 import requestPlugin from './plugins/request'
+import disableInputAutocomplete from './plugins/disableInputAutocomplete'
 import { WeiI18n } from './utils/WeiI18n'
 import 'reflect-metadata'
 // import { includeWeiComponents } from './wei-components'
@@ -45,6 +46,8 @@ import AppGlobalEmpty from '@/components/AppGlobalEmpty/index.vue'
 import { setupAuth } from '@/directives/index'
 import { registerStore } from '@/store'
 import { useProjectUiStore } from '@/store/modules/layout/projectUi'
+import { initAccessTokenRefreshSchedule } from '@/utils/accessTokenRefresh'
+
 import 'splitpanes/dist/splitpanes.css'
 import 'animate.css'
 import { Icon } from '@/wei-components/WeiIcon'
@@ -70,6 +73,7 @@ app.use(pinia)
 registerStore() // 注册pinia状态库
 useProjectUiStore().applyDomEffects()
 app.use(router)
+app.use(disableInputAutocomplete)
 app.use(Antd)
 /** 全局空状态：未指定 image 时统一使用 empty.png */
 app.component('AEmpty', AppGlobalEmpty)
@@ -93,4 +97,4 @@ app.use(requestPlugin)
 // app.component('VChart', VChart)
 // includeWeiComponents(app)
 app.mount('#app')
-void import('@/utils/accessTokenRefresh').then(m => m.initAccessTokenRefreshSchedule())
+initAccessTokenRefreshSchedule()

@@ -14,14 +14,24 @@
         <div class="panel-list">
           <template v-if="leftType === 'user'">
             <a-checkbox-group v-model:value="leftSelectedUserIds" class="check-list">
-              <div v-for="u in leftFilteredUsers" :key="u.id" class="check-item">
+              <div
+                v-for="u in leftFilteredUsers"
+                :key="u.id"
+                class="check-item"
+                @dblclick="onLeftUserDblClick(u)"
+              >
                 <a-checkbox :value="u.id">{{ formatUserDisplay(u) }}</a-checkbox>
               </div>
             </a-checkbox-group>
           </template>
           <template v-else>
             <a-checkbox-group v-model:value="leftSelectedDeptIds" class="check-list">
-              <div v-for="d in leftFilteredDepts" :key="d.id" class="check-item">
+              <div
+                v-for="d in leftFilteredDepts"
+                :key="d.id"
+                class="check-item"
+                @dblclick="onLeftDeptDblClick(d)"
+              >
                 <a-checkbox :value="d.id">{{ d.name }}</a-checkbox>
               </div>
             </a-checkbox-group>
@@ -30,8 +40,8 @@
       </div>
 
       <div class="picker-actions">
-        <a-button size="small" @click="authorizeSelected">></a-button>
-        <a-button size="small" @click="removeSelected"><</a-button>
+        <a-button class="picker-action-btn" @click="authorizeSelected">&gt;</a-button>
+        <a-button class="picker-action-btn" @click="removeSelected">&lt;</a-button>
       </div>
 
       <div class="picker-panel">
@@ -42,7 +52,12 @@
         <a-input v-model:value="rightKeyword" :placeholder="$t('请输入搜索内容')" allow-clear />
         <div class="panel-list">
           <a-checkbox-group v-model:value="rightSelectedUserIds" class="check-list">
-            <div v-for="u in rightFilteredUsers" :key="u.id" class="check-item">
+            <div
+              v-for="u in rightFilteredUsers"
+              :key="u.id"
+              class="check-item"
+              @dblclick="onRightUserDblClick(u)"
+            >
               <a-checkbox :value="u.id">{{ formatUserDisplay(u) }}</a-checkbox>
             </div>
           </a-checkbox-group>
@@ -51,8 +66,8 @@
     </div>
 
     <div class="footer-actions">
-      <a-button @click="handleCancel">{{ $t('取消') }}</a-button>
       <a-button type="primary" @click="handleConfirm">{{ $t('确定') }}</a-button>
+      <a-button @click="handleCancel">{{ $t('取消') }}</a-button>
     </div>
   </a-modal>
 </template>
@@ -184,6 +199,35 @@ function removeSelected() {
   rightSelectedUserIds.value = []
 }
 
+function authorizeUserIds(userIds: string[]) {
+  if (!userIds.length)
+    return
+  const next = new Set(currentAuthorized.value)
+  for (const userId of userIds)
+    next.add(userId)
+  currentAuthorized.value = [...next]
+  leftSelectedUserIds.value = leftSelectedUserIds.value.filter(id => !userIds.includes(id))
+}
+
+function onLeftUserDblClick(user: MemberUser) {
+  if (!authorizedSet.value.has(user.id))
+    authorizeUserIds([user.id])
+}
+
+function onLeftDeptDblClick(dept: MemberDept) {
+  const userIds = props.users
+    .filter(u => u.deptId === dept.id && !authorizedSet.value.has(u.id))
+    .map(u => u.id)
+  authorizeUserIds(userIds)
+}
+
+function onRightUserDblClick(user: MemberUser) {
+  if (!authorizedSet.value.has(user.id))
+    return
+  currentAuthorized.value = currentAuthorized.value.filter(id => id !== user.id)
+  rightSelectedUserIds.value = rightSelectedUserIds.value.filter(id => id !== user.id)
+}
+
 function handleCancel() {
   emit('update:visible', false)
 }
@@ -252,7 +296,6 @@ function handleConfirm() {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
 }
 
 .footer-actions {

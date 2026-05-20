@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
-import draggableModal from '@/components/DraggableModal/index.vue';
+import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue';
 import { AdminApiDesignResourceShare } from '@/api/tags/designResource/设计资源共享';
-import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 import { toSnowflakeIdStr } from '@/utils/snowflakeId';
 
 const visible = defineModel<boolean>('visible', { default: false });
@@ -15,7 +15,7 @@ const props = withDefaults(
     title?: string;
   }>(),
   {
-    title: '共享配置',
+    title: '成员授权',
   },
 );
 
@@ -23,38 +23,78 @@ const emit = defineEmits<{
   (e: 'saved'): void;
 }>();
 
+type MemberAuthUser = {
+  id: string;
+  name: string;
+  username: string;
+  deptId?: string;
+};
+
+type MemberAuthDept = {
+  id: string;
+  name: string;
+};
+
 const loading = ref(false);
 const saving = ref(false);
-const selectedUserIds = ref<string[]>([]);
-const userOptions = ref<Array<{ label: string; value: string }>>([]);
+const pickerVisible = ref(false);
+const memberAuthUsers = ref<MemberAuthUser[]>([]);
+const memberAuthDepts = ref<MemberAuthDept[]>([]);
+const memberAuthUserIds = ref<string[]>([]);
 
-async function loadUserOptions() {
-  const res = await AdminApiSystemUser.getSimpleUsers();
-  const list = Array.isArray(res?.data?.data) ? res.data.data : [];
-  userOptions.value = list
-    .filter((u: any) => u?.id != null)
-    .map((u: any) => {
-      const nickname = (u.nickname ?? u.nickName ?? '').trim();
-      const username = (u.username ?? '').trim();
-      const label = nickname || username || toSnowflakeIdStr(u.id);
-      return { value: toSnowflakeIdStr(u.id), label };
-    });
+function mapDeptUserToMemberAuth(raw: Record<string, unknown>): MemberAuthUser | null {
+  const idRaw = raw.id ?? raw.userId;
+  if (idRaw == null || idRaw === '') return null;
+  return {
+    id: String(idRaw),
+    name: String(raw.nickname ?? raw.name ?? ''),
+    username: String(raw.username ?? ''),
+    deptId: raw.deptId != null && raw.deptId !== '' ? String(raw.deptId) : undefined,
+  };
 }
 
-async function loadShareData() {
-  if (!props.bizId) return;
+function mapDeptToMemberAuth(raw: Record<string, unknown>): MemberAuthDept | null {
+  const idRaw = raw.id;
+  if (idRaw == null || idRaw === '') return null;
+  return {
+    id: String(idRaw),
+    name: String(raw.name ?? ''),
+  };
+}
+
+async function loadMemberAuthData() {
+  if (props.bizId == null || props.bizId === '') return;
   loading.value = true;
   try {
-    await loadUserOptions();
-    const res = await AdminApiDesignResourceShare.getShareUsers({
-      bizType: props.bizType,
-      bizId: toSnowflakeIdStr(props.bizId),
-    });
-    const ids = res?.data?.data?.sharedUserIds;
-    selectedUserIds.value = Array.isArray(ids) ? ids.map((id: unknown) => toSnowflakeIdStr(id)).filter(Boolean) : [];
+    const [deptRes, shareRes] = await Promise.all([
+      AdminApiSystemDept.getDeptInfo({} as any),
+      AdminApiDesignResourceShare.getShareUsers({
+        bizType: props.bizType,
+        bizId: toSnowflakeIdStr(props.bizId),
+      }),
+    ]);
+    const deptPayload = deptRes.data?.data as Record<string, unknown> | undefined;
+    if (deptRes.data?.code === 200 && deptPayload) {
+      const rawDepts = Array.isArray(deptPayload.adminDeptResponseDTO) ? deptPayload.adminDeptResponseDTO : [];
+      const rawUsers = Array.isArray(deptPayload.adminUserResponseDTO) ? deptPayload.adminUserResponseDTO : [];
+      memberAuthDepts.value = rawDepts
+        .map((d: Record<string, unknown>) => mapDeptToMemberAuth(d))
+        .filter((d): d is MemberAuthDept => d != null);
+      memberAuthUsers.value = rawUsers
+        .map((u: Record<string, unknown>) => mapDeptUserToMemberAuth(u))
+        .filter((u): u is MemberAuthUser => u != null);
+    } else {
+      memberAuthDepts.value = [];
+      memberAuthUsers.value = [];
+    }
+    const sharePayload = shareRes?.data?.data as { sharedUserIds?: unknown[] } | undefined;
+    const ids = sharePayload?.sharedUserIds;
+    memberAuthUserIds.value = Array.isArray(ids) ? ids.map((id: unknown) => toSnowflakeIdStr(id)).filter(Boolean) : [];
   } catch {
-    message.error('加载共享人失败');
-    selectedUserIds.value = [];
+    message.error('加载共享人员失败');
+    memberAuthDepts.value = [];
+    memberAuthUsers.value = [];
+    memberAuthUserIds.value = [];
   } finally {
     loading.value = false;
   }
@@ -62,21 +102,32 @@ async function loadShareData() {
 
 watch(
   () => [visible.value, props.bizId] as const,
-  ([vis, bizId]) => {
-    if (vis && bizId != null && bizId !== '') {
-      void loadShareData();
-    }
+  async ([vis, bizId]) => {
     if (!vis) {
-      selectedUserIds.value = [];
+      pickerVisible.value = false;
+      memberAuthUserIds.value = [];
+      return;
+    }
+    if (bizId == null || bizId === '') return;
+    const hideLoading = message.loading('加载中...', 0);
+    try {
+      await loadMemberAuthData();
+      if (visible.value) {
+        pickerVisible.value = true;
+      }
+    } finally {
+      hideLoading();
     }
   },
 );
 
-function handleCancel() {
-  visible.value = false;
-}
+watch(pickerVisible, vis => {
+  if (!vis) {
+    visible.value = false;
+  }
+});
 
-async function handleSave() {
+async function handleMemberAuthConfirm(userIds: string[]) {
   if (props.bizId == null || props.bizId === '') {
     message.warning('缺少业务数据标识');
     return;
@@ -86,11 +137,11 @@ async function handleSave() {
     await AdminApiDesignResourceShare.saveShareUsers({
       bizType: props.bizType,
       bizId: toSnowflakeIdStr(props.bizId),
-      sharedUserIds: selectedUserIds.value,
+      sharedUserIds: userIds,
     });
-    message.success('共享配置已保存');
+    message.success('授权成功');
     emit('saved');
-    visible.value = false;
+    pickerVisible.value = false;
   } catch {
     message.error('保存共享配置失败');
   } finally {
@@ -100,31 +151,13 @@ async function handleSave() {
 </script>
 
 <template>
-  <draggable-modal
-    v-model:visible="visible"
-    :title="title"
-    width="640px"
-    :mask-closable="false"
-    destroy-on-close
-    @cancel="handleCancel">
-    <a-spin :spinning="loading">
-      <a-form layout="vertical">
-        <a-form-item label="共享人员">
-          <a-select
-            v-model:value="selectedUserIds"
-            mode="multiple"
-            placeholder="请选择共享人员（被共享人可编辑，不可再次共享）"
-            :options="userOptions"
-            option-filter-prop="label"
-            show-search
-            allow-clear
-            style="width: 100%" />
-        </a-form-item>
-      </a-form>
-    </a-spin>
-    <template #footer>
-      <a-button @click="handleCancel">取消</a-button>
-      <a-button type="primary" :loading="saving" @click="handleSave">确定</a-button>
-    </template>
-  </draggable-modal>
+  <a-spin :spinning="loading || saving">
+    <MemberAuthPicker
+      v-model:visible="pickerVisible"
+      :title="title"
+      :users="memberAuthUsers"
+      :depts="memberAuthDepts"
+      :authorized-user-ids="memberAuthUserIds"
+      @confirm="handleMemberAuthConfirm" />
+  </a-spin>
 </template>
