@@ -16,63 +16,35 @@ const props = defineProps({
   },
 });
 
-const pickRow = (row) => {
-  if (!row || typeof row !== "object") {
-    return { total: 0, collab: 0, standalone: 0 };
-  }
-  if ("totalCount" in row || "collabTaskCount" in row) {
-    return {
-      total: Number(row.totalCount) || 0,
-      collab: Number(row.collabTaskCount) || 0,
-      standalone: Number(row.standaloneAppCount) || 0,
-    };
-  }
-  return {
-    total: Number(row.total_docs) || 0,
-    collab: 0,
-    standalone: 0,
-  };
-};
-
 const initChart = () => {
   if (!props.chartData || !Object.keys(props.chartData).length) return;
   const keys = Object.keys(props.chartData);
   const seriesData = [
     {
-      name: "总任务数",
-      value: keys.map((item) => pickRow(props.chartData[item]).total),
+      name: "已发布协同任务",
+      value: keys.map((k) => Number(props.chartData[k]?.collabPublished) || 0),
     },
     {
-      name: "协同任务数",
-      value: keys.map((item) => pickRow(props.chartData[item]).collab),
+      name: "协同已完成",
+      value: keys.map((k) => Number(props.chartData[k]?.collabCompleted) || 0),
     },
     {
       name: "独立应用数",
-      value: keys.map((item) => pickRow(props.chartData[item]).standalone),
+      value: keys.map((k) => Number(props.chartData[k]?.standaloneAppCount) || 0),
     },
   ];
   const colorList = [
     ["#15728C", "#92D1DE"],
+    ["#43CF7C", "#1a8f4a"],
     ["#6A5FDC", "#6A5FDC"],
-    ["#FF8D1A", "#FF8D1A"],
   ];
 
   chartOption.value = {
-    title: {
-      text: "总任务数、协同任务数、独立应用数",
-      left: "center",
-      top: 6,
-      textStyle: {
-        color: "rgba(255,255,255,0.92)",
-        fontSize: 13,
-        fontWeight: 500,
-      },
-    },
     grid: {
       left: "0",
       right: "0",
       bottom: "20%",
-      top: "16%",
+      top: "20",
       containLabel: true,
     },
     tooltip: {

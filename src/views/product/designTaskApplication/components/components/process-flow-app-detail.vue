@@ -26,15 +26,35 @@ const pageTitle = computed(() => String(detailData.value?.processName ?? detailD
 const isCheckEntry = computed(() => String(route.query.entry ?? '').trim() === 'check');
 const appCodeLabel = computed(() => (isCheckEntry.value ? '计算应用编号' : '独立应用编号'));
 const appNameLabel = computed(() => (isCheckEntry.value ? '计算应用名称' : '独立应用名称'));
-const createActionLabel = computed(() => (isCheckEntry.value ? '创建计算' : '创建流程'));
+const createActionLabel = computed(() => (isCheckEntry.value ? '新建计算' : '新建'));
 const tableColumns = computed(() => [
   { title: appCodeLabel.value, dataIndex: 'appCode', key: 'appCode' },
   { title: appNameLabel.value, dataIndex: 'appName', key: 'appName' },
   { title: '创建人', dataIndex: 'creatorName', key: 'creatorName' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
-  { title: '状态', key: 'status' },
-  { title: '操作', key: 'action' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center' },
+  { title: '状态', key: 'status', align: 'center' },
+  { title: '操作', key: 'action', align: 'center' },
 ]);
+
+function resolveAppStatusText(record: Record<string, any>) {
+  const text = String(record?.statusName || record?.status || record?.nodeStatus || '').trim();
+  return text || '--';
+}
+
+function resolveAppStatusTagClass(statusText: string) {
+  const status = String(statusText ?? '').trim();
+  if (!status || status === '--') return 'app-status-tag--default';
+  if (status.includes('未完成') || status.includes('未开始')) return 'app-status-tag--pending';
+  if (status.includes('进行中') || status.includes('设计中')) return 'app-status-tag--in-progress';
+  if (status.includes('待确认')) return 'app-status-tag--confirm';
+  if (status.includes('已完成')) return 'app-status-tag--completed';
+  if (status.includes('延迟') || status.includes('逾期')) return 'app-status-tag--delayed';
+  return 'app-status-tag--default';
+}
+
+function getTableRowClassName(_record: Record<string, any>, index: number) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
 
 function loadDetailData() {
   const cacheKey = String(route.query.cacheKey ?? '');
@@ -167,20 +187,35 @@ void loadAppList();
     <div class="detail-page__toolbar">
       <a-input v-model:value="queryAppCode" :placeholder="`请输入${appCodeLabel}`" allow-clear class="detail-page__search" />
       <a-input v-model:value="queryAppName" :placeholder="`请输入${appNameLabel}`" allow-clear class="detail-page__search" />
-      <a-button type="primary" @click="loadAppList">查询</a-button>
+      <a-button type="primary" @click="loadAppList"><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button>
       <a-button type="primary" @click="openCreateModal"><EpcIcon type="icon-tianjia1" style="font-size: 12px" />{{ createActionLabel }}</a-button>
       <a-button @click="goBack"><EpcIcon type="icon-fanhui" style="font-size: 12px" />返回</a-button>
     </div>
-    <a-table :columns="tableColumns" :data-source="appList" :loading="listLoading" row-key="appId" :pagination="false" bordered>
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'status'">
-          {{ record?.statusName || record?.status || record?.nodeStatus || '--' }}
+    <a-card class="calc-table-card detail-page__table-card">
+      <a-table
+        class="exe-config-table"
+        :columns="tableColumns"
+        :data-source="appList"
+        :loading="listLoading"
+        row-key="appId"
+        :pagination="false"
+        bordered
+        table-layout="fixed"
+        :row-class-name="getTableRowClassName">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'status'">
+            <a-tag :class="['app-status-tag', resolveAppStatusTagClass(resolveAppStatusText(record))]">
+              {{ resolveAppStatusText(record) }}
+            </a-tag>
+          </template>
+          <template v-if="column.key === 'action'">
+            <div class="detail-page__action-cell">
+              <a-button type="link" @click="designFlow(record)">设计</a-button>
+            </div>
+          </template>
         </template>
-        <template v-if="column.key === 'action'">
-          <a-button type="link" @click="designFlow(record)">设计</a-button>
-        </template>
-      </template>
-    </a-table>
+      </a-table>
+    </a-card>
     <a-modal v-model:visible="createFlowModalVisible" :title="createActionLabel" :confirm-loading="createFlowLoading" @ok="confirmCreateFlow" @cancel="createFlowModalVisible = false">
       <div class="create-flow-form">
         <div class="create-flow-form__row">
@@ -265,5 +300,119 @@ void loadAppList();
   text-align: left;
   color: #1f2937;
   flex: 0 0 auto;
+}
+
+.detail-page__table-card {
+  border: none;
+  box-shadow: none;
+
+  :deep(.ant-card-body) {
+    padding: 0;
+  }
+}
+
+.calc-table-card {
+  --detail-table-row-height: 42px;
+
+  :deep(.ant-table-thead > tr > th) {
+    height: var(--detail-table-row-height);
+    max-height: var(--detail-table-row-height);
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    vertical-align: middle;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: var(--detail-table-row-height);
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    height: var(--detail-table-row-height);
+    max-height: var(--detail-table-row-height);
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-right: none !important;
+    font-size: 14px;
+    line-height: var(--detail-table-row-height);
+    vertical-align: middle;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+}
+
+.exe-config-table {
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+}
+
+.detail-page__action-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app-status-tag {
+  margin: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0 10px;
+  border-style: solid;
+  border-width: 1px;
+}
+
+.app-status-tag--in-progress {
+  color: #d48806;
+  background: #fffbe6;
+  border-color: #ffe58f;
+}
+
+.app-status-tag--completed {
+  color: #389e0d;
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.app-status-tag--pending,
+.app-status-tag--default {
+  color: rgba(0, 0, 0, 0.65);
+  background: #fafafa;
+  border-color: #d9d9d9;
+}
+
+.app-status-tag--confirm {
+  color: #722ed1;
+  background: #f9f0ff;
+  border-color: #d3adf7;
+}
+
+.app-status-tag--delayed {
+  color: #cf1322;
+  background: #fff1f0;
+  border-color: #ffccc7;
 }
 </style>

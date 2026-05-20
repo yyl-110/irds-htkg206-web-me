@@ -174,6 +174,28 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+  
+   /**
+   * 根据父节点ID查找所有的应用和子应用
+   *
+   * @tags 根据父节点ID查找所有的应用和子应用
+   * @name taskBasicInfoPageByParentId
+   * @summary 根据父节点ID查找所有的应用和子应用
+   * @request POST:/business-service/business/task-basic-info/find_by_pid
+   * @secure
+   */
+  static taskBasicInfoPageByParentId = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/find_by_pid`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  
 
   /**
    * 创建taskBasicInfo

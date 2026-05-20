@@ -1,5 +1,5 @@
 <template>
-  <div style="width: 56%; height: 100%">
+  <div class="projectBar" :style="{ width: chartWidth, height: '100%' }">
     <v-chart :option="chartOption" class="chart" />
   </div>
 </template>
@@ -12,6 +12,10 @@ const props = defineProps({
   chartData: {
     type: Array,
     default: () => [],
+  },
+  chartWidth: {
+    type: String,
+    default: "56%",
   },
 });
 
@@ -86,8 +90,7 @@ const initChart = () => {
         interval: 0,
         rotate: 45, // 文字倾斜角度(可选45、90等)
         formatter: function (value) {
-          // 如果文字过长可以截取
-          return value.length > 6 ? value.substring(0, 6) + "..." : value;
+          return value.length > 6 ? value.substring(0, 6) + "…" : value;
         },
       },
     },
@@ -199,10 +202,10 @@ watch(
   () => props.chartData,
   (val) => {
     if (val && val.length) {
-      console.log('props.chartData:', val)
       initChart();
     }
-  }, { deep: true }
+  },
+  { deep: true, immediate: true },
 );
 </script>
 

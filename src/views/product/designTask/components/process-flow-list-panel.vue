@@ -58,14 +58,11 @@ function canRowShare(record?: FlowRow) {
 }
 
 const designShareModalVisible = ref(false);
-const designShareTarget = ref<{ bizId: string | number; title: string } | null>(null);
+const designShareTarget = ref<{ bizId: string | number } | null>(null);
 
 function openDesignShareModal(record: FlowRow) {
   if (!record?.id) return;
-  designShareTarget.value = {
-    bizId: toSnowflakeIdStr(record.id),
-    title: `${record.processName ?? ''} - 共享配置`,
-  };
+  designShareTarget.value = { bizId: toSnowflakeIdStr(record.id) };
   designShareModalVisible.value = true;
 }
 
@@ -377,10 +374,10 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   try {
     if (isPublished) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '撤销发布协同成功' : '撤销发布独立应用成功');
+      message.success(publishType === 'COLLAB' ? '撤销发布协同成功' : '撤销发布应用成功');
     } else {
       await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布独立应用成功');
+      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布应用成功');
     }
     await loadFlowListData();
   } catch (error) {
@@ -732,6 +729,10 @@ defineExpose({
           </template>
           <template v-else-if="column.dataIndex === 'operation'">
             <div class="calc-operation-links" @click.stop>
+              <template v-if="canRowOperate(record)">
+              <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
+              <span v-else class="operation-disabled">配置</span>
+              </template>
               <a href="#" @click.prevent="handleToolbarView(record)">预览</a>
               <template v-if="canRowOperate(record)">
               <a-popconfirm
@@ -755,23 +756,21 @@ defineExpose({
               <a-popconfirm
                 v-if="!isAppPublished(record)"
                 placement="topLeft"
-                title="确定要发布独立应用吗？"
+                title="确定要发布应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>发布独立应用</a>
+                <a href="#" @click.prevent>发布应用</a>
               </a-popconfirm>
               <a-popconfirm
                 v-else
                 placement="topLeft"
-                title="确定要取消发布独立应用吗？"
+                title="确定要取消发布应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>取消独立应用</a>
+                <a href="#" @click.prevent>取消应用</a>
               </a-popconfirm>
-              <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
-              <span v-else class="operation-disabled">配置</span>
               <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record)">
                 <a href="#" class="operation-danger" @click.prevent>删除</a>
               </a-popconfirm>
@@ -788,7 +787,6 @@ defineExpose({
       v-model:visible="designShareModalVisible"
       biz-type="TASK"
       :biz-id="designShareTarget?.bizId"
-      :title="designShareTarget?.title"
       @saved="onDesignShareSaved" />
 
     <a-modal

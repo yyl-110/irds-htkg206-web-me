@@ -1,11 +1,5 @@
-<template>
-  <div style="width: 100%; height: 100%">
-    <v-chart :option="chartOption" class="chart" />
-  </div>
-</template>
-
-<script setup>
-import * as echarts from "echarts";
+<script setup lang="ts">
+import * as echarts from 'echarts'
 import rank from '@/assets/data-screen/module/rank.png'
 import lightPoint from '@/assets/data-screen/common/lightPoint.png'
 
@@ -14,17 +8,17 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-});
+})
 
-const chartOption = ref({});
+const chartOption = ref({})
 
 const initChart = () => {
-  const dataList = props.chartData.map(item => ({
+  const dataList = props.chartData.map((item) => ({
     name: item.fileName,
     value: Number(item.accessCount),
-  }));
+  }))
 
-  const endPercent = dataList.length > 10 ? 10 / dataList.length * 100 : 100
+  const endPercent = dataList.length > 10 ? (10 / dataList.length) * 100 : 100
 
   chartOption.value = {
     grid: {
@@ -35,48 +29,50 @@ const initChart = () => {
       containLabel: true,
     },
     tooltip: {
-      trigger: "item",
-      formatter (params) {
-        let res = "";
-        const { marker, name, value } = params;
-        if (name !== "") {
-          res += `${marker}${name} : ${value}`;
+      trigger: 'item',
+      formatter(params) {
+        let res = ''
+        const { marker, name, value } = params
+        if (name !== '') {
+          res += `${marker}${name} : ${value}`
         }
-        return res;
+        return res
       },
     },
-    dataZoom: [{
-      type: "slider",
-      show: dataList.length > 10 ? true : false,
-      yAxisIndex: [0, 1],
-      width: 6, //组件宽度
-      backgroundColor: "transparent", //两边未选中的滑动条区域的颜色
-      borderRadius: 100,
-      borderColor: "transparent", //滚动条边框颜色
-      fillerColor: "#0E3855", //选中的滑动条区域的颜色
-      left: "96%", //滚动条位置
-      start: 0, //数据窗口范围的起始百分比
-      end: endPercent,
-      realtime: true, //是否实时更新
-      zoomLock: true,
-      filterMode: 'empty',
-      handleSize: '0px',
-      showDetail: false,
-      showDataShadow: false,
-    },],
+    dataZoom: [
+      {
+        type: 'slider',
+        show: dataList.length > 10 ? true : false,
+        yAxisIndex: [0, 1],
+        width: 6, //组件宽度
+        backgroundColor: 'transparent', //两边未选中的滑动条区域的颜色
+        borderRadius: 100,
+        borderColor: 'transparent', //滚动条边框颜色
+        fillerColor: '#0E3855', //选中的滑动条区域的颜色
+        left: '96%', //滚动条位置
+        start: 0, //数据窗口范围的起始百分比
+        end: endPercent,
+        realtime: true, //是否实时更新
+        zoomLock: true,
+        filterMode: 'empty',
+        handleSize: '0px',
+        showDetail: false,
+        showDataShadow: false,
+      },
+    ],
     xAxis: [
       {
-        type: "value",
+        type: 'value',
         show: false,
       },
       {
-        type: "value",
+        type: 'value',
         show: false,
       },
     ],
     yAxis: [
       {
-        type: "category",
+        type: 'category',
         inverse: true,
         axisLabel: {
           textStyle: {
@@ -84,21 +80,21 @@ const initChart = () => {
               bg: {
                 color: '#fff',
                 fontSize: 20,
-                lineHeight: 33,
+                lineHeight: 32,
                 backgroundColor: {
-                  image: rank
+                  image: rank,
                 },
-                height: 33,
+                height: 32,
                 width: 30,
                 padding: [4, 0, 0, 0],
-              }
+              },
             },
           },
           formatter: function (value) {
-            const inx = dataList.findIndex(item => item.name === value);
-            return `{bg|${inx + 1}}`;
+            const inx = dataList.findIndex((item) => item.name === value)
+            return `{bg|${inx + 1}}`
           },
-          align: "center",
+          align: 'center',
           //调整文字上右下左
           padding: [0, 30, 0, 0],
         },
@@ -111,34 +107,34 @@ const initChart = () => {
         axisLine: {
           show: false,
         },
-        data: dataList.map(item => item.name)
+        data: dataList.map((item) => item.name),
       },
       {
         inverse: true,
-        axisTick: "none",
-        axisLine: "none",
+        axisTick: 'none',
+        axisLine: 'none',
         show: true,
         axisLabel: {
           margin: 20,
-          color: "rgba(96, 98, 102, 1)",
+          color: 'rgba(96, 98, 102, 1)',
           fontSize: 20,
           width: 150,
-          overflow: "truncate",
+          overflow: 'truncate',
           rich: {
             a: {
               width: 40,
               fontSize: 20,
-              color: "#00F3FD",
+              color: '#00F3FD',
               padding: [0, 10, 0, 0],
             },
             b: {
               fontSize: 16,
-              color: "#fff",
+              color: '#fff',
             },
           },
           formatter: function (value, index) {
             const { name } = dataList[index]
-            return `{a|${value}}{b|${name}}`;
+            return `{a|${value}}{b|${name}}`
           },
         },
         data: dataList,
@@ -146,8 +142,8 @@ const initChart = () => {
     ],
     series: [
       {
-        name: "进度部分",
-        type: "bar",
+        name: '进度部分',
+        type: 'bar',
         zlevel: 1,
         showBackground: true,
         backgroundStyle: {
@@ -157,7 +153,7 @@ const initChart = () => {
         itemStyle: {
           borderRadius: 8,
           color: {
-            type: "linear",
+            type: 'linear',
             x: 0,
             y: 0,
             x2: 1,
@@ -169,7 +165,7 @@ const initChart = () => {
               },
               {
                 offset: 1,
-                color: "#00F6FF",
+                color: '#00F6FF',
               },
             ],
           },
@@ -179,8 +175,8 @@ const initChart = () => {
       },
       // 进度条的小圆圈
       {
-        name: "小圈圈",
-        type: "scatter",
+        name: '小圈圈',
+        type: 'scatter',
         symbol: 'image://' + lightPoint,
         symbolSize: 40,
         emphasis: {
@@ -192,12 +188,22 @@ const initChart = () => {
         animationDelay: 500,
       },
     ],
-  };
-};
+  }
+}
 
-watch(() => props.chartData, () => {
-  initChart()
-}, { deep: true })
+watch(
+  () => props.chartData,
+  () => {
+    initChart()
+  },
+  { deep: true }
+)
 </script>
+
+<template>
+  <div style="width: 100%; height: 100%">
+    <v-chart :option="chartOption" class="chart" />
+  </div>
+</template>
 
 <style lang="less" scoped></style>

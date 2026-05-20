@@ -10,6 +10,7 @@ import { useUserStore } from '@/store/modules/user';
 import { decryptValue } from '@/utils';
 import { useLayoutStore } from '@/store/modules/layout/layout';
 import ProjectInfoList from './components/ProjectInfoListAdm.vue';
+import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 const PROJECT_LIST_SKIP_DRAWER_ON_RETURN = 'project-info-list-skip-drawer-on-return';
 
 const layoutStore = useLayoutStore();
@@ -128,29 +129,13 @@ onMounted(() => {
   <div class="drawerContent">
     <ProjectInfoList v-if="projectListVisible" ref="ProjectInfoListRef" :menuId="menuId" @getListData="getListData" />
   </div>
-  <a-drawer
+  <ProductPlatformPicker
     v-if="shouldShowDrawer"
-    :title="`产品平台选择`"
-    placement="left"
-    :style="drawerStyle"
-    :closable="false"
-    :mask="true"
     :visible="titleVisible"
-    :get-container="false"
-    :wrap-style="{ position: 'absolute' }"
-    @blur="onClose"
-    @close="onClose">
-    <div v-for="(item, index) in titleList" :key="index">
-      <div style="display: flex; background-color: #ecf5ff; margin: 15px 10px 0 10px; border-radius: 10px; height: 60px; cursor: pointer" @click="updateMenu(item)">
-        <img src="@/assets/images/jc.png" v-if="index == 0" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <img src="@/assets/images/ct.png" v-else-if="index == 1" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <img src="@/assets/images/hj.png" v-else alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <a-badge>
-          <div class="menuLi">{{ item.categoryName }}</div>
-        </a-badge>
-      </div>
-    </div>
-  </a-drawer>
+    :drawer-style="drawerStyle"
+    :list="titleList"
+    @select="updateMenu"
+    @close="onClose" />
 </template>
 
 <style lang="less" scoped>

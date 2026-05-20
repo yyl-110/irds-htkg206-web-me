@@ -1789,6 +1789,36 @@ export class AdminApiSystemProduct {
     );
 
   /**
+   * 删除产品平台（项目树节点）
+   *
+   * @request POST:/business-service/business/project-tree/delete
+   * @secure
+   */
+  static deleteProjectTree = <
+  Req extends {
+
+    id: number;
+  } = {
+    id: number;
+  },
+>(
+  query: Req,
+  params: RequestParams = {}
+) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-tree/delete`,
+        method: 'DELETE',
+        query: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+
+   
+  /**
    * 查询产品平台（项目树）节点已授权用户
    *
    * @request POST:/business-service/business/project-tree-auth/getProjectTreeUserAuth

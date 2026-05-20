@@ -22,29 +22,42 @@
                   </div>
                 </div>
                 <div class="lineWrap">
-                  <Overview :data="productInfo?.phaseList" />
+                  <product-line chart-width="96%" :chartData="productInfo?.project5List" />
                 </div>
               </div>
               <div class="task">
                 <Title text="项目任务" showSelect showPhase :phaseId="taskPhaseId" @changePhase="changeTaskPhase" />
-                <div class="taskPie">
+                <div class="taskBody">
                   <complete-pie :chartData="productInfo?.taskNumsList" />
-                  <product-line :chartData="productInfo?.project5List" />
+                  <div class="taskRight">
+                    <div class="platformBlock">
+                      <div class="blockTitle">平台</div>
+                      <div class="platformLines">
+                        <div v-for="(row, idx) in platformPhaseLines" :key="'p-' + idx">
+                          {{ row.nodeName }} {{ row.countNums }}/{{ row.sumNum }}
+                        </div>
+                      </div>
+                      <div class="blockTitle blockTitleSub">已完成任务/全部</div>
+                      <div class="phaseBarWrap">
+                        <Overview :data="tailPhaseList" chart-width="100%" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </a-col>
             <a-col :span="12">
               <div class="board">
-                <Title text="独立应用使用情况TOP10" showSelect showPhase :phaseId="interactionPhaseId"
+                <Title text="项目交付看板" showSelect showPhase :phaseId="interactionPhaseId"
                   @changePhase="changeInteractionPhase" />
                 <div class="wrap">
-                  <interaction :chartData="deliveryInfo" />
+                  <interaction :chartData="mergedDeliveryCollab" />
                 </div>
               </div>
               <div class="picture">
-                <Title text="各科室应用使用情况" />
+                <Title text="WBS协同与独立应用" />
                 <div class="pieWrap">
-                  <dept-line />
+                  <wbs-collab-standalone-bar :chartData="collabStandaloneInfo" />
                 </div>
               </div>
             </a-col>
@@ -67,8 +80,12 @@ import Overview from "./component/overview.vue";
 import interaction from "./component/interaction.vue";
 import completePie from "./component/completePie.vue";
 import productLine from "./component/productLine.vue";
-import deptLine from "./component/deptLine.vue";
-import { deliveryReport, getReportProjectList, pdmPicReport } from "@/api/data-screen";
+import wbsCollabStandaloneBar from "./component/wbsCollabStandaloneBar.vue";
+import {
+  collabStandaloneBoard,
+  deliveryReport,
+  getReportProjectList,
+} from "@/api/data-screen";
 import { useIndexStore } from "@/store/data-screen";
 
 const router = useRouter();
@@ -76,8 +93,8 @@ const indexStore = useIndexStore();
 const { selectProjectId, selectPhaseId, projectList } = storeToRefs(indexStore);
 
 const productInfo = ref<any>({});
-const pdmPicReportList = ref<any[]>([]);
 const deliveryInfo = ref<any>({});
+const collabStandaloneInfo = ref<Record<string, any>>({});
 
 const interactionPhaseId = ref('-1'); // 项目交付看板阶段id
 const taskPhaseId = ref("-1"); // 项目任务阶段id
@@ -96,6 +113,30 @@ const timeOptions = computed(() => {
   });
 });
 
+/** 项目交付看板：与示意图一致为「总任务数、协同任务数、独立应用数」，按交付看板科室维度对齐 */
+const mergedDeliveryCollab = computed(() => {
+  const d = deliveryInfo.value;
+  const c = collabStandaloneInfo.value || {};
+  if (!d || typeof d !== "object" || !Object.keys(d).length) {
+    return {};
+  }
+  const out: Record<string, { totalCount: number; collabTaskCount: number; standaloneAppCount: number }> = {};
+  for (const k of Object.keys(d)) {
+    const rowD = d[k] || {};
+    const rowC = c[k] || {};
+    out[k] = {
+      totalCount: Number(rowD.total_docs) || 0,
+      collabTaskCount: Number(rowC.collabPublished) || 0,
+      standaloneAppCount: Number(rowC.standaloneAppCount) || 0,
+    };
+  }
+  return out;
+});
+
+const platformPhaseLines = computed(() => (productInfo.value?.phaseList || []).slice(0, 3));
+
+const tailPhaseList = computed(() => (productInfo.value?.phaseList || []).slice(3));
+
 const changeTime = () => {}
 
 const back = () => {
@@ -110,23 +151,7 @@ const changeTaskPhase = (val: string) => {
 const changeInteractionPhase = (val: string) => {
   interactionPhaseId.value = val;
   fetchDeliveryData();
-};
-
-// 二位图纸进展
-const fetchPdmPicReport = async () => {
-  try {
-    const res: any = await pdmPicReport({ projectId: selectProjectId.value });
-    if (res.code === "0" || res.code === 200) {
-      const keys = Object.keys(res.data || {});
-
-      pdmPicReportList.value = keys.map((key) => ({
-        title: key,
-        value: res.data[key],
-      }));
-    }
-  } catch (error) {
-    console.log("error:", error);
-  }
+  fetchCollabStandaloneData();
 };
 
 // 产品设计看板
@@ -183,6 +208,22 @@ const fetchDeliveryData = async () => {
   }
 };
 
+// WBS 协同任务 + 独立应用（按 WBS 一级分类）
+const fetchCollabStandaloneData = async () => {
+  try {
+    const res: any = await collabStandaloneBoard({
+      projectId: selectProjectId.value,
+      phaseId:
+        interactionPhaseId.value === "-1" ? "" : interactionPhaseId.value,
+    });
+    if (res.code === "0" || res.code === 200) {
+      collabStandaloneInfo.value = res.data || {};
+    }
+  } catch (error) {
+    console.log("error:", error);
+  }
+};
+
 watch(
   () => selectProjectId.value,
   () => {
@@ -190,8 +231,8 @@ watch(
       interactionPhaseId.value = "-1";
       taskPhaseId.value = "-1";
       fetchData();
-      fetchPdmPicReport();
       fetchDeliveryData();
+      fetchCollabStandaloneData();
     }
   },
   { immediate: true }
@@ -247,6 +288,8 @@ watch(
         width: 100%;
         height: 45%;
         background: rgba(2, 2, 2, 0.4);
+        display: flex;
+        flex-direction: column;
 
         .list {
           display: flex;
@@ -286,9 +329,10 @@ watch(
         }
 
         .lineWrap {
-          margin-top: 26px;
+          margin-top: 20px;
           width: 100%;
-          height: 200px;
+          flex: 1;
+          min-height: 200px;
           display: flex;
           justify-content: center;
         }
@@ -335,10 +379,58 @@ watch(
         display: flex;
         flex-direction: column;
 
-        .taskPie {
+        .taskBody {
           flex: 1;
           display: flex;
-          align-items: center;
+          align-items: stretch;
+          min-height: 0;
+          padding: 0 8px 10px;
+          gap: 4px;
+        }
+
+        .taskRight {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          color: #fff;
+        }
+
+        .platformBlock {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+
+        .blockTitle {
+          font-weight: bold;
+          font-size: 15px;
+          color: #69ccf6;
+          margin: 4px 0 6px;
+        }
+
+        .blockTitleSub {
+          margin-top: 10px;
+          font-size: 14px;
+        }
+
+        .platformLines {
+          font-size: 14px;
+          line-height: 24px;
+        }
+
+        .platformLines div {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .phaseBarWrap {
+          flex: 1;
+          min-height: 120px;
+          display: flex;
+          justify-content: center;
         }
       }
     }

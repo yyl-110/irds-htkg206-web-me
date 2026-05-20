@@ -11,22 +11,24 @@
     <!--  Transfer 组件 -->
     <a-spin :spinning="leftLoading" tip="加载中...">
       <div class="transfer-container">
-        <a-transfer
-          :locale="locale"
+        <AuthTransfer
           :target-keys="targetKeys"
           :data-source="dataSource"
-          :titles="['未授权用户', '已授权用户']"
           :render="renderItem"
           :row-key="item => item.id"
+          :single-choice="Singlechoice"
+          :locale="locale"
+          :titles="['未授权用户', '已授权用户']"
           show-search
           style="width: 100%"
           :search-placeholder="'请输入'"
           :filter-option="filterOption"
           :pagination="{ pageSize: 20 }"
           :list-style="{ width: '50%', height: '500px' }"
+          @update:target-keys="onTargetKeysUpdate"
           @change="handleChange"
-          @select-change="handleSelectChange">
-        </a-transfer>
+          @select-change="handleSelectChange"
+        />
       </div>
     </a-spin>
 
@@ -41,8 +43,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineProps, defineEmits } from 'vue';
+import { computed, defineProps, defineEmits } from 'vue';
 import { message } from 'ant-design-vue';
+import AuthTransfer from '@/components/AuthTransfer/index.vue';
 // 1. 定义 Props
 const props = defineProps<{
   modalVisible: boolean;
@@ -58,11 +61,11 @@ const locale = {
   notFoundContent: '列表为空',
   searchPlaceholder: '请输入搜索内容',
 };
-const selectedKey = ref([]);
 // 2. 定义 Emits
 const emit = defineEmits<{
   (e: 'Cancel', value: boolean): void;
   (e: 'confirm', targetKeys: Array<string | number>): void;
+  (e: 'update:targetKeys', targetKeys: Array<string | number>): void;
   (e: 'change', targetKeys: Array<string | number>, direction: 'left' | 'right', moveKeys: Array<string | number>): void;
   (e: 'select-change', sourceSelectedKeys: Array<string | number>, targetSelectedKeys: Array<string | number>): void;
 }>();
@@ -101,13 +104,13 @@ const handleConfirm = () => {
   emit('confirm', props.targetKeys); // 触发确认事件，传递已选目标键
 };
 
+function onTargetKeysUpdate(targetKeys: Array<string | number>) {
+  emit('update:targetKeys', targetKeys);
+}
+
 const handleChange = (targetKeys: Array<string | number>, direction: 'left' | 'right', moveKeys: Array<string | number>) => {
-  if (targetKeys.length > 1 && props.Singlechoice) {
-    selectedKey.value = [targetKeys[targetKeys.length - 1]];
-    emit('change', selectedKey.value, direction, moveKeys);
-  } else {
-    emit('change', targetKeys, direction, moveKeys);
-  }
+  emit('update:targetKeys', targetKeys);
+  emit('change', targetKeys, direction, moveKeys);
 };
 
 const handleSelectChange = (sourceSelectedKeys: Array<string | number>, targetSelectedKeys: Array<string | number>) => {

@@ -24,6 +24,7 @@ import Empty from '@/components/Empty/index.vue';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { sortermethod } from '@/utils/tools';
 import { useUserStore } from '@/store/modules/user';
+import AuthTransfer from '@/components/AuthTransfer/index.vue';
 
 const userStore = useUserStore();
 const transferlocale = ref(zhCN); // 绑定中文语言包
@@ -596,7 +597,7 @@ function customGetContainer() {
         @ok="handleResetOk"
         @cancel="handleClose">
         <div style="display: flex; justify-content: center">
-          <a-transfer
+          <AuthTransfer
             v-model:target-keys="targetKeys2"
             :locale="transferlocale.Transfer"
             :data-source="groupData"
@@ -613,12 +614,13 @@ function customGetContainer() {
               height: '540px',
             }"
             @change="handleChange"
-            @select-change="handleSelectChange">
+            @select-change="handleSelectChange"
+          >
             <template #notFoundContent>
               <a-spin v-if="leftLoading" size="small" tip="加载中..." />
               <span v-else>暂无数据</span>
             </template>
-          </a-transfer>
+          </AuthTransfer>
         </div>
         <template #footer>
           <a-button type="primary" @click="handleResetOk()">
