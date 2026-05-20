@@ -55,8 +55,8 @@
 <script lang="ts" setup>
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as LeaveApi from '@/api/bpm/leave'
-import { useTagsViewStore } from '@/store/modules/tagsView'
-
+// import { useTagsViewStore } from '@/store/modules/tagsView'
+import { ContentWrap } from '@/components/ContentWrap'
 // 审批相关：import
 import * as DefinitionApi from '@/api/bpm/definition'
 import ProcessInstanceTimeline from '@/views/bpm/processInstance/detail/ProcessInstanceTimeline.vue'
@@ -68,7 +68,7 @@ const { t } = useI18n() // 国际化
 defineOptions({ name: 'BpmOALeaveCreate' })
 import { useMessage } from '@/hooks/web/useMessage'
 const message = useMessage() // 消息弹窗
-const { delView } = useTagsViewStore() // 视图操作
+// const { delView } = useTagsViewStore() // 视图操作
 const { push, currentRoute } = useRouter() // 路由
 
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
@@ -123,7 +123,7 @@ const submitForm = async () => {
     await LeaveApi.createLeave(data)
     message.success(t('发起成功'))
     // 关闭当前 Tab
-    delView(unref(currentRoute))
+    // delView(unref(currentRoute))
     await push({ name: 'BpmOALeave' })
   } finally {
     formLoading.value = false

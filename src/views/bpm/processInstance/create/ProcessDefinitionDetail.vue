@@ -75,7 +75,7 @@ import ProcessInstanceBpmnViewer from '../detail/ProcessInstanceBpmnViewer.vue'
 import ProcessInstanceSimpleViewer from '../detail/ProcessInstanceSimpleViewer.vue'
 import ProcessInstanceTimeline from '../detail/ProcessInstanceTimeline.vue'
 import type { ApiAttrs } from '@form-create/element-ui/types/config'
-import { useTagsViewStore } from '@/store/modules/tagsView'
+// import { useTagsViewStore } from '@/store/modules/tagsView'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import * as DefinitionApi from '@/api/bpm/definition'
 import { ApprovalNodeInfo } from '@/api/bpm/processInstance'
@@ -90,7 +90,7 @@ const emit = defineEmits(['cancel'])
 const processInstanceStartLoading = ref(false) // 流程实例发起中
 const { push, currentRoute } = useRouter() // 路由
 const message = useMessage() // 消息弹窗
-const { delView } = useTagsViewStore() // 视图操作
+// const { delView } = useTagsViewStore() // 视图操作
 
 const detailForm: any = ref({
   rule: [],
@@ -263,7 +263,7 @@ const submitForm = async () => {
     // 提示
     message.success(t('发起流程成功'))
     // 跳转回去
-    delView(unref(currentRoute))
+    // delView(unref(currentRoute))
     await push({
       name: 'BpmProcessInstanceMy',
     })
