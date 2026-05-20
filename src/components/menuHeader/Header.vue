@@ -16,6 +16,7 @@ import {
 } from '@ant-design/icons-vue'
 import type { FunctionalComponent } from 'vue'
 import { computed, createVNode, ref } from 'vue'
+import dayjs from 'dayjs'
 import _ from 'lodash-es'
 import { useRoute, useRouter } from 'vue-router'
 import type { MenuProps } from 'ant-design-vue'
@@ -40,6 +41,7 @@ import { AdminApiSystemLanguage } from '@/api/tags/管理后台多语言'
 import { removeWatermark } from '@/utils/watermark'
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台'
+import { TASK_KIND_LABEL, type WorkbenchTaskKind } from '@/views/workbench/data'
 
 defineOptions({
   /** 多根节点时父级传入的 class（如 ml-auto）不会合并，须单根承接 $attrs */
@@ -53,7 +55,16 @@ const userNum = ref<number>(1)
 const badgeNum = ref<number>()
 const router = useRouter()
 const route = useRoute()
-const taskMessage = ref<{ showString: string }[]>([])
+interface TaskMessageItem {
+  id: string
+  messageType: string
+  content: string
+  publishTime: string
+  publisher: string
+  raw: Record<string, unknown>
+}
+
+const taskMessage = ref<TaskMessageItem[]>([])
 const langtype = localStorage.getItem('wei-language') || navigator.language
 const LoginMethod = localStorage.getItem('Login-method') || ''
 const onLineNum = ref<number>();
@@ -299,13 +310,72 @@ onMounted(() => {
 // onBeforeUnmount(() => {
 //   clearInterval(timer.value);
 // });
-function goPage(item: any) {
-  console.log(item, 'item')
+function goPage(item: TaskMessageItem) {
+  console.log(item.raw, 'item')
 }
-function formatWorkbenchBellLine(row: Record<string, unknown>): string {
-  const title = row.title != null && String(row.title).trim() !== '' ? String(row.title) : '待办'
-  const kind = row.taskType != null && String(row.taskType).trim() !== '' ? String(row.taskType) : ''
-  return kind ? `${title}（${kind}）` : title
+
+function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
+  const raw = String(v ?? '').trim()
+  const s = raw.toLowerCase().replace(/-/g, '_')
+  if (s === 'wbs' || s === 'standalone' || s === 'compute' || s === 'other')
+    return s as WorkbenchTaskKind
+  if (s === 'standalone_app')
+    return 'standalone'
+  return 'other'
+}
+
+function pickNonEmptyDisplay(raw: unknown): string | undefined {
+  const s = String(raw ?? '').trim()
+  return s === '' ? undefined : s
+}
+
+function formatMessageType(row: Record<string, unknown>): string {
+  const kind = normalizeTaskKindFromApi(row.taskKind ?? row.cardKind)
+  const kindLabel = TASK_KIND_LABEL[kind] ?? TASK_KIND_LABEL.other
+  const sub = String(row.taskType ?? '')
+    .trim()
+    .replace(/^类型[:：\s]*/u, '')
+    .trim()
+  return sub ? `${kindLabel} · ${sub}` : kindLabel
+}
+
+function formatMessageContent(row: Record<string, unknown>): string {
+  const title = String(row.title ?? '').trim()
+  const projectName = pickNonEmptyDisplay(row.projectName ?? row.project_name)
+  const appName = pickNonEmptyDisplay(row.appName ?? row.app_name)
+  const kind = normalizeTaskKindFromApi(row.taskKind ?? row.cardKind)
+  if (!title)
+    return '—'
+  if (kind === 'wbs' && projectName)
+    return `${title}（${projectName}）`
+  if ((kind === 'standalone' || kind === 'compute') && appName)
+    return `${title}（${appName}）`
+  return title
+}
+
+function formatMessagePublishTime(row: Record<string, unknown>): string {
+  const raw = row.createTime ?? row.create_time ?? row.pushTime ?? row.push_time
+  if (raw == null || String(raw).trim() === '')
+    return '—'
+  const d = dayjs(raw as string)
+  return d.isValid() ? d.format('YYYY-MM-DD HH:mm') : String(raw)
+}
+
+function formatMessagePublisher(row: Record<string, unknown>): string {
+  const name = row.creatorName ?? row.creator_name ?? row.publisherName ?? row.publisher_name
+  const s = String(name ?? '').trim()
+  return s || '—'
+}
+
+function mapRowToTaskMessage(row: Record<string, unknown>): TaskMessageItem {
+  return {
+    id: row.id != null ? String(row.id) : '',
+    messageType: formatMessageType(row),
+    content: formatMessageContent(row),
+    publishTime: formatMessagePublishTime(row),
+    publisher: formatMessagePublisher(row),
+    raw: row,
+  }
 }
 
 /**
@@ -341,7 +411,7 @@ async function getTaskMessageList(type: boolean = false) {
       const pageData = pageRes?.data?.data as { list?: Record<string, unknown>[] } | undefined
       const list = pageData?.list
       if ((pCode === 0 || pCode === 200) && Array.isArray(list))
-        taskMessage.value = list.map(row => ({ showString: formatWorkbenchBellLine(row) }))
+        taskMessage.value = list.map(row => mapRowToTaskMessage(row))
       else
         taskMessage.value = []
     }
@@ -439,14 +509,30 @@ function showOnLineUser() {
   <a-drawer
       title="消息提醒"
       placement="right"
+      :width="400"
       :closable="false"
       :visible="isTaskMessage"
       @close="isTaskMessage = false">
       <div class="message-wrap">
-        <p v-for="(item, index) in taskMessage" :key="index" class="mes-list" size="small" @click="goPage(item)">
-          {{ item.showString }}
-        </p>
-        <a-divider v-if="taskMessage.length > 0" />
+        <a-empty v-if="taskMessage.length === 0" description="暂无消息" />
+        <div
+          v-for="(item, index) in taskMessage"
+          :key="item.id || index"
+          class="message-card"
+          @click="goPage(item)">
+          <div class="message-card__head">
+            <a-tag color="processing" class="message-card__type">
+              {{ item.messageType }}
+            </a-tag>
+          </div>
+          <div class="message-card__content" :title="item.content">
+            {{ item.content }}
+          </div>
+          <div class="message-card__meta">
+            <span class="message-card__time">{{ item.publishTime }}</span>
+            <span class="message-card__publisher">{{ item.publisher }}</span>
+          </div>
+        </div>
       </div>
     </a-drawer>
   <!-- 弹窗显示在线用户列表-->
@@ -723,5 +809,79 @@ function showOnLineUser() {
 
 :deep(.ant-layout-header) {
   line-height: normal !important;
+}
+
+.message-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message-card {
+  padding: 12px 14px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: #91caff;
+    box-shadow: 0 2px 8px rgba(22, 93, 255, 0.08);
+  }
+}
+
+.message-card__head {
+  margin-bottom: 8px;
+}
+
+.message-card__type {
+  margin: 0;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.message-card__content {
+  color: #313133;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.message-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f5f5f5;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.message-card__time {
+  flex-shrink: 0;
+}
+
+.message-card__publisher {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-card__publisher::before {
+  content: '发布人：';
+  color: #bfbfbf;
 }
 </style>

@@ -78,9 +78,9 @@ const paletteGroups = [
   {
     title: '基础组件',
     items: [
+      { label: '标题', type: 'TITLE' },
       { label: '单行输入', type: 'INPUT' },
       { label: '多行输入', type: 'TEXTAREA' },
-      { label: '标题', type: 'TITLE' },
       { label: '下拉选项', type: 'SELECT' },
       { label: '可编辑下拉', type: 'AUTO_COMPLETE' },
       { label: '单选项', type: 'RADIO' },

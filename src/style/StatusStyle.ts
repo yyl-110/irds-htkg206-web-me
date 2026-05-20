@@ -70,10 +70,10 @@ export function getStatusStyle(status: string) {
     case '驳回': //驳回
       styles.color = '#cd7517';
       break;
-    case '待启动': //待启动
+    case '未开始': //待启动
       styles.color = '#b4b4b4';
       break;
-    case '工作中': //工作中
+    case '进行中': //进行中
       styles.color = '#cd7517';
       break;
     case '正在工作': //正在工作

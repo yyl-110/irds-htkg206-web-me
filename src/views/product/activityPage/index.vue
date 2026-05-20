@@ -1279,10 +1279,11 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                         <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
                           <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
                         </a-popconfirm>
-                        <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
                         <a @click.stop.prevent="handlePageConfigClick(record)">
-                          {{ String(record.pageType) === '3' ? $t('配置参数') : $t('配置页面') }}
+                          {{ String(record.pageType) === '3' ? $t('参数配置') : $t('页面配置') }}
                         </a>
+                        <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
+                        
                       </template>
                       <a v-if="canRowShare(record)" @click.stop.prevent="openDesignShareModal(record)">{{ $t('共享') }}</a>
                     </div>

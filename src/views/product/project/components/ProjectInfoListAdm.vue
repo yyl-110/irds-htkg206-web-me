@@ -373,8 +373,8 @@ defineExpose({ getResourcesByParent });
           <a-form-item name="projectStatus">
             <a-select v-model:value="requestParams.projectStatus" allow-clear style="width: 220px" :placeholder="$t('请选择项目类型')">
               <a-select-option value="">{{ $t('全部') }}</a-select-option>
-              <a-select-option value="1">{{ $t('待启动') }}</a-select-option>
-              <a-select-option value="2">{{ $t('工作中') }}</a-select-option>
+              <a-select-option value="1">{{ $t('未开始') }}</a-select-option>
+              <a-select-option value="2">{{ $t('进行中') }}</a-select-option>
               <a-select-option value="3">{{ $t('已完成') }}</a-select-option>
             </a-select>
           </a-form-item>

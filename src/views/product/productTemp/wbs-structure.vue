@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { TableColumnsType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
-import { CaretDownOutlined, CaretRightOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretRightOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
+import FlowView from '@/components/flowview/indexManager.vue';
 
 const { t } = useI18n();
 
@@ -34,7 +36,7 @@ export type WbsRow = {
   type?: number | null;
   /** 任务层级（根据树深度计算） */
   planLevel: string;
-  /** 是否必选项（接口字段 requiredFlag: 0|1） */
+  /** 是否可裁剪（接口字段 requiredFlag: 0|1） */
   required: boolean;
   /** 关联任务流程展示文本 */
   taskFlow: string;
@@ -111,9 +113,14 @@ function assignDefaultTaskFlow(rows: WbsRow[]): void {
 
 // ─── 辅助函数 ───────────────────────────────────────────────
 
-/** 是否显示任务下拉（taskList 非空且有选项时才显示） */
+/** 是否有关联任务可选（taskList 非空且有选项） */
 function isTaskFlowDropdownRow(row: WbsRow): boolean {
   return Array.isArray(row.taskOptions) && row.taskOptions.length > 0;
+}
+
+/** 多个任务选项时需展示「浏览」按钮供用户切换 */
+function isTaskFlowMultiOptionRow(row: WbsRow): boolean {
+  return Array.isArray(row.taskOptions) && row.taskOptions.length > 1;
 }
 
 function taskFlowLabelFromSelectValue(value: string | undefined, row: WbsRow): string {
@@ -157,6 +164,163 @@ function syncTaskFlowLabel(rows: WbsRow[]): void {
 
 function onTaskFlowSelectChange(record: WbsRow) {
   record.taskFlow = taskFlowLabelFromSelectValue(record.taskFlowSelectValue, record);
+}
+
+type TaskFlowPickerTableRow = {
+  key: string;
+  taskId: string;
+  taskName: string;
+};
+
+const taskFlowPickerVisible = ref(false);
+const taskFlowPickerRecord = ref<WbsRow | null>(null);
+const taskFlowPickerValue = ref<string | undefined>(undefined);
+const taskFlowPickerPreviewingId = ref<string | null>(null);
+
+const taskFlowPickerColumns = computed<TableColumnsType<TaskFlowPickerTableRow>>(() => [
+  { title: t('任务名称'), dataIndex: 'taskName', key: 'taskName', ellipsis: true },
+  { title: t('操作'), key: 'operation', width: 88, align: 'center' },
+]);
+
+const taskFlowPickerTableData = computed<TaskFlowPickerTableRow[]>(() => {
+  const record = taskFlowPickerRecord.value;
+  if (!record) return [];
+  return (record._rawTaskList ?? []).map((tk) => ({
+    key: String(tk.taskId),
+    taskId: String(tk.taskId),
+    taskName: tk.taskName,
+  }));
+});
+
+const taskFlowPickerTitle = computed(() => {
+  const nodeName = taskFlowPickerRecord.value?.nodeName?.trim();
+  if (!nodeName) return t('选择关联任务流程');
+  return `${t('选择关联任务流程')} - ${nodeName}`;
+});
+
+const taskFlowPickerRowSelection = computed(() => ({
+  type: 'radio' as const,
+  selectedRowKeys: taskFlowPickerValue.value ? [taskFlowPickerValue.value] : [],
+  onChange: (keys: (string | number)[]) => {
+    taskFlowPickerValue.value = keys.length ? String(keys[0]) : undefined;
+  },
+}));
+
+const flowViewVisible = ref(false);
+const flowViewData = ref<{ xmlData?: string }>({});
+
+function openTaskFlowPicker(record: WbsRow) {
+  taskFlowPickerRecord.value = record;
+  taskFlowPickerValue.value = record.taskFlowSelectValue ?? record.taskOptions[0]?.value;
+  taskFlowPickerVisible.value = true;
+}
+
+function onTaskFlowPickerOk() {
+  const record = taskFlowPickerRecord.value;
+  if (!record) {
+    taskFlowPickerVisible.value = false;
+    return;
+  }
+  if (!taskFlowPickerValue.value) {
+    message.warning(t('请选择关联任务流程'));
+    return;
+  }
+  record.taskFlowSelectValue = taskFlowPickerValue.value;
+  onTaskFlowSelectChange(record);
+  taskFlowPickerVisible.value = false;
+  taskFlowPickerRecord.value = null;
+}
+
+function onTaskFlowPickerCancel() {
+  taskFlowPickerVisible.value = false;
+  taskFlowPickerRecord.value = null;
+}
+
+function closeFlowView() {
+  flowViewVisible.value = false;
+  flowViewData.value = {};
+}
+
+function taskFlowPickerRowKey(r: TaskFlowPickerTableRow) {
+  return r.key;
+}
+
+function taskFlowPickerCustomRow(pickerRow: TaskFlowPickerTableRow) {
+  return {
+    class: taskFlowPickerValue.value === pickerRow.taskId ? 'wbs-taskflow-picker-row--selected' : '',
+    style: { cursor: 'pointer' },
+    onClick: (e: MouseEvent) => {
+      const el = e.target instanceof Element ? e.target : (e.target as Node).parentElement;
+      if (el?.closest('.wbs-ops__link')) return;
+      taskFlowPickerValue.value = pickerRow.taskId;
+    },
+  };
+}
+
+async function onTaskFlowPreview(taskId: string) {
+  if (!taskId || taskFlowPickerPreviewingId.value === taskId) return;
+  let hideLoading: (() => void) | undefined;
+  taskFlowPickerPreviewingId.value = taskId;
+  try {
+    hideLoading = message.loading(t('加载中...'), 0);
+    const res = await AdminApiSystemProcessTask.getXmlInfo({ id: taskId });
+    const xml = String(res?.data?.data?.bpmnXml ?? '').trim();
+    if (!xml) {
+      message.warning(t('暂无流程图数据'));
+      return;
+    }
+    flowViewData.value = { xmlData: xml };
+    flowViewVisible.value = true;
+  } catch {
+    message.error(t('获取流程图失败'));
+  } finally {
+    hideLoading?.();
+    taskFlowPickerPreviewingId.value = null;
+  }
+}
+
+/** 递归设置子树「是否可裁剪」 */
+function setRequiredOnDescendants(rows: WbsRow[], required: boolean): void {
+  for (const row of rows) {
+    row.required = required;
+    if (row.children?.length) setRequiredOnDescendants(row.children, required);
+  }
+}
+
+function findWbsRowById(rows: WbsRow[], id: string): WbsRow | null {
+  for (const row of rows) {
+    if (row.id === id) return row;
+    if (row.children?.length) {
+      const found = findWbsRowById(row.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function normalizeWbsParentId(parentId?: string): string | undefined {
+  const id = parentId?.trim();
+  if (!id || id === '0') return undefined;
+  return id;
+}
+
+/** 任一祖先为 OFF 时，子节点不可单独开启 */
+function isRequiredSwitchDisabled(record: WbsRow): boolean {
+  let parentId = normalizeWbsParentId(record.parentId);
+  while (parentId) {
+    const parent = findWbsRowById(tableData.value, parentId);
+    if (!parent) break;
+    if (!parent.required) return true;
+    parentId = normalizeWbsParentId(parent.parentId);
+  }
+  return false;
+}
+
+/** 父节点 OFF 时级联关闭全部子孙（v-model 已更新当前节点） */
+function onRequiredSwitchChange(record: WbsRow, checked: boolean): void {
+  if (!checked && record.children?.length) {
+    setRequiredOnDescendants(record.children, false);
+  }
 }
 
 function collectAllKeys(rows: WbsRow[]): string[] {
@@ -237,7 +401,8 @@ function wbsTableCustomRow(record: WbsRow) {
         el.closest('.wbs-ops__link') ||
         el.closest('.wbs-required-switch-wrap') ||
         el.closest('.ant-switch') ||
-        el.closest('.wbs-taskflow-select') ||
+        el.closest('.wbs-taskflow-cell') ||
+        el.closest('.wbs-taskflow-browse-btn') ||
         el.closest('.ant-select') ||
         el.closest('.ant-popconfirm') ||
         el.closest('button') ||
@@ -306,7 +471,7 @@ function createWbsColumns(): TableColumnsType<WbsRow> {
     { title: t('WBS编号'), dataIndex: 'wbsCode', key: 'wbsCode', width: 180, ellipsis: true, fixed: 'left', resizable: true },
     { title: t('节点名称'), dataIndex: 'nodeName', key: 'nodeName', width: 260, ellipsis: true, fixed: 'left', resizable: true },
     { title: t('任务层级'), dataIndex: 'planLevel', key: 'planLevel', width: 120, align: 'center', ellipsis: true, resizable: true },
-    { title: t('是否必选项'), dataIndex: 'required', key: 'required', width: 96, align: 'center', resizable: true },
+    { title: t('是否可裁剪'), dataIndex: 'required', key: 'required', width: 96, align: 'center', resizable: true },
     { title: t('关联任务流程'), dataIndex: 'taskFlow', key: 'taskFlow', width: 220, align: 'left', ellipsis: true, resizable: true },
     { title: t('操作'), key: 'operation', dataIndex: 'operation', width: 130, align: 'center', fixed: 'right', resizable: false },
   ];
@@ -423,7 +588,7 @@ function applySelectedByCheckedKeys(rows: WbsRow[], selectedKeys: Set<string>) {
   rows.forEach((row) => {
     row.selected = selectedKeys.has(row.id);
     if (row.selected) {
-      // 结构勾选阶段：默认“是否必选项”为是
+      // 结构勾选阶段：默认“是否可裁剪”为是
       row.required = true;
     }
     if (row.children?.length) {
@@ -656,22 +821,27 @@ onMounted(() => { fetchWbsTree(); });
             <span class="wbs-required-switch-wrap" @click.stop>
               <a-switch
                 v-model:checked="record.required"
+                :disabled="isRequiredSwitchDisabled(record)"
                 class="wbs-required-switch"
                 checked-children="ON"
                 un-checked-children="OFF"
+                @change="onRequiredSwitchChange(record, $event)"
               />
             </span>
           </template>
           <template v-else-if="column.key === 'taskFlow'">
-            <a-select
-              v-if="isTaskFlowDropdownRow(record)"
-              v-model:value="record.taskFlowSelectValue"
-              :options="record.taskOptions"
-              class="wbs-taskflow-select"
-              dropdown-class-name="wbs-taskflow-select-dropdown"
-              :placeholder="t('请选择')"
-              @change="() => onTaskFlowSelectChange(record)"
-              @click.stop />
+            <div v-if="isTaskFlowDropdownRow(record)" class="wbs-taskflow-cell" @click.stop>
+              <span class="wbs-taskflow-text" :title="record.taskFlow">{{ record.taskFlow }}</span>
+              <a-button
+                v-if="isTaskFlowMultiOptionRow(record)"
+                type="primary"
+                size="small"
+                class="wbs-taskflow-browse-btn"
+                @click.stop="openTaskFlowPicker(record)">
+                <template #icon><SearchOutlined /></template>
+                {{ $t('浏览') }}
+              </a-button>
+            </div>
             <span v-else class="wbs-taskflow-text">{{ record.taskFlow }}</span>
           </template>
           <template v-else-if="column.key === 'operation'">
@@ -716,6 +886,58 @@ onMounted(() => { fetchWbsTree(); });
           @update:checkedKeys="onStructureCheckedKeysChange"
         />
       </a-spin>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="taskFlowPickerVisible"
+      :title="taskFlowPickerTitle"
+      width="560px"
+      destroy-on-close
+      @cancel="onTaskFlowPickerCancel"
+    >
+      <div v-if="taskFlowPickerRecord" class="wbs-taskflow-picker">
+        <a-table
+          class="wbs-taskflow-picker-table"
+          :columns="taskFlowPickerColumns"
+          :data-source="taskFlowPickerTableData"
+          :row-key="taskFlowPickerRowKey"
+          :pagination="false"
+          bordered
+          size="small"
+          :custom-row="taskFlowPickerCustomRow"
+          :row-selection="taskFlowPickerRowSelection">
+          <template #bodyCell="{ column, record: pickerRow }">
+            <template v-if="column.key === 'operation'">
+              <a
+                class="wbs-ops__link"
+                :class="{ 'is-disabled': taskFlowPickerPreviewingId === pickerRow.taskId }"
+                @click.stop.prevent="onTaskFlowPreview(pickerRow.taskId)">
+                {{ $t('预览') }}
+              </a>
+            </template>
+          </template>
+        </a-table>
+      </div>
+      <template #footer>
+        <a-button type="primary" @click="onTaskFlowPickerOk">{{ $t('确定') }}</a-button>
+        <a-button @click="onTaskFlowPickerCancel">{{ $t('取消') }}</a-button>
+      </template>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="flowViewVisible"
+      :title="$t('流程图')"
+      :width="1000"
+      centered
+      destroy-on-close
+      :mask-closable="true"
+      @cancel="closeFlowView">
+      <div class="wbs-flow-view-wrap">
+        <FlowView :flow-data="flowViewData" />
+      </div>
+      <template #footer>
+        <a-button type="primary" @click="closeFlowView">{{ $t('关闭') }}</a-button>
+      </template>
     </a-modal>
   </div>
 </template>
@@ -853,8 +1075,10 @@ onMounted(() => { fetchWbsTree(); });
   }
 }
 
-/* 与表体单元格字号一致（由 .wbs-table 上 --wbs-table-cell-font-size 约束） */
-.wbs-taskflow-select {
+.wbs-taskflow-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -885,14 +1109,52 @@ onMounted(() => { fetchWbsTree(); });
 }
 
 .wbs-taskflow-text {
-  display: inline-block;
-  max-width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   font-size: var(--wbs-table-cell-font-size, 12px);
   line-height: var(--wbs-table-cell-line-height, 1.5);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  vertical-align: middle;
+}
+
+.wbs-taskflow-browse-btn {
+  flex: 0 0 auto;
+  font-size: 12px;
+  line-height: 18px;
+  height: 22px;
+  padding: 0 8px;
+}
+
+.wbs-taskflow-browse-btn :deep(.anticon) {
+  font-size: 12px;
+}
+
+.wbs-taskflow-picker-table {
+  :deep(.ant-table-thead > tr > th),
+  :deep(.ant-table-tbody > tr > td) {
+    font-size: 13px;
+  }
+
+  :deep(.ant-table-tbody > tr) {
+    cursor: pointer;
+  }
+
+  :deep(.ant-table-tbody > tr.wbs-taskflow-picker-row--selected > td) {
+    background: #e6f4ff;
+  }
+}
+
+.wbs-flow-view-wrap {
+  height: 560px;
+  min-height: 480px;
+  box-sizing: border-box;
+}
+
+.wbs-ops__link.is-disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .wbs-table :deep(.ant-table-row-expand-icon-cell),

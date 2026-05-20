@@ -110,6 +110,8 @@ export type WbsTaskNode = {
   __parent?: WbsTaskNode;
   /** 后端 wbsRowRemoved：1 表示任务行已删除占位（仍展示置灰） */
   wbsRowRemoved?: number;
+  /** 裁剪状态（接口字段 requiredFlag: 0|1，对应模板「是否可裁剪」） */
+  required: boolean;
 };
 
 /** 后端 task-param/list 单项（含上游同步提示） */
@@ -484,6 +486,7 @@ function mapApiNodeToWbs(
     manager: node?.adminUserid ? String(node.adminUserid) : '',
     managerUserId: node?.adminUserid ? String(node.adminUserid) : undefined,
     wbsRowRemoved: node?.wbsRowRemoved != null && Number(node.wbsRowRemoved) === 1 ? 1 : 0,
+    required: Number(node?.requiredFlag) === 1,
     children: undefined,
   };
   if (parentMapped) {
@@ -601,6 +604,7 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
       resizable: true,
       customRender: ({ record }) => computeTaskDurationDays(record) ?? record.durationWorkdays ?? '-',
     },
+    { title: '裁剪状态', dataIndex: 'required', key: 'tailoringStatus', width: 96, align: 'center', resizable: true },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
     { title: '状态', key: 'status', dataIndex: 'status', width: 90, align: 'center', resizable: true },
@@ -1256,6 +1260,8 @@ function wbsTableCustomRow(record: WbsTaskNode) {
         el.closest('.ant-table-row-expand-icon') ||
         el.closest('.task-wbs-ops-links') ||
         el.closest('.task-wbs-ops__link') ||
+        el.closest('.task-wbs-tailoring-switch-wrap') ||
+        el.closest('.ant-switch') ||
         el.closest('button') ||
         el.closest('a[href]') ||
         el.closest('.ant-picker') ||
@@ -2105,6 +2111,16 @@ watch(ganttCollapsed, () => {
                 @change="makeOnTaskEndChange(record)" />
             </div>
           </template>
+          <template v-else-if="column.key === 'tailoringStatus'">
+            <span class="task-wbs-tailoring-switch-wrap" @click.stop>
+              <a-switch
+                :checked="record.required"
+                disabled
+                class="task-wbs-tailoring-switch"
+                checked-children="ON"
+                un-checked-children="OFF" />
+            </span>
+          </template>
           <template v-else-if="column.key === 'resource'">
             <div class="task-wbs-responsible-cell">
               <span class="task-wbs-responsible-text" :title="record.resource">{{ record.resource }}</span>
@@ -2925,6 +2941,24 @@ watch(ganttCollapsed, () => {
 
 .task-wbs-node-kind--removed .task-wbs-node-kind__icon {
   color: #ff4d4f;
+}
+
+.task-wbs-tailoring-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.project-task-wbs-table .task-wbs-tailoring-switch:deep(.ant-switch-inner) {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.project-task-wbs-table .task-wbs-tailoring-switch:deep(.ant-switch-inner-checked),
+.project-task-wbs-table .task-wbs-tailoring-switch:deep(.ant-switch-inner-unchecked) {
+  font-size: 12px;
 }
 
 .task-wbs-status-cell {

@@ -152,7 +152,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'rowIndex',
     dataIndex: 'rowIndex',
     align: 'center',
-    width: 80,
+    width: 56,
     fixed: 'left',
     resizable: false,
     customRender: ({ index }) => {

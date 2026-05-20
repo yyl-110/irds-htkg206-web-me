@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import type { RouteRecord, RouteRecordRaw } from 'vue-router';
 import { useRoute, useRouter } from 'vue-router';
+import { useEventBus } from '@vueuse/core';
 import type { MenuClickEventHandler } from 'ant-design-vue/lib/menu/src/interface';
 import type { MenuProps } from 'ant-design-vue';
 import WeiLayoutSiderMenuItem from './components/WeiLayoutSiderMenuItem/index.vue';
@@ -9,9 +10,10 @@ import WeiLayoutSiderSubMenu from './components/WeiLayoutSiderSubMenu/index.vue'
 import appStore from '@/store';
 import { useProjectUiStore } from '@/store/modules/layout/projectUi';
 import { encryptValue } from '@/utils';
+import { RevealSiderMenuEventKey } from '@/utils/EventBus';
 import { generateRandomNumberByTime } from '@/utils/tools';
 type MenuRoute = RouteRecord | RouteRecordRaw;
-withDefaults(defineProps<{ collapsed: boolean; mode?: MenuProps['mode'] }>(), { mode: 'inline' });
+const props = withDefaults(defineProps<{ collapsed: boolean; mode?: MenuProps['mode'] }>(), { mode: 'inline' });
 
 const route = useRoute();
 const router = useRouter();
@@ -110,7 +112,10 @@ const selectedKeys = ref<string[]>([route.path]);
 const projectUi = useProjectUiStore();
 /** 菜单栏位置（项目配置优先，其次构建时环境变量） */
 const menuPosition = computed<'top' | 'left'>(() => projectUi.menuPositionForRoutes);
-const openKeys = ref<string[]>(['10']);
+const openKeys = ref<string[]>([]);
+
+/** 侧栏 inline 且折叠（仅图标 + 浮层子菜单） */
+const isInlineCollapsed = computed(() => props.mode === 'inline' && props.collapsed);
 
 /** 在菜单树中查找目标 path，返回需展开的父级 path（不含叶子自身） */
 function findMenuAncestorKeys(targetPath: string): string[] {
@@ -136,9 +141,8 @@ function findMenuAncestorKeys(targetPath: string): string[] {
   return result;
 }
 
-/** init menu state */
-function initMenuState() {
-  const r = route;
+/** 解析当前路由对应的菜单选中 path */
+function resolveSelectedPath(r = route) {
   let selectedPath = r.matched[r.matched.length - 1]?.path ?? r.path;
 
   const metaActiveMenu = r.meta?.activeMenu as string | undefined;
@@ -155,26 +159,57 @@ function initMenuState() {
     }
   }
 
+  return selectedPath;
+}
+
+/** 路由变化时同步菜单选中；侧栏展开时同步 openKeys，折叠时仅切换页面不弹出子菜单 */
+function initMenuState() {
+  const r = route;
+  const selectedPath = resolveSelectedPath(r);
+
   if (menuPosition.value === 'left') {
-    const useMenuHighlight =
-      !!metaActiveMenu || (r.name === 'ProductProjectEditor' && typeof r.query.activeMenu === 'string' && r.query.activeMenu.length > 0);
-    if (useMenuHighlight) {
-      openKeys.value = findMenuAncestorKeys(selectedPath);
+    if (isInlineCollapsed.value) {
+      openKeys.value = [];
     } else {
-      openKeys.value = r.matched.map(m => m.path);
+      const useMenuHighlight =
+        !!r.meta?.activeMenu ||
+        (r.name === 'ProductProjectEditor' && typeof r.query.activeMenu === 'string' && r.query.activeMenu.length > 0);
+      if (useMenuHighlight) {
+        openKeys.value = findMenuAncestorKeys(selectedPath);
+      } else {
+        openKeys.value = r.matched.map(m => m.path);
+      }
     }
   }
 
   selectedKeys.value = [selectedPath];
 }
 
+/** 折叠侧栏下，点击当前页签：展开该页二/三级目录浮层 */
+async function revealCollapsedMenu() {
+  if (!isInlineCollapsed.value) return;
+  const selectedPath = resolveSelectedPath();
+  selectedKeys.value = [selectedPath];
+  openKeys.value = [];
+  await nextTick();
+  openKeys.value = findMenuAncestorKeys(selectedPath);
+}
+
 initMenuState();
 
 watch(
   () =>
-    [route.path, route.fullPath, route.name, route.query.activeMenu, route.meta?.activeMenu, menuPosition.value] as const,
+    [route.path, route.fullPath, route.name, route.query.activeMenu, route.meta?.activeMenu, menuPosition.value, isInlineCollapsed.value] as const,
   () => initMenuState(),
 );
+
+watch(isInlineCollapsed, collapsed => {
+  if (collapsed) openKeys.value = [];
+  else initMenuState();
+});
+
+const revealSiderMenuBus = useEventBus(RevealSiderMenuEventKey);
+revealSiderMenuBus.on(() => revealCollapsedMenu());
 
 /**
  * menu 点击事件函数
@@ -198,7 +233,7 @@ const onClickMenuItem: MenuClickEventHandler = event => {
     v-model:open-keys="openKeys"
     v-model:selected-keys="selectedKeys"
     :mode="mode"
-    :inline-collapsed="mode === 'inline' && collapsed"
+    :inline-collapsed="isInlineCollapsed"
     @click="onClickMenuItem">
     <template v-for="(item, key) in menuRoutes" :key="key">
       <template v-if="isMenuRoute(item)">

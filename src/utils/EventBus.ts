@@ -11,3 +11,8 @@ export const CloseLayoutTabEventKey: EventBusKey<string> = Symbol('LayoutTab')
  * @description 参考: https://vueuse.org/core/useEventBus/#useeventbus
  */
 export const SetTabTitleEventKey: EventBusKey<string> = Symbol('SetTabTitle')
+
+/**
+ * 侧栏折叠时，点击当前已打开页签以展开二/三级菜单路径
+ */
+export const RevealSiderMenuEventKey: EventBusKey<string> = Symbol('RevealSiderMenu')

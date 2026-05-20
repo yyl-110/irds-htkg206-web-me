@@ -133,10 +133,10 @@ const delProject = () => {
   const hasActive = tableData.value.some(
     (item: any) =>
       selectedRowKeys.value.includes(item.projectId) &&
-      (item.status === "工作中" || item.status === "已完成")
+      (item.status === "进行中" || item.status === "已完成")
   );
   if (hasActive) {
-    message.error("工作中或已完成的项目，不可以删除");
+    message.error("进行中或已完成的项目，不可以删除");
     return;
   }
   Modal.confirm({
@@ -231,7 +231,7 @@ onMounted(() => {
           placeholder="请选择项目状态"
         >
           <a-select-option value="待启动">待启动</a-select-option>
-          <a-select-option value="工作中">工作中</a-select-option>
+          <a-select-option value="进行中">进行中</a-select-option>
           <a-select-option value="已完成">已完成</a-select-option>
         </a-select>
         <a-button type="primary" @click="fetchProductList"> 查询 </a-button>
@@ -257,9 +257,9 @@ onMounted(() => {
           <template v-if="column.key === 'status'">
             <span
               :class="{
-                sjz_style: record.status === '工作中',
+                sjz_style: record.status === '进行中',
                 ywc_style: record.status === '已完成',
-                dcl_style: record.status === '待启动',
+                dcl_style: record.status === '未开始',
               }"
               class="status"
               >{{ record.status }}</span

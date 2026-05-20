@@ -5,7 +5,7 @@ import useRouteCache from './useRouteCache';
 // import type { any } from '@/wei-components/WeiPageTabs/typings';
 import { WeiPageTabMenus } from '@/wei-components/WeiPageTabs/typings';
 import { router } from '@/router';
-import { CloseLayoutTabEventKey, SetTabTitleEventKey } from '@/utils/EventBus';
+import { CloseLayoutTabEventKey, RevealSiderMenuEventKey, SetTabTitleEventKey } from '@/utils/EventBus';
 
 // const route = useRoute()
 // const router = useRouter()
@@ -72,18 +72,20 @@ const { getTabNameByFullPath, removeCache, clearAll } = useRouteCache();
  * 点击tab
  * @param activeKey
  */
+const revealSiderMenuBus = useEventBus(RevealSiderMenuEventKey);
+
 function clickTab(activeKey: string | number) {
-  const tabIndex = tabs.value.findIndex(tab => tab.path === activeKey);
+  const key = String(activeKey);
+  const tab = tabs.value.find(t => t.tabKey === key || t.path === key);
+  if (!tab) return;
 
-  const tab = tabs.value[tabIndex];
-  if (tab.tabKey !== curTabKey.value) gotoTab(tab);
+  if (tab.tabKey !== curTabKey.value) {
+    gotoTab(tab);
+    return;
+  }
 
-  // if (!pane.index) return
-
-  // const tab = tabs.value[Number(pane.index)]
-  // if (tab.tabKey !== curTabKey.value) {
-  //   gotoTab(tab)
-  // }
+  /** 折叠侧栏：再次点击当前页签，展开该页所属二/三级菜单（路径由侧栏按当前路由解析） */
+  revealSiderMenuBus.emit('');
 }
 
 /**
