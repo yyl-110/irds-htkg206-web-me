@@ -22,7 +22,7 @@ const prefixCls = getPrefixCls('content-wrap')
 </script>
 
 <template>
-  <ElCard :body-style="bodyStyle" class="mb-15px" :class="[prefixCls]" shadow="never" style="height: 100%">
+  <ElCard :body-style="bodyStyle" class="mb-15px last:mb-0" :class="[prefixCls]" shadow="never">
     <template v-if="title" #header>
       <div class="flex items-center">
         <span class="text-13px font-700">{{ title }}</span>

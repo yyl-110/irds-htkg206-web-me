@@ -200,7 +200,7 @@ watch(
     <el-divider />
 
     <!-- 按照分类，展示其所属的模型列表 -->
-    <div v-loading="loading" class="px-15px -b-p position-relative min-h-200px">
+    <div v-loading="loading" class="px-15px position-relative min-h-200px">
       <draggable
         v-model="categoryGroup"
         :disabled="!isCategorySorting"
@@ -244,10 +244,5 @@ watch(
   .el-divider--horizontal {
     margin-top: 6px;
   }
-}
-
-.-b-p {
-  height: calc(100vh - 175px);
-  overflow: auto;
 }
 </style>

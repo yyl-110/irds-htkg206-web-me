@@ -43,7 +43,7 @@
     </el-form>
     <!-- 列表 -->
     <div class="pt-20px">
-      <el-table v-loading="loading" :data="list" height="calc(100vh - 300px)" style="width: 100%" border>
+      <el-table v-loading="loading" :data="list" style="width: 100%" border>
         <el-table-column align="center" :label="$t('流程名称')" prop="processInstance.name" width="180" />
         <el-table-column
           align="center"

@@ -74,7 +74,7 @@
     </el-form>
     <div class="pt-20px">
       <!-- 列表 -->
-      <el-table v-loading="loading" :data="list" height="calc(100vh - 300px)" style="width: 100%" border>
+      <el-table v-loading="loading" :data="list" style="width: 100%" border>
         <el-table-column
           label="主题"
           align="left"
