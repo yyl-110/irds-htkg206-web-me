@@ -93,7 +93,7 @@ import * as UserGroupApi from '@/api/bpm/userGroup'
 import * as UserApi from '@/api/system/user'
 import UserGroupForm from './UserGroupForm.vue'
 import { UserVO } from '@/api/system/user'
-
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 defineOptions({ name: 'BpmUserGroup' })
 import { useMessage } from '@/hooks/web/useMessage'
 const message = useMessage() // 消息弹窗
@@ -154,11 +154,16 @@ const handleDelete = async (id: number) => {
     await getList()
   } catch {}
 }
-
+const getDeptuseInfo = () => {
+const res = await AdminApiSystemDept.getDeptInfo({})
+if (res.data.code === 200) {
+  userList.value = res.data?.data?.adminUserResponseDTO || []
+}
+}
 /** 初始化 **/
 onMounted(async () => {
   await getList()
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  getDeptuseInfo()
 })
 </script>

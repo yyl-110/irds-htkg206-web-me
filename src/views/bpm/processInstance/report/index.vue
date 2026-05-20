@@ -118,6 +118,7 @@ import { parseFormFields } from '@/components/FormCreate/src/utils'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n() // 国际化
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 defineOptions({ name: 'BpmProcessInstanceReport' })
 import { useMessage } from '@/hooks/web/useMessage'
 const router = useRouter() // 路由
@@ -213,7 +214,12 @@ const handleCancel = async row => {
   // 刷新列表
   await getList()
 }
-
+const getDeptuseInfo = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    userList.value = res.data?.data?.adminUserResponseDTO || []
+  }
+}
 /** 初始化 **/
 onMounted(async () => {
   // 获取流程定义，用于 table column 的展示
@@ -221,6 +227,6 @@ onMounted(async () => {
   // 获取流程列表
   await getList()
   // 获取用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  getDeptuseInfo()
 })
 </script>

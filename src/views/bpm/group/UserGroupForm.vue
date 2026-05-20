@@ -31,7 +31,7 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { CommonStatusEnum } from '@/utils/constants'
 import * as UserGroupApi from '@/api/bpm/userGroup'
 import * as UserApi from '@/api/system/user'
-
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 defineOptions({ name: 'UserGroupForm' })
 import { useMessage } from '@/hooks/web/useMessage'
 const { t } = useI18n() // 国际化
@@ -56,7 +56,12 @@ const formRules = reactive({
 })
 const formRef = ref() // 表单 Ref
 const userList = ref<any[]>([]) // 用户列表
-
+const getDeptuseInfo = () => {
+const res = await AdminApiSystemDept.getDeptInfo({})
+if (res.data.code === 200) {
+  userList.value = res.data?.data?.adminUserResponseDTO || []
+}
+}
 /** 打开弹窗 */
 const open = async (type: string, id?: number) => {
   dialogVisible.value = true
@@ -73,7 +78,7 @@ const open = async (type: string, id?: number) => {
     }
   }
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  getDeptuseInfo()
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 

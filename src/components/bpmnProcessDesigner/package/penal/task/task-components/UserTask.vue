@@ -714,7 +714,6 @@ onMounted(async () => {
   // 获得岗位列表
   // postOptions.value = await PostApi.getSimplePostList()
   // 获得用户列表
-  // const resp3 = await UserApi.getSimpleUserList()
   // userOptions.value = (resp3 as any).data?.data || []
   // 获得用户组列表
   // userGroupOptions.value = await UserGroupApi.getUserGroupSimpleList()

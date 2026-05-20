@@ -13,7 +13,7 @@ import * as UserApi from '@/api/system/user'
 import * as UserGroupApi from '@/api/bpm/userGroup'
 import { BpmModelFormType } from '@/utils/constants'
 import { useMessage } from '@/hooks/web/useMessage'
-
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 defineOptions({
   name: 'SimpleProcessDesigner',
 })
@@ -101,8 +101,7 @@ async function saveSimpleFlowModel(simpleModelNode: SimpleFlowNode) {
     processData.value = simpleModelNode
 
     emits('success', simpleModelNode)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('保存失败:', error)
   }
 }
@@ -127,13 +126,13 @@ function validateNode(node: SimpleFlowNode | undefined, errorNodes: SimpleFlowNo
     }
 
     if (
-      type == NodeType.CONDITION_BRANCH_NODE
-      || type == NodeType.PARALLEL_BRANCH_NODE
-      || type == NodeType.INCLUSIVE_BRANCH_NODE
+      type == NodeType.CONDITION_BRANCH_NODE ||
+      type == NodeType.PARALLEL_BRANCH_NODE ||
+      type == NodeType.INCLUSIVE_BRANCH_NODE
     ) {
       // 分支节点
       // 1. 先校验各个分支()
-      conditionNodes?.forEach((item) => {
+      conditionNodes?.forEach(item => {
         validateNode(item, errorNodes)
       })
       // 2. 校验孩子节点
@@ -141,7 +140,12 @@ function validateNode(node: SimpleFlowNode | undefined, errorNodes: SimpleFlowNo
     }
   }
 }
-
+const getDeptuseInfo = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    userOptions.value = res.data?.data?.adminUserResponseDTO || []
+  }
+}
 onMounted(async () => {
   try {
     loading.value = true
@@ -161,7 +165,7 @@ onMounted(async () => {
     // 获得岗位列表
     // postOptions.value = await PostApi.getSimplePostList()
     // 获得用户列表
-    userOptions.value = await UserApi.getSimpleUserList()
+    getDeptuseInfo()
     // 获得部门列表
     // deptOptions.value = await DeptApi.getSimpleDeptList()
     // deptTreeOptions.value = handleTree(deptOptions.value as DeptApi.DeptVO[], 'id')
@@ -170,12 +174,10 @@ onMounted(async () => {
     // 加载流程数据
     if (processData.value) {
       processNodeTree.value = processData?.value
-    }
-    else {
+    } else {
       updateModel()
     }
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 })
@@ -190,19 +192,14 @@ const simpleProcessModelRef = ref()
       ref="simpleProcessModelRef"
       :flow-node="processNodeTree"
       :readonly="false"
-      @save="saveSimpleFlowModel"
-    />
+      @save="saveSimpleFlowModel" />
     <Dialog v-model="errorDialogVisible" title="保存失败" width="400" :fullscreen="false">
-      <div class="mb-2">
-        以下节点内容不完善，请修改后保存
-      </div>
+      <div class="mb-2">以下节点内容不完善，请修改后保存</div>
       <div v-for="(item, index) in errorNodes" :key="index" class="mb-3 b-rounded-1 bg-gray-100 p-2 line-height-normal">
         {{ item.name }} : {{ NODE_DEFAULT_TEXT.get(item.type) }}
       </div>
       <template #footer>
-        <el-button type="primary" @click="errorDialogVisible = false">
-          知道了
-        </el-button>
+        <el-button type="primary" @click="errorDialogVisible = false"> 知道了 </el-button>
       </template>
     </Dialog>
   </div>

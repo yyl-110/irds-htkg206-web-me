@@ -222,7 +222,7 @@ import ProcessStatusSelector from './components/ProcessStatusSelector.vue'
 // import rejectSvg from '@/assets/svgs/bpm/reject.svg'
 // import cancelSvg from '@/assets/svgs/bpm/cancel.svg'
 defineOptions({ name: 'BpmProcessInstanceDetail' })
-
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 const props = defineProps<{
   id: string
   taskId?: string
@@ -647,7 +647,12 @@ watch(activeTab, newVal => {
     }, 50)
   }
 })
-
+const getDeptuseInfo = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    userOptions.value = res.data?.data?.adminUserResponseDTO || []
+  }
+}
 onMounted(async () => {
   if (props.orderInstance) {
     orderRedType.value = props.orderInstance?.operationType === 1 ? false : true
@@ -689,7 +694,7 @@ onMounted(async () => {
 
   loadingFlag.value = false
   refresh()
-  userOptions.value = await UserApi.getSimpleUserList()
+  getDeptuseInfo()
 })
 </script>
 

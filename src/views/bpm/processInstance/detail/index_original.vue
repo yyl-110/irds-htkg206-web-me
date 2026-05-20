@@ -505,6 +505,7 @@ import approveSvg from '@/assets/svgs/bpm/approve.svg'
 import rejectSvg from '@/assets/svgs/bpm/reject.svg'
 import cancelSvg from '@/assets/svgs/bpm/cancel.svg'
 import { useI18n } from 'vue-i18n'
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 const { t } = useI18n() // 国际化
 defineOptions({ name: 'BpmProcessInstanceDetail' })
 const props = defineProps<{
@@ -1198,7 +1199,12 @@ const handleUserSelectConfirm = (_, users: UserVO[]) => {
 }
 
 const toTaskId = ref<any>('')
-
+const getDeptuseInfo = () => {
+const res = await AdminApiSystemDept.getDeptInfo({})
+if (res.data.code === 200) {
+  userOptions.value = res.data?.data?.adminUserResponseDTO || []
+}
+}
 /** 初始化 */
 const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 onMounted(async () => {
@@ -1219,7 +1225,7 @@ onMounted(async () => {
   loadingFlag.value = false
   getDetail()
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+  getDeptuseInfo()
 })
 </script>
 
