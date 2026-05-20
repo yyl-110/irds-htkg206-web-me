@@ -89,7 +89,7 @@ import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import { CategoryApi, CategoryVO } from '@/api/bpm/category'
 import ProcessDefinitionDetail from './ProcessDefinitionDetail.vue'
 import { groupBy } from 'lodash-es'
-import { subString } from '@/utils/index'
+import { subString } from '@/utils/formCreate'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n() // 国际化
 defineOptions({ name: 'BpmProcessInstanceCreate' })
