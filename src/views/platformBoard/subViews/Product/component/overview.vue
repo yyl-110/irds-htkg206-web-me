@@ -1,5 +1,5 @@
 <template>
-  <div style="width: 86%; height: 100%">
+  <div class="overviewChart" :style="{ width: chartWidth, height: '100%' }">
     <v-chart :option="chartOption" class="chart" />
   </div>
 </template>
@@ -12,12 +12,15 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  chartWidth: {
+    type: String,
+    default: "86%",
+  },
 });
 
 const chartOption = ref({});
 const initChart = () => {
   if (!props.data || !props.data.length) return;
-  console.log("props.data", props.data.map((item) => item.nodeName));
   let chartData = {
     color: "0,205,151",
     yAxisData: props.data.map((item) => item.nodeName),
@@ -129,8 +132,13 @@ watch(
   () => props.data,
   () => {
     initChart();
-  }
+  },
+  { deep: true, immediate: true },
 );
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.overviewChart {
+  min-width: 0;
+}
+</style>
