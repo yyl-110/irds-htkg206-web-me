@@ -56,11 +56,11 @@ const formRules = reactive({
 })
 const formRef = ref() // 表单 Ref
 const userList = ref<any[]>([]) // 用户列表
-const getDeptuseInfo = () => {
-const res = await AdminApiSystemDept.getDeptInfo({})
-if (res.data.code === 200) {
-  userList.value = res.data?.data?.adminUserResponseDTO || []
-}
+const getDeptuseInfo = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    userList.value = res.data?.data?.adminUserResponseDTO || []
+  }
 }
 /** 打开弹窗 */
 const open = async (type: string, id?: number) => {

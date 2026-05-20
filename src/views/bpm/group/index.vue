@@ -154,11 +154,11 @@ const handleDelete = async (id: number) => {
     await getList()
   } catch {}
 }
-const getDeptuseInfo = () => {
-const res = await AdminApiSystemDept.getDeptInfo({})
-if (res.data.code === 200) {
-  userList.value = res.data?.data?.adminUserResponseDTO || []
-}
+const getDeptuseInfo = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    userList.value = res.data?.data?.adminUserResponseDTO || []
+  }
 }
 /** 初始化 **/
 onMounted(async () => {
