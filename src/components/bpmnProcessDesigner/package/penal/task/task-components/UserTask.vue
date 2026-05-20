@@ -184,7 +184,6 @@ import {
   FieldPermissionType,
   MULTI_LEVEL_DEPT,
 } from '@/components/SimpleProcessDesignerV2/src/consts'
-import { defaultProps } from '@/utils/bpmTools'
 import * as RoleApi from '@/api/system/role'
 // import * as DeptApi from '@/api/system/dept'
 // import * as PostApi from '@/api/system/post'
@@ -197,6 +196,7 @@ import { useFormFieldsPermission } from '@/components/SimpleProcessDesignerV2/sr
 import { UserVO } from '@/api/system/user'
 import { XButton, XTextButton } from '@/components/XButton'
 // import { getUserById, findPaginationByUsers, findPagination } from '@/api/system-manage/user/index'
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 defineOptions({ name: 'UserTask' })
 const props = defineProps({
   id: String,
@@ -209,9 +209,16 @@ const userTaskForm = ref({
   skipExpression: '', // 跳过表达式
 })
 const bpmnElement = ref()
+const defaultProps = {
+  children: 'children',
+  label: 'name',
+  value: 'id',
+  isLeaf: 'leaf',
+  emitPath: false, // 用于 cascader 组件：在选中节点改变时，是否返回由该节点所在的各级菜单的值所组成的数组，若设置 false，则只返回该节点的值
+}
 const bpmnInstances = () => (window as any)?.bpmnInstances
 
-const roleOptions = ref<RoleApi.RoleVO[]>([]) // 角色列表
+const roleOptions = ref<[]>([]) // 角色列表
 const deptTreeOptions = ref() // 部门树
 const postOptions = ref<[]>([]) // 岗位列表
 const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
@@ -696,15 +703,17 @@ watch(
 
 onMounted(async () => {
   // 获得角色列表
-  // const resp1 = await RoleApi.getSimpleRoleList()
-  // roleOptions.value = (resp1 as any).data || []
-  // // 获得部门列表
-  // const resp2 = await DeptApi.getSimpleDeptList()
-  // const deptOptions = (resp2 as any).data || []
-  // deptTreeOptions.value = handleTree(deptOptions, 'id')
-  // // 获得岗位列表
-  // // postOptions.value = await PostApi.getSimplePostList()
-  // // 获得用户列表
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    deptTreeOptions.value = res.data?.data?.adminDeptResponseDTO || []
+    roleOptions.value = res.data?.data?.adminUserResponseDTO || []
+  } else {
+    deptTreeOptions.value = []
+    roleOptions.value = []
+  }
+  // 获得岗位列表
+  // postOptions.value = await PostApi.getSimplePostList()
+  // 获得用户列表
   // const resp3 = await UserApi.getSimpleUserList()
   // userOptions.value = (resp3 as any).data?.data || []
   // 获得用户组列表

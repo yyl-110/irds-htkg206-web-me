@@ -336,6 +336,18 @@ export const routes: RouteRecordRaw[] = [
         }),
       },
       {
+        path: 'manager/definition',
+        component: () => import('@/views/bpm/model/definition/index.vue'),
+        name: 'BpmProcessDefinition',
+        meta: {
+          noCache: true,
+          hidden: true,
+          canTo: true,
+          title: '流程历史',
+          activeMenu: '/bpm/manager/category',
+        },
+      },
+      {
         path: 'process-instance/report',
         component: () => import('@/views/bpm/processInstance/report/index.vue'),
         name: 'BpmProcessInstanceReport',
@@ -348,18 +360,6 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       // ------------------------
-      {
-        path: 'manager/definition',
-        component: () => import('@/views/bpm/model/definition/index.vue'),
-        name: 'BpmProcessDefinition',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '流程历史',
-          activeMenu: '/bpm/manager/category',
-        },
-      },
       {
         path: 'manager/user-group',
         component: () => import('@/views/bpm/group/index.vue'),

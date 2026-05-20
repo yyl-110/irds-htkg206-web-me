@@ -3,11 +3,11 @@
     <el-table v-loading="loading" :data="list">
       <el-table-column :label="$t('定义编号')" align="center" prop="id" min-width="250" />
       <el-table-column :label="$t('流程名称')" align="center" prop="name" min-width="150" />
-      <el-table-column :label="$t('流程图标')" align="center" min-width="50">
+      <!-- <el-table-column :label="$t('流程图标')" align="center" min-width="50">
         <template #default="{ row }">
           <el-image v-if="row.icon" :src="row.icon" class="h-24px w-24pxrounded" />
         </template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column :label="$t('可见范围')" prop="startUserIds" min-width="100">
         <template #default="{ row }">
           <el-text v-if="!row.startUsers?.length"> {{ $t('全部可见') }} </el-text>
@@ -19,8 +19,7 @@
               class="box-item"
               effect="dark"
               placement="top"
-              :content="row.startUsers.map((user: any) => user.nickname).join('、')"
-            >
+              :content="row.startUsers.map((user: any) => user.nickname).join('、')">
               {{ row.startUsers[0].nickname }}{{ $t('等') }} {{ row.startUsers.length }}
               {{ $t('人可见') }}
             </el-tooltip>
@@ -38,16 +37,14 @@
             v-if="scope.row.formType === BpmModelFormType.NORMAL"
             type="primary"
             link
-            @click="handleFormDetail(scope.row)"
-          >
+            @click="handleFormDetail(scope.row)">
             <span>{{ scope.row.formName }}</span>
           </el-button>
           <el-button
             v-else-if="scope.row.formType === BpmModelFormType.CUSTOM"
             type="primary"
             link
-            @click="handleFormDetail(scope.row)"
-          >
+            @click="handleFormDetail(scope.row)">
             <span>{{ scope.row.formCustomCreatePath }}</span>
           </el-button>
           <label v-else>{{ $t('暂无表单') }}</label>
@@ -63,15 +60,10 @@
         align="center"
         prop="deploymentTime"
         width="180"
-        :formatter="dateFormatter"
-      />
+        :formatter="dateFormatter" />
       <el-table-column :label="$t('操作')" align="center">
         <template #default="scope">
-          <el-button
-            link
-            type="primary"
-            @click="openModelForm(scope.row.id)"
-          >
+          <el-button link type="primary" @click="openModelForm(scope.row.id)">
             {{ $t('恢复') }}
           </el-button>
         </template>
@@ -82,8 +74,7 @@
       :total="total"
       v-model:page="queryParams.pageIndex"
       v-model:limit="queryParams.pageRows"
-      @pagination="getList"
-    />
+      @pagination="getList" />
   </ContentWrap>
 
   <!-- 弹窗：表单详情 -->
@@ -112,8 +103,8 @@ const queryParams = reactive({
   pageIndex: 1,
   pageRows: 10,
   params: {
-    key: query.key
-  }
+    key: query.key,
+  },
 })
 
 // {
@@ -132,9 +123,11 @@ const queryParams = reactive({
 const getList = async () => {
   loading.value = true
   try {
-    const data = await DefinitionApi.getProcessDefinitionPage(queryParams)
-    list.value = data.data
-    total.value = data.count
+    const res = await DefinitionApi.getProcessDefinitionPage(queryParams)
+    if (res.data.code === 200) {
+      list.value = res.data.data.data
+      total.value = res.data.data.count
+    }
   } finally {
     loading.value = false
   }
@@ -144,7 +137,7 @@ const getList = async () => {
 const formDetailVisible = ref(false)
 const formDetailPreview = ref({
   rule: [],
-  option: {}
+  option: {},
 })
 const handleFormDetail = async (row: any) => {
   if (row.formType == BpmModelFormType.NORMAL) {
@@ -154,7 +147,7 @@ const handleFormDetail = async (row: any) => {
     formDetailVisible.value = true
   } else {
     await push({
-      path: row.formCustomCreatePath
+      path: row.formCustomCreatePath,
     })
   }
 }
@@ -163,7 +156,7 @@ const handleFormDetail = async (row: any) => {
 const openModelForm = async (id?: number) => {
   await push({
     name: 'BpmModelUpdate',
-    params: { id, type: 'definition' }
+    params: { id, type: 'definition' },
   })
 }
 
