@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { nextTick, onActivated, onMounted, reactive, ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import type { Dayjs } from 'dayjs';
@@ -63,6 +63,22 @@ const projectFormWrapperCol = { span: 18 };
 
 const projectId = ref<any>();
 
+/** 基本信息里项目编号：路由带 id 或已保存拿到主键后，禁止再请码（仅展示接口/库中编号） */
+const persistedProjectIdForBasicInfo = computed(() => {
+  const idRaw = route.query.id;
+  if (idRaw !== undefined && idRaw !== null && idRaw !== '') {
+    const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
+    const s = String(id).trim();
+    if (s) return s;
+  }
+  const p = projectId.value;
+  if (p !== undefined && p !== null && String(p).trim() !== '') return String(p).trim();
+  return undefined;
+});
+/** 供任务管理 Tab 立即判断创建人权限（避免子组件重复请求尚未返回时无操作按钮） */
+const projectCreatorForWbs = ref<string | undefined>();
+const projectCreatorNameForWbs = ref<string | undefined>();
+
 function disabledPlanStartDate(current: Dayjs) {
   if (!current) return false;
   return current.isBefore(dayjs(), 'day');
@@ -90,6 +106,8 @@ watch(
 
 function resetProjectForm() {
   projectFormTab.value = '1';
+  projectCreatorForWbs.value = undefined;
+  projectCreatorNameForWbs.value = undefined;
   projectForm.projectNum = '';
   projectForm.productPlatform = '';
   projectForm.projectName = '';
@@ -159,26 +177,62 @@ function goBack() {
   router.back();
 }
 
-onMounted(async () => {
-  resetProjectForm();
-  const id = route.query.id;
-  projectForm.productPlatform = route.query.categoryName as string;
-  projectForm.productPlatformId = route.query.categoryId as string;
-  if (!id) return;
+/** keep-alive 再次进入时不会执行 onMounted，须同步路由并拉取详情，否则任务管理拿不到 creator / WBS 权限异常 */
+async function applyRouteQueryAndLoadProject() {
+  const idRaw = route.query.id;
+  if (idRaw === undefined || idRaw === null || idRaw === '') return;
+  const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
   projectId.value = id;
-  const raw = sessionStorage.getItem(PROJECT_EDITOR_DRAFT_KEY);
-  if (!raw) return;
+  projectForm.productPlatform = (route.query.categoryName as string) ?? projectForm.productPlatform;
+  projectForm.productPlatformId = (route.query.categoryId as string) ?? projectForm.productPlatformId;
+  const tabQ = route.query.tab;
+  if (tabQ === '3' || tabQ === 3) {
+    projectFormTab.value = '3';
+  }
   try {
     await getProjectInfo();
   } catch {
     /* ignore */
   }
-  sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
+}
+
+/** 首次挂载会先 onMounted 再 onActivated，避免同一帧内重复请求项目详情 */
+const skipNextEditorActivatedLoad = ref(false);
+
+onMounted(async () => {
+  resetProjectForm();
+  projectForm.productPlatform = route.query.categoryName as string;
+  projectForm.productPlatformId = route.query.categoryId as string;
+  await applyRouteQueryAndLoadProject();
+  skipNextEditorActivatedLoad.value = true;
+  const raw = sessionStorage.getItem(PROJECT_EDITOR_DRAFT_KEY);
+  if (raw) sessionStorage.removeItem(PROJECT_EDITOR_DRAFT_KEY);
 });
+
+onActivated(() => {
+  if (skipNextEditorActivatedLoad.value) {
+    skipNextEditorActivatedLoad.value = false;
+    return;
+  }
+  void applyRouteQueryAndLoadProject();
+});
+
+watch(
+  () => route.query.id,
+  (n, o) => {
+    if (n !== o && n != null && n !== '') {
+      void applyRouteQueryAndLoadProject();
+    }
+  },
+);
 
 async function getProjectInfo() {
   const res = await AdminApiProjectTemp.getProjectInfoEditFile({ id: projectId.value });
-  const projectDto = res.data.data;
+  const projectDto = (res as any)?.data?.data ?? (res as any)?.data;
+  if (!projectDto) return;
+  projectCreatorForWbs.value =
+    projectDto.creator !== undefined && projectDto.creator !== null ? String(projectDto.creator) : undefined;
+  projectCreatorNameForWbs.value = projectDto.creatorName ?? undefined;
   projectForm.projectNum = projectDto.projectNum;
   projectForm.productPlatform = projectDto.productPlatform;
   projectForm.productPlatformId = projectDto.productPlatformId;
@@ -209,6 +263,7 @@ async function getProjectInfo() {
           <ProjectBasicInfoTab
             ref="basicInfoRef"
             :project-form="projectForm"
+            :persisted-project-id="persistedProjectIdForBasicInfo"
             :project-form-label-col="projectFormLabelCol"
             :project-form-wrapper-col="projectFormWrapperCol"
             :confidential-options="confidentialOptions"
@@ -221,7 +276,11 @@ async function getProjectInfo() {
         </a-tab-pane>
         <a-tab-pane v-if="projectId" key="3" :tab="$t('任务管理')" class="project-editor-tabs-pane--wbs">
           <div class="project-editor-tab-wbs">
-            <ProjectTaskWbsPanel v-if="projectFormTab === '3'" :project-id="projectId" />
+            <ProjectTaskWbsPanel
+              v-if="projectFormTab === '3'"
+              :project-id="projectId"
+              :project-creator-id="projectCreatorForWbs"
+              :project-creator-name="projectCreatorNameForWbs" />
           </div>
         </a-tab-pane>
       </a-tabs>
@@ -256,8 +315,8 @@ async function getProjectInfo() {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    /* 缩小 Tab 上方空白（相对 ant 默认 24px） */
-    padding-top: 8px;
+    /* 相对 ant 默认 24px，四周留白收紧，工作区更贴边 */
+    padding: 6px 10px 10px;
   }
 }
 
@@ -277,7 +336,7 @@ async function getProjectInfo() {
 
 .project-editor-tabs :deep(.ant-tabs-nav) {
   flex-shrink: 0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .project-editor-tabs :deep(.ant-tabs-content-holder) {
@@ -324,8 +383,8 @@ async function getProjectInfo() {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-top: 5px;
-  padding: 12px 16px 0;
+  margin-top: 4px;
+  padding: 8px 10px 0;
   background: #fff;
   border-top: 1px solid #f0f0f0;
   border-radius: 2px;

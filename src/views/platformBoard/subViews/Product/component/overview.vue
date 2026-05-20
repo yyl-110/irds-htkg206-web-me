@@ -4,8 +4,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
+<script setup>
 import * as echarts from "echarts";
 
 const props = defineProps({
@@ -17,6 +16,7 @@ const props = defineProps({
 
 const chartOption = ref({});
 const initChart = () => {
+  if (!props.data || !props.data.length) return;
   console.log("props.data", props.data.map((item) => item.nodeName));
   let chartData = {
     color: "0,205,151",

@@ -50,6 +50,45 @@ export class AdminApiSystemParameter {
       },
       CommonResultListDeptResponseDTOModel,
     );
+  
+  
+         /**
+   * 获得参数列表信息
+   *
+   * @tags 管理后台 - 参数
+   * @name getParameterInfoList
+   * @summary 获得参数信息
+   * @request /system-service/system/parameter-info/list
+   * @secure
+   */
+  static getParameterInfoList = <Req extends ParameterPageRequestDTOModel = ParameterPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-info/list`,
+        method: 'GET',
+        query: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 参数在活动页表单（component_param_codes）中的使用明细
+   *
+   * @request POST:/system-service/system/parameter-info/query-parameter-page-usage-detail
+   */
+  static getParameterPageUsageDetail = (body: { parameterId: number }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-info/query-parameter-page-usage-detail`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 
   /**
    * 获得参数单位信息
@@ -486,6 +525,9 @@ export class AdminApiSystemParameter {
       },
       CommonResultListDeptResponseDTOModel,
     );
+  
+  
+
   /**
    * 预览
    *

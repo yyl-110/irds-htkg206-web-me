@@ -30,27 +30,27 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     name: 'PlatformBoardDemand',
-    path: '/demand',
-    component: () => import('@/views/platformBoard/subViews/Demand/index.vue'),
-    meta: { hidden: true, title: '需求分析' },
+    path: '/boardModule',
+    component: () => import('@/views/platformBoard/subViews/Modularization/index.vue'),
+    meta: { hidden: true, title: '模块化看板' },
   },
   {
     name: 'PlatformBoardBase',
-    path: '/base',
+    path: '/boardBase',
     component: () => import('@/views/platformBoard/subViews/Base/index.vue'),
-    meta: { hidden: true, title: '基础数据' },
+    meta: { hidden: true, title: '基础资源看板' },
   },
   {
     name: 'PlatformBoardProduct',
-    path: '/product',
+    path: '/boardProduct',
     component: () => import('@/views/platformBoard/subViews/Product/index.vue'),
-    meta: { hidden: true, title: '产品定义' },
+    meta: { hidden: true, title: '产品设计看板' },
   },
   {
     name: 'PlatformBoardSystem',
-    path: '/system',
+    path: '/boardSystem',
     component: () => import('@/views/platformBoard/subViews/System/index.vue'),
-    meta: { hidden: true, title: '系统设置' },
+    meta: { hidden: true, title: '系统运行看板' },
   },
 
   {
@@ -253,11 +253,20 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'design-task-app-workspace',
         name: 'DesignTaskAppWorkspace',
-        component: () =>
-          import('@/views/product/designTaskApplication/components/components/process-flow-app-workspace.vue'),
+        component: () => import('@/views/product/workbench/AppDesignWorkspace.vue'),
         meta: {
           hidden: true,
           title: '设计任务应用页面',
+          noCache: true,
+        },
+      },
+      {
+        path: 'wbs-design-workspace',
+        name: 'WbsDesignWorkspace',
+        component: () => import('@/views/product/workbench/WbsDesignWorkspace.vue'),
+        meta: {
+          hidden: true,
+          title: 'WBS 协同设计',
           noCache: true,
         },
       },

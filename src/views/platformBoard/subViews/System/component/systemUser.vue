@@ -4,27 +4,33 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
+<script setup>
 import { getReportSystemLoginUser } from "@/api/data-screen";
 import * as echarts from "echarts";
 
-const chartData = ref([])
+const props = defineProps({
+  chartData: {
+    type: Number,
+    default: 0,
+  },
+})
+
+
 const chartOption = ref({});
 const initChart = () => {
-  let xData = chartData.value.map(item => item.userType);
+  let xData = props.chartData.map(item => item.userType);
   let seriesData = [
     {
       name: "总人数",
-      value: chartData.value.map(item => item.totalLogins),
+      value: props.chartData.map(item => item.totalLogins),
     },
     {
       name: "近一月访问人数",
-      value: chartData.value.map(item => item.lastMonthLogins),
+      value: props.chartData.map(item => item.lastMonthLogins),
     },
     {
       name: "近一周访问人数",
-      value: chartData.value.map(item => item.lastWeekLogins)
+      value: props.chartData.map(item => item.lastWeekLogins)
     },
   ];
   const colorList = [
@@ -141,22 +147,12 @@ const initChart = () => {
   };
 };
 
-const fetchData = async () => {
-  try {
-    const res = await getReportSystemLoginUser({})
-    if (res.code === '0') {
-      chartData.value = res.data
-      initChart();
-      console.log('res:', res.data)
-    }
-  } catch (error) {
-    console.log('error:', error)
+watch(
+  () => props.chartData,
+  () => {
+    initChart();
   }
-};
-
-onMounted(() => {
-  fetchData()
-});
+);
 </script>
 
 <style lang="less" scoped></style>

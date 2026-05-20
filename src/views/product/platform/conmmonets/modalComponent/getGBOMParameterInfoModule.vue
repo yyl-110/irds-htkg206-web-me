@@ -6,6 +6,7 @@ import { sortermethod } from '@/utils/tools';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { component } from 'vxe-pc-ui';
+import { renderTableEmptyText } from '@/utils/emptyState';
 export default defineComponent({
   name: 'selectBoomTree',
   props: {
@@ -65,10 +66,7 @@ export default defineComponent({
       cancelSort: WeiI18n.t('点击取消排序').value,
       triggerAsc: WeiI18n.t('点击升序').value,
       triggerDesc: WeiI18n.t('点击降序').value,
-      emptyText: h({
-        description: '数据为空',
-        style: { paddingBottom: '50px' },
-      }),
+      emptyText: renderTableEmptyText('数据为空'),
     });
 
     function moveDownGBOMParameterInfo(record: any) {

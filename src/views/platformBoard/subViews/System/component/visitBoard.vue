@@ -4,8 +4,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
+<script setup>
 import * as echarts from "echarts";
 import rank from "@/assets/data-screen/module/rank.png";
 import lightPoint from "@/assets/data-screen/common/lightPoint.png";
@@ -110,7 +109,7 @@ const initChart = () => {
           rich: {
             a: {
               width: 80,
-              fontSize: 20,
+              fontSize: 16,
               color: "#00F3FD",
               padding: [0, 10, 0, 0],
             },
@@ -121,7 +120,7 @@ const initChart = () => {
           },
           formatter: function (value, index) {
             const { name } = dataList[index];
-            return `{a|${value}人}{b|${name}}`;
+            return `{a|${value}人次}{b|${name}}`;
           },
         },
         data: dataList,

@@ -1,5 +1,8 @@
 import { message } from 'ant-design-vue';
 
+import { AdminApiSystemStatisticsLog } from '@/api/tags/StatisticsLogController';
+import { useUserStore } from '@/store/modules/user';
+
 const wsServer = 'ws://localhost:8080';
 
 /** 与 legacy webSocket.ts 一致：非 pdm 时拼到 ModelPath 前；可用 VITE_WS_MODEL_ROOT 覆盖 */
@@ -188,6 +191,21 @@ function getWsApiUserMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
+/** 模型库相关操作：异步上报统计日志（失败不影响主流程） */
+export function insertModelLibraryStatisticsLog(type: string, moduleDisplayName: string, modelNum: string): void {
+  const userStore = useUserStore();
+  const userId = userStore.getUser.id;
+  void AdminApiSystemStatisticsLog.statisticsLogInsert({
+    moduleName: moduleDisplayName,
+    moduleNum: modelNum,
+    userId: userId,
+    name: '模型库操作',
+    type,
+  }).catch((e: unknown) => {
+    console.warn('[webSocketNew] statistics-log/add 失败:', e);
+  });
+}
+
 /**
  * 将「首坐标系骨架参数」接口返回的 `Parameters` 按 `Name` 对齐到表格行的 `paraDictionaryName`，写入 `paraValue`（数值化）。
  * 仅当桥接业务成功（ReturnStatus 等为 0）且存在非空 `Parameters` 数组时返回新行数组；否则返回 `null`（与旧版 `changeParametersByModule` 失败分支一致，由调用方提示）。
@@ -259,6 +277,7 @@ export async function openModuleInfoNew(
 ): Promise<any> {
   try {
     const modelPath = buildOpenModelPath(modelNum, modelType);
+    insertModelLibraryStatisticsLog('打开模型', commonName, modelNum);
     /** 打开模型在客户端/桥接侧可能较慢；且部分桥接不回传 RequestId，依赖 onmessage 单在途回退 */
     const ret = await sendMessage(
       'ApiOpenModel',
@@ -298,6 +317,7 @@ export async function assembleModuleInfoNew(
 ): Promise<any> {
   try {
     const modelPath = buildOpenModelPath(modelNum, modelType);
+    insertModelLibraryStatisticsLog('装配模型', commonName, modelNum);
     const ret = await sendMessage(
       'ApiAssembleModelWithProeInterface',
       {
@@ -329,6 +349,7 @@ export async function assembleModuleInfoNew(
 export async function openDrawingInfoNew(modelNum: string): Promise<any> {
   try {
     const modelPath = buildOpenModelPath(modelNum, 'drw');
+    insertModelLibraryStatisticsLog('打开工程图', modelNum, modelNum);
     const ret = await sendMessage(
       'ApiOpenDrawing',
       { ModelPath: modelPath },

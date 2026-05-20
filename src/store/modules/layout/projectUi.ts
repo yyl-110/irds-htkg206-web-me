@@ -11,7 +11,7 @@ const THEME_SWATCHES: Record<WeiThemeKey, string> = {
   brand: '#165DFF',
   red: '#F53F3F',
   orange: '#FF8D1F',
-  gold: '#F7C034',
+  gold: '#232440',
   lime: '#9FDB1D',
   cyan: '#14C9C9',
   purple: '#722ED1',
@@ -23,6 +23,13 @@ const DEFAULT_HEADER_BG = '#ffffff';
 const DEFAULT_MENU_BG = '#1a3677';
 
 const VALID_THEME_KEYS = new Set<string>(Object.keys(THEME_SWATCHES));
+
+/** 旧版金盏花黄，迁移为藏青 #232440 */
+const LEGACY_GOLD_HEX = '#f7c034';
+
+function normalizeLegacyGoldHex(hex: string): string {
+  return hex.trim().toLowerCase() === LEGACY_GOLD_HEX ? THEME_SWATCHES.gold : hex;
+}
 
 /** 服务端 styleJson（字符串或对象）解析后的形状 */
 export type PageStylePayload = {
@@ -102,7 +109,16 @@ export const useProjectUiStore = defineStore('projectUi', {
       this.applyDomEffects();
     },
 
+    migrateLegacyGoldColors() {
+      const nextHeader = normalizeLegacyGoldHex(this.headerBg);
+      const nextMenu = normalizeLegacyGoldHex(this.menuBg);
+      if (nextHeader !== this.headerBg || nextMenu !== this.menuBg) {
+        this.$patch({ headerBg: nextHeader, menuBg: nextMenu });
+      }
+    },
+
     applyDomEffects() {
+      this.migrateLegacyGoldColors();
       const root = document.documentElement;
       WeiTheme.theme = this.systemThemeKey;
       WeiTheme.isDark.value = false;
@@ -190,8 +206,12 @@ export const useProjectUiStore = defineStore('projectUi', {
 
         this.$patch({
           systemThemeKey,
-          headerBg: typeof parsed.headerBg === 'string' ? parsed.headerBg : DEFAULT_HEADER_BG,
-          menuBg: typeof parsed.menuBg === 'string' ? parsed.menuBg : DEFAULT_MENU_BG,
+          headerBg:
+            typeof parsed.headerBg === 'string'
+              ? normalizeLegacyGoldHex(parsed.headerBg)
+              : DEFAULT_HEADER_BG,
+          menuBg:
+            typeof parsed.menuBg === 'string' ? normalizeLegacyGoldHex(parsed.menuBg) : DEFAULT_MENU_BG,
           menuCollapsePosition: collapse,
           showTabs: typeof parsed.showTabs === 'boolean' ? parsed.showTabs : true,
           grayscale: Boolean(parsed.grayscale),

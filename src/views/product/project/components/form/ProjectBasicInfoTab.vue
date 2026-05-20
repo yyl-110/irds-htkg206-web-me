@@ -5,6 +5,7 @@ import { message } from 'ant-design-vue';
 import { InboxOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 
@@ -17,6 +18,8 @@ type ProductTemplateRow = {
 
 const props = defineProps<{
   projectForm: Record<string, any>;
+  /** 路由或保存后已有项目主键：仅展示编号，不提供请码 */
+  persistedProjectId?: string;
   projectFormLabelCol: Record<string, any>;
   projectFormWrapperCol: Record<string, any>;
   confidentialOptions: Array<{ label: string; value: number }>;
@@ -24,6 +27,12 @@ const props = defineProps<{
   disabledPlanStartDate: (current: any) => boolean;
   disabledPlanEndDate: (current: any) => boolean;
 }>();
+
+const canRequestProjectNum = computed(
+  () => !props.persistedProjectId || String(props.persistedProjectId).trim() === '',
+);
+
+const projectNumApplyLoading = ref(false);
 
 const userStore = useUserStore();
 const projectFormRef = ref<FormInstance>();
@@ -198,6 +207,33 @@ async function validateForm() {
   await projectFormRef.value?.validate();
 }
 
+async function applyProjectSerialNum() {
+  if (!canRequestProjectNum.value) {
+    return;
+  }
+  projectNumApplyLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.nextNo({ ruleCode: 'project' });
+    const code = res?.data?.code as number | string | undefined;
+    const ok = code === 0 || code === 200 || code === '0' || code === '200';
+    if (!ok) {
+      message.error(String(res?.data?.msg ?? WeiI18n.$t('请码失败')));
+      return;
+    }
+    const nextVal = String(res?.data?.data ?? '').trim();
+    if (!nextVal) {
+      message.warning(WeiI18n.$t('未返回项目编号'));
+      return;
+    }
+    props.projectForm.projectNum = nextVal;
+    message.success(WeiI18n.$t('请码成功'));
+  } catch {
+    message.error(WeiI18n.$t('请码失败'));
+  } finally {
+    projectNumApplyLoading.value = false;
+  }
+}
+
 defineExpose({
   validateForm,
   getMaterialFileIds,
@@ -218,8 +254,23 @@ defineExpose({
     class="project-editor-form project-editor-form--uniform">
     <a-row :gutter="24">
       <a-col :span="12">
-        <a-form-item :label="$t('项目编号：')" name="projectNum" :rules="[{ required: true, message: $t('请输入项目编号') }]">
-          <a-input v-model:value="projectForm.projectNum" :placeholder="$t('请输入项目编号')" allow-clear />
+        <a-form-item
+          :label="$t('项目编号：')"
+          name="projectNum"
+          :rules="[{ required: true, message: $t('请点击请码申请项目编号') }]">
+          <div class="project-num-with-browse">
+            <a-input
+              v-model:value="projectForm.projectNum"
+              :placeholder="canRequestProjectNum ? $t('请点击请码申请项目编号') : $t('项目编号')"
+              disabled />
+            <a-button
+              v-if="canRequestProjectNum"
+              type="primary"
+              :loading="projectNumApplyLoading"
+              @click="applyProjectSerialNum">
+              {{ $t('请码') }}
+            </a-button>
+          </div>
         </a-form-item>
       </a-col>
       <a-col :span="12">

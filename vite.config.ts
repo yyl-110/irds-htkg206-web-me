@@ -114,6 +114,7 @@ export default defineConfig({
         // target: 'http://10.151.129.89:9328',
         // target: 'http://39.106.130.85:8082', // 知识中心接口
         // target: 'http://127.0.0.1:9327',
+        // target: 'http://10.18.220.48:9328',
         ws: false,
         changeOrigin: true,
         /**

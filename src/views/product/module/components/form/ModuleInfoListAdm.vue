@@ -115,7 +115,7 @@ defineExpose({ infoReload });
 .top-right-actions {
   position: absolute;
   top: 8px;
-  right: 12px;
+  right: 88px;
   z-index: 10;
 }
 </style>

@@ -17,7 +17,7 @@ export class AdminApiSystemStatisticsLog {
    * @tags statistics-log-controller
    * @name StatisticsLogInsert
    * @summary 添加统计日志
-   * @request POST:/admin-api/system/statistics-log/add
+   * @request POST:/business-service/business/system-biz-operate-log/create
    * @secure
    */
   static statisticsLogInsert = <
@@ -28,7 +28,7 @@ export class AdminApiSystemStatisticsLog {
   ) =>
     httpClient.request<CommonResultBooleanModel, any>(
       {
-        path: `/system-service/system/statistics-log/add`,
+        path: `/business-service/business/system-biz-operate-log/create`,
         method: "POST",
         body: data,
         secure: true,

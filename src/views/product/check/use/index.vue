@@ -6,6 +6,7 @@ import { LeftOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-v
 import dayjs from 'dayjs';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
+import { AdminApiSystemStatisticsLog } from '@/api/tags/StatisticsLogController';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { findNodeByIdFromKey } from '@/utils/tools';
 import { ParameterPageRequestDTOModel } from '@/api/models/parameter/ParameterPageRequestDTOModel';
@@ -98,7 +99,7 @@ function checkTypeLabel(item: any): string {
   return 'excel计算';
 }
 
-/** 编号、用途、分类、发布状态等，用于副标题与关键字搜索 */
+/** 编号、用途、分类等，用于副标题与关键字搜索 */
 function buildInfoLine(item: any): string {
   const parts: string[] = [];
   const num = pickFirstText(item, ['checkNum', 'parameterNum', 'checkCode', 'code']);
@@ -107,29 +108,23 @@ function buildInfoLine(item: any): string {
   if (useType) parts.push(useType);
   const tree = String(item?.treeName ?? item?.categoryName ?? '').trim();
   if (tree) parts.push(tree);
-  const st = item?.status;
-  if (st === 1 || st === '1') parts.push('已发布');
-  else if (st === 0 || st === '0') parts.push('未发布');
   const rem = String(item?.remarks ?? '').trim();
   if (rem) parts.push(rem.length > 36 ? `${rem.slice(0, 36)}…` : rem);
   return parts.join(' · ');
 }
 
-/** checkType：3 → (exe)，2 → (matlab)，其它 → (excel) */
-function appendCheckTypeSuffix(baseTitle: string, item: any): string {
-  const base = baseTitle.trim() || '--';
-  if (base === '--') return base;
-  if (/\((exe|matlab|excel)\)$/i.test(base)) return base;
-  const ct = Number(item?.checkType);
-  const tag = Number.isFinite(ct) && ct === 3 ? '(exe)' : Number.isFinite(ct) && ct === 2 ? '(matlab)' : '(excel)';
-  return `${base}${tag}`;
+/** 去掉标题末尾的 (exe)/(matlab)/(excel) 括号后缀，供展示与统计入库 */
+function stripCheckTypeParenSuffix(s: string): string {
+  const t = String(s ?? '').trim().replace(/\s*\((exe|matlab|excel)\)\s*$/i, '').trim();
+  return t;
 }
 
 function mapItemToCard(item: any, index: number): ChecklistCard {
   const rawTitle =
     String(item?.checkName ?? item?.checkTitle ?? item?.summarName ?? item?.applicationName ?? item?.parameterName ?? item?.calcName ?? item?.name ?? item?.title ?? '--').trim() ||
     '--';
-  const title = appendCheckTypeSuffix(rawTitle, item);
+  const stripped = stripCheckTypeParenSuffix(rawTitle);
+  const title = stripped !== '' ? stripped : rawTitle.trim() || '--';
   const authorText = pickFirstText(item, [
     'createName',
     'createUserName',
@@ -378,7 +373,31 @@ async function handleChangeSelectKey(searchValue: string) {
   treeData.value = treeNodes;
 }
 
+function statisticsLogTypeForCheckRaw(raw: Record<string, unknown>): 'exe' | 'excel' | 'matlab' {
+  const ct = Number(raw?.checkType);
+  if (Number.isFinite(ct) && ct === 3) return 'exe';
+  if (Number.isFinite(ct) && ct === 2) return 'matlab';
+  return 'excel';
+}
+
+/** 点击计算卡片：上报统计（失败不影响打开流程） */
+function insertCalculationCheckStatisticsLog(card: ChecklistCard): void {
+  const raw = card.raw as Record<string, unknown>;
+  const moduleNum = stripCheckTypeParenSuffix(card.title);
+  const type = statisticsLogTypeForCheckRaw(raw);
+  void AdminApiSystemStatisticsLog.statisticsLogInsert({
+    moduleName: moduleNum,
+    moduleNum,
+    userId: userStore.getUser.id,
+    name: '计算校核',
+    type,
+  }).catch((e: unknown) => {
+    console.warn('[check/use] statistics-log 失败:', e);
+  });
+}
+
 async function checkContentStart(card: ChecklistCard) {
+  insertCalculationCheckStatisticsLog(card);
   const raw = card.raw as Record<string, unknown>;
   const ct = Number(raw?.checkType);
   if (ct === 1 || raw?.checkType === '1') {

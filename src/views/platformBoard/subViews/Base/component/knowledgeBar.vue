@@ -4,9 +4,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
-import * as echarts from 'echarts';
+<script setup>
+import * as echarts from "echarts";
 
 const props = defineProps({
   chartData: {
@@ -17,33 +16,27 @@ const props = defineProps({
 const chartOption = ref({});
 
 const initChart = () => {
-  let typeList = ['数量'];
-  let Ydata = [],
-    seriesData = [];
-  let type = [[], []];
-  let maxCount = 0;
-  props.chartData.forEach(item => {
-    Ydata.push(item.nodeName);
-    type[1].push(item.progress);
-    type[0].push('0');
-    // 更新最大值
-    if (item.progress > maxCount) {
-      maxCount = item.progress;
-    }
-  });
-  // 计算所有堆叠柱之和的最大值
-  const maxBgValue = Math.max(...props.chartData.map(item => item.progress));
+  if (!props.chartData || props.chartData.length === 0) return;
 
-  // 背景柱数据都用这个最大值
+  let Ydata = [];
+  let barData = [];
+
+  props.chartData.forEach((item) => {
+    Ydata.push(item.nodeName);
+    barData.push(Number(item.cnt) || 0);
+  });
+
+  // 背景柱数据用最大值
+  const maxBgValue = Math.max(...barData);
   const maxBgArr = props.chartData.map(() => maxBgValue);
 
-  seriesData = [
+  const seriesData = [
+    // 背景柱
     {
-      type: 'bar',
-      barGap: '-100%',
+      type: "bar",
+      barGap: "-100%",
       barWidth: 14,
       xAxisIndex: 0,
-      // yAxisIndex: 1,
       z: 0,
       data: maxBgArr,
       tooltip: {
@@ -57,24 +50,18 @@ const initChart = () => {
       },
       label: {
         show: false,
-        color: '#fff',
-        position: 'right',
-        offset: [-100, 28], // 向右和向下偏移10像素
-        formatter: params => {
-          return `${params.name}${type[1][params.dataIndex]}`;
-        },
       },
     },
+    // 数据柱
     {
-      name: typeList[0],
-      type: 'bar',
-      stack: 'sum',
+      name: "数量",
+      type: "bar",
       barWidth: 14,
       itemStyle: {
         normal: {
           barBorderRadius: 20,
           color: {
-            type: 'linear',
+            type: "linear",
             x: 0,
             y: 0,
             x2: 1,
@@ -82,11 +69,11 @@ const initChart = () => {
             colorStops: [
               {
                 offset: 0,
-                color: '#00E0DB',
+                color: "#00E0DB",
               },
               {
                 offset: 1,
-                color: '#50EFB1',
+                color: "#50EFB1",
               },
             ],
           },
@@ -94,24 +81,24 @@ const initChart = () => {
       },
       label: {
         position: [0, 20],
-        color: '#fff',
-        align: 'left',
+        color: "#fff",
+        align: "left",
         show: true,
-        formatter: params => {
-          return `${params.name}${params.value}`;
+        formatter: (params) => {
+          return `${params.name}  ${params.value}`;
         },
       },
       z: 1,
-      data: type[1],
+      data: barData,
     },
   ];
 
   chartOption.value = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
         lineStyle: {
-          color: 'rgba(0, 255, 233,0)',
+          color: "rgba(0, 255, 233,0)",
         },
       },
     },
@@ -124,7 +111,7 @@ const initChart = () => {
     },
     xAxis: {
       show: false,
-      type: 'value',
+      type: "value",
       axisTick: {
         show: false,
       },
@@ -134,7 +121,8 @@ const initChart = () => {
     },
     yAxis: [
       {
-        type: 'category',
+        type: "category",
+        inverse: true,
         axisLine: {
           show: false,
         },
@@ -144,24 +132,9 @@ const initChart = () => {
         axisLabel: {
           show: false,
           fontSize: 16,
-          color: '#fff',
+          color: "#fff",
         },
         data: Ydata,
-      },
-      {
-        type: 'category',
-        axisLine: {
-          show: false,
-        },
-        axisTick: {
-          show: false,
-        },
-        axisLabel: {
-          show: false, // 显示右侧标签
-        },
-        data: Ydata,
-        position: 'right', // 设置位置为右侧
-        yAxisIndex: 1,
       },
     ],
     series: seriesData,

@@ -68,8 +68,8 @@ const columns = ref<TableColumnType<NoticeInfoRequestDTOModel>[]>([
   {
     title: WeiI18n.$t('操作'),
     dataIndex: 'operation',
-    align: 'left',
-    width: 300,
+    align: 'center',
+    width: 200,
     fixed: 'right',
     resizable: false,
   },
@@ -283,7 +283,7 @@ const locale = ref({
   triggerAsc: WeiI18n.t('点击升序').value,
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
-    description: '数据为空',
+    description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
 });

@@ -180,7 +180,7 @@ const exeConfigColumns = ref<TableColumnType<ExeConfigRecord>[]>([
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, ellipsis: true, resizable: true },
   { title: '编辑时间', dataIndex: 'updateTime', key: 'updateTime', align: 'center', width: 120, ellipsis: true, resizable: true },
   /** 固定右侧列不建议 resizable：拖拽手柄与 vc-table 测量宽度易与 sticky 错位，横向滚到尽头时操作列会抖/压盖前一列 */
-  { title: '操作', dataIndex: 'operation', key: 'operation', align: 'left', width: 200, fixed: 'right' },
+  { title: '操作', dataIndex: 'operation', key: 'operation', align: 'center', width: 200, fixed: 'right' },
 ]);
 
 function handleResizeColumn(w: number, col: TableColumnType<ExeConfigRecord>) {

@@ -227,8 +227,8 @@ onBeforeMount(() => {
               v-if="projectUi.showSider && !projectUi.collapseInHeader"
               class="sider-footer-collapse flex flex-shrink-0 justify-center border-t py-2">
               <a-button type="text" size="small" class="sider-collapse-bottom-btn" @click="collapsed = !collapsed">
-                <MenuFoldOutlined v-if="collapsed" class="text-base" />
-                <MenuUnfoldOutlined v-else class="text-base" />
+                <MenuUnfoldOutlined v-if="collapsed" class="text-base" />
+                <MenuFoldOutlined v-else class="text-base" />
               </a-button>
             </div>
           </aside>
@@ -243,8 +243,8 @@ onBeforeMount(() => {
               type="text"
               size="small"
               @click="collapsed = !collapsed">
-              <MenuFoldOutlined v-if="collapsed" class="text-base" />
-              <MenuUnfoldOutlined v-else class="text-base" />
+              <MenuUnfoldOutlined v-if="collapsed" class="text-base" />
+              <MenuFoldOutlined v-else class="text-base" />
             </a-button>
           </div>
           <div
@@ -257,24 +257,26 @@ onBeforeMount(() => {
         </a-layout-header>
         <!-- 页面标签栏 -->
         <WeiPageTabs v-if="!layoutStore.homepage && projectUi.showTabs" tab-style="card" />
+        <!-- 密级标志：独立零高图层，勿给 layout-container 加 position，以免干扰左侧抽屉定位 -->
+        <div class="workspace-miji-badge-layer" aria-hidden="true">
+          <img class="workspace-miji-badge" src="@/assets/images/miji-gk.png" alt="" />
+        </div>
         <!-- 页面容器 -->
         <a-layout-content
           class="layout-container"
           v-overlay-scrollbar
           :class="[
-            !layoutStore.homepage &&
-            (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor')
-              ? 'px-[16px] pb-[16px] pt-2 layout-container--white layout-container--editor-fill'
+            !layoutStore.homepage && route.name === 'ProductProjectEditor'
+              ? 'px-[8px] pb-[8px] pt-1 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
-                ? 'p-[16px] pt-[16px] pl-[11px]'
+                ? 'p-[16px]'
                 : '',
           ]">
           <div
             class="layout-router-host min-h-0 flex w-full min-w-0 flex-1 flex-col"
             :class="{
               'layout-router-host--fill':
-                !layoutStore.homepage &&
-                (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor'),
+                !layoutStore.homepage && (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor'),
             }">
             <pre style="display: none">{{ caches }}</pre>
             <router-view v-slot="{ Component, route }">
@@ -438,7 +440,7 @@ onBeforeMount(() => {
     }
     :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-item),
     :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title) {
-       // display: flex !important;
+      // display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       width: 100% !important;
@@ -446,13 +448,8 @@ onBeforeMount(() => {
       // padding: 0 !important;
     }
     :deep(
-      .ant-menu-inline-collapsed.ant-menu-root
-        > .ant-menu-item
-        .ant-menu-item-icon,
-      .ant-menu-inline-collapsed.ant-menu-root
-        > .ant-menu-submenu
-        > .ant-menu-submenu-title
-        .ant-menu-item-icon
+      .ant-menu-inline-collapsed.ant-menu-root > .ant-menu-item .ant-menu-item-icon,
+      .ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title .ant-menu-item-icon
     ) {
       position: static !important;
       margin: 0 !important;
@@ -482,10 +479,7 @@ onBeforeMount(() => {
       margin-inline: 0 !important;
     }
     :deep(
-      .ant-menu-inline-collapsed.ant-menu-root
-        > .ant-menu-submenu
-        > .ant-menu-submenu-title
-        .ant-menu-submenu-arrow
+      .ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow
     ) {
       display: none;
     }
@@ -572,6 +566,25 @@ onBeforeMount(() => {
   overflow-y: auto;
 }
 
+.workspace-miji-badge-layer {
+  position: relative;
+  flex: 0 0 0;
+  height: 0;
+  overflow: visible;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.workspace-miji-badge {
+  position: absolute;
+  top: 21px;
+  right: 22px;
+  height: 20px;
+  width: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
 /** 项目信息创建页：主内容区铺满白底，避免透出外层 #f3f2f7 灰边 */
 .layout-container.layout-container--white {
   background-color: #fff;
@@ -605,8 +618,10 @@ onBeforeMount(() => {
   background: #f3f2f7;
 }
 
-.ant-menu-inline, .ant-menu-vertical, .ant-menu-vertical-left {
-  border: none!important;
+.ant-menu-inline,
+.ant-menu-vertical,
+.ant-menu-vertical-left {
+  border: none !important;
 }
 
 /* 仅侧栏垂直菜单：底色与选中条随「菜单主题」变量（变量来自 .sider-column-wrap :style） */

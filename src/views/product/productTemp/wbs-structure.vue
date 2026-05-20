@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { TableColumnsType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
-import { FileOutlined, FolderOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { CaretDownOutlined, CaretRightOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
 
@@ -179,6 +179,22 @@ function collapseAllTableRows() {
   expandedRowKeys.value = [];
 }
 
+const isWbsTableFullyExpanded = computed(() => {
+  const all = collectAllKeys(tableData.value);
+  if (all.length === 0) return false;
+  if (expandedRowKeys.value.length !== all.length) return false;
+  const exp = new Set(expandedRowKeys.value);
+  return all.every((k) => exp.has(k));
+});
+
+function toggleWbsTableExpandAll() {
+  if (isWbsTableFullyExpanded.value) {
+    collapseAllTableRows();
+  } else {
+    expandAllTableRows();
+  }
+}
+
 function onTableExpand(expanded: boolean, record: WbsRow) {
   const key = record.id;
   const set = new Set(expandedRowKeys.value);
@@ -192,6 +208,48 @@ function onTableExpand(expanded: boolean, record: WbsRow) {
 
 function onTableExpandedRowsChange(keys: (string | number)[]) {
   expandedRowKeys.value = (keys || []).map((k) => String(k));
+}
+
+/** 与点击树形展开图标一致：切换 expandedRowKeys */
+function toggleWbsRowExpanded(record: WbsRow) {
+  if (!record.children?.length) return;
+  const id = record.id;
+  const keys = expandedRowKeys.value;
+  expandedRowKeys.value = keys.includes(id) ? keys.filter(k => k !== id) : [...keys, id];
+}
+
+function wbsTableCustomRow(record: WbsRow) {
+  const parts: string[] = [];
+  if (record.children?.length) {
+    parts.push('wbs-row--expandable');
+  }
+  return {
+    class: parts.join(' '),
+    onClick: (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      const raw = e.target;
+      const el = raw instanceof Element ? raw : (raw as Node).parentElement;
+      if (!el) return;
+      if (
+        el.closest('.wbs-expand-icon') ||
+        el.closest('.ant-table-row-expand-icon') ||
+        el.closest('.wbs-ops') ||
+        el.closest('.wbs-ops__link') ||
+        el.closest('.wbs-required-switch-wrap') ||
+        el.closest('.ant-switch') ||
+        el.closest('.wbs-taskflow-select') ||
+        el.closest('.ant-select') ||
+        el.closest('.ant-popconfirm') ||
+        el.closest('button') ||
+        el.closest('a[href]') ||
+        el.closest('input') ||
+        el.closest('textarea')
+      ) {
+        return;
+      }
+      toggleWbsRowExpanded(record);
+    },
+  };
 }
 
 function expandAllStructureTree() {
@@ -252,8 +310,20 @@ const scrollX = computed(() => columns.value.reduce((s, c) => s + (Number(c.widt
 
 function handleResizeColumn(w: number, col: { width?: number | string }) { col.width = w; }
 function wbsRowKey(r: WbsRow) { return r.id; }
-function isLeaf(record: WbsRow) { return !record.children?.length; }
-function toggleRequired(record: WbsRow) { record.required = !record.required; }
+
+/** axios 响应拦截器已对非成功业务码调用 WeiMessage；此处避免再弹一层 message.error。 */
+function notifyAxiosFailure(err: unknown, fallback: string) {
+  const e = err as { data?: { code?: number }; response?: { data?: { code?: number } }; message?: string };
+  const code = e?.data?.code ?? e?.response?.data?.code;
+  const interceptorAlreadyMessaged =
+    code !== undefined &&
+    code !== null &&
+    Number(code) !== 200 &&
+    Number(code) !== 0;
+  if (!interceptorAlreadyMessaged) {
+    message.error(e?.message || fallback);
+  }
+}
 
 // ─── API 调用 ───────────────────────────────────────────────
 
@@ -266,8 +336,8 @@ async function fetchWbsTree() {
     tableData.value = transformApiTree(apiTree);
     expandedRowKeys.value = collectAllKeys(tableData.value);
     pageMode.value = 'edit-saved';
-  } catch (err: any) {
-    message.error(err?.message || t('加载已保存WBS结构失败'));
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('加载已保存WBS结构失败'));
   } finally {
     loading.value = false;
   }
@@ -280,11 +350,13 @@ async function fetchAllWbsTree() {
     const res = await AdminApiProductTemp.getWbsAllTreeList({ tempId: tempId.value, menuId: 1 });
     const apiTree = res?.data?.data?.tree ?? res?.data?.tree ?? [];
     const allRows = transformApiTree(apiTree);
-    structureTreeRows.value = filterRowsByTaskCount(allRows);
+    // 展示裁剪已由后端 filterDesignTreeByTaskLeafData 完成；不可再用「本节点 taskCount」过滤：
+    // 分类节点 type=1 的 taskCount 恒为 0，会把顶层与其它父级整枝删掉，导致弹窗树空白。
+    structureTreeRows.value = allRows;
     structureExpandedKeys.value = collectAllKeys(structureTreeRows.value);
     checkedStructureKeys.value = collectSelectedKeys(structureTreeRows.value);
-  } catch (err: any) {
-    message.error(err?.message || t('加载全量WBS结构失败'));
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('加载全量WBS结构失败'));
   } finally {
     structureModalLoading.value = false;
   }
@@ -325,21 +397,6 @@ function collectSelectedKeys(rows: WbsRow[]): string[] {
     });
   };
   walk(rows);
-  return out;
-}
-
-function filterRowsByTaskCount(rows: WbsRow[]): WbsRow[] {
-  const out: WbsRow[] = [];
-  for (const row of rows) {
-    const children = row.children?.length ? filterRowsByTaskCount(row.children) : undefined;
-    if (Number(row.taskCount || 0) <= 0) {
-      continue;
-    }
-    out.push({
-      ...row,
-      children: children && children.length ? children : undefined,
-    });
-  }
   return out;
 }
 
@@ -400,8 +457,8 @@ async function onStructureModalOk() {
       await fetchWbsTree();
     }
     pageMode.value = 'edit-saved';
-  } catch (err: any) {
-    message.error(err?.message || WeiI18n.$t('结构保存失败'));
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, WeiI18n.$t('结构保存失败'));
   } finally {
     structureModalLoading.value = false;
   }
@@ -414,7 +471,9 @@ async function onDelete(record: WbsRow) {
     await AdminApiProductTemp.deleteWbsNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     message.success(`${t('删除成功')}：${record.nodeName}`);
     await fetchWbsTree();
-  } catch (err: any) { message.error(err?.message || t('删除失败')); }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('删除失败'));
+  }
 }
 
 function findSiblings(rows: WbsRow[], targetId: string): WbsRow[] | null {
@@ -445,7 +504,9 @@ async function onMoveUp(record: WbsRow) {
   try {
     await AdminApiProductTemp.moveUpNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     await fetchWbsTree();
-  } catch (err: any) { message.error(err?.message || t('上移失败')); }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('上移失败'));
+  }
 }
 
 async function onMoveDown(record: WbsRow) {
@@ -465,7 +526,9 @@ async function onMoveDown(record: WbsRow) {
   try {
     await AdminApiProductTemp.moveDownNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
     await fetchWbsTree();
-  } catch (err: any) { message.error(err?.message || t('下移失败')); }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, t('下移失败'));
+  }
 }
 
 function goBack() { router.back(); }
@@ -508,8 +571,9 @@ async function onSave() {
     } else {
       await fetchWbsTree();
     }
-  } catch (err: any) { message.error(err?.message || WeiI18n.$t('保存失败')); }
-  finally { saveLoading.value = false; }
+  } catch (err: unknown) {
+    notifyAxiosFailure(err, WeiI18n.$t('保存失败'));
+  } finally { saveLoading.value = false; }
 }
 
 onMounted(() => { fetchWbsTree(); });
@@ -526,8 +590,9 @@ onMounted(() => { fetchWbsTree(); });
             </template>
             {{ $t('新增（全量结构）') }}
           </a-button>
-          <a-button @click="expandAllTableRows">{{ $t('全展开') }}</a-button>
-          <a-button @click="collapseAllTableRows">{{ $t('全收起') }}</a-button>
+          <a-button @click="toggleWbsTableExpandAll">
+            {{ isWbsTableFullyExpanded ? $t('全收起') : $t('全展开') }}
+          </a-button>
         </div>
         <div class="wbs-top-bar__right">{{ t('模版名称') }}：{{ pageTitle }}</div>
       </div>
@@ -543,27 +608,36 @@ onMounted(() => { fetchWbsTree(); });
         :scroll="{ x: scrollX }"
         :expanded-row-keys="expandedRowKeys"
         :expand-icon-column-index="1"
+        :custom-row="wbsTableCustomRow"
         @expand="onTableExpand"
         @expandedRowsChange="onTableExpandedRowsChange"
         @resize-column="handleResizeColumn">
+        <template #expandIcon="{ expanded: isExpanded, record, onExpand: onExp }">
+          <span
+            v-if="record.children?.length"
+            class="wbs-expand-icon"
+            @click.stop="onExp(record, $event)">
+            <CaretDownOutlined v-if="isExpanded" />
+            <CaretRightOutlined v-else />
+          </span>
+          <span v-else class="wbs-expand-placeholder" />
+        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'wbsCode'">
-            <span class="wbs-code-cell">
-              <component :is="isLeaf(record) ? FileOutlined : FolderOutlined" class="wbs-code-cell__icon" />
-              <span>{{ record.wbsCode }}</span>
-            </span>
+            <span class="wbs-code-text">{{ record.wbsCode }}</span>
           </template>
           <template v-else-if="column.key === 'nodeName'">
             <span class="wbs-node-name-text" :title="record.nodeName">{{ record.nodeName }}</span>
           </template>
           <template v-else-if="column.key === 'required'">
-            <a-switch
-              :checked="record.required"
-              checked-children="ON"
-              un-checked-children="OFF"
-              @change="(val) => { record.required = !!val }"
-              @click.stop
-            />
+            <span class="wbs-required-switch-wrap" @click.stop>
+              <a-switch
+                v-model:checked="record.required"
+                class="wbs-required-switch"
+                checked-children="ON"
+                un-checked-children="OFF"
+              />
+            </span>
           </template>
           <template v-else-if="column.key === 'taskFlow'">
             <a-select
@@ -659,10 +733,15 @@ onMounted(() => { fetchWbsTree(); });
 .wbs-top-bar__right {
   flex: 1 1 200px;
   min-width: 0;
-  text-align: right;
+  margin-left: auto;
+  padding-right: 120px;
+  text-align: left;
   font-size: 15px;
   color: rgba(0, 0, 0, 0.88);
   line-height: 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wbs-footer-actions {
@@ -677,58 +756,172 @@ onMounted(() => { fetchWbsTree(); });
 }
 
 .wbs-table {
+  /* 本表统一 12px，含文字列与内嵌控件 */
+  --wbs-table-cell-font-size: 12px;
+  --wbs-table-cell-line-height: 1.5;
+  --wbs-table-row-height: 34px;
+
   :deep(.ant-table-thead > tr > th) {
     background: #fafafa;
+    font-size: var(--wbs-table-cell-font-size);
+    line-height: var(--wbs-table-cell-line-height);
+    height: var(--wbs-table-row-height);
+    max-height: var(--wbs-table-row-height);
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box;
+    vertical-align: middle;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    font-size: var(--wbs-table-cell-font-size);
+    line-height: var(--wbs-table-cell-line-height);
+    height: var(--wbs-table-row-height);
+    max-height: var(--wbs-table-row-height);
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box;
+    vertical-align: middle;
+  }
+
+  :deep(.ant-table-thead > tr) {
+    height: var(--wbs-table-row-height);
+  }
+
+  :deep(.ant-table-tbody > tr.ant-table-row) {
+    height: var(--wbs-table-row-height);
+  }
+
+  .wbs-required-switch:deep(.ant-switch-inner) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+    line-height: 18px;
+  }
+
+  .wbs-required-switch:deep(.ant-switch-inner-checked),
+  .wbs-required-switch:deep(.ant-switch-inner-unchecked) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select:not(.ant-select-customize-input) .ant-select-selector) {
+    min-height: 22px !important;
+    height: 22px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select-selection-item),
+  .wbs-taskflow-select:deep(.ant-select-selection-placeholder) {
+    line-height: 20px !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select-selector),
+  .wbs-taskflow-select:deep(.ant-select-selection-search-input) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+    line-height: var(--wbs-table-cell-line-height) !important;
+  }
+
+  .wbs-taskflow-select:deep(.ant-select-selection-item),
+  .wbs-taskflow-select:deep(.ant-select-selection-placeholder) {
+    font-size: var(--wbs-table-cell-font-size) !important;
+  }
+
+  .wbs-ops__link {
+    font-size: var(--wbs-table-cell-font-size);
   }
 }
 
-/* 与 ant-table 表体一致：14px（与 .ant-table-tbody 默认字号对齐） */
+/* 与表体单元格字号一致（由 .wbs-table 上 --wbs-table-cell-font-size 约束） */
 .wbs-taskflow-select {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  font-size: 14px;
+  font-size: var(--wbs-table-cell-font-size, 12px);
 }
 
 .wbs-taskflow-select :deep(.ant-select-selector) {
   display: flex !important;
   align-items: center !important;
-  font-size: 14px !important;
+  font-size: var(--wbs-table-cell-font-size, 12px) !important;
+  min-height: 22px !important;
+  height: 22px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .wbs-taskflow-select :deep(.ant-select-selection-item),
 .wbs-taskflow-select :deep(.ant-select-selection-placeholder) {
   display: flex !important;
   align-items: center !important;
-  font-size: 14px !important;
-  line-height: 1.5715 !important;
+  font-size: var(--wbs-table-cell-font-size, 12px) !important;
+  line-height: 20px !important;
 }
 
 .wbs-taskflow-select :deep(.ant-select-selection-search-input) {
-  font-size: 14px !important;
-  line-height: 1.5715 !important;
+  font-size: var(--wbs-table-cell-font-size, 12px) !important;
+  line-height: 20px !important;
 }
 
 .wbs-taskflow-text {
   display: inline-block;
   max-width: 100%;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: var(--wbs-table-cell-font-size, 12px);
+  line-height: var(--wbs-table-cell-line-height, 1.5);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
 }
 
-.wbs-code-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.wbs-table :deep(.ant-table-row-expand-icon-cell),
+.wbs-table :deep(.ant-table-expand-icon-col) {
+  width: 28px !important;
+  min-width: 28px !important;
+  padding-left: 4px !important;
+  padding-right: 0 !important;
 }
 
-.wbs-code-cell__icon {
-  color: #8c8c8c;
-  font-size: 14px;
+.wbs-table :deep(.ant-table-row-expand-icon) {
+  display: none !important;
+}
+
+.wbs-expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 10px;
+  vertical-align: middle;
+  transition: color 0.2s;
+}
+
+.wbs-expand-icon:hover {
+  color: #1677ff;
+}
+
+.wbs-expand-placeholder {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.wbs-code-text {
+  font-size: var(--wbs-table-cell-font-size, 12px);
+  line-height: var(--wbs-table-cell-line-height, 1.5);
+}
+
+.wbs-required-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.wbs-table :deep(tr.wbs-row--expandable) {
+  cursor: pointer;
 }
 
 
@@ -767,8 +960,8 @@ onMounted(() => { fetchWbsTree(); });
 }
 
 .wbs-taskflow-select-dropdown .ant-select-item-option-content {
-  font-size: 14px;
-  line-height: 1.5715;
+  font-size: 12px;
+  line-height: 1.5;
   display: flex;
   align-items: center;
 }

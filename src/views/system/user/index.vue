@@ -200,7 +200,7 @@ const tableLocale = ref({
   triggerAsc: WeiI18n.t('点击升序').value,
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
-    description: '数据为空',
+    description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
 });
@@ -665,10 +665,7 @@ async function exportData() {
         </template>
         <!-- 空数据插槽 -->
         <template #emptyText>
-          <div class="mx-auto pt-[40px] w-[235px] h-[235px]">
-            <img width="100%" height="auto" src="@/assets/images/empty.png" alt="暂无数据" />
-            <div>数据为空</div>
-          </div>
+          <a-empty description="数据为空" />
         </template>
       </a-table>
       <div class="user-page-pagination flex justify-end mt-[16px]">

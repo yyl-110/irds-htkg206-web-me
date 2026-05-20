@@ -69,7 +69,7 @@
   content: "\e6e8";
 }
 
-.icon-weiwangguanicon-defuben-:before {
+[class~="icon-weiwangguanicon-defuben-"]:before {
   content: "\e6e6";
 }
 
@@ -197,7 +197,7 @@
   content: "\e6bb";
 }
 
-.icon-kexuejishu-:before {
+[class~="icon-kexuejishu-"]:before {
   content: "\e99e";
 }
 
@@ -213,7 +213,7 @@
   content: "\e6bd";
 }
 
-.icon-chanpinsheji-:before {
+[class~="icon-chanpinsheji-"]:before {
   content: "\e6bf";
 }
 
@@ -565,11 +565,11 @@
   content: "\e682";
 }
 
-.icon-chilun--:before {
+[class~="icon-chilun--"]:before {
   content: "\e680";
 }
 
-.icon-tubiao-:before {
+[class~="icon-tubiao-"]:before {
   content: "\e67b";
 }
 
@@ -749,7 +749,7 @@
   content: "\e689";
 }
 
-.icon-bumen-:before {
+[class~="icon-bumen-"]:before {
   content: "\e637";
 }
 
@@ -993,7 +993,7 @@
   content: "\e6dc";
 }
 
-.icon-weibiaoti--:before {
+[class~="icon-weibiaoti--"]:before {
   content: "\e612";
 }
 

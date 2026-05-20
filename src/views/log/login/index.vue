@@ -105,7 +105,7 @@ const columns = ref<TableColumnType<LoginListRow>[]>([
     key: 'userIp',
     width: 280,
     resizable: true,
-    align: 'center',
+    align: 'left',
   },
   {
     title: WeiI18n.t('地址').value,
@@ -113,7 +113,7 @@ const columns = ref<TableColumnType<LoginListRow>[]>([
     key: 'ipRegion',
     width: 280,
     resizable: true,
-    align: 'center',
+    align: 'left',
   },
   {
     title: WeiI18n.t('用户登录时间').value,
@@ -163,7 +163,7 @@ const locale = ref({
   triggerAsc: WeiI18n.t('点击升序').value,
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
-    description: '数据为空',
+    description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
 });

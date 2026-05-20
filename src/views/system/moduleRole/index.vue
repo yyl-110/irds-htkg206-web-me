@@ -42,7 +42,7 @@ const authModel = ref<InstanceType<typeof AuthManagementData>>();
 const visibleRoleEditor = ref<boolean>(false);
 const leftLoading = ref<boolean>(false);
 interface GroupData {
-  id: number;
+  id: string | number;
   deptId?: number;
   name: string;
   nickname?: string;
@@ -56,7 +56,7 @@ const grpuVisible = ref<boolean>(false);
 const targetKeys = ref<string[]>();
 /** 当前操作的数据 */
 const editableData = ref<RolePOModel>();
-const targetKeys2 = ref<number[]>([]);
+const targetKeys2 = ref<string[]>([]);
 /** 用户组数据 */
 const groupData = ref<Array<GroupData>>([]);
 
@@ -119,7 +119,7 @@ const columns = ref<TableColumnType<RolePOModel>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'center',
-    width: 300,
+    width: 230,
     fixed: 'right',
   },
 ]);
@@ -271,11 +271,11 @@ function handleFinish() {
  * 删除资源
  * @param id id
  */
-async function handleDelete(id: number) {
+async function handleDelete(id: string | number) {
   // Modal.confirm({
   //   title: "`${$t('确定要删除吗')}?`",
   //   async onOk() {
-  await AdminApiSystemRole.deleteRole({ id });
+  await AdminApiSystemRole.deleteRole({ id: String(id) });
   message.success(WeiI18n.$t('删除成功'));
   handleFinish();
   //   },
@@ -382,7 +382,7 @@ async function handleAddUsers(record: any) {
     roleId: record.id,
   });
   currentRoleId.value = String(record.id);
-  targetKeys2.value = res.data.data?.flatMap(item => (item.id != null ? [Number(item.id)] : [])) ?? [];
+  targetKeys2.value = res.data.data?.flatMap(item => (item.id != null ? [String(item.id)] : [])) ?? [];
   record.loading_Management = false;
   grpuVisible.value = true;
   getUserSelectData();
@@ -406,25 +406,23 @@ const locale = ref({
   triggerAsc: WeiI18n.t('点击升序').value,
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: h(Empty, {
-    description: '数据为空',
+    description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
 });
 
 /** submit */
 async function handleResetOk() {
-  const rid = Number(currentRoleId.value);
-  if (!currentRoleId.value || !Number.isFinite(rid)) throw new Error('Missing role id');
-  const userIds: Array<number> = [];
+  const roleIdStr = currentRoleId.value?.trim();
+  if (!roleIdStr)
+    throw new Error('Missing role id');
+  const userIds = (targetKeys2.value ?? []).map(String);
   const deptIds: Array<number> = [];
-  targetKeys2.value?.forEach((item: any) => {
-    userIds.push(item);
-  });
-  const params: PermissionAssignUsersRoleRequestDTO = {
-    roleIds: [rid],
+  const params = {
+    roleIds: [roleIdStr],
     userIds,
     deptIds,
-  };
+  } as unknown as PermissionAssignUsersRoleRequestDTO;
   await AdminApiSystemPermission.assignUsersRole(params);
   WeiMessage.success(WeiI18n.$t('操作成功'));
   grpuVisible.value = false;
@@ -447,7 +445,7 @@ function transferItemRender(item: GroupData) {
 }
 
 function transferRowKey(item: GroupData) {
-  return item.id;
+  return String(item.id);
 }
 
 interface MockData {

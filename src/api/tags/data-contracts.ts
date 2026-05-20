@@ -672,6 +672,14 @@ export interface TenantPackageCreateRequestDTO {
 export interface StatisticsLogDTO {
   moduleName?: string;
   logType?: string;
+  /** 操作用户 ID，对应库表 user_id */
+  userId?: number;
+  /** 操作名，如「模型库操作」 */
+  name?: string;
+  /** 操作分类，如「打开模型」 */
+  type?: string;
+  /** 模块编号，对应库表 module_num */
+  moduleNum?: string;
 }
 
 /** 管理后台 - 角色更新 Request DTO */

@@ -10,19 +10,21 @@
           微服务
         </div>
         <div class="pieWrap">
-          <v-chart :option="getChartOption(chartData[item.key])" class="chart" />
+          <v-chart
+            :option="getChartOption(chartData[item.key])"
+            class="chart"
+          />
         </div>
-        <div class="num">{{ chartData[item.key] || '0%' }}</div>
+        <div class="num">{{ chartData[item.key] || "0%" }}</div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
-import * as echarts from 'echarts';
-import instrumentPie from './instrumentPie.vue';
-import scale from '@/assets/data-screen/base/scale.png';
+<script setup>
+import * as echarts from "echarts";
+import instrumentPie from "./instrumentPie.vue";
+import scale from "@/assets/data-screen/base/scale.png";
 
 const props = defineProps({
   chartData: {
@@ -31,10 +33,10 @@ const props = defineProps({
   },
 });
 const list = [
-  { name: '产品设计', key: 'designAvailableNum' },
-  { name: '需求管理', key: 'checkAvailableNum' },
-  { name: '产品规划', key: 'moduleAvailableNum' },
-  { name: '系统', key: 'checkAvailableNum' },
+  { name: "设计", key: "designAvailableNum" },
+  { name: "计算", key: "checkAvailableNum" },
+  { name: "模块", key: "moduleAvailableNum" },
+  { name: "系统", key: "checkAvailableNum" },
 ];
 
 const averageValue = computed(() => {
@@ -42,9 +44,9 @@ const averageValue = computed(() => {
 
   // 获取有效的百分比字符串值并转换为数字
   const validValues = list
-    .map(item => props.chartData[item.key])
-    .filter(val => val && typeof val === 'string' && val.endsWith('%'))
-    .map(val => parseFloat(val.replace('%', '')));
+    .map((item) => props.chartData[item.key])
+    .filter((val) => val && typeof val === "string" && val.endsWith("%"))
+    .map((val) => parseFloat(val.replace("%", "")));
 
   // 如果没有有效数据，返回默认值
   if (validValues.length === 0) return 0;
@@ -55,16 +57,16 @@ const averageValue = computed(() => {
   return Math.round(average);
 });
 
-const getChartOption = val => {
+const getChartOption = (val) => {
   const data = 15 || parseInt(val);
   return {
     legend: { show: false },
     graphic: [
       {
-        type: 'image',
-        id: 'bg',
-        left: 'center',
-        top: 'center',
+        type: "image",
+        id: "bg",
+        left: "center",
+        top: "center",
         style: {
           image: scale,
           width: 40, // ✅ 控制图片大小（根据你的饼图实际直径调整）
@@ -74,8 +76,8 @@ const getChartOption = val => {
       },
     ],
     grid: {
-      top: '0',
-      left: '0',
+      top: "0",
+      left: "0",
       containLabel: false,
     },
     xAxis: [
@@ -86,9 +88,9 @@ const getChartOption = val => {
     series: [
       {
         name: 1,
-        type: 'pie',
-        radius: ['70%', '85%'],
-        center: ['50%', '50%'],
+        type: "pie",
+        radius: ["70%", "85%"],
+        center: ["50%", "50%"],
         roundCap: true,
         label: {
           show: false,
@@ -105,15 +107,15 @@ const getChartOption = val => {
           {
             value: data,
             itemStyle: {
-              color: '#FA6400',
+              color: "#FA6400",
               borderRadius: 10, // ✅ 兼容旧版本的圆角
             },
           },
           {
             value: 100,
-            name: '',
+            name: "",
             itemStyle: {
-              color: '#000',
+              color: "#000",
               borderWidth: 0,
             },
             tooltip: {
@@ -150,7 +152,7 @@ const getChartOption = val => {
   .item {
     width: 192px;
     height: 52px;
-    background-image: url('@/assets/data-screen/base/itemBg.png');
+    background-image: url("@/assets/data-screen/base/itemBg.png");
     background-size: 100% 100%;
     background-repeat: no-repeat;
     margin-top: 16px;

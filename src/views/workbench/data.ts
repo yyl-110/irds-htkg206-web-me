@@ -1,5 +1,9 @@
+/** 工作台待办任务大类（与后端推送字段对齐时可单独增加枚举值） */
+export type WorkbenchTaskKind = 'wbs' | 'standalone' | 'compute' | 'other';
+
 export interface TaskItem {
-  id: number;
+  /** 与后端 Long 主键一致，可能为数字或字符串（防精度丢失） */
+  id: number | string;
   title: string;
   tags: string[];
   startTime: string;
@@ -8,25 +12,85 @@ export interface TaskItem {
   category: 'assign' | 'product' | 'app' | 'compute';
   status: 'todo' | 'done';
   scene: 'product' | 'app' | 'compute' | 'general';
+  /** 卡片样式与默认操作按钮集由此字段区分 */
+  taskKind: WorkbenchTaskKind;
   progress: number;
   delayDays?: number;
   remainDays?: number;
   creatorName: string;
   creatorAvatar: string;
+  /** 设计任务业务 id（用于应用列表、设计页 query） */
+  taskId?: number | string;
+  /** 项目 id（WBS 协同设计页 query） */
+  projectId?: number | string;
+  /** 独立应用 id，优先用于进入设计工作台 */
+  standaloneAppId?: number | string;
+  /** WBS 行 id（business_workbench_todo_card.project_wbs_id），已办协同任务发起变更用 */
+  projectWbsId?: number | string;
+  /** 「我已转办」列表：仅展示，不可操作任务 */
+  viewOnly?: boolean;
+  /** 当前承办人展示名（服务端回填 assigneeDisplayName） */
+  assigneeDisplayName?: string;
+  /** WBS：服务端回填 projectName，用于标题后缀「（项目名称）」 */
+  projectDisplayName?: string;
+  /** 独立应用/计算：服务端回填 appName，用于标题后缀「（应用名称）」 */
+  appDisplayName?: string;
+  /** 协同任务被驳回后，退回方可见的上一次驳回意见（服务端 lastRejectRemark） */
+  lastRejectRemark?: string;
+  /** 原始项目截止日期 ISO（用于前端兜底计算延期天数） */
+  projectEndDateRaw?: string;
+  /** 对应 WBS 行 publish_status（0/1）；协同任务未发布时应进任务管理而非协同设计 */
+  wbsPublishStatus?: number;
 }
 
+/** 类型展示名 */
+export const TASK_KIND_LABEL: Record<WorkbenchTaskKind, string> = {
+  wbs: 'WBS协同任务',
+  standalone: '独立应用任务',
+  compute: '计算任务',
+  other: '其他任务',
+};
+
+/**
+ * 各类型卡片右下角默认可出现的能力键（仍会与权限函数 `canAssign` 等求交集）
+ * 后续新增类型时在此扩展即可
+ */
+export const TASK_KIND_ACTIONS: Record<
+  WorkbenchTaskKind,
+  Array<'assign' | 'transfer' | 'detail' | 'design' | 'change'>
+> = {
+  /** WBS：指派、转办、详情、设计；已办另由 taskActionAllowed 开放「变更」 */
+  wbs: ['assign', 'transfer', 'detail', 'design', 'change'],
+  /** 独立应用：不支持工作台转办（仅 WBS 协同可转办） */
+  standalone: ['detail', 'design'],
+  /** 计算任务：以查看与进入设计/计算为主 */
+  compute: ['detail', 'design'],
+  other: ['assign', 'detail', 'design'],
+};
+
+/**
+ * 工作台顶栏两大业务域（数据源互不共用）：
+ * - 设计任务：workbench-todo-card（当前列表仅 WBS；截止日在 5/15 天内、截止日超期按 projectEndDate 与当前日对比）
+ * - 待审核：OA 等审批流，由独立接口接入后在此列表展示
+ */
 export const WORKBENCH_TABS = [
   { title: '设计任务', name: 'todo' },
   { title: '待审核', name: 'audit' },
 ];
 
+/**
+ * 设计任务二级筛选（与 `/business/workbench-todo-card/page` 的 timeBucket 对齐，仅 WBS）：
+ * - 截止日在 5 天内：projectEndDate ∈ [今天, 今天+5] 且未标延期
+ * - 截止日在 15 天内：projectEndDate ∈ [今天, 今天+15] 且未标延期
+ * - 截止日超期：projectEndDate 早于今天，或 overdueDays 大于 0
+ */
 export const WORKBENCH_SECONDARY_TABS = [
   { title: '待办', value: 'todo' },
   { title: '已办', value: 'done' },
   { title: '已转办', value: 'transfer' },
-  { title: '产品设计待办', value: 'product' },
-  { title: '独立应用待办', value: 'app' },
-  { title: '计算待办', value: 'compute' },
+  { title: '近5天', value: 'due5' },
+  { title: '近15天', value: 'due15' },
+  { title: '延期', value: 'overdue' },
   { title: '全部', value: 'all' },
 ] as const;
 
@@ -41,6 +105,7 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     category: 'assign',
     status: 'todo',
     scene: 'general',
+    taskKind: 'wbs',
     progress: 24,
     delayDays: 32,
     creatorName: '李建明',
@@ -56,6 +121,7 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     category: 'app',
     status: 'todo',
     scene: 'app',
+    taskKind: 'standalone',
     progress: 14,
     remainDays: 4,
     creatorName: '李建明',
@@ -71,6 +137,7 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     category: 'compute',
     status: 'todo',
     scene: 'compute',
+    taskKind: 'compute',
     progress: 50,
     remainDays: 10,
     creatorName: '李建明',
@@ -86,6 +153,7 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     category: 'product',
     status: 'done',
     scene: 'product',
+    taskKind: 'wbs',
     progress: 100,
     creatorName: '李建明',
     creatorAvatar: '',
@@ -100,6 +168,7 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     category: 'product',
     status: 'todo',
     scene: 'product',
+    taskKind: 'wbs',
     progress: 32,
     remainDays: 12,
     creatorName: '李建明',

@@ -211,10 +211,7 @@ defineExpose({
         ref="vxeTable1">
         <!-- 空数据插槽 -->
         <template #empty>
-          <div style="width: 235px; height: 235px">
-            <img width="100%" height="auto" src="@/assets/images/empty.png" alt="暂无数据" />
-            <div>数据为空</div>
-          </div>
+          <a-empty description="数据为空" />
         </template>
         <!-- <vxe-table-column fixed="left" type="seq" width="100" title="序号" align="left" v-if="indexFlag" /> -->
         <vxe-table-column
