@@ -1201,11 +1201,11 @@ const toTaskId = ref<any>('')
 
 /** 初始化 */
 const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
-const getDeptuseInfo = () => {
-const res = await AdminApiSystemDept.getDeptInfo({})
-if (res.data.code === 200) {
-userOptions.value = res.data?.data?.adminUserResponseDTO || []
-}
+const getDeptuseInfo = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    userOptions.value = res.data?.data?.adminUserResponseDTO || []
+  }
 }
 onMounted(async () => {
   debugger
