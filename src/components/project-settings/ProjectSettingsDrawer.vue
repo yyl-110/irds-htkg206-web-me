@@ -4,7 +4,7 @@ import { Modal, message } from 'ant-design-vue'
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useProjectUiStore } from '@/store/modules/layout/projectUi'
-import type { WeiThemeKey } from '@/utils/WeiTheme'
+import { WeiThemeKey } from '@/utils/WeiTheme'
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
 import { useUserStore } from "@/store/modules/user";
 const userStore = useUserStore();
@@ -28,15 +28,50 @@ const drawerVisible = computed({
   },
 })
 
-const themeKeys = computed(() => Object.keys(projectUi.themeSwatches) as WeiThemeKey[])
+/** 系统主题色板顺序（不含藏青/黑色 gold） */
+const THEME_KEY_ORDER: WeiThemeKey[] = [
+  WeiThemeKey.deepBlue,
+  WeiThemeKey.brand,
+  WeiThemeKey.red,
+  WeiThemeKey.orange,
+  WeiThemeKey.lime,
+  WeiThemeKey.cyan,
+  WeiThemeKey.purple,
+  WeiThemeKey.magenta,
+  WeiThemeKey.gray,
+]
+
+/** 系统主题：不含藏青/黑色 gold */
+const systemThemeKeys = computed(() => THEME_KEY_ORDER)
+
+type HeaderMenuSwatch =
+  | { kind: 'theme'; key: WeiThemeKey }
+  | { kind: 'hex'; value: string; label: string }
+
+/** 顶栏/菜单：末尾为 …深蓝 → 藏青 #232440(倒数第三) → 暗色(倒数第二) → 白 */
+const headerMenuSwatchItems = computed<HeaderMenuSwatch[]>(() => {
+  const themeKeys: WeiThemeKey[] = [
+    WeiThemeKey.deepBlue,
+    WeiThemeKey.brand,
+    WeiThemeKey.red,
+    WeiThemeKey.orange,
+    WeiThemeKey.lime,
+    WeiThemeKey.cyan,
+    WeiThemeKey.purple,
+    WeiThemeKey.magenta,
+    WeiThemeKey.gray,
+  ]
+  const items: HeaderMenuSwatch[] = themeKeys.map(key => ({ kind: 'theme', key }))
+  items.push(
+    { kind: 'hex', value: '#1a3677', label: '深蓝' },
+    { kind: 'theme', key: WeiThemeKey.gold },
+    { kind: 'hex', value: '#001529', label: '暗色' },
+    { kind: 'hex', value: '#ffffff', label: '白' },
+  )
+  return items
+})
 
 const saving = ref(false)
-
-const MENU_SWATCH_EXTRA = [
-  { label: '白', value: '#ffffff' },
-  { label: '深蓝', value: '#1a3677' },
-  { label: '暗色', value: '#001529' },
-]
 
 function onClose() {
   projectUi.closeSettings()
@@ -138,7 +173,7 @@ watch(
         <div class="mb-2 text-sm text-gray-600">系统主题</div>
         <div class="flex flex-wrap gap-2">
           <button
-            v-for="k in themeKeys"
+            v-for="k in systemThemeKeys"
             :key="k"
             type="button"
             class="color-dot"
@@ -155,21 +190,19 @@ watch(
         <div class="mb-2 text-sm text-gray-600">顶栏主题</div>
         <div class="flex flex-wrap gap-2">
           <button
-            v-for="k in themeKeys"
-            :key="`h-${k}`"
+            v-for="item in headerMenuSwatchItems"
+            :key="item.kind === 'theme' ? `h-${item.key}` : `hex-h-${item.value}`"
             type="button"
             class="color-dot"
-            :class="{ ring: headerBg === projectUi.themeSwatches[k] }"
-            :style="{ background: projectUi.themeSwatches[k] }"
-            @click="pickHeader(projectUi.themeSwatches[k])" />
-          <button
-            v-for="ex in MENU_SWATCH_EXTRA"
-            :key="`hex-h-${ex.value}`"
-            type="button"
-            class="color-dot"
-            :class="{ ring: headerBg === ex.value, 'color-dot--light-surface': isLightSurfaceHex(ex.value) }"
-            :style="{ background: ex.value }"
-            @click="pickHeader(ex.value)" />
+            :class="{
+              ring: item.kind === 'theme'
+                ? headerBg === projectUi.themeSwatches[item.key]
+                : headerBg === item.value,
+              'color-dot--light-surface': item.kind === 'hex' && isLightSurfaceHex(item.value),
+            }"
+            :style="{ background: item.kind === 'theme' ? projectUi.themeSwatches[item.key] : item.value }"
+            :title="item.kind === 'theme' ? item.key : item.label"
+            @click="pickHeader(item.kind === 'theme' ? projectUi.themeSwatches[item.key] : item.value)" />
         </div>
       </section>
 
@@ -177,21 +210,19 @@ watch(
         <div class="mb-2 text-sm text-gray-600">菜单主题</div>
         <div class="flex flex-wrap gap-2">
           <button
-            v-for="k in themeKeys"
-            :key="`m-${k}`"
+            v-for="item in headerMenuSwatchItems"
+            :key="item.kind === 'theme' ? `m-${item.key}` : `hex-m-${item.value}`"
             type="button"
             class="color-dot"
-            :class="{ ring: menuBg === projectUi.themeSwatches[k] }"
-            :style="{ background: projectUi.themeSwatches[k] }"
-            @click="pickMenu(projectUi.themeSwatches[k])" />
-          <button
-            v-for="ex in MENU_SWATCH_EXTRA"
-            :key="`hex-m-${ex.value}`"
-            type="button"
-            class="color-dot"
-            :class="{ ring: menuBg === ex.value, 'color-dot--light-surface': isLightSurfaceHex(ex.value) }"
-            :style="{ background: ex.value }"
-            @click="pickMenu(ex.value)" />
+            :class="{
+              ring: item.kind === 'theme'
+                ? menuBg === projectUi.themeSwatches[item.key]
+                : menuBg === item.value,
+              'color-dot--light-surface': item.kind === 'hex' && isLightSurfaceHex(item.value),
+            }"
+            :style="{ background: item.kind === 'theme' ? projectUi.themeSwatches[item.key] : item.value }"
+            :title="item.kind === 'theme' ? item.key : item.label"
+            @click="pickMenu(item.kind === 'theme' ? projectUi.themeSwatches[item.key] : item.value)" />
         </div>
       </section>
 
