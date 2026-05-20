@@ -35,7 +35,7 @@ let requestList: any[] = [];
 /** 是否正在刷新中 */
 let isRefreshToken = false;
 /** 请求白名单，无须token的接口 */
-const whiteList: string[] = ['/login', '/sso-login', '/refresh-token', '/outer-sso'];
+const whiteList: string[] = ['/login', '/sso-login', '/refresh-token', '/outer-sso', '/gateway-login', '/singleLogin'];
 
 type AxCfg = InternalAxiosRequestConfig<HttpRequestResponse> & { _wbsAtRefreshRetried?: boolean };
 
@@ -48,6 +48,7 @@ function isRefreshTokenRequestUrl(url: string | undefined) {
 /** 登录/SSO 等接口 401 不要尝试用 refresh 救（多为账号密码错），否则误续期 */
 function isLoginLikeRequestUrl(url: string) {
   if (url.includes('auth/login') || url.includes('auth/ssoLogin') || url.includes('ssoLogin')) return true;
+  if (url.includes('auth/gateway')) return true;
   if (url.includes('outer-sso') || url.includes('outerSso')) return true;
   if (url.includes('sso-login')) return true;
   return false;

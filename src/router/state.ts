@@ -10,7 +10,7 @@ export const HOME_PAGE_ROUTE_NAME: string = '/home/workbench';
 export const H5HOME_PAGE_ROUTE_NAME: string = '/H5home-main';
 
 /** 路由不重定向白名单 */
-export const whiteList: Array<string> = ['/login', '/404', '/checkPassWord'];
+export const whiteList: Array<string> = ['/login', '/404', '/checkPassWord', '/gateway-login', '/singleLogin'];
 
 // 单点登录白名单  other
 export const singleWhiteList1: Array<string> = ['/outer-sso', '/404', '/EngineMatching'];

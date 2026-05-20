@@ -47,6 +47,27 @@ export class AdminApiSystemAuth {
       },
       CommonResultAuthLoginResponseDTOModel
     );
+
+  /**
+   * Key 网关登录（身份证号 + 用户名）
+   *
+   * @request POST:/system-service/system/auth/gateway/login
+   */
+  static gatewayLogin = (
+    data: { idNumber: string; username?: string; clientIp?: string },
+    params: RequestParams = {}
+  ) =>
+    httpClient.request<CommonResultAuthLoginResponseDTOModel, any>(
+      {
+        path: `/system-service/system/auth/gateway/login`,
+        method: "POST",
+        body: data,
+        secure: false,
+        type: ContentType.Json,
+        ...params,
+      },
+      CommonResultAuthLoginResponseDTOModel
+    );
   /**
    * 刷新令牌
    *
