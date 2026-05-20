@@ -5,38 +5,50 @@
 </template>
 
 <script setup>
-import { deliveryReport } from "@/api/data-screen";
-import { useIndexStore } from "@/store/data-screen";
 import * as echarts from "echarts";
-import { storeToRefs } from "pinia";
-const indexStore = useIndexStore();
-const { selectPhaseId } = storeToRefs(indexStore);
 
 const chartOption = ref({});
 
 const props = defineProps({
   chartData: {
     type: Object,
-    default: () => { },
+    default: () => ({}),
   },
 });
+
+const pickRow = (row) => {
+  if (!row || typeof row !== "object") {
+    return { total: 0, collab: 0, standalone: 0 };
+  }
+  if ("totalCount" in row || "collabTaskCount" in row) {
+    return {
+      total: Number(row.totalCount) || 0,
+      collab: Number(row.collabTaskCount) || 0,
+      standalone: Number(row.standaloneAppCount) || 0,
+    };
+  }
+  return {
+    total: Number(row.total_docs) || 0,
+    collab: 0,
+    standalone: 0,
+  };
+};
 
 const initChart = () => {
   if (!props.chartData || !Object.keys(props.chartData).length) return;
   const keys = Object.keys(props.chartData);
-  let xData = keys;
-  let seriesData = [
+  const seriesData = [
     {
-      name: "总文档数",
-      value: keys.map((item) => props.chartData[item].total_docs),
+      name: "总任务数",
+      value: keys.map((item) => pickRow(props.chartData[item]).total),
     },
     {
-      name: "已发布数",
-      value: keys.map((item) => props.chartData[item].completed_docs),
+      name: "协同任务数",
+      value: keys.map((item) => pickRow(props.chartData[item]).collab),
     },
     {
-      name: "在签审数",
-      value: keys.map((item) => props.chartData[item].reviewing_docs),
+      name: "独立应用数",
+      value: keys.map((item) => pickRow(props.chartData[item]).standalone),
     },
   ];
   const colorList = [
@@ -46,19 +58,28 @@ const initChart = () => {
   ];
 
   chartOption.value = {
+    title: {
+      text: "总任务数、协同任务数、独立应用数",
+      left: "center",
+      top: 6,
+      textStyle: {
+        color: "rgba(255,255,255,0.92)",
+        fontSize: 13,
+        fontWeight: 500,
+      },
+    },
     grid: {
       left: "0",
       right: "0",
       bottom: "20%",
-      top: "20",
+      top: "16%",
       containLabel: true,
     },
-    color: ["#1DB750", "#C7F36A"],
     tooltip: {
       trigger: "axis",
     },
     legend: {
-      data: seriesData.map(item => item.name),
+      data: seriesData.map((item) => item.name),
       x: "right",
       bottom: "5%",
       align: "left",
@@ -79,7 +100,7 @@ const initChart = () => {
         fontSize: 14,
       },
       axisLine: {
-        show: false, //隐藏X轴轴线
+        show: false,
         lineStyle: {
           color: "#555f58",
         },
@@ -87,29 +108,30 @@ const initChart = () => {
       axisLabel: {
         interval: 0,
         textStyle: {
-          color: "#fff", //坐标轴字颜色
+          color: "#fff",
         },
         margin: 15,
+        formatter: (value) =>
+          value && value.length > 6 ? value.substring(0, 6) + "…" : value,
       },
       axisTick: {
-        show: false, //隐藏X轴刻度
-      },
-      splitLine: {
-        //网格线
         show: false,
       },
-      data: xData,
+      splitLine: {
+        show: false,
+      },
+      data: keys,
       type: "category",
     },
     yAxis: {
       axisLine: {
-        show: false, //隐藏X轴轴线
+        show: false,
         lineStyle: {
           color: "rgba(220,220,220,0.3)",
         },
       },
       axisTick: {
-        show: false, //隐藏X轴刻度
+        show: false,
       },
       axisLabel: {
         textStyle: {
@@ -118,7 +140,6 @@ const initChart = () => {
         },
       },
       splitLine: {
-        //网格线
         show: false,
         lineStyle: {
           color: "rgba(220,220,220,0.3)",
@@ -126,9 +147,9 @@ const initChart = () => {
       },
     },
     series: (function () {
-      let series = [];
+      const series = [];
       for (let i = 0; i < seriesData.length; i++) {
-        let serie = {
+        series.push({
           name: seriesData[i].name,
           type: "bar",
           barWidth: "16",
@@ -147,8 +168,7 @@ const initChart = () => {
               ]),
             },
           },
-        };
-        series.push(serie);
+        });
       }
       return series;
     })(),
@@ -157,10 +177,8 @@ const initChart = () => {
 
 watch(
   () => props.chartData,
-  (val) => {
-    initChart();
-  },
-  { deep: true }
+  () => initChart(),
+  { deep: true, immediate: true },
 );
 </script>
 

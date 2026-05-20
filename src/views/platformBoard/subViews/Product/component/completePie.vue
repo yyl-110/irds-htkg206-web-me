@@ -50,29 +50,42 @@ const initChart = () => {
     clearInterval(timer.value);
   }
   const dataList = defaultList.map((item) => {
-    const valueObj = props.chartData.find(v => v.taskState === item.taskState)
+    const valueObj = props.chartData.find((v) => v.taskState === item.taskState);
     if (valueObj) {
       return {
         name: item.taskStateName,
         value: valueObj.taskNums,
-        color: item.color
-      }
+        color: item.color,
+      };
     }
     return {
       name: item.taskStateName,
       value: 0,
-      color: item.color
-    }
+      color: item.color,
+    };
   });
   let angle = 0;
 
-  const data1 = dataList.map((v, i) => {
-    return {
-      ...v,
-      itemStyle: { color: v.color },
-    };
-  });
-  console.log('data1:', data1)
+  const orderNames = ["已完成", "进行中", "变更中", "未开始"];
+  const data1 = [];
+  for (const name of orderNames) {
+    const row = dataList.find((x) => x.name === name);
+    if (!row) continue;
+    if (name === "未开始" && (!row.value || row.value === 0)) {
+      continue;
+    }
+    data1.push({
+      ...row,
+      itemStyle: { color: row.color },
+    });
+  }
+  if (!data1.length) {
+    data1.push({
+      name: "暂无",
+      value: 1,
+      itemStyle: { color: "rgba(255,255,255,0.15)" },
+    });
+  }
 
   let sum = 0;
   dataList.forEach((v) => {
@@ -112,6 +125,7 @@ const initChart = () => {
       itemWidth: 14,
       itemHeight: 14,
       itemGap: 18,
+      data: data1.map((d) => d.name).filter((n) => n !== "暂无"),
       textStyle: {
         color: "#fff",
         fontSize: 12,
@@ -293,7 +307,8 @@ watch(
     if (val && val.length) {
       initChart();
     }
-  }, { deep: true }
+  },
+  { deep: true, immediate: true },
 );
 </script>
 

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, h, nextTick, onMounted, reactive, ref } from 'vue'
-import type { FormInstance, TableColumnType } from 'ant-design-vue'
+import type { FormInstance, TableColumnType, UploadFile, UploadProps } from 'ant-design-vue'
 import { Modal, message } from 'ant-design-vue'
 import { CaretDownOutlined, CaretUpOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import Empty from '@/components/Empty/index.vue'
@@ -8,7 +8,12 @@ import { WeiI18n } from '@/utils/WeiI18n'
 import { sortermethod } from '@/utils/tools'
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台'
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传'
+import { Uploado_draggerFile } from '@/components/UploadFile'
+import { useUserStore } from '@/store/modules/user'
 import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
+
+const userStore = useUserStore()
 
 /** 1: 固定平台；2: 自定义平台（来自列表接口 status） */
 type PlatformStatus = 1 | 2
@@ -21,6 +26,9 @@ interface PlatformRoleRow {
   /** 已授权用户 id，用于成员授权弹窗回显 */
   authUserIds: string[]
   status: PlatformStatus
+  fileId?: string
+  fileUrl?: string
+  oldFileName?: string
 }
 
 interface MemberAuthUser {
@@ -124,6 +132,9 @@ function mapProjectTreeItemToRow(item: Record<string, unknown>, idx: number): Pl
         ? String(WeiI18n.$t('固定平台'))
         : String(WeiI18n.$t('自定义平台')))
     : formatAttribute(item)
+  const fileIdRaw = item.fileId ?? item.picFileId
+  const fileUrlRaw = item.fileUrl ?? item.picUrl
+  const oldFileNameRaw = item.oldFileName ?? item.fileName
   return {
     id: idRaw != null && idRaw !== '' ? String(idRaw) : `row-${idx}`,
     roleName: String(item.categoryName ?? item.name ?? ''),
@@ -131,6 +142,9 @@ function mapProjectTreeItemToRow(item: Record<string, unknown>, idx: number): Pl
     userName: formatAuthorizedNames(item),
     authUserIds: getAuthorizedUserIdsFromItem(item),
     status,
+    fileId: fileIdRaw != null && fileIdRaw !== '' ? String(fileIdRaw) : '',
+    fileUrl: fileUrlRaw != null ? String(fileUrlRaw) : '',
+    oldFileName: oldFileNameRaw != null ? String(oldFileNameRaw) : '',
   }
 }
 
@@ -167,6 +181,9 @@ onMounted(() => {
 const addModalVisible = ref(false)
 const addFormRef = ref<FormInstance>()
 const addSubmitting = ref(false)
+const addFileList = ref<UploadFile[]>([])
+const editFileList = ref<UploadFile[]>([])
+
 const addFormState = reactive({
   categoryName: '',
 })
@@ -183,6 +200,127 @@ const addWrapperCol = { span: 16 }
 
 function closeAddModal() {
   addModalVisible.value = false
+  addFileList.value = []
+}
+
+function parseUploadFileRecord(raw: unknown): { id: string, fileUrl?: string, displayName?: string } {
+  if (!raw || typeof raw !== 'object')
+    return { id: '' }
+  const body = raw as Record<string, unknown>
+  const code = body.code
+  const ok = code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200'
+  if (!ok)
+    return { id: '' }
+  let record: Record<string, unknown> = body
+  const nested = body.data
+  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null)
+    record = nested as Record<string, unknown>
+  else if (body.id == null && body.queryId == null && nested && typeof nested === 'object')
+    record = nested as Record<string, unknown>
+  const id = String(record.id ?? record.queryId ?? '').trim()
+  const fileUrl = record.fileUrl != null
+    ? String(record.fileUrl)
+    : record.filePath != null
+      ? String(record.filePath)
+      : record.url != null
+        ? String(record.url)
+        : undefined
+  const displayName = record.oldFileName != null
+    ? String(record.oldFileName)
+    : record.fileName != null
+      ? String(record.fileName)
+      : undefined
+  return { id, fileUrl, displayName }
+}
+
+function getFileListEntryId(entry: UploadFile | undefined): string {
+  if (!entry)
+    return ''
+  const direct = (entry as UploadFile & { id?: string }).id ?? (entry as UploadFile & { queryId?: string }).queryId
+  if (direct != null && String(direct).trim() !== '')
+    return String(direct).trim()
+  return parseUploadFileRecord(entry.response).id
+}
+
+function getFileListEntryUrl(entry: UploadFile | undefined): string {
+  if (!entry)
+    return ''
+  const direct = (entry as UploadFile & { fileUrl?: string }).fileUrl
+  if (direct != null && String(direct).trim() !== '')
+    return String(direct).trim()
+  return parseUploadFileRecord(entry.response).fileUrl ?? ''
+}
+
+function getFileFieldsFromList(list: UploadFile[]) {
+  if (!list.length)
+    return { fileId: '', fileUrl: '' }
+  return {
+    fileId: getFileListEntryId(list[0]),
+    fileUrl: getFileListEntryUrl(list[0]),
+  }
+}
+
+function buildFileListFromRecord(record: Pick<PlatformRoleRow, 'fileId' | 'fileUrl' | 'oldFileName'>): UploadFile[] {
+  if (!record.fileId?.trim())
+    return []
+  return [{
+    uid: record.fileId,
+    name: record.oldFileName?.trim() || WeiI18n.$t('示意图'),
+    status: 'done',
+    id: record.fileId,
+    fileUrl: record.fileUrl,
+  } as UploadFile]
+}
+
+function onAddUploadChange(files: UploadFile[]) {
+  addFileList.value = Array.isArray(files) ? files : []
+}
+
+function onEditUploadChange(files: UploadFile[]) {
+  editFileList.value = Array.isArray(files) ? files : []
+}
+
+async function handlePlatformUploadRequest(
+  options: Parameters<NonNullable<UploadProps['customRequest']>>[0],
+  targetList: typeof addFileList,
+) {
+  try {
+    const res = await AdminApiSystemUploadFile.uploadFile({
+      file: options.file as File,
+      userId: userStore.getUser.id,
+      confidentialLevel: 1,
+    })
+    const parsed = parseUploadFileRecord(res?.data)
+    const codeOk = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200'
+    if (codeOk && parsed.id) {
+      const file = {
+        uid: parsed.id,
+        name: parsed.displayName ?? (options.file as File)?.name ?? 'file',
+        status: 'done',
+        response: res.data,
+        id: parsed.id,
+        fileUrl: parsed.fileUrl,
+      } as UploadFile
+      targetList.value = [file]
+      options.onSuccess?.(res.data, options.file as File)
+      message.success(WeiI18n.$t('上传成功'))
+    }
+    else {
+      message.error(WeiI18n.$t('上传失败'))
+      options.onError?.(new Error(String((res?.data as Record<string, unknown>)?.msg ?? 'upload failed')))
+    }
+  }
+  catch (err) {
+    options.onError?.(err instanceof Error ? err : new Error(String(err)))
+  }
+}
+
+function onAddUploadRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0]) {
+  return handlePlatformUploadRequest(options, addFileList)
+}
+
+function onEditUploadRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0]) {
+  return handlePlatformUploadRequest(options, editFileList)
 }
 
 async function submitAddForm() {
@@ -191,12 +329,14 @@ async function submitAddForm() {
   try {
     const res = await AdminApiSystemProduct.createProjectTree({
       categoryName: addFormState.categoryName.trim(),
+      ...getFileFieldsFromList(addFileList.value),
     })
     const payload = res.data
     const codeOk = payload?.code === 200 || payload?.code === undefined
     if (codeOk) {
       message.success(WeiI18n.$t('保存成功'))
       addModalVisible.value = false
+      addFileList.value = []
       fetchPlatformList()
     }
     else {
@@ -229,6 +369,7 @@ const editFormRules = {
 
 function closeEditModal() {
   editModalVisible.value = false
+  editFileList.value = []
 }
 
 async function submitEditForm() {
@@ -238,12 +379,14 @@ async function submitEditForm() {
     const res = await AdminApiSystemProduct.updateProjectTree({
       id: editFormState.id,
       categoryName: editFormState.categoryName.trim(),
+      ...getFileFieldsFromList(editFileList.value),
     })
     const payload = res.data
     const codeOk = payload?.code === 200 || payload?.code === undefined
     if (codeOk) {
       message.success(WeiI18n.$t('保存成功'))
       editModalVisible.value = false
+      editFileList.value = []
       fetchPlatformList()
     }
     else {
@@ -385,6 +528,7 @@ function rowClassName(_record: PlatformRoleRow, index: number) {
 
 function onCreate() {
   addFormState.categoryName = ''
+  addFileList.value = []
   addModalVisible.value = true
   nextTick(() => {
     addFormRef.value?.clearValidate()
@@ -512,10 +656,6 @@ async function handleMemberAuthConfirm(userIds: string[]) {
 }
 
 function onEdit(record: PlatformRoleRow) {
-  if (rowIsFixedPlatform(record)) {
-    message.warning(WeiI18n.$t('固定平台不可编辑'))
-    return
-  }
   if (record.id.startsWith('row-')) {
     message.warning(WeiI18n.$t('当前数据无法编辑'))
     return
@@ -523,6 +663,7 @@ function onEdit(record: PlatformRoleRow) {
   editFormState.id = record.id
   editFormState.categoryName = record.roleName
   editFormState.status = record.status
+  editFileList.value = buildFileListFromRecord(record)
   editModalVisible.value = true
   nextTick(() => {
     editFormRef.value?.clearValidate()
@@ -534,14 +675,32 @@ function onDelete(record: PlatformRoleRow) {
     message.warning(WeiI18n.$t('固定平台不可删除'))
     return
   }
+  if (record.id.startsWith('row-')) {
+    message.warning(WeiI18n.$t('当前数据无法删除'))
+    return
+  }
   Modal.confirm({
     title: WeiI18n.$t('是否确认删除'),
     okText: WeiI18n.$t('确定'),
     cancelText: WeiI18n.$t('取消'),
-    okType: 'danger',
-    onOk() {
-      dataSource.value = dataSource.value.filter(r => r.id !== record.id)
-      message.success(WeiI18n.$t('删除成功'))
+    okType: 'primary',
+    wrapClassName: 'platform-delete-confirm-modal',
+    async onOk() {
+      try {
+        const res = await AdminApiSystemProduct.deleteProjectTree({ id: record.id })
+        const payload = res.data
+        const codeOk = payload?.code === 200 || payload?.code === undefined
+        if (codeOk) {
+          message.success(WeiI18n.$t('删除成功'))
+          await fetchPlatformList()
+        }
+        else {
+          message.error(payload?.msg || WeiI18n.$t('删除失败'))
+        }
+      }
+      catch {
+        message.error(WeiI18n.$t('删除失败'))
+      }
     },
   })
 }
@@ -613,7 +772,9 @@ function onDelete(record: PlatformRoleRow) {
                   {{ $t('分配人员') }}
                 </a-typography-link>
                 <span class="platform-role-actions__sep">|</span>
-                <span class="platform-role-actions--disabled">{{ WeiI18n.$t('编辑') }}</span>
+                <a-typography-link @click="onEdit(record)">
+                  {{ WeiI18n.$t('编辑') }}
+                </a-typography-link>
                 <span class="platform-role-actions__sep">|</span>
                 <span class="platform-role-actions--disabled">{{ WeiI18n.$t('删除') }}</span>
               </template>
@@ -639,7 +800,7 @@ function onDelete(record: PlatformRoleRow) {
     <a-modal
       v-model:visible="addModalVisible"
       :title="WeiI18n.$t('添加')"
-      :width="480"
+      :width="560"
       :mask-closable="false"
       destroy-on-close
       @cancel="closeAddModal"
@@ -660,6 +821,15 @@ function onDelete(record: PlatformRoleRow) {
             :maxlength="100"
           />
         </a-form-item>
+        <a-form-item :label="WeiI18n.$t('示意图')">
+          <Uploado_draggerFile
+            width="100%"
+            file-types-img
+            :file-list="addFileList"
+            @change="onAddUploadChange"
+            @custom-request="onAddUploadRequest"
+          />
+        </a-form-item>
       </a-form>
       <template #footer>
         <a-button type="primary" :loading="addSubmitting" @click="submitAddForm">
@@ -674,7 +844,7 @@ function onDelete(record: PlatformRoleRow) {
     <a-modal
       v-model:visible="editModalVisible"
       :title="WeiI18n.$t('编辑')"
-      :width="480"
+      :width="560"
       :mask-closable="false"
       destroy-on-close
       @cancel="closeEditModal"
@@ -693,6 +863,15 @@ function onDelete(record: PlatformRoleRow) {
             :placeholder="WeiI18n.$t('请输入平台名称')"
             allow-clear
             :maxlength="100"
+          />
+        </a-form-item>
+        <a-form-item :label="WeiI18n.$t('示意图')">
+          <Uploado_draggerFile
+            width="100%"
+            file-types-img
+            :file-list="editFileList"
+            @change="onEditUploadChange"
+            @custom-request="onEditUploadRequest"
           />
         </a-form-item>
       </a-form>
@@ -730,6 +909,10 @@ function onDelete(record: PlatformRoleRow) {
 
 .platform-add-modal-form {
   margin-top: 8px;
+
+  :deep(.upload-box) {
+    margin-top: 0;
+  }
 }
 
 .platform-role-toolbar {
@@ -876,5 +1059,23 @@ function onDelete(record: PlatformRoleRow) {
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: default;
+}
+</style>
+
+<style lang="less">
+/* 删除确认：确定（蓝）在前，取消在后 */
+.platform-delete-confirm-modal .ant-modal-confirm-btns {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+
+  .ant-btn-primary {
+    order: 1;
+    margin-left: 0 !important;
+  }
+
+  .ant-btn-default {
+    order: 2;
+  }
 }
 </style>

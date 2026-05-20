@@ -12,6 +12,13 @@ function withOpacityValue(variable) {
   }
 }
 
+/** BPM 等页面使用 ml-20px、w-240px 等「数字+px」类名，需在 spacing 中声明后 Tailwind 才会生成对应工具类 */
+const spacingPxKeys = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 28, 30, 32, 35, 38, 40, 44, 45, 48, 50, 56, 60, 64, 68, 70, 75, 80, 88, 96, 100,
+  120, 130, 150, 175, 200, 240, 280, 300, 400, 440, 500, 560, 600, 700, 800,
+]
+const spacingPx = Object.fromEntries(spacingPxKeys.map(n => [`${n}px`, `${n}px`]))
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
@@ -67,6 +74,14 @@ module.exports = {
       // 设置表单强调色基础类
       accentColor: {
         highlight: withOpacityValue('--color-highlight'),
+      },
+      /** margin / padding / gap / 多数 width&height 等依赖 spacing */
+      spacing: spacingPx,
+      fontSize: {
+        '15px': ['15px', { lineHeight: '1.5' }],
+        '16px': ['16px', { lineHeight: '1.5' }],
+        '18px': ['18px', { lineHeight: '1.5' }],
+        '20px': ['20px', { lineHeight: '1.5' }],
       },
     },
 

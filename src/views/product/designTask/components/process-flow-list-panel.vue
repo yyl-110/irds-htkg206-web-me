@@ -14,6 +14,8 @@ import { useUserStore } from '@/store/modules/user';
 import { useRouter } from 'vue-router';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
+import DesignResourceShareModal from '../../components/design-resource-share-modal.vue';
+import { normalizeListSnowflakeIds, toSnowflakeIdStr } from '@/utils/snowflakeId';
 const props = defineProps<{
   menuId?: string | number;
   treeNodeKey?: string | number;
@@ -42,7 +44,31 @@ type FlowRow = {
   bpmnXml?: string;
   latestPublishVersionId?: number | string;
   latestPublishVersionNo?: number;
+  sharedUserNames?: string;
+  canOperate?: boolean;
+  canShare?: boolean;
 };
+
+function canRowOperate(record?: FlowRow) {
+  return record?.canOperate === true;
+}
+
+function canRowShare(record?: FlowRow) {
+  return record?.canShare === true;
+}
+
+const designShareModalVisible = ref(false);
+const designShareTarget = ref<{ bizId: string | number } | null>(null);
+
+function openDesignShareModal(record: FlowRow) {
+  if (!record?.id) return;
+  designShareTarget.value = { bizId: toSnowflakeIdStr(record.id) };
+  designShareModalVisible.value = true;
+}
+
+function onDesignShareSaved() {
+  void loadFlowListData();
+}
 
 const loading = ref(false);
 const tableData = ref<FlowRow[]>([]);
@@ -185,11 +211,20 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     width: 120,
   },
   {
+    title: '共享人',
+    dataIndex: 'sharedUserNames',
+    key: 'sharedUserNames',
+    align: 'left',
+    ellipsis: true,
+    resizable: true,
+    width: 140,
+  },
+  {
     title: WeiI18n.t('操作').value,
     dataIndex: 'operation',
     key: 'operation',
     align: 'center',
-    width: 260,
+    width: 300,
     fixed: 'right',
     resizable: false,
   },
@@ -296,8 +331,7 @@ async function loadFlowListData() {
     requestParams.treeId = props.treeNodeKey ?? '';
     requestParams.releaseType = 1;
     const res = await AdminApiSystemProcessTask.taskBasicInfoPage(requestParams);
-    console.log('loadFlowListData res:', res);
-    tableData.value = Array.isArray(res.data.data.list) ? res.data.data.list : [];
+    tableData.value = normalizeListSnowflakeIds(Array.isArray(res.data.data.list) ? res.data.data.list : []);
     pagination.total = Number(res.data.data.total ?? 0);
   } catch (e) {
     tableData.value = [];
@@ -319,23 +353,31 @@ function handleQuerySearch() {
   resetAndReload();
 }
 
-async function handleDeleteClick(taskId: string) {
-  await AdminApiSystemProcessTask.deleteTaskBasicInfo({ id: taskId });
+async function handleDeleteClick(record: FlowRow) {
+  if (!canRowOperate(record)) {
+    message.warning('无操作权限，仅可预览');
+    return;
+  }
+  await AdminApiSystemProcessTask.deleteTaskBasicInfo({ id: record.id });
   await loadFlowListData();
 }
 
 type PublishType = 'COLLAB' | 'APP';
 
 async function handlePublishAction(record: FlowRow, publishType: PublishType) {
+  if (!canRowOperate(record)) {
+    message.warning('无操作权限，仅可预览');
+    return;
+  }
   const taskId = record.id;
   const isPublished = publishType === 'COLLAB' ? isCollabPublished(record) : isAppPublished(record);
   try {
     if (isPublished) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '撤销发布协同成功' : '撤销发布独立应用成功');
+      message.success(publishType === 'COLLAB' ? '撤销发布协同成功' : '撤销发布应用成功');
     } else {
       await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布独立应用成功');
+      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布应用成功');
     }
     await loadFlowListData();
   } catch (error) {
@@ -365,10 +407,14 @@ const selectedFlowRows = computed(() => {
   return (tableData.value || []).filter(item => keySet.has(String(item.id)));
 });
 
-/** 勾选一条且未发布协同时可查看、编辑 */
-const canToolbarViewOrEdit = computed(() => {
+/** 勾选一条可查看流程图 */
+const canToolbarView = computed(() => selectedFlowRows.value.length === 1);
+
+/** 勾选一条、有操作权限且未发布协同时可编辑 */
+const canToolbarEdit = computed(() => {
   const rows = selectedFlowRows.value;
   if (rows.length !== 1) return false;
+  if (!canRowOperate(rows[0])) return false;
   return !isCollabPublished(rows[0]);
 });
 
@@ -380,16 +426,16 @@ function closeFlowView() {
   flowViewData.value = {};
 }
 
-async function handleToolbarView() {
-  const rows = selectedFlowRows.value;
-  if (rows.length !== 1) {
+async function handleToolbarView(record?: FlowRow) {
+  const row = record ?? selectedFlowRows.value[0];
+  if (!row) {
     message.warning('请勾选一条流程');
     return;
   }
   let hideLoading: (() => void) | undefined;
   try {
     hideLoading = message.loading('加载中...', 0);
-    const res = await AdminApiSystemProcessTask.getXmlInfo({ id: rows[0].id });
+    const res = await AdminApiSystemProcessTask.getXmlInfo({ id: row.id });
     const xml = String(res?.data?.data?.bpmnXml ?? '').trim();
     if (!xml) {
       message.warning('暂无流程图数据');
@@ -447,6 +493,10 @@ function openFlowFormEdit() {
     return;
   }
   const row = rows[0];
+  if (!canRowOperate(row)) {
+    message.warning('无操作权限，仅可预览');
+    return;
+  }
   if (isCollabPublished(row)) {
     message.warning('已发布协同的流程不可编辑');
     return;
@@ -522,6 +572,10 @@ async function handleToolbarConfig(record?: FlowRow) {
     message.warning('请选择一条任务');
     return;
   }
+  if (!canRowOperate(row)) {
+    message.warning('无操作权限，仅可预览');
+    return;
+  }
   if (!isFlowConfigEditable(row)) {
     message.warning('发布协同与独立应用均为未发布时才可配置');
     return;
@@ -579,8 +633,8 @@ defineExpose({
       <a-input v-model:value="requestParams.processCode" allow-clear placeholder="请输入流程标识" class="process-panel__search-input" @pressEnter="handleQuerySearch" />
       <a-button type="primary" @click="handleQuerySearch"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询 </a-button>
       <a-button type="primary" @click="openFlowFormAdd"><EpcIcon type="icon-tianjia1" style="font-size: 12px" /> 添加</a-button>
-      <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarView"><EpcIcon type="icon-liulan" style="font-size: 12px" />查看</a-button>
-      <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarEdit"><EpcIcon type="icon-bianji" style="font-size: 12px" />编辑</a-button>
+      <a-button type="primary" :disabled="!canToolbarView" @click="handleToolbarView()"><EpcIcon type="icon-liulan" style="font-size: 12px" />查看</a-button>
+      <a-button type="primary" :disabled="!canToolbarEdit" @click="handleToolbarEdit"><EpcIcon type="icon-bianji" style="font-size: 12px" />编辑</a-button>
     </div>
 
     <a-card class="calc-table-card process-flow-table-card">
@@ -670,8 +724,17 @@ defineExpose({
             <span v-else-if="record.confidentialLevel == 2">秘密</span>
             <span v-else-if="record.confidentialLevel == 3">机密</span>
           </template>
+          <template v-else-if="column.dataIndex === 'sharedUserNames'">
+            <span>{{ record.sharedUserNames || '—' }}</span>
+          </template>
           <template v-else-if="column.dataIndex === 'operation'">
             <div class="calc-operation-links" @click.stop>
+              <template v-if="canRowOperate(record)">
+              <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
+              <span v-else class="operation-disabled">配置</span>
+              </template>
+              <a href="#" @click.prevent="handleToolbarView(record)">预览</a>
+              <template v-if="canRowOperate(record)">
               <a-popconfirm
                 v-if="!isCollabPublished(record)"
                 placement="topLeft"
@@ -693,32 +756,38 @@ defineExpose({
               <a-popconfirm
                 v-if="!isAppPublished(record)"
                 placement="topLeft"
-                title="确定要发布独立应用吗？"
+                title="确定要发布应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>发布独立应用</a>
+                <a href="#" @click.prevent>发布应用</a>
               </a-popconfirm>
               <a-popconfirm
                 v-else
                 placement="topLeft"
-                title="确定要取消发布独立应用吗？"
+                title="确定要取消发布应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>取消独立应用</a>
+                <a href="#" @click.prevent>取消应用</a>
               </a-popconfirm>
-              <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
-              <span v-else class="operation-disabled">配置</span>
-              <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record.id)">
+              <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record)">
                 <a href="#" class="operation-danger" @click.prevent>删除</a>
               </a-popconfirm>
               <span v-else class="operation-disabled">删除</span>
+              </template>
+              <a v-if="canRowShare(record)" href="#" @click.prevent="openDesignShareModal(record)">共享</a>
             </div>
           </template>
         </template>
       </a-table>
     </a-card>
+
+    <DesignResourceShareModal
+      v-model:visible="designShareModalVisible"
+      biz-type="TASK"
+      :biz-id="designShareTarget?.bizId"
+      @saved="onDesignShareSaved" />
 
     <a-modal
       v-model:visible="flowFormVisible"

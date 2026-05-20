@@ -5,6 +5,7 @@ import { SearchOutlined } from '@ant-design/icons-vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ProcessFlowListPageRequestDTOModel } from '@/api/models/processTask/ProcessFlowListPageRequestDTOModel';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
+import { createEmptyImageNode, EMPTY_IMAGE_STYLE } from '@/utils/emptyState';
 
 const emit = defineEmits<{
   (e: 'actionNode', item: any): void;
@@ -99,8 +100,8 @@ async function loadFlowListData() {
     requestParams.pageSize = 10000;
     requestParams.releaseType = 1;
     if (requestParams.treeId != '') {
-      const res = await AdminApiSystemProcessTask.taskBasicInfoPage(requestParams);
-      const list = res?.data?.data?.list;
+      const res = await AdminApiSystemProcessTask.taskBasicInfoPageByParentId(requestParams);
+      const list = res?.data?.data;
       listData.value = Array.isArray(list) ? list : [];
     } else {
       listData.value = [];
@@ -170,7 +171,12 @@ defineExpose({
             </div>
           </div>
         </div>
-        <a-empty v-if="!loading && filteredData.length === 0" description="暂无数据" />
+        <a-empty
+          v-if="!loading && filteredData.length === 0"
+          description="暂无数据"
+          :image="createEmptyImageNode('暂无数据')"
+          :image-style="EMPTY_IMAGE_STYLE"
+        />
       </a-spin>
     </div>
   </div>

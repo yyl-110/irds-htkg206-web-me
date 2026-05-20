@@ -266,7 +266,7 @@ onBeforeMount(() => {
           class="layout-container"
           v-overlay-scrollbar
           :class="[
-            !layoutStore.homepage && route.name === 'ProductProjectEditor'
+            !layoutStore.homepage && (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor')
               ? 'px-[8px] pb-[8px] pt-1 layout-container--white layout-container--editor-fill'
               : !layoutStore.homepage
                 ? 'p-[16px]'
@@ -275,7 +275,8 @@ onBeforeMount(() => {
           <div
             class="layout-router-host min-h-0 flex w-full min-w-0 flex-1 flex-col"
             :class="{
-              'layout-router-host--fill': !layoutStore.homepage && route.name === 'ProductProjectEditor',
+              'layout-router-host--fill':
+                !layoutStore.homepage && (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor'),
             }">
             <pre style="display: none">{{ caches }}</pre>
             <router-view v-slot="{ Component, route }">
@@ -439,7 +440,7 @@ onBeforeMount(() => {
     }
     :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-item),
     :deep(.ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title) {
-       // display: flex !important;
+      // display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       width: 100% !important;
@@ -447,13 +448,8 @@ onBeforeMount(() => {
       // padding: 0 !important;
     }
     :deep(
-      .ant-menu-inline-collapsed.ant-menu-root
-        > .ant-menu-item
-        .ant-menu-item-icon,
-      .ant-menu-inline-collapsed.ant-menu-root
-        > .ant-menu-submenu
-        > .ant-menu-submenu-title
-        .ant-menu-item-icon
+      .ant-menu-inline-collapsed.ant-menu-root > .ant-menu-item .ant-menu-item-icon,
+      .ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title .ant-menu-item-icon
     ) {
       position: static !important;
       margin: 0 !important;
@@ -483,10 +479,7 @@ onBeforeMount(() => {
       margin-inline: 0 !important;
     }
     :deep(
-      .ant-menu-inline-collapsed.ant-menu-root
-        > .ant-menu-submenu
-        > .ant-menu-submenu-title
-        .ant-menu-submenu-arrow
+      .ant-menu-inline-collapsed.ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title .ant-menu-submenu-arrow
     ) {
       display: none;
     }
@@ -625,8 +618,10 @@ onBeforeMount(() => {
   background: #f3f2f7;
 }
 
-.ant-menu-inline, .ant-menu-vertical, .ant-menu-vertical-left {
-  border: none!important;
+.ant-menu-inline,
+.ant-menu-vertical,
+.ant-menu-vertical-left {
+  border: none !important;
 }
 
 /* 仅侧栏垂直菜单：底色与选中条随「菜单主题」变量（变量来自 .sider-column-wrap :style） */

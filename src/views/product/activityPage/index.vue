@@ -27,9 +27,12 @@ import ActivityCheckPreviewModal from './components/activity-check-preview-modal
 import CustomPageParamModal from './components/custom-page-param-modal.vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { downloadFileFromStream } from '@/utils/file';
+import { normalizeListSnowflakeIds, toSnowflakeIdStr } from '@/utils/snowflakeId';
+import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import draggableModal from '@/components/DraggableModal/index.vue';
+import DesignResourceShareModal from '../components/design-resource-share-modal.vue';
 
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
@@ -49,10 +52,38 @@ const selectNodeKeys = ref<string>('');
 const currentNode = ref<any>();
 /** 列表数据 */
 const dataSource = ref<Array<any>>([]);
-/** 删除按钮状态 */
+/** 删除按钮状态：仅可操作行可批量删除 */
 const deleteFlag = computed(() => {
-  return selectedRowList.value?.length === 0;
+  return getOperableSelectedRows().length === 0;
 });
+
+function canRowOperate(record: any) {
+  return record?.canOperate === true;
+}
+
+function canRowShare(record: any) {
+  return record?.canShare === true;
+}
+
+function getOperableSelectedRows() {
+  return (selectedRowList.value || []).filter((r: any) => canRowOperate(r));
+}
+
+const designShareModalVisible = ref(false);
+const designShareTarget = ref<{ bizId: string | number; title: string } | null>(null);
+
+function openDesignShareModal(record: any) {
+  if (!record?.id) return;
+  designShareTarget.value = {
+    bizId: toSnowflakeIdStr(record.id),
+    title: `${record.pageName ?? ''} - 共享配置`,
+  };
+  designShareModalVisible.value = true;
+}
+
+function onDesignShareSaved() {
+  void loadParameterListData();
+}
 /** 列表请求参数 */
 const requestParams = reactive(new ActivityPageRequestDTOModel());
 /** 列表数据 */
@@ -177,6 +208,15 @@ const columns = ref<TableColumnType<Menus>[]>([
     width: 130,
   },
   {
+    title: WeiI18n.$t('共享人'),
+    dataIndex: 'sharedUserNames',
+    key: 'sharedUserNames',
+    align: 'left',
+    resizable: true,
+    ellipsis: true,
+    width: 160,
+  },
+  {
     title: WeiI18n.$t('备注'),
     dataIndex: 'remark',
     key: 'remark',
@@ -205,7 +245,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'center',
-    width: 280,
+    width: 320,
     fixed: 'right',
     resizable: false,
   },
@@ -530,7 +570,7 @@ async function loadParameterListData() {
     data.pageNo = requestParams.pageNo;
     data.pageSize = requestParams.pageSize;
     const res = await AdminApiActivityPage.getActivityPage(data);
-    datasource.value = res.data.data.list || [];
+    datasource.value = normalizeListSnowflakeIds(res.data.data.list || []);
     pagination.total = res.data.data.total;
   } finally {
     loading.value = false;
@@ -763,6 +803,10 @@ function handleAddOrUpdate(data: any) {
  * @param data data
  */
 function handleUpdate(data: any) {
+  if (!canRowOperate(data)) {
+    message.warning('无操作权限，仅可预览');
+    return;
+  }
   updateVisible.value = true;
   // 根据menuId获取修改的记录
   nextTick(() => {
@@ -797,14 +841,25 @@ function handleCloseUpdateModal() {
  */
 async function handleParameterDelete(data: any) {
   if (data == undefined) {
-    //批量删除
+    const operableRows = getOperableSelectedRows();
+    if (!operableRows.length) {
+      message.warning(WeiI18n.t('所选数据无删除权限').value || '所选数据无删除权限');
+      return;
+    }
+    if (operableRows.length < selectedRowList.value.length) {
+      message.warning('已跳过无权限的数据，仅删除有权限的项');
+    }
     let infoDel: any = { checkList: [] };
-    selectedRowkeys.value.forEach(item => {
-      infoDel.checkList.push({ id: item });
+    operableRows.forEach((item: any) => {
+      infoDel.checkList.push({ id: item.id });
     });
     infoDel.userid = userStore.getUser.id;
     await AdminApiActivityPage.deleteActivityInfo(infoDel);
   } else {
+    if (!canRowOperate(data)) {
+      message.warning('无操作权限，仅可预览');
+      return;
+    }
     let infoDel: any = { checkList: [] };
     infoDel.checkList[0] = { id: data.id };
     infoDel.userid = userStore.getUser.id;
@@ -909,6 +964,10 @@ const customPageParamModalRef = ref<any>(null);
 
 /** 自定义页面：打开「关联参数」穿梭配置；其它页面走设计器配置 */
 function handlePageConfigClick(record: any) {
+  if (!canRowOperate(record)) {
+    message.warning('无操作权限，仅可预览');
+    return;
+  }
   if (String(record?.pageType ?? '') === '3') {
     customPageParamModalRef.value?.open(record);
     return;
@@ -1036,6 +1095,10 @@ async function saveActivityCheckConfig(payload: any) {
 const knowledgeConfigRef = ref<any>(null);
 
 async function showKnowledgeModal(record: any) {
+  if (!canRowOperate(record)) {
+    message.warning('无操作权限，仅可预览');
+    return;
+  }
   knowledgeConfigRef.value?.show(record?.id);
 }
 
@@ -1210,17 +1273,22 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                   </template>
                   <template v-else-if="column.dataIndex === 'operation'">
                     <div class="calc-operation-links" @click.stop>
-                      <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
                       <a @click.stop.prevent="handleActivityPagePreview(record)">{{ $t('预览') }}</a>
-                      
-                      <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                        <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
-                      </a-popconfirm>
-                      <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
-                      <a @click.stop.prevent="handlePageConfigClick(record)">
-                        {{ String(record.pageType) === '3' ? $t('配置参数') : $t('配置页面') }}
-                      </a>
+                      <template v-if="canRowOperate(record)">
+                        <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
+                        <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
+                          <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                        </a-popconfirm>
+                        <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
+                        <a @click.stop.prevent="handlePageConfigClick(record)">
+                          {{ String(record.pageType) === '3' ? $t('配置参数') : $t('配置页面') }}
+                        </a>
+                      </template>
+                      <a v-if="canRowShare(record)" @click.stop.prevent="openDesignShareModal(record)">{{ $t('共享') }}</a>
                     </div>
+                  </template>
+                  <template v-else-if="column.dataIndex === 'sharedUserNames'">
+                    <span>{{ record.sharedUserNames || '—' }}</span>
                   </template>
                   <template v-else-if="column.dataIndex === 'pageType'">
                     <span v-if="record.pageType === '1'">{{ $t('设计配置页面') }}</span>
@@ -1245,6 +1313,13 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
         </button>
       </Tooltip>
     </div>
+
+    <DesignResourceShareModal
+      v-model:visible="designShareModalVisible"
+      biz-type="ACTIVITY"
+      :biz-id="designShareTarget?.bizId"
+      :title="designShareTarget?.title"
+      @saved="onDesignShareSaved" />
 
     <!-- 知识配置弹窗 -->
     <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="() => getListData('change')" type="2" />
@@ -1317,29 +1392,13 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
       :image-list="previewCheckImageList"
       @close="closeActivityCheckPreviewModal" />
   </div>
-  <a-drawer
+  <ProductPlatformPicker
     v-if="shouldShowDrawer"
-    :title="`产品平台选择`"
-    placement="left"
-    :style="drawerStyle"
-    :closable="false"
-    :mask="true"
     :visible="titleVisible"
-    :get-container="false"
-    :wrap-style="{ position: 'absolute' }"
-    @blur="onCloseDrawer"
-    @close="onCloseDrawer">
-    <div v-for="(item, index) in titleList" :key="index">
-      <div style="display: flex; background-color: #ecf5ff; margin: 15px 10px 0 10px; border-radius: 10px; height: 60px; cursor: pointer" @click="updateMenu(item)">
-        <img src="@/assets/images/jc.png" v-if="index == 0" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <img src="@/assets/images/ct.png" v-else-if="index == 1" alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <img src="@/assets/images/hj.png" v-else alt="menu" style="width: 50px; height: 50px; margin: 5px" />
-        <a-badge>
-          <div class="menuLi">{{ item.categoryName }}</div>
-        </a-badge>
-      </div>
-    </div>
-  </a-drawer>
+    :drawer-style="drawerStyle"
+    :list="titleList"
+    @select="updateMenu"
+    @close="onCloseDrawer" />
 </template>
 
 <style lang="less" scoped>

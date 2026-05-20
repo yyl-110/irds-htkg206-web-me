@@ -1,0 +1,8 @@
+// 全局 CSS Modules 变量（供 useDesign / ContentWrap 等使用）
+// 需与业务组件 class 前缀保持一致
+
+$namespace: 'wei';
+
+:export {
+  namespace: $namespace;
+}

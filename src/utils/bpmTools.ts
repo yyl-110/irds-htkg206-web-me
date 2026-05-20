@@ -1,0 +1,67 @@
+export function generateUUID() {
+  if (typeof crypto === 'object') {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+    if (typeof crypto.getRandomValues === 'function' && typeof Uint8Array === 'function') {
+      const callback = (c: any) => {
+        const num = Number(c)
+        return (num ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (num / 4)))).toString(16)
+      }
+      return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, callback)
+    }
+  }
+  let timestamp = new Date().getTime()
+  let performanceNow = (typeof performance !== 'undefined' && performance.now && performance.now() * 1000) || 0
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    let random = Math.random() * 16
+    if (timestamp > 0) {
+      random = ((timestamp + random) % 16) | 0
+      timestamp = Math.floor(timestamp / 16)
+    } else {
+      random = ((performanceNow + random) % 16) | 0
+      performanceNow = Math.floor(performanceNow / 16)
+    }
+
+    return (c === 'x' ? random : (random & 0x3) | 0x8).toString(16)
+  })
+}
+
+export const defaultProps = {
+  children: 'children',
+  label: 'deptName',
+  value: 'id',
+  isLeaf: 'leaf',
+  emitPath: false, // 用于 cascader 组件：在选中节点改变时，是否返回由该节点所在的各级菜单的值所组成的数组，若设置 false，则只返回该节点的值
+}
+/**
+ * 解析 JSON 字符串
+ *
+ * @param str
+ */
+export function jsonParse(str: string) {
+  try {
+    return JSON.parse(str)
+  } catch (e) {
+    console.warn(`str[${str}] 不是一个 JSON 字符串`)
+    return str
+  }
+}
+
+// tree from list
+export const listToTree = <T = any>(list: any[], config: Partial<TreeHelperConfig> = {}): T[] => {
+  const conf = getConfig(config) as TreeHelperConfig
+  const nodeMap = new Map()
+  const result: T[] = []
+  const { id, children, pid } = conf
+
+  for (const node of list) {
+    node[children] = node[children] || []
+    nodeMap.set(node[id], node)
+  }
+  for (const node of list) {
+    const parent = nodeMap.get(node[pid])
+    ;(parent ? parent.children : result).push(node)
+  }
+  return result
+}

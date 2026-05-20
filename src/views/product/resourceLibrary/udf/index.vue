@@ -11,8 +11,8 @@ import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/Produ
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
 import SelectBoomTree from '@/views/product/module/components/selectBoomTree.vue';
-import UdfImgList from './components/form/UdfImgList.vue';
-import UdfInfoList from './components/form/UdfListAdm.vue';
+// import ModuleImgList from './ModuleImgList.vue';
+// import ModuleInfoList from './ModuleInfoListAdm.vue';
 
 const loadingTree = ref<boolean>(false);
 const treeData = ref<any[]>([]);
@@ -24,9 +24,9 @@ const categoryid = ref<string>('');
 const menuId = ref<string>('10');
 const categoryType = ref<string>('');
 const loading = ref<boolean>(false);
-const UdfImgListRef = ref<InstanceType<typeof UdfImgList>>();
-const UdfInfoListRef = ref<InstanceType<typeof UdfInfoList>>();
 const treePage = ref<any>(null);
+// const ModuleUdfImgListRef = ref<InstanceType<typeof ModuleImgList>>();
+// const ModuleUdfInfoListRef = ref<InstanceType<typeof ModuleInfoList>>();
 const treeNodeColmoun = ref<any[]>([]);
 const treeRequestParams = reactive(new ProductModuleTreeInfoRequestDTOModel());
 const currentSelectField = ref<any>(null);
@@ -113,16 +113,50 @@ function selectNode(node: any) {
   selectedKeys.value = String(node?.key || '');
   categoryid.value = node?.key ? String(node.key) : String(node?.id || '');
   menuId.value = '10';
-  categoryType.value = String(node?.categoryType || '');
+  categoryType.value = String(node?.categoryType ?? '');
   if (categoryType.value == '2' || categoryType.value == '3') {
     nextTick(() => {
-      UdfImgListRef.value?.infoReload(categoryid.value, menuId.value, 'manager');
+      ModuleUdfImgListRef.value?.infoReload(categoryid.value, menuId.value, 'manager');
     });
   } else {
     nextTick(() => {
-      UdfInfoListRef.value?.infoReload(categoryid.value, menuId.value);
+      ModuleUdfInfoListRef.value?.infoReload(categoryid.value, menuId.value);
     });
   }
+}
+
+function actionNode(item: any) {
+  nextTick(() => {
+    selectNode(item);
+    selectedKeys.value = String(item?.id || item?.key || '');
+  });
+}
+
+function findNodePathById(nodes: any[], targetId: string, path: any[] = []): any[] | null {
+  for (const node of nodes || []) {
+    const nextPath = [...path, node];
+    if (String(node?.key ?? node?.id ?? '') === targetId) {
+      return nextPath;
+    }
+    if (node?.children?.length) {
+      const childPath = findNodePathById(node.children, targetId, nextPath);
+      if (childPath) return childPath;
+    }
+  }
+  return null;
+}
+
+async function getCategory(categoryId: any) {
+  const targetId = String(categoryId ?? '');
+  if (!targetId) return;
+  const path = findNodePathById(treeData.value, targetId);
+  if (!path || path.length === 0) return;
+  const targetNode = path[path.length - 1];
+  selectedKeys.value = targetId;
+  expandedKeys.value = path.map((n: any) => n.key).join(',');
+  nextTick(() => {
+    selectNode(targetNode);
+  });
 }
 
 async function upNode(node: any) {
@@ -342,28 +376,6 @@ function handleSelectTreeNode1(selectedKeys: any[]) {
   selectTreeSelectedKeys1.value = selectedKeys[0];
 }
 
-function actionNode(item: any) {
-  nextTick(() => {
-    selectNode(item);
-    selectedKeys.value = String(item?.id || item?.key || '');
-  });
-}
-
-async function getCategory(targetCategoryId: any) {
-  const targetId = String(targetCategoryId || '');
-  if (!targetId) return;
-  const targetNode = findNodeById(treeData.value, targetId);
-  if (!targetNode) {
-    message.warning('未找到对应树节点');
-    return;
-  }
-  selectedKeys.value = targetId;
-  expandedKeys.value = targetId;
-  nextTick(() => {
-    selectNode(targetNode);
-  });
-}
-
 /** 按关键字过滤树节点 */
 function filterTreeNodes(nodes: any[], searchValue: string): any[] {
   return (nodes || [])
@@ -444,8 +456,8 @@ async function reloadTree() {
         </Pane>
         <Pane class="splitpane-cls module-index-right-pane" :size="rightTreePaneSize">
           <div v-if="!loading" class="module-index-right-inner">
-            <UdfImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="UdfImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
-            <UdfInfoList v-else ref="UdfInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
+            <!-- <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleUdfImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
+            <ModuleInfoList v-else ref="ModuleUdfInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" /> -->
           </div>
         </Pane>
       </Splitpanes>
@@ -488,6 +500,14 @@ async function reloadTree() {
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.udf-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.45);
 }
 
 /* 与 Main 主区 flex 定高一致，避免 sticky+底边偏移撑高文档 */

@@ -667,7 +667,7 @@ defineExpose({
               <a-popconfirm
                 v-if="!isAppPublished(record)"
                 placement="topLeft"
-                title="确定要发布独立应用吗？"
+                title="确定要发布应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
@@ -676,7 +676,7 @@ defineExpose({
               <a-popconfirm
                 v-else
                 placement="topLeft"
-                title="确定要取消发布独立应用吗？"
+                title="确定要取消发布应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
