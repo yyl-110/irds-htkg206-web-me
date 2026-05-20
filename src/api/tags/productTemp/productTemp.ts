@@ -25,6 +25,9 @@ export interface ProductTempRequestPO {
    * @example ""
    */
   tempName?: string;
+
+  /** 平台库菜单 ID */
+  menuId?: string | number;
 }
 
 // ------------------end--------------订单号明细----------------------------------------------

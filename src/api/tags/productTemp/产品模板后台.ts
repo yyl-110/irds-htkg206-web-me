@@ -201,7 +201,7 @@ export class AdminApiProductTemp {
   static saveWbsStructure = (
     query: {
       tempId: number | string;
-      menuId?: number | string;
+      menuId: number | string;
       tree: any[];
     },
     params: RequestParams = {},
@@ -221,7 +221,7 @@ export class AdminApiProductTemp {
   static getTempInfo = (
     query: {
       tempId: number | string;
-      menuId?: number | string;
+      menuId: number | string;
     },
     params: RequestParams = {},
   ) =>
@@ -241,7 +241,7 @@ export class AdminApiProductTemp {
   static saveWbsSnapshot = (
     query: {
       tempId: number | string;
-      menuId?: number | string;
+      menuId: number | string;
       tree: any[];
     },
     params: RequestParams = {},

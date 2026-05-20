@@ -78,12 +78,24 @@ function resetProductTemplateModalSelection() {
   selectedProductTemplateRow.value = null;
 }
 
+function resolveProjectPlatformMenuId(): string | null {
+  const mid = String(props.projectForm.productPlatformId ?? '').trim();
+  if (!mid) {
+    message.warning(WeiI18n.$t('请先选择或确认项目所属平台'));
+    return null;
+  }
+  return mid;
+}
+
 async function selectProductTemplate() {
+  const platformMenuId = resolveProjectPlatformMenuId();
+  if (!platformMenuId) return;
+
   resetProductTemplateModalSelection();
   productTemplateModalVisible.value = true;
   productTemplateLoading.value = true;
   try {
-    const res = await AdminApiProductTemp.getProductTempList({});
+    const res = await AdminApiProductTemp.getProductTempList({ menuId: platformMenuId });
     const list = res?.data?.data;
     productTemplateList.value = Array.isArray(list) ? list : [];
   } finally {

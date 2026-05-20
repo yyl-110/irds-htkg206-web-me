@@ -270,6 +270,13 @@ const route = useRoute();
 const router = useRouter();
 
 const tempId = computed(() => (route.query.id as string) || '');
+/** 当前产品平台库 menuId（与列表页 /page 筛选一致） */
+const menuId = computed(() => {
+  const raw = route.query.menuId;
+  if (raw == null) return '';
+  const s = String(raw).trim();
+  return s || '';
+});
 const loading = ref<boolean>(false);
 const tableData = ref<WbsRow[]>([]);
 const pageMode = ref<'structure-select' | 'edit-saved'>('edit-saved');
@@ -327,11 +334,21 @@ function notifyAxiosFailure(err: unknown, fallback: string) {
 
 // ─── API 调用 ───────────────────────────────────────────────
 
+function resolveMenuIdOrWarn(): string | null {
+  if (!menuId.value) {
+    message.warning(t('缺少平台库参数，请从产品模板库重新进入'));
+    return null;
+  }
+  return menuId.value;
+}
+
 async function fetchWbsTree() {
   if (!tempId.value) return;
+  const mid = resolveMenuIdOrWarn();
+  if (!mid) return;
   loading.value = true;
   try {
-    const res = await AdminApiProductTemp.getTempInfo({ tempId: tempId.value, menuId: 1 });
+    const res = await AdminApiProductTemp.getTempInfo({ tempId: tempId.value, menuId: mid });
     const apiTree = res?.data?.data?.tree ?? res?.data?.tree ?? [];
     tableData.value = transformApiTree(apiTree);
     expandedRowKeys.value = collectAllKeys(tableData.value);
@@ -345,9 +362,11 @@ async function fetchWbsTree() {
 
 async function fetchAllWbsTree() {
   if (!tempId.value) return;
+  const mid = resolveMenuIdOrWarn();
+  if (!mid) return;
   structureModalLoading.value = true;
   try {
-    const res = await AdminApiProductTemp.getWbsAllTreeList({ tempId: tempId.value, menuId: 1 });
+    const res = await AdminApiProductTemp.getWbsAllTreeList({ tempId: tempId.value, menuId: mid });
     const apiTree = res?.data?.data?.tree ?? res?.data?.tree ?? [];
     const allRows = transformApiTree(apiTree);
     // 展示裁剪已由后端 filterDesignTreeByTaskLeafData 完成；不可再用「本节点 taskCount」过滤：
@@ -438,13 +457,15 @@ function onStructureModalCancel() {
 
 async function onStructureModalOk() {
   if (!tempId.value) return;
+  const mid = resolveMenuIdOrWarn();
+  if (!mid) return;
   const selectedKeys = new Set(checkedStructureKeys.value);
   applySelectedByCheckedKeys(structureTreeRows.value, selectedKeys);
   try {
     structureModalLoading.value = true;
     const res = await AdminApiProductTemp.saveWbsStructure({
       tempId: tempId.value,
-      menuId: 1,
+      menuId: mid,
       tree: mapToSaveTree(structureTreeRows.value),
     });
     message.success(WeiI18n.$t('结构保存成功'));
@@ -468,7 +489,7 @@ async function onDelete(record: WbsRow) {
   if (!tempId.value) return;
   if (record.children?.length) { message.warning(t('该节点包含子节点，无法删除')); return; }
   try {
-    await AdminApiProductTemp.deleteWbsNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
+    await AdminApiProductTemp.deleteWbsNode({ tempId: tempId.value, nodeId: record.id });
     message.success(`${t('删除成功')}：${record.nodeName}`);
     await fetchWbsTree();
   } catch (err: unknown) {
@@ -502,7 +523,7 @@ async function onMoveUp(record: WbsRow) {
   }
   
   try {
-    await AdminApiProductTemp.moveUpNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
+    await AdminApiProductTemp.moveUpNode({ tempId: tempId.value, nodeId: record.id });
     await fetchWbsTree();
   } catch (err: unknown) {
     notifyAxiosFailure(err, t('上移失败'));
@@ -524,7 +545,7 @@ async function onMoveDown(record: WbsRow) {
   }
 
   try {
-    await AdminApiProductTemp.moveDownNode({ tempId: tempId.value, nodeId: record.id, menuId: 1 });
+    await AdminApiProductTemp.moveDownNode({ tempId: tempId.value, nodeId: record.id });
     await fetchWbsTree();
   } catch (err: unknown) {
     notifyAxiosFailure(err, t('下移失败'));
@@ -535,7 +556,9 @@ function goBack() { router.back(); }
 
 async function onSave() {
   if (!tempId.value) return;
-  
+  const mid = resolveMenuIdOrWarn();
+  if (!mid) return;
+
   try {
     saveLoading.value = true;
     const validateTasks = (rows: WbsRow[]): boolean => {
@@ -559,7 +582,7 @@ async function onSave() {
 
     const res = await AdminApiProductTemp.saveWbsSnapshot({
       tempId: tempId.value,
-      menuId: 1,
+      menuId: mid,
       tree: mapToSaveTree(tableData.value),
     });
     message.success(WeiI18n.$t('保存成功'));

@@ -389,12 +389,18 @@ function customGetContainer() {
 }
 
 function openWbsStructure(record: any) {
+  const mid = menuId.value || String(record?.menuId ?? '');
+  if (!mid) {
+    message.warning(WeiI18n.$t('请先选择产品平台'));
+    return;
+  }
   router.push({
     path: '/internal/product-temp-wbs',
     query: {
       id: String(record.id ?? ''),
       tempName: String(record.tempName ?? ''),
       tempNum: String(record.tempNum ?? ''),
+      menuId: mid,
     },
   });
 }
