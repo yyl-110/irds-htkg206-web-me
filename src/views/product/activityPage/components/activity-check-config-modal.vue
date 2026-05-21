@@ -2786,8 +2786,9 @@ watch(
       </div>
     </div>
     <div class="footer-actions">
-      <a-button @click="emit('close')">取消</a-button>
       <a-button type="primary" :loading="saveLoading" @click="handleSave">保存配置</a-button>
+      <a-button @click="emit('close')">取消</a-button>
+      
     </div>
   </a-modal>
 

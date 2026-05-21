@@ -145,11 +145,13 @@ function renderNodeTitle(item: FlowNode) {
   const style = resolveNodeStatusStyle(item.nodeStatus)
   if (!style)
     return name
+  const status = String(item.nodeStatus ?? '').trim()
+  const titleColor = status.includes('未开始') ? '#262626' : style.color
   return h(
     'span',
     {
       class: 'workspace-tree-node-title',
-      style: { color: style.color },
+      style: { color: titleColor },
     },
     [
       h(style.icon, { style: { marginRight: '6px', color: style.color, fontSize: '13px' } }),

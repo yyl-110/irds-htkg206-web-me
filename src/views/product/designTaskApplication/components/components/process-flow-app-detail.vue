@@ -5,6 +5,7 @@ import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { useUserStore } from '@/store/modules/user';
+import { WeiI18n } from '@/utils/WeiI18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -27,14 +28,79 @@ const isCheckEntry = computed(() => String(route.query.entry ?? '').trim() === '
 const appCodeLabel = computed(() => (isCheckEntry.value ? '计算应用编号' : '独立应用编号'));
 const appNameLabel = computed(() => (isCheckEntry.value ? '计算应用名称' : '独立应用名称'));
 const createActionLabel = computed(() => (isCheckEntry.value ? '新建计算' : '新建'));
+
+/** 操作列宽度（与 parameter/index.vue 一致，2 个操作用 --main-operation2-width） */
+const operationWidth = computed(() => {
+  const root = document.querySelector(':root');
+  const width = getComputedStyle(root).getPropertyValue('--main-operation2-width');
+  return Number(width) || 120;
+});
+
 const tableColumns = computed(() => [
-  { title: appCodeLabel.value, dataIndex: 'appCode', key: 'appCode' },
-  { title: appNameLabel.value, dataIndex: 'appName', key: 'appName' },
-  { title: '创建人', dataIndex: 'creatorName', key: 'creatorName' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center' },
-  { title: '状态', key: 'status', align: 'center' },
-  { title: '操作', key: 'action', align: 'center' },
+  { title: appCodeLabel.value, dataIndex: 'appCode', key: 'appCode', width: 300, ellipsis: true },
+  { title: appNameLabel.value, dataIndex: 'appName', key: 'appName', width: 220, ellipsis: true },
+  { title: '创建人', dataIndex: 'creatorName', key: 'creatorName', align: 'center', width: 100 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 150 },
+  { title: '状态', key: 'status', align: 'center', width: 96 },
+  /** 固定右侧列不建议 resizable（与 parameter/index.vue、exeConfigTab 一致） */
+  {
+    title: WeiI18n.t('操作').value,
+    dataIndex: 'operation',
+    key: 'operation',
+    align: 'center',
+    width: operationWidth.value,
+    fixed: 'right' as const,
+  },
 ]);
+
+/** 横向滚动宽度：列 width 之和 + 缓冲（与 parameter/index.vue 一致） */
+const SCROLL_X_BUFFER_PX = 2;
+const appTableScrollX = computed(() => {
+  const sum = tableColumns.value.reduce((acc, col) => {
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + SCROLL_X_BUFFER_PX;
+});
+
+function normalizeUserIdString(v: unknown) {
+  if (v === undefined || v === null) return '';
+  const s = String(v).trim();
+  return s === '' || s === 'undefined' || s === 'null' ? '' : s;
+}
+
+function sameUserId(a: unknown, b: unknown) {
+  if (a === b) return true;
+  const sa = normalizeUserIdString(a);
+  const sb = normalizeUserIdString(b);
+  if (!sa || !sb) return false;
+  if (sa === sb) return true;
+  if (/^\d+$/.test(sa) && /^\d+$/.test(sb)) {
+    try {
+      return BigInt(sa) === BigInt(sb);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function resolveRecordCreatorId(record: Record<string, any>) {
+  return record?.creator ?? record?.creatorId ?? record?.createUserId ?? record?.userId;
+}
+
+function canDeleteApp(record: Record<string, any>) {
+  const creatorId = resolveRecordCreatorId(record);
+  if (creatorId != null && creatorId !== '' && sameUserId(creatorId, userStore.getUser.id)) {
+    return true;
+  }
+  const creatorName = String(record?.creatorName ?? '').trim();
+  if (!creatorName) return false;
+  const currentNames = [userStore.getUser.nickname, userStore.getUser.userName]
+    .map((name) => String(name ?? '').trim())
+    .filter(Boolean);
+  return currentNames.some((name) => name === creatorName);
+}
 
 function resolveAppStatusText(record: Record<string, any>) {
   const text = String(record?.statusName || record?.status || record?.nodeStatus || '').trim();
@@ -136,6 +202,32 @@ async function confirmCreateFlow() {
   }
 }
 
+async function deleteApp(record: Record<string, any>) {
+  if (!canDeleteApp(record)) {
+    message.warning('仅创建人可删除');
+    return;
+  }
+  const appId = String(record?.appId ?? '').trim();
+  if (!appId) {
+    message.warning('缺少应用标识，无法删除');
+    return;
+  }
+  try {
+    const res = await AdminApiSystemProcessTask.deleteApp({ appId });
+    const code = res?.data?.code;
+    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
+      message.error(String(res?.data?.msg ?? '删除失败'));
+      return;
+    }
+    message.success('删除成功');
+    await loadAppList();
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { msg?: string; message?: string } } };
+    const serverMsg = err?.response?.data?.msg ?? err?.response?.data?.message;
+    message.error(typeof serverMsg === 'string' && serverMsg.trim() ? serverMsg : '删除失败');
+  }
+}
+
 async function designFlow(record: Record<string, any>) {
   const appId = String(record?.appId ?? '').trim();
   const appCode = String(record?.appCode ?? '').trim();
@@ -201,6 +293,7 @@ void loadAppList();
         :pagination="false"
         bordered
         table-layout="fixed"
+        :scroll="{ x: appTableScrollX }"
         :row-class-name="getTableRowClassName">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
@@ -208,9 +301,18 @@ void loadAppList();
               {{ resolveAppStatusText(record) }}
             </a-tag>
           </template>
-          <template v-if="column.key === 'action'">
-            <div class="detail-page__action-cell">
-              <a-button type="link" @click="designFlow(record)">设计</a-button>
+          <template v-else-if="column.dataIndex === 'operation'">
+            <div class="calc-operation-links" @click.stop>
+              <a href="#" @click.stop.prevent="designFlow(record)">设计</a>
+              <a-popconfirm
+                v-if="canDeleteApp(record)"
+                placement="topLeft"
+                :title="`${$t('确定要删除吗')}?`"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm.stop.prevent="deleteApp(record)">
+                <a href="#" style="color: #ff4d4f" @click.prevent>删除</a>
+              </a-popconfirm>
             </div>
           </template>
         </template>
@@ -367,12 +469,66 @@ void loadAppList();
   :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
     border-left: 1px solid #e8e8e8 !important;
   }
+
+  :deep(.ant-table-cell-fix-left-last::after),
+  :deep(.ant-table-cell-fix-right-first::after),
+  :deep(.ant-table-cell-fix-left-first::after) {
+    display: none !important;
+  }
+
+  :deep(.ant-table-cell-fix-right-first) {
+    box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.07);
+  }
 }
 
-.detail-page__action-cell {
-  display: flex;
-  justify-content: center;
+@exe-op-links-divider: #e0e0e0;
+@exe-op-links-line-gap: 8px;
+@exe-op-links-divider-h: 1em;
+
+.calc-operation-links {
+  display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  row-gap: 6px;
+  column-gap: 0;
+
+  > * {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px @exe-op-links-line-gap;
+    line-height: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    border: none;
+    border-radius: 0;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+
+    &:not(:first-child) {
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: @exe-op-links-divider-h;
+        margin-left: -0.5px;
+        background: @exe-op-links-divider;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+    }
+  }
 }
 
 .app-status-tag {

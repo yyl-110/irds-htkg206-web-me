@@ -11,9 +11,17 @@
         表单字段
       </a-divider>
 
-      <a-table v-if="formFieldDisplayRows.length" :data-source="formFieldDisplayRows" size="small" :scroll="{ y: 240 }" bordered :pagination="false">
-        <a-table-column key="displayPageName" title="活动名称" data-index="displayPageName" align="center" :width="130" :ellipsis="true" />
-        <a-table-column key="displayPageType" title="活动类型" data-index="displayPageType" align="center" :width="100">
+      <a-table
+        v-if="formFieldDisplayRows.length"
+        class="exe-config-table form-field-table"
+        :data-source="formFieldDisplayRows"
+        :scroll="{ y: 240 }"
+        bordered
+        table-layout="fixed"
+        :pagination="false"
+        :row-class-name="getFormFieldTableRowClassName">
+        <a-table-column key="displayPageName" title="活动名称" data-index="displayPageName" align="left" :width="formFieldColWidths.pageName" :ellipsis="true" />
+        <a-table-column key="displayPageType" title="活动类型" data-index="displayPageType" align="center" :width="formFieldColWidths.pageType">
           <template #default="{ record }">
             <span v-if="String(record.displayPageType) === '1'">{{ $t('设计配置页面') }}</span>
             <span v-else-if="String(record.displayPageType) === '2'">{{ $t('计算集成页面') }}</span>
@@ -22,7 +30,7 @@
             <span v-else class="form-field-page-type-empty">—</span>
           </template>
         </a-table-column>
-        <a-table-column key="action" title="操作" align="center" :width="72">
+        <a-table-column key="action" title="操作" align="left" :width="formFieldColWidths.action">
           <template #default="{ record }">
             <span class="form-field-unlink" @click="unlinkActivity(record)">取消关联</span>
           </template>
@@ -30,70 +38,80 @@
       </a-table>
     </div>
 
-    <!-- 添加表单抽屉 -->
-    <a-drawer v-model:visible="drawer" title="添加表单" placement="right" width="920">
-      <div class="selector-layout">
-        <div class="selector-layout__left">
-          <div class="selector-layout__title">活动分类</div>
-          <a-tree
-            v-if="activityTreeData.length"
-            block-node
-            :tree-data="activityTreeData"
-            :field-names="{ title: 'name', key: 'id', children: 'children' }"
-            :selectedKeys="treeSelectedKeys"
-            :defaultExpandAll="true"
-            @select="onTreeSelect" />
-          <a-empty v-else description="暂无分类数据" />
+    <!-- 添加表单抽屉：左右布局，底栏按钮，表格样式与参数字典一致 -->
+    <a-drawer
+      v-model:visible="drawer"
+      title="添加表单"
+      placement="right"
+      width="920"
+      class="form-selector-drawer"
+      :body-style="{ padding: 0 }"
+      destroy-on-close>
+      <div class="selector-drawer">
+        <div class="selector-drawer__main">
+          <div class="selector-layout__left">
+            <a-tree
+              v-if="activityTreeData.length"
+              block-node
+              :tree-data="activityTreeData"
+              :field-names="{ title: 'name', key: 'id', children: 'children' }"
+              :selected-keys="treeSelectedKeys"
+              :default-expand-all="true"
+              @select="onTreeSelect" />
+            <a-empty v-else description="暂无分类数据" />
+          </div>
+          <div class="selector-layout__right">
+            <a-table
+              ref="tableRef"
+              class="exe-config-table selector-activity-table"
+              :data-source="formList"
+              :loading="loading"
+              :pagination="false"
+              bordered
+              table-layout="fixed"
+              :scroll="{ x: selectorTableScrollX, y: 'calc(100vh - 320px)' }"
+              row-key="id"
+              :custom-row="customRow"
+              :row-class-name="getSelectorTableRowClassName"
+              :row-selection="{
+                type: 'radio',
+                selectedRowKeys: selectedRowKeys,
+                onChange: onSelectionChange,
+                columnWidth: 48,
+              }">
+              <a-table-column key="pageName" title="活动名称" data-index="pageName" align="left" :width="220" :ellipsis="true" />
+              <a-table-column key="pageType" title="活动类型" data-index="pageType" align="center" :width="120" :ellipsis="true">
+                <template #default="{ record }">
+                  <span v-if="String(record.pageType) === '1'">{{ $t('设计配置页面') }}</span>
+                  <span v-else-if="String(record.pageType) === '2'">{{ $t('计算集成页面') }}</span>
+                  <span v-else-if="String(record.pageType) === '3'">{{ $t('自定义页面') }}</span>
+                  <span v-else>{{ record.pageType }}</span>
+                </template>
+              </a-table-column>
+              <a-table-column key="treeName" title="所属分类" data-index="treeName" align="center" :width="120" :ellipsis="true" />
+              <a-table-column key="groupName" title="组名称" data-index="groupName" align="center" :width="110" :ellipsis="true" />
+              <a-table-column key="remark" title="备注" data-index="remark" align="center" :width="140" :ellipsis="true" />
+            </a-table>
+            <div class="selector-drawer__pagination">
+              <a-pagination
+                size="small"
+                :total="total"
+                :page-size="pageSize"
+                :current="pageNum"
+                :page-size-options="['10', '30', '50', '100', '200']"
+                :show-total="showSelectorPaginationTotal"
+                :build-option-text="prop => `${prop.value}${$t('条/页')}`"
+                show-size-changer
+                show-less-items
+                @change="onPageChange"
+                @show-size-change="onPageSizeChange" />
+            </div>
+          </div>
         </div>
-        <div class="selector-layout__right">
-          <a-table
-            ref="tableRef"
-            :data-source="formList"
-            size="small"
-            :loading="loading"
-            :pagination="false"
-            :scroll="{ y: 'calc(85vh - 250px)' }"
-            row-key="id"
-            :customRow="customRow"
-            :row-selection="{
-              type: 'radio',
-              selectedRowKeys: selectedRowKeys,
-              onChange: onSelectionChange,
-              columnWidth: 40,
-            }">
-            <a-table-column key="pageName" title="活动名称" data-index="pageName" align="center" :width="130" :ellipsis="true" />
-            <a-table-column key="pageType" title="活动类型" data-index="pageType" align="center" :width="120" :ellipsis="true">
-              <template #default="{ record }">
-                <span v-if="String(record.pageType) === '1'">{{ $t('设计配置页面') }}</span>
-                <span v-else-if="String(record.pageType) === '2'">{{ $t('计算集成页面') }}</span>
-                <span v-else-if="String(record.pageType) === '3'">{{ $t('自定义页面') }}</span>
-                <span v-else>{{ record.pageType }}</span>
-              </template>
-            </a-table-column>
-            <a-table-column key="treeName" title="所属分类" data-index="treeName" align="center" :width="110" :ellipsis="true" />
-            <a-table-column key="groupName" title="组名称" data-index="groupName" align="center" :width="110" :ellipsis="true" />
-            <a-table-column key="remark" title="备注" data-index="remark" align="center" :width="140" :ellipsis="true" />
-            <a-table-column key="createTime" title="创建时间" data-index="createTime" align="center" :width="120" :ellipsis="true" />
-          </a-table>
+        <div class="selector-drawer__footer">
+          <a-button type="primary" @click="confirm">确定</a-button>
+          <a-button @click="cancel">取消</a-button>
         </div>
-      </div>
-      <div class="pagination-wrapper">
-        <a-pagination
-          size="small"
-          :total="total"
-          :page-size="pageSize"
-          :current="pageNum"
-          :page-size-options="['10', '30', '50', '100', '200']"
-          :show-total="(total: any) => `${$t('共') + total + $t('条')}`"
-          :build-option-text="prop => `${prop.value}${$t('条/页')}`"
-          show-size-changer
-          show-less-items
-          @change="onPageChange"
-          @show-size-change="onPageSizeChange" />
-      </div>
-      <div class="action-buttons">
-        <a-button type="primary" @click="confirm">确定</a-button>
-        <a-button style="margin-left: 8px" @click="cancel">取消</a-button>
       </div>
     </a-drawer>
   </div>
@@ -104,6 +122,7 @@ import { ref, computed, onMounted, watch, onBeforeUnmount, toRaw } from 'vue';
 import { PlusOutlined, TableOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
+import { WeiI18n } from '@/utils/WeiI18n';
 const props = defineProps({
   elementBusinessObject: {
     type: Object,
@@ -140,6 +159,30 @@ const total = ref(0);
 const deepCope = ref([]);
 const arrData = ref([]);
 const tableRef = ref();
+
+/** 属性面板「表单字段」表列宽（合计约 372px，贴合 400px 侧栏内容区） */
+const formFieldColWidths = {
+  pageName: 104,
+  pageType: 172,
+  action: 96,
+};
+/** 选择器表格列宽之和 + 单选列（与 parameter/index.vue 横向滚动一致） */
+const SELECTOR_RADIO_COL_WIDTH = 48;
+const SELECTOR_SCROLL_X_BUFFER = 2;
+const selectorTableScrollX = computed(() => {
+  const colWidths = [220, 120, 120, 110, 140];
+  const sum = colWidths.reduce((a, b) => a + b, 0);
+  return sum + SELECTOR_RADIO_COL_WIDTH + SELECTOR_SCROLL_X_BUFFER;
+});
+
+function getSelectorTableRowClassName(_record, index) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
+
+function getFormFieldTableRowClassName(_record, index) {
+  return index % 2 === 0 ? 'odd' : 'even';
+}
+
 const FORM_BINDING_MAP_PREFIX = 'activityFormBindingMap';
 const FORM_BINDING_BY_FORMKEY_PREFIX = 'activityFormBindingByFormKey';
 
@@ -254,11 +297,11 @@ watch(
 
 // 方法
 const addForm = async () => {
-  await loadActivityTree();
   pageNum.value = 1;
   selectedRowKeys.value = [];
   selectedRow.value = {};
   drawer.value = true;
+  await loadActivityTree();
 };
 
 function getFirstNodeId(nodes) {
@@ -501,6 +544,10 @@ async function tryHydrateFieldByFormKey(formKey, requestElementId, hydrateToken)
 //   console.log(JSON.parse(localStorage.getItem('selecData')), '+++-----');
 // };
 
+function showSelectorPaginationTotal(totalCount) {
+  return `${WeiI18n.t('共').value}${totalCount}${WeiI18n.t('条').value}`;
+}
+
 const onPageSizeChange = (current, size) => {
   pageSize.value = size;
   pageNum.value = 1;
@@ -626,9 +673,12 @@ const cleanUp = () => {
 
 <style lang="less" scoped>
 .form-content {
-  margin: 10px;
+  margin: 10px 4px;
+  width: 100%;
+  box-sizing: border-box;
 
   .element-property {
+    width: 100%;
     .ant-btn {
       margin-bottom: 16px;
     }
@@ -644,61 +694,163 @@ const cleanUp = () => {
   }
 }
 
-.selector-layout {
+.selector-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 480px;
+  padding: 12px 16px 16px;
+  box-sizing: border-box;
+}
+
+.selector-drawer__main {
+  flex: 1;
+  min-height: 0;
   display: flex;
   gap: 12px;
-  height: calc(100% - 110px);
 }
 
 .selector-layout__left {
-  width: 240px;
-  border: 1px solid #f0f0f0;
+  flex: 0 0 220px;
+  width: 220px;
+  border: 1px solid #e8e8e8;
   border-radius: 2px;
   padding: 10px 8px;
   overflow: auto;
+  background: #fff;
 }
 
 .selector-layout__right {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.selector-layout__title {
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.85);
+.selector-drawer__pagination {
+  flex: 0 0 auto;
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
-.action-buttons {
-  margin-top: 50px;
+
+.selector-drawer__footer {
+  flex: 0 0 auto;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
 
-  button {
-    min-width: 60px;
+.form-selector-drawer {
+  :deep(.ant-drawer-body) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 !important;
+    overflow: hidden;
   }
 }
-.pagination-wrapper {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-// Ant Design 表格样式调整
-:deep(.ant-table-small) {
-  font-size: 12px;
 
-  .ant-table-thead > tr > th {
-    background-color: #fafafa;
-    padding: 8px 8px;
+@selector-table-row-height: 42px;
+
+.selector-activity-table,
+.form-field-table {
+  flex: 1;
+  min-height: 0;
+
+  :deep(.ant-table-thead > tr > th) {
+    height: @selector-table-row-height;
+    max-height: @selector-table-row-height;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    vertical-align: middle;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: @selector-table-row-height;
+    border-bottom: 1px solid #e8e8e8;
   }
 
-  .ant-table-tbody > tr > td {
-    padding: 8px 8px;
+  :deep(.ant-table-thead > tr > th.ant-table-cell-align-left) {
+    text-align: left;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    height: @selector-table-row-height;
+    max-height: @selector-table-row-height;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-right: none !important;
+    font-size: 14px;
+    line-height: @selector-table-row-height;
     vertical-align: middle;
   }
 
-  .form-field-unlink {
-    font-size: 12px;
+  :deep(.ant-table-tbody > tr > td.ant-table-cell-align-left) {
+    text-align: left;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr.ant-table-row-selected > td) {
+    background: #e6f4ff !important;
+  }
+}
+
+.exe-config-table {
+  :deep(.ant-table-bordered > .ant-table-container) {
+    border-left: none !important;
+  }
+
+  :deep(.ant-table-bordered .ant-table-thead > tr > th:first-child),
+  :deep(.ant-table-bordered .ant-table-tbody > tr > td:first-child) {
+    border-left: 1px solid #e8e8e8 !important;
+  }
+}
+
+.form-field-table {
+  width: 100%;
+
+  :deep(.ant-table-wrapper),
+  :deep(.ant-table),
+  :deep(.ant-table-container),
+  :deep(.ant-table-content),
+  :deep(.ant-table-content > table) {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  :deep(.ant-table-body) {
+    overflow-x: hidden !important;
+  }
+
+  :deep(.ant-table-cell-ellipsis) {
+    word-break: keep-all;
+  }
+
+  :deep(.form-field-unlink) {
+    font-size: 14px;
     line-height: 22px;
     color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
     cursor: pointer;
@@ -708,22 +860,5 @@ const cleanUp = () => {
       opacity: 0.85;
     }
   }
-}
-
-:deep(.ant-drawer-body) {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-
-  .ant-table-wrapper {
-    flex: 1;
-    margin-bottom: 16px;
-  }
-}
-
-:deep(.ant-drawer-footer) {
-  border-top: 1px solid #f0f0f0;
-  padding: 10px 16px;
-  text-align: right;
 }
 </style>

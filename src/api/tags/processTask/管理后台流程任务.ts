@@ -428,6 +428,27 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 删除独立应用
+   *
+   * @tags 管理后台 - 删除独立应用
+   * @name deleteApp
+   * @summary 删除独立应用
+   * @request POST:/business-service/business/standalone-app/delete
+   * @secure
+   */
+  static deleteApp = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/delete`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 查询流程节点树+节点状态（不含 componentsJson，数据量大请分步加载）
    *
    * @tags 管理后台 - 查询流程节点树+节点状态（不含 componentsJson，数据量大请分步加载）

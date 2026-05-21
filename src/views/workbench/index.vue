@@ -428,19 +428,9 @@ function workbenchShowOverdueUi(task: TaskItem): boolean {
   return task.status === 'todo' && task.delayDays != null && task.delayDays > 0
 }
 
-/**
- * 卡片 / 列表展示标题：WBS 追加（项目名称）；独立应用与计算追加（应用名称）
- * @param task
- */
+/** 卡片 / 列表展示标题（仅展示服务端 title，不追加项目/应用名括号后缀） */
 function workbenchCardDisplayTitle(task: TaskItem): string {
-  const base = String(task.title ?? '').trim()
-  if (!base)
-    return ''
-  if (task.taskKind === 'wbs' && task.projectDisplayName)
-    return `${base}（${task.projectDisplayName}）`
-  if ((task.taskKind === 'standalone' || task.taskKind === 'compute') && task.appDisplayName)
-    return `${base}（${task.appDisplayName}）`
-  return base
+  return String(task.title ?? '').trim()
 }
 
 /**
@@ -1386,8 +1376,8 @@ onUnmounted(() => {
                 </div>
               </template>
 
-              <div v-if="item.name === 'todo'" class="task-content h-full flex flex-col">
-                <div class="filter-bar flex justify-between items-center mb-[16px] mt-[3px]">
+              <div v-if="item.name === 'todo'" class="task-content flex flex-col flex-1 min-h-0">
+                <div class="filter-bar flex-shrink-0 flex justify-between items-center mb-[16px] mt-[3px]">
                   <div class="capsule-group flex gap-[12px]">
                     <div
                       v-for="subTab in secondaryTabs"
@@ -1411,11 +1401,11 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <a-spin :spinning="todoListLoading" class="flex-1 min-h-0 flex flex-col">
-                  <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
+                <a-spin :spinning="todoListLoading" class="task-list-spin flex-1 min-h-0 flex flex-col">
+                  <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar">
                     <template v-if="viewMode === 'grid'">
-                      <a-row :gutter="[16, 16]">
-                        <a-col v-for="item in filteredTodoList" :key="String(item.id)" flex="0 0 380px" style="width: 380px; max-width: 380px;">
+                      <a-row :gutter="[16, 12]" align="top">
+                        <a-col v-for="item in filteredTodoList" :key="String(item.id)" flex="0 0 350px" style="width: 350px; max-width: 350px;">
                           <div class="task-card" :class="taskCardKindClass(item)">
                             <div
                               v-if="workbenchShowOverdueUi(item)"
@@ -1434,9 +1424,9 @@ onUnmounted(() => {
                               </span>
                             </div>
                             <div class="tc-header flex justify-between items-start">
-                              <div class="title-wrap flex items-center flex-1 pr-[8px] overflow-hidden">
+                              <div class="title-wrap flex items-center flex-1 pr-[6px] overflow-hidden">
                                 <span
-                                  class="title-text truncate font-bold text-[16px] text-[#313133]"
+                                  class="title-text truncate font-bold text-[14px] leading-[20px] text-[#313133]"
                                   :title="workbenchCardDisplayTitle(item)"
                                 >{{
                                   workbenchCardDisplayTitle(item)
@@ -1448,7 +1438,7 @@ onUnmounted(() => {
                                 }}</span>
                               </div>
                               <a-dropdown v-if="showWbsRejectMenu(item)" :trigger="['hover']">
-                                <EllipsisOutlined class="text-[20px] text-[#999] cursor-pointer mt-[2px]" />
+                                <EllipsisOutlined class="text-[18px] text-[#999] cursor-pointer" />
                                 <template #overlay>
                                   <a-menu @click="({ key }: { key: string }) => key === 'reject' && openRejectModal(item)">
                                     <a-menu-item key="reject">
@@ -1459,13 +1449,13 @@ onUnmounted(() => {
                               </a-dropdown>
                             </div>
 
-                            <div class="tc-body mt-[16px] space-y-[12px] text-[14px] text-[#6A696E]">
+                            <div class="tc-body mt-[8px] space-y-[6px] text-[13px] leading-[18px] text-[#6A696E]">
                               <div class="flex">
-                                <span class="w-[75px] flex-shrink-0">项目时间：</span>
-                                <span>{{ hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/' }}</span>
+                                <span class="w-[68px] flex-shrink-0">项目时间：</span>
+                                <span class="min-w-0 truncate">{{ hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/' }}</span>
                               </div>
-                              <div class="tc-type-row flex items-center gap-[6px] min-w-0 text-[14px] leading-[22px]">
-                                <span class="w-[75px] flex-shrink-0 text-[#6A696E]">任务类型：</span>
+                              <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
+                                <span class="w-[68px] flex-shrink-0 text-[#6A696E]">任务类型：</span>
                                 <span class="text-[#313133] min-w-0 flex-1 truncate">{{ item.type }}</span>
                                 <template v-if="item.lastRejectRemark">
                                   <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
@@ -1479,12 +1469,12 @@ onUnmounted(() => {
                                 </template>
                               </div>
                               <div v-if="item.viewOnly && item.assigneeDisplayName" class="flex">
-                                <span class="w-[75px] flex-shrink-0">当前承办：</span>
-                                <span class="text-[#313133] font-medium">{{ item.assigneeDisplayName }}</span>
+                                <span class="w-[68px] flex-shrink-0">当前承办：</span>
+                                <span class="text-[#313133] font-medium truncate">{{ item.assigneeDisplayName }}</span>
                               </div>
-                              <div class="flex justify-between items-center pr-[10px]">
-                                <div class="flex">
-                                  <span class="w-[75px] flex-shrink-0">当前进度：</span>
+                              <div class="flex justify-between items-center pr-[6px]">
+                                <div class="flex min-w-0">
+                                  <span class="w-[68px] flex-shrink-0">当前进度：</span>
                                   <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
                                 </div>
                                 <span v-if="item.status === 'todo' && item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
@@ -1492,30 +1482,30 @@ onUnmounted(() => {
                                   天</span>
                               </div>
                               <a-progress
-                                :percent="item.progress" :show-info="false" :stroke-width="8"
+                                :percent="item.progress" :show-info="false" :stroke-width="6"
                                 trail-color="#F0F0F0"
-                                class="mt-[8px] !mb-0" :class="workbenchShowOverdueUi(item) ? 'delay-progress' : 'normal-progress'"
+                                class="mt-[4px] !mb-0" :class="workbenchShowOverdueUi(item) ? 'delay-progress' : 'normal-progress'"
                               />
                             </div>
 
-                            <div class="tc-footer mt-[12px] flex items-center text-[14px] text-[#6A696E]">
-                              <span class="w-[60px] flex-shrink-0">创建人：</span>
-                              <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[14px] px-[8px] py-[3px]">
+                            <div class="tc-footer mt-[8px] flex items-center text-[13px] leading-[18px] text-[#6A696E]">
+                              <span class="w-[52px] flex-shrink-0">创建人：</span>
+                              <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[12px] px-[6px] py-[1px]">
                                 <img
                                   v-if="item.creatorAvatar" :src="item.creatorAvatar"
-                                  class="w-[20px] h-[20px] rounded-full mr-[6px]"
+                                  class="w-[18px] h-[18px] rounded-full mr-[4px]"
                                 >
                                 <img
                                   v-else src="../../assets/workbench/people.png"
-                                  class="w-[20px] h-[20px] rounded-full mr-[6px]"
+                                  class="w-[18px] h-[18px] rounded-full mr-[4px]"
                                 >
-                                <span>{{ item.creatorName }}</span>
+                                <span class="truncate max-w-[88px]">{{ item.creatorName }}</span>
                               </div>
-                              <div class="tc-actions ml-auto flex items-center gap-[12px]">
+                              <div class="tc-actions ml-auto flex items-center gap-[10px]">
                                 <a-tooltip v-if="taskActionAllowed(item, 'design')" :title="designWorkspaceTooltip(item)">
                                   <a
                                     href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
                                     @click.prevent.stop="openDesignWorkspace(item)"
                                   >
                                     <HighlightOutlined />
@@ -1524,7 +1514,7 @@ onUnmounted(() => {
                                 <a-tooltip v-if="taskActionAllowed(item, 'assign')" title="指派">
                                   <a
                                     href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
                                     @click.prevent.stop="openWbsPersonAssignFromWorkbench(item)"
                                   >
                                     <UserAddOutlined />
@@ -1533,7 +1523,7 @@ onUnmounted(() => {
                                 <a-tooltip v-if="taskActionAllowed(item, 'transfer')" title="转办">
                                   <a
                                     href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
                                     @click.prevent.stop="openTransferModal(item)">
                                     <SwapOutlined />
                                   </a>
@@ -1541,7 +1531,7 @@ onUnmounted(() => {
                                 <a-tooltip v-if="taskActionAllowed(item, 'detail')" title="详情">
                                   <a
                                     href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
                                     @click.prevent.stop="openTaskAppDetail(item)"
                                   >
                                     <ProfileOutlined />
@@ -1550,7 +1540,7 @@ onUnmounted(() => {
                                 <a-tooltip v-if="taskActionAllowed(item, 'change')" title="变更">
                                   <a
                                     href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
                                     @click.prevent.stop="openChangeWorkspace(item)"
                                   >
                                     <FormOutlined />
@@ -1698,8 +1688,8 @@ onUnmounted(() => {
                   </div>
                 </a-spin>
               </div>
-              <div v-else-if="item.name === 'audit'" class="task-content h-full flex flex-col">
-                <div class="flex-1 overflow-y-auto overflow-x-hidden wei-scrollbar">
+              <div v-else-if="item.name === 'audit'" class="task-content flex flex-col flex-1 min-h-0">
+                <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar">
                   <a-table
                     :columns="todoColumns"
                     :data-source="tableAuditList"
@@ -2348,6 +2338,43 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+.task-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list-spin {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.task-list-spin.ant-spin-nested-loading) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.task-list-spin .ant-spin-container) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .capsule {
   padding: 4px 16px;
   background: #F4F4F5;
@@ -2373,9 +2400,7 @@ onUnmounted(() => {
   background: #FFFFFF;
   border: 1px solid #EAEAF1;
   border-radius: 8px;
-  padding: 16px;
-  height: 100%;
-  min-height: 248px;
+  padding: 10px 12px 8px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s;
@@ -2389,12 +2414,12 @@ onUnmounted(() => {
 .task-card__overdue-corner {
   position: absolute;
   z-index: 4;
-  top: 10px;
-  right: 12px;
-  padding: 2px 10px;
-  font-size: 12px;
+  top: 8px;
+  right: 10px;
+  padding: 1px 8px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 18px;
   color: #fff;
   background: #ff4d4f;
   border-radius: 4px;
@@ -2407,23 +2432,23 @@ onUnmounted(() => {
 }
 
 .task-card__type-ribbon {
-  margin: -4px 0 10px;
+  margin: -2px 0 6px;
 }
 
 .task-card__type-ribbon-inner {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1;
-  padding: 5px 10px;
+  padding: 3px 8px;
   border-radius: 4px;
 }
 
 .task-card--kind-wbs {
   border-left: 4px solid #1a58e8;
-  background: linear-gradient(180deg, rgba(26, 88, 232, 0.06) 0%, #fff 56px);
+  background: linear-gradient(180deg, rgba(26, 88, 232, 0.06) 0%, #fff 44px);
 
   &:hover {
     border-color: #1a58e8;
@@ -2437,7 +2462,7 @@ onUnmounted(() => {
 
 .task-card--kind-standalone {
   border-left: 4px solid #722ed1;
-  background: linear-gradient(180deg, rgba(114, 46, 209, 0.06) 0%, #fff 56px);
+  background: linear-gradient(180deg, rgba(114, 46, 209, 0.06) 0%, #fff 44px);
 
   &:hover {
     border-color: #722ed1;
@@ -2451,7 +2476,7 @@ onUnmounted(() => {
 
 .task-card--kind-compute {
   border-left: 4px solid #fa8c16;
-  background: linear-gradient(180deg, rgba(250, 140, 22, 0.07) 0%, #fff 56px);
+  background: linear-gradient(180deg, rgba(250, 140, 22, 0.07) 0%, #fff 44px);
 
   &:hover {
     border-color: #fa8c16;
@@ -2465,7 +2490,7 @@ onUnmounted(() => {
 
 .task-card--kind-other {
   border-left: 4px solid #8c8c8c;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, #fff 56px);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, #fff 44px);
 
   &:hover {
     border-color: #8c8c8c;
@@ -2478,19 +2503,19 @@ onUnmounted(() => {
 }
 
 .tc-body {
-  min-height: 92px;
+  min-height: 0;
 }
 
 .tc-tag {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 20px;
-  line-height: 20px;
-  padding: 0 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin-left: 8px;
+  height: 18px;
+  line-height: 18px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  margin-left: 6px;
 
   &.tag-red {
     background: #FF4D4F;

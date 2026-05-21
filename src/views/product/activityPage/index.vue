@@ -179,9 +179,9 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'pageName',
     align: 'left',
     fixed: 'left',
-    resizable: false,
+    resizable: true,
     ellipsis: true,
-    width: 180,
+    width: 220,
   },
   {
     title: WeiI18n.$t('页面模板类型'),
