@@ -57,12 +57,16 @@ const { dateRange, dateRangeParams } = useDateRangeParams()
 
 const processVariablesDialogVisible = ref(false)
 const processVariablesContent = ref('')
+/** 流程变量弹窗需高于 el-drawer（约 2000），避免在详情抽屉内打开时被遮挡 */
+const PROCESS_VARIABLES_MODAL_Z_INDEX = 3000
+
+function processVariablesModalGetContainer() {
+  return document.body
+}
 const processDetailDrawerVisible = ref(false)
 const currentProcessDetail = ref<Record<string, any>>()
 
-const processInstanceStatusOptions = computed(() =>
-  dictStore.getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS),
-)
+const processInstanceStatusOptions = computed(() => dictStore.getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS))
 
 type ProcessInstanceRow = Record<string, any>
 
@@ -79,9 +83,23 @@ const columns = ref<TableColumnType<ProcessInstanceRow>[]>([
   { title: '任务名称', dataIndex: 'tasks', key: 'tasks', width: 120, align: 'center' },
   { title: '当前审批人', dataIndex: 'taskUser', key: 'taskUser', width: 120, align: 'center' },
   { title: '流程名称', dataIndex: 'name', key: 'name', width: 180, align: 'left', ellipsis: { showTitle: true } },
-  { title: '流程分类', dataIndex: 'categoryName', key: 'categoryName', width: 180, align: 'left', ellipsis: { showTitle: true } },
+  {
+    title: '流程分类',
+    dataIndex: 'categoryName',
+    key: 'categoryName',
+    width: 180,
+    align: 'left',
+    ellipsis: { showTitle: true },
+  },
   { title: '发起人', dataIndex: 'startUser', key: 'startUser', width: 120, align: 'center' },
-  { title: '发起部门', dataIndex: 'startUserDept', key: 'startUserDept', width: 120, align: 'center', ellipsis: { showTitle: true } },
+  {
+    title: '发起部门',
+    dataIndex: 'startUserDept',
+    key: 'startUserDept',
+    width: 120,
+    align: 'center',
+    ellipsis: { showTitle: true },
+  },
   { title: '流程状态', dataIndex: 'status', key: 'status', width: 120, align: 'center' },
   {
     title: '发起时间',
@@ -231,8 +249,9 @@ async function showProcessVariables(row: ProcessInstanceRow) {
     processVariablesContent.value = '加载中...'
     processVariablesDialogVisible.value = true
     const response = await ProcessInstanceApi.getProcessVariables(row.id)
-    if (response?.data) {
-      processVariablesContent.value = JSON.stringify(response.data, null, 2)
+    const payload = response?.data?.data
+    if (payload != null && payload !== '') {
+      processVariablesContent.value = JSON.stringify(payload, null, 2)
     } else {
       processVariablesContent.value = '暂无流程变量数据'
     }
@@ -257,10 +276,6 @@ function showProcessDetail(row: ProcessInstanceRow) {
   currentProcessDetail.value = row
   processDetailDrawerVisible.value = true
 }
-
-onActivated(() => {
-  getList()
-})
 
 onMounted(async () => {
   await getList()
@@ -301,10 +316,7 @@ onMounted(async () => {
               placeholder="请选择流程分类"
               allow-clear
               show-search>
-              <a-select-option
-                v-for="category in categoryList"
-                :key="category.code"
-                :value="category.code">
+              <a-select-option v-for="category in categoryList" :key="category.code" :value="category.code">
                 {{ category.name }}
               </a-select-option>
             </a-select>
@@ -316,10 +328,7 @@ onMounted(async () => {
               placeholder="请选择流程状态"
               allow-clear
               show-search>
-              <a-select-option
-                v-for="dict in processInstanceStatusOptions"
-                :key="dict.value"
-                :value="dict.value">
+              <a-select-option v-for="dict in processInstanceStatusOptions" :key="dict.value" :value="dict.value">
                 {{ dict.label }}
               </a-select-option>
             </a-select>
@@ -441,10 +450,12 @@ onMounted(async () => {
   </div>
 
   <a-modal
-    v-model:open="processVariablesDialogVisible"
+    v-model:visible="processVariablesDialogVisible"
     title="流程变量"
     width="60%"
-    :mask-closable="false">
+    :mask-closable="false"
+    :get-container="processVariablesModalGetContainer"
+    :z-index="PROCESS_VARIABLES_MODAL_Z_INDEX">
     <a-textarea
       v-model:value="processVariablesContent"
       :rows="20"
@@ -452,12 +463,8 @@ onMounted(async () => {
       placeholder="流程变量内容将显示在这里"
       class="process-variables-textarea" />
     <template #footer>
-      <a-button @click="processVariablesDialogVisible = false">
-        关闭
-      </a-button>
-      <a-button type="primary" @click="copyProcessVariables">
-        复制内容
-      </a-button>
+      <a-button @click="processVariablesDialogVisible = false"> 关闭 </a-button>
+      <a-button type="primary" @click="copyProcessVariables"> 复制内容 </a-button>
     </template>
   </a-modal>
 

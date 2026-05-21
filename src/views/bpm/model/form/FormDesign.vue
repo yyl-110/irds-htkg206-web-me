@@ -5,6 +5,7 @@ import * as FormApi from '@/api/bpm/form'
 import { setConfAndFields2 } from '@/utils/formCreate'
 import { BpmModelFormType } from '@/utils/constants'
 import { useDictStore } from '@/store/modules/dict'
+import formCreate from '@form-create/element-ui'
 // 国际化
 const props = defineProps({
   formList: {
@@ -121,5 +122,15 @@ defineExpose({
         <Icon icon="ep:question" class="ml-5px" />
       </el-tooltip>
     </el-form-item>
+    <!-- 表单预览 -->
+    <div
+      v-if="modelData.formType === BpmModelFormType.NORMAL && modelData.formId && formPreview.rule.length > 0"
+      class="mt-20px">
+      <div class="flex items-center mb-15px">
+        <div class="h-15px w-4px bg-[#1890ff] mr-10px" />
+        <span class="text-15px font-bold">{{ $t('表单预览') }}</span>
+      </div>
+      <form-create v-model="formPreview.formData" :rule="formPreview.rule" :option="formPreview.option" />
+    </div>
   </el-form>
 </template>

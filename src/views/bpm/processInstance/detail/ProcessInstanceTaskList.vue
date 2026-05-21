@@ -11,15 +11,8 @@
       align="center"
       :label="$t('开始时间')"
       prop="createTime"
-      min-width="140"
-    />
-    <el-table-column
-      :formatter="dateFormatter"
-      align="center"
-      :label="$t('结束时间')"
-      prop="endTime"
-      min-width="140"
-    />
+      min-width="140" />
+    <el-table-column :formatter="dateFormatter" align="center" :label="$t('结束时间')" prop="endTime" min-width="140" />
     <el-table-column align="center" :label="$t('审批状态')" prop="status" min-width="90">
       <template #default="scope">
         <dict-tag :type="DICT_TYPE.BPM_TASK_STATUS" :value="scope.row.status" />
@@ -38,7 +31,7 @@
         </el-button> -->
       </template>
     </el-table-column>
-     <el-table-column align="center" :label="$t('转办记录')" prop="reason" min-width="200">
+    <el-table-column align="center" :label="$t('转办记录')" prop="reason" min-width="200">
       <template #default="scope">
         {{ scope.row.transferRecords }}
       </template>
@@ -52,12 +45,7 @@
 
   <!-- 弹窗：表单 -->
   <Dialog :title="$t('表单详情')" v-model="taskFormVisible" width="600">
-    <form-create
-      ref="fApi"
-      v-model="taskForm.value"
-      :option="taskForm.option"
-      :rule="taskForm.rule"
-    />
+    <form-create ref="fApi" v-model="taskForm.value" :option="taskForm.option" :rule="taskForm.rule" />
   </Dialog>
 </template>
 <script lang="ts" setup>
@@ -72,7 +60,7 @@ defineOptions({ name: 'BpmProcessInstanceTaskList' })
 
 const props = defineProps({
   loading: propTypes.bool.def(false), // 是否加载中
-  id: propTypes.string // 流程实例的编号
+  id: propTypes.string, // 流程实例的编号
 })
 const tasks = ref([]) // 流程任务的数组
 
@@ -81,7 +69,7 @@ const fApi = ref<ApiAttrs>() // form-create 的 API 操作类
 const taskForm = ref({
   rule: [],
   option: {},
-  value: {}
+  value: {},
 }) // 流程任务的表单详情
 const taskFormVisible = ref(false)
 const handleFormDetail = async (row: any) => {
@@ -91,7 +79,7 @@ const handleFormDetail = async (row: any) => {
   taskFormVisible.value = true
   // 隐藏提交、重置按钮，设置禁用只读
   await nextTick()
-  fApi.value.fapi.btn.show(false)
+  fApi.value?.fapi?.btn.show(false)
   fApi.value?.fapi?.resetBtn.show(false)
   fApi.value?.fapi?.disabled(true)
 }
@@ -99,10 +87,13 @@ const handleFormDetail = async (row: any) => {
 /** 只有 loading 完成时，才去加载流程列表 */
 watch(
   () => props.loading,
-  async (value) => {
+  async value => {
     if (value) {
-      tasks.value = await TaskApi.getTaskListByProcessInstanceId(props.id)
+      const res = await TaskApi.getTaskListByProcessInstanceId(props.id)
+      if (res.data.code === 200) {
+        tasks.value = res.data.data
+      }
     }
-  }
+  },
 )
 </script>

@@ -3,7 +3,6 @@ import { useI18n } from 'vue-i18n'
 import SimpleModelDesign from '../../simple/SimpleModelDesign.vue'
 import BpmModelEditor from './editor/index.vue'
 import { BpmModelType } from '@/utils/constants'
-
 const { t } = useI18n() // 国际化
 // 创建本地数据副本
 const modelData = defineModel<any>()

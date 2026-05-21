@@ -5,8 +5,7 @@
     direction="rtl"
     size="75%"
     :before-close="handleClose"
-    custom-class="process-detail-drawer"
-  >
+    custom-class="process-detail-drawer">
     <el-tabs v-model="activeTab" @tab-change="handleTabChange">
       <!-- 流程信息 -->
       <el-tab-pane label="流程信息" name="info">
@@ -42,11 +41,7 @@
           <div v-if="processDetail.processVariables" class="process-variables mt-4">
             <h4>流程变量</h4>
             <el-descriptions :column="1" border>
-              <el-descriptions-item
-                v-for="(value, key) in processDetail.processVariables"
-                :key="key"
-                :label="key"
-              >
+              <el-descriptions-item v-for="(value, key) in processDetail.processVariables" :key="key" :label="key">
                 {{ value }}
               </el-descriptions-item>
             </el-descriptions>
@@ -71,26 +66,20 @@
           <!-- Simple 流程图 -->
           <div class="diagram-wrapper">
             <div class="diagram-toolbar">
-              <el-button type="danger" plain size="small" @click="refreshProcessDiagram">
-                刷新
-              </el-button>
-              <el-button type="primary" plain size="small" @click="showProcessVariables">
-                查看流程变量
-              </el-button>
+              <el-button type="danger" plain size="small" @click="refreshProcessDiagram"> 刷新 </el-button>
+              <el-button type="primary" plain size="small" @click="showProcessVariables"> 查看流程变量 </el-button>
             </div>
 
             <ProcessInstanceSimpleViewer
               v-show="processDefinition?.modelType === BpmModelType.SIMPLE"
               :loading="diagramLoading"
-              :model-view="processModelView"
-            />
+              :model-view="processModelView" />
 
             <!-- BPMN 流程图 -->
             <ProcessInstanceBpmnViewer
               v-show="processDefinition?.modelType === BpmModelType.BPMN"
               :loading="diagramLoading"
-              :model-view="processModelView"
-            />
+              :model-view="processModelView" />
           </div>
         </div>
       </el-tab-pane>
@@ -126,17 +115,17 @@ export default defineComponent({
     ProcessInstanceSimpleViewer,
     ProcessInstanceBpmnViewer,
     ProcessInstanceTaskList,
-    DictTag
+    DictTag,
   },
   props: {
     modelValue: {
       type: Boolean,
-      default: false
+      default: false,
     },
     processDetail: {
       type: Object,
-      default: null
-    }
+      default: null,
+    },
   },
   emits: ['update:modelValue', 'show-process-variables'],
   setup(props, { emit }) {
@@ -149,36 +138,42 @@ export default defineComponent({
     const processModelView = ref<any>({})
 
     // 监听 modelValue 变化
-    watch(() => props.modelValue, (newVal) => {
-      visible.value = newVal
-    })
+    watch(
+      () => props.modelValue,
+      newVal => {
+        visible.value = newVal
+      },
+    )
 
     // 监听 visible 变化
-    watch(visible, (newVal) => {
+    watch(visible, newVal => {
       emit('update:modelValue', newVal)
       // 当抽屉打开时，强制设置样式
       if (newVal) {
         nextTick(() => {
           const drawerHeader = document.querySelector('.process-detail-drawer .el-drawer__header')
           if (drawerHeader) {
-            (drawerHeader as HTMLElement).style.marginBottom = '0px'
+            ;(drawerHeader as HTMLElement).style.marginBottom = '0px'
           }
         })
       }
     })
 
     // 监听 processDetail 变化
-    watch(() => props.processDetail, (newDetail) => {
-      if (newDetail) {
-        processDefinition.value = newDetail.processDefinition || {}
-        // 如果切换到流程图tab，自动加载流程图
-        if (activeTab.value === 'diagram') {
-          nextTick(() => {
-            refreshProcessDiagram()
-          })
+    watch(
+      () => props.processDetail,
+      newDetail => {
+        if (newDetail) {
+          processDefinition.value = newDetail.processDefinition || {}
+          // 如果切换到流程图tab，自动加载流程图
+          if (activeTab.value === 'diagram') {
+            nextTick(() => {
+              refreshProcessDiagram()
+            })
+          }
         }
-      }
-    })
+      },
+    )
 
     // Tab 切换处理
     const handleTabChange = (tabName: string) => {
@@ -200,19 +195,18 @@ export default defineComponent({
     // 刷新流程图
     const refreshProcessDiagram = async () => {
       if (!props.processDetail?.id) return
-
       diagramLoading.value = true
       try {
         // 获取流程定义信息
         const definitionData = await ProcessDefinitionApi.getProcessDefinition(props.processDetail.processDefinitionId)
-        if (definitionData) {
-          processDefinition.value = definitionData
+        if (definitionData.data.code === 200) {
+          processDefinition.value = definitionData.data.data
         }
 
         // 获取流程图数据
         const modelViewData = await ProcessInstanceApi.getProcessInstanceBpmnModelView(props.processDetail.id)
-        if (modelViewData) {
-          processModelView.value = modelViewData
+        if (modelViewData.data.code === 200) {
+          processModelView.value = modelViewData.data.data
         }
       } catch (error) {
         console.error('获取流程图失败:', error)
@@ -246,9 +240,9 @@ export default defineComponent({
       showProcessVariables,
       handleClose,
       DICT_TYPE,
-      BpmModelType
+      BpmModelType,
     }
-  }
+  },
 })
 </script>
 
@@ -365,7 +359,7 @@ export default defineComponent({
 }
 
 /* 使用属性选择器 */
-[class*="process-detail-drawer"] .el-drawer__header {
+[class*='process-detail-drawer'] .el-drawer__header {
   margin-bottom: 0 !important;
 }
 

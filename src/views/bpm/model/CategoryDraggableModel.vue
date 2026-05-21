@@ -14,7 +14,7 @@ import * as FormApi from '@/api/bpm/form'
 import { setConfAndFields2, subString } from '@/utils/formCreate'
 import { BpmModelFormType } from '@/utils/constants'
 import { checkPermi } from '@/utils/permission'
-// import { useAppStore } from '@/store/modules/app'
+import formCreate from '@form-create/element-ui'
 import { useUserStore } from '@/store/modules/user'
 import { useMessage } from '@/hooks/web/useMessage'
 const message = useMessage()
@@ -120,8 +120,8 @@ const modelTableColumns: TableColumnType[] = [
   },
 ]
 
-const modelTableScrollX = computed(() =>
-  modelTableColumns.reduce((acc, col) => acc + (Number(col.width) || 0), 0) + BPM_MODEL_TABLE_SCROLL_BUFFER,
+const modelTableScrollX = computed(
+  () => modelTableColumns.reduce((acc, col) => acc + (Number(col.width) || 0), 0) + BPM_MODEL_TABLE_SCROLL_BUFFER,
 )
 
 function getModelTableRowClassName(_record: ModelInfo, index: number) {
@@ -556,17 +556,10 @@ watchEffect(() => {
               v-else-if="(record.startDepts?.length ?? 0) > 1"
               placement="top"
               :title="(record.startDepts ?? []).map(dept => dept.name).join('、')">
-              <span>
-                {{ record.startDepts?.[0]?.name }}等 {{ record.startDepts?.length }} 个部门可见
-              </span>
+              <span> {{ record.startDepts?.[0]?.name }}等 {{ record.startDepts?.length }} 个部门可见 </span>
             </a-tooltip>
-            <a-tooltip
-              v-else
-              placement="top"
-              :title="(record.startUsers ?? []).map(user => user.nickname).join('、')">
-              <span>
-                {{ record.startUsers?.[0]?.nickname }}等 {{ record.startUsers?.length }} 人可见
-              </span>
+            <a-tooltip v-else placement="top" :title="(record.startUsers ?? []).map(user => user.nickname).join('、')">
+              <span> {{ record.startUsers?.[0]?.nickname }}等 {{ record.startUsers?.length }} 人可见 </span>
             </a-tooltip>
           </template>
 
