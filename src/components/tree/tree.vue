@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
-import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, FormOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
+import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, FormOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { WeiMessage } from '@/utils/WeiMessage';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -574,6 +574,55 @@ function initializationassignment(node: any) {
 function getExpandedKeys() {
   return newExpandedKeys.value;
 }
+
+/** 收集所有可展开节点 key（有子节点的节点） */
+function collectExpandableKeys(nodes: any[] | undefined): string[] {
+  const keys: string[] = [];
+  if (!nodes?.length) return keys;
+  function walk(list: any[]) {
+    for (const node of list) {
+      const key = node.key ?? node.id;
+      if (node.children?.length) {
+        if (key != null && key !== '') keys.push(String(key));
+        walk(node.children);
+      }
+    }
+  }
+  walk(nodes);
+  return keys;
+}
+
+function handleExpandAll() {
+  newExpandedKeys.value = collectExpandableKeys(props.treeData as any[]);
+}
+
+function handleCollapseAll() {
+  newExpandedKeys.value = [];
+}
+
+/** 是否为结构树根节点（树数据第一层） */
+function isRootTreeNode(node: any): boolean {
+  const data = props.treeData as any[] | undefined;
+  if (!data?.length || !node) return false;
+  const key = String(node.key ?? node.id ?? '');
+  return data.some(n => String(n.key ?? n.id ?? '') === key);
+}
+
+const treeFullyExpanded = computed(() => {
+  const expandable = collectExpandableKeys(props.treeData as any[]);
+  if (!expandable.length) return false;
+  const expanded = (newExpandedKeys.value || []).map((k: any) => String(k));
+  return expandable.every(k => expanded.includes(k));
+});
+
+function toggleExpandAll() {
+  if (treeFullyExpanded.value) {
+    handleCollapseAll();
+  } else {
+    handleExpandAll();
+  }
+}
+
 defineExpose({
   reloadTableStyle,
   changeBtnStyle,
@@ -654,17 +703,26 @@ defineExpose({
         default-expand-all
         @select="onSelect">
         <template #title="item">
-          <a-dropdown v-if="bomType === 'unBom'">
-            <TreeNode
-              :show-name="`${item.partName} (${item.moduleCount})`"
-              :search-value="searchValue"
-              :node="item"
-              v-if="item.moduleCount != undefined && item.moduleCount != 0" />
-            <TreeNode :show-name="$t(item.partName)" :search-value="searchValue" :node="item" v-else />
-          </a-dropdown>
-          <a-dropdown v-else>
-            <TreeNode :node="item" :show-name="$t(item.title)" :search-value="searchValue" />
-          </a-dropdown>
+          <div class="tree-node-title-row">
+            <a-dropdown v-if="bomType === 'unBom'" class="tree-node-title-main">
+              <TreeNode
+                :show-name="`${item.partName} (${item.moduleCount})`"
+                :search-value="searchValue"
+                :node="item"
+                v-if="item.moduleCount != undefined && item.moduleCount != 0" />
+              <TreeNode :show-name="$t(item.partName)" :search-value="searchValue" :node="item" v-else />
+            </a-dropdown>
+            <a-dropdown v-else class="tree-node-title-main">
+              <TreeNode :node="item" :show-name="$t(item.title)" :search-value="searchValue" />
+            </a-dropdown>
+            <a-tooltip v-if="isRootTreeNode(item)" placement="top" :mouse-enter-delay="0.2">
+              <template #title>{{ treeFullyExpanded ? $t('折叠全部') : $t('展开全部') }}</template>
+              <span class="tree-root-expand-toggle" @click.stop="toggleExpandAll">
+                <MenuFoldOutlined v-if="treeFullyExpanded" />
+                <MenuUnfoldOutlined v-else />
+              </span>
+            </a-tooltip>
+          </div>
         </template>
         <template #icon="item">
           <WeiIcon icon="icon-project" :size="16" v-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" />
@@ -763,8 +821,40 @@ defineExpose({
       }
     }
   }
+
+}
+.tree-node-title-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+
+  .tree-node-title-main {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .tree-root-expand-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    padding: 0 4px;
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    line-height: 1;
+
+    &:hover {
+      color: var(--main-selected);
+    }
+  }
 }
 :deep(.ant-tree .ant-tree-title) {
+  flex: 1;
+  min-width: 0;
   user-select: text; /* 或者使用 auto，这样用户可以复制文本 */
 }
 // :deep(.ant-tree-switcher-noop) {
@@ -783,6 +873,8 @@ defineExpose({
 
 // 调整节点内容的布局
 :deep(.ant-tree-node-content-wrapper) {
+  flex: 1;
+  min-width: 0;
   padding: 2px 6px; /* 调整整个节点内容的内边距 */
   display: flex;
   align-items: center;
