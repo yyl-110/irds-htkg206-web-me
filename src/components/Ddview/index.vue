@@ -1,12 +1,10 @@
 <script setup>
-import { onBeforeUnmount, ref } from 'vue';
-import { useFullscreen } from '@vueuse/core';
-import _ from 'lodash-es';
-import ddView from './ddview.js';
-import { WeiMessage } from '@/utils/WeiMessage';
-import addScript from '@/utils/dynamicLoadScript.js';
-import { EpcIcon } from '@/components/icon/EpcIcon.js';
-import { dePreviewFile } from '@/utils/file.ts';
+import { onBeforeUnmount, ref } from 'vue'
+import { useFullscreen } from '@vueuse/core'
+import _ from 'lodash-es'
+import ddView from './ddview.js'
+import addScript from '@/utils/dynamicLoadScript.js'
+import { EpcIcon } from '@/components/icon/EpcIcon.js'
 
 const props = defineProps({
   /** 高度 */
@@ -15,102 +13,121 @@ const props = defineProps({
     required: true,
     default: 'calc(100vh - 283px)',
   },
-});
-const emit = defineEmits(['loadError', 'selectItem']);
-const loading = ref(true);
-const viewContainer = ref();
-const { isFullscreen, enter, exit, toggle } = useFullscreen(viewContainer);
+})
+const emit = defineEmits(['loadError', 'selectItem'])
+const loading = ref(true)
+const viewContainer = ref()
+const { isFullscreen, enter, exit, toggle } = useFullscreen(viewContainer)
 function markCallout(calloutId, callInfo) {
-  emit('selectItem', callInfo.label);
+  emit('selectItem', callInfo.label)
 }
-let dView;
-let initComplete = false;
-const divId = ref(_.uniqueId('dd-view-plugin-'));
+let dView
+let initComplete = false
+const divId = ref(_.uniqueId('dd-view-plugin-'))
 
 // 初始化ThingView的环境
 function initThingView() {
   if (!window.thingViewInit) {
     addScript(`/thingview/thingview.js?_cache=${new Date().getTime()}`).then(() => {
-      window.thingViewInit = true;
+      window.thingViewInit = true
       dView = ddView(ThingView, divId.value, {
         callOutSelect: markCallout,
-      });
+      })
       dView.init(() => {
-        initComplete = true;
-      });
-    });
+        initComplete = true
+      })
+    })
   } else {
     dView = ddView(ThingView, divId.value, {
       callOutSelect: markCallout,
-    });
+    })
     dView.reInit(() => {
-      initComplete = true;
-    });
+      initComplete = true
+    })
   }
 }
 // 初始化ThingView的环境
-initThingView();
+initThingView()
 
-let initTimer = null;
-// 加载模型
-function loadModel(fileId, ops) {
-  if (initTimer) clearInterval(initTimer);
+let initTimer = null
+
+function resolveModelUrl(modelUrl) {
+  const raw = modelUrl != null ? String(modelUrl).trim() : ''
+  if (!raw) return ''
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+  return raw.startsWith('/') ? `${base}${raw}` : `${base}/${raw}`
+}
+
+/** 加载模型：传入 getFileStorage 返回的 fileUrl，或同源静态路径 */
+function loadModel(modelUrl, ops) {
+  const url = resolveModelUrl(modelUrl)
+  if (!url) {
+    loading.value = false
+    emit('loadError')
+    return
+  }
+  if (initTimer) clearInterval(initTimer)
+  let attempts = 0
   initTimer = setInterval(() => {
-    if (initComplete) {
-      clearInterval(initTimer);
-      initTimer = null;
-      // fileId = "1871856637625958402";
-      if (dView) {
-        dView.session.RemoveAllLoadSources();
-        dView.unLoadModel();
-        loading.value = true;
-        fileId &&
-          dView.LoadModel(dePreviewFile(fileId), {
-            timeCb() {},
-            errorCb(msg) {
-              // WeiMessage.error(msg);
-              emit('loadError');
-            },
-            loadPartList: ops ? ops.loadPartList : undefined, // 加载partList
-            loadPartListCb: () => {
-              if (ops.calloutLabel !== '-1') {
-                changeMarkup(ops.calloutLabel);
-              }
-            },
-            loadComplete: () => {
-              loading.value = false;
-            },
-          });
-      } else {
-        loading.value = false;
-      }
+    attempts += 1
+    if (initComplete && dView) {
+      clearInterval(initTimer)
+      initTimer = null
+      dView.session.RemoveAllLoadSources()
+      dView.unLoadModel()
+      loading.value = true
+      dView.LoadModel(url, {
+        timeCb() {},
+        errorCb() {
+          loading.value = false
+          emit('loadError')
+        },
+        loadPartList: ops?.loadPartList,
+        loadPartListCb: () => {
+          const label = ops?.calloutLabel
+          if (label != null && label !== '-1') {
+            changeMarkup(label)
+          }
+        },
+        loadComplete: () => {
+          loading.value = false
+          dView?.btnOps?.resetView?.()
+        },
+      })
+    } else if (attempts > 150) {
+      clearInterval(initTimer)
+      initTimer = null
+      loading.value = false
+      emit('loadError')
     }
-  }, 100);
+  }, 100)
 }
 // 改变选中的球标
 function changeMarkup(calloutLabel) {
-  dView.itemListSelection(calloutLabel);
+  dView.itemListSelection(calloutLabel)
 }
 
 onBeforeUnmount(() => {
+  if (!dView?.timer) return
   Object.keys(dView.timer).forEach(item => {
-    item && clearTimeout(item);
-  });
-});
+    item && clearTimeout(item)
+  })
+})
 
 // 还原初始化，默认视图
 function reloadModel() {}
-const resetView = () => dView && dView.btnOps.resetView();
-const zoomSelect = () => dView && dView.btnOps.zoomSelected();
-const zoomWindow = () => dView && dView.btnOps.zoomWindow();
-const zoomIn = () => dView && dView.btnOps.zoomIn();
-const zoomOut = () => dView && dView.btnOps.zoomOut();
-const setSpinCenter = () => dView && dView.btnOps.setSpinCenter();
-const autoSpinCenter = () => dView && dView.btnOps.autoSpinCenter();
-const enablePartDrag = () => dView && dView.btnOps.setDragMode();
-const sectionCut = () => dView && dView.btnOps.enableSectionCut();
+const resetView = () => dView && dView.btnOps.resetView()
+const zoomSelect = () => dView && dView.btnOps.zoomSelected()
+const zoomWindow = () => dView && dView.btnOps.zoomWindow()
+const zoomIn = () => dView && dView.btnOps.zoomIn()
+const zoomOut = () => dView && dView.btnOps.zoomOut()
+const setSpinCenter = () => dView && dView.btnOps.setSpinCenter()
+const autoSpinCenter = () => dView && dView.btnOps.autoSpinCenter()
+const enablePartDrag = () => dView && dView.btnOps.setDragMode()
+const sectionCut = () => dView && dView.btnOps.enableSectionCut()
 
-defineExpose({ loadModel, changeMarkup });
+defineExpose({ loadModel, changeMarkup })
 </script>
 
 <template>
@@ -124,11 +141,15 @@ defineExpose({ loadModel, changeMarkup });
             <EpcIcon type="icon-ResetView" class="icon-size" @click="resetView" />
           </a-tooltip>
           <a-tooltip>
-            <template #title> 缩放选中零件<br /><span class="tip-cls">先点击某个零件，然后再点击该按钮</span> </template>
+            <template #title>
+              缩放选中零件<br /><span class="tip-cls">先点击某个零件，然后再点击该按钮</span>
+            </template>
             <EpcIcon type="icon-zoom-select" class="icon-size" @click="zoomSelect" />
           </a-tooltip>
           <a-tooltip>
-            <template #title> 放大选中窗口<br /><span class="tip-cls">先点击该按钮，然后在模型上圈出需要放大的内容</span> </template>
+            <template #title>
+              放大选中窗口<br /><span class="tip-cls">先点击该按钮，然后在模型上圈出需要放大的内容</span>
+            </template>
             <EpcIcon type="icon-jubufangda" class="icon-size" @click="zoomWindow" />
           </a-tooltip>
           <a-tooltip>
@@ -140,19 +161,29 @@ defineExpose({ loadModel, changeMarkup });
             <EpcIcon type="icon-zoomout" class="icon-size" @click="zoomOut" />
           </a-tooltip>
           <a-tooltip>
-            <template #title> 设置旋转中心<br /><span class="tip-cls">点击后，再点击零件，则会以点击的部位为选中中心</span> </template>
+            <template #title>
+              设置旋转中心<br /><span class="tip-cls">点击后，再点击零件，则会以点击的部位为选中中心</span>
+            </template>
             <EpcIcon type="icon-xuanzhuan" class="icon-size" @click="setSpinCenter" />
           </a-tooltip>
           <a-tooltip>
-            <template #title> 自定义旋转中心<br /><span class="tip-cls">点击后，在模型视图内右键即以右键的位置进行旋转</span> </template>
+            <template #title>
+              自定义旋转中心<br /><span class="tip-cls">点击后，在模型视图内右键即以右键的位置进行旋转</span>
+            </template>
             <EpcIcon type="icon-xuanzhuanzhou" class="icon-size" @click="autoSpinCenter" />
           </a-tooltip>
           <a-tooltip>
-            <template #title> 零件拖拽<br /><span class="tip-cls">点击后，在点击零件则可以对零件进行拖拽、旋转</span> </template>
+            <template #title>
+              零件拖拽<br /><span class="tip-cls">点击后，在点击零件则可以对零件进行拖拽、旋转</span>
+            </template>
             <EpcIcon type="icon-drag-drop-line" class="icon-size" @click="enablePartDrag" />
           </a-tooltip>
           <a-tooltip>
-            <template #title> 模型剖切<br /><span class="tip-cls">点击后，界面上会出现剖切面，点击剖切面可以拖拽查看不同位置的剖切</span> </template>
+            <template #title>
+              模型剖切<br /><span class="tip-cls"
+                >点击后，界面上会出现剖切面，点击剖切面可以拖拽查看不同位置的剖切</span
+              >
+            </template>
             <EpcIcon type="icon-shitupouqiehe" class="icon-size" @click="sectionCut" />
           </a-tooltip>
         </div>
