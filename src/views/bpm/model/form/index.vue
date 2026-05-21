@@ -6,32 +6,22 @@ import FormDesign from './FormDesign.vue'
 import ProcessDesign from './ProcessDesign.vue'
 import ExtraSettings from './ExtraSettings.vue'
 import { useMessage } from '@/hooks/web/useMessage'
-// import { useTagsViewStore } from '@/store/modules/tagsView'
 import { useUserStore } from '@/store/modules/user'
 import * as ModelApi from '@/api/bpm/model'
 import * as FormApi from '@/api/bpm/form'
 import type { CategoryVO } from '@/api/bpm/category'
 import { CategoryApi } from '@/api/bpm/category'
 // import { findDeptTree } from '@/api/system-manage/dept'
-// import { findPagination, getUserfindList } from '@/api/system-manage/user'
-
-// import type * as DeptApi from '@/api/system/dept'
 import * as DefinitionApi from '@/api/bpm/definition'
 import type { HttpRequestResponse } from '@/httpRequest/typings'
 import { BpmAutoApproveType, BpmModelFormType, BpmModelType } from '@/utils/constants'
 import { useDictStore } from '@/store/modules/dict'
 import { DICT_TYPE } from '@/utils/dict'
-// import { useTagsView } from '@/hooks/web/useTagsView'
-
 const dictStore = useDictStore()
-
 const { t } = useI18n() // 国际化
 const router = useRouter()
-// const { delView } = useTagsViewStore() // 视图操作
-// const tagsView = useTagsView()
 const route = useRoute()
 const message = useMessage()
-
 // 组件引用
 const basicInfoRef = ref()
 const formDesignRef = ref()
@@ -184,7 +174,6 @@ async function initData() {
       delete formData.value.id
       formData.value.name += '副本'
       formData.value.key += '_copy'
-      // tagsView.setTitle('复制流程')
     }
   } else {
     // 情况三：新增场景
@@ -208,9 +197,11 @@ async function initData() {
 
   // 最终，设置 currentStep 切换到第一步
   currentStep.value = 0
-
   // 兼容，以前未配置更多设置的流程
   nextTick(() => {
+    if (basicInfoRef.value) {
+      basicInfoRef.value.initData()
+    }
     if (extraSettingsRef.value) {
       extraSettingsRef.value.initData()
     }
@@ -361,6 +352,15 @@ async function handleStepClick(index: number) {
 
     // 切换步骤
     currentStep.value = index
+    // 如果切换到流程设计步骤，等待组件渲染完成后刷新设计器
+    if (index === 0) {
+      await nextTick()
+      // 等待更长时间确保组件完全初始化
+      await new Promise(resolve => setTimeout(resolve, 200))
+      if (basicInfoRef.value) {
+        await basicInfoRef.value.initData()
+      }
+    }
 
     // 如果切换到流程设计步骤，等待组件渲染完成后刷新设计器
     if (index === 2) {

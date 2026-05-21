@@ -1,6 +1,6 @@
-import type { RouteRecordRaw } from 'vue-router';
-import { UserOutlined, DashboardOutlined } from '@ant-design/icons-vue';
-import { demoRoutes } from './demoRoutes';
+import type { RouteRecordRaw } from 'vue-router'
+import { UserOutlined, DashboardOutlined } from '@ant-design/icons-vue'
+import { demoRoutes } from './demoRoutes'
 // import Main from '@/views/Main.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -260,7 +260,8 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'design-task-app-detail',
         name: 'DesignTaskAppDetail',
-        component: () => import('@/views/product/designTaskApplication/components/components/process-flow-app-detail.vue'),
+        component: () =>
+          import('@/views/product/designTaskApplication/components/components/process-flow-app-detail.vue'),
         meta: {
           hidden: true,
           title: '设计任务应用',
@@ -341,7 +342,7 @@ export const routes: RouteRecordRaw[] = [
           hidden: true,
           canTo: true,
           title: '设计流程表单',
-          activeMenu: '/manager/form/edit',
+          activeMenu: '/bpm/form',
         },
       },
       {
@@ -485,7 +486,7 @@ export const routes: RouteRecordRaw[] = [
       },
     ],
   },
-];
+]
 
 // 当在开发环境或构建为 Demo 站点时加入 Demo 路由页面
-if (['development', 'demo'].includes(import.meta.env.MODE)) routes.push(...demoRoutes);
+if (['development', 'demo'].includes(import.meta.env.MODE)) routes.push(...demoRoutes)
