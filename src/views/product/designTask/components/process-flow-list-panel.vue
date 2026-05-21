@@ -179,7 +179,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     width: 120,
   },
   {
-    title: '发布协同',
+    title: '发布任务',
     dataIndex: 'collabStatus',
     key: 'collabStatus',
     align: 'center',
@@ -374,10 +374,10 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   try {
     if (isPublished) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '撤销发布协同成功' : '撤销发布应用成功');
+      message.success(publishType === 'COLLAB' ? '撤销发布任务成功' : '撤销发布应用成功');
     } else {
       await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布应用成功');
+      message.success(publishType === 'COLLAB' ? '发布任务成功' : '发布应用成功');
     }
     await loadFlowListData();
   } catch (error) {
@@ -385,7 +385,7 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   }
 }
 
-/** 发布协同状态：1 / 已发布 视为已发布 */
+/** 发布任务状态：1 / 已发布 视为已发布 */
 function isCollabPublished(record: FlowRow) {
   return String(record.collabStatus) === '1' || record.collabStatus === '已发布';
 }
@@ -395,7 +395,7 @@ function isAppPublished(record: FlowRow) {
   return String(record.appStatus) === '1' || record.appStatus === '已发布';
 }
 
-/** 发布协同、独立应用均为未发布时，才允许进入「配置」 */
+/** 发布任务、独立应用均为未发布时，才允许进入「配置」 */
 function isFlowConfigEditable(record: FlowRow) {
   return !isCollabPublished(record) && !isAppPublished(record);
 }
@@ -410,7 +410,7 @@ const selectedFlowRows = computed(() => {
 /** 勾选一条可查看流程图 */
 const canToolbarView = computed(() => selectedFlowRows.value.length === 1);
 
-/** 勾选一条、有操作权限且未发布协同时可编辑 */
+/** 勾选一条、有操作权限且未发布任务时可编辑 */
 const canToolbarEdit = computed(() => {
   const rows = selectedFlowRows.value;
   if (rows.length !== 1) return false;
@@ -498,7 +498,7 @@ function openFlowFormEdit() {
     return;
   }
   if (isCollabPublished(row)) {
-    message.warning('已发布协同的流程不可编辑');
+    message.warning('已发布任务的流程不可编辑');
     return;
   }
   resetFlowForm();
@@ -577,7 +577,7 @@ async function handleToolbarConfig(record?: FlowRow) {
     return;
   }
   if (!isFlowConfigEditable(row)) {
-    message.warning('发布协同与独立应用均为未发布时才可配置');
+    message.warning('发布任务与独立应用均为未发布时才可配置');
     return;
   }
   const taskName = String(row.processName ?? '').trim();
@@ -738,16 +738,16 @@ defineExpose({
               <a-popconfirm
                 v-if="!isCollabPublished(record)"
                 placement="topLeft"
-                title="确定要发布协同吗？"
+                title="确定要发布任务吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
-                <a href="#" @click.prevent>发布协同</a>
+                <a href="#" @click.prevent>发布任务</a>
               </a-popconfirm>
               <a-popconfirm
                 v-else
                 placement="topLeft"
-                title="确定要取消发布协同吗？"
+                title="确定要取消发布任务吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">

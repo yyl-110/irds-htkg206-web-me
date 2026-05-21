@@ -21,7 +21,7 @@ const initChart = () => {
   const keys = Object.keys(props.chartData);
   const seriesData = [
     {
-      name: "已发布协同任务",
+      name: "已发布任务任务",
       value: keys.map((k) => Number(props.chartData[k]?.collabPublished) || 0),
     },
     {

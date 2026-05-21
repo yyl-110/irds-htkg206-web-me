@@ -228,7 +228,7 @@ async function refreshWbsParamPendingHints() {
           next[String(tid)] = cnt;
         }
       } catch {
-        /* 未发布协同或无绑定等：忽略单任务错误 */
+        /* 未发布任务或无绑定等：忽略单任务错误 */
       }
     }
   } finally {

@@ -324,10 +324,10 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   try {
     if (isPublished) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '撤销发布协同成功' : '撤销发布计算应用成功');
+      message.success(publishType === 'COLLAB' ? '撤销发布任务成功' : '撤销发布计算应用成功');
     } else {
       await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
-      message.success(publishType === 'COLLAB' ? '发布协同成功' : '发布计算应用成功');
+      message.success(publishType === 'COLLAB' ? '发布任务成功' : '发布计算应用成功');
     }
     await loadFlowListData();
   } catch (error) {
@@ -335,7 +335,7 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   }
 }
 
-/** 发布协同状态：1 / 已发布 视为已发布 */
+/** 发布任务状态：1 / 已发布 视为已发布 */
 function isCollabPublished(record: FlowRow) {
   return String(record.collabStatus) === '1' || record.collabStatus === '已发布';
 }
@@ -345,7 +345,7 @@ function isAppPublished(record: FlowRow) {
   return String(record.appStatus) === '1' || record.appStatus === '已发布';
 }
 
-/** 发布协同、独立应用均为未发布时，才允许进入「配置」 */
+/** 发布任务、独立应用均为未发布时，才允许进入「配置」 */
 function isFlowConfigEditable(record: FlowRow) {
   return !isCollabPublished(record) && !isAppPublished(record);
 }
@@ -357,7 +357,7 @@ const selectedFlowRows = computed(() => {
   return (tableData.value || []).filter(item => keySet.has(String(item.id)));
 });
 
-/** 勾选一条且未发布协同时可查看、编辑 */
+/** 勾选一条且未发布任务时可查看、编辑 */
 const canToolbarViewOrEdit = computed(() => {
   const rows = selectedFlowRows.value;
   if (rows.length !== 1) return false;
@@ -440,7 +440,7 @@ function openFlowFormEdit() {
   }
   const row = rows[0];
   if (isCollabPublished(row)) {
-    message.warning('已发布协同的流程不可编辑');
+    message.warning('已发布任务的流程不可编辑');
     return;
   }
   resetFlowForm();
@@ -515,7 +515,7 @@ async function handleToolbarConfig(record?: FlowRow) {
     return;
   }
   if (!isFlowConfigEditable(row)) {
-    message.warning('发布协同与独立应用均为未发布时才可配置');
+    message.warning('发布任务与独立应用均为未发布时才可配置');
     return;
   }
   const taskName = String(row.processName ?? '').trim();
