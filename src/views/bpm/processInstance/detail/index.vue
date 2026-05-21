@@ -1,85 +1,92 @@
 <template>
-  <ContentWrap :bodyStyle="{ padding: '10px 20px 0' }" class="position-relative" v-loading="loadingFlag">
+  <ContentWrap
+    :bodyStyle="{
+      padding: '10px 20px 0',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      boxSizing: 'border-box',
+    }"
+    class="process-instance-detail-wrap position-relative"
+    v-loading="loadingFlag">
     <div class="processInstance-wrap-main">
-      <el-scrollbar>
-        <!-- 头部信息 -->
-        <!-- :audit-icons-map="auditIconsMap" -->
-        <ProcessInstanceHeader
-          :id="id"
-          :process-instance="processInstance"
-          :task-definition-key="taskActivityId"
-          :task-name="tName" />
+      <ProcessInstanceHeader
+        :id="id"
+        :process-instance="processInstance"
+        :task-definition-key="taskActivityId"
+        :task-name="tName" />
 
-        <el-tabs v-model="activeTab">
-          <!-- 审批详情 -->
-          <el-tab-pane :label="'审批详情'" name="form">
-            <div class="form-scroll-area">
-              <el-scrollbar>
-                <el-row>
-                  <el-col :span="17" class="!flex !flex-col formCol">
-                    <div v-loading="processInstanceLoading" class="form-box flex flex-col mb-30px flex-1">
-                      <!-- 动态业务类型组件 - 包含审批内容和审签信息 -->
-                      <component
-                        v-if="currentBusinessComponent"
-                        :is="currentBusinessComponent"
-                        :process-instance="processInstance"
-                        :title-list="titleList"
-                        :approval-data="approvalData"
-                        :error-title-list="errorTitleList"
-                        :error-insatnce-list="errorInsatnceList"
-                        :opinion="opinion"
-                        :todo-task="todoTask"
-                        @search="handleBusinessSearch"
-                        @show-feature-detail="handleShowModal('feature', $event)"
-                        @show-order-set="handleShowModal('orderSet', $event)"
-                        @show-customize-feature="handleShowModal('customizeFeature', $event)"
-                        @show-project-config="handleShowModal('projectConfig', $event)"
-                        @show-super-bom="handleShowSuperBom"
-                        @show-ep-compare="handleShowEpCompare" />
+      <el-tabs v-model="activeTab" class="process-instance-tabs">
+        <!-- 审批详情 -->
+        <el-tab-pane :label="'审批详情'" name="form">
+          <div class="form-scroll-area">
+            <el-scrollbar>
+              <el-row>
+                <el-col :span="17" class="!flex !flex-col formCol">
+                  <div v-loading="processInstanceLoading" class="form-box flex flex-col mb-30px flex-1">
+                    <!-- 动态业务类型组件 - 包含审批内容和审签信息 -->
+                    <component
+                      v-if="currentBusinessComponent"
+                      :is="currentBusinessComponent"
+                      :process-instance="processInstance"
+                      :title-list="titleList"
+                      :approval-data="approvalData"
+                      :error-title-list="errorTitleList"
+                      :error-insatnce-list="errorInsatnceList"
+                      :opinion="opinion"
+                      :todo-task="todoTask"
+                      @search="handleBusinessSearch"
+                      @show-feature-detail="handleShowModal('feature', $event)"
+                      @show-order-set="handleShowModal('orderSet', $event)"
+                      @show-customize-feature="handleShowModal('customizeFeature', $event)"
+                      @show-project-config="handleShowModal('projectConfig', $event)"
+                      @show-super-bom="handleShowSuperBom"
+                      @show-ep-compare="handleShowEpCompare" />
 
-                      <!-- 节点审批人员组件 -->
-                      <ApprovalPersonnel
-                        :process-definition-list="processDefinitionList"
-                        :approve-user="approveUser"
-                        :main-engine-plants-user="approvEmainEnginePlantsUser"
-                        :is-main-engine-plants="emainEnginePlants"
-                        :edit-type="editType"
-                        @select-user="handleSelectApprover" />
+                    <!-- 节点审批人员组件 -->
+                    <ApprovalPersonnel
+                      :process-definition-list="processDefinitionList"
+                      :approve-user="approveUser"
+                      :main-engine-plants-user="approvEmainEnginePlantsUser"
+                      :is-main-engine-plants="emainEnginePlants"
+                      :edit-type="editType"
+                      @select-user="handleSelectApprover" />
 
-                      <!-- 处理意见组件 -->
-                      <ProcessOpinion v-model="opinion" :disabled="editType === 0" :visible="aTab != 3" />
+                    <!-- 处理意见组件 -->
+                    <ProcessOpinion v-model="opinion" :disabled="editType === 0" :visible="aTab != 3" />
 
-                      <!-- 流程状态选择组件 -->
-                      <ProcessStatusSelector
-                        :disabled="editType === 0"
-                        :show-manual-config="showManualConfigCard"
-                        :show-status-selector="showStatusSelectorCard"
-                        v-model:is-manual="isManual"
-                        v-model:status-values="areaSaleRelease"
-                        :todo-task-name="todoTask?.name" />
-                    </div>
-                  </el-col>
+                    <!-- 流程状态选择组件 -->
+                    <ProcessStatusSelector
+                      :disabled="editType === 0"
+                      :show-manual-config="showManualConfigCard"
+                      :show-status-selector="showStatusSelectorCard"
+                      v-model:is-manual="isManual"
+                      v-model:status-values="areaSaleRelease"
+                      :todo-task-name="todoTask?.name" />
+                  </div>
+                </el-col>
 
-                  <el-col :span="7">
-                    <!-- 审批记录时间线 -->
-                    <ProcessInstanceTimeline :activity-nodes="activityNodes" />
-                  </el-col>
-                </el-row>
-              </el-scrollbar>
+                <el-col :span="7">
+                  <!-- 审批记录时间线 -->
+                  <ProcessInstanceTimeline :activity-nodes="activityNodes" />
+                </el-col>
+              </el-row>
+            </el-scrollbar>
+          </div>
+        </el-tab-pane>
+
+        <!-- 流程图：lazy 避免隐藏 Tab 下以 0 高度初始化 BPMN -->
+        <el-tab-pane :label="'流程图'" name="diagram" lazy>
+          <div class="diagram-container">
+            <div class="diagram-toolbar">
+              <el-button type="danger" plain size="small" @click="refreshProcessDiagram">
+                {{ '刷新' }}
+              </el-button>
+              <el-button type="primary" plain size="small" @click="showProcessVariables">
+                {{ '查看流程变量' }}
+              </el-button>
             </div>
-          </el-tab-pane>
-
-          <!-- 流程图 -->
-          <el-tab-pane :label="'流程图'" name="diagram">
-            <div class="form-scroll-area diagram-container">
-              <div class="diagram-toolbar">
-                <el-button type="danger" plain size="small" @click="refreshProcessDiagram">
-                  {{ '刷新' }}
-                </el-button>
-                <el-button type="primary" plain size="small" @click="showProcessVariables">
-                  {{ '查看流程变量' }}
-                </el-button>
-              </div>
+            <div class="diagram-viewer-body">
               <ProcessInstanceSimpleViewer
                 v-show="processDefinition.modelType && processDefinition.modelType === BpmModelType.SIMPLE"
                 :loading="processInstanceLoading"
@@ -90,59 +97,59 @@
                 :model-view="processModelView"
                 @transferSuccess="refresh" />
             </div>
-          </el-tab-pane>
+          </div>
+        </el-tab-pane>
 
-          <!-- 流转记录 -->
-          <el-tab-pane :label="'流转记录'" name="record">
-            <div class="form-scroll-area">
-              <el-scrollbar>
-                <ProcessInstanceTaskList :loading="processInstanceLoading" :id="id" />
-              </el-scrollbar>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
+        <!-- 流转记录 -->
+        <el-tab-pane :label="'流转记录'" name="record">
+          <div class="form-scroll-area">
+            <el-scrollbar>
+              <ProcessInstanceTaskList :loading="processInstanceLoading" :id="id" />
+            </el-scrollbar>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
 
-        <!-- 操作栏按钮 -->
-        <div class="b--solid border--1px border-[var(--el-border-color)]" v-if="orderRedType">
-          <ProcessInstanceOperationButtonCopy
-            v-if="taskType !== ETASKTYPE.ESTABLISHMENT"
-            ref="operationButtonRef"
-            :process-instance="processInstance"
-            :process-definition="processDefinition"
-            :userOptions="userOptions"
-            :normal-form="detailForm"
-            :normal-form-api="fApi"
-            :writable-fields="writableFields"
-            :writableFieldsCopy="processVariablesList"
-            @success="refresh"
-            @handleLoading="handleLoading"
-            :editType="editType"
-            :opinion="opinion"
-            :taskType="taskType"
-            :pageIndex="route.query.pageIndex"
-            :aTab="aTab"
-            :isManual="isManual"
-            :areaSaleRelease="areaSaleRelease"
-            :firstTimeEditSubmit="firstTimeEditSubmit" />
+      <!-- 操作栏按钮 -->
+      <div v-if="orderRedType" class="process-instance-footer b--solid border--1px border-[var(--el-border-color)]">
+        <ProcessInstanceOperationButtonCopy
+          v-if="taskType !== ETASKTYPE.ESTABLISHMENT"
+          ref="operationButtonRef"
+          :process-instance="processInstance"
+          :process-definition="processDefinition"
+          :userOptions="userOptions"
+          :normal-form="detailForm"
+          :normal-form-api="fApi"
+          :writable-fields="writableFields"
+          :writableFieldsCopy="processVariablesList"
+          @success="refresh"
+          @handleLoading="handleLoading"
+          :editType="editType"
+          :opinion="opinion"
+          :taskType="taskType"
+          :pageIndex="route.query.pageIndex"
+          :aTab="aTab"
+          :isManual="isManual"
+          :areaSaleRelease="areaSaleRelease"
+          :firstTimeEditSubmit="firstTimeEditSubmit" />
 
-          <ProcessInstanceSubButton
-            v-else
-            ref="operationButtonRef"
-            :process-instance="processInstance"
-            :process-definition="processDefinition"
-            :normal-form="detailForm"
-            :normal-form-api="fApi"
-            :writable-fields="processVariablesList"
-            @success="refresh"
-            :editType="editType"
-            :aTab="aTab"
-            :opinion="opinion"
-            :taskType="taskType"
-            :areaSaleRelease="areaSaleRelease"
-            :pageIndex="route.query.pageIndex"
-            :firstTimeEditSubmit="firstTimeEditSubmit" />
-        </div>
-      </el-scrollbar>
+        <ProcessInstanceSubButton
+          v-else
+          ref="operationButtonRef"
+          :process-instance="processInstance"
+          :process-definition="processDefinition"
+          :normal-form="detailForm"
+          :normal-form-api="fApi"
+          :writable-fields="processVariablesList"
+          @success="refresh"
+          :editType="editType"
+          :aTab="aTab"
+          :opinion="opinion"
+          :taskType="taskType"
+          :areaSaleRelease="areaSaleRelease"
+          :pageIndex="route.query.pageIndex"
+          :firstTimeEditSubmit="firstTimeEditSubmit" />
+      </div>
 
       <!-- 弹窗和抽屉 -->
       <!-- <UserSelectFormRadio ref="userSelectFormRef" :singleType="true" @confirm="handleUserSelectConfirm" /> -->
@@ -346,7 +353,6 @@ const showStatusSelectorCard = computed(() => {
 watch(
   () => processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE,
   async businessType => {
-    console.log(businessType, '>>>>>>>>>>businessType')
     if (businessType) {
       let componentLoader = getBusinessTypeComponent(businessType)
       if (!componentLoader) {
@@ -467,7 +473,12 @@ const getApprovalDetail = async () => {
       activityId: props.activityId,
       taskId: props.taskId,
     }
-    const data = await ProcessInstanceApi.getApprovalDetail(param)
+    const res = await ProcessInstanceApi.getApprovalDetail(param)
+    let data = null
+    if (res.data.code === 200) {
+      data = res.data.data
+    }
+    debugger
     if (!data) {
       message.error('查询不到审批详情信息！')
       return
@@ -491,7 +502,7 @@ const getApprovalDetail = async () => {
       processInstance.value?.formVariables?.PROCESS_BUSINESS_TYPE != BpmBusinessProcessTypeEnum.TASK_OWNER_NOTICE &&
       processInstance.value?.formVariables?.PROCESS_BUSINESS_TYPE != BpmBusinessProcessTypeEnum.STANDARD_PROCESSROUTE_RE
     ) {
-      await getProcessLinkedBusinessList()
+      // await getProcessLinkedBusinessList()
     }
 
     if (processInstance.value.formVariables?.BUSINESS_COLLECTION_TITILE) {
@@ -518,7 +529,6 @@ const getApprovalDetail = async () => {
         })
       }
       errorInsatnceList.value = list
-      console.log(errorInsatnceList.value, '>>>>>>>errorInsatnceList')
     }
 
     if (processDefinition.value.formType === BpmModelFormType.NORMAL) {
@@ -548,7 +558,6 @@ const getApprovalDetail = async () => {
     } else {
       BusinessFormComponent.value = registerComponent(data.processDefinition.formCustomViewPath)
     }
-
     activityNodes.value = data.activityNodes
     todoTask.value = data.todoTask
     if (!taskType.value) {
@@ -567,9 +576,9 @@ const getProcessModelView = async () => {
   if (BpmModelType.BPMN === processDefinition.value?.modelType) {
     processModelView.value = { bpmnXml: '' }
   }
-  const data = await ProcessInstanceApi.getProcessInstanceBpmnModelView(props.id)
-  if (data) {
-    processModelView.value = data
+  const res = await ProcessInstanceApi.getProcessInstanceBpmnModelView(props.id)
+  if (res.data.code === 200) {
+    processModelView.value = res.data.data
   }
 }
 
@@ -590,7 +599,6 @@ const setFieldPermission = (field: string, permission: string) => {
 }
 
 const refresh = () => {
-  debugger
   getApprovalDetail()
   getProcessModelView()
 }
@@ -605,7 +613,6 @@ const handleLoading = (loading: boolean) => {
 
 async function getprocessUserModel() {
   if (!processDefinitionKey.value) return
-
   let data = {
     processDefinitionKey: processDefinitionKey.value,
     processInstanceId: processInstanceId.value,
@@ -620,7 +627,9 @@ async function getprocessUserModel() {
   }
 
   const res = await ProcessInstanceApi.getUserModel(data)
-  processDefinitionList.value = res
+  if (res.data.code === 200) {
+    processDefinitionList.value = res.data.data
+  }
   if (processDefinitionList.value) {
     processDefinitionList.value.map((item, index) => {
       if (item.userInfo) {
@@ -699,33 +708,78 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-$wrap-padding-height: 20px;
-$wrap-margin-height: 15px;
-$button-height: 51px;
-$process-header-height: 194px;
+.process-instance-detail-wrap {
+  // height: calc(100vh - var(--top-tool-height) - var(--tags-view-height) - var(--app-footer-height) - 35px);
+  // max-height: calc(100vh - var(--top-tool-height) - var(--tags-view-height) - var(--app-footer-height) - 35px);
+  height: 100%;
+  margin-bottom: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  :deep(.el-card__body) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+}
 
 .processInstance-wrap-main {
-  height: calc(100vh - var(--top-tool-height) - var(--tags-view-height) - var(--app-footer-height) - 35px);
-  max-height: calc(100vh - var(--top-tool-height) - var(--tags-view-height) - var(--app-footer-height) - 35px);
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-  .form-scroll-area {
+.process-instance-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  :deep(.el-tabs__header) {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  :deep(.el-tabs__content) {
+    flex: 1;
+    min-height: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  :deep(.el-tab-pane) {
+    height: 100%;
     display: flex;
-    height: calc(100vh - var(--top-tool-height) - 35px - $process-header-height - 40px);
-    max-height: calc(100vh - var(--top-tool-height) - 35px - $process-header-height - 40px);
-    overflow: auto;
     flex-direction: column;
+    overflow: hidden;
+  }
+}
 
-    :deep(.box-card) {
+.form-scroll-area {
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+
+  :deep(.box-card) {
+    height: 100%;
+
+    .el-card__body {
       height: 100%;
-      flex: 1;
-
-      .el-card__body {
-        height: 100%;
-        padding: 0;
-      }
+      padding: 0;
     }
   }
+}
+
+.process-instance-footer {
+  flex-shrink: 0;
 }
 
 .form-box {
@@ -736,12 +790,51 @@ $process-header-height: 194px;
 
 .diagram-container {
   position: relative;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 
   .diagram-toolbar {
     position: absolute;
     top: 10px;
     left: 20px;
     z-index: 10;
+  }
+
+  .diagram-viewer-body {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+    position: relative;
+
+    :deep(.process-viewer-container),
+    :deep(.box-card) {
+      height: 100% !important;
+      min-height: 0;
+      margin-bottom: 0 !important;
+      display: flex;
+      flex-direction: column;
+    }
+
+    :deep(.el-card__body) {
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      padding: 0;
+    }
+
+    :deep(.process-viewer),
+    :deep(.djs-container),
+    :deep(.bjs-container) {
+      height: 100% !important;
+      width: 100% !important;
+      min-height: 0;
+      box-sizing: border-box;
+    }
   }
 }
 

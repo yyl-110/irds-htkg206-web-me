@@ -850,6 +850,7 @@ const importXML = async (xml: string) => {
       isLoading.value = false
       // 高亮流程
       setProcessStatus(props.view)
+      nextTick(() => handleCanvasResize())
     }
   }
 }
@@ -1190,14 +1191,40 @@ watch(
   },
   { immediate: true },
 )
+let canvasResizeObserver: ResizeObserver | null = null
+
+/** 容器尺寸变化时重算 BPMN 画布，避免流程图只占顶部一小块 */
+function handleCanvasResize() {
+  if (!bpmnViewer.value) {
+    return
+  }
+  try {
+    bpmnViewer.value.get('canvas').resized()
+    processReZoom()
+  } catch {
+    /* ignore */
+  }
+}
+
 /** mounted：初始化 */
 onMounted(() => {
-  // importXML(props.xml)
   setProcessStatus(props.view)
+  nextTick(() => {
+    const container = processCanvas.value?.parentElement
+    if (!container) {
+      return
+    }
+    canvasResizeObserver = new ResizeObserver(() => {
+      handleCanvasResize()
+    })
+    canvasResizeObserver.observe(container)
+  })
 })
 
 /** unmount：销毁 */
 onBeforeUnmount(() => {
+  canvasResizeObserver?.disconnect()
+  canvasResizeObserver = null
   clearViewer()
   // 清除所有定时器
   if (hoverTimer) {
@@ -1241,6 +1268,17 @@ onBeforeUnmount(() => {
 
 // 修复父容器可能影响输入的问题
 .process-viewer {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+
+  :deep(.djs-container),
+  :deep(.bjs-container) {
+    height: 100% !important;
+    width: 100% !important;
+  }
+
   // 确保没有父容器阻止事件冒泡
   > * {
     pointer-events: auto !important;

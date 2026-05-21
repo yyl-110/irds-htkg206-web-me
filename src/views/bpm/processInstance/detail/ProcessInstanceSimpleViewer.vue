@@ -171,4 +171,11 @@ const setSimpleModelNodeTaskStatus = (
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.process-viewer-container {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+}
+</style>

@@ -162,7 +162,7 @@ export function getUserModel(params: any) {
 
 export function getProcessLinkedBusiness(data: any) {
   return httpRequest({
-    url: `${window.getVersionTypeApiUrl('gbomBizURL')}/bpm/getProcessLinkedBusiness`,
+    url: `bpm-service/bpm/getProcessLinkedBusiness`,
     data,
     method: 'POST',
   })

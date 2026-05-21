@@ -16,6 +16,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { WeiI18n } from '@/utils/WeiI18n'
 import { useI18n } from 'vue-i18n'
 
+const router = useRouter() // 路由
 defineOptions({ name: 'BpmProcessInstanceManager' })
 
 const { t } = useI18n()
@@ -222,6 +223,17 @@ function resetQuery() {
   dateRange.value = null
   handleQuery()
 }
+/** 查看详情 */
+const handleDetail = (row: ProcessInstanceRow) => {
+  router.push({
+    name: 'BpmProcessInstanceDetail',
+    query: {
+      id: row.id,
+      pageIndex: 0,
+      orderNo: row.processVariables.orderNo,
+    },
+  })
+}
 
 function handlePagTable(page: number, pageSize: number) {
   queryParams.pageIndex = page
@@ -423,6 +435,8 @@ onMounted(async () => {
               <dict-tag :type="DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS" :value="record.status" />
             </template>
             <template v-else-if="column.dataIndex === 'operation'">
+              <a @click="handleDetail(record)">详情</a>
+              <a-divider type="vertical" />
               <a @click="showProcessVariables(record)">流程变量</a>
               <template v-if="record.status === 1">
                 <a-divider type="vertical" />

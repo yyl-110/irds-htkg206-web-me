@@ -354,7 +354,7 @@ export const routes: RouteRecordRaw[] = [
           hidden: true,
           canTo: true,
           title: '流程详情',
-          activeMenu: '/bpm/task/my',
+          activeMenu: '/bpm/processInstance',
         },
         props: route => ({
           id: route.query.id,

@@ -1,21 +1,14 @@
 <!-- 审批详情的右侧：审批流 -->
 <template>
-  <el-timeline class="pt-20px">
+  <el-timeline class="bpm-process-timeline pt-20px">
     <!-- 遍历每个审批节点 -->
-    <el-timeline-item
-      v-for="(activity, index) in activityNodes"
-      :key="index"
-      size="large"
-      :icon="getApprovalNodeIcon(activity.status, activity.nodeType)"
-      :color="getApprovalNodeColor(activity.status)">
+    <el-timeline-item v-for="(activity, index) in activityNodes" :key="index" size="large" hide-timestamp>
       <template #dot>
-        <div
-          :style="getApprovalNodeImgBackground(getApprovalNodeIcon(activity.status, activity.nodeType))"
-          class="position-absolute left--10px top--6px rounded-full border border-solid border-#dedede w-30px h-30px flex justify-center items-center bg-#3f73f7 p-5px">
-          <img class="w-full h-full" :src="getApprovalNodeImg(activity.nodeType)" alt="" />
+        <div class="timeline-node-dot" :style="getApprovalNodeImgBackground(activity.status)">
+          <img class="timeline-node-dot__img" :src="getApprovalNodeImg(activity.nodeType)" alt="" />
           <div
             v-if="showStatusIcon"
-            class="position-absolute top-17px left-17px rounded-full flex items-center p-1px border-2 border-white border-solid"
+            class="timeline-node-dot__badge"
             :style="{ backgroundColor: getApprovalNodeColor(activity.status) }">
             <el-icon :size="11" color="#fff">
               <component :is="getApprovalNodeIcon(activity.status, activity.nodeType)" />
@@ -115,6 +108,7 @@
           </div>
           <!-- 情况二：遍历每个审批节点下的【候选的】task 任务。例如说，1）依次审批，2）未来的审批任务等 -->
           <div
+            style="margin-left: -10px"
             v-for="(user, idx1) in activity.candidateUsers"
             :key="idx1"
             class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
@@ -238,17 +232,22 @@ const getApprovalNodeImg = (nodeType: NodeType) => {
   return nodeTypeSvgMap[nodeType]?.svg
 }
 
-const getApprovalNodeImgBackground = (nodeType: any) => {
-  debugger
-  const backgroundColor = {
-    Check: '#18A058FF', //通过
-    Loading: '#448ef7', //当前节点
-    Minus: '#F46B6C', //退回
-    Clock: '#C0C4CC',
+/** 节点主图标背景色（按审批状态，勿传 icon 组件） */
+const getApprovalNodeImgBackground = (taskStatus: number) => {
+  const backgroundColorMap: Record<number, string> = {
+    [TaskStatusEnum.NOT_START]: '#C0C4CC',
+    [TaskStatusEnum.WAIT]: '#C0C4CC',
+    [TaskStatusEnum.RUNNING]: '#448ef7',
+    [TaskStatusEnum.APPROVE]: '#18A058',
+    [TaskStatusEnum.REJECT]: '#F46B6C',
+    [TaskStatusEnum.CANCEL]: '#cccccc',
+    [TaskStatusEnum.RETURN]: '#F46B6C',
+    6: '#448ef7',
+    [TaskStatusEnum.APPROVING]: '#18A058',
   }
 
   return {
-    backgroundColor: backgroundColor[nodeType?.name],
+    backgroundColor: backgroundColorMap[taskStatus] ?? '#C0C4CC',
   }
 }
 
@@ -310,3 +309,58 @@ const handleChildProcess = (activity: any) => {
   })
 }
 </script>
+
+<style lang="scss" scoped>
+.bpm-process-timeline {
+  padding-left: 4px;
+
+  :deep(.el-timeline-item__wrapper) {
+    padding-left: 40px;
+    top: 0;
+  }
+
+  :deep(.el-timeline-item__tail) {
+    left: 14px;
+    top: 28px;
+    height: calc(100% - 20px);
+    border-left-width: 2px;
+  }
+
+  :deep(.el-timeline-item:last-child .el-timeline-item__tail) {
+    display: none;
+  }
+}
+
+.timeline-node-dot {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid #dedede;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  flex-shrink: 0;
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  &__badge {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px;
+    border: 2px solid #fff;
+    box-sizing: border-box;
+  }
+}
+</style>
