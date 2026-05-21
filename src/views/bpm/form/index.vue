@@ -9,7 +9,7 @@ import { Dialog } from '@/components/Dialog'
 import Empty from '@/components/Empty/index.vue'
 import { EpcIcon } from '@/components/icon/EpcIcon'
 import { WeiI18n } from '@/utils/WeiI18n'
-
+import formCreate from '@form-create/element-ui'
 defineOptions({ name: 'BpmForm' })
 
 const { currentRoute, push } = useRouter()
@@ -216,11 +216,7 @@ watch(
               <a-divider v-hasPermi="['bpm:form:query']" type="vertical" />
               <a v-hasPermi="['bpm:form:query']" @click="openDetail(record.id)">详情</a>
               <a-divider v-hasPermi="['bpm:form:delete']" type="vertical" />
-              <a-popconfirm
-                title="确定要删除吗?"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm="handleDelete(record.id)">
+              <a-popconfirm title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
                 <a v-hasPermi="['bpm:form:delete']" class="del-text">删除</a>
               </a-popconfirm>
             </template>

@@ -48,7 +48,6 @@ import * as FormApi from '@/api/bpm/form'
 import { useDictStore } from '@/store/modules/dict'
 import FcDesigner from '@form-create/designer'
 import { encodeConf, encodeFields, setConfAndFields } from '@/utils/formCreate'
-// import { useTagsViewStore } from '@/store/modules/tagsView'
 import { useFormCreateDesigner } from '@/components/FormCreate'
 import { useRoute } from 'vue-router'
 import type { FormInstance } from 'element-plus'
@@ -67,7 +66,6 @@ const message = useMessage() // 消息
 const route = useRoute() // 路由
 const { push, currentRoute } = useRouter() // 路由
 const { query } = useRoute() // 路由信息
-// const { delView } = useTagsViewStore() // 视图操作
 
 // 表单设计器配置
 const designerConfig = ref({
@@ -148,7 +146,6 @@ const submitForm = async () => {
 }
 /** 关闭按钮 */
 const close = () => {
-  // delView(unref(currentRoute))
   push('/bpm/manager/form')
 }
 
@@ -162,14 +159,12 @@ onMounted(async () => {
   // 场景二：修改表单
   const res = await FormApi.getForm(id)
   if (res.data.code !== 200) return
-
   const row = res.data.data
   formData.value = {
     ...row,
     status: normalizeFormStatus(row.status),
   }
   setConfAndFields(designer, row.conf, row.fields)
-
   if (route.query.type !== 'copy') {
     return
   }
@@ -219,6 +214,7 @@ onMounted(async () => {
 }
 
 .bpm-form-editor-canvas {
+  height: 100%;
   box-sizing: border-box;
   flex: 1 1 0;
   min-height: 0;

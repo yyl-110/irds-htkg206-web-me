@@ -2,12 +2,10 @@
 import { DICT_TYPE } from '@/utils/dict'
 import { BpmModelType } from '@/utils/constants'
 import type { UserVO } from '@/api/system/user'
-// import type { DeptVO } from '@/api/system/dept'
 import type { CategoryVO } from '@/api/bpm/category'
-// import { findPagination, findPaginationByUsers } from '@/api/system-manage/user'
-import { InformationPageRequestDTOModel } from '@/api/models/information/InformationPageRequestDTOModel'
 import { useDictStore } from '@/store/modules/dict'
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
+import { debounce } from '@/hooks/useDebonce'
 import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
 // 国际化
 const props = defineProps({
@@ -74,36 +72,28 @@ const getDeptInfo = async () => {
     memberAuthUsers.value = []
   }
 }
-// 初始化选中的用户
-watch(
-  () => modelData.value,
-  async newVal => {
-    if (!newVal) return
-    if (newVal.type == null || newVal.type === '') {
-      newVal.type = BpmModelType.BPMN
-    }
-    await getDeptInfo()
-    if (newVal.startUserIds?.length) {
-      selectedStartUsers.value = pickUsersByIds(modelData.value?.startUserIds || [])
-    } else {
-      selectedStartUsers.value = []
-    }
-    if (newVal.managerUserIds?.length) {
-      selectedManagerUsers.value = pickUsersByIds(modelData.value?.managerUserIds || [])
-    } else {
-      selectedManagerUsers.value = []
-    }
-    // if (newVal.startDeptIds?.length) {
-    //   selectedStartDepts.value = props.deptList.filter((dept: []) => newVal.startDeptIds.includes(dept.id)) as []
-    // } else {
-    //   selectedStartDepts.value = []
-    // }
-  },
-  {
-    immediate: true,
-  },
-)
 
+const initData = async () => {
+  if (modelData.value.type == null || modelData.value.type === '') {
+    modelData.value.type = BpmModelType.BPMN
+  }
+  await getDeptInfo()
+  if (modelData.value.startUserIds?.length) {
+    selectedStartUsers.value = pickUsersByIds(modelData.value?.startUserIds || [])
+  } else {
+    selectedStartUsers.value = []
+  }
+  if (modelData.value.managerUserIds?.length) {
+    selectedManagerUsers.value = pickUsersByIds(modelData.value?.managerUserIds || [])
+  } else {
+    selectedManagerUsers.value = []
+  }
+  // if (modelData.value.startDeptIds?.length) {
+  //   selectedStartDepts.value = props.deptList.filter((dept: []) => modelData.value.startDeptIds.includes(dept.id)) as []
+  // } else {
+  //   selectedStartDepts.value = []
+  // }
+}
 /** 打开发起人选择 */
 function openStartUserSelect() {
   currentSelectType.value = 'start'
@@ -135,6 +125,7 @@ async function openMemberAuth(record: any) {
 }
 
 function pickUsersByIds(userIds: string[]) {
+  console.log('memberAuthUsers.value', memberAuthUsers.value)
   const userIdSet = new Set(userIds.map(String))
   return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id))).map(u => ({ ...u, nickName: u.name }))
 }
@@ -235,6 +226,7 @@ async function validate() {
 }
 
 defineExpose({
+  initData,
   validate,
 })
 </script>

@@ -53,13 +53,12 @@ const numberExample = computed(() => {
         break
     }
     return (
-      modelData.value.processIdRule.prefix
-      + infix
-      + modelData.value.processIdRule.postfix
-      + '1'.padStart(modelData.value.processIdRule.length - 1, '0')
+      modelData.value.processIdRule.prefix +
+      infix +
+      modelData.value.processIdRule.postfix +
+      '1'.padStart(modelData.value.processIdRule.length - 1, '0')
     )
-  }
-  else {
+  } else {
     return ''
   }
 })
@@ -74,8 +73,7 @@ function handleProcessBeforeTriggerEnableChange(val: boolean | string | number) 
       body: [],
       response: [],
     }
-  }
-  else {
+  } else {
     modelData.value.processBeforeTriggerSetting = null
   }
 }
@@ -90,8 +88,7 @@ function handleProcessAfterTriggerEnableChange(val: boolean | string | number) {
       body: [],
       response: [],
     }
-  }
-  else {
+  } else {
     modelData.value.processAfterTriggerSetting = null
   }
 }
@@ -106,8 +103,7 @@ function handleTaskBeforeTriggerEnableChange(val: boolean | string | number) {
       body: [],
       response: [],
     }
-  }
-  else {
+  } else {
     modelData.value.taskBeforeTriggerSetting = null
   }
 }
@@ -122,16 +118,15 @@ function handleTaskAfterTriggerEnableChange(val: boolean | string | number) {
       body: [],
       response: [],
     }
-  }
-  else {
+  } else {
     modelData.value.taskAfterTriggerSetting = null
   }
 }
 
 /** 表单选项 */
-const formField = ref<Array<{ field: string, title: string }>>([])
+const formField = ref<Array<{ field: string; title: string }>>([])
 const formFieldOptions4Title = computed(() => {
-  const cloneFormField = formField.value.map((item) => {
+  const cloneFormField = formField.value.map(item => {
     return {
       label: item.title,
       value: item.field,
@@ -153,7 +148,7 @@ const formFieldOptions4Title = computed(() => {
   return cloneFormField
 })
 const formFieldOptions4Summary = computed(() => {
-  return formField.value.map((item) => {
+  return formField.value.map(item => {
     return {
       label: item.title,
       value: item.field,
@@ -205,7 +200,7 @@ defineExpose({ initData })
 /** 监听表单 ID 变化，加载表单数据 */
 watch(
   () => modelData.value.formId,
-  async (newFormId) => {
+  async newFormId => {
     if (newFormId && modelData.value.formType === BpmModelFormType.NORMAL) {
       const res = await FormApi.getForm(newFormId)
       const result: Array<{ field: string; title: string }> = []
@@ -217,8 +212,7 @@ watch(
         })
       }
       formField.value = result
-    }
-    else {
+    } else {
       formField.value = []
     }
   },
@@ -280,9 +274,7 @@ watch(
             :disabled="!modelData.processIdRule.enable" />
         </div>
         <div v-if="modelData.processIdRule.enable">
-          <el-text type="info">
-            {{ $t('编码示例：') }}{{ numberExample }}
-          </el-text>
+          <el-text type="info"> {{ $t('编码示例：') }}{{ numberExample }} </el-text>
         </div>
       </div>
     </el-form-item>
@@ -321,7 +313,8 @@ watch(
         <el-radio-group v-model="modelData.titleSetting.enable">
           <div class="flex flex-col">
             <el-radio :value="false">
-              {{ $t('系统默认') }} <el-text type="info">
+              {{ $t('系统默认') }}
+              <el-text type="info">
                 {{ $t('展示流程名称') }}
               </el-text>
             </el-radio>
@@ -344,8 +337,7 @@ watch(
           whole
           :options="formFieldOptions4Title"
           :placeholder="$t(`请插入表单字段（输入 '{' 可以选择表单字段）或输入文本`)"
-          class="w-600px!"
-        />
+          class="w-600px!" />
       </div>
     </el-form-item>
     <el-form-item v-if="modelData.summarySetting && modelData.formType === BpmModelFormType.NORMAL" class="mb-20px">
@@ -358,7 +350,8 @@ watch(
         <el-radio-group v-model="modelData.summarySetting.enable">
           <div class="flex flex-col">
             <el-radio :value="false">
-              {{ $t('系统默认') }} <el-text type="info">
+              {{ $t('系统默认') }}
+              <el-text type="info">
                 {{ $t('展示表单前 3 个字段') }}
               </el-text>
             </el-radio>
@@ -372,14 +365,12 @@ watch(
           v-model="modelData.summarySetting.summary"
           class="w-500px!"
           multiple
-          :placeholder="$t('请选择要展示的表单字段')"
-        >
+          :placeholder="$t('请选择要展示的表单字段')">
           <el-option
             v-for="item in formFieldOptions4Summary"
             :key="item.value"
             :label="item.label"
-            :value="item.value"
-          />
+            :value="item.value" />
         </el-select>
       </div>
     </el-form-item>
@@ -400,8 +391,7 @@ watch(
           v-if="processBeforeTriggerEnable"
           v-model:setting="modelData.processBeforeTriggerSetting"
           :response-enable="true"
-          form-item-prefix="processBeforeTriggerSetting"
-        />
+          form-item-prefix="processBeforeTriggerSetting" />
       </div>
     </el-form-item>
     <el-form-item class="mb-20px">
@@ -421,8 +411,7 @@ watch(
           v-if="processAfterTriggerEnable"
           v-model:setting="modelData.processAfterTriggerSetting"
           :response-enable="true"
-          form-item-prefix="processAfterTriggerSetting"
-        />
+          form-item-prefix="processAfterTriggerSetting" />
       </div>
     </el-form-item>
     <el-form-item class="mb-20px">
@@ -442,8 +431,7 @@ watch(
           v-if="taskBeforeTriggerEnable"
           v-model:setting="modelData.taskBeforeTriggerSetting"
           :response-enable="true"
-          form-item-prefix="taskBeforeTriggerSetting"
-        />
+          form-item-prefix="taskBeforeTriggerSetting" />
       </div>
     </el-form-item>
     <el-form-item class="mb-20px">
@@ -463,8 +451,7 @@ watch(
           v-if="taskAfterTriggerEnable"
           v-model:setting="modelData.taskAfterTriggerSetting"
           :response-enable="true"
-          form-item-prefix="taskAfterTriggerSetting"
-        />
+          form-item-prefix="taskAfterTriggerSetting" />
       </div>
     </el-form-item>
   </el-form>

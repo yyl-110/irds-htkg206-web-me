@@ -121,15 +121,5 @@ defineExpose({
         <Icon icon="ep:question" class="ml-5px" />
       </el-tooltip>
     </el-form-item>
-    <!-- 表单预览 -->
-    <div
-      v-if="modelData.formType === BpmModelFormType.NORMAL && modelData.formId && formPreview.rule.length > 0"
-      class="mt-20px">
-      <div class="flex items-center mb-15px">
-        <div class="h-15px w-4px bg-[#1890ff] mr-10px" />
-        <span class="text-15px font-bold">{{ $t('表单预览') }}</span>
-      </div>
-      <form-create v-model="formPreview.formData" :rule="formPreview.rule" :option="formPreview.option" />
-    </div>
   </el-form>
 </template>
