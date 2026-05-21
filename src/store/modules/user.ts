@@ -9,7 +9,8 @@ import { Locales, WeiI18n } from '@/utils/WeiI18n';
 
 const { wsCache } = useCache();
 interface UserVO {
-  id: number;
+  /** 雪花 ID，接口解析后常为 string，避免 Number 精度丢失 */
+  id: string | number;
   avatar: string;
   nickname: string;
   userName: string;

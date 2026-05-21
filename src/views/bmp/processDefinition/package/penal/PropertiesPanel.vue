@@ -13,7 +13,7 @@
       <a-collapse-panel v-if="formVisible && flag == 1 && obj.$type !== 'bpmn:StartEvent'" key="form">
         <template #header>
           <div class="panel-tab__title">
-            <form-outlined />
+            <file-text-outlined />
             表单
           </div>
         </template>
@@ -25,7 +25,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, provide } from 'vue';
-import { InfoCircleOutlined, FormOutlined } from '@ant-design/icons-vue';
+import { InfoCircleOutlined, FileTextOutlined } from '@ant-design/icons-vue';
 
 // 导入所有组件 - 注意组件名统一使用 PascalCase
 import ElementBaseInfoCalc from './base/ElementBaseInfoCalc.vue';
@@ -217,7 +217,11 @@ const getType = val => {
         background: #fafafa;
 
         &:hover {
-          background: #f5f5f5;
+          background: color-mix(
+            in srgb,
+            var(--project-system-primary, var(--ant-primary-color, #124dd6)) 8%,
+            #fafafa
+          );
         }
       }
 
@@ -242,6 +246,7 @@ const getType = val => {
 
   .anticon {
     font-size: 14px;
+    color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
   }
 }
 

@@ -4,6 +4,7 @@
   --collapse-content-bg: #fff; /* 内容区背景色 */
   --collapse-border-color: #e8e8e8; /* 边框色 */
   --collapse-header-height: 56px; /* 头部高度 */
+  --collapse-accent-color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
 }
 
 /* 2. 面板头部样式（标题+图标） */
@@ -27,7 +28,7 @@
 /* 展开时图标旋转 */
 :deep(.ant-collapse-item-active .ant-collapse-arrow) {
   transform: rotate(90deg);
-  color: #1890ff; /* 展开时图标高亮色 */
+  color: var(--collapse-accent-color); /* 展开时图标：系统主题色 */
 }
 
 /* 4. 面板内容区样式 */
@@ -58,7 +59,7 @@
 
 /* 头部hover效果 */
 :deep(.ant-collapse-header):hover {
-  background: #84a4f4; /* 浅蓝色hover背景 */
+  background: color-mix(in srgb, var(--collapse-accent-color) 10%, var(--collapse-header-bg));
 }
 :deep(.ant-collapse-borderless > .ant-collapse-item:last-child, .ant-collapse-borderless > .ant-collapse-item:last-child .ant-collapse-header) {
   border-radius: 12px;

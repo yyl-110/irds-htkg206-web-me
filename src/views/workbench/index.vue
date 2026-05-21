@@ -36,6 +36,7 @@ import { sortermethod } from '@/utils/tools'
 import { EpcIcon } from '@/components/icon/EpcIcon'
 import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel'
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台'
+import { showRequestErrorIfNeeded } from '@/httpRequest'
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务'
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
@@ -961,22 +962,17 @@ async function submitWorkbenchTransfer() {
   }
   transferSubmitLoading.value = true
   try {
-    const res = await AdminApiProjectTemp.workbenchTodoCardTransfer({
+    await AdminApiProjectTemp.workbenchTodoCardTransfer({
       cardId: String(task.id),
       toAssigneeUserId: String(toId),
     })
-    const code = res?.data?.code
-    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
-      message.error(String(res?.data?.msg ?? '转办失败'))
-      return
-    }
     closeTransferModal()
     message.success('转办成功')
     await loadTodoListFromApi()
     await loadWorkbenchSummary()
   }
-  catch {
-    message.error('转办失败')
+  catch (e: unknown) {
+    showRequestErrorIfNeeded(e, '转办失败')
   }
   finally {
     transferSubmitLoading.value = false
@@ -1007,22 +1003,17 @@ async function submitWorkbenchReject() {
   }
   rejectSubmitLoading.value = true
   try {
-    const res = await AdminApiProjectTemp.workbenchTodoCardReject({
+    await AdminApiProjectTemp.workbenchTodoCardReject({
       cardId: String(task.id),
       opinion,
     })
-    const code = res?.data?.code
-    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
-      message.error(String(res?.data?.msg ?? '驳回失败'))
-      return
-    }
     closeRejectModal()
     message.success('已驳回，任务已退回上级分配人，进度已重置')
     await loadTodoListFromApi()
     await loadWorkbenchSummary()
   }
-  catch {
-    message.error('驳回失败')
+  catch (e: unknown) {
+    showRequestErrorIfNeeded(e, '驳回失败')
   }
   finally {
     rejectSubmitLoading.value = false
@@ -1043,28 +1034,18 @@ async function executeWbsChangeFromWorkbench() {
   const applyLatest = wbsChangeApplyLatest.value === 1 ? 1 : 0
   wbsChangeSubmitLoading.value = true
   try {
-    const mc = await AdminApiProjectTemp.projectWbsMarkChange({ id: wbsIdStr })
-    const c1 = mc?.data?.code
-    if (!(c1 === 0 || c1 === 200 || c1 === '0' || c1 === '200')) {
-      message.error(String(mc?.data?.msg ?? '标记变更失败'))
-      return
-    }
-    const ro = await AdminApiProjectTemp.projectWbsReopenTask({
+    await AdminApiProjectTemp.projectWbsMarkChange({ id: wbsIdStr })
+    await AdminApiProjectTemp.projectWbsReopenTask({
       id: wbsIdStr,
       applyLatestValue: applyLatest,
     })
-    const c2 = ro?.data?.code
-    if (!(c2 === 0 || c2 === 200 || c2 === '0' || c2 === '200')) {
-      message.error(String(ro?.data?.msg ?? '确认变更失败'))
-      return
-    }
     closeWbsChangeModal()
     message.success('已发起变更，正在进入协同设计…')
     await openDesignWorkspace(task)
     await loadTodoListFromApi()
   }
-  catch {
-    message.error('变更失败')
+  catch (e: unknown) {
+    showRequestErrorIfNeeded(e, '变更失败')
   }
   finally {
     wbsChangeSubmitLoading.value = false
@@ -1126,20 +1107,15 @@ async function openChangeWorkspace(task: TaskItem) {
   }
   const hideLoading = message.loading('变更处理中，请稍候…', 0)
   try {
-    const res = await AdminApiSystemProcessTask.reopenLastNodeForChange({
+    await AdminApiSystemProcessTask.reopenLastNodeForChange({
       appId,
       taskId: taskIdStr,
     })
-    const code = res?.data?.code
-    if (!(code === 0 || code === 200)) {
-      message.error(String(res?.data?.msg ?? '变更失败'))
-      return
-    }
     await openDesignWorkspace(task)
     await loadTodoListFromApi()
   }
-  catch {
-    message.error('变更失败')
+  catch (e: unknown) {
+    showRequestErrorIfNeeded(e, '变更失败')
   }
   finally {
     hideLoading()

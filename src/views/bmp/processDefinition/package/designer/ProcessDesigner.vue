@@ -512,7 +512,7 @@ const getXMLNode = str => {
   const xmlDoc = new DOMParser().parseFromString(str, 'text/xml');
   const finds = xmlDoc.getElementsByTagName('bpmn2:userTask');
   if (finds.length === 0) {
-    message.error('流程图绘制错误, 请绑定页面！');
+    message.error('流程中所有节点都需要关联活动, 请关联活动后保存！');
     return;
   }
 
@@ -527,7 +527,7 @@ const getXMLNode = str => {
   if (finds.length === arrObj.length) {
     saveXML();
   } else {
-    message.error('流程图绘制错误, 请绑定页面！');
+    message.error('流程中所有节点都需要关联活动, 请关联活动后保存！');
   }
 };
 

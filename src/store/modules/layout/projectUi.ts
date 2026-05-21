@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户';
 import { menuBgLuminance, parseMenuBgHex } from '@/utils/menuThemeChrome';
+import { toSnowflakeIdStr } from '@/utils/snowflakeId';
 import type { WeiThemeKey } from '@/utils/WeiTheme';
 import { WeiTheme } from '@/utils/WeiTheme';
 
@@ -161,13 +162,14 @@ export const useProjectUiStore = defineStore('projectUi', {
      * 登录成功后拉取用户页面样式（优先于本地持久化缓存）。
      * 返回为空或解析失败时使用 {@link resetToDefaults}
      */
-    async hydratePageStyleFromServer(userId: number) {
-      if (!userId) {
+    async hydratePageStyleFromServer(userId: string | number) {
+      const uid = toSnowflakeIdStr(userId);
+      if (!uid) {
         this.resetToDefaults();
         return;
       }
       try {
-        const res = await AdminApiSystemUser.getPageStyle({ userId });
+        const res = await AdminApiSystemUser.getPageStyle({ userId: uid });
         const code = res?.data?.code;
         if (code !== 0 && code !== 200) {
           this.resetToDefaults();

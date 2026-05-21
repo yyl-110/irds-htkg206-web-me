@@ -7,6 +7,7 @@ import { useProjectUiStore } from '@/store/modules/layout/projectUi'
 import { WeiThemeKey } from '@/utils/WeiTheme'
 import { AdminApiSystemUser } from '@/api/tags/管理后台用户'
 import { useUserStore } from "@/store/modules/user";
+import { toSnowflakeIdStr } from '@/utils/snowflakeId';
 const userStore = useUserStore();
 
 const projectUi = useProjectUiStore()
@@ -127,7 +128,7 @@ async function onSavePageStyle() {
     const payload = buildPageStylePayload()
     //JSON转string
     const res = await AdminApiSystemUser.savePageStyle({
-      userId: userStore.getUser.id,
+      userId: toSnowflakeIdStr(userStore.getUser.id),
       styleJson: JSON.stringify(payload),
     })
     const code = res?.data?.code

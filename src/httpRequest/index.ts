@@ -138,7 +138,11 @@ function toResponseError(response: AxiosResponse<HttpRequestResponse>, message?:
   return res;
 }
 
+/** 防止 HMR 或重复 import 导致拦截器注册多次、错误提示弹两遍 */
+const HTTP_INTERCEPTORS_ATTACHED_KEY = '__wbsHttpInterceptorsAttached';
+
 // request拦截器
+if (!(service as AxiosInstance & { [HTTP_INTERCEPTORS_ATTACHED_KEY]?: boolean })[HTTP_INTERCEPTORS_ATTACHED_KEY]) {
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig<HttpRequestResponse>) => {
     // 1. 在请求头中增加 access token
@@ -274,9 +278,11 @@ service.interceptors.response.use(
     }
     // 5. 处理 500
     else if (code === 500) {
-      WeiMessage.error(WeiI18n.t('服务器错误,请联系管理员!').value);
-      // return Promise.reject(response)
-      return Promise.reject(toResponseError(response, WeiI18n.t('服务器错误,请联系管理员!').value));
+      const serverErrMsg = WeiI18n.t('服务器错误,请联系管理员!').value;
+      WeiMessage.error(serverErrMsg);
+      const serverErr = toResponseError(response, serverErrMsg);
+      serverErr.notified = true;
+      return Promise.reject(serverErr);
     } else if (code === 901) {
       // return Promise.reject(response)
       return Promise.reject(toResponseError(response));
@@ -288,8 +294,9 @@ service.interceptors.response.use(
     // 7. 处理其他错误码
     else if (Number(code) !== ResponseCode.Successfully && Number(code) !== 0) {
       WeiMessage.error(WeiI18n.t(msg).value);
-      // return Promise.reject(response)
-      return Promise.reject(toResponseError(response, msg));
+      const businessErr = toResponseError(response, msg);
+      businessErr.notified = true;
+      return Promise.reject(businessErr);
     }
     // 8. 无错误
     else {
@@ -336,6 +343,9 @@ service.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+(service as AxiosInstance & { [HTTP_INTERCEPTORS_ATTACHED_KEY]?: boolean })[HTTP_INTERCEPTORS_ATTACHED_KEY] = true;
+}
 
 /** 使用 refresh token 刷新 access token */
 async function refreshToken() {
@@ -391,3 +401,5 @@ function handleAuthorized() {
 export default service;
 export { service } from './service';
 export type { AxiosInstance, AxiosResponse, AxiosRequestConfig };
+export { ResponseError } from './typings';
+export { showRequestErrorIfNeeded, isRequestErrorNotified, getRequestErrorMessage } from './errorNotify';

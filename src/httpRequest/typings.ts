@@ -18,4 +18,6 @@ export class ResponseError<D = any, R = any> extends Error implements AxiosRespo
   status!: number
   statusText!: string
   headers!: RawAxiosResponseHeaders | AxiosResponseHeaders
+  /** 为 true 表示 axios 响应拦截器已弹出 msg，业务 catch 请使用 showRequestErrorIfNeeded */
+  notified?: boolean
 }

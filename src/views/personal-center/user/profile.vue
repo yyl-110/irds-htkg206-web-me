@@ -2,7 +2,7 @@
 import type { FunctionalComponent } from 'vue';
 import { computed, ref } from 'vue';
 // import { swaggerApi } from '@/httpRequest'
-import { ApartmentOutlined, CalendarOutlined, CloseCircleOutlined, InfoCircleOutlined, MailOutlined, MobileOutlined, SolutionOutlined, UserOutlined } from '@ant-design/icons-vue';
+import { ApartmentOutlined, CalendarOutlined, CloseCircleOutlined, IdcardOutlined, InfoCircleOutlined, MailOutlined, MobileOutlined, SolutionOutlined, UserOutlined } from '@ant-design/icons-vue';
 import type { AntdIconProps } from '@ant-design/icons-vue/lib/components/AntdIcon';
 import dayjs from 'dayjs';
 import type { Rule } from 'ant-design-vue/es/form';
@@ -49,6 +49,7 @@ const userType = ref<Array<string>>(['终端用户']);
 
 const profileFields: Array<ProfileField> = [
   { icon: UserOutlined, label: '用户名称', field: 'username' },
+  { icon: IdcardOutlined, label: '姓名', field: 'nickname' },
   { icon: MobileOutlined, label: '手机号码', field: 'mobile' },
   { icon: MailOutlined, label: '用户邮箱', field: 'email' },
   {

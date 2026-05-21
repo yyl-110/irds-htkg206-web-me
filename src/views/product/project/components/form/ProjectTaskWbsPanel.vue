@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { TableColumnsType } from 'ant-design-vue';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 import localeDatePickerZh from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -20,6 +20,7 @@ import {
 } from '@ant-design/icons-vue';
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
+import { showRequestErrorIfNeeded } from '@/httpRequest';
 import { useUserStore } from '@/store/modules/user';
 
 dayjs.extend(isoWeek);
@@ -260,8 +261,7 @@ async function openParamSyncModal(record: WbsTaskNode) {
       paramSyncModalVisible.value = false;
     }
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { msg?: string } }; message?: string };
-    message.error(err?.response?.data?.msg ?? err?.message ?? '加载参数失败');
+    showRequestErrorIfNeeded(e, '加载参数失败');
     paramSyncModalVisible.value = false;
   } finally {
     paramSyncLoading.value = false;
@@ -293,7 +293,6 @@ async function confirmParamSyncFromUpstream() {
       paramKeys: keys,
     });
     if ((res?.data as { code?: number } | undefined)?.code !== 200) {
-      message.error(String((res?.data as { msg?: string } | undefined)?.msg ?? '同步失败'));
       throw new Error('sync-fail');
     }
     message.success('已更新为本任务参数（与上游一致）');
@@ -303,8 +302,7 @@ async function confirmParamSyncFromUpstream() {
     if (e instanceof Error && e.message === 'sync-fail') {
       throw e;
     }
-    const err = e as { response?: { data?: { msg?: string } }; message?: string };
-    message.error(err?.response?.data?.msg ?? err?.message ?? '同步失败');
+    showRequestErrorIfNeeded(e, '同步失败');
     throw new Error('sync-fail');
   } finally {
     paramSyncConfirmLoading.value = false;
@@ -652,17 +650,12 @@ async function onTaskPublish(record: WbsTaskNode) {
   }
   wbsOpBusyRowId.value = record.id;
   try {
-    const res = await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
-    if ((res?.data as { code?: number } | undefined)?.code === 200) {
-      message.success('已推送至工作台待办');
-      await fetchProjectWbsTree();
-      await refreshWbsParamPendingHints();
-    } else {
-      message.error(String((res?.data as { msg?: string } | undefined)?.msg ?? '发布失败'));
-    }
+    await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
+    message.success('已推送至工作台待办');
+    await fetchProjectWbsTree();
+    await refreshWbsParamPendingHints();
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { msg?: string } }; message?: string };
-    message.error(err?.response?.data?.msg ?? err?.message ?? '发布失败');
+    showRequestErrorIfNeeded(e, '发布失败');
   } finally {
     wbsOpBusyRowId.value = null;
   }
@@ -676,14 +669,10 @@ async function onTaskStart(record: WbsTaskNode) {
   wbsOpBusyRowId.value = record.id;
   try {
     const res = await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
-    if (res?.data?.code === 200) {
-      message.success('已推送至工作台待办');
-      await fetchProjectWbsTree();
-    } else {
-      message.error((res?.data as any)?.msg ?? '发布失败');
-    }
-  } catch (e: any) {
-    message.error(e?.response?.data?.msg ?? e?.message ?? '发布失败');
+    message.success('已推送至工作台待办');
+    await fetchProjectWbsTree();
+  } catch (e: unknown) {
+    showRequestErrorIfNeeded(e, '发布失败');
   } finally {
     wbsOpBusyRowId.value = null;
   }
@@ -699,17 +688,12 @@ async function onTaskUnpublish(record: WbsTaskNode) {
   }
   wbsOpBusyRowId.value = record.id;
   try {
-    const res = await AdminApiProjectTemp.projectWbsRevokePublish({ id: String(record.id) });
-    if ((res?.data as { code?: number } | undefined)?.code === 200) {
-      message.success('已撤销发布');
-      await fetchProjectWbsTree();
-      await refreshWbsParamPendingHints();
-    } else {
-      message.error(String((res?.data as { msg?: string } | undefined)?.msg ?? '撤销失败'));
-    }
+    await AdminApiProjectTemp.projectWbsRevokePublish({ id: String(record.id) });
+    message.success('已撤销发布');
+    await fetchProjectWbsTree();
+    await refreshWbsParamPendingHints();
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { msg?: string } }; message?: string };
-    message.error(err?.response?.data?.msg ?? err?.message ?? '撤销失败');
+    showRequestErrorIfNeeded(e, '撤销失败');
   } finally {
     wbsOpBusyRowId.value = null;
   }
@@ -719,45 +703,35 @@ async function onTaskSuspendConfirm(record: WbsTaskNode) {
   if (isWbsTaskCompletedReadonly(record)) {
     return;
   }
-  if (!canShowTaskSuspend(record)) {
-    message.warning('仅上级分类负责人可删除任务');
+  if (!canShowRowSuspend(record)) {
+    message.warning('仅上级分类负责人可删除');
     return;
   }
   wbsOpBusyRowId.value = record.id;
   try {
     const res = await AdminApiProjectTemp.projectWbsSuspendRow({ id: String(record.id) });
-    if ((res?.data as { code?: number } | undefined)?.code === 200) {
-      message.success('已标记删除');
-      await fetchProjectWbsTree();
-      await refreshWbsParamPendingHints();
-    } else {
-      message.error(String((res?.data as { msg?: string } | undefined)?.msg ?? '操作失败'));
-    }
+    message.success('已标记删除');
+    await fetchProjectWbsTree();
+    await refreshWbsParamPendingHints();
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { msg?: string } }; message?: string };
-    message.error(err?.response?.data?.msg ?? err?.message ?? '操作失败');
+    showRequestErrorIfNeeded(e, '操作失败');
   } finally {
     wbsOpBusyRowId.value = null;
   }
 }
 
 async function onTaskRestore(record: WbsTaskNode) {
-  if (!canShowTaskRestore(record)) {
-    message.warning('仅上级分类负责人可恢复任务');
+  if (!canShowRowRestore(record)) {
+    message.warning('仅上级分类负责人可恢复');
     return;
   }
   wbsOpBusyRowId.value = record.id;
   try {
-    const res = await AdminApiProjectTemp.projectWbsRestoreRow({ id: String(record.id) });
-    if ((res?.data as { code?: number } | undefined)?.code === 200) {
-      message.success('已恢复任务行');
-      await fetchProjectWbsTree();
-    } else {
-      message.error(String((res?.data as { msg?: string } | undefined)?.msg ?? '恢复失败'));
-    }
+    await AdminApiProjectTemp.projectWbsRestoreRow({ id: String(record.id) });
+    message.success(Number(record.type) === 1 ? '已恢复分类节点' : '已恢复任务行');
+    await fetchProjectWbsTree();
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { msg?: string } }; message?: string };
-    message.error(err?.response?.data?.msg ?? err?.message ?? '恢复失败');
+    showRequestErrorIfNeeded(e, '恢复失败');
   } finally {
     wbsOpBusyRowId.value = null;
   }
@@ -800,12 +774,10 @@ async function executeWbsTaskChange() {
   try {
     const mc = await AdminApiProjectTemp.projectWbsMarkChange({ id: wbsIdStr });
     if ((mc?.data as { code?: number } | undefined)?.code !== 200) {
-      message.error(String((mc?.data as { msg?: string } | undefined)?.msg ?? '标记变更失败'));
       throw new Error('wbs-change-fail');
     }
     const ro = await AdminApiProjectTemp.projectWbsReopenTask({ id: wbsIdStr, applyLatestValue: applyLatest });
     if ((ro?.data as { code?: number } | undefined)?.code !== 200) {
-      message.error(String((ro?.data as { msg?: string } | undefined)?.msg ?? '确认变更失败'));
       throw new Error('wbs-change-fail');
     }
     message.success('已发起变更。协同设计请从工作台待办进入该任务（WBS 协同与独立应用互不关联）');
@@ -816,8 +788,7 @@ async function executeWbsTaskChange() {
     if (e instanceof Error && e.message === 'wbs-change-fail') {
       throw e;
     }
-    const err = e as { response?: { data?: { msg?: string } }; message?: string };
-    message.error(err?.response?.data?.msg ?? err?.message ?? '变更失败');
+    showRequestErrorIfNeeded(e, '变更失败');
     throw new Error('wbs-change-fail');
   } finally {
     wbsChangeSubmitLoading.value = false;
@@ -1026,11 +997,7 @@ async function confirmResponsiblePicker() {
     }
     /** 非 200 业务码已由 axios 响应拦截器统一提示 */
   } catch (e: unknown) {
-    /** 仅在网络异常等无业务响应体时兜底提示，避免与拦截器重复 */
-    const err = e as { response?: { data?: unknown }; message?: string };
-    if (!err?.response) {
-      message.error(err?.message ?? '网络异常，请稍后重试');
-    }
+    showRequestErrorIfNeeded(e, '网络异常，请稍后重试');
   }
 }
 
@@ -1195,23 +1162,66 @@ function canShowTaskRevokePublish(record: WbsTaskNode): boolean {
   );
 }
 
-function canShowTaskSuspend(record: WbsTaskNode): boolean {
-  return Number(record.type) === 2 && !isRowRemoved(record) && isUpstreamCategoryManager(record);
+/** 任务/分类行：未删除且上级分类负责人可挂起（裁剪删除） */
+function canShowRowSuspend(record: WbsTaskNode): boolean {
+  if (isRowRemoved(record)) return false;
+  const t = Number(record.type);
+  if (t === 1) {
+    if (isWbsRoot(record)) return false;
+    return isUpstreamCategoryManager(record);
+  }
+  if (t === 2) {
+    return isUpstreamCategoryManager(record);
+  }
+  return false;
 }
 
-function canShowTaskRestore(record: WbsTaskNode): boolean {
-  return Number(record.type) === 2 && isRowRemoved(record) && isUpstreamCategoryManager(record);
+/** 任务/分类行：已删除占位且上级分类负责人可恢复 */
+function canShowRowRestore(record: WbsTaskNode): boolean {
+  if (!isRowRemoved(record)) return false;
+  const t = Number(record.type);
+  return (t === 1 || t === 2) && isUpstreamCategoryManager(record);
+}
+
+/** 裁剪状态列：模板标记为可裁剪（requiredFlag=1 / 允许）时展示开关，用 Y/N 表示未删/已删 */
+function canShowTailoringSwitch(record: WbsTaskNode): boolean {
+  if (record.required !== true) return false;
+  const t = Number(record.type);
+  return t === 1 || t === 2;
+}
+
+function isTailoringSwitchDisabled(record: WbsTaskNode): boolean {
+  if (wbsOpBusyRowId.value === record.id) return true;
+  if (isWbsTaskCompletedReadonly(record)) return true;
+  return isRowRemoved(record) ? !canShowRowRestore(record) : !canShowRowSuspend(record);
+}
+
+function tailoringSuspendConfirmTitle(record: WbsTaskNode): string {
+  return Number(record.type) === 1
+    ? '删除此分类节点？节点将置灰展示且可恢复。'
+    : '删除此任务行？任务行将置灰展示且可恢复，相关工作台待办会取消。';
+}
+
+function onTailoringSwitchChange(record: WbsTaskNode, checked: boolean) {
+  if (isTailoringSwitchDisabled(record)) return;
+  if (checked) {
+    void onTaskRestore(record);
+    return;
+  }
+  Modal.confirm({
+    title: tailoringSuspendConfirmTitle(record),
+    okText: '删除',
+    cancelText: '取消',
+    okType: 'danger',
+    onOk: () => onTaskSuspendConfirm(record),
+  });
 }
 
 /** 任务行（未删除）是否应展示操作按钮区：上级发布类操作或执行人侧操作 */
 function taskRowHasVisibleOps(record: WbsTaskNode): boolean {
   if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
   if (isUpstreamCategoryManager(record)) {
-    if (
-      canShowTaskPublish(record) ||
-      canShowTaskRevokePublish(record) ||
-      canShowTaskSuspend(record)
-    ) {
+    if (canShowTaskPublish(record) || canShowTaskRevokePublish(record)) {
       return true;
     }
   }
@@ -2112,13 +2122,17 @@ watch(ganttCollapsed, () => {
             </div>
           </template>
           <template v-else-if="column.key === 'tailoringStatus'">
-            <span class="task-wbs-tailoring-switch-wrap" @click.stop>
+            <span
+              v-if="canShowTailoringSwitch(record)"
+              class="task-wbs-tailoring-switch-wrap"
+              @click.stop>
               <a-switch
-                :checked="record.required"
-                disabled
+                :checked="!isRowRemoved(record)"
+                :disabled="isTailoringSwitchDisabled(record)"
                 class="task-wbs-tailoring-switch"
-                checked-children="ON"
-                un-checked-children="OFF" />
+                checked-children="Y"
+                un-checked-children="N"
+                @change="onTailoringSwitchChange(record, $event)" />
             </span>
           </template>
           <template v-else-if="column.key === 'resource'">
@@ -2158,67 +2172,38 @@ watch(ganttCollapsed, () => {
                 </div>
               </template>
               <template v-else-if="Number(record.type) === 2">
-                <template v-if="isRowRemoved(record)">
-                  <div v-if="canShowTaskRestore(record)" class="task-wbs-ops-links" @click.stop>
-                    <a
-                      class="task-wbs-ops__link"
-                      :class="{ 'is-disabled': wbsOpBusyRowId === record.id }"
-                      @click.stop="wbsOpBusyRowId !== record.id && onTaskRestore(record)">
-                      {{ wbsOpBusyRowId === record.id ? '恢复中…' : '恢复' }}
-                    </a>
-                  </div>
-                </template>
-                <template v-else>
-                  <div v-if="taskRowHasVisibleOps(record)" class="task-wbs-ops-links" @click.stop>
-                    <template v-if="isUpstreamCategoryManager(record)">
-                      <a-tooltip v-if="canShowTaskPublish(record)" title="发布到任务负责人工作台待办">
-                        <a
-                          class="task-wbs-ops__link"
-                          :class="{
-                            'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
-                          }"
-                          @click.stop="
-                            !wbsTaskRowOpsLocked(record) &&
-                              wbsOpBusyRowId !== record.id &&
-                              onTaskPublish(record)
-                          ">
-                          {{ wbsOpBusyRowId === record.id ? '发布中…' : '发布' }}
-                        </a>
-                      </a-tooltip>
-                      <a-tooltip v-if="canShowTaskRevokePublish(record)" title="撤销发布">
-                        <a
-                          class="task-wbs-ops__link"
-                          :class="{
-                            'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
-                          }"
-                          @click.stop="
-                            !wbsTaskRowOpsLocked(record) &&
-                              wbsOpBusyRowId !== record.id &&
-                              onTaskUnpublish(record)
-                          ">
-                          {{ wbsOpBusyRowId === record.id ? '撤销中…' : '撤销' }}
-                        </a>
-                      </a-tooltip>
-                      <a-popconfirm
-                        v-if="canShowTaskSuspend(record)"
-                        title="删除此任务行？任务行将置灰展示且可恢复，相关工作台待办会取消。"
-                        ok-text="删除"
-                        cancel-text="取消"
-                        ok-type="danger"
-                        @confirm="onTaskSuspendConfirm(record)">
-                        <a-tooltip title="删除此任务行（可恢复）">
-                          <a
-                            class="task-wbs-ops__link task-wbs-ops__link--danger"
-                            :class="{
-                              'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
-                            }"
-                            @click.stop>
-                            {{ wbsOpBusyRowId === record.id ? '删除中…' : '删除' }}
-                          </a>
-                        </a-tooltip>
-                      </a-popconfirm>
-                    </template>
-                    <template v-if="canEditAsAssignee(record)">
+                <div v-if="taskRowHasVisibleOps(record)" class="task-wbs-ops-links" @click.stop>
+                  <template v-if="isUpstreamCategoryManager(record)">
+                    <a-tooltip v-if="canShowTaskPublish(record)" title="发布到任务负责人工作台待办">
+                      <a
+                        class="task-wbs-ops__link"
+                        :class="{
+                          'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                        }"
+                        @click.stop="
+                          !wbsTaskRowOpsLocked(record) &&
+                            wbsOpBusyRowId !== record.id &&
+                            onTaskPublish(record)
+                        ">
+                        {{ wbsOpBusyRowId === record.id ? '发布中…' : '发布' }}
+                      </a>
+                    </a-tooltip>
+                    <a-tooltip v-if="canShowTaskRevokePublish(record)" title="撤销发布">
+                      <a
+                        class="task-wbs-ops__link"
+                        :class="{
+                          'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                        }"
+                        @click.stop="
+                          !wbsTaskRowOpsLocked(record) &&
+                            wbsOpBusyRowId !== record.id &&
+                            onTaskUnpublish(record)
+                        ">
+                        {{ wbsOpBusyRowId === record.id ? '撤销中…' : '撤销' }}
+                      </a>
+                    </a-tooltip>
+                  </template>
+                  <template v-if="canEditAsAssignee(record)">
                       <a-tooltip
                         v-if="
                           record.bindTaskId && (wbsParamPendingByTaskId[String(record.bindTaskId)] ?? 0) > 0
@@ -2268,15 +2253,11 @@ watch(ganttCollapsed, () => {
                           编辑
                         </a>
                       </a-tooltip>
-                    </template>
-                  </div>
-                  <!-- <div v-if="showTaskAssigneeAwaitHint(record)" class="task-wbs-ops__await-hint">
-                    待上级分类负责人发布后，在工作台待办办理
-                  </div> -->
-<!--                  <span-->
-<!--                    v-else-if="isWbsTaskCompletedReadonly(record)"-->
-<!--                    class="task-wbs-ops task-wbs-ops&#45;&#45;muted">已完成，请在「工作台」查看或办理</span>-->
-                </template>
+                  </template>
+                </div>
+                <!-- <div v-if="showTaskAssigneeAwaitHint(record)" class="task-wbs-ops__await-hint">
+                  待上级分类负责人发布后，在工作台待办办理
+                </div> -->
               </template>
             </div>
           </template>

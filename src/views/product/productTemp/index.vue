@@ -518,7 +518,13 @@ function openWbsStructure(record: any) {
                 <a-popconfirm v-else :title="`${$t('确定要撤销发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="goBackPushFun(record.id)">
                   <a href="#" @click.prevent>{{ $t('撤销') }}</a>
                 </a-popconfirm>
-                <a href="#" class="calc-operation-links__wbs-link" @click.prevent.stop="openWbsStructure(record)">{{ $t('浏览WBS结构') }}</a>
+                <a
+                  href="#"
+                  class="calc-operation-links__wbs-link"
+                  :class="{ 'calc-operation-links__disabled': record.status == '1' }"
+                  @click.prevent.stop="record.status != '1' && openWbsStructure(record)">
+                  {{ $t('浏览WBS结构') }}
+                </a>
               </div>
             </template>
           </template>
@@ -877,6 +883,10 @@ function openWbsStructure(record: any) {
 /* 「浏览WBS结构」与「发布」链接同色：主题主色 */
 .calc-operation-links__wbs-link {
   color: var(--ant-primary-color, #1890ff) !important;
+}
+
+.calc-operation-links__wbs-link.calc-operation-links__disabled {
+  color: rgba(0, 0, 0, 0.25) !important;
 }
 
 .exe-status-tag {

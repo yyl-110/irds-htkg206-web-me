@@ -7,6 +7,7 @@ import { message } from 'ant-design-vue';
 import { CaretDownOutlined, CaretRightOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
+import { showRequestErrorIfNeeded } from '@/httpRequest';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import FlowView from '@/components/flowview/indexManager.vue';
 
@@ -304,22 +305,22 @@ function normalizeWbsParentId(parentId?: string): string | undefined {
   return id;
 }
 
-/** 任一祖先为 OFF 时，子节点不可单独开启 */
+/** 任一祖先为 Y 时，子节点不可单独改为 N */
 function isRequiredSwitchDisabled(record: WbsRow): boolean {
   let parentId = normalizeWbsParentId(record.parentId);
   while (parentId) {
     const parent = findWbsRowById(tableData.value, parentId);
     if (!parent) break;
-    if (!parent.required) return true;
+    if (parent.required) return true;
     parentId = normalizeWbsParentId(parent.parentId);
   }
   return false;
 }
 
-/** 父节点 OFF 时级联关闭全部子孙（v-model 已更新当前节点） */
+/** 父节点为 Y 时级联开启全部子孙；为 N 时不影响子孙（v-model 已更新当前节点） */
 function onRequiredSwitchChange(record: WbsRow, checked: boolean): void {
-  if (!checked && record.children?.length) {
-    setRequiredOnDescendants(record.children, false);
+  if (checked && record.children?.length) {
+    setRequiredOnDescendants(record.children, true);
   }
 }
 
@@ -483,18 +484,9 @@ const scrollX = computed(() => columns.value.reduce((s, c) => s + (Number(c.widt
 function handleResizeColumn(w: number, col: { width?: number | string }) { col.width = w; }
 function wbsRowKey(r: WbsRow) { return r.id; }
 
-/** axios 响应拦截器已对非成功业务码调用 WeiMessage；此处避免再弹一层 message.error。 */
+/** 业务 catch 兜底提示，避免与 axios 响应拦截器重复弹错 */
 function notifyAxiosFailure(err: unknown, fallback: string) {
-  const e = err as { data?: { code?: number }; response?: { data?: { code?: number } }; message?: string };
-  const code = e?.data?.code ?? e?.response?.data?.code;
-  const interceptorAlreadyMessaged =
-    code !== undefined &&
-    code !== null &&
-    Number(code) !== 200 &&
-    Number(code) !== 0;
-  if (!interceptorAlreadyMessaged) {
-    message.error(e?.message || fallback);
-  }
+  showRequestErrorIfNeeded(err, fallback);
 }
 
 // ─── API 调用 ───────────────────────────────────────────────
@@ -588,8 +580,8 @@ function applySelectedByCheckedKeys(rows: WbsRow[], selectedKeys: Set<string>) {
   rows.forEach((row) => {
     row.selected = selectedKeys.has(row.id);
     if (row.selected) {
-      // 结构勾选阶段：默认“是否可裁剪”为是
-      row.required = true;
+      // 结构勾选阶段：默认“是否可裁剪”为 N
+      row.required = false;
     }
     if (row.children?.length) {
       applySelectedByCheckedKeys(row.children, selectedKeys);
@@ -823,8 +815,8 @@ onMounted(() => { fetchWbsTree(); });
                 v-model:checked="record.required"
                 :disabled="isRequiredSwitchDisabled(record)"
                 class="wbs-required-switch"
-                checked-children="ON"
-                un-checked-children="OFF"
+                checked-children="Y"
+                un-checked-children="N"
                 @change="onRequiredSwitchChange(record, $event)"
               />
             </span>

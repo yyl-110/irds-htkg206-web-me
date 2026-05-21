@@ -7,19 +7,24 @@
         关联活动
       </a-button>
       <a-divider>
-        <template #icon><wallet-outlined /></template>
+        <template #icon><table-outlined /></template>
         表单字段
       </a-divider>
 
       <a-table v-if="formFieldDisplayRows.length" :data-source="formFieldDisplayRows" size="small" :scroll="{ y: 240 }" bordered :pagination="false">
-        <a-table-column key="displayPageName" title="活动名称" data-index="displayPageName" align="center" :width="80" :ellipsis="true" />
-        <a-table-column key="displayPageType" title="活动类型" align="center" :width="100" :ellipsis="true">
+        <a-table-column key="displayPageName" title="活动名称" data-index="displayPageName" align="center" :width="130" :ellipsis="true" />
+        <a-table-column key="displayPageType" title="活动类型" data-index="displayPageType" align="center" :width="100">
           <template #default="{ record }">
             <span v-if="String(record.displayPageType) === '1'">{{ $t('设计配置页面') }}</span>
             <span v-else-if="String(record.displayPageType) === '2'">{{ $t('计算集成页面') }}</span>
             <span v-else-if="String(record.displayPageType) === '3'">{{ $t('自定义页面') }}</span>
             <span v-else-if="record.displayPageType != null && String(record.displayPageType).trim() !== ''">{{ record.displayPageType }}</span>
             <span v-else class="form-field-page-type-empty">—</span>
+          </template>
+        </a-table-column>
+        <a-table-column key="action" title="操作" align="center" :width="72">
+          <template #default="{ record }">
+            <span class="form-field-unlink" @click="unlinkActivity(record)">取消关联</span>
           </template>
         </a-table-column>
       </a-table>
@@ -96,7 +101,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, onBeforeUnmount, toRaw } from 'vue';
-import { PlusOutlined, WalletOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined, TableOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 const props = defineProps({
@@ -163,8 +168,8 @@ const formFieldDisplayRows = computed(() => {
   const nodePt = getNodePageTypeFromBo(bo);
   return fieldList.value.map(row => {
     const rowPt = pickPageTypeFromActivityRow(row);
-    // 节点未写 pageType 时，必须用关联活动行上的类型（勿用错误的 `!= null` 判断漏掉 undefined）
-    const displayPt = nodePt !== '' ? nodePt : rowPt;
+    // 优先用关联活动数据中的类型；节点 pageType 为空时（如取消关联后）仍可从活动行展示
+    const displayPt = rowPt !== '' ? rowPt : nodePt;
     return {
       ...row,
       displayPageName: nodeName || row.pageName || '',
@@ -399,16 +404,16 @@ function syncFieldListFromCurrentElement() {
     }
   }
 
-  // 3. 兜底：用节点已保存字段，并按 formKey 异步补全 pageType
-  if (formKey || cur.name) {
+  // 3. 兜底：仅存在 formKey 时展示关联（仅有节点名称不算已关联，避免取消关联后误显示空类型行）
+  if (formKey) {
     fieldList.value = [
       {
-        id: formKey || '',
+        id: formKey,
         pageName: cur.name || '',
         pageType: getNodePageTypeFromBo(cur) || cur.pageTypeName || '',
       },
     ];
-    if (!fieldList.value[0].pageType && formKey) {
+    if (!fieldList.value[0].pageType) {
       void tryHydrateFieldByFormKey(formKey, elementId, hydrateToken);
     }
     return;
@@ -571,6 +576,49 @@ const cancel = () => {
   selectedRow.value = {};
 };
 
+/** 取消当前节点与活动的关联 */
+const unlinkActivity = record => {
+  const elementId = getCurrentElementId();
+  const formKey =
+    record?.id != null && String(record.id).trim() !== ''
+      ? String(record.id)
+      : getFormKeyFromBusinessObject(props.elementBusinessObject);
+
+  fieldListHydrateGeneration += 1;
+  fieldList.value = [];
+
+  if (elementId) {
+    const map = getBindingMap();
+    delete map[elementId];
+    setBindingMap(map);
+  }
+  if (formKey) {
+    const formKeyMap = getFormKeyBindingMap();
+    delete formKeyMap[formKey];
+    setFormKeyBindingMap(formKeyMap);
+  }
+
+  const currentElement = window.bpmnInstances?.bpmnElement || bpmnElement.value || props.elementBusinessObject;
+  const currentElementId = currentElement?.id ? String(currentElement.id) : '';
+  const registryElement = currentElementId ? window.bpmnInstances?.elementRegistry?.get(currentElementId) : null;
+  const targetElement = registryElement || currentElement;
+  if (window.bpmnInstances?.modeling && targetElement) {
+    const rawEl = toRaw(targetElement);
+    window.bpmnInstances.modeling.updateProperties(
+      rawEl,
+      toRaw({
+        formKey: undefined,
+        pageType: undefined,
+        name: undefined,
+      }),
+    );
+    // 同步清空画布节点文字（与关联时 updateLabel 对应）
+    window.bpmnInstances.modeling.updateLabel(rawEl, '');
+  }
+
+  message.success('已取消关联');
+};
+
 const cleanUp = () => {
   fieldList.value = [];
 };
@@ -590,6 +638,7 @@ const cleanUp = () => {
 
       .anticon {
         margin-right: 8px;
+        color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
       }
     }
   }
@@ -645,6 +694,19 @@ const cleanUp = () => {
 
   .ant-table-tbody > tr > td {
     padding: 8px 8px;
+    vertical-align: middle;
+  }
+
+  .form-field-unlink {
+    font-size: 12px;
+    line-height: 22px;
+    color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
+    cursor: pointer;
+
+    &:hover {
+      color: var(--ant-primary-color-hover, var(--project-system-primary, var(--ant-primary-color, #124dd6)));
+      opacity: 0.85;
+    }
   }
 }
 

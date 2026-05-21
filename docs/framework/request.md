@@ -121,7 +121,7 @@ try {
   message.success('修改成功')
 }
 catch (error) {
-  if (error instanceof ResponseErorr) { // 处理接口返回错误码的情况
+  if (error instanceof ResponseError) { // 处理接口返回错误码的情况（拦截器已弹 msg，勿再 message.error）
     console.log(error.data.code) // response code
   }
   else if (error instanceof AxiosError) { // 处理请求失败(例如 Network error / Timeout error / ...)
@@ -167,6 +167,10 @@ AdminApiSystemUserProfile.updateUserProfilePassword(requestParams)
 接口返回错误码 | `ResponseError`, 实际为 `AxiosResponse<HttpRequestResponse>` | 显示
 请求失败 | `AxiosError` | 只有 `Network Error` / `timeout` / `Request failed ` `with status code` 时显示
 与请求无关的其他错误 | `unknown` | 不显示
+
+::: tip 避免错误提示弹两遍
+业务 `catch` 中若需兜底提示，请使用 `showRequestErrorIfNeeded(error, '操作失败')`（自 `@/httpRequest` 导出），勿对 `ResponseError` 再调用 `message.error(err.message)`。
+:::
 
 ## 分页
 > 框架封装了用于处理分页参数和封装 `ant-design-vue pagination` 的 `hooks` `usePagination`
