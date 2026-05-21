@@ -1,24 +1,13 @@
-# Key 网关 SSO 入口（替代旧版 http://*:8060/base/login.jsp）
+# Key 网关 SSO — Nginx 配置（39.106.130.85 / listen 80）
 #
-# 适用：39.106.130.85 环境
-#   - 前端：listen 80，root /var/project/new-2x6/page/dist
-#   - Gateway：upstream gateway -> 172.17.216.134:9327
-#   - 对外 Gateway 端口：listen 9328 -> proxy_pass http://gateway/
+# 集成登录跳转地址保持不变：http://39.106.130.85/base/login.jsp
+# 后端实际处理路径（与 curl 测试 /Api/system-service/.../gateway/login 一致）：
+#   /system-service/system/auth/gateway/login-entry
 #
-# Key 网关推荐访问地址（二选一，与网关厂商配置一致即可）：
-#   方式 A（与旧版“同端口”习惯）：http://39.106.130.85/base/login.jsp          （走 80 + 下列 location）
-#   方式 B（直连 Gateway 端口）：  http://39.106.130.85:9328/base/login.jsp      （走 9328 server 块内 location）
-#
-# 部署前请确认：
-#   1. Spring Cloud Gateway 路由 /base/** -> system-service（见 cirpoint-gateway gateway-auth-whitelist.example.yaml）
-#   2. Nacos no-auth-url 已放行 /base/login.jsp 与 /system-service/system/auth/gateway/**
-#   3. cirpoint.gateway-auth.frontend-base-url 为实际前端地址（如 http://39.106.130.85 或带端口）
-
-# ========== 粘贴在「大连机车前端」listen 80 的 server 块内 ==========
-# 必须写在 location / { try_files ... } 之前（精确匹配优先）
+# ========== 粘贴在 listen 80 server 中，location /Api 之后、location / 之前 ==========
 
 location = /base/login.jsp {
-    proxy_pass http://gateway/base/login.jsp;
+    proxy_pass http://gateway/system-service/system/auth/gateway/login-entry;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -30,14 +19,18 @@ location = /base/login.jsp {
     proxy_send_timeout 60s;
 }
 
-# ========== 可选：粘贴在 listen 9328 的 server 块内（Key 网关若只开放 9328 端口）==========
-
-# location = /base/login.jsp {
-#     proxy_pass http://gateway/base/login.jsp;
-#     proxy_set_header Host $host;
-#     proxy_set_header X-Real-IP $remote_addr;
-#     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-#     proxy_set_header X-Forwarded-Proto $scheme;
-#     proxy_set_header dnname $http_dnname;
-#     proxy_set_header clientip $http_clientip;
-# }
+# ========== 部署后按顺序自检（在服务器上执行）==========
+#
+# 1) 路由是否通（应返回 {"code":200,"data":"gateway-auth-ok",...}）
+# curl -s "http://127.0.0.1/Api/system-service/system/auth/gateway/ping"
+#
+# 2) HTML 入口是否通（应返回 HTML，不是 Whitelabel 404）
+# curl -i "http://127.0.0.1/Api/system-service/system/auth/gateway/login-entry" \
+#   -H "dnname: CN=admin, T=320106198807154039" -H "clientip: 127.0.0.1"
+#
+# 3) 再走对外地址
+# curl -i "http://39.106.130.85/base/login.jsp" \
+#   -H "dnname: CN=admin, T=320106198807154039" -H "clientip: 127.0.0.1"
+#
+# ========== Nacos Gateway 白名单 no-auth-url ==========
+#   - /system-service/system/auth/gateway/**
