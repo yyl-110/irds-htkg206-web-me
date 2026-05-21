@@ -747,7 +747,8 @@ async function submitTreeData(nodeList: any) {
   data.parentId = nodeList.pid;
   data.menuId = menuId.value;
   const res = await AdminApiActivityPage.saveActivityTree(data);
-  await getListData();
+  await getListData('change');
+  Selectafterchanges();
   message.success(WeiI18n.t('保存成功').value);
 }
 

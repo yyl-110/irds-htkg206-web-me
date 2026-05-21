@@ -587,9 +587,9 @@ function computeTaskDurationDays(record: WbsTaskNode): number | null {
 
 function createTaskColumns(): TableColumnsType<WbsTaskNode> {
   return [
-    { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', resizable: true },
-    { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 160, ellipsis: true, resizable: true },
-    { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, resizable: true },
+    { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', fixed: 'left', resizable: true },
+    { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 160, ellipsis: true, fixed: 'left', resizable: true },
+    { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, fixed: 'left', resizable: true },
     { title: '类型', key: 'nodeKind', dataIndex: 'nodeKind', width: 88, align: 'center', resizable: true },
     { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 125, align: 'center', resizable: true },
     { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 125, align: 'center', resizable: true },
@@ -738,14 +738,11 @@ async function onTaskRestore(record: WbsTaskNode) {
 }
 
 function onTaskChangeRequest(record: WbsTaskNode) {
-  if (isWbsTaskCompletedReadonly(record)) {
-    return;
-  }
   if (!canEditAsAssignee(record)) {
     message.warning('仅负责人可操作');
     return;
   }
-  if (String(record.taskStatusRaw ?? '') !== 'COMPLETED') {
+  if (!canWbsTaskChangeRequest(record)) {
     message.warning('仅已完成任务可发起变更');
     return;
   }
@@ -1047,6 +1044,13 @@ function isWbsTaskCompletedReadonly(record: WbsTaskNode): boolean {
 
 function wbsTaskRowOpsLocked(record: WbsTaskNode): boolean {
   return isWbsTaskCompletedReadonly(record) || wbsOpBusyRowId.value === record.id;
+}
+
+/** 仅已完成任务可发起变更（与其它行内操作相反：完成后锁定改期/编辑，变更除外） */
+function canWbsTaskChangeRequest(record: WbsTaskNode): boolean {
+  if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
+  if (wbsOpBusyRowId.value === record.id) return false;
+  return isWbsTaskCompletedReadonly(record);
 }
 
 /** 沿父链向上第一个分类节点(type=1)，与后端权限一致 */
@@ -2237,11 +2241,12 @@ watch(ganttCollapsed, () => {
                           </a>
                         </a-badge>
                       </a-tooltip>
-                      <a-tooltip title="变更">
+                      <a-tooltip
+                        :title="canWbsTaskChangeRequest(record) ? '变更' : '仅已完成任务可发起变更'">
                         <a
                           class="task-wbs-ops__link"
-                          :class="{ 'is-disabled': wbsTaskRowOpsLocked(record) }"
-                          @click.stop="!wbsTaskRowOpsLocked(record) && onTaskChangeRequest(record)">
+                          :class="{ 'is-disabled': !canWbsTaskChangeRequest(record) }"
+                          @click.stop="canWbsTaskChangeRequest(record) && onTaskChangeRequest(record)">
                           变更
                         </a>
                       </a-tooltip>
@@ -2783,29 +2788,9 @@ watch(ganttCollapsed, () => {
   flex-direction: column;
 }
 
-/* 去掉表格两侧固定列等产生的投影，避免左右发灰边 */
-.project-task-wbs-table :deep(.ant-table-wrapper),
-.project-task-wbs-table :deep(.ant-table),
-.project-task-wbs-table :deep(.ant-table-container),
-.project-task-wbs-table :deep(.ant-table-content) {
-  box-shadow: none !important;
-}
-
-.project-task-wbs-table :deep(.ant-table-cell-fix-left),
-.project-task-wbs-table :deep(.ant-table-cell-fix-right) {
-  box-shadow: none !important;
-}
-
-/* 横向滚动时 Ant Table 在容器两侧加的 ping 渐变（::before/::after），紧贴分割条易看成阴影 */
+/* 去掉表格外层 ping 渐变，固定列边界在横向滚动时显示内阴影 */
 .project-task-wbs-table :deep(.ant-table-container::before),
 .project-task-wbs-table :deep(.ant-table-container::after) {
-  box-shadow: none !important;
-}
-
-.project-task-wbs-table :deep(.ant-table-ping-left),
-.project-task-wbs-table :deep(.ant-table-ping-right),
-.project-task-wbs-table :deep(.ant-table-wrapper.ant-table-ping-left),
-.project-task-wbs-table :deep(.ant-table-wrapper.ant-table-ping-right) {
   box-shadow: none !important;
 }
 
@@ -2813,7 +2798,17 @@ watch(ganttCollapsed, () => {
 .project-task-wbs-table :deep(.ant-table-cell-fix-left-last::after),
 .project-task-wbs-table :deep(.ant-table-cell-fix-right-first::after),
 .project-task-wbs-table :deep(.ant-table-cell-fix-right-last::after) {
-  box-shadow: none !important;
+  display: none !important;
+}
+
+.project-task-wbs-table :deep(.ant-table-ping-left .ant-table-cell-fix-left-last),
+.project-task-wbs-table :deep(.ant-table-wrapper.ant-table-ping-left .ant-table-cell-fix-left-last) {
+  box-shadow: inset -8px 0 8px -6px rgba(0, 0, 0, 0.12);
+}
+
+.project-task-wbs-table :deep(.ant-table-ping-right .ant-table-cell-fix-right-first),
+.project-task-wbs-table :deep(.ant-table-wrapper.ant-table-ping-right .ant-table-cell-fix-right-first) {
+  box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.12);
 }
 
 /* 有横向滚动时常见结构：scroll 容器包住 header+body，须占满剩余高度 */
