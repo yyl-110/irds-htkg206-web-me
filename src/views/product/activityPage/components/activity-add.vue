@@ -322,7 +322,7 @@ export default defineComponent({
       @cancel="handleClose">
       <a-form ref="formRef" :model="formData" style="margin-top: 20px" :label-col="{ style: { width: '100px' } }">
         <a-form-item :label="$t('页面名称')" name="pageName" :rules="[{ required: true, message: `${$t('请输入页面名称')}` }]">
-          <a-input v-model:value="formData.pageName" placeholder="请输入页面名称" />
+          <a-input v-model:value="formData.pageName" placeholder="请输入页面名称" allowClear />
         </a-form-item>
         <a-form-item :label="$t('页面类型')" name="pageType" :rules="[{ required: true, message: `${$t('请选择页面类型')}` }]">
           <a-select
@@ -330,13 +330,14 @@ export default defineComponent({
             v-model:value="formData.pageType"
             placeholder="请选择页面类型"
             show-search
+            allowClear
             :options="displayPropTypeList"
             option-filter-prop="label"
             :get-popup-container="selectPopupContainer"
             @change="onPageTypeChange" />
         </a-form-item>
         <a-form-item :label="$t('页面URL')" name="url" v-if="formData.pageType == '3'">
-          <a-input v-model:value="formData.url" placeholder="请输入页面URL" />
+          <a-input v-model:value="formData.url" placeholder="请输入页面URL" allowClear />
         </a-form-item>
         <ActivityTemplatePageFields
           v-if="templateFieldsVisible"
@@ -344,10 +345,10 @@ export default defineComponent({
           v-model:is-synergy="formData.isSynergy"
           v-model:temp-num="formData.tempNum" />
         <a-form-item :label="$t('组名称')" name="groupName">
-          <a-input v-model:value="formData.groupName" placeholder="请输入组名称" />
+          <a-input v-model:value="formData.groupName" placeholder="请输入组名称" allowClear />
         </a-form-item>
         <a-form-item :label="$t('备注')">
-          <a-textarea type="textarea" style="height: 100px" v-model:value="remark" placeholder="请输入备注" name="remark" />
+          <a-textarea type="textarea" style="height: 100px" v-model:value="remark" placeholder="请输入备注" name="remark" allowClear />
         </a-form-item>
         <a-form-item :label="$t('上传excel文件')" name="excelId" v-if="formData.pageType == '2'">
           <a-button type="primary" @click="openExcelUploadModal = true">上传Excel文件</a-button>

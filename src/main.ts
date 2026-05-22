@@ -18,6 +18,7 @@ import '@/plugins/svgIcon'
 import requestPlugin from './plugins/request'
 import disableInputAutocomplete from './plugins/disableInputAutocomplete'
 import fixAntSelectDropdown from './plugins/fixAntSelectDropdown'
+import enableInputAllowClear from './plugins/enableInputAllowClear'
 import { WeiI18n } from './utils/WeiI18n'
 import 'reflect-metadata'
 // import { includeWeiComponents } from './wei-components'
@@ -84,6 +85,8 @@ app.use(CkeditorPlugin)
 app.use(diyVueDirectives)
 app.use(MovediyVueDirectives)
 app.use(ElementPlus, { locale: zhCn })
+/** 全局：非只读/非禁用的 ant-design-vue、Element Plus 文本输入默认可清除（×） */
+app.use(enableInputAllowClear)
 // handleWeiUiVue(app); // 初始化 wei-ui-vue 组件库
 app.provide('$http', httpRequest)
 app.provide('treeDataTranslate', treeDataTranslate) // 全局挂载
