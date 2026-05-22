@@ -8,6 +8,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { ProcessFlowListPageRequestDTOModel } from '@/api/models/processTask/ProcessFlowListPageRequestDTOModel';
 import { sortermethod } from '@/utils/tools';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
+import type { RequestParams } from '@/api/tags/http-client';
 import Empty from '@/components/Empty/index.vue';
 import FlowView from '@/components/flowview/indexManager.vue';
 import { useUserStore } from '@/store/modules/user';
@@ -195,6 +196,14 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     width: 120,
   },
   {
+    title: '版本',
+    dataIndex: 'versionNum',
+    key: 'versionNum',
+    align: 'center',
+    resizable: true,
+    width: 100,
+  },
+  {
     title: '创建时间',
     dataIndex: 'createTime',
     key: 'createTime',
@@ -371,17 +380,18 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   }
   const taskId = record.id;
   const isPublished = publishType === 'COLLAB' ? isCollabPublished(record) : isAppPublished(record);
+  const requestOpts: RequestParams = { skipErrorNotify: true };
   try {
     if (isPublished) {
-      await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
+      await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType }, requestOpts);
       message.success(publishType === 'COLLAB' ? '撤销发布任务成功' : '撤销发布应用成功');
     } else {
-      await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
+      await AdminApiSystemProcessTask.taskPublish({ taskId, publishType }, requestOpts);
       message.success(publishType === 'COLLAB' ? '发布任务成功' : '发布应用成功');
     }
     await loadFlowListData();
-  } catch (error) {
-    message.error(isPublished ? '撤销发布失败' : '发布失败');
+  } catch {
+    message.error(isPublished ? '撤销发布失败' : '发布失败，任务内容未配置完成！');
   }
 }
 
@@ -711,6 +721,10 @@ defineExpose({
               <a-tag v-if="record.appStatus == 1" :class="['exe-status-tag', 'exe-status-tag--on']">已发布</a-tag>
               <a-tag v-else :class="['exe-status-tag', 'exe-status-tag--off']">未发布</a-tag>
             </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'versionNum'">
+            <a-tag v-if="record.versionNum != null && record.versionNum !== ''" color="cyan">V{{ record.versionNum }}</a-tag>
+            <span v-else>—</span>
           </template>
           <template v-else-if="column.dataIndex === 'collabStatus'">
             <span>

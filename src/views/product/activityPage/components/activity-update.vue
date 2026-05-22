@@ -8,10 +8,11 @@ import type { FormInstance } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import UploadModal from '@/views/product/components/upload-modal.vue';
+import ActivityTemplatePageFields from './activity-template-page-fields.vue';
 
 export default defineComponent({
   name: 'NoticeData',
-  components: { UploadModal },
+  components: { UploadModal, ActivityTemplatePageFields },
   props: {
     modalVisible: {
       type: Boolean,
@@ -49,8 +50,52 @@ export default defineComponent({
       button: [] as string[],
       excelId: '',
       wordId: '',
+      auditProcess: '',
+      isSynergy: '0',
+      tempNum: '',
     });
     const propTypeList = ref<any>([]);
+    const isTestEnv = String(import.meta.env.VITE_BASE_URL_TEST ?? '')
+      .replace(/['"]/g, '')
+      .toLowerCase() === 'true';
+    const templatePageTypeOption = { label: '模板配置页面', value: '4' };
+
+    const isTemplateConfigPageLabel = (label: unknown) => {
+      const text = String(label ?? '').trim();
+      return text === '模板配置页面' || text.includes('模板配置');
+    };
+
+    /** 「模板配置页面」固定排在第二项 */
+    const orderPageTypeList = (list: any[]) => {
+      const templateItem = list.find((item: any) => isTemplateConfigPageLabel(item.label));
+      const others = list.filter((item: any) => !isTemplateConfigPageLabel(item.label));
+      if (!templateItem) return others;
+      if (others.length === 0) return [templateItem];
+      const ordered = [...others];
+      ordered.splice(1, 0, templateItem);
+      return ordered;
+    };
+
+    /** 测试环境才展示「模板配置页面」 */
+    const displayPropTypeList = computed(() => {
+      const list = (propTypeList.value || []).map((item: any) => ({
+        ...item,
+        value: String(item.value ?? ''),
+      }));
+      const hasTemplate = list.some((item: any) => isTemplateConfigPageLabel(item.label));
+      if (isTestEnv) {
+        const withTemplate = hasTemplate ? list : [...list, templatePageTypeOption];
+        return orderPageTypeList(withTemplate);
+      }
+      return list.filter((item: any) => !isTemplateConfigPageLabel(item.label));
+    });
+
+    const isTemplatePageType = (pageType: unknown) => {
+      const pt = String(pageType ?? '');
+      return displayPropTypeList.value.some((item: any) => String(item.value) === pt && isTemplateConfigPageLabel(item.label));
+    };
+
+    const showTemplatePageFields = computed(() => isTemplatePageType(formData.value.pageType));
 
     /** 设计配置页面且勾选「导出报告」时，展示与计算页一致的 Word 模板上传 */
     const showDesignPageWordUpload = computed(() => {
@@ -82,6 +127,11 @@ export default defineComponent({
       data.calculateFileId = formData.value.excelId;
       data.reportFileId = formData.value.wordId;
       data.url = formData.value.url;
+      if (isTemplatePageType(formData.value.pageType)) {
+        data.auditProcess = formData.value.auditProcess;
+        data.isSynergy = formData.value.isSynergy;
+        data.tempNum = formData.value.tempNum;
+      }
       console.log(data);
       const res = await AdminApiActivityPage.updateActivityInfo(data);
       //刷新父页面列表数据
@@ -122,6 +172,9 @@ export default defineComponent({
         : [];
       formData.value.excelId = data.calculateFileId;
       formData.value.wordId = data.reportFileId;
+      formData.value.auditProcess = data.auditProcess ?? '';
+      formData.value.isSynergy = data.isSynergy != null && data.isSynergy !== '' ? String(data.isSynergy) : '0';
+      formData.value.tempNum = data.tempNum ?? '';
       const excelFile = normalizeUploadFile(data.calculateFileInfo);
       const wordFile = normalizeUploadFile(data.reportFileInfo);
       excelFileList.value = excelFile ? [excelFile] : [];
@@ -269,6 +322,12 @@ export default defineComponent({
       formData.value.wordId = '';
     }
 
+    function clearTemplatePageFields() {
+      formData.value.auditProcess = '';
+      formData.value.isSynergy = '0';
+      formData.value.tempNum = '';
+    }
+
     watch(
       () => [String(formData.value.pageType ?? ''), [...(formData.value.button || [])].join('|')],
       () => {
@@ -276,6 +335,9 @@ export default defineComponent({
         const hasExportReport = (formData.value.button || []).includes('导出报告');
         if (pt === '1' && !hasExportReport) {
           clearWordFile();
+        }
+        if (!isTemplatePageType(pt)) {
+          clearTemplatePageFields();
         }
       },
     );
@@ -291,6 +353,7 @@ export default defineComponent({
       formRef,
       id,
       propTypeList,
+      displayPropTypeList,
       remark,
       unitId,
       categoryid,
@@ -312,6 +375,7 @@ export default defineComponent({
       clearExcelFile,
       clearWordFile,
       showDesignPageWordUpload,
+      showTemplatePageFields,
     };
   },
 });
@@ -332,7 +396,7 @@ export default defineComponent({
       <a-form ref="formRef" :model="formData" style="margin-top: 20px" :label-col="{ style: { width: '100px' } }">
         <a-form-item :label="$t('页面类型')" name="pageType" :rules="[{ required: true, message: `${$t('请选择页面类型')}` }]">
           <a-select placeholder="请选择页面类型" v-model:value="formData.pageType" show-search>
-            <a-select-option v-for="item in propTypeList" :value="item.value" :key="item.label">{{ item.label }}</a-select-option>
+            <a-select-option v-for="item in displayPropTypeList" :value="item.value" :key="item.label">{{ item.label }}</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item :label="$t('页面名称')" name="pageName" :rules="[{ required: true, message: `${$t('请输入页面名称')}` }]">
@@ -341,6 +405,11 @@ export default defineComponent({
         <a-form-item :label="$t('页面URL')" name="url" v-if="formData.pageType == '3'">
           <a-input v-model:value="formData.url" placeholder="请输入页面URL" />
         </a-form-item>
+        <ActivityTemplatePageFields
+          v-if="showTemplatePageFields"
+          v-model:audit-process="formData.auditProcess"
+          v-model:is-synergy="formData.isSynergy"
+          v-model:temp-num="formData.tempNum" />
         <a-form-item :label="$t('组名称')" name="groupName">
           <a-input v-model:value="formData.groupName" placeholder="请输入组名称" />
         </a-form-item>
