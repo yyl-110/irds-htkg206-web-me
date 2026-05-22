@@ -170,7 +170,7 @@ function confirmTempPicker() {
 
 <template>
   <div class="activity-template-page-fields">
-    <a-form-item :label="$t('审核流程')" name="auditProcess" :rules="[{ required: true, message: $t('请选择审核流程') }]">
+    <a-form-item :label="$t('审核流程')" name="auditProcess">
       <a-input-group compact class="template-page-browse-group">
         <a-input
           :value="props.auditProcess"
@@ -181,7 +181,7 @@ function confirmTempPicker() {
         <a-button type="primary" @click="openAuditPicker">{{ $t('浏览') }}</a-button>
       </a-input-group>
     </a-form-item>
-    <a-form-item :label="$t('是否协同')" name="isSynergy" :rules="[{ required: true, message: $t('请选择是否协同') }]">
+    <a-form-item :label="$t('是否协同')" name="isSynergy">
       <a-select
         :value="props.isSynergy"
         :options="collaborateOptions"
@@ -190,7 +190,7 @@ function confirmTempPicker() {
         :get-popup-container="(node: HTMLElement) => node.parentElement ?? document.body"
         @update:value="(v: string) => emit('update:isSynergy', v)" />
     </a-form-item>
-    <a-form-item :label="$t('页面模板')" name="tempNum" :rules="[{ required: true, message: $t('请选择页面模板') }]">
+    <a-form-item :label="$t('页面模板')" name="tempNum">
       <a-input-group compact class="template-page-browse-group">
         <a-input
           :value="props.tempNum"

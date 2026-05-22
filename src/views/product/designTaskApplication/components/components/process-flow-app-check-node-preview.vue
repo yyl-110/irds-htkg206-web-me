@@ -352,9 +352,11 @@ defineExpose({
 
 <template>
   <div class="activity-preview-canvas">
-    <a-tooltip title="参数影响分析" placement="left">
-      <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
-    </a-tooltip>
+    <div class="param-impact-scope-entry-anchor">
+      <a-tooltip title="参数影响分析" placement="left">
+        <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
+      </a-tooltip>
+    </div>
     <a-modal v-model:visible="impactEvalModalVisible" title="影响评估" width="920px" :footer="null" @cancel="onImpactEvalModalClose">
       <div class="impact-eval-modal-content">
         <div class="impact-eval-toolbar">
@@ -456,25 +458,33 @@ defineExpose({
 <style scoped lang="less">
 .activity-preview-canvas {
   position: relative;
-  height: 100%;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: min-content;
   overflow: visible;
-  padding: 12px 16px;
+  padding: 4px 16px 12px 12px;
   box-sizing: border-box;
   --activity-preview-component-width: 270px;
   --activity-preview-wide-component-width: 650px;
   --activity-preview-grid-column-gap: 150px;
-  --activity-preview-grid-row-gap: 32px;
+  --activity-preview-grid-row-gap: 12px;
+}
+.param-impact-scope-entry-anchor {
+  position: absolute;
+  top: 4px;
+  right: 16px;
+  z-index: 5;
+  line-height: 1;
 }
 .param-impact-scope-entry {
-  position: absolute;
-  top: 8px;
-  right: -10px;
-  z-index: 5;
   color: #1677ff;
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
+  white-space: nowrap;
 }
 .impact-eval-modal-content {
   color: #595959;
@@ -493,14 +503,22 @@ defineExpose({
 }
 .component-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .component-card.full-row-item {
   grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
+}
+.component-preview-wrap {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .component-title {
   font-size: 13px;

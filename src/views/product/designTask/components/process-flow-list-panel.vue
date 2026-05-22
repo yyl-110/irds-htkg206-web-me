@@ -17,6 +17,7 @@ import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } fr
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import DesignResourceShareModal from '../../components/design-resource-share-modal.vue';
 import { normalizeListSnowflakeIds, toSnowflakeIdStr } from '@/utils/snowflakeId';
+import { formatDate } from '@/utils/formatTime';
 const props = defineProps<{
   menuId?: string | number;
   treeNodeKey?: string | number;
@@ -58,6 +59,11 @@ function canRowOperate(record?: FlowRow) {
 
 function canRowShare(record?: FlowRow) {
   return record?.canShare === true;
+}
+
+function formatCreateTimeDisplay(value?: string | null) {
+  if (!value) return '—';
+  return formatDate(value as unknown as Date, 'YYYY-MM-DD') || '—';
 }
 
 const designShareModalVisible = ref(false);
@@ -179,7 +185,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'confidentialLevel',
     align: 'center',
     resizable: true,
-    width: 120,
+    width: 90,
   },
   {
     title: '发布任务',
@@ -187,7 +193,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'collabStatus',
     align: 'center',
     resizable: true,
-    width: 120,
+    width: 100,
   },
   {
     title: '任务版本',
@@ -195,7 +201,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'collabLatestPublishVersionNo',
     align: 'center',
     resizable: true,
-    width: 130,
+    width: 100,
   },
   {
     title: '独立应用',
@@ -219,10 +225,10 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     key: 'createTime',
     align: 'center',
     resizable: true,
-    width: 190,
+    width: 120,
   },
   {
-    title: '贡献者',
+    title: '创建者',
     dataIndex: 'ownerName',
     key: 'ownerName',
     align: 'center',
@@ -406,17 +412,17 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   }
 }
 
-/** 发布任务状态：1 / 已发布 视为已发布 */
-function isCollabPublished(record: FlowRow) {
-  return String(record.collabStatus) === '1' || record.collabStatus === '已发布';
-}
-
-/** 独立应用状态：1 / 已发布 视为已发布 */
-function isAppPublished(record: FlowRow) {
-  return String(record.appStatus) === '1' || record.appStatus === '已发布';
-}
-
 type PublishType = 'COLLAB' | 'APP';
+
+/** 发布任务状态：与列表「已发布」标签同一判定 */
+function isCollabPublished(record: FlowRow) {
+  return record.collabStatus == 1;
+}
+
+/** 独立应用状态：与列表「已发布」标签同一判定 */
+function isAppPublished(record: FlowRow) {
+  return record.appStatus == 1;
+}
 
 type TaskPublishVersionHistoryItem = {
   id?: number | string;
@@ -791,12 +797,12 @@ defineExpose({
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'appStatus'">
             <span>
-              <a-tag v-if="record.appStatus == 1" :class="['exe-status-tag', 'exe-status-tag--on']">已发布</a-tag>
+              <a-tag v-if="isAppPublished(record)" :class="['exe-status-tag', 'exe-status-tag--on']">已发布</a-tag>
               <a-tag v-else :class="['exe-status-tag', 'exe-status-tag--off']">未发布</a-tag>
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'collabLatestPublishVersionNo'">
-            <span style="display: inline-flex; align-items: center; gap: 6px">
+            <span v-if="isCollabPublished(record)" style="display: inline-flex; align-items: center; gap: 6px">
               <span>{{ getPublishVersionDisplayText(record.collabLatestPublishVersionNo) }}</span>
               <a href="#" style="cursor: pointer" title="查看协同发布历史版本" @click.stop.prevent="showVersionHistory(record, 'COLLAB')">
                 <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
@@ -804,7 +810,7 @@ defineExpose({
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'appLatestPublishVersionNo'">
-            <span style="display: inline-flex; align-items: center; gap: 6px">
+            <span v-if="isAppPublished(record)" style="display: inline-flex; align-items: center; gap: 6px">
               <span>{{ getPublishVersionDisplayText(record.appLatestPublishVersionNo) }}</span>
               <a href="#" style="cursor: pointer" title="查看独立应用发布历史版本" @click.stop.prevent="showVersionHistory(record, 'APP')">
                 <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
@@ -813,9 +819,12 @@ defineExpose({
           </template>
           <template v-else-if="column.dataIndex === 'collabStatus'">
             <span>
-              <a-tag v-if="record.collabStatus == 1" :class="['exe-status-tag', 'exe-status-tag--on']">已发布</a-tag>
+              <a-tag v-if="isCollabPublished(record)" :class="['exe-status-tag', 'exe-status-tag--on']">已发布</a-tag>
               <a-tag v-else :class="['exe-status-tag', 'exe-status-tag--off']">未发布</a-tag>
             </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'createTime'">
+            <span>{{ formatCreateTimeDisplay(record.createTime) }}</span>
           </template>
           <template v-else-if="column.dataIndex === 'confidentialLevel'">
             <span v-if="record.confidentialLevel == 0">公开</span>

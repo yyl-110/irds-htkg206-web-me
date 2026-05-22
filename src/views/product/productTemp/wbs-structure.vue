@@ -130,19 +130,21 @@ function taskFlowLabelFromSelectValue(value: string | undefined, row: WbsRow): s
   return hit?.label ?? `${row.nodeName ?? ''}流程`;
 }
 
-/** 根为一级，子节点依次为二级、三级… */
+/** 根节点为「产品」，子节点依次为一级、二级… */
 function depthToTaskLevel(depth: number): string {
   if (depth < 1) return '-';
+  if (depth === 1) return t('产品');
+  const level = depth - 1;
   const d = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
-  if (depth < 10) return `${d[depth]}级`;
-  if (depth === 10) return '十级';
-  if (depth < 20) return `十${d[depth % 10]}级`;
-  if (depth < 100) {
-    const tens = Math.floor(depth / 10);
-    const ones = depth % 10;
+  if (level < 10) return `${d[level]}级`;
+  if (level === 10) return '十级';
+  if (level < 20) return `十${d[level % 10]}级`;
+  if (level < 100) {
+    const tens = Math.floor(level / 10);
+    const ones = level % 10;
     return `${tens === 1 ? '十' : `${d[tens]}十`}${ones ? d[ones] : ''}级`;
   }
-  return `${depth}级`;
+  return `${level}级`;
 }
 
 function applyPlanLevelByTreeDepth(rows: WbsRow[], depth = 1): void {

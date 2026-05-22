@@ -88,15 +88,14 @@ const activityKnowledgeList = ref<any[]>([])
 const currentActivityParamList = ref<any[]>([])
 const knowledgeLoading = ref(false)
 const knowledgeKeyword = ref('')
-const activityImagePaneStyle = computed<Record<string, string>>(() => {
+const ACTIVITY_IMAGE_PANE_WIDTH_PX = 200
+const activityImageContentStyle = computed<Record<string, string>>(() => {
   const mt = Number(activityImageMarginTop.value)
-  const width = Number(activityImageWidth.value)
   return {
     marginTop: `${Number.isFinite(mt) && mt >= 0 ? mt : 0}px`,
-    width: `${Number.isFinite(width) && width > 0 ? width : 260}px`,
-    minWidth: `${Number.isFinite(width) && width > 0 ? width : 260}px`,
   }
 })
+const hasActivityImage = computed(() => String(activityImageUrl.value ?? '').trim() !== '')
 
 function loadWorkspaceData() {
   const cacheKey = String(route.query.cacheKey ?? '')
@@ -786,6 +785,7 @@ async function requestNodeDetailByKey(key: string) {
   }
   finally {
     knowledgeLoading.value = false
+    syncRightPanelByKnowledgeContent()
   }
 
   const taskId = route.query.taskId ?? workspaceData.value?.taskId ?? ''
@@ -929,6 +929,7 @@ async function onParamTitleClick(payload: { paramNum?: string, paramName?: strin
   }
   finally {
     knowledgeLoading.value = false
+    syncRightPanelByKnowledgeContent()
   }
 }
 
@@ -1611,8 +1612,10 @@ function toggleLeftPanel() {
   leftPaneSize.value = leftPaneBeforeCollapse.value || computeLeftPercentFromWidthPx(DEFAULT_LEFT_WIDTH_PX)
 }
 
-function toggleRightPanel() {
-  if (!rightCollapsed.value) {
+function setRightPanelCollapsed(collapsed: boolean) {
+  if (collapsed === rightCollapsed.value)
+    return
+  if (collapsed) {
     rightPaneBeforeCollapse.value = rightPaneSize.value || computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX)
     rightCollapsed.value = true
     rightPaneSize.value = 0
@@ -1620,6 +1623,21 @@ function toggleRightPanel() {
   }
   rightCollapsed.value = false
   rightPaneSize.value = rightPaneBeforeCollapse.value || computeRightPercentFromWidthPx(DEFAULT_RIGHT_WIDTH_PX)
+}
+
+function syncRightPanelByKnowledgeContent() {
+  if (knowledgeLoading.value)
+    return
+  if (isRootNodeSelected.value) {
+    setRightPanelCollapsed(true)
+    return
+  }
+  const hasKnowledge = (Array.isArray(currentActivityParamList.value) ? currentActivityParamList.value : []).length > 0
+  setRightPanelCollapsed(!hasKnowledge)
+}
+
+function toggleRightPanel() {
+  setRightPanelCollapsed(!rightCollapsed.value)
 }
 
 function onSplitpanesResized(panes: any[]) {
@@ -1678,6 +1696,17 @@ watch(
   },
 )
 
+watch(
+  () => ({
+    loading: knowledgeLoading.value,
+    count: currentActivityParamList.value.length,
+    root: isRootNodeSelected.value,
+  }),
+  () => {
+    syncRightPanelByKnowledgeContent()
+  },
+)
+
 onMounted(() => {
   nextTick(() => {
     applyDefaultLeftWidthPx()
@@ -1704,9 +1733,13 @@ onMounted(() => {
             </a-spin>
           </div>
           <a-spin v-else :spinning="nodeDetailLoading" class="workspace-center-spin">
-            <div class="workspace-preview-scroll-row">
-              <div class="workspace-preview-main" @input.capture="onPreviewContentMutated" @change.capture="onPreviewContentMutated">
-                <ProcessFlowAppCheckNodePreview
+            <div class="workspace-preview-viewport">
+              <div
+                class="workspace-preview-scroll-row"
+                :class="{ 'workspace-preview-scroll-row--split': hasActivityImage }"
+                :style="hasActivityImage ? { '--workspace-activity-image-pane-width': `${ACTIVITY_IMAGE_PANE_WIDTH_PX}px` } : undefined">
+                <div class="workspace-preview-main" @input.capture="onPreviewContentMutated" @change.capture="onPreviewContentMutated">
+                  <ProcessFlowAppCheckNodePreview
                   v-if="isCalcNodePreview"
                   ref="checkNodePreviewRef"
                   :components-json="nodeDetailData?.componentsJson"
@@ -1725,10 +1758,13 @@ onMounted(() => {
                   :task-id="String(route.query.taskId ?? workspaceData?.taskId ?? '')"
                   :activity-id="String(nodeDetailData?.activityPageId ?? '')"
                   @param-title-click="onParamTitleClick"
-                />
-              </div>
-              <div v-if="activityImageUrl" class="workspace-preview-image-pane" :style="activityImagePaneStyle">
-                <img :src="activityImageUrl" alt="活动示意图" class="workspace-preview-image">
+                  />
+                </div>
+                <div v-if="hasActivityImage" class="workspace-preview-image-pane">
+                  <div class="workspace-preview-image-pane__body" :style="activityImageContentStyle">
+                    <img :src="activityImageUrl" alt="活动示意图" class="workspace-preview-image">
+                  </div>
+                </div>
               </div>
             </div>
           </a-spin>
@@ -1890,6 +1926,10 @@ onMounted(() => {
   height: 100%;
 }
 
+:deep(.workspace-splitpanes .splitpanes__pane) {
+  overflow: hidden;
+}
+
 .workspace-left {
   padding: 1px;
   height: 100%;
@@ -1917,13 +1957,13 @@ onMounted(() => {
 
 /* 右侧不设 padding，滚动条贴齐与右栏之间的分割线；上/左/下仍留白 */
 .workspace-center {
-  padding: 16px 0 16px 16px;
+  padding: 4px 0 16px 0;
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   border: none !important;
   box-shadow: none !important;
 }
@@ -2040,9 +2080,12 @@ onMounted(() => {
 }
 
 .workspace-center-body {
-  flex: 1;
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .workspace-center-body--flow {
@@ -2086,49 +2129,102 @@ onMounted(() => {
   box-shadow: none !important;
 }
 
+.workspace-preview-viewport {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
 .workspace-preview-scroll-row {
   display: flex;
-  align-items: flex-start;
-  gap: 0;
-  width: max-content;
-  min-width: 100%;
+  align-items: stretch;
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .workspace-preview-main {
-  flex: 0 0 auto;
-  width: max-content;
-  min-width: 85%;
-  max-width: none;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  overflow: auto;
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.workspace-preview-scroll-row--split .workspace-preview-main {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .workspace-preview-image-pane {
-  flex: 0 0 auto;
-  margin-left: 1px;
+  flex: 0 0 var(--workspace-activity-image-pane-width, 200px);
+  width: var(--workspace-activity-image-pane-width, 200px);
+  min-width: var(--workspace-activity-image-pane-width, 200px);
+  max-width: var(--workspace-activity-image-pane-width, 200px);
+  min-height: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  border-left: 1px solid #e8e8e8;
+  background: #fff;
+}
+
+.workspace-preview-image-pane__title {
+  flex-shrink: 0;
+  padding: 8px 8px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #262626;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.workspace-preview-image-pane__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
   justify-content: center;
+  padding: 4px 8px 8px;
   box-sizing: border-box;
 }
 
 .workspace-preview-image {
   width: 100%;
+  max-width: 100%;
   height: auto;
   object-fit: contain;
 }
 
-.workspace-center-spin {
-  min-height: 100%;
-}
-
-.workspace-center-spin :deep(.ant-spin-nested-loading) {
-  height: 100%;
-  min-height: 0;
-}
-
+.workspace-center-spin,
+.workspace-center-spin :deep(.ant-spin-nested-loading),
 .workspace-center-spin :deep(.ant-spin-container) {
-  min-height: 100%;
-  height: auto;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 }
+
 
 .workspace-flowview-wrap {
   flex: 1 1 auto;

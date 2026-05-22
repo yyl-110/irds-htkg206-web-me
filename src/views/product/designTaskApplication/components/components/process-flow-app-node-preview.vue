@@ -1728,9 +1728,11 @@ defineExpose({
 
 <template>
   <div class="activity-preview-canvas">
-    <a-tooltip title="参数影响范围" placement="left">
-      <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
-    </a-tooltip>
+    <div class="param-impact-scope-entry-anchor">
+      <a-tooltip title="参数影响范围" placement="left">
+        <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
+      </a-tooltip>
+    </div>
     <a-modal v-model:visible="impactEvalModalVisible" title="影响评估" width="920px" :footer="null" @cancel="onImpactEvalModalClose">
       <div class="impact-eval-modal-content">
         <div class="impact-eval-toolbar">
@@ -1767,7 +1769,11 @@ defineExpose({
         v-show="isPreviewConstraintVisible(item)"
         :key="item.id || `${item.componentType}-${index}`"
         class="component-card"
-        :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
+        :class="{
+          'full-row-item': isFullRowComponent(item.componentType),
+          'component-card--textarea': item.componentType === 'TEXTAREA',
+          'component-card--rich-text': item.componentType === 'RICH_TEXT',
+        }">
         <div class="component-preview-wrap">
           <div
             v-if="
@@ -2093,30 +2099,34 @@ defineExpose({
 }
 .activity-preview-canvas {
   position: relative;
-  height: 100%;
-  flex: 1;
-  overflow: visible;
-  padding: 12px 16px;
-  padding-bottom: 20px;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  height: auto;
+  overflow: hidden;
+  padding: 4px 16px 20px 12px;
   box-sizing: border-box;
-  scrollbar-gutter: stable;
   --activity-preview-component-width: 270px;
   --activity-preview-wide-component-width: 650px;
   --activity-preview-file-upload-width: 600px;
   --activity-preview-table-width: 700px;
   --activity-preview-grid-column-gap: 150px;
-  --activity-preview-grid-row-gap: 32px;
+  --activity-preview-grid-row-gap: 12px;
+}
+.param-impact-scope-entry-anchor {
+  position: absolute;
+  top: 4px;
+  right: 86px;
+  z-index: 5;
+  line-height: 1;
 }
 .param-impact-scope-entry {
-  position: absolute;
-  top: 8px;
-  right: -10px;
-  z-index: 5;
   color: #1677ff;
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
+  white-space: nowrap;
 }
 .impact-eval-modal-content {
   color: #595959;
@@ -2135,20 +2145,49 @@ defineExpose({
 }
 .component-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
-  justify-content: start;
-  width: max-content;
-  min-width: 100%;
+  align-content: start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .component-card {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   border: none;
   border-radius: 4px;
-  padding: 6px 0;
+  padding: 2px 0;
+  box-sizing: border-box;
+}
+.component-card--textarea:focus-within,
+.component-card--rich-text:focus-within {
+  z-index: 2;
+}
+.component-list > .component-card:first-child {
+  padding-top: 0;
 }
 .component-card.full-row-item {
   grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
+}
+.component-card.full-row-item .preview-field,
+.component-card.full-row-item :deep(.ant-input),
+.component-card.full-row-item :deep(.ant-input-affix-wrapper),
+.component-card.full-row-item :deep(.ant-select),
+.component-card.full-row-item :deep(.ant-picker) {
+  width: 100%;
+  max-width: 100%;
+}
+.component-card.full-row-item .rich-preview-wrap,
+.component-card.full-row-item .file-preview-wrap,
+.component-card.full-row-item .radio-preview-wrap,
+.component-card.full-row-item .fixed-table-preview-scroll {
+  width: 100%;
+  max-width: 100%;
 }
 .component-title {
   font-size: 13px;
@@ -2172,16 +2211,23 @@ defineExpose({
   max-width: 100%;
 }
 .title-preview-text {
-  font-size: 18px;
+  font-size: 14px;
   color: #222;
   font-weight: 700;
   margin-bottom: 6px;
+  width: 100%;
 }
 .title-divider-line,
 .divider-preview-line {
   height: 1px;
   background: #d9d9d9;
   width: 100%;
+  max-width: 100%;
+}
+.component-preview-wrap {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .data-view-preview-row {
   display: flex;
@@ -2219,10 +2265,35 @@ defineExpose({
   border-color: #ff4d4f !important;
 }
 .radio-preview-wrap,
-.rich-preview-wrap,
 .fixed-table-preview {
   width: var(--activity-preview-wide-component-width);
   max-width: 100%;
+}
+.rich-preview-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  contain: layout;
+}
+.rich-preview-wrap :deep(#ck-editer),
+.rich-preview-wrap :deep(.ck.ck-editor) {
+  width: 100% !important;
+  max-width: 100%;
+  overflow: hidden;
+}
+.rich-preview-wrap :deep(.ck.ck-editor__main) {
+  overflow: hidden;
+}
+.rich-preview-wrap :deep(.ck.ck-editor__editable_inline) {
+  overflow: auto !important;
+  resize: vertical;
+  max-height: min(480px, 50vh);
+}
+.component-card--textarea :deep(textarea.ant-input) {
+  resize: vertical;
+  overflow: auto;
+  max-height: min(400px, 45vh);
+  vertical-align: top;
 }
 .file-preview-wrap {
   width: var(--activity-preview-file-upload-width);
