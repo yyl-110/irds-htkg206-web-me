@@ -5,7 +5,8 @@
 </template>
 
 <script setup>
-import * as echarts from "echarts";
+import { ref, watch } from 'vue';
+import * as echarts from 'echarts';
 
 const props = defineProps({
   data: {
