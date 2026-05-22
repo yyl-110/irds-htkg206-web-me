@@ -334,6 +334,18 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'manager/definition',
+        component: () => import('@/views/bpm/model/definition/index.vue'),
+        name: 'BpmProcessDefinition',
+        meta: {
+          noCache: true,
+          hidden: true,
+          canTo: true,
+          title: '流程历史',
+          activeMenu: '/bpm/model',
+        },
+      },
+      {
         path: 'manager/form/edit',
         component: () => import('@/views/bpm/form/editor/index.vue'),
         name: 'BpmFormEditor',
@@ -363,17 +375,23 @@ export const routes: RouteRecordRaw[] = [
         }),
       },
       {
-        path: 'manager/definition',
-        component: () => import('@/views/bpm/model/definition/index.vue'),
-        name: 'BpmProcessDefinition',
+        path: 'process-instance/detail',
+        component: () => import('@/views/bpm/processInstance/detail/index.vue'),
+        name: 'BpmProcessInstanceDetailA',
         meta: {
           noCache: true,
           hidden: true,
           canTo: true,
-          title: '流程历史',
-          activeMenu: '/bpm/manager/category',
+          title: '流程详情',
+          activeMenu: '/bpm/task',
         },
+        props: route => ({
+          id: route.query.id,
+          taskId: route.query.taskId,
+          activityId: route.query.activityId,
+        }),
       },
+      // ------------------------
       {
         path: 'process-instance/report',
         component: () => import('@/views/bpm/processInstance/report/index.vue'),
@@ -386,7 +404,6 @@ export const routes: RouteRecordRaw[] = [
           activeMenu: '/bpm/manager/model',
         },
       },
-      // ------------------------
       {
         path: 'manager/user-group',
         component: () => import('@/views/bpm/group/index.vue'),

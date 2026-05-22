@@ -10,7 +10,7 @@ import { Dialog } from '@/components/Dialog'
 import Empty from '@/components/Empty/index.vue'
 import { WeiI18n } from '@/utils/WeiI18n'
 import { useI18n } from 'vue-i18n'
-
+import formCreate from '@form-create/element-ui'
 defineOptions({ name: 'BpmProcessDefinition' })
 
 const { t } = useI18n()
@@ -35,7 +35,14 @@ const columns = ref<TableColumnType<DefinitionRow>[]>([
   { title: '流程名称', dataIndex: 'name', key: 'name', width: 150, align: 'left', ellipsis: { showTitle: true } },
   { title: '可见范围', dataIndex: 'startUsers', key: 'startUsers', width: 120, align: 'center' },
   { title: '流程类型', dataIndex: 'modelType', key: 'modelType', width: 120, align: 'center' },
-  { title: '表单信息', dataIndex: 'formInfo', key: 'formInfo', width: 180, align: 'left', ellipsis: { showTitle: true } },
+  {
+    title: '表单信息',
+    dataIndex: 'formInfo',
+    key: 'formInfo',
+    width: 180,
+    align: 'left',
+    ellipsis: { showTitle: true },
+  },
   { title: '流程版本', dataIndex: 'version', key: 'version', width: 96, align: 'center' },
   {
     title: '部署时间',
@@ -83,7 +90,7 @@ function definitionPaginationBuildOptionText(prop: { value: number }) {
 function getStartUsersTooltip(record: DefinitionRow) {
   const users = record.startUsers as { nickname?: string }[] | undefined
   if (!users?.length) return ''
-  return users.map((user) => user.nickname).join('、')
+  return users.map(user => user.nickname).join('、')
 }
 
 async function getList() {
@@ -178,9 +185,7 @@ onMounted(() => {
                 {{ record.startUsers[0].nickname }}
               </span>
               <a-tooltip v-else placement="top" :title="getStartUsersTooltip(record)">
-                <span>
-                  {{ record.startUsers[0].nickname }}等 {{ record.startUsers.length }} 人可见
-                </span>
+                <span> {{ record.startUsers[0].nickname }}等 {{ record.startUsers.length }} 人可见 </span>
               </a-tooltip>
             </template>
             <template v-else-if="column.dataIndex === 'modelType'">
