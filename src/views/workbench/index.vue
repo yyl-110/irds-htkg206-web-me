@@ -101,12 +101,12 @@ const transferSelectOptions = computed(() =>
 
 const filteredTodoList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
-  const list = todoList.value.filter((item) => {
-    if (!keyword)
-      return true
-    const hay = `${item.title} ${workbenchCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
-      .trim()
-      .toLowerCase()
+  const list = todoList.value.filter(item => {
+    if (!keyword) return true
+    const hay =
+      `${item.title} ${workbenchCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
+        .trim()
+        .toLowerCase()
     return hay.includes(keyword)
   })
 
@@ -160,8 +160,7 @@ const todoColumns = ref([
     width: 176,
     resizable: true,
     ellipsis: true,
-    sorter: (a: TaskItem, b: TaskItem) =>
-      a.taskKind.localeCompare(b.taskKind) || a.type.localeCompare(b.type),
+    sorter: (a: TaskItem, b: TaskItem) => a.taskKind.localeCompare(b.taskKind) || a.type.localeCompare(b.type),
   },
   {
     title: '项目时间',
@@ -191,8 +190,7 @@ function rowClassName(_record: any, index: number) {
 }
 
 function getTimeSortValue(task: TaskItem) {
-  if (!hasTimelineInfo(task))
-    return 0
+  if (!hasTimelineInfo(task)) return 0
   const start = task.startTime.replace('年', '-').replace('月', '-').replace('日', '')
   const timestamp = new Date(start).getTime()
   return Number.isNaN(timestamp) ? 0 : timestamp
@@ -211,8 +209,7 @@ let todoChartInstance: echarts.ECharts | null = null
 
 function initTodoChart() {
   const el = document.getElementById('eachart-main')
-  if (!el)
-    return
+  if (!el) return
   if (todoChartInstance) {
     todoChartInstance.dispose()
   }
@@ -298,21 +295,16 @@ const tabList = reactive([
 const tabs = reactive(WORKBENCH_TABS)
 
 function getTagClass(tag: string) {
-  if (tag === '延')
-    return 'tag-red'
-  if (tag === '转')
-    return 'tag-blue'
-  if (tag === '已转办')
-    return 'tag-blue'
-  if (tag === '待办')
-    return 'tag-yellow'
+  if (tag === '延') return 'tag-red'
+  if (tag === '转') return 'tag-blue'
+  if (tag === '已转办') return 'tag-blue'
+  if (tag === '待办') return 'tag-yellow'
   return 'tag-default'
 }
 
 /** 待办且类型支持转办（与 TASK_KIND_ACTIONS 一致；当前仅 WBS 含 transfer） */
 function canRejectOrTransfer(task: TaskItem): boolean {
-  if (task.viewOnly)
-    return false
+  if (task.viewOnly) return false
   const actions = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other
   return actions.includes('transfer')
 }
@@ -325,13 +317,10 @@ const WBS_TASK_TYPE_ASSIGN = 'WBS人员指派'
 
 /** 协同任务且接口已明确 WBS 未发布（如驳回后）：应走任务管理，不可直接进协同设计 */
 function isWbsCollabTaskUnpublishedForDesign(task: TaskItem): boolean {
-  if (task.taskKind !== 'wbs')
-    return false
-  if (String(task.type ?? '').trim() !== WBS_TASK_TYPE_COLLAB)
-    return false
+  if (task.taskKind !== 'wbs') return false
+  if (String(task.type ?? '').trim() !== WBS_TASK_TYPE_COLLAB) return false
   const pub = task.wbsPublishStatus
-  if (pub === undefined || pub === null)
-    return false
+  if (pub === undefined || pub === null) return false
   return Number(pub) !== 1
 }
 
@@ -339,8 +328,7 @@ function isWbsCollabTaskUnpublishedForDesign(task: TaskItem): boolean {
  * WBS 卡片：后端 publish 分类节点时 taskType 为「分类协同…」，卡片用于提醒负责人继续分配下级，非独立协同设计任务
  */
 function isWbsCategoryCollaborationWorkbenchTask(task: TaskItem): boolean {
-  if (task.taskKind !== 'wbs')
-    return false
+  if (task.taskKind !== 'wbs') return false
   const t = String(task.type ?? '')
   return t.includes('分类协同') || t.includes('分类节点')
 }
@@ -352,18 +340,15 @@ function isWbsDesignTaskEligibleForChange(task: TaskItem): boolean {
 
 /** 设计按钮提示：分类协同 → 任务管理；协同未发布 → 重新分配发布；否则协同设计 */
 function designWorkspaceTooltip(task: TaskItem): string {
-  if (isWbsCategoryCollaborationWorkbenchTask(task))
-    return '任务管理（分配下级）'
-  if (isWbsCollabTaskUnpublishedForDesign(task))
-    return '任务管理（重新分配并发布）'
+  if (isWbsCategoryCollaborationWorkbenchTask(task)) return '任务管理（分配下级）'
+  if (isWbsCollabTaskUnpublishedForDesign(task)) return '任务管理（重新分配并发布）'
   return '协同设计'
 }
 const canAssign = (task: TaskItem) => task.category === 'assign'
 const hasTimelineInfo = (task: TaskItem) => task.category === 'product'
 
 function formatProjectDateCn(v: unknown): string {
-  if (v == null || v === '')
-    return ''
+  if (v == null || v === '') return ''
   const d = dayjs(v as string)
   return d.isValid() ? d.format('YYYY年M月D日') : ''
 }
@@ -378,8 +363,7 @@ function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
   if (s === 'wbs' || s === 'standalone' || s === 'compute' || s === 'other') {
     return s as WorkbenchTaskKind
   }
-  if (s === 'standalone_app')
-    return 'standalone'
+  if (s === 'standalone_app') return 'standalone'
   return 'other'
 }
 
@@ -388,35 +372,25 @@ function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
  * @param task
  */
 function showWbsRejectMenu(task: TaskItem): boolean {
-  if (task.viewOnly)
-    return false
-  if (task.taskKind !== 'wbs')
-    return false
-  if (task.status !== 'todo')
-    return false
+  if (task.viewOnly) return false
+  if (task.taskKind !== 'wbs') return false
+  if (task.status !== 'todo') return false
   const t = String(task.type ?? '').trim()
-  if (t === WBS_TASK_TYPE_COLLAB && (task.progress ?? 0) > 0)
-    return false
+  if (t === WBS_TASK_TYPE_COLLAB && (task.progress ?? 0) > 0) return false
   return t === WBS_TASK_TYPE_COLLAB || t === WBS_TASK_TYPE_CATEGORY || t === WBS_TASK_TYPE_ASSIGN
 }
 
 function inferCategoryForTaskItem(taskType: string, taskKind: WorkbenchTaskKind): TaskItem['category'] {
-  if (taskType.includes('指派'))
-    return 'assign'
-  if (taskKind === 'standalone')
-    return 'app'
-  if (taskKind === 'compute')
-    return 'compute'
+  if (taskType.includes('指派')) return 'assign'
+  if (taskKind === 'standalone') return 'app'
+  if (taskKind === 'compute') return 'compute'
   return 'product'
 }
 
 function inferSceneForTaskItem(taskKind: WorkbenchTaskKind): TaskItem['scene'] {
-  if (taskKind === 'standalone')
-    return 'app'
-  if (taskKind === 'compute')
-    return 'compute'
-  if (taskKind === 'wbs')
-    return 'product'
+  if (taskKind === 'standalone') return 'app'
+  if (taskKind === 'compute') return 'compute'
+  if (taskKind === 'wbs') return 'product'
   return 'general'
 }
 
@@ -446,10 +420,8 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
   if (st === 'TRANSFERRED') {
     tags.push('转')
     tags.push('待办')
-  }
-  else {
-    if (st === 'TODO')
-      tags.push('待办')
+  } else {
+    if (st === 'TODO') tags.push('待办')
   }
   const startTime = formatProjectDateCn(row.projectStartDate)
   const endTime = formatProjectDateCn(row.projectEndDate)
@@ -463,8 +435,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
     const end = dayjs(projectEndDateRaw).startOf('day')
     if (end.isValid()) {
       const late = dayjs().startOf('day').diff(end, 'day')
-      if (late > 0)
-        delayDays = late
+      if (late > 0) delayDays = late
     }
   }
   const uiStatus: 'todo' | 'done' = st === 'DONE' ? 'done' : 'todo'
@@ -473,8 +444,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
     const end = dayjs(projectEndDateRaw).startOf('day')
     if (end.isValid()) {
       const d = end.diff(dayjs().startOf('day'), 'day')
-      if (d >= 0)
-        remainDays = d
+      if (d >= 0) remainDays = d
     }
   }
   const taskIdRaw = row.taskId ?? row.task_id
@@ -488,8 +458,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
   let wbsPublishStatus: number | undefined
   if (wbsPubRaw !== undefined && wbsPubRaw !== null && String(wbsPubRaw).trim() !== '') {
     const n = Number(wbsPubRaw)
-    if (!Number.isNaN(n))
-      wbsPublishStatus = n
+    if (!Number.isNaN(n)) wbsPublishStatus = n
   }
   return {
     id: row.id != null ? String(row.id) : '',
@@ -511,9 +480,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
     projectId: projectIdRaw != null && projectIdRaw !== '' ? projectIdRaw : undefined,
     standaloneAppId: standaloneRaw != null && standaloneRaw !== '' ? standaloneRaw : undefined,
     projectWbsId:
-      projectWbsIdRaw !== undefined && projectWbsIdRaw !== null && projectWbsIdRaw !== ''
-        ? projectWbsIdRaw
-        : undefined,
+      projectWbsIdRaw !== undefined && projectWbsIdRaw !== null && projectWbsIdRaw !== '' ? projectWbsIdRaw : undefined,
     assigneeDisplayName:
       row.assigneeDisplayName != null && String(row.assigneeDisplayName).trim() !== ''
         ? String(row.assigneeDisplayName)
@@ -565,8 +532,7 @@ async function loadTodoListFromApi() {
       const raw = payload?.list
       if ((code === 0 || code === 200) && Array.isArray(raw)) {
         todoList.value = raw.map(mapTransferOutRowToTaskItem)
-      }
-      else {
+      } else {
         todoList.value = []
       }
       return
@@ -581,19 +547,15 @@ async function loadTodoListFromApi() {
     }
     if (f === 'todo') {
       pageBody.status = 'TODO'
-    }
-    else if (f === 'done') {
+    } else if (f === 'done') {
       pageBody.status = 'DONE'
-    }
-    else if (f === 'due5') {
+    } else if (f === 'due5') {
       pageBody.status = 'TODO'
       pageBody.timeBucket = 'DUE_5D'
-    }
-    else if (f === 'due15') {
+    } else if (f === 'due15') {
       pageBody.status = 'TODO'
       pageBody.timeBucket = 'DUE_15D'
-    }
-    else if (f === 'overdue') {
+    } else if (f === 'overdue') {
       pageBody.status = 'TODO'
       pageBody.timeBucket = 'OVERDUE'
     }
@@ -604,16 +566,13 @@ async function loadTodoListFromApi() {
     const raw = payload?.list
     if ((code === 0 || code === 200) && Array.isArray(raw)) {
       todoList.value = raw.map(mapWorkbenchApiRowToTaskItem)
-    }
-    else {
+    } else {
       todoList.value = []
     }
-  }
-  catch {
+  } catch {
     message.error('加载待办列表失败')
     todoList.value = []
-  }
-  finally {
+  } finally {
     todoListLoading.value = false
   }
 }
@@ -644,8 +603,7 @@ function workbenchListTaskSubtypeClean(raw: unknown): string {
 function workbenchTaskTypeListLine(task: TaskItem): string {
   const kind = taskKindBadgeLabel(task)
   const sub = workbenchListTaskSubtypeClean(task.type)
-  if (!sub)
-    return kind
+  if (!sub) return kind
   return `${kind} · ${sub}`
 }
 
@@ -653,10 +611,8 @@ function workbenchTaskTypeListLine(task: TaskItem): string {
 function workbenchTaskTypeListTooltip(task: TaskItem): string {
   const parts: string[] = []
   const rawType = String(task.type ?? '').trim()
-  if (rawType)
-    parts.push(`子类型：${rawType}`)
-  if (task.lastRejectRemark)
-    parts.push(`驳回：${task.lastRejectRemark}`)
+  if (rawType) parts.push(`子类型：${rawType}`)
+  if (task.lastRejectRemark) parts.push(`驳回：${task.lastRejectRemark}`)
   return parts.join('\n')
 }
 
@@ -674,13 +630,10 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
     return task.status === 'done'
   }
   if (action === 'change') {
-    if (task.status !== 'done')
-      return false
-    if (task.taskKind === 'standalone')
-      return true
+    if (task.status !== 'done') return false
+    if (task.taskKind === 'standalone') return true
     if (task.taskKind === 'wbs') {
-      if (!isWbsDesignTaskEligibleForChange(task))
-        return false
+      if (!isWbsDesignTaskEligibleForChange(task)) return false
       const wid = task.projectWbsId
       return wid !== undefined && wid !== null && String(wid).trim() !== ''
     }
@@ -690,21 +643,16 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
     return false
   }
   if (task.status === 'done') {
-    if (action === 'transfer' || action === 'assign')
-      return false
+    if (action === 'transfer' || action === 'assign') return false
   }
   const allowed = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other
-  if (!allowed.includes(action))
-    return false
-  if (action === 'assign')
-    return canAssign(task)
+  if (!allowed.includes(action)) return false
+  if (action === 'assign') return canAssign(task)
   if (action === 'transfer') {
-    if ((task.progress ?? 0) > 0)
-      return false
+    if ((task.progress ?? 0) > 0) return false
     return canRejectOrTransfer(task)
   }
-  if (action === 'design')
-    return canDesign(task)
+  if (action === 'design') return canDesign(task)
   return true
 }
 
@@ -803,13 +751,11 @@ async function openDesignWorkspace(task: TaskItem) {
           workspaceMode: 'wbs',
         },
       })
-    }
-    catch (e: unknown) {
-      const err = e as { response?: { data?: { msg?: string, message?: string } } }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { msg?: string; message?: string } } }
       const serverMsg = err?.response?.data?.msg ?? err?.response?.data?.message
       message.error(typeof serverMsg === 'string' && serverMsg.trim() ? serverMsg : '加载协同设计工作台失败')
-    }
-    finally {
+    } finally {
       hide()
     }
     return
@@ -819,21 +765,19 @@ async function openDesignWorkspace(task: TaskItem) {
     return
   }
 
-  let appId: string | undefined
-    = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : ''
+  let appId: string | undefined = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : ''
   if (!appId || appId === '0') {
     const tid = task.taskId != null ? String(task.taskId).trim() : ''
     if (tid) {
       try {
         const res = await AdminApiSystemProcessTask.appList({ taskId: tid })
-        const list = res?.data?.data as Array<{ appId?: unknown, id?: unknown }> | undefined
+        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined
         const first = Array.isArray(list) && list.length ? list[0] : null
         const aid = first?.appId ?? first?.id
         if (aid != null && aid !== '') {
           appId = String(aid).trim()
         }
-      }
-      catch {
+      } catch {
         // 忽略，后面统一提示
       }
     }
@@ -857,8 +801,7 @@ async function openDesignWorkspace(task: TaskItem) {
       path: '/internal/design-task-app-workspace',
       query: { cacheKey, taskId, appId: targetAppId },
     })
-  }
-  catch {
+  } catch {
     message.error('获取流程页面失败')
   }
 }
@@ -936,11 +879,9 @@ async function loadTransferCandidates(projectId: string) {
           displayName: u.displayName.trim() !== '' ? u.displayName : u.userId,
         }))
     }
-  }
-  catch {
+  } catch {
     message.error('加载项目团队成员失败')
-  }
-  finally {
+  } finally {
     transferCandidatesLoading.value = false
   }
 }
@@ -962,11 +903,9 @@ async function submitWorkbenchTransfer() {
     message.success('转办成功')
     await loadTodoListFromApi()
     await loadWorkbenchSummary()
-  }
-  catch (e: unknown) {
+  } catch (e: unknown) {
     showRequestErrorIfNeeded(e, '转办失败')
-  }
-  finally {
+  } finally {
     transferSubmitLoading.value = false
   }
 }
@@ -1003,11 +942,9 @@ async function submitWorkbenchReject() {
     message.success('已驳回，任务已退回上级分配人，进度已重置')
     await loadTodoListFromApi()
     await loadWorkbenchSummary()
-  }
-  catch (e: unknown) {
+  } catch (e: unknown) {
     showRequestErrorIfNeeded(e, '驳回失败')
-  }
-  finally {
+  } finally {
     rejectSubmitLoading.value = false
   }
 }
@@ -1035,11 +972,9 @@ async function executeWbsChangeFromWorkbench() {
     message.success('已发起变更，正在进入协同设计…')
     await openDesignWorkspace(task)
     await loadTodoListFromApi()
-  }
-  catch (e: unknown) {
+  } catch (e: unknown) {
     showRequestErrorIfNeeded(e, '变更失败')
-  }
-  finally {
+  } finally {
     wbsChangeSubmitLoading.value = false
   }
 }
@@ -1049,8 +984,7 @@ async function executeWbsChangeFromWorkbench() {
  * @param task
  */
 async function openChangeWorkspace(task: TaskItem) {
-  if (task.status !== 'done')
-    return
+  if (task.status !== 'done') return
   if (task.taskKind === 'wbs') {
     if (!isWbsDesignTaskEligibleForChange(task)) {
       message.info('仅「协同任务」支持发起变更；分类协同请在任务管理中分配下级，人员指派类任务无协同变更流程')
@@ -1069,21 +1003,19 @@ async function openChangeWorkspace(task: TaskItem) {
   if (task.taskKind !== 'standalone') {
     return
   }
-  let appId: string | undefined
-    = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : ''
+  let appId: string | undefined = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : ''
   if (!appId || appId === '0') {
     const tid = task.taskId != null ? String(task.taskId).trim() : ''
     if (tid) {
       try {
         const res = await AdminApiSystemProcessTask.appList({ taskId: tid })
-        const list = res?.data?.data as Array<{ appId?: unknown, id?: unknown }> | undefined
+        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined
         const first = Array.isArray(list) && list.length ? list[0] : null
         const aid = first?.appId ?? first?.id
         if (aid != null && aid !== '') {
           appId = String(aid).trim()
         }
-      }
-      catch {
+      } catch {
         /* ignore */
       }
     }
@@ -1105,11 +1037,9 @@ async function openChangeWorkspace(task: TaskItem) {
     })
     await openDesignWorkspace(task)
     await loadTodoListFromApi()
-  }
-  catch (e: unknown) {
+  } catch (e: unknown) {
     showRequestErrorIfNeeded(e, '变更失败')
-  }
-  finally {
+  } finally {
     hideLoading()
   }
 }
@@ -1144,8 +1074,7 @@ function handleClosePowModal() {
 function showRightContent() {
   if (isShowRigth.value == '展开') {
     isShowRigth.value = '收起'
-  }
-  else {
+  } else {
     isShowRigth.value = '展开'
   }
 }
@@ -1155,16 +1084,13 @@ function getGreeting() {
 
   if (hour >= 0 && hour < 6) {
     greetingText.value = '凌晨好'
-  }
-  else if (hour >= 12 && hour < 18) {
+  } else if (hour >= 12 && hour < 18) {
     // 12-18点 下午
     greetingText.value = '下午好'
-  }
-  else if (hour >= 18 && hour < 24) {
+  } else if (hour >= 18 && hour < 24) {
     // 18-24点 晚上
     greetingText.value = '晚上好'
-  }
-  else {
+  } else {
     // 6-12点 上午（兜底也显示上午好）
     greetingText.value = '上午好'
   }
@@ -1173,20 +1099,19 @@ function getGreeting() {
 function syncLoginUserInfo() {
   const currentUser = (userStore.getUser || {}) as Record<string, any>
   userInfoObj.value.name = currentUser.nickname || currentUser.userName || ''
-  userInfoObj.value.departName
-    = currentUser.departName
-      || currentUser.departmentName
-      || currentUser.deptName
-      || currentUser.orgName
-      || currentUser.userCategoryName
-      || ''
+  userInfoObj.value.departName =
+    currentUser.departName ||
+    currentUser.departmentName ||
+    currentUser.deptName ||
+    currentUser.orgName ||
+    currentUser.userCategoryName ||
+    ''
 }
 
 /** 对接后端 WorkbenchTodoCardSummaryVO，驱动首页顶部数字条 */
 async function loadWorkbenchSummary() {
   const uid = userStore.getUser?.id
-  if (uid == null)
-    return
+  if (uid == null) return
   try {
     const res = await AdminApiProjectTemp.workbenchTodoCardSummary({
       assigneeUserId: String(uid),
@@ -1206,8 +1131,7 @@ async function loadWorkbenchSummary() {
         initTodoChart()
       })
     }
-  }
-  catch {
+  } catch {
     /** 汇总失败时保留默认 0，不打断首页 */
   }
 }
@@ -1244,8 +1168,7 @@ async function seeDetailFun(id: string) {
 // 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
 let todoSearchDebounce: ReturnType<typeof setTimeout> | null = null
 watch(searchQuery, () => {
-  if (todoSearchDebounce)
-    clearTimeout(todoSearchDebounce)
+  if (todoSearchDebounce) clearTimeout(todoSearchDebounce)
   todoSearchDebounce = setTimeout(() => {
     void loadTodoListFromApi()
   }, 400)
@@ -1301,17 +1224,16 @@ onUnmounted(() => {
   <div class="layout h-full">
     <div class="layout-content h-full">
       <div class="lf-cont" :style="{ marginRight: isShowRigth == '展开' ? '0' : '16px' }">
-        <div class="top-wrap items-center !rounded-[6px] border border-[#EAEAF1] !bg-white wei-scrollbar overflow-x-auto overflow-y-hidden">
+        <div
+          class="top-wrap items-center !rounded-[6px] border border-[#EAEAF1] !bg-white wei-scrollbar overflow-x-auto overflow-y-hidden">
           <!-- 左侧用户信息 -->
           <div class="user-info w-[320px] flex-shrink-0 pl-[24px]">
             <div class="pic">
-              <img src="../../assets/workbench/people.png" alt="">
+              <img src="../../assets/workbench/people.png" alt="" />
               <i :class="userInfoObj.sex == '女' ? 'women' : 'man'" />
             </div>
             <div class="info">
-              <div class="name">
-                {{ greetingText }}，{{ userInfoObj.name }}
-              </div>
+              <div class="name">{{ greetingText }}，{{ userInfoObj.name }}</div>
             </div>
           </div>
 
@@ -1321,53 +1243,46 @@ onUnmounted(() => {
           <!-- 右侧统计数据 -->
           <div class="statistics-info flex-1 flex justify-around items-center h-full">
             <div class="sta-list min-w-[56px]">
-              <div class="num" style="color: #FF4D4F;">
+              <div class="num" style="color: #ff4d4f">
                 {{ projectStatistics.deferredNum ?? 0 }}
               </div>
-              <div class="type !mb-0" style="margin-top: 8px;">
-                延期待办
-              </div>
+              <div class="type !mb-0" style="margin-top: 8px">延期待办</div>
             </div>
             <div class="sta-list min-w-[56px]">
-              <div class="num" style="color: #FAAD14;">
+              <div class="num" style="color: #faad14">
                 {{ projectStatistics.totalNum ?? 0 }}
               </div>
-              <div class="type !mb-0" style="margin-top: 8px;">
-                任务待办
-              </div>
+              <div class="type !mb-0" style="margin-top: 8px">任务待办</div>
             </div>
             <div class="sta-list min-w-[56px]">
-              <div class="num" style="color: #1A58E8;">
+              <div class="num" style="color: #1a58e8">
                 {{ projectStatistics.participatedPlanProjectCount ?? 0 }}
               </div>
-              <div class="type !mb-0" style="margin-top: 8px;">
-                审批待办
-              </div>
+              <div class="type !mb-0" style="margin-top: 8px">审批待办</div>
             </div>
             <div class="sta-list min-w-[56px]">
-              <div class="num" style="color: #1A58E8;">
+              <div class="num" style="color: #1a58e8">
                 {{ projectStatistics.forwardNum ?? 0 }}
               </div>
-              <div class="type !mb-0" style="margin-top: 8px;">
-                我已转办
-              </div>
+              <div class="type !mb-0" style="margin-top: 8px">我已转办</div>
             </div>
             <div class="sta-list min-w-[56px]">
-              <div class="num" style="color: #313133;">
+              <div class="num" style="color: #313133">
                 {{ projectStatistics.inNum ?? 0 }}
               </div>
-              <div class="type !mb-0" style="margin-top: 8px;">
-                参与项目
-              </div>
+              <div class="type !mb-0" style="margin-top: 8px">参与项目</div>
             </div>
           </div>
         </div>
         <div class="work-wrap">
           <a-tabs v-model:active-key="activeName" class="work_nav_top">
             <template #rightExtra>
-              <a-input v-model:value="searchQuery" placeholder="请输入任务名称" style="width: 240px; border-radius: 4px;">
+              <a-input
+                v-model:value="searchQuery"
+                placeholder="请输入任务名称"
+                style="width: 240px; border-radius: 4px">
                 <template #suffix>
-                  <SearchOutlined style="color: rgba(0,0,0,.45)" />
+                  <SearchOutlined style="color: rgba(0, 0, 0, 0.45)" />
                 </template>
               </a-input>
             </template>
@@ -1376,15 +1291,13 @@ onUnmounted(() => {
                 <div
                   class="flex items-center gap-1 text-[16px]"
                   :class="{ 'font-bold': activeName === item.name }"
-                  :style="{ color: activeName === item.name ? '#124dd6' : '' }"
-                >
+                  :style="{ color: activeName === item.name ? '#124dd6' : '' }">
                   <span>{{ item.title }}</span>
                   <!-- 角标仅挂在「设计任务」上；勿用固定 left 像素，否则会叠到「待审核」标签上 -->
                   <a-badge
                     v-if="item.name === 'todo' && (projectStatistics.todoNum ?? 0) > 0"
                     :count="projectStatistics.todoNum"
-                    :overflow-count="99"
-                  />
+                    :overflow-count="99" />
                 </div>
               </template>
 
@@ -1396,20 +1309,25 @@ onUnmounted(() => {
                       :key="subTab.value"
                       class="capsule"
                       :class="{ active: secondaryFilter === subTab.value }"
-                      @click="secondaryFilter = subTab.value"
-                    >
+                      @click="secondaryFilter = subTab.value">
                       {{ subTab.title }}
                     </div>
                   </div>
                   <div class="view-toggles flex gap-[16px] text-[18px]">
                     <AppstoreOutlined
-                      :class="{ 'text-[var(--ant-primary-color)]': viewMode === 'grid', 'text-[#999]': viewMode !== 'grid' }"
-                      class="cursor-pointer" @click="viewMode = 'grid'"
-                    />
+                      :class="{
+                        'text-[var(--ant-primary-color)]': viewMode === 'grid',
+                        'text-[#999]': viewMode !== 'grid',
+                      }"
+                      class="cursor-pointer"
+                      @click="viewMode = 'grid'" />
                     <UnorderedListOutlined
-                      :class="{ 'text-[var(--ant-primary-color)]': viewMode === 'list', 'text-[#999]': viewMode !== 'list' }"
-                      class="cursor-pointer" @click="viewMode = 'list'"
-                    />
+                      :class="{
+                        'text-[var(--ant-primary-color)]': viewMode === 'list',
+                        'text-[#999]': viewMode !== 'list',
+                      }"
+                      class="cursor-pointer"
+                      @click="viewMode = 'list'" />
                   </div>
                 </div>
 
@@ -1417,13 +1335,16 @@ onUnmounted(() => {
                   <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
                     <template v-if="viewMode === 'grid'">
                       <a-row :gutter="[16, 12]" align="top">
-                        <a-col v-for="item in filteredTodoList" :key="String(item.id)" flex="0 0 350px" style="width: 350px; max-width: 350px;">
+                        <a-col
+                          v-for="item in filteredTodoList"
+                          :key="String(item.id)"
+                          flex="0 0 350px"
+                          style="width: 350px; max-width: 350px">
                           <div class="task-card" :class="taskCardKindClass(item)">
                             <div
                               v-if="workbenchShowOverdueUi(item)"
                               class="task-card__overdue-corner"
-                              :class="{ 'task-card__overdue-corner--with-menu': showWbsRejectMenu(item) }"
-                            >
+                              :class="{ 'task-card__overdue-corner--with-menu': showWbsRejectMenu(item) }">
                               延期
                             </div>
                             <div class="task-card__type-ribbon">
@@ -1440,22 +1361,24 @@ onUnmounted(() => {
                                 <span
                                   class="title-text truncate font-bold text-[14px] leading-[20px] text-[#313133]"
                                   :title="workbenchCardDisplayTitle(item)"
-                                >{{
-                                  workbenchCardDisplayTitle(item)
-                                }}</span>
+                                  >{{ workbenchCardDisplayTitle(item) }}</span
+                                >
                                 <span
-                                  v-for="tag in item.tags.filter(t => t !== '待办' && !(workbenchShowOverdueUi(item) && t === '延'))" :key="tag" class="tc-tag flex-shrink-0"
+                                  v-for="tag in item.tags.filter(
+                                    t => t !== '待办' && !(workbenchShowOverdueUi(item) && t === '延'),
+                                  )"
+                                  :key="tag"
+                                  class="tc-tag flex-shrink-0"
                                   :class="getTagClass(tag)"
-                                >{{ tag
-                                }}</span>
+                                  >{{ tag }}</span
+                                >
                               </div>
                               <a-dropdown v-if="showWbsRejectMenu(item)" :trigger="['hover']">
                                 <EllipsisOutlined class="text-[18px] text-[#999] cursor-pointer" />
                                 <template #overlay>
-                                  <a-menu @click="({ key }: { key: string }) => key === 'reject' && openRejectModal(item)">
-                                    <a-menu-item key="reject">
-                                      驳回
-                                    </a-menu-item>
+                                  <a-menu
+                                    @click="({ key }: { key: string }) => key === 'reject' && openRejectModal(item)">
+                                    <a-menu-item key="reject"> 驳回 </a-menu-item>
                                   </a-menu>
                                 </template>
                               </a-dropdown>
@@ -1464,7 +1387,9 @@ onUnmounted(() => {
                             <div class="tc-body mt-[8px] space-y-[6px] text-[13px] leading-[18px] text-[#6A696E]">
                               <div class="flex">
                                 <span class="w-[68px] flex-shrink-0">项目时间：</span>
-                                <span class="min-w-0 truncate">{{ hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/' }}</span>
+                                <span class="min-w-0 truncate">{{
+                                  hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/'
+                                }}</span>
                               </div>
                               <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
                                 <span class="w-[68px] flex-shrink-0 text-[#6A696E]">任务类型：</span>
@@ -1472,9 +1397,10 @@ onUnmounted(() => {
                                 <template v-if="item.lastRejectRemark">
                                   <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
                                     <template #title>
-                                      <span style="white-space: pre-wrap;">驳回：{{ item.lastRejectRemark }}</span>
+                                      <span style="white-space: pre-wrap">驳回：{{ item.lastRejectRemark }}</span>
                                     </template>
-                                    <span class="reject-inline flex-shrink-0 max-w-[42%] min-w-0 text-[12px] font-medium text-[#FA8C16] truncate cursor-default border-l border-[#F0F0F0] pl-[8px] ml-[2px]">
+                                    <span
+                                      class="reject-inline flex-shrink-0 max-w-[42%] min-w-0 text-[12px] font-medium text-[#FA8C16] truncate cursor-default border-l border-[#F0F0F0] pl-[8px] ml-[2px]">
                                       驳回：{{ item.lastRejectRemark }}
                                     </span>
                                   </a-tooltip>
@@ -1489,37 +1415,44 @@ onUnmounted(() => {
                                   <span class="w-[68px] flex-shrink-0">当前进度：</span>
                                   <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
                                 </div>
-                                <span v-if="item.status === 'todo' && item.delayDays" class="text-[#FF4D4F]">已延期 {{ item.delayDays }} 天</span>
-                                <span v-else-if="hasTimelineInfo(item) && item.remainDays" class="text-[#6A696E]">距截止还剩 {{ item.remainDays }}
-                                  天</span>
+                                <span v-if="item.status === 'todo' && item.delayDays" class="text-[#FF4D4F]"
+                                  >已延期 {{ item.delayDays }} 天</span
+                                >
+                                <span v-else-if="hasTimelineInfo(item) && item.remainDays" class="text-[#6A696E]"
+                                  >距截止还剩 {{ item.remainDays }} 天</span
+                                >
                               </div>
                               <a-progress
-                                :percent="item.progress" :show-info="false" :stroke-width="6"
+                                :percent="item.progress"
+                                :show-info="false"
+                                :stroke-width="6"
                                 trail-color="#F0F0F0"
-                                class="mt-[4px] !mb-0" :class="workbenchShowOverdueUi(item) ? 'delay-progress' : 'normal-progress'"
-                              />
+                                class="mt-[4px] !mb-0"
+                                :class="workbenchShowOverdueUi(item) ? 'delay-progress' : 'normal-progress'" />
                             </div>
 
                             <div class="tc-footer mt-[8px] flex items-center text-[13px] leading-[18px] text-[#6A696E]">
                               <span class="w-[52px] flex-shrink-0">创建人：</span>
-                              <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[12px] px-[6px] py-[1px]">
+                              <div
+                                class="creator-badge flex items-center bg-[#F4F4F5] rounded-[12px] px-[6px] py-[1px]">
                                 <img
-                                  v-if="item.creatorAvatar" :src="item.creatorAvatar"
-                                  class="w-[18px] h-[18px] rounded-full mr-[4px]"
-                                >
+                                  v-if="item.creatorAvatar"
+                                  :src="item.creatorAvatar"
+                                  class="w-[18px] h-[18px] rounded-full mr-[4px]" />
                                 <img
-                                  v-else src="../../assets/workbench/people.png"
-                                  class="w-[18px] h-[18px] rounded-full mr-[4px]"
-                                >
+                                  v-else
+                                  src="../../assets/workbench/people.png"
+                                  class="w-[18px] h-[18px] rounded-full mr-[4px]" />
                                 <span class="truncate max-w-[88px]">{{ item.creatorName }}</span>
                               </div>
                               <div class="tc-actions ml-auto flex items-center gap-[10px]">
-                                <a-tooltip v-if="taskActionAllowed(item, 'design')" :title="designWorkspaceTooltip(item)">
+                                <a-tooltip
+                                  v-if="taskActionAllowed(item, 'design')"
+                                  :title="designWorkspaceTooltip(item)">
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openDesignWorkspace(item)"
-                                  >
+                                    @click.prevent.stop="openDesignWorkspace(item)">
                                     <HighlightOutlined />
                                   </a>
                                 </a-tooltip>
@@ -1527,8 +1460,7 @@ onUnmounted(() => {
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openWbsPersonAssignFromWorkbench(item)"
-                                  >
+                                    @click.prevent.stop="openWbsPersonAssignFromWorkbench(item)">
                                     <UserAddOutlined />
                                   </a>
                                 </a-tooltip>
@@ -1544,8 +1476,7 @@ onUnmounted(() => {
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openTaskAppDetail(item)"
-                                  >
+                                    @click.prevent.stop="openTaskAppDetail(item)">
                                     <ProfileOutlined />
                                   </a>
                                 </a-tooltip>
@@ -1553,8 +1484,7 @@ onUnmounted(() => {
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openChangeWorkspace(item)"
-                                  >
+                                    @click.prevent.stop="openChangeWorkspace(item)">
                                     <FormOutlined />
                                   </a>
                                 </a-tooltip>
@@ -1575,38 +1505,38 @@ onUnmounted(() => {
                         bordered
                         class="workbench-main-table bg-white"
                         :scroll="{ x: 1386 }"
-                        @resize-column="handleResizeColumn"
-                      >
-                        <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+                        @resize-column="handleResizeColumn">
+                        <template
+                          #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
                           <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
                             <a-input
                               :value="selectedKeys[0]"
                               placeholder="搜索任务名称"
                               allow-clear
                               @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
-                              @press-enter="confirm()"
-                            />
+                              @press-enter="confirm()" />
                             <div class="mt-[10px] flex gap-[8px]">
-                              <a-button type="primary" size="small" @click="confirm()">
-                                确定
-                              </a-button>
-                              <a-button size="small" @click="clearFilters({ confirm: true })">
-                                重置
-                              </a-button>
+                              <a-button type="primary" size="small" @click="confirm()"> 确定 </a-button>
+                              <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
                             </div>
                           </div>
                         </template>
                         <template #customFilterIcon="{ filtered, column }">
                           <FilterOutlined
                             v-if="column.key === 'title'"
-                            :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }"
-                          />
+                            :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
                         </template>
                         <template #bodyCell="{ column, record }">
                           <template v-if="column.key === 'title'">
                             <div class="flex items-center gap-[8px] min-w-0">
-                              <span class="font-bold text-[#313133] truncate">{{ workbenchCardDisplayTitle(record) }}</span>
-                              <span v-if="workbenchShowOverdueUi(record)" class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]">延期</span>
+                              <span class="font-bold text-[#313133] truncate">{{
+                                workbenchCardDisplayTitle(record)
+                              }}</span>
+                              <span
+                                v-if="workbenchShowOverdueUi(record)"
+                                class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]"
+                                >延期</span
+                              >
                             </div>
                           </template>
                           <template v-if="column.key === 'type'">
@@ -1623,28 +1553,32 @@ onUnmounted(() => {
                           </template>
                           <template v-if="column.key === 'progress'">
                             <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
-                              <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums">{{ record.progress }}%</span>
+                              <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums"
+                                >{{ record.progress }}%</span
+                              >
                               <a-progress
                                 class="wb-progress-inline flex-1 min-w-[64px] !mb-0"
                                 :percent="record.progress"
                                 :show-info="false"
                                 :stroke-width="8"
                                 trail-color="#F0F0F0"
-                                :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'"
-                              />
+                                :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'" />
                               <a-tooltip v-if="workbenchShowOverdueUi(record)" :title="`已延期 ${record.delayDays} 天`">
-                                <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default">延期{{ record.delayDays }}天</span>
+                                <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default"
+                                  >延期{{ record.delayDays }}天</span
+                                >
                               </a-tooltip>
                             </div>
                           </template>
                           <template v-if="column.key === 'action'">
                             <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                              <a-tooltip v-if="taskActionAllowed(record, 'design')" :title="designWorkspaceTooltip(record)">
+                              <a-tooltip
+                                v-if="taskActionAllowed(record, 'design')"
+                                :title="designWorkspaceTooltip(record)">
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openDesignWorkspace(record)"
-                                >
+                                  @click.prevent.stop="openDesignWorkspace(record)">
                                   <HighlightOutlined />
                                 </a>
                               </a-tooltip>
@@ -1652,8 +1586,7 @@ onUnmounted(() => {
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)"
-                                >
+                                  @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)">
                                   <UserAddOutlined />
                                 </a>
                               </a-tooltip>
@@ -1669,8 +1602,7 @@ onUnmounted(() => {
                                 <a
                                   href="#"
                                   class="tc-action-icon text-[#FA8C16] cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openRejectModal(record)"
-                                >
+                                  @click.prevent.stop="openRejectModal(record)">
                                   <UndoOutlined />
                                 </a>
                               </a-tooltip>
@@ -1678,8 +1610,7 @@ onUnmounted(() => {
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openTaskAppDetail(record)"
-                                >
+                                  @click.prevent.stop="openTaskAppDetail(record)">
                                   <ProfileOutlined />
                                 </a>
                               </a-tooltip>
@@ -1687,8 +1618,7 @@ onUnmounted(() => {
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openChangeWorkspace(record)"
-                                >
+                                  @click.prevent.stop="openChangeWorkspace(record)">
                                   <FormOutlined />
                                 </a>
                               </a-tooltip>
@@ -1712,8 +1642,7 @@ onUnmounted(() => {
                     bordered
                     class="workbench-main-table bg-white"
                     :scroll="{ x: 1386 }"
-                    @resize-column="handleResizeColumn"
-                  >
+                    @resize-column="handleResizeColumn">
                     <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
                       <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
                         <a-input
@@ -1721,29 +1650,27 @@ onUnmounted(() => {
                           placeholder="搜索任务名称"
                           allow-clear
                           @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
-                          @press-enter="confirm()"
-                        />
+                          @press-enter="confirm()" />
                         <div class="mt-[10px] flex gap-[8px]">
-                          <a-button type="primary" size="small" @click="confirm()">
-                            确定
-                          </a-button>
-                          <a-button size="small" @click="clearFilters({ confirm: true })">
-                            重置
-                          </a-button>
+                          <a-button type="primary" size="small" @click="confirm()"> 确定 </a-button>
+                          <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
                         </div>
                       </div>
                     </template>
                     <template #customFilterIcon="{ filtered, column }">
                       <FilterOutlined
                         v-if="column.key === 'title'"
-                        :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }"
-                      />
+                        :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
                     </template>
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.key === 'title'">
                         <div class="flex items-center gap-[8px] min-w-0">
                           <span class="font-bold text-[#313133] truncate">{{ workbenchCardDisplayTitle(record) }}</span>
-                          <span v-if="workbenchShowOverdueUi(record)" class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]">延期</span>
+                          <span
+                            v-if="workbenchShowOverdueUi(record)"
+                            class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]"
+                            >延期</span
+                          >
                         </div>
                       </template>
                       <template v-if="column.key === 'type'">
@@ -1760,17 +1687,20 @@ onUnmounted(() => {
                       </template>
                       <template v-if="column.key === 'progress'">
                         <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
-                          <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums">{{ record.progress }}%</span>
+                          <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums"
+                            >{{ record.progress }}%</span
+                          >
                           <a-progress
                             class="wb-progress-inline flex-1 min-w-[64px] !mb-0"
                             :percent="record.progress"
                             :show-info="false"
                             :stroke-width="8"
                             trail-color="#F0F0F0"
-                            :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'"
-                          />
+                            :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'" />
                           <a-tooltip v-if="workbenchShowOverdueUi(record)" :title="`已延期 ${record.delayDays} 天`">
-                            <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default">延期{{ record.delayDays }}天</span>
+                            <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default"
+                              >延期{{ record.delayDays }}天</span
+                            >
                           </a-tooltip>
                         </div>
                       </template>
@@ -1780,8 +1710,7 @@ onUnmounted(() => {
                             <a
                               href="#"
                               class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                              @click.prevent.stop="openDesignWorkspace(record)"
-                            >
+                              @click.prevent.stop="openDesignWorkspace(record)">
                               <HighlightOutlined />
                             </a>
                           </a-tooltip>
@@ -1789,8 +1718,7 @@ onUnmounted(() => {
                             <a
                               href="#"
                               class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                              @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)"
-                            >
+                              @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)">
                               <UserAddOutlined />
                             </a>
                           </a-tooltip>
@@ -1806,8 +1734,7 @@ onUnmounted(() => {
                             <a
                               href="#"
                               class="tc-action-icon text-[#FA8C16] cursor-pointer text-[16px] leading-none"
-                              @click.prevent.stop="openRejectModal(record)"
-                            >
+                              @click.prevent.stop="openRejectModal(record)">
                               <UndoOutlined />
                             </a>
                           </a-tooltip>
@@ -1815,8 +1742,7 @@ onUnmounted(() => {
                             <a
                               href="#"
                               class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                              @click.prevent.stop="openTaskAppDetail(record)"
-                            >
+                              @click.prevent.stop="openTaskAppDetail(record)">
                               <ProfileOutlined />
                             </a>
                           </a-tooltip>
@@ -1824,8 +1750,7 @@ onUnmounted(() => {
                             <a
                               href="#"
                               class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                              @click.prevent.stop="openChangeWorkspace(record)"
-                            >
+                              @click.prevent.stop="openChangeWorkspace(record)">
                               <FormOutlined />
                             </a>
                           </a-tooltip>
@@ -1841,51 +1766,43 @@ onUnmounted(() => {
       </div>
       <div class="rt-cont" :style="{ display: isShowRigth == '展开' ? 'none' : 'flex' }">
         <div class="rt-cont-list quick-entry">
-          <div class="rt-cont-title">
-            系统快速入口
-          </div>
+          <div class="rt-cont-title">系统快速入口</div>
           <div class="cont-list">
             <div class="lis">
-              <img src="../../assets/workbench/quick-entry-logo.png">
+              <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
             <div class="lis">
-              <img src="../../assets/workbench/quick-entry-logo.png">
+              <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
             <div class="lis">
-              <img src="../../assets/workbench/quick-entry-logo.png">
+              <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
             <div class="lis">
-              <img src="../../assets/workbench/quick-entry-logo.png">
+              <img src="../../assets/workbench/quick-entry-logo.png" />
               <span>快速入口</span>
             </div>
           </div>
         </div>
         <div class="rt-cont-list project-statistics">
-          <div class="rt-cont-title">
-            待办任务统计
-          </div>
+          <div class="rt-cont-title">待办任务统计</div>
           <div class="eachrts-wrap">
             <div id="eachart-main" />
           </div>
         </div>
         <div class="rt-cont-list announcement">
-          <div class="rt-cont-title">
-            通知公告
-          </div>
+          <div class="rt-cont-title">通知公告</div>
           <div class="cont-list wei-scrollbar">
             <div v-for="(i, idx) in tabList[0].list" :key="idx" class="news-list">
-              <img v-if="idx > 2" src="../../assets/workbench/news.png">
-              <img v-else src="../../assets/workbench/act-news.png">
+              <img v-if="idx > 2" src="../../assets/workbench/news.png" />
+              <img v-else src="../../assets/workbench/act-news.png" />
               <div class="news-cont">
                 <div class="title" @click="seeDetailFun(i.id)">
                   {{ i.title }}
                 </div>
-                <div class="detalis">
-                  平台公告 ｜{{ i.createTime.substring(0, 10) }}
-                </div>
+                <div class="detalis">平台公告 ｜{{ i.createTime.substring(0, 10) }}</div>
               </div>
             </div>
           </div>
@@ -1918,14 +1835,10 @@ onUnmounted(() => {
     </p>
     <a-radio-group v-model:value="wbsChangeApplyLatest" style="display: flex; flex-direction: column; gap: 8px">
       <div>
-        <a-radio :value="1">
-          采用上游最新参数值
-        </a-radio>
+        <a-radio :value="1"> 采用上游最新参数值 </a-radio>
       </div>
       <div>
-        <a-radio :value="0">
-          保留本任务当前已存参数值
-        </a-radio>
+        <a-radio :value="0"> 保留本任务当前已存参数值 </a-radio>
       </div>
     </a-radio-group>
   </a-modal>
@@ -1941,12 +1854,10 @@ onUnmounted(() => {
     cancel-text="取消"
     @ok="submitWorkbenchTransfer"
     @cancel="closeTransferModal">
-    <p v-if="transferTargetTask" style="margin-bottom: 12px; color: #666;">
+    <p v-if="transferTargetTask" style="margin-bottom: 12px; color: #666">
       将「{{ workbenchCardDisplayTitle(transferTargetTask) }}」转给他人承办，转办后您将不再可操作该任务。
     </p>
-    <div style="margin-bottom: 8px; color: #313133;">
-      接收人
-    </div>
+    <div style="margin-bottom: 8px; color: #313133">接收人</div>
     <a-select
       v-model:value="transferSelectedUserId"
       show-search
@@ -1972,9 +1883,7 @@ onUnmounted(() => {
     <p v-if="rejectTargetTask" style="margin-bottom: 12px; color: #666; line-height: 1.6">
       将退回给上级分配人（分配操作人或父节点负责人），对方待办将重新打开；协同/分类类已发布任务将撤销发布以便重新选人分配。请填写驳回原因（对方在任务类型旁可见摘要，悬停查看全文）。
     </p>
-    <div style="margin-bottom: 8px; color: #313133;">
-      驳回意见
-    </div>
+    <div style="margin-bottom: 8px; color: #313133">驳回意见</div>
     <a-textarea
       v-model:value="rejectOpinion"
       :rows="4"
@@ -2389,10 +2298,10 @@ onUnmounted(() => {
 
 .capsule {
   padding: 4px 16px;
-  background: #F4F4F5;
+  background: #f4f4f5;
   border-radius: 16px;
   font-size: 14px;
-  color: #6A696E;
+  color: #6a696e;
   cursor: pointer;
   transition: all 0.3s;
 
@@ -2401,7 +2310,7 @@ onUnmounted(() => {
   }
 
   &.active {
-    background: #E6EAFF;
+    background: #e6eaff;
     color: var(--ant-primary-color, #124dd6);
     font-weight: 500;
   }
@@ -2409,8 +2318,8 @@ onUnmounted(() => {
 
 .task-card {
   position: relative;
-  background: #FFFFFF;
-  border: 1px solid #EAEAF1;
+  background: #ffffff;
+  border: 1px solid #eaeaf1;
   border-radius: 8px;
   padding: 10px 12px 8px;
   display: flex;
@@ -2530,19 +2439,19 @@ onUnmounted(() => {
   margin-left: 6px;
 
   &.tag-red {
-    background: #FF4D4F;
-    color: #FFF;
+    background: #ff4d4f;
+    color: #fff;
   }
 
   &.tag-blue {
-    background: #2B5FD9;
-    color: #FFF;
+    background: #2b5fd9;
+    color: #fff;
   }
 
   &.tag-yellow {
-    border: 1px solid #FAAD14;
-    color: #FAAD14;
-    background: #FFFBE6;
+    border: 1px solid #faad14;
+    color: #faad14;
+    background: #fffbe6;
   }
 }
 
@@ -2580,7 +2489,7 @@ onUnmounted(() => {
 }
 
 .delay-progress :deep(.ant-progress-bg) {
-  background: linear-gradient(270deg, #FF7864 2.51%, #FF584B 72.46%) !important;
+  background: linear-gradient(270deg, #ff7864 2.51%, #ff584b 72.46%) !important;
 }
 
 .tc-type-row {
@@ -2589,6 +2498,6 @@ onUnmounted(() => {
 }
 
 .normal-progress :deep(.ant-progress-bg) {
-  background: linear-gradient(270deg, #6F86FA 2.51%, #1A58E8 72.46%) !important;
+  background: linear-gradient(270deg, #6f86fa 2.51%, #1a58e8 72.46%) !important;
 }
 </style>
