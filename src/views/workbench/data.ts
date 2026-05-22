@@ -94,6 +94,13 @@ export const WORKBENCH_SECONDARY_TABS = [
   { title: '全部', value: 'all' },
 ] as const
 
+/** 流程任务二级筛选（待办 / 已办 / 已转办） */
+export const WORKBENCH_AUDIT_SECONDARY_TABS = [
+  { title: '待办', value: 'todo' },
+  { title: '已办', value: 'done' },
+  { title: '已转办', value: 'transfer' },
+] as const
+
 export const MOCK_TODO_LIST: TaskItem[] = [
   {
     id: 1,
