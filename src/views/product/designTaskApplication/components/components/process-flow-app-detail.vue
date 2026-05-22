@@ -298,8 +298,7 @@ void loadAppList();
         :row-class-name="getTableRowClassName">
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'versionNum'">
-            <a-tag v-if="record.versionNum != null && record.versionNum !== ''" color="cyan">V{{ record.versionNum }}</a-tag>
-            <span v-else>—</span>
+            <span>{{ record.versionNum != null && record.versionNum !== '' ? `V${record.versionNum}.0` : 'V-.0' }}</span>
           </template>
           <template v-else-if="column.key === 'status'">
             <a-tag :class="['app-status-tag', resolveAppStatusTagClass(resolveAppStatusText(record))]">
