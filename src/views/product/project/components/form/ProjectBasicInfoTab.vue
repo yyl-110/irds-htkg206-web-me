@@ -344,7 +344,7 @@ defineExpose({
     </a-row>
     <a-row :gutter="24">
       <a-col :span="20">
-        <a-form-item :label="$t('备注：')">
+        <a-form-item class="project-form-item--textarea" :label="$t('备注：')">
           <a-textarea v-model:value="projectForm.remarks" :placeholder="$t('请输入备注')" :rows="4" allow-clear />
         </a-form-item>
       </a-col>
@@ -463,6 +463,36 @@ defineExpose({
 
 .project-editor-form--uniform :deep(.ant-upload.ant-upload-drag) {
   width: 100% !important;
+}
+
+/* 备注 textarea 拖拽增高时，表单项随内容撑开，避免盖住下方字段 */
+.project-editor-form--uniform :deep(.project-form-item--textarea) {
+  align-items: flex-start;
+
+  .ant-form-item-label > label {
+    height: auto;
+    min-height: 32px;
+  }
+
+  .ant-form-item-control-input {
+    align-items: flex-start;
+    height: auto;
+    min-height: 32px;
+  }
+
+  .ant-form-item-control-input-content {
+    overflow: visible;
+  }
+
+  .ant-input-affix-wrapper-textarea-with-clear-btn {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  textarea {
+    resize: vertical;
+  }
 }
 </style>
 
