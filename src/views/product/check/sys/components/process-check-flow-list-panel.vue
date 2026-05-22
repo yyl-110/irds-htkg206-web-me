@@ -326,7 +326,11 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
       message.success(publishType === 'COLLAB' ? '撤销发布任务成功' : '撤销发布计算应用成功');
     } else {
-      await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
+      await AdminApiSystemProcessTask.taskPublish({
+        taskId,
+        publishType,
+        publishedBy: userStore.getUser.id,
+      });
       message.success(publishType === 'COLLAB' ? '发布任务成功' : '发布计算应用成功');
     }
     await loadFlowListData();

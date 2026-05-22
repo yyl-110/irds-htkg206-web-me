@@ -45,6 +45,8 @@ type FlowRow = {
   bpmnXml?: string;
   latestPublishVersionId?: number | string;
   latestPublishVersionNo?: number;
+  collabLatestPublishVersionNo?: number;
+  appLatestPublishVersionNo?: number;
   sharedUserNames?: string;
   canOperate?: boolean;
   canShare?: boolean;
@@ -188,6 +190,14 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     width: 120,
   },
   {
+    title: '协同版本',
+    dataIndex: 'collabLatestPublishVersionNo',
+    key: 'collabLatestPublishVersionNo',
+    align: 'center',
+    resizable: true,
+    width: 130,
+  },
+  {
     title: '独立应用',
     dataIndex: 'appStatus',
     key: 'appStatus',
@@ -196,12 +206,12 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     width: 120,
   },
   {
-    title: '版本',
-    dataIndex: 'versionNum',
-    key: 'versionNum',
+    title: '应用版本',
+    dataIndex: 'appLatestPublishVersionNo',
+    key: 'appLatestPublishVersionNo',
     align: 'center',
     resizable: true,
-    width: 100,
+    width: 130,
   },
   {
     title: '创建时间',
@@ -371,8 +381,6 @@ async function handleDeleteClick(record: FlowRow) {
   await loadFlowListData();
 }
 
-type PublishType = 'COLLAB' | 'APP';
-
 async function handlePublishAction(record: FlowRow, publishType: PublishType) {
   if (!canRowOperate(record)) {
     message.warning('无操作权限，仅可预览');
@@ -386,7 +394,10 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType }, requestOpts);
       message.success(publishType === 'COLLAB' ? '撤销发布任务成功' : '撤销发布应用成功');
     } else {
-      await AdminApiSystemProcessTask.taskPublish({ taskId, publishType }, requestOpts);
+      await AdminApiSystemProcessTask.taskPublish(
+        { taskId, publishType, publishedBy: userStore.getUser.id },
+        requestOpts,
+      );
       message.success(publishType === 'COLLAB' ? '发布任务成功' : '发布应用成功');
     }
     await loadFlowListData();
@@ -403,6 +414,68 @@ function isCollabPublished(record: FlowRow) {
 /** 独立应用状态：1 / 已发布 视为已发布 */
 function isAppPublished(record: FlowRow) {
   return String(record.appStatus) === '1' || record.appStatus === '已发布';
+}
+
+type PublishType = 'COLLAB' | 'APP';
+
+type TaskPublishVersionHistoryItem = {
+  id?: number | string;
+  versionNo?: number;
+  publishStatus?: string;
+  processName?: string;
+  remark?: string;
+  publishedByName?: string;
+  publishedTime?: string;
+  revokedTime?: string;
+  revokeReason?: string;
+};
+
+const visibleHistoryModal = ref(false);
+const historyLoading = ref(false);
+const historyList = ref<TaskPublishVersionHistoryItem[]>([]);
+const historyModalTitle = ref('历史版本');
+
+function getPublishVersionDisplayText(versionNo?: number | null) {
+  return `V${versionNo ?? '-'}.0`;
+}
+
+function getVersionText(versionNo?: number | string | null) {
+  return `V${versionNo ?? '-'}.0`;
+}
+
+function resolvePublishStatusText(status?: string) {
+  const s = String(status ?? '').trim().toUpperCase();
+  if (s === 'PUBLISHED') return '已发布';
+  if (s === 'REVOKED') return '已撤销';
+  return status || '—';
+}
+
+async function showVersionHistory(record: FlowRow, publishType: PublishType) {
+  if (!record?.id) return;
+  historyModalTitle.value = publishType === 'COLLAB' ? '协同发布历史版本' : '独立应用发布历史版本';
+  visibleHistoryModal.value = true;
+  historyLoading.value = true;
+  historyList.value = [];
+  try {
+    const res = await AdminApiSystemProcessTask.listTaskPublishVersionHistory({
+      taskId: record.id,
+      publishType,
+    });
+    historyList.value = (res?.data?.data || []).sort(
+      (a: TaskPublishVersionHistoryItem, b: TaskPublishVersionHistoryItem) =>
+        Number(b.versionNo || 0) - Number(a.versionNo || 0),
+    );
+  } catch {
+    message.error('加载版本历史失败');
+    historyList.value = [];
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
+function closeHistoryModal() {
+  visibleHistoryModal.value = false;
+  historyList.value = [];
 }
 
 /** 发布任务、独立应用均为未发布时，才允许进入「配置」 */
@@ -722,9 +795,21 @@ defineExpose({
               <a-tag v-else :class="['exe-status-tag', 'exe-status-tag--off']">未发布</a-tag>
             </span>
           </template>
-          <template v-else-if="column.dataIndex === 'versionNum'">
-            <a-tag v-if="record.versionNum != null && record.versionNum !== ''" color="cyan">V{{ record.versionNum }}</a-tag>
-            <span v-else>—</span>
+          <template v-else-if="column.dataIndex === 'collabLatestPublishVersionNo'">
+            <span style="display: inline-flex; align-items: center; gap: 6px">
+              <span>{{ getPublishVersionDisplayText(record.collabLatestPublishVersionNo) }}</span>
+              <a href="#" style="cursor: pointer" title="查看协同发布历史版本" @click.stop.prevent="showVersionHistory(record, 'COLLAB')">
+                <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
+              </a>
+            </span>
+          </template>
+          <template v-else-if="column.dataIndex === 'appLatestPublishVersionNo'">
+            <span style="display: inline-flex; align-items: center; gap: 6px">
+              <span>{{ getPublishVersionDisplayText(record.appLatestPublishVersionNo) }}</span>
+              <a href="#" style="cursor: pointer" title="查看独立应用发布历史版本" @click.stop.prevent="showVersionHistory(record, 'APP')">
+                <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
+              </a>
+            </span>
           </template>
           <template v-else-if="column.dataIndex === 'collabStatus'">
             <span>
@@ -844,6 +929,50 @@ defineExpose({
           <a-button type="primary" @click="closeFlowView"> <EpcIcon type="icon-quxiao" style="font-size: 14px" /> 关闭 </a-button>
         </div>
       </template>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="visibleHistoryModal"
+      :title="historyModalTitle"
+      :width="760"
+      :body-style="{ padding: '0' }"
+      :mask-closable="false"
+      :footer="null"
+      centered
+      destroy-on-close
+      @cancel="closeHistoryModal">
+      <div class="history-modal-wrap">
+        <div v-if="!historyLoading" class="history-modal-content">
+          <div v-if="historyList.length" class="history-timeline">
+            <div v-for="item in historyList" :key="item.id || item.versionNo" class="history-item">
+              <div class="history-dot" :class="{ 'history-dot--revoked': item.publishStatus === 'REVOKED' }"></div>
+              <div class="history-main">
+                <div class="history-version">{{ getVersionText(item.versionNo) }}</div>
+                <div class="history-card">
+                  <div class="history-title">
+                    {{ item.processName || '—' }}
+                    <a-tag size="small" :color="item.publishStatus === 'REVOKED' ? 'default' : 'success'">
+                      {{ resolvePublishStatusText(item.publishStatus) }}
+                    </a-tag>
+                  </div>
+                  <div v-if="item.remark" class="history-remark">{{ item.remark }}</div>
+                  <div class="history-meta">({{ item.publishedByName || '-' }}) {{ item.publishedTime || '-' }}</div>
+                  <div v-if="item.publishStatus === 'REVOKED'" class="history-meta history-meta--revoke">
+                    撤销：{{ item.revokedTime || '-' }}{{ item.revokeReason ? `（${item.revokeReason}）` : '' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <a-empty v-else description="暂无发布版本记录" />
+        </div>
+        <div v-else class="history-loading-wrap">
+          <a-spin />
+        </div>
+        <div class="history-footer">
+          <a-button type="primary" @click="closeHistoryModal">关闭</a-button>
+        </div>
+      </div>
     </a-modal>
   </div>
 </template>
@@ -1019,6 +1148,94 @@ defineExpose({
       }
     }
   }
+}
+
+.history-modal-wrap {
+  height: 620px;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 12px 0;
+}
+
+.history-timeline {
+  padding-left: 16px;
+  border-left: 2px solid #e8e8e8;
+}
+
+.history-item {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.history-dot {
+  position: absolute;
+  left: -23px;
+  top: 42px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #20c997;
+}
+
+.history-dot--revoked {
+  background: #bfbfbf;
+}
+
+.history-version {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.history-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 18px 20px;
+}
+
+.history-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.history-remark {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.history-meta {
+  margin-top: 10px;
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.history-meta--revoke {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.history-loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.history-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 14px 24px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .exe-status-tag {

@@ -324,6 +324,27 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 任务发布版本历史列表
+   *
+   * @tags 管理后台 - 设计任务发布功能
+   * @name listTaskPublishVersionHistory
+   * @summary 按 publishType 查询任务发布版本历史
+   * @request POST:/business-service/business/task-basic-info/publish-version-history/list
+   * @secure
+   */
+  static listTaskPublishVersionHistory = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/publish-version-history/list`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 配置可视化流程初始化功能
    *
    * @tags 管理后台 - 配置可视化流程初始化功能
