@@ -673,7 +673,7 @@ const addTreeFun = () => {
     message.error('请选择要编辑的节点！');
     return;
   }
-  title.value = '添加数据';
+  title.value = '新建数据';
   dialogAddEdit.value = true;
   parentName.value = parentNode.value.nodeName || clickNodeObj.value.nodeName;
   ruleForm.value.classifyName = '';
@@ -835,7 +835,7 @@ const getThirdData = async () => {
 const dialogConfirm = async () => {
   dialogAddEdit.value = false;
   let params: any;
-  if (title.value === '添加数据') {
+  if (title.value === '新建数据') {
     params = {
       id: '',
       parentId: clickNodeObj.value.id,

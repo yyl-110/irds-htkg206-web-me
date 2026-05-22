@@ -17,6 +17,7 @@ import App from './App.vue'
 import '@/plugins/svgIcon'
 import requestPlugin from './plugins/request'
 import disableInputAutocomplete from './plugins/disableInputAutocomplete'
+import fixAntSelectDropdown from './plugins/fixAntSelectDropdown'
 import { WeiI18n } from './utils/WeiI18n'
 import 'reflect-metadata'
 // import { includeWeiComponents } from './wei-components'
@@ -75,6 +76,7 @@ useProjectUiStore().applyDomEffects()
 app.use(router)
 app.use(disableInputAutocomplete)
 app.use(Antd)
+app.use(fixAntSelectDropdown)
 /** 全局空状态：未指定 image 时统一使用 empty.png */
 app.component('AEmpty', AppGlobalEmpty)
 app.use(Vant)

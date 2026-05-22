@@ -11,7 +11,7 @@
     </a-button>
     <a-button type="primary" class="ml-2" @click="addParameterInfoS">
       <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-      {{ $t("添加") }}
+      {{ $t("新建") }}
     </a-button>
     <!-- 添加导入按钮 -->
     <a-button

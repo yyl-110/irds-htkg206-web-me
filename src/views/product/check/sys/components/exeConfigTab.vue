@@ -577,7 +577,7 @@ watch(editModalVisible, v => {
         <a-form-item>
           <a-button type="primary" @click="onAdd">
             <PlusOutlined />
-            添加
+            新建
           </a-button>
         </a-form-item>
       </a-form>

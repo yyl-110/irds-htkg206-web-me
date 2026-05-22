@@ -598,7 +598,7 @@ function handleTabchange2(key: string) {
                       </a-popconfirm>
                     </a-row>
                   </div>
-                  <a-button type="primary" style="margin-left: 20px" @click="handleAddMobileOrEnginee('3')"> 添加 </a-button>
+                  <a-button type="primary" style="margin-left: 20px" @click="handleAddMobileOrEnginee('3')"> {{ $t('新建') }} </a-button>
                 </div>
               </a-form-item>
             </a-form>
@@ -621,7 +621,7 @@ function handleTabchange2(key: string) {
                       </a-popconfirm>
                     </a-row>
                   </div>
-                  <a-button type="primary" style="margin-left: 20px" @click="handleAddMobileOrEnginee('4')"> 添加 </a-button>
+                  <a-button type="primary" style="margin-left: 20px" @click="handleAddMobileOrEnginee('4')"> {{ $t('新建') }} </a-button>
                 </div>
               </a-form-item>
             </a-form>

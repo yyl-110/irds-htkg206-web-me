@@ -166,7 +166,7 @@ watch(
           </a-button>
           <a-button type="primary" style="margin-left: 15px" @click="openForm('create')">
             <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-            添加流程
+            新建流程
           </a-button>
           <a-dropdown placement="bottomRight">
             <a-button style="margin-left: 15px">

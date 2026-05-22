@@ -299,7 +299,7 @@ interface MockData {
         <!-- <a-form-item>
           <a-button type="primary" @click="handleAddOrUpdate(undefined)">
             <EpcIcon type="icon-md-add" style="font-size: 17px" />{{
-              $t("添加")
+              $t("新建")
             }}
           </a-button>
         </a-form-item> -->

@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n';
 export function useTreeOperateTooltips() {
   const { t } = useI18n();
   return computed(() => ({
-    add: String(t('添加')),
+    add: String(t('新建')),
     edit: String(t('编辑')),
     up: String(t('上移')),
     down: String(t('下移')),

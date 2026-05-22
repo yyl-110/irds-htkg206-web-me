@@ -219,7 +219,7 @@ import { WeiI18n } from '@/utils/WeiI18n';
     <a-modal
       :getContainer="customGetContainer"
       v-model:visible="visible"
-      title="添加平台参数"
+      title="新建平台参数"
       width="80%"
       @ok="confirmSelectTreeNode"
       @cancel="cancelSelectTreeNode"

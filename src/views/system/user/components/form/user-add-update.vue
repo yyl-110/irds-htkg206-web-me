@@ -494,7 +494,7 @@ defineExpose({ handleModalAddOrUpdate });
         <a-col :span="10">
           <a-form-item :label="$t('用户角色')" name="roleid" :rules="[{ required: true, message: `${$t('请选择用户角色')}` }]" class="f-item">
             <a-select v-model:value="formData.roleid" mode="multiple" :placeholder="$t('请选择用户角色')" show-search @change="roleidchange">
-              <a-select-option v-for="item in roleList" :key="item.label" :value="item.value">
+              <a-select-option v-for="item in roleList" :key="item.value" :value="item.value">
                 {{ item.label }}
               </a-select-option>
             </a-select>
@@ -527,7 +527,7 @@ defineExpose({ handleModalAddOrUpdate });
         <a-col :span="10">
           <a-form-item :label="$t('是否专家')" name="type" class="f-item">
             <a-select v-model:value="formData.type" :placeholder="$t('请选择是否专家')" show-search>
-              <a-select-option v-for="item in userType" :key="item.label" :value="item.value">
+              <a-select-option v-for="item in userType" :key="item.value" :value="item.value">
                 {{ item.label }}
               </a-select-option>
             </a-select>
@@ -539,7 +539,7 @@ defineExpose({ handleModalAddOrUpdate });
         <a-col :span="10">
           <a-form-item :label="$t('密级')" name="confidentialLevel" class="f-item" :rules="[{ required: true, message: `${$t('请选择密级')}` }]">
             <a-select v-model:value="formData.confidentialLevel" :placeholder="$t('请选择密级')" show-search>
-              <a-select-option v-for="item in confidentialLevelList" :key="item.label" :value="item.value">
+              <a-select-option v-for="item in confidentialLevelList" :key="item.value" :value="item.value">
                 {{ item.label }}
               </a-select-option>
             </a-select>

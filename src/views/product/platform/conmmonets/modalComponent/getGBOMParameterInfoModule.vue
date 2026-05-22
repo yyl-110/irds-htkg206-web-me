@@ -324,7 +324,7 @@ export default defineComponent({
   <div class="getgnomParamterModule" v-dragModal>
     <a-modal
       v-model:visible="visible"
-      title="添加系列参数"
+      title="新建系列参数"
       :getContainer="customGetContainer"
       width="1500px"
       @ok="confirmSelectTreeNode_B"
@@ -334,10 +334,10 @@ export default defineComponent({
       <div class="right-list-common">
         <a-tabs default-active-key="1" type="card">
           <!-- 第一个Tab页 -->
-          <a-tab-pane tab="添加系列参数" key="1">
+          <a-tab-pane tab="新建系列参数" key="1">
             <a-button type="primary" class="ml-2" @click="getParamterInfo">
               <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-              {{ $t('添加') }}
+              {{ $t('新建') }}
             </a-button>
             <a-table
               style="margin-top: 5px"

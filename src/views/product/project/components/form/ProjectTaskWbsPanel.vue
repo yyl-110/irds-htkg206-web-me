@@ -2353,8 +2353,8 @@ watch(ganttCollapsed, () => {
           </div>
         </div>
         <template #footer>
-          <a-button @click="closeResponsiblePicker">取消</a-button>
           <a-button type="primary" @click="confirmResponsiblePicker">确定</a-button>
+          <a-button @click="closeResponsiblePicker">取消</a-button>
         </template>
       </a-modal>
 

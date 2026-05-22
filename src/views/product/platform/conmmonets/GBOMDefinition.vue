@@ -3,7 +3,7 @@
     <div class="params-toolbar">
       <a-button type="primary" class="ml-2" @click="addGBOMInfo">
         <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-        {{ $t('添加') }}
+        {{ $t('新建') }}
       </a-button>
       <a-button type="primary" @click="handleUploadFile()" style="margin-left: 12px">
         <EpcIcon type="icon-daoru1" style="font-size: 12px" />

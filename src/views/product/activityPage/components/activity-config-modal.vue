@@ -2892,7 +2892,7 @@ watch(
                     size="small"
                     class="fixed-table-preview-add-btn"
                     @click.stop="handleExpandTableAddRowForItem(item)">
-                    添加
+                    {{ $t('新建') }}
                   </a-button>
                 </div>
                 <div class="fixed-table-preview-scroll">
@@ -4088,7 +4088,7 @@ watch(
 
   <a-modal v-model:visible="sketchConfigModalVisible" title="示意图配置" :mask-closable="false" :width="980" :footer="null" :z-index="1100">
     <div class="sketch-config-toolbar">
-      <a-button type="primary" @click="openSketchEditModal('add')">添加</a-button>
+      <a-button type="primary" @click="openSketchEditModal('add')">{{ $t('新建') }}</a-button>
     </div>
     <a-table :data-source="sketchConfigList" :pagination="false" :row-key="(record: any) => `${record.formId || ''}-${record.field || ''}`" bordered class="sketch-config-table">
       <a-table-column title="文件名" key="fileName" :width="240">

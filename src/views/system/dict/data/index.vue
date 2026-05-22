@@ -452,7 +452,7 @@ export default defineComponent({
           <a-form-item>
             <a-button type="primary" style="margin-left: 15px" @click="handleAddOrUpdate()">
               <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-              {{ $t('添加') }}
+              {{ $t('新建') }}
             </a-button>
           </a-form-item>
           <a-form-item>

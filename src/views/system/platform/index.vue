@@ -713,7 +713,7 @@ function onDelete(record: PlatformRoleRow) {
         <template #icon>
           <PlusOutlined />
         </template>
-        {{ $t('添加') }}
+        {{ $t('新建') }}
       </a-button>
     </div>
 
@@ -799,7 +799,7 @@ function onDelete(record: PlatformRoleRow) {
 
     <a-modal
       v-model:visible="addModalVisible"
-      :title="WeiI18n.$t('添加')"
+      :title="WeiI18n.$t('新建')"
       :width="560"
       :mask-closable="false"
       destroy-on-close

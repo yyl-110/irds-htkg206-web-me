@@ -344,6 +344,10 @@ void loadAppList();
           </a-select>
         </div>
       </div>
+      <template #footer>
+        <a-button type="primary" :loading="createFlowLoading" @click="confirmCreateFlow">{{ $t('确定') }}</a-button>
+        <a-button @click="createFlowModalVisible = false">{{ $t('取消') }}</a-button>
+      </template>
     </a-modal>
   </div>
 </template>

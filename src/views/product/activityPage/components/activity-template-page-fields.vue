@@ -177,7 +177,12 @@ function confirmTempPicker() {
       </a-input-group>
     </a-form-item>
     <a-form-item :label="$t('是否协同')" name="isSynergy" :rules="[{ required: true, message: $t('请选择是否协同') }]">
-      <a-select :value="props.isSynergy" :options="collaborateOptions" placeholder="请选择" @update:value="(v: string) => emit('update:isSynergy', v)" />
+      <a-select
+        :value="props.isSynergy"
+        :options="collaborateOptions"
+        placeholder="请选择"
+        :get-popup-container="(node: HTMLElement) => node.parentElement ?? document.body"
+        @update:value="(v: string) => emit('update:isSynergy', v)" />
     </a-form-item>
     <a-form-item :label="$t('页面模板')" name="tempNum" :rules="[{ required: true, message: $t('请选择页面模板') }]">
       <a-input-group compact class="template-page-browse-group">

@@ -157,7 +157,10 @@ export class WeiI18n {
         //   ? (WeiI18n.i18n?.global?.t as Function)(key, '', { locale: WeiI18n.DEFAULT_LANGUAGE })
         //   : key.toString()
 
-        return key.toString();
+        const text = key.toString();
+        // 历史「添加」按钮文案统一为「新建」
+        if (text === '添加') return '新建';
+        return text;
       },
       messages,
     });

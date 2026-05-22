@@ -385,7 +385,7 @@ defineExpose({ getResourcesByParent });
             </a-button>
             <a-button type="primary" style="margin-left: 15px" @click="noticeAdd(undefined)">
               <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-              {{ $t('添加') }}
+              {{ $t('新建') }}
             </a-button>
           </a-form-item>
         </a-form>

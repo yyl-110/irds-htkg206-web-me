@@ -1,0 +1,15 @@
+// 弹窗底栏：主按钮（确定）排在取消前；兼容默认 footer 与自定义 footer
+.ant-modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+
+  .ant-btn + .ant-btn {
+    margin-inline-start: 0;
+  }
+
+  .ant-btn-primary {
+    order: -1;
+  }
+}

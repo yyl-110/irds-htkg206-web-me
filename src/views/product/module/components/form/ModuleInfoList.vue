@@ -1462,7 +1462,7 @@ defineExpose({ initData, selectAllModuleInfo })
           <div class="btn-box-right">
             <div class="btn-item" @click="handleAddOrUpdate">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
-              添加数据
+              新建数据
             </div>
             <div :class="{ 'btn-item-select': btnType, 'btn-item': !btnType }" @click="updModule">
               <EpcIcon type="icon-edit" style="font-size: 15px" />

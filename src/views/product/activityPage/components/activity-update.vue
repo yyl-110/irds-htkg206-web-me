@@ -1,7 +1,6 @@
 <script lang="ts">
-import { computed, defineComponent, ref, watch } from 'vue';
+import { computed, defineComponent, nextTick, ref, watch } from 'vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
-import { AdminApiSystemDictData } from '@/api/tags/管理后台字典数据';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 import type { FormInstance } from 'ant-design-vue';
@@ -9,6 +8,7 @@ import type { UploadChangeParam } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import UploadModal from '@/views/product/components/upload-modal.vue';
 import ActivityTemplatePageFields from './activity-template-page-fields.vue';
+import { useActivityPageTypeDict } from './useActivityPageTypeDict';
 
 export default defineComponent({
   name: 'NoticeData',
@@ -20,10 +20,16 @@ export default defineComponent({
   },
   setup(props, context) {
     /** 弹窗状态 */
-
-    const visible = computed(() => {
-      return props.modalVisible;
+    const visible = computed({
+      get: () => props.modalVisible,
+      set: (val: boolean) => {
+        if (!val) context.emit('close');
+      },
     });
+
+    const { displayPropTypeList, loadPageTypeDict, isTemplatePageType, selectPopupContainer } = useActivityPageTypeDict();
+    const pageTypeSelectRef = ref<{ blur?: () => void } | null>(null);
+    const templateFieldsVisible = ref(false);
     const formRef = ref<FormInstance>();
     const userStore = useUserStore();
     const id = ref(0);
@@ -47,53 +53,24 @@ export default defineComponent({
       isSynergy: '0',
       tempNum: '',
     });
-    const propTypeList = ref<any>([]);
-    const isTestEnv = String(import.meta.env.VITE_BASE_URL_TEST ?? '')
-      .replace(/['"]/g, '')
-      .toLowerCase() === 'true';
-    const templatePageTypeOption = { label: '模板配置页面', value: '4' };
-
-    const isTemplateConfigPageLabel = (label: unknown) => {
-      const text = String(label ?? '').trim();
-      return text === '模板配置页面' || text.includes('模板配置');
-    };
-
-    /** 「模板配置页面」固定排在第二项 */
-    const orderPageTypeList = (list: any[]) => {
-      const templateItem = list.find((item: any) => isTemplateConfigPageLabel(item.label));
-      const others = list.filter((item: any) => !isTemplateConfigPageLabel(item.label));
-      if (!templateItem) return others;
-      if (others.length === 0) return [templateItem];
-      const ordered = [...others];
-      ordered.splice(1, 0, templateItem);
-      return ordered;
-    };
-
-    /** 测试环境才展示「模板配置页面」 */
-    const displayPropTypeList = computed(() => {
-      const list = (propTypeList.value || []).map((item: any) => ({
-        ...item,
-        value: String(item.value ?? ''),
-      }));
-      const hasTemplate = list.some((item: any) => isTemplateConfigPageLabel(item.label));
-      if (isTestEnv) {
-        const withTemplate = hasTemplate ? list : [...list, templatePageTypeOption];
-        return orderPageTypeList(withTemplate);
-      }
-      return list.filter((item: any) => !isTemplateConfigPageLabel(item.label));
-    });
-
-    const isTemplatePageType = (pageType: unknown) => {
-      const pt = String(pageType ?? '');
-      return displayPropTypeList.value.some((item: any) => String(item.value) === pt && isTemplateConfigPageLabel(item.label));
-    };
-
     const showTemplatePageFields = computed(() => isTemplatePageType(formData.value.pageType));
+
+    function onPageTypeChange() {
+      nextTick(() => pageTypeSelectRef.value?.blur?.());
+    }
+
+    watch(showTemplatePageFields, show => {
+      if (!show) {
+        templateFieldsVisible.value = false;
+        return;
+      }
+      nextTick(() => {
+        templateFieldsVisible.value = true;
+      });
+    });
 
     /** handle close */
     const handleClose = () => {
-      // 通过事件传过去
-      visible.value = false;
       context.emit('close');
     };
 
@@ -148,7 +125,7 @@ export default defineComponent({
     const infoReload = (data: any, categoryidStr: string) => {
       id.value = data.id;
       formData.value.pageName = data.pageName;
-      formData.value.pageType = data.pageType;
+      formData.value.pageType = String(data.pageType ?? '1');
       formData.value.url = data.url;
       formData.value.groupName = data.groupName;
       formData.value.excelId = data.calculateFileId;
@@ -162,21 +139,18 @@ export default defineComponent({
       wordFileList.value = wordFile ? [wordFile] : [];
       remark.value = data.remark;
       categoryid.value = categoryidStr;
-      //获取参数字典
-      getUnitParent();
+      if (isTemplatePageType(formData.value.pageType)) {
+        nextTick(() => {
+          templateFieldsVisible.value = true;
+        });
+      } else {
+        templateFieldsVisible.value = false;
+      }
+      void loadPageTypeDict();
     };
     function customGetContainer() {
       // 返回自定义挂载节点
       return document.querySelector('.activity-upload');
-    }
-
-    async function getUnitParent() {
-      const params: any = {};
-      params.dictType = 'page_type';
-      params.pageNo = 1;
-      params.pageSize = 100;
-      const res = await AdminApiSystemDictData.getDictTypePage(params);
-      propTypeList.value = res.data.data?.list;
     }
 
     function isExcelFile(fileName = '') {
@@ -324,12 +298,14 @@ export default defineComponent({
       infoReload,
       handleClose,
       updatePageInfo,
-      getUnitParent,
       formData,
       formRef,
       id,
-      propTypeList,
       displayPropTypeList,
+      selectPopupContainer,
+      pageTypeSelectRef,
+      onPageTypeChange,
+      templateFieldsVisible,
       remark,
       unitId,
       categoryid,
@@ -369,9 +345,15 @@ export default defineComponent({
       @cancel="handleClose">
       <a-form ref="formRef" :model="formData" style="margin-top: 20px" :label-col="{ style: { width: '100px' } }">
         <a-form-item :label="$t('页面类型')" name="pageType" :rules="[{ required: true, message: `${$t('请选择页面类型')}` }]">
-          <a-select placeholder="请选择页面类型" v-model:value="formData.pageType" show-search>
-            <a-select-option v-for="item in displayPropTypeList" :value="item.value" :key="item.label">{{ item.label }}</a-select-option>
-          </a-select>
+          <a-select
+            ref="pageTypeSelectRef"
+            v-model:value="formData.pageType"
+            placeholder="请选择页面类型"
+            show-search
+            :options="displayPropTypeList"
+            option-filter-prop="label"
+            :get-popup-container="selectPopupContainer"
+            @change="onPageTypeChange" />
         </a-form-item>
         <a-form-item :label="$t('页面名称')" name="pageName" :rules="[{ required: true, message: `${$t('请输入页面名称')}` }]">
           <a-input v-model:value="formData.pageName" placeholder="请输入页面名称" />
@@ -380,7 +362,7 @@ export default defineComponent({
           <a-input v-model:value="formData.url" placeholder="请输入页面URL" />
         </a-form-item>
         <ActivityTemplatePageFields
-          v-if="showTemplatePageFields"
+          v-if="templateFieldsVisible"
           v-model:audit-process="formData.auditProcess"
           v-model:is-synergy="formData.isSynergy"
           v-model:temp-num="formData.tempNum" />

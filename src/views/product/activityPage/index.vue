@@ -1200,7 +1200,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                   </a-button>
                   <a-button type="primary" @click="handleAddOrUpdate(undefined)">
                     <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-                    {{ $t('添加') }}
+                    {{ $t('新建') }}
                   </a-button>
                   <!--删除按钮（批量删除需二次确认）-->
                   <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(undefined)">

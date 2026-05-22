@@ -34,8 +34,8 @@
     <template #footer>
       <slot name="footer">
         <div class="dialog-footer">
-          <el-button @click="handleLeftButtonClick" :disabled="leftButtonDisabled">{{ leftButtonText }}</el-button>
           <el-button :color="color" @click="handleRightButtonClick" :disabled="rightButtonDisabled">{{ rightButtonText }}</el-button>
+          <el-button @click="handleLeftButtonClick" :disabled="leftButtonDisabled">{{ leftButtonText }}</el-button>
         </div>
       </slot>
     </template>
@@ -139,5 +139,13 @@ const handleRightButtonClick = () => {
   font-size: 14px;
   line-height: 22px;
   color: #555d6d;
+}
+
+.dialog-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 </style>

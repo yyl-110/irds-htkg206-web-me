@@ -342,7 +342,7 @@ async function bizRangeOptionFunction() {
     v-model:visible="visible"
     width="1000px"
     wrap-class-name="wrapClassName"
-    :title="$t('添加数据')"
+    :title="$t('新建数据')"
     :confirm-loading="$isPending()"
     :ok-text="$t('确定')"
     :cancel-text="$t('取消')"
@@ -364,14 +364,14 @@ async function bizRangeOptionFunction() {
       </a-form-item>
       <a-form-item :label="$t('业务范围')" name="bizRange" width="100">
         <a-select v-model:value="modelData.bizRange" allow-clear show-search>
-          <a-select-option v-for="item in props.bizRangeOption" :key="item.label" :value="item.value">
+          <a-select-option v-for="item in props.bizRangeOption" :key="item.value" :value="item.value">
             {{ WeiI18n.t(item.label) }}
           </a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item :label="$t('语言')" name="lang" width="100">
         <a-select v-model:value="modelData.lang" allow-clear show-search>
-          <a-select-option v-for="item in languageOption" :key="item.label" :value="item.value">
+          <a-select-option v-for="item in languageOption" :key="item.value" :value="item.value">
             {{ WeiI18n.t(item.label) }}
           </a-select-option>
         </a-select>
