@@ -10,6 +10,7 @@ import Sortable, { type SortableEvent } from 'sortablejs';
 import WeiPageTabsMenu from './components/WeiPageTabsMenu.vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { useWeiTab } from '@/hooks/useWeiTab';
+import { getRouteCacheKey } from '@/utils/routeCacheKey';
 import { WeiIcon } from '@/wei-components';
 
 const props = withDefaults(
@@ -67,7 +68,7 @@ function bindSortable() {
 onMounted(bindSortable);
 watch(() => props.tabStyle, bindSortable);
 
-watch(() => route.path, changeCurTab, {
+watch(() => getRouteCacheKey(route), changeCurTab, {
   immediate: true,
 });
 

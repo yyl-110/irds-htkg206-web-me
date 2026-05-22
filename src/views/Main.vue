@@ -41,7 +41,7 @@ watch(
   () => projectUi.applyDomEffects(),
   { deep: true },
 )
-const { getTabNameByFullPath, wrapperMap } = useRouteCache()
+const { getTabNameByRoute, wrapperMap } = useRouteCache()
 
 /** 高级搜索 弹窗状态 */
 const visible = computed(() => {
@@ -78,7 +78,7 @@ watch(
  */
 function wrap(component: VNode, route: RouteLocationNormalizedLoaded) {
   let wrapperComponent
-  const wrapperComponentName = getTabNameByFullPath(route)
+  const wrapperComponentName = getTabNameByRoute(route)
   if (wrapperMap[wrapperComponentName]) {
     const _component = wrapperMap[wrapperComponentName]
     if (!_component) throw new Error('Missing Route Wrapper Component')

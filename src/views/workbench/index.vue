@@ -2581,6 +2581,8 @@ onUnmounted(() => {
   border: 1px solid #eaeaf1;
   border-radius: 8px;
   padding: 10px 12px 8px;
+  margin-right: 10px;
+  margin-bottom: 10px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s;

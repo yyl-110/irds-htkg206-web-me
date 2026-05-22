@@ -190,7 +190,7 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     width: 120,
   },
   {
-    title: '协同版本',
+    title: '任务版本',
     dataIndex: 'collabLatestPublishVersionNo',
     key: 'collabLatestPublishVersionNo',
     align: 'center',
@@ -850,7 +850,7 @@ defineExpose({
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
-                <a href="#" @click.prevent>撤销协同</a>
+                <a href="#" @click.prevent>撤销任务</a>
               </a-popconfirm>
               <a-popconfirm
                 v-if="!isAppPublished(record)"
@@ -868,7 +868,7 @@ defineExpose({
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>取消应用</a>
+                <a href="#" @click.prevent>撤销应用</a>
               </a-popconfirm>
               <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record)">
                 <a href="#" class="operation-danger" @click.prevent>删除</a>
