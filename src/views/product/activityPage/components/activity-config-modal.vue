@@ -16,10 +16,13 @@ import {
   InboxOutlined,
   MinusOutlined,
   ExclamationCircleOutlined,
+  SettingOutlined,
   TableOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons-vue';
+import type { UploadChangeParam } from 'ant-design-vue';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
+import UploadModal from '@/views/product/components/upload-modal.vue';
 import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue';
 import FormulaEditorModal from './formula-editor-modal.vue';
 import { businessApiLibrary } from '@/api/tags/library/基础资源库';
@@ -69,10 +72,27 @@ function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDS
   };
   return map[item.type] || BorderOutlined;
 }
-function getGlobalActionIcon(action: 'batch' | 'sketch'): Component {
+function getGlobalActionIcon(action: 'batch' | 'sketch' | 'pageButton'): Component {
   if (action === 'sketch') return FileImageOutlined;
+  if (action === 'pageButton') return SettingOutlined;
   return UnorderedListOutlined;
 }
+
+const isDesignConfigPage = computed(() => String(props.record?.pageType ?? '') === '1');
+const pageButtonConfigModalVisible = ref(false);
+const pageFunctionButtons = ref<string[]>([]);
+const pageButtonDraftReportFileId = ref('');
+const pageButtonWordFileList = ref<any[]>([]);
+const openPageButtonWordUploadModal = ref(false);
+const pageButtonWordConfidentialLevel = ref(1);
+const pageButtonSaving = ref(false);
+const pageFunctionButtonOptions = [
+  { label: '再生模型', value: '再生模型' },
+  { label: '导出报告', value: '导出报告' },
+  { label: '导入参数', value: '导入参数' },
+  { label: '导出参数', value: '导出参数' },
+];
+const showPageButtonWordUpload = computed(() => pageFunctionButtons.value.includes('导出报告'));
 
 const paletteGroups = [
   {
@@ -175,6 +195,8 @@ function getTableBizTypeSelectPopupContainer() {
 const tableBizTypeSelectDropdownStyle = { zIndex: 1200 };
 /** 参数字典需高于「列定义配置 / 表格尺寸」等子弹窗（z-index 1100） */
 const parameterDictionaryModalZIndex = 1200;
+/** 页面按钮配置（1100）内的 Word 上传弹窗 */
+const pageButtonWordUploadModalZIndex = 1120;
 
 const columnDefModalVisible = ref(false);
 const columnDefDraft = ref<any[]>([]);
@@ -1347,6 +1369,152 @@ async function handleSketchConfig() {
   await loadSketchConfigList();
   sketchConfigModalVisible.value = true;
 }
+
+function parsePageFunctionButtons(button: unknown): string[] {
+  if (!button) return [];
+  return String(button)
+    .split(/[,，]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function normalizePageButtonUploadFile(fileInfo: any) {
+  if (!fileInfo) return null;
+  const uid = fileInfo.fileId || fileInfo.id || `${Date.now()}`;
+  const name = fileInfo.oldFileName || fileInfo.name || fileInfo.fileName || '未命名文件';
+  const url = fileInfo.filePath || '';
+  return {
+    uid: String(uid),
+    id: fileInfo.fileId || fileInfo.id || '',
+    name,
+    status: 'done',
+    url,
+    oldFileName: fileInfo.oldFileName,
+    fileName: fileInfo.fileName,
+    filePath: fileInfo.filePath,
+  };
+}
+
+function isWordFile(fileName = '') {
+  const lowerName = fileName.toLowerCase();
+  return lowerName.endsWith('.doc') || lowerName.endsWith('.docx');
+}
+
+function clearPageButtonWordFile() {
+  pageButtonWordFileList.value = [];
+  pageButtonDraftReportFileId.value = '';
+}
+
+function handlePageButtonConfig() {
+  pageFunctionButtons.value = parsePageFunctionButtons(props.record?.button);
+  pageButtonDraftReportFileId.value = String(props.record?.reportFileId ?? '').trim();
+  const fileInfo = props.record?.reportFileInfo;
+  const wordFile = normalizePageButtonUploadFile(fileInfo);
+  pageButtonWordFileList.value = wordFile ? [wordFile] : [];
+  pageButtonConfigModalVisible.value = true;
+}
+
+async function customRequestPageButtonWord(options: any) {
+  const fileName = options?.file?.name || '';
+  if (!isWordFile(fileName)) {
+    message.warning('请上传Word文件（.doc/.docx）');
+    options?.onError?.(new Error('invalid word file'));
+    return;
+  }
+  const res = await AdminApiSystemUploadFile.uploadFile({
+    file: options.file as File,
+    userId: userStore.getUser.id,
+    confidentialLevel: pageButtonWordConfidentialLevel.value,
+  });
+  if (res.data.code == 0) {
+    const file: any = {
+      uid: String(res.data?.id || Date.now()),
+      id: res.data?.id || '',
+      name: res.data?.oldFileName || options?.file?.name || 'word',
+      status: 'done',
+      response: res.data,
+      url: res.data?.filePath || '',
+    };
+    pageButtonWordFileList.value = [file];
+    pageButtonDraftReportFileId.value = res.data.id || '';
+    options?.onSuccess?.(res.data, options.file);
+    message.success('Word上传成功');
+  } else {
+    options?.onError?.(new Error('word upload failed'));
+    message.error('Word上传失败');
+  }
+}
+
+function pageButtonWordFileChange(info: UploadChangeParam) {
+  pageButtonWordFileList.value = info?.fileList || [];
+  if (pageButtonWordFileList.value.length === 0) {
+    pageButtonDraftReportFileId.value = '';
+  }
+}
+
+function beforeUploadPageButtonWord(file: File) {
+  if (!isWordFile(file?.name || '')) {
+    message.warning('请上传Word文件（.doc/.docx）');
+    return false;
+  }
+  return true;
+}
+
+function handlePageButtonWordUploadConfirm() {
+  const first = pageButtonWordFileList.value?.[0];
+  pageButtonDraftReportFileId.value = first?.id || first?.response?.id || '';
+  openPageButtonWordUploadModal.value = false;
+}
+
+async function savePageButtonConfig() {
+  const pageId = props.record?.id;
+  if (!pageId) {
+    message.warning('缺少页面ID，无法保存');
+    return;
+  }
+  pageButtonSaving.value = true;
+  try {
+    const data: any = {
+      id: pageId,
+      button: pageFunctionButtons.value.join(','),
+      reportFileId: pageButtonDraftReportFileId.value,
+    };
+    const res = await AdminApiActivityPage.updateActivityInfo(data);
+    if (res?.data?.code === 0 || res?.data?.code === 200) {
+      message.success('页面按钮配置保存成功');
+      if (props.record) {
+        props.record.button = data.button;
+        props.record.reportFileId = data.reportFileId;
+        if (pageButtonWordFileList.value[0]) {
+          props.record.reportFileInfo = {
+            fileId: pageButtonDraftReportFileId.value,
+            oldFileName: pageButtonWordFileList.value[0]?.name,
+            filePath: pageButtonWordFileList.value[0]?.url,
+          };
+        }
+      }
+      pageButtonConfigModalVisible.value = false;
+    } else {
+      message.error(res?.data?.msg || '页面按钮配置保存失败');
+    }
+  } catch (error) {
+    console.error('save page button config failed:', error);
+    message.error('页面按钮配置保存失败');
+  } finally {
+    pageButtonSaving.value = false;
+  }
+}
+
+watch(
+  () => [...pageFunctionButtons.value].join('|'),
+  () => {
+    if (!pageButtonConfigModalVisible.value) return;
+    if (!pageFunctionButtons.value.includes('导出报告')) {
+      clearPageButtonWordFile();
+    }
+  },
+);
+
 function openSketchEditModal(mode: 'add' | 'edit', row?: any) {
   sketchEditMode.value = mode;
   resetSketchForm();
@@ -2491,6 +2659,10 @@ watch(
             <button type="button" class="tool-card global-btn" @click="handleSketchConfig">
               <component :is="getGlobalActionIcon('sketch')" class="tool-card-icon" />
               <span class="tool-card-label">示意图配置</span>
+            </button>
+            <button v-if="isDesignConfigPage" type="button" class="tool-card global-btn" @click="handlePageButtonConfig">
+              <component :is="getGlobalActionIcon('pageButton')" class="tool-card-icon" />
+              <span class="tool-card-label">页面按钮配置</span>
             </button>
           </div>
         </div>
@@ -3878,6 +4050,41 @@ watch(
       <a-button @click="onLibraryCategoryCancel">取消</a-button>
     </template>
   </a-modal>
+
+  <a-modal
+    v-model:visible="pageButtonConfigModalVisible"
+    title="页面按钮配置"
+    :mask-closable="false"
+    :width="560"
+    :z-index="1100"
+    @cancel="pageButtonConfigModalVisible = false">
+    <a-form layout="vertical">
+      <a-form-item label="页面功能按钮">
+        <a-checkbox-group v-model:value="pageFunctionButtons" :options="pageFunctionButtonOptions" />
+      </a-form-item>
+      <a-form-item v-if="showPageButtonWordUpload" label="上传word文件">
+        <a-button type="primary" @click="openPageButtonWordUploadModal = true">上传Word文件</a-button>
+        <span style="margin-left: 8px">{{ pageButtonWordFileList[0]?.name || '未上传文件' }}</span>
+      </a-form-item>
+    </a-form>
+    <template #footer>
+      <a-button type="primary" :loading="pageButtonSaving" @click="savePageButtonConfig">确定</a-button>
+      <a-button @click="pageButtonConfigModalVisible = false">取消</a-button>
+    </template>
+  </a-modal>
+
+  <UploadModal
+    v-model:visible="openPageButtonWordUploadModal"
+    v-model:confidential-level="pageButtonWordConfidentialLevel"
+    modal-title="上传Word文件"
+    accept=".doc,.docx"
+    :z-index="pageButtonWordUploadModalZIndex"
+    :file-list="pageButtonWordFileList"
+    :before-upload="beforeUploadPageButtonWord"
+    :custom-request="customRequestPageButtonWord"
+    @upload-change="pageButtonWordFileChange"
+    @remove-file="clearPageButtonWordFile"
+    @confirm="handlePageButtonWordUploadConfirm" />
 
   <a-modal v-model:visible="sketchConfigModalVisible" title="示意图配置" :mask-closable="false" :width="980" :footer="null" :z-index="1100">
     <div class="sketch-config-toolbar">

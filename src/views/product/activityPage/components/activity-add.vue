@@ -30,12 +30,6 @@ export default defineComponent({
     const remark = ref('');
     const categoryid = ref('');
     const unitId = ref<any>();
-    const buttonOptions = ref([
-      { label: '再生模型', value: '再生模型' },
-      { label: '导出报告', value: '导出报告' },
-      { label: '导入参数', value: '导入参数' },
-      { label: '导出参数', value: '导出参数' },
-    ]);
     const excelFileList = ref<any[]>([]);
     const wordFileList = ref<any[]>([]);
     const openExcelUploadModal = ref(false);
@@ -47,7 +41,6 @@ export default defineComponent({
       pageType: '1',
       groupName: '',
       url: '',
-      button: [] as string[],
       excelId: '',
       wordId: '',
       auditProcess: '',
@@ -97,13 +90,6 @@ export default defineComponent({
 
     const showTemplatePageFields = computed(() => isTemplatePageType(formData.value.pageType));
 
-    /** 设计配置页面且勾选「导出报告」时，展示与计算页一致的 Word 模板上传 */
-    const showDesignPageWordUpload = computed(() => {
-      const pt = String(formData.value.pageType ?? '');
-      const btn = formData.value.button || [];
-      return pt === '1' && btn.includes('导出报告');
-    });
-
     /** handle close */
     const handleClose = () => {
       // 通过事件传过去
@@ -122,9 +108,10 @@ export default defineComponent({
       data.groupName = formData.value.groupName;
       data.remark = remark.value;
       data.treeId = categoryid.value;
-      data.button = (formData.value.button || []).join(',');
       data.calculateFileId = formData.value.excelId;
-      data.reportFileId = formData.value.wordId;
+      if (formData.value.pageType === '2') {
+        data.reportFileId = formData.value.wordId;
+      }
       data.url = formData.value.url;
       if (isTemplatePageType(formData.value.pageType)) {
         data.auditProcess = formData.value.auditProcess;
@@ -146,7 +133,6 @@ export default defineComponent({
       formData.value.pageType = '1';
       formData.value.url = '';
       formData.value.groupName = '';
-      formData.value.button = [];
       formData.value.excelId = '';
       formData.value.wordId = '';
       formData.value.auditProcess = '';
@@ -307,13 +293,8 @@ export default defineComponent({
     }
 
     watch(
-      () => [String(formData.value.pageType ?? ''), [...(formData.value.button || [])].join('|')],
-      () => {
-        const pt = String(formData.value.pageType ?? '');
-        const hasExportReport = (formData.value.button || []).includes('导出报告');
-        if (pt === '1' && !hasExportReport) {
-          clearWordFile();
-        }
+      () => String(formData.value.pageType ?? ''),
+      pt => {
         if (!isTemplatePageType(pt)) {
           clearTemplatePageFields();
         }
@@ -335,7 +316,6 @@ export default defineComponent({
       remark,
       unitId,
       categoryid,
-      buttonOptions,
       excelFileList,
       wordFileList,
       openExcelUploadModal,
@@ -352,7 +332,6 @@ export default defineComponent({
       handleWordUploadConfirm,
       clearExcelFile,
       clearWordFile,
-      showDesignPageWordUpload,
       showTemplatePageFields,
     };
   },
@@ -393,13 +372,6 @@ export default defineComponent({
         </a-form-item>
         <a-form-item :label="$t('备注')">
           <a-textarea type="textarea" style="height: 100px" v-model:value="remark" placeholder="请输入备注" name="remark" />
-        </a-form-item>
-        <a-form-item :label="$t('页面功能按钮')" name="button" v-if="formData.pageType == '1'">
-          <a-checkbox-group v-model:value="formData.button" :options="buttonOptions" />
-        </a-form-item>
-        <a-form-item v-if="showDesignPageWordUpload" :label="$t('上传word文件')" name="wordId">
-          <a-button type="primary" @click="openWordUploadModal = true">上传Word文件</a-button>
-          <span style="margin-left: 8px">{{ wordFileList[0]?.name || '未上传文件' }}</span>
         </a-form-item>
         <a-form-item :label="$t('上传excel文件')" name="excelId" v-if="formData.pageType == '2'">
           <a-button type="primary" @click="openExcelUploadModal = true">上传Excel文件</a-button>

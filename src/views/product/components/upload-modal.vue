@@ -36,6 +36,8 @@ const props = defineProps<{
   customRequest: (options: { file: File | Blob; onSuccess?: (body: unknown, file?: File) => void; onError?: (e: Error) => void }) => Promise<void>;
   /** 单次可选文件数量（多文件确定时对每个已上传文件依次 updateFileConfidentialLevel） */
   maxCount?: number;
+  /** 嵌套在其它 Modal 内打开时需高于父级 z-index */
+  zIndex?: number;
 }>();
 
 const emit = defineEmits<{
@@ -157,7 +159,7 @@ function onCancel() {
 </script>
 
 <template>
-  <a-modal v-model:visible="modalVisible" :title="resolvedModalTitle" width="640px" @ok="onConfirm" @cancel="onCancel">
+  <a-modal v-model:visible="modalVisible" :title="resolvedModalTitle" width="640px" :z-index="zIndex" @ok="onConfirm" @cancel="onCancel">
     <p v-if="hint" class="upload-modal-hint">{{ hint }}</p>
     <a-form :label-col="{ style: { width: '90px' } }">
       <a-form-item label="附件密级">
