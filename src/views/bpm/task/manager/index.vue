@@ -9,7 +9,7 @@ import { useRender } from '@/components/escape'
 import Empty from '@/components/Empty/index.vue'
 import { EpcIcon } from '@/components/icon/EpcIcon'
 import { WeiI18n } from '@/utils/WeiI18n'
-
+const { push } = useRouter() // 路由
 // 它和【待办任务】【已办任务】的差异是，该菜单可以看全部的流程任务
 defineOptions({ name: 'BpmManagerTask' })
 
@@ -37,8 +37,22 @@ const { dateRange, dateRangeParams } = useDateRangeParams()
 type TaskManagerRow = Record<string, any>
 
 const columns = ref<TableColumnType<TaskManagerRow>[]>([
-  { title: '流程名称', dataIndex: 'processName', key: 'processName', width: 180, align: 'left', ellipsis: { showTitle: true } },
-  { title: '流程主题', dataIndex: 'processSubject', key: 'processSubject', width: 180, align: 'left', ellipsis: { showTitle: true } },
+  {
+    title: '流程名称',
+    dataIndex: 'processName',
+    key: 'processName',
+    width: 180,
+    align: 'left',
+    ellipsis: { showTitle: true },
+  },
+  {
+    title: '流程主题',
+    dataIndex: 'processSubject',
+    key: 'processSubject',
+    width: 180,
+    align: 'left',
+    ellipsis: { showTitle: true },
+  },
   { title: '发起人', dataIndex: 'startUser', key: 'startUser', width: 100, align: 'center' },
   {
     title: '发起时间',
@@ -69,8 +83,16 @@ const columns = ref<TableColumnType<TaskManagerRow>[]>([
   { title: '审批状态', dataIndex: 'status', key: 'status', width: 120, align: 'center' },
   { title: '审批建议', dataIndex: 'reason', key: 'reason', width: 180, align: 'left', ellipsis: { showTitle: true } },
   { title: '耗时', dataIndex: 'durationInMillis', key: 'durationInMillis', width: 160, align: 'center' },
-  { title: '流程编号', dataIndex: 'processInstanceId', key: 'processInstanceId', width: 220, align: 'center', ellipsis: { showTitle: true } },
+  {
+    title: '流程编号',
+    dataIndex: 'processInstanceId',
+    key: 'processInstanceId',
+    width: 220,
+    align: 'center',
+    ellipsis: { showTitle: true },
+  },
   { title: '任务编号', dataIndex: 'id', key: 'id', width: 220, align: 'center', ellipsis: { showTitle: true } },
+  { title: '操作', dataIndex: 'operation', key: 'id', width: 80, align: 'center', fixed: 'right' },
 ])
 
 const BPM_TASK_MANAGER_TABLE_SCROLL_BUFFER = 24
@@ -146,7 +168,15 @@ function handlePagTable(page: number, pageSize: number) {
   queryParams.pageRows = pageSize
   getList()
 }
-
+/** 处理审批按钮 */
+const handleAudit = (row: any) => {
+  push({
+    name: 'BpmProcessInstanceDetailA',
+    query: {
+      id: row.processInstance.id,
+    },
+  })
+}
 onMounted(() => {
   getList()
 })
@@ -235,6 +265,9 @@ onMounted(() => {
             </template>
             <template v-else-if="column.dataIndex === 'durationInMillis'">
               {{ formatPast2(record.durationInMillis) }}
+            </template>
+            <template v-else-if="column.dataIndex === 'operation'">
+              <a @click="handleAudit(record)">历史</a>
             </template>
           </template>
         </a-table>

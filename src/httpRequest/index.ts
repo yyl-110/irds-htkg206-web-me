@@ -37,7 +37,11 @@ let isRefreshToken = false;
 /** 请求白名单，无须token的接口 */
 const whiteList: string[] = ['/login', '/sso-login', '/refresh-token', '/outer-sso', '/gateway-login', '/singleLogin'];
 
-type AxCfg = InternalAxiosRequestConfig<HttpRequestResponse> & { _wbsAtRefreshRetried?: boolean };
+type AxCfg = InternalAxiosRequestConfig<HttpRequestResponse> & {
+  _wbsAtRefreshRetried?: boolean;
+  /** 为 true 时业务 catch 自行提示，响应拦截器不弹全局错误 */
+  skipErrorNotify?: boolean;
+};
 
 /** 仅对 refresh 端点本身失败时不再重试，避免与 refresh 请求形成环 */
 function isRefreshTokenRequestUrl(url: string | undefined) {
@@ -279,9 +283,12 @@ service.interceptors.response.use(
     // 5. 处理 500
     else if (code === 500) {
       const serverErrMsg = WeiI18n.t('服务器错误,请联系管理员!').value;
-      WeiMessage.error(serverErrMsg);
+      const skipNotify = (config as AxCfg).skipErrorNotify === true;
+      if (!skipNotify) {
+        WeiMessage.error(serverErrMsg);
+      }
       const serverErr = toResponseError(response, serverErrMsg);
-      serverErr.notified = true;
+      serverErr.notified = !skipNotify;
       return Promise.reject(serverErr);
     } else if (code === 901) {
       // return Promise.reject(response)

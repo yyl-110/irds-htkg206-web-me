@@ -7,6 +7,8 @@ import { OpenAPIV3 } from 'openapi-types';
 export type QueryParamsType = Record<string | number, any>;
 
 export interface FullRequestParams extends Omit<AxiosRequestConfig, 'data' | 'params' | 'url' | 'responseType'> {
+  /** 为 true 时由业务 catch 自行提示，全局响应拦截器不弹错误 toast */
+  skipErrorNotify?: boolean;
   /** set parameter to `true` for call `securityWorker` for this request */
   secure?: boolean;
   /** request path */

@@ -172,6 +172,23 @@ function resetDrawerStyle() {
 }
 const addModel = ref<any>();
 const updateModel = ref<any>();
+const isTestEnv = String(import.meta.env.VITE_BASE_URL_TEST ?? '')
+  .replace(/['"]/g, '')
+  .toLowerCase() === 'true';
+
+function randomSynergyDisplay() {
+  return Math.random() < 0.5 ? '是' : '否';
+}
+
+const synergyColumn: TableColumnType<Menus> = {
+  title: WeiI18n.$t('是否协同'),
+  dataIndex: 'isSynergy',
+  key: 'isSynergy',
+  align: 'center',
+  resizable: true,
+  width: 100,
+};
+
 const columns = ref<TableColumnType<Menus>[]>([
   {
     title: WeiI18n.$t('页面名称'),
@@ -199,6 +216,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     resizable: true,
     width: 180,
   },
+  ...(isTestEnv ? [synergyColumn] : []),
   {
     title: WeiI18n.$t('组名称'),
     dataIndex: 'groupName',
@@ -570,7 +588,10 @@ async function loadParameterListData() {
     data.pageNo = requestParams.pageNo;
     data.pageSize = requestParams.pageSize;
     const res = await AdminApiActivityPage.getActivityPage(data);
-    datasource.value = normalizeListSnowflakeIds(res.data.data.list || []);
+    const list = normalizeListSnowflakeIds(res.data.data.list || []);
+    datasource.value = isTestEnv
+      ? list.map((row: any) => ({ ...row, isSynergy: randomSynergyDisplay() }))
+      : list;
     pagination.total = res.data.data.total;
   } finally {
     loading.value = false;

@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
-import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, FormOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
+import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, FormOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { WeiMessage } from '@/utils/WeiMessage';
 import { WeiI18n } from '@/utils/WeiI18n';
 import TreeNode from '@/components/tree/TreeNode.vue';
+import TreeRootExpandIcon from '@/components/tree/TreeRootExpandIcon.vue';
 import { Uploado_draggerFile } from '@/components/UploadFile';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
@@ -718,8 +719,7 @@ defineExpose({
             <a-tooltip v-if="isRootTreeNode(item)" placement="top" :mouse-enter-delay="0.2">
               <template #title>{{ treeFullyExpanded ? $t('折叠全部') : $t('展开全部') }}</template>
               <span class="tree-root-expand-toggle" @click.stop="toggleExpandAll">
-                <MenuFoldOutlined v-if="treeFullyExpanded" />
-                <MenuUnfoldOutlined v-else />
+                <TreeRootExpandIcon :expanded="treeFullyExpanded" />
               </span>
             </a-tooltip>
           </div>

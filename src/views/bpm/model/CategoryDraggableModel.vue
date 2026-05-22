@@ -17,9 +17,9 @@ import { checkPermi } from '@/utils/permission'
 import formCreate from '@form-create/element-ui'
 import { useUserStore } from '@/store/modules/user'
 import { useMessage } from '@/hooks/web/useMessage'
+import { Dialog } from '@/components/Dialog'
 const message = useMessage()
 defineOptions({ name: 'bpm/model' })
-import { Dialog } from '@/components/Dialog'
 const props = defineProps<{
   categoryInfo: CategoryInfoProps
   isCategorySorting: boolean
