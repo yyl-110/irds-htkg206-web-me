@@ -78,11 +78,13 @@ watch(
 <style lang="less" scoped>
 .pdf-layout {
   width: 99%;
-  height: 98%;
+  height: 100%;
   background: #ffffff;
   border-radius: 4px;
   border: 1px solid #dcdee0;
-  margin: 15px auto;
+  margin: 0 auto;
+  padding: 15px 0;
+  overflow: hidden;
 
   :deep(.ant-btn) {
     padding: 0;

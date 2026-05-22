@@ -200,10 +200,11 @@ function getTimeSortValue(task: TaskItem) {
 
 // 待办任务统计 mock 数据
 const todoChartData = ref({
-  delay: 2, // 延期
-  todo: 4, // 待办
-  done: 7, // 已办
-  total: 13, // 参与项目
+  delay: 0, // 延期
+  todo: 0, // 待办
+  audit: 0, // 审核待办
+  done: 0, // 已办
+  total: 0, // 参与项目
 })
 
 let todoChartInstance: echarts.ECharts | null = null
@@ -216,7 +217,7 @@ function initTodoChart() {
     todoChartInstance.dispose()
   }
   todoChartInstance = echarts.init(el)
-  const { delay, todo, done, total } = todoChartData.value
+  const { delay, todo, audit, done, total } = todoChartData.value
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: 'item',
@@ -234,7 +235,7 @@ function initTodoChart() {
         color: '#313133',
       },
       formatter: (name: string) => {
-        const map: Record<string, number> = { 延期: delay, 待办: todo, 已办: done }
+        const map: Record<string, number> = { 延期: delay, 待办: todo, 审核待办: audit, 已办: done }
         return `${name}  ${map[name] ?? ''}`
       },
     },
@@ -277,6 +278,7 @@ function initTodoChart() {
         data: [
           { value: delay, name: '延期', itemStyle: { color: '#FF7C7C' } },
           { value: todo, name: '待办', itemStyle: { color: '#FFBA18' } },
+          { value: audit, name: '审核待办', itemStyle: { color: '#00B96B' } },
           { value: done, name: '已办', itemStyle: { color: '#2B5FD9' } },
         ],
       },
@@ -1193,6 +1195,16 @@ async function loadWorkbenchSummary() {
     const payload = res?.data?.data as Record<string, number> | undefined
     if ((code === 0 || code === 200) && payload && typeof payload === 'object') {
       projectStatistics.value = payload
+      todoChartData.value = {
+        delay: payload.deferredNum ?? 0,
+        todo: payload.totalNum ?? 0,
+        audit: payload.participatedPlanProjectCount ?? 0,
+        done: payload.doneNum ?? payload.finishNum ?? 0,
+        total: payload.inNum ?? 0,
+      }
+      nextTick(() => {
+        initTodoChart()
+      })
     }
   }
   catch {
@@ -1376,7 +1388,7 @@ onUnmounted(() => {
                 </div>
               </template>
 
-              <div v-if="item.name === 'todo'" class="task-content flex flex-col flex-1 min-h-0">
+              <div v-if="item.name === 'todo'" class="task-content flex flex-col flex-1 min-h-0 h-full">
                 <div class="filter-bar flex-shrink-0 flex justify-between items-center mb-[16px] mt-[3px]">
                   <div class="capsule-group flex gap-[12px]">
                     <div
@@ -1402,7 +1414,7 @@ onUnmounted(() => {
                 </div>
 
                 <a-spin :spinning="todoListLoading" class="task-list-spin flex-1 min-h-0 flex flex-col">
-                  <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar">
+                  <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
                     <template v-if="viewMode === 'grid'">
                       <a-row :gutter="[16, 12]" align="top">
                         <a-col v-for="item in filteredTodoList" :key="String(item.id)" flex="0 0 350px" style="width: 350px; max-width: 350px;">
@@ -1689,7 +1701,7 @@ onUnmounted(() => {
                 </a-spin>
               </div>
               <div v-else-if="item.name === 'audit'" class="task-content flex flex-col flex-1 min-h-0">
-                <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar">
+                <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
                   <a-table
                     :columns="todoColumns"
                     :data-source="tableAuditList"

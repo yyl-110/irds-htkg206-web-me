@@ -1803,6 +1803,7 @@ defineExpose({ initData, selectAllModuleInfo })
     title="模块详情"
     placement="right"
     :closable="false"
+    :body-style="{overflow: 'hidden'}"
     width="800">
     <div ref="udfBoxRef" class="module-detail-drawer-inner px-[16px]" :style="udfBoxStyle()">
       <a-tabs v-model:activeKey="parmType" class="module-detail-udf-tabs" @change="toParm" :animated="false">

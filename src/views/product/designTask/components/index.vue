@@ -555,8 +555,10 @@ defineExpose({ initInfoList });
 .drawerContent {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 120px);
+  // min-height: calc(100vh - 120px);
   background-color: #ffffff !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .version-history-modal {
