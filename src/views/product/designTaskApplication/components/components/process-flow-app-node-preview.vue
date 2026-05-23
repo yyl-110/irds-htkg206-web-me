@@ -1799,7 +1799,7 @@ defineExpose({
             <div v-if="item.customProps?.hasDivider" class="title-divider-line"></div>
           </template>
 
-          <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
+          <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <a-input
               :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :placeholder="item.customProps?.placeholder || '请输入'"
@@ -1810,22 +1810,24 @@ defineExpose({
               @blur="() => onPreviewInputBlur(item, index)" />
             <span v-if="getInputValueRangeHint(item)" class="value-range-hint-chip">{{ getInputValueRangeHint(item) }}</span>
           </div>
-          <a-textarea
-            v-else-if="item.componentType === 'TEXTAREA'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :rows="item.customProps?.rows || 4"
-            :placeholder="item.customProps?.placeholder || '请输入'"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
-          <a-date-picker
-            v-else-if="item.componentType === 'DATE'"
-            :value="previewDateDisplay(item, index)"
-            :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
-            :format="normalizeDateFormatForPicker(item.customProps?.format)"
-            :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
-            :disabled="isOutputIoType(item)"
-            class="preview-field"
-            @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
+          <div v-else-if="item.componentType === 'TEXTAREA'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-textarea
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :rows="item.customProps?.rows || 4"
+              :placeholder="item.customProps?.placeholder || '请输入'"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
+          <div v-else-if="item.componentType === 'DATE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-date-picker
+              :value="previewDateDisplay(item, index)"
+              :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
+              :format="normalizeDateFormatForPicker(item.customProps?.format)"
+              :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
+              :disabled="isOutputIoType(item)"
+              class="preview-field"
+              @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
+          </div>
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
 
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
@@ -1836,41 +1838,47 @@ defineExpose({
               </a-tooltip>
             </div>
             <div class="data-view-preview-row">
-              <a-input
-                v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                placeholder="请选择参数"
-                disabled
-                class="data-view-preview-input browse-adjoined-input" />
+              <div class="preview-field-trigger data-view-preview-input-wrap" @click.capture="onParamTitleClick(item)">
+                <a-input
+                  v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                  placeholder="请选择参数"
+                  disabled
+                  class="data-view-preview-input browse-adjoined-input" />
+              </div>
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
             </div>
           </div>
 
-          <a-select
-            v-else-if="item.componentType === 'SELECT'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
-            placeholder="请选择"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
-          <a-auto-complete
-            v-else-if="item.componentType === 'AUTO_COMPLETE'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :options="getSelectOptions(item).map(v => ({ value: v }))"
-            placeholder="请选择或输入"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
+          <div v-else-if="item.componentType === 'SELECT'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-select
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
+              placeholder="请选择"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
+          <div v-else-if="item.componentType === 'AUTO_COMPLETE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-auto-complete
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :options="getSelectOptions(item).map(v => ({ value: v }))"
+              placeholder="请选择或输入"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
 
           <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
             <div class="component-title">
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '单选项' }}</span>
             </div>
             <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
-            <a-radio-group v-else v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
-              <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">{{ opt }}</a-radio>
-            </a-radio-group>
+            <div v-else class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+              <a-radio-group v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
+                <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">{{ opt }}</a-radio>
+              </a-radio-group>
+            </div>
           </div>
 
-          <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">
+          <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <CkeditorPlugin :ref="(inst: any) => bindRichTextEditorRef(item, index, inst)" height="180" :disabled="isOutputIoType(item)" />
           </div>
 
@@ -1878,19 +1886,21 @@ defineExpose({
             <div class="component-title">
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '文件上传' }}</span>
             </div>
-            <a-upload-dragger
-              :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
-              :disabled="isOutputIoType(item)"
-              :multiple="false"
-              :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
-              @preview="(file: any) => onPreviewFileDownload(file)"
-              @change="(info: any) => onPreviewFileChange(item, index, info)">
-              <p class="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p class="ant-upload-text">点击或拖拽上传文件</p>
-              <p class="ant-upload-hint">支持单文件上传，示例预览模式</p>
-            </a-upload-dragger>
+            <div class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+              <a-upload-dragger
+                :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
+                :disabled="isOutputIoType(item)"
+                :multiple="false"
+                :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
+                @preview="(file: any) => onPreviewFileDownload(file)"
+                @change="(info: any) => onPreviewFileChange(item, index, info)">
+                <p class="ant-upload-drag-icon">
+                  <InboxOutlined />
+                </p>
+                <p class="ant-upload-text">点击或拖拽上传文件</p>
+                <p class="ant-upload-hint">支持单文件上传，示例预览模式</p>
+              </a-upload-dragger>
+            </div>
           </div>
 
           <div
@@ -2209,6 +2219,19 @@ defineExpose({
 .preview-field {
   width: var(--activity-preview-component-width);
   max-width: 100%;
+}
+.preview-field-trigger {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
+}
+.component-card.full-row-item .preview-field-trigger {
+  width: 100%;
+}
+.preview-field-trigger :deep(.ant-input[disabled]),
+.preview-field-trigger :deep(.ant-input-affix-wrapper-disabled),
+.preview-field-trigger :deep(.ant-select-disabled),
+.preview-field-trigger :deep(.ant-select-disabled .ant-select-selector) {
+  pointer-events: none;
 }
 .title-preview-text {
   font-size: 14px;

@@ -388,47 +388,53 @@ defineExpose({
             <div v-if="item.customProps?.hasDivider" class="title-divider-line"></div>
           </template>
 
-          <a-input
-            v-else-if="item.componentType === 'INPUT'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :placeholder="item.customProps?.placeholder || '请输入'"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
-          <a-textarea
-            v-else-if="item.componentType === 'TEXTAREA'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :rows="item.customProps?.rows || 4"
-            :placeholder="item.customProps?.placeholder || '请输入'"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
+          <div v-else-if="item.componentType === 'INPUT'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-input
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :placeholder="item.customProps?.placeholder || '请输入'"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
+          <div v-else-if="item.componentType === 'TEXTAREA'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-textarea
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :rows="item.customProps?.rows || 4"
+              :placeholder="item.customProps?.placeholder || '请输入'"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
             <div class="component-title">
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '数据浏览' }}</span>
             </div>
             <div class="data-view-preview-row">
-              <a-input
-                v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                placeholder="请选择参数"
-                disabled
-                class="data-view-preview-input browse-adjoined-input" />
+              <div class="preview-field-trigger data-view-preview-input-wrap" @click.capture="onParamTitleClick(item)">
+                <a-input
+                  v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                  placeholder="请选择参数"
+                  disabled
+                  class="data-view-preview-input browse-adjoined-input" />
+              </div>
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index)">浏览</a-button>
             </div>
           </div>
-          <a-select
-            v-else-if="item.componentType === 'SELECT'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
-            :disabled="isOutputIoType(item)"
-            placeholder="请选择"
-            class="preview-field" />
-          <a-auto-complete
-            v-else-if="item.componentType === 'AUTO_COMPLETE'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :options="getSelectOptions(item).map(v => ({ value: v }))"
-            :disabled="isOutputIoType(item)"
-            placeholder="请选择或输入"
-            class="preview-field" />
+          <div v-else-if="item.componentType === 'SELECT'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-select
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
+              :disabled="isOutputIoType(item)"
+              placeholder="请选择"
+              class="preview-field" />
+          </div>
+          <div v-else-if="item.componentType === 'AUTO_COMPLETE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-auto-complete
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :options="getSelectOptions(item).map(v => ({ value: v }))"
+              :disabled="isOutputIoType(item)"
+              placeholder="请选择或输入"
+              class="preview-field" />
+          </div>
           <div v-else-if="item.componentType === 'CALC_BUTTON'" class="calc-button-preview-wrap">
             <a-button type="primary" class="data-view-assemble-btn" :loading="calcSubmitting" :disabled="isOutputIoType(item)" @click="onCalcButtonPreviewClick">
               {{ item.customProps?.buttonText || '计算' }}
@@ -527,6 +533,20 @@ defineExpose({
 }
 .component-title-text--clickable {
   cursor: pointer;
+}
+.preview-field-trigger {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
+  cursor: pointer;
+}
+.component-card.full-row-item .preview-field-trigger {
+  width: 100%;
+}
+.preview-field-trigger :deep(.ant-input[disabled]),
+.preview-field-trigger :deep(.ant-input-affix-wrapper-disabled),
+.preview-field-trigger :deep(.ant-select-disabled),
+.preview-field-trigger :deep(.ant-select-disabled .ant-select-selector) {
+  pointer-events: none;
 }
 .preview-field {
   width: var(--activity-preview-component-width);

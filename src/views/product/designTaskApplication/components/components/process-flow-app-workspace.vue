@@ -67,6 +67,8 @@ const leftPaneBeforeCollapse = ref(20)
 const rightPaneBeforeCollapse = ref(24)
 const leftCollapsed = ref(false)
 const rightCollapsed = ref(false)
+/** 用户手动展开/折叠后，不再随知识内容变化自动切换右侧面板 */
+const rightPanelManualOverride = ref(false)
 /** 右侧：设计知识 | 操作日志 | 设计流程 */
 const knowledgeRightActiveKey = ref<'design' | 'log' | 'flow'>('design')
 const minExpanded = 12
@@ -712,6 +714,7 @@ async function onNodeDetailToolbarAction(label: string, index: number) {
 async function requestNodeDetailByKey(key: string) {
   if (!key)
     return
+  rightPanelManualOverride.value = false
   const targetNode = allNodeMap.value.get(key)
   if (!targetNode)
     return
@@ -929,7 +932,6 @@ async function onParamTitleClick(payload: { paramNum?: string, paramName?: strin
   }
   finally {
     knowledgeLoading.value = false
-    syncRightPanelByKnowledgeContent()
   }
 }
 
@@ -968,9 +970,11 @@ async function requestDesignTaskBasicInfo() {
 async function onSelectTree(keys: (string | number)[]) {
   const k = String(keys?.[0] ?? '')
   selectedNodeKey.value = k
+  rightPanelManualOverride.value = false
   const targetNode = allNodeMap.value.get(k)
   if (!targetNode) {
     await requestDesignTaskBasicInfo()
+    syncRightPanelByKnowledgeContent()
     return
   }
   flowViewData.value = {}
@@ -1628,6 +1632,8 @@ function setRightPanelCollapsed(collapsed: boolean) {
 function syncRightPanelByKnowledgeContent() {
   if (knowledgeLoading.value)
     return
+  if (rightPanelManualOverride.value)
+    return
   if (isRootNodeSelected.value) {
     setRightPanelCollapsed(true)
     return
@@ -1637,6 +1643,7 @@ function syncRightPanelByKnowledgeContent() {
 }
 
 function toggleRightPanel() {
+  rightPanelManualOverride.value = true
   setRightPanelCollapsed(!rightCollapsed.value)
 }
 
@@ -1693,17 +1700,6 @@ watch(
   (k) => {
     if (k === 'log')
       void loadWorkspaceOperateLogs()
-  },
-)
-
-watch(
-  () => ({
-    loading: knowledgeLoading.value,
-    count: currentActivityParamList.value.length,
-    root: isRootNodeSelected.value,
-  }),
-  () => {
-    syncRightPanelByKnowledgeContent()
   },
 )
 
