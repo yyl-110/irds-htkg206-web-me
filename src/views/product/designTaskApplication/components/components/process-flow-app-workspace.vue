@@ -9,7 +9,7 @@ import ProcessFlowAppCheckNodePreview from './process-flow-app-check-node-previe
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse'
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务'
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台'
-// import FlowView from '@/components/flowview/index.vue'
+import FlowView from '@/components/flowview/index.vue'
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理'
 import { EpcIcon } from '@/components/icon/EpcIcon'
 import { useUserStore } from '@/store/modules/user'
@@ -1720,11 +1720,11 @@ onMounted(() => {
         <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
       </Pane>
       <Pane :size="centerPaneSize" :min-size="20" class="workspace-center" :class="[{ 'workspace-center--flow': isRootNodeSelected }]">
-        <div class="workspace-center-body wei-scrollbar" :class="[{ 'workspace-center-body--flow': isRootNodeSelected }]">
+        <div class="workspace-center-body" :class="[{ 'workspace-center-body--flow': isRootNodeSelected }]">
           <div v-if="isRootNodeSelected" class="workspace-flow-mode">
             <a-spin :spinning="flowViewLoading" class="workspace-flow-spin">
               <div class="workspace-flowview-wrap">
-                <!-- <FlowView :flow-data="flowViewData" /> -->
+                <FlowView :flow-data="flowViewData" />
               </div>
             </a-spin>
           </div>
@@ -1734,7 +1734,7 @@ onMounted(() => {
                 class="workspace-preview-scroll-row"
                 :class="{ 'workspace-preview-scroll-row--split': hasActivityImage }"
                 :style="hasActivityImage ? { '--workspace-activity-image-pane-width': `${ACTIVITY_IMAGE_PANE_WIDTH_PX}px` } : undefined">
-                <div class="workspace-preview-main" @input.capture="onPreviewContentMutated" @change.capture="onPreviewContentMutated">
+                <div class="workspace-preview-main wei-scrollbar" @input.capture="onPreviewContentMutated" @change.capture="onPreviewContentMutated">
                   <ProcessFlowAppCheckNodePreview
                   v-if="isCalcNodePreview"
                   ref="checkNodePreviewRef"
@@ -1911,11 +1911,21 @@ onMounted(() => {
 </template>
 
 <style scoped lang="less">
+@import '@/sheets/scrollbar.less';
 .workspace-page {
   width: 100%;
   height: 100%;
   background: #fff;
   overflow: hidden;
+}
+:deep(.ant-spin-nested-loading) {
+  height: 100%;
+  .ant-spin-container {
+    height: 100%;
+  }
+}
+:deep(.component-list) {
+  width: auto!important;
 }
 
 .workspace-splitpanes {
@@ -2127,6 +2137,7 @@ onMounted(() => {
 
 .workspace-preview-viewport {
   flex: 1;
+  height: 100%;
   width: 100%;
   min-height: 0;
   overflow: hidden;
@@ -2149,7 +2160,7 @@ onMounted(() => {
 
 .workspace-preview-main {
   flex: 1;
-  width: 100%;
+  width: 0;
   min-width: 0;
   max-width: 100%;
   min-height: 0;

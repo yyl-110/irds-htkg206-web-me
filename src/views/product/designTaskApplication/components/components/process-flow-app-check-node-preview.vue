@@ -472,9 +472,9 @@ defineExpose({
   overflow: visible;
   padding: 4px 16px 12px 12px;
   box-sizing: border-box;
-  --activity-preview-component-width: 270px;
+  --activity-preview-component-width: 300px;
   --activity-preview-wide-component-width: 650px;
-  --activity-preview-grid-column-gap: 150px;
+  --activity-preview-grid-column-gap: 120px;
   --activity-preview-grid-row-gap: 12px;
 }
 .param-impact-scope-entry-anchor {
@@ -509,7 +509,7 @@ defineExpose({
 }
 .component-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(var(--activity-preview-component-width), 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
   width: 100%;
@@ -535,7 +535,7 @@ defineExpose({
   cursor: pointer;
 }
 .preview-field-trigger {
-  width: var(--activity-preview-component-width);
+  width: var(--activity-preview-component-width);;
   max-width: 100%;
   cursor: pointer;
 }

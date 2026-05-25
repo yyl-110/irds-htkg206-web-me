@@ -2116,11 +2116,11 @@ defineExpose({
   overflow: hidden;
   padding: 4px 16px 20px 12px;
   box-sizing: border-box;
-  --activity-preview-component-width: 270px;
+  --activity-preview-component-width: 300px;
   --activity-preview-wide-component-width: 650px;
   --activity-preview-file-upload-width: 600px;
   --activity-preview-table-width: 700px;
-  --activity-preview-grid-column-gap: 150px;
+  --activity-preview-grid-column-gap: 120px;
   --activity-preview-grid-row-gap: 12px;
 }
 .param-impact-scope-entry-anchor {
@@ -2155,7 +2155,7 @@ defineExpose({
 }
 .component-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(var(--activity-preview-component-width), 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
   align-content: start;
@@ -2217,11 +2217,11 @@ defineExpose({
   cursor: pointer;
 }
 .preview-field {
-  width: var(--activity-preview-component-width);
+  width: 100%;
   max-width: 100%;
 }
 .preview-field-trigger {
-  width: var(--activity-preview-component-width);
+  width: 100%;
   max-width: 100%;
 }
 .component-card.full-row-item .preview-field-trigger {
