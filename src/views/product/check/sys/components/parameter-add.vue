@@ -175,7 +175,7 @@ export default defineComponent({
         </a-form-item>
         <a-form-item :label="$t('参数类型')" name="parameterType" :rules="[{ required: true, message: `${$t('请选择参数类型')}` }]">
           <a-select placeholder="请选择参数类型" v-model:value="formData.parameterType" show-search @change="onChangeFun()">
-            <a-select-option v-for="item in propTypeList" :value="item.value" :key="item.label">{{ item.label }}</a-select-option>
+            <a-select-option v-for="item in propTypeList" :value="item.value" :key="item.value">{{ item.label }}</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item :label="$t('单位名称')" v-if="formData.parameterType != '1' && formData.parameterType != '2'">

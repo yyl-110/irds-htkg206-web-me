@@ -88,6 +88,10 @@ onActivated(async () => {
   xmlString.value = '';
   const deployId = route.query?.deployId;
   flag.value = route.query?.flag || 0;
+  // 设计任务「配置」二次进入时侧栏可能 keep-alive，需补写分类缓存（首次保存会清除 categoryCalc）
+  if (Number(flag.value) === 1) {
+    localStorage.setItem('categoryCalc', '计算工具');
+  }
   /** 从设计任务列表「配置」携带的任务名称，用于流程根节点「名称」 */
   const qName = route.query?.processName;
   if (qName != null && String(qName).trim() !== '') {

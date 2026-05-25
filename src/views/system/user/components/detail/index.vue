@@ -389,7 +389,7 @@ defineExpose({ handleModalAddOrUpdate });
         <a-col :span="10">
           <a-form-item :label="$t('用户角色')" name="roleid" class="f-item">
             <a-select v-model:value="formData.roleid" mode="multiple" disabled :placeholder="$t('请选择用户角色')" show-search @change="roleidchange">
-              <a-select-option v-for="item in roleList" :key="item.label" :value="item.value">
+              <a-select-option v-for="item in roleList" :key="item.value" :value="item.value">
                 {{ item.label }}
               </a-select-option>
             </a-select>

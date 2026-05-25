@@ -1,7 +1,6 @@
 <script lang="ts">
 import { computed, defineComponent, nextTick, ref, watch } from 'vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
-import { AdminApiSystemDictData } from '@/api/tags/管理后台字典数据';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 import type { FormInstance } from 'ant-design-vue';
@@ -9,6 +8,7 @@ import type { UploadChangeParam } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 import UploadModal from '@/views/product/components/upload-modal.vue';
 import ActivityTemplatePageFields from './activity-template-page-fields.vue';
+import { useActivityPageTypeDict } from './useActivityPageTypeDict';
 
 export default defineComponent({
   name: 'NoticeData',
@@ -20,22 +20,22 @@ export default defineComponent({
   },
   setup(props, context) {
     /** 弹窗状态 */
-
-    const visible = computed(() => {
-      return props.modalVisible;
+    const visible = computed({
+      get: () => props.modalVisible,
+      set: (val: boolean) => {
+        if (!val) context.emit('close');
+      },
     });
+
+    const { displayPropTypeList, loadPageTypeDict, isTemplatePageType, selectPopupContainer } = useActivityPageTypeDict();
+    const pageTypeSelectRef = ref<{ blur?: () => void } | null>(null);
+    const templateFieldsVisible = ref(false);
     const formRef = ref<FormInstance>();
     const userStore = useUserStore();
     const id = ref(0);
     const remark = ref('');
     const categoryid = ref('');
     const unitId = ref<any>();
-    const buttonOptions = ref([
-      { label: '再生模型', value: '再生模型' },
-      { label: '导出报告', value: '导出报告' },
-      { label: '导入参数', value: '导入参数' },
-      { label: '导出参数', value: '导出参数' },
-    ]);
     const excelFileList = ref<any[]>([]);
     const wordFileList = ref<any[]>([]);
     const openExcelUploadModal = ref(false);
@@ -47,67 +47,30 @@ export default defineComponent({
       pageType: '1',
       groupName: '',
       url: '',
-      button: [] as string[],
       excelId: '',
       wordId: '',
       auditProcess: '',
       isSynergy: '0',
       tempNum: '',
     });
-    const propTypeList = ref<any>([]);
-    const isTestEnv = String(import.meta.env.VITE_BASE_URL_TEST ?? '')
-      .replace(/['"]/g, '')
-      .toLowerCase() === 'true';
-    const templatePageTypeOption = { label: '模板配置页面', value: '4' };
-
-    const isTemplateConfigPageLabel = (label: unknown) => {
-      const text = String(label ?? '').trim();
-      return text === '模板配置页面' || text.includes('模板配置');
-    };
-
-    /** 「模板配置页面」固定排在第二项 */
-    const orderPageTypeList = (list: any[]) => {
-      const templateItem = list.find((item: any) => isTemplateConfigPageLabel(item.label));
-      const others = list.filter((item: any) => !isTemplateConfigPageLabel(item.label));
-      if (!templateItem) return others;
-      if (others.length === 0) return [templateItem];
-      const ordered = [...others];
-      ordered.splice(1, 0, templateItem);
-      return ordered;
-    };
-
-    /** 测试环境才展示「模板配置页面」 */
-    const displayPropTypeList = computed(() => {
-      const list = (propTypeList.value || []).map((item: any) => ({
-        ...item,
-        value: String(item.value ?? ''),
-      }));
-      const hasTemplate = list.some((item: any) => isTemplateConfigPageLabel(item.label));
-      if (isTestEnv) {
-        const withTemplate = hasTemplate ? list : [...list, templatePageTypeOption];
-        return orderPageTypeList(withTemplate);
-      }
-      return list.filter((item: any) => !isTemplateConfigPageLabel(item.label));
-    });
-
-    const isTemplatePageType = (pageType: unknown) => {
-      const pt = String(pageType ?? '');
-      return displayPropTypeList.value.some((item: any) => String(item.value) === pt && isTemplateConfigPageLabel(item.label));
-    };
-
     const showTemplatePageFields = computed(() => isTemplatePageType(formData.value.pageType));
 
-    /** 设计配置页面且勾选「导出报告」时，展示与计算页一致的 Word 模板上传 */
-    const showDesignPageWordUpload = computed(() => {
-      const pt = String(formData.value.pageType ?? '');
-      const btn = formData.value.button || [];
-      return pt === '1' && btn.includes('导出报告');
+    function onPageTypeChange() {
+      nextTick(() => pageTypeSelectRef.value?.blur?.());
+    }
+
+    watch(showTemplatePageFields, show => {
+      if (!show) {
+        templateFieldsVisible.value = false;
+        return;
+      }
+      nextTick(() => {
+        templateFieldsVisible.value = true;
+      });
     });
 
     /** handle close */
     const handleClose = () => {
-      // 通过事件传过去
-      visible.value = false;
       context.emit('close');
     };
 
@@ -122,9 +85,10 @@ export default defineComponent({
       data.groupName = formData.value.groupName;
       data.remark = remark.value;
       data.treeId = categoryid.value;
-      data.button = (formData.value.button || []).join(',');
       data.calculateFileId = formData.value.excelId;
-      data.reportFileId = formData.value.wordId;
+      if (formData.value.pageType === '2') {
+        data.reportFileId = formData.value.wordId;
+      }
       data.url = formData.value.url;
       if (isTemplatePageType(formData.value.pageType)) {
         data.auditProcess = formData.value.auditProcess;
@@ -146,7 +110,6 @@ export default defineComponent({
       formData.value.pageType = '1';
       formData.value.url = '';
       formData.value.groupName = '';
-      formData.value.button = [];
       formData.value.excelId = '';
       formData.value.wordId = '';
       formData.value.auditProcess = '';
@@ -156,24 +119,15 @@ export default defineComponent({
       wordFileList.value = [];
       remark.value = '';
       categoryid.value = categoryidStr;
+      templateFieldsVisible.value = false;
       nextTick(() => {
         formRef.value?.resetFields();
       });
-      //获取参数字典
-      getUnitParent();
+      void loadPageTypeDict();
     };
     function customGetContainer() {
       // 返回自定义挂载节点
       return document.querySelector('.activity-add');
-    }
-
-    async function getUnitParent() {
-      const params: any = {};
-      params.dictType = 'page_type';
-      params.pageNo = 1;
-      params.pageSize = 100;
-      const res = await AdminApiSystemDictData.getDictTypePage(params);
-      propTypeList.value = res.data.data?.list;
     }
 
     function isExcelFile(fileName = '') {
@@ -307,13 +261,8 @@ export default defineComponent({
     }
 
     watch(
-      () => [String(formData.value.pageType ?? ''), [...(formData.value.button || [])].join('|')],
-      () => {
-        const pt = String(formData.value.pageType ?? '');
-        const hasExportReport = (formData.value.button || []).includes('导出报告');
-        if (pt === '1' && !hasExportReport) {
-          clearWordFile();
-        }
+      () => String(formData.value.pageType ?? ''),
+      pt => {
         if (!isTemplatePageType(pt)) {
           clearTemplatePageFields();
         }
@@ -326,16 +275,17 @@ export default defineComponent({
       infoReload,
       handleClose,
       savePageInfo,
-      getUnitParent,
       formData,
       formRef,
       id,
-      propTypeList,
       displayPropTypeList,
+      selectPopupContainer,
+      pageTypeSelectRef,
+      onPageTypeChange,
+      templateFieldsVisible,
       remark,
       unitId,
       categoryid,
-      buttonOptions,
       excelFileList,
       wordFileList,
       openExcelUploadModal,
@@ -352,7 +302,6 @@ export default defineComponent({
       handleWordUploadConfirm,
       clearExcelFile,
       clearWordFile,
-      showDesignPageWordUpload,
       showTemplatePageFields,
     };
   },
@@ -373,33 +322,33 @@ export default defineComponent({
       @cancel="handleClose">
       <a-form ref="formRef" :model="formData" style="margin-top: 20px" :label-col="{ style: { width: '100px' } }">
         <a-form-item :label="$t('页面名称')" name="pageName" :rules="[{ required: true, message: `${$t('请输入页面名称')}` }]">
-          <a-input v-model:value="formData.pageName" placeholder="请输入页面名称" />
+          <a-input v-model:value="formData.pageName" placeholder="请输入页面名称" allowClear />
         </a-form-item>
         <a-form-item :label="$t('页面类型')" name="pageType" :rules="[{ required: true, message: `${$t('请选择页面类型')}` }]">
-          <a-select placeholder="请选择页面类型" v-model:value="formData.pageType" show-search>
-            <a-select-option v-for="item in displayPropTypeList" :value="item.value" :key="item.label">{{ item.label }}</a-select-option>
-          </a-select>
+          <a-select
+            ref="pageTypeSelectRef"
+            v-model:value="formData.pageType"
+            placeholder="请选择页面类型"
+            show-search
+            allowClear
+            :options="displayPropTypeList"
+            option-filter-prop="label"
+            :get-popup-container="selectPopupContainer"
+            @change="onPageTypeChange" />
         </a-form-item>
         <a-form-item :label="$t('页面URL')" name="url" v-if="formData.pageType == '3'">
-          <a-input v-model:value="formData.url" placeholder="请输入页面URL" />
+          <a-input v-model:value="formData.url" placeholder="请输入页面URL" allowClear />
         </a-form-item>
         <ActivityTemplatePageFields
-          v-if="showTemplatePageFields"
+          v-if="templateFieldsVisible"
           v-model:audit-process="formData.auditProcess"
           v-model:is-synergy="formData.isSynergy"
           v-model:temp-num="formData.tempNum" />
         <a-form-item :label="$t('组名称')" name="groupName">
-          <a-input v-model:value="formData.groupName" placeholder="请输入组名称" />
+          <a-input v-model:value="formData.groupName" placeholder="请输入组名称" allowClear />
         </a-form-item>
         <a-form-item :label="$t('备注')">
-          <a-textarea type="textarea" style="height: 100px" v-model:value="remark" placeholder="请输入备注" name="remark" />
-        </a-form-item>
-        <a-form-item :label="$t('页面功能按钮')" name="button" v-if="formData.pageType == '1'">
-          <a-checkbox-group v-model:value="formData.button" :options="buttonOptions" />
-        </a-form-item>
-        <a-form-item v-if="showDesignPageWordUpload" :label="$t('上传word文件')" name="wordId">
-          <a-button type="primary" @click="openWordUploadModal = true">上传Word文件</a-button>
-          <span style="margin-left: 8px">{{ wordFileList[0]?.name || '未上传文件' }}</span>
+          <a-textarea type="textarea" style="height: 100px" v-model:value="remark" placeholder="请输入备注" name="remark" allowClear />
         </a-form-item>
         <a-form-item :label="$t('上传excel文件')" name="excelId" v-if="formData.pageType == '2'">
           <a-button type="primary" @click="openExcelUploadModal = true">上传Excel文件</a-button>

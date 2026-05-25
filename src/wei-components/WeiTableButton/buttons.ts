@@ -6,6 +6,7 @@ import type { RouteMeta } from 'vue-router'
  * @description 在此处统一所有类型按钮的 icon
  */
 export const ButtonIcons: { [label: string]: RouteMeta['icon'] } = {
+  新建: PlusOutlined,
   添加: PlusOutlined,
   删除: CloseOutlined,
   导入: ImportOutlined,

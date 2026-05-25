@@ -1728,9 +1728,11 @@ defineExpose({
 
 <template>
   <div class="activity-preview-canvas">
-    <a-tooltip title="参数影响范围" placement="left">
-      <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
-    </a-tooltip>
+    <div class="param-impact-scope-entry-anchor">
+      <a-tooltip title="参数影响范围" placement="left">
+        <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
+      </a-tooltip>
+    </div>
     <a-modal v-model:visible="impactEvalModalVisible" title="影响评估" width="920px" :footer="null" @cancel="onImpactEvalModalClose">
       <div class="impact-eval-modal-content">
         <div class="impact-eval-toolbar">
@@ -1767,7 +1769,11 @@ defineExpose({
         v-show="isPreviewConstraintVisible(item)"
         :key="item.id || `${item.componentType}-${index}`"
         class="component-card"
-        :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
+        :class="{
+          'full-row-item': isFullRowComponent(item.componentType),
+          'component-card--textarea': item.componentType === 'TEXTAREA',
+          'component-card--rich-text': item.componentType === 'RICH_TEXT',
+        }">
         <div class="component-preview-wrap">
           <div
             v-if="
@@ -1793,7 +1799,7 @@ defineExpose({
             <div v-if="item.customProps?.hasDivider" class="title-divider-line"></div>
           </template>
 
-          <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
+          <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <a-input
               :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :placeholder="item.customProps?.placeholder || '请输入'"
@@ -1804,22 +1810,24 @@ defineExpose({
               @blur="() => onPreviewInputBlur(item, index)" />
             <span v-if="getInputValueRangeHint(item)" class="value-range-hint-chip">{{ getInputValueRangeHint(item) }}</span>
           </div>
-          <a-textarea
-            v-else-if="item.componentType === 'TEXTAREA'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :rows="item.customProps?.rows || 4"
-            :placeholder="item.customProps?.placeholder || '请输入'"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
-          <a-date-picker
-            v-else-if="item.componentType === 'DATE'"
-            :value="previewDateDisplay(item, index)"
-            :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
-            :format="normalizeDateFormatForPicker(item.customProps?.format)"
-            :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
-            :disabled="isOutputIoType(item)"
-            class="preview-field"
-            @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
+          <div v-else-if="item.componentType === 'TEXTAREA'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-textarea
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :rows="item.customProps?.rows || 4"
+              :placeholder="item.customProps?.placeholder || '请输入'"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
+          <div v-else-if="item.componentType === 'DATE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-date-picker
+              :value="previewDateDisplay(item, index)"
+              :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
+              :format="normalizeDateFormatForPicker(item.customProps?.format)"
+              :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
+              :disabled="isOutputIoType(item)"
+              class="preview-field"
+              @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
+          </div>
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
 
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
@@ -1830,41 +1838,47 @@ defineExpose({
               </a-tooltip>
             </div>
             <div class="data-view-preview-row">
-              <a-input
-                v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-                placeholder="请选择参数"
-                disabled
-                class="data-view-preview-input browse-adjoined-input" />
+              <div class="preview-field-trigger data-view-preview-input-wrap" @click.capture="onParamTitleClick(item)">
+                <a-input
+                  v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+                  placeholder="请选择参数"
+                  disabled
+                  class="data-view-preview-input browse-adjoined-input" />
+              </div>
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
             </div>
           </div>
 
-          <a-select
-            v-else-if="item.componentType === 'SELECT'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
-            placeholder="请选择"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
-          <a-auto-complete
-            v-else-if="item.componentType === 'AUTO_COMPLETE'"
-            v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
-            :options="getSelectOptions(item).map(v => ({ value: v }))"
-            placeholder="请选择或输入"
-            :disabled="isOutputIoType(item)"
-            class="preview-field" />
+          <div v-else-if="item.componentType === 'SELECT'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-select
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
+              placeholder="请选择"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
+          <div v-else-if="item.componentType === 'AUTO_COMPLETE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+            <a-auto-complete
+              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :options="getSelectOptions(item).map(v => ({ value: v }))"
+              placeholder="请选择或输入"
+              :disabled="isOutputIoType(item)"
+              class="preview-field" />
+          </div>
 
           <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
             <div class="component-title">
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '单选项' }}</span>
             </div>
             <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
-            <a-radio-group v-else v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
-              <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">{{ opt }}</a-radio>
-            </a-radio-group>
+            <div v-else class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+              <a-radio-group v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
+                <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">{{ opt }}</a-radio>
+              </a-radio-group>
+            </div>
           </div>
 
-          <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap">
+          <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <CkeditorPlugin :ref="(inst: any) => bindRichTextEditorRef(item, index, inst)" height="180" :disabled="isOutputIoType(item)" />
           </div>
 
@@ -1872,19 +1886,21 @@ defineExpose({
             <div class="component-title">
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '文件上传' }}</span>
             </div>
-            <a-upload-dragger
-              :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
-              :disabled="isOutputIoType(item)"
-              :multiple="false"
-              :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
-              @preview="(file: any) => onPreviewFileDownload(file)"
-              @change="(info: any) => onPreviewFileChange(item, index, info)">
-              <p class="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p class="ant-upload-text">点击或拖拽上传文件</p>
-              <p class="ant-upload-hint">支持单文件上传，示例预览模式</p>
-            </a-upload-dragger>
+            <div class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+              <a-upload-dragger
+                :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
+                :disabled="isOutputIoType(item)"
+                :multiple="false"
+                :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
+                @preview="(file: any) => onPreviewFileDownload(file)"
+                @change="(info: any) => onPreviewFileChange(item, index, info)">
+                <p class="ant-upload-drag-icon">
+                  <InboxOutlined />
+                </p>
+                <p class="ant-upload-text">点击或拖拽上传文件</p>
+                <p class="ant-upload-hint">支持单文件上传，示例预览模式</p>
+              </a-upload-dragger>
+            </div>
           </div>
 
           <div
@@ -2093,30 +2109,34 @@ defineExpose({
 }
 .activity-preview-canvas {
   position: relative;
-  height: 100%;
-  flex: 1;
-  overflow: visible;
-  padding: 12px 16px;
-  padding-bottom: 20px;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  height: auto;
+  overflow: hidden;
+  padding: 4px 16px 20px 12px;
   box-sizing: border-box;
-  scrollbar-gutter: stable;
   --activity-preview-component-width: 270px;
   --activity-preview-wide-component-width: 650px;
   --activity-preview-file-upload-width: 600px;
   --activity-preview-table-width: 700px;
   --activity-preview-grid-column-gap: 150px;
-  --activity-preview-grid-row-gap: 32px;
+  --activity-preview-grid-row-gap: 12px;
+}
+.param-impact-scope-entry-anchor {
+  position: absolute;
+  top: 4px;
+  right: 86px;
+  z-index: 5;
+  line-height: 1;
 }
 .param-impact-scope-entry {
-  position: absolute;
-  top: 8px;
-  right: -10px;
-  z-index: 5;
   color: #1677ff;
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
+  white-space: nowrap;
 }
 .impact-eval-modal-content {
   color: #595959;
@@ -2135,20 +2155,49 @@ defineExpose({
 }
 .component-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
-  justify-content: start;
-  width: max-content;
-  min-width: 100%;
+  align-content: start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .component-card {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   border: none;
   border-radius: 4px;
-  padding: 6px 0;
+  padding: 2px 0;
+  box-sizing: border-box;
+}
+.component-card--textarea:focus-within,
+.component-card--rich-text:focus-within {
+  z-index: 2;
+}
+.component-list > .component-card:first-child {
+  padding-top: 0;
 }
 .component-card.full-row-item {
   grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
+}
+.component-card.full-row-item .preview-field,
+.component-card.full-row-item :deep(.ant-input),
+.component-card.full-row-item :deep(.ant-input-affix-wrapper),
+.component-card.full-row-item :deep(.ant-select),
+.component-card.full-row-item :deep(.ant-picker) {
+  width: 100%;
+  max-width: 100%;
+}
+.component-card.full-row-item .rich-preview-wrap,
+.component-card.full-row-item .file-preview-wrap,
+.component-card.full-row-item .radio-preview-wrap,
+.component-card.full-row-item .fixed-table-preview-scroll {
+  width: 100%;
+  max-width: 100%;
 }
 .component-title {
   font-size: 13px;
@@ -2171,17 +2220,37 @@ defineExpose({
   width: var(--activity-preview-component-width);
   max-width: 100%;
 }
+.preview-field-trigger {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
+}
+.component-card.full-row-item .preview-field-trigger {
+  width: 100%;
+}
+.preview-field-trigger :deep(.ant-input[disabled]),
+.preview-field-trigger :deep(.ant-input-affix-wrapper-disabled),
+.preview-field-trigger :deep(.ant-select-disabled),
+.preview-field-trigger :deep(.ant-select-disabled .ant-select-selector) {
+  pointer-events: none;
+}
 .title-preview-text {
-  font-size: 18px;
+  font-size: 14px;
   color: #222;
   font-weight: 700;
   margin-bottom: 6px;
+  width: 100%;
 }
 .title-divider-line,
 .divider-preview-line {
   height: 1px;
   background: #d9d9d9;
   width: 100%;
+  max-width: 100%;
+}
+.component-preview-wrap {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .data-view-preview-row {
   display: flex;
@@ -2219,10 +2288,35 @@ defineExpose({
   border-color: #ff4d4f !important;
 }
 .radio-preview-wrap,
-.rich-preview-wrap,
 .fixed-table-preview {
   width: var(--activity-preview-wide-component-width);
   max-width: 100%;
+}
+.rich-preview-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  contain: layout;
+}
+.rich-preview-wrap :deep(#ck-editer),
+.rich-preview-wrap :deep(.ck.ck-editor) {
+  width: 100% !important;
+  max-width: 100%;
+  overflow: hidden;
+}
+.rich-preview-wrap :deep(.ck.ck-editor__main) {
+  overflow: hidden;
+}
+.rich-preview-wrap :deep(.ck.ck-editor__editable_inline) {
+  overflow: auto !important;
+  resize: vertical;
+  max-height: min(480px, 50vh);
+}
+.component-card--textarea :deep(textarea.ant-input) {
+  resize: vertical;
+  overflow: auto;
+  max-height: min(400px, 45vh);
+  vertical-align: top;
 }
 .file-preview-wrap {
   width: var(--activity-preview-file-upload-width);

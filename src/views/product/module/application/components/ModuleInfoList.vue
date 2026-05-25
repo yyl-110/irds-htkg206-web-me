@@ -1477,7 +1477,7 @@ defineExpose({ initData, selectAllModuleInfo })
           <div class="btn-box-right">
             <div class="btn-item" @click="handleAddOrUpdate" v-if="permissionTypes == 3">
               <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
-              添加数据
+              新建数据
             </div>
             <div
               :class="{ 'btn-item-select': btnType, 'btn-item': !btnType }"

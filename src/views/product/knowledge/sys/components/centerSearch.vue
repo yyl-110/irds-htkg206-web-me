@@ -1,7 +1,7 @@
 <template>
   <div class="centerSearch" v-dragModal>
     <draggable-modal :getContainer="customGetContainer" :maskClosable="false" class="layout"
-      :visible="addDataDialogVisible" title="添加数据" width="70%" @cancel="handleClose" height="90%" @ok="confirmDialog">
+      :visible="addDataDialogVisible" title="新建数据" width="70%" @cancel="handleClose" height="90%" @ok="confirmDialog">
       <div class="knowledge-container flex flex-col h-full">
         <a-tabs v-model:active-key="activeKey" class="elTabs" @change="handleClick" size="small">
           <a-tab-pane tab="文档" :key="1" />

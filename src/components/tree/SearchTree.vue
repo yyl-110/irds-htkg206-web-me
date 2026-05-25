@@ -181,7 +181,7 @@ function saveEditNode(item: any) {}
 function addTree() {
   pretreatment.value = [];
   if (checkedNode()) {
-    title.value = '添加';
+    title.value = '新建';
     if (props.treeData?.length === 0) {
       emit('getNodeAddData', '');
     } else {

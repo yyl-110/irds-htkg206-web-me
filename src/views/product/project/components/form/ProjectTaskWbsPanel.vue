@@ -602,7 +602,7 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
       resizable: true,
       customRender: ({ record }) => computeTaskDurationDays(record) ?? record.durationWorkdays ?? '-',
     },
-    { title: '裁剪状态', dataIndex: 'required', key: 'tailoringStatus', width: 96, align: 'center', resizable: true },
+    { title: '裁剪', key: 'tailoringStatus', width: 72, align: 'center', resizable: true },
     { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
     { title: '状态', key: 'status', dataIndex: 'status', width: 90, align: 'center', resizable: true },
@@ -704,13 +704,13 @@ async function onTaskSuspendConfirm(record: WbsTaskNode) {
     return;
   }
   if (!canShowRowSuspend(record)) {
-    message.warning('仅上级分类负责人可删除');
+    message.warning('仅上级分类负责人可裁剪');
     return;
   }
   wbsOpBusyRowId.value = record.id;
   try {
     const res = await AdminApiProjectTemp.projectWbsSuspendRow({ id: String(record.id) });
-    message.success('已标记删除');
+    message.success('已裁剪');
     await fetchProjectWbsTree();
     await refreshWbsParamPendingHints();
   } catch (e: unknown) {
@@ -1166,12 +1166,32 @@ function canShowTaskRevokePublish(record: WbsTaskNode): boolean {
   );
 }
 
-/** 任务/分类行：未删除且上级分类负责人可挂起（裁剪删除） */
+/** 子树内是否存在已开始或已有进度的节点（用于分类裁剪前置校验） */
+function subtreeHasProgressOrStarted(node: WbsTaskNode): boolean {
+  if (Number(node.progress) > 0) return true;
+  if (Number(node.publishStatus) === 1) return true;
+  if (Number(node.type) === 2 && !isWbsTaskNotStarted(node)) return true;
+  if (node.children?.length) {
+    for (const child of node.children) {
+      if (subtreeHasProgressOrStarted(child)) return true;
+    }
+  }
+  return false;
+}
+
+/** 分类节点：未开始且无下级进度时才允许裁剪 */
+function canSuspendCategoryNode(record: WbsTaskNode): boolean {
+  if (Number(record.type) !== 1 || isWbsRoot(record)) return false;
+  if (record.publishStatus === 1 || record.assignStatus === 'PUBLISHED') return false;
+  return !subtreeHasProgressOrStarted(record);
+}
+
+/** 任务/分类行：未裁剪且上级分类负责人可挂起 */
 function canShowRowSuspend(record: WbsTaskNode): boolean {
   if (isRowRemoved(record)) return false;
   const t = Number(record.type);
   if (t === 1) {
-    if (isWbsRoot(record)) return false;
+    if (!canSuspendCategoryNode(record)) return false;
     return isUpstreamCategoryManager(record);
   }
   if (t === 2) {
@@ -1187,34 +1207,49 @@ function canShowRowRestore(record: WbsTaskNode): boolean {
   return (t === 1 || t === 2) && isUpstreamCategoryManager(record);
 }
 
-/** 裁剪状态列：模板标记为可裁剪（requiredFlag=1 / 允许）时展示开关，用 Y/N 表示未删/已删 */
-function canShowTailoringSwitch(record: WbsTaskNode): boolean {
+/** 裁剪列：模板 requiredFlag=1 时展示裁剪/恢复图标 */
+function canShowTailoringAction(record: WbsTaskNode): boolean {
   if (record.required !== true) return false;
   const t = Number(record.type);
   return t === 1 || t === 2;
 }
 
-function isTailoringSwitchDisabled(record: WbsTaskNode): boolean {
+function isTailoringCropDisabled(record: WbsTaskNode): boolean {
   if (wbsOpBusyRowId.value === record.id) return true;
   if (isWbsTaskCompletedReadonly(record)) return true;
-  return isRowRemoved(record) ? !canShowRowRestore(record) : !canShowRowSuspend(record);
+  return !canShowRowSuspend(record);
+}
+
+function tailoringCropDisabledTip(record: WbsTaskNode): string {
+  if (Number(record.type) === 1) {
+    if (subtreeHasProgressOrStarted(record)) {
+      return '分类已开始或下级有进度，不可裁剪';
+    }
+    if (!isUpstreamCategoryManager(record)) {
+      return '仅上级分类负责人可裁剪';
+    }
+  }
+  if (!isUpstreamCategoryManager(record)) {
+    return '仅上级分类负责人可裁剪';
+  }
+  return '当前不可裁剪';
 }
 
 function tailoringSuspendConfirmTitle(record: WbsTaskNode): string {
-  return Number(record.type) === 1
-    ? '删除此分类节点？节点将置灰展示且可恢复。'
-    : '删除此任务行？任务行将置灰展示且可恢复，相关工作台待办会取消。';
+  const hasChildren = !!(record.children?.length);
+  if (Number(record.type) === 1) {
+    return hasChildren
+      ? '裁剪此分类节点？将同时裁剪其全部下级节点，置灰展示且可恢复。'
+      : '裁剪此分类节点？节点将置灰展示且可恢复。';
+  }
+  return '裁剪此任务行？任务行将置灰展示且可恢复，相关工作台待办会取消。';
 }
 
-function onTailoringSwitchChange(record: WbsTaskNode, checked: boolean) {
-  if (isTailoringSwitchDisabled(record)) return;
-  if (checked) {
-    void onTaskRestore(record);
-    return;
-  }
+function onTailoringCropClick(record: WbsTaskNode) {
+  if (isTailoringCropDisabled(record)) return;
   Modal.confirm({
     title: tailoringSuspendConfirmTitle(record),
-    okText: '删除',
+    okText: '裁剪',
     cancelText: '取消',
     okType: 'danger',
     onOk: () => onTaskSuspendConfirm(record),
@@ -1274,8 +1309,8 @@ function wbsTableCustomRow(record: WbsTaskNode) {
         el.closest('.ant-table-row-expand-icon') ||
         el.closest('.task-wbs-ops-links') ||
         el.closest('.task-wbs-ops__link') ||
-        el.closest('.task-wbs-tailoring-switch-wrap') ||
-        el.closest('.ant-switch') ||
+        el.closest('.task-wbs-tailoring-cell') ||
+        el.closest('.task-wbs-tailoring-emoji') ||
         el.closest('button') ||
         el.closest('a[href]') ||
         el.closest('.ant-picker') ||
@@ -2126,18 +2161,40 @@ watch(ganttCollapsed, () => {
             </div>
           </template>
           <template v-else-if="column.key === 'tailoringStatus'">
-            <span
-              v-if="canShowTailoringSwitch(record)"
-              class="task-wbs-tailoring-switch-wrap"
+            <div
+              v-if="canShowTailoringAction(record)"
+              class="task-wbs-tailoring-cell"
               @click.stop>
-              <a-switch
-                :checked="!isRowRemoved(record)"
-                :disabled="isTailoringSwitchDisabled(record)"
-                class="task-wbs-tailoring-switch"
-                checked-children="Y"
-                un-checked-children="N"
-                @change="onTailoringSwitchChange(record, $event)" />
-            </span>
+              <a-tooltip
+                v-if="!isRowRemoved(record)"
+                :title="isTailoringCropDisabled(record) ? tailoringCropDisabledTip(record) : '裁剪'">
+                <span
+                  class="task-wbs-tailoring-emoji task-wbs-tailoring-emoji--crop"
+                  :class="{
+                    'is-disabled': isTailoringCropDisabled(record),
+                    'is-loading': wbsOpBusyRowId === record.id,
+                  }"
+                  role="button"
+                  tabindex="0"
+                  aria-label="裁剪"
+                  @click.stop="!isTailoringCropDisabled(record) && wbsOpBusyRowId !== record.id && onTailoringCropClick(record)"
+                  @keydown.enter.prevent="!isTailoringCropDisabled(record) && wbsOpBusyRowId !== record.id && onTailoringCropClick(record)">
+                  ✂️
+                </span>
+              </a-tooltip>
+              <a-tooltip v-else-if="canShowRowRestore(record)" title="恢复裁剪">
+                <span
+                  class="task-wbs-tailoring-emoji task-wbs-tailoring-emoji--restore"
+                  :class="{ 'is-loading': wbsOpBusyRowId === record.id }"
+                  role="button"
+                  tabindex="0"
+                  aria-label="恢复裁剪"
+                  @click.stop="wbsOpBusyRowId !== record.id && onTaskRestore(record)"
+                  @keydown.enter.prevent="wbsOpBusyRowId !== record.id && onTaskRestore(record)">
+                  ↩️
+                </span>
+              </a-tooltip>
+            </div>
           </template>
           <template v-else-if="column.key === 'resource'">
             <div class="task-wbs-responsible-cell">
@@ -2296,8 +2353,8 @@ watch(ganttCollapsed, () => {
           </div>
         </div>
         <template #footer>
-          <a-button @click="closeResponsiblePicker">取消</a-button>
           <a-button type="primary" @click="confirmResponsiblePicker">确定</a-button>
+          <a-button @click="closeResponsiblePicker">取消</a-button>
         </template>
       </a-modal>
 
@@ -2919,22 +2976,49 @@ watch(ganttCollapsed, () => {
   color: #ff4d4f;
 }
 
-.task-wbs-tailoring-switch-wrap {
+.task-wbs-tailoring-cell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   position: relative;
   z-index: 1;
+  min-height: 24px;
 }
 
-.project-task-wbs-table .task-wbs-tailoring-switch:deep(.ant-switch-inner) {
-  font-size: 12px;
-  line-height: 18px;
+.task-wbs-tailoring-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  font-size: 17px;
+  line-height: 1;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, transform 0.15s, opacity 0.2s;
 }
 
-.project-task-wbs-table .task-wbs-tailoring-switch:deep(.ant-switch-inner-checked),
-.project-task-wbs-table .task-wbs-tailoring-switch:deep(.ant-switch-inner-unchecked) {
-  font-size: 12px;
+.task-wbs-tailoring-emoji--crop:not(.is-disabled):not(.is-loading):hover {
+  background: rgba(22, 119, 255, 0.1);
+  transform: scale(1.12);
+}
+
+.task-wbs-tailoring-emoji--crop.is-disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+
+.task-wbs-tailoring-emoji--restore:not(.is-loading):hover {
+  background: rgba(82, 196, 26, 0.1);
+  transform: scale(1.08);
+}
+
+.task-wbs-tailoring-emoji.is-loading {
+  opacity: 0.45;
+  cursor: wait;
+  pointer-events: none;
 }
 
 .task-wbs-status-cell {

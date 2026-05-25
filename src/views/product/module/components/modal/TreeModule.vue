@@ -169,7 +169,7 @@ function addTreedata() {
   if (selectedNode.value.id) {
     parentNodeTitle.value = selectedNode.value.categoryName;
     AddDialogVisible.value = true;
-    DataTitle.value = '添加数据';
+    DataTitle.value = '新建数据';
     nodeName.value = '';
   } else {
     message.warning('请先选择节点！');
@@ -281,16 +281,16 @@ function delTreedata() {
 function confirm() {
   console.log(selectedNode.value);
   const params = {
-    id: DataTitle.value == '添加数据' ? '' : selectedNode.value.id,
+    id: DataTitle.value == '新建数据' ? '' : selectedNode.value.id,
     categoryName: nodeName.value,
     categoryType: selectedNode.value?.parentId == 0 ? '1' : '2',
     menuId: selectedNode.value.menuId,
-    parentId: DataTitle.value == '添加数据' ? selectedNode.value.id : selectedNode.value.parentId, // 父节点
+    parentId: DataTitle.value == '新建数据' ? selectedNode.value.id : selectedNode.value.parentId, // 父节点
     allowAuth: 0,
     allowDelete: 0,
     creator: userStore.getUser.id,
   };
-  if (DataTitle.value == '添加数据') {
+  if (DataTitle.value == '新建数据') {
     AdminApiSystemProduct.addEmptyNodetoManagement(params).then(res => {
       if (res && res.data.code == 200) {
         updateMenu();

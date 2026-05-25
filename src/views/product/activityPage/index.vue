@@ -214,7 +214,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'treeName',
     align: 'left',
     resizable: true,
-    width: 180,
+    width: 160,
   },
   ...(isTestEnv ? [synergyColumn] : []),
   {
@@ -225,22 +225,14 @@ const columns = ref<TableColumnType<Menus>[]>([
     resizable: true,
     width: 130,
   },
-  {
-    title: WeiI18n.$t('共享人'),
-    dataIndex: 'sharedUserNames',
-    key: 'sharedUserNames',
-    align: 'left',
-    resizable: true,
-    ellipsis: true,
-    width: 160,
-  },
+  
   {
     title: WeiI18n.$t('备注'),
     dataIndex: 'remark',
     key: 'remark',
     align: 'left',
     resizable: true,
-    width: 180,
+    width: 150,
   },
   {
     title: WeiI18n.$t('创建时间'),
@@ -248,7 +240,25 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'createTime',
     align: 'center',
     resizable: true,
-    width: 230,
+    width: 130,
+  },
+  {
+    title: WeiI18n.$t('创建人'),
+    dataIndex: 'creatorName',
+    key: 'creatorName',
+    align: 'center',
+    resizable: true,
+    ellipsis: true,
+    width: 120,
+  },
+  {
+    title: WeiI18n.$t('共享人'),
+    dataIndex: 'sharedUserNames',
+    key: 'sharedUserNames',
+    align: 'left',
+    resizable: true,
+    ellipsis: true,
+    width: 140,
   },
   {
     title: WeiI18n.$t('页面知识'),
@@ -256,7 +266,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     key: 'knowledge',
     align: 'center',
     resizable: false,
-    width: 180,
+    width: 100,
   },
   {
     title: WeiI18n.t('操作').value,
@@ -1200,7 +1210,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                   </a-button>
                   <a-button type="primary" @click="handleAddOrUpdate(undefined)">
                     <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-                    {{ $t('添加') }}
+                    {{ $t('新建') }}
                   </a-button>
                   <!--删除按钮（批量删除需二次确认）-->
                   <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(undefined)">
@@ -1312,6 +1322,9 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                   </template>
                   <template v-else-if="column.dataIndex === 'sharedUserNames'">
                     <span>{{ record.sharedUserNames || '—' }}</span>
+                  </template>
+                  <template v-else-if="column.dataIndex === 'creatorName'">
+                    <span>{{ record.creatorName || '—' }}</span>
                   </template>
                   <template v-else-if="column.dataIndex === 'pageType'">
                     <span v-if="record.pageType === '1'">{{ $t('设计配置页面') }}</span>

@@ -457,16 +457,23 @@ const createNewDiagramNew = async xml => {
   }
 };
 
+/** 设计任务库「配置」入口（query.flag=1 或携带 taskId），不依赖流程分类选择 */
+const isDesignTaskConfigEntry = () => {
+  if (Number(route.query?.flag) === 1 || Number(props.flag) === 1) return true;
+  return Boolean(String(props.taskId || route.query?.taskId || '').trim());
+};
+
 const saveXML = async () => {
-  const categoryLocal = localStorage.getItem('categoryCalc');
-  const routeTag = route.query.tag;
-  if (routeTag && routeTag == 1) {
-    if (!flowCategory.value) {
-      message.warning('请选择流程分类');
-      return;
-    }
-  } else {
-    if (!categoryLocal) {
+  const designTaskEntry = isDesignTaskConfigEntry();
+  if (!designTaskEntry) {
+    const categoryLocal = localStorage.getItem('categoryCalc');
+    const routeTag = route.query.tag;
+    if (routeTag && routeTag == 1) {
+      if (!flowCategory.value) {
+        message.warning('请选择流程分类');
+        return;
+      }
+    } else if (!categoryLocal) {
       message.warning('请选择流程分类');
       return;
     }
@@ -481,7 +488,9 @@ const saveXML = async () => {
   try {
     const res = await AdminApiSystemProcessTask.bpmnSaveXmlTree(params);
     if (res && res.data.code == 200) {
-      localStorage.removeItem('categoryCalc');
+      if (!designTaskEntry) {
+        localStorage.removeItem('categoryCalc');
+      }
       // 保存后返回上一个页面（设计任务列表页）
       message.success(res.data.msg || '保存成功');
       router.back();

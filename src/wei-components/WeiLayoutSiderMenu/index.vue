@@ -9,9 +9,8 @@ import WeiLayoutSiderMenuItem from './components/WeiLayoutSiderMenuItem/index.vu
 import WeiLayoutSiderSubMenu from './components/WeiLayoutSiderSubMenu/index.vue';
 import appStore from '@/store';
 import { useProjectUiStore } from '@/store/modules/layout/projectUi';
-import { encryptValue } from '@/utils';
 import { RevealSiderMenuEventKey } from '@/utils/EventBus';
-import { generateRandomNumberByTime } from '@/utils/tools';
+import { isSameMenuRoutePath } from '@/utils/routeCacheKey';
 type MenuRoute = RouteRecord | RouteRecordRaw;
 const props = withDefaults(defineProps<{ collapsed: boolean; mode?: MenuProps['mode'] }>(), { mode: 'inline' });
 
@@ -216,15 +215,16 @@ revealSiderMenuBus.on(() => revealCollapsedMenu());
  * @param event event
  */
 const onClickMenuItem: MenuClickEventHandler = event => {
-  if (event.key.toString() === '/sysReport') {
+  const targetPath = event.key.toString();
+  if (targetPath === '/sysReport') {
     window.open(import.meta.env.VITE_KANBAN_SERVE, '_blank');
     return;
-  } else {
-    router.push({
-      path: event.key.toString(),
-      query: { parms: encryptValue(JSON.stringify(generateRandomNumberByTime())) },
-    });
   }
+  // 已在当前页：避免无意义 parms 导航导致 Tab/keep-alive 反复销毁重建
+  if (isSameMenuRoutePath(targetPath, route)) {
+    return;
+  }
+  router.push({ path: targetPath });
 };
 </script>
 

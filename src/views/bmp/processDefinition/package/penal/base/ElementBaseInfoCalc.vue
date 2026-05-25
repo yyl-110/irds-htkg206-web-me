@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
+import { ref, reactive, watch, onMounted, onActivated, onBeforeUnmount, computed, nextTick } from 'vue';
 // Props
 const props = defineProps({
   businessObject: Object,
@@ -109,10 +109,18 @@ const calcRowData = ref();
 const pageName = ref();
 
 // Lifecycle hooks
+const syncCategoryCalcCache = () => {
+  formState.category = formState.category || '计算工具';
+  localStorage.setItem('categoryCalc', formState.category);
+};
+
 onMounted(() => {
   initFormData();
-  formState.category = '计算工具';
-  localStorage.setItem('categoryCalc', formState.category);
+  syncCategoryCalcCache();
+});
+
+onActivated(() => {
+  syncCategoryCalcCache();
 });
 
 onBeforeUnmount(() => {

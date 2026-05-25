@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import type { RouteLocationMatched, RouteLocationNormalizedLoaded } from 'vue-router';
 import { useEventBus } from '@vueuse/core';
 import useRouteCache from './useRouteCache';
+import { getRouteCacheKey } from '@/utils/routeCacheKey';
 // import type { any } from '@/wei-components/WeiPageTabs/typings';
 import { WeiPageTabMenus } from '@/wei-components/WeiPageTabs/typings';
 import { router } from '@/router';
@@ -66,7 +67,7 @@ watch(
 const curTabKey = ref('');
 /** 当前标签页 */
 const currentTab = computed(() => tabs.value.find(t => t.tabKey === curTabKey.value) || tabs.value[0]);
-const { getTabNameByFullPath, removeCache, clearAll } = useRouteCache();
+const { getTabNameByRoute, removeCache, clearAll } = useRouteCache();
 
 /**
  * 点击tab
@@ -287,7 +288,8 @@ export function useWeiTab(
     const meta = routeMatch.meta;
     // const componentDef: any = routeMatch.components?.default
     // const componentName = componentDef?.name || componentDef?.__name
-    const componentName = getTabNameByFullPath(route);
+    const componentName = getTabNameByRoute(route);
+    const routeCacheKey = getRouteCacheKey(route);
     // 获取tab标签页信息：tabKey标签页key值；title-标签页标题；tab-存在的标签页
     const tabKey = getTabKey(routeMatch, route);
     const title = String(meta[tabTitleKey] || '');
@@ -300,10 +302,10 @@ export function useWeiTab(
       return;
     }
 
-    // 同一个路由，但是新旧路径不同时，需要清除路由缓存。例如route.path配置为 '/detail/:id'时路径会不同
-    if (tab && tab.fullPath !== fullPath) {
+    // 同 tabKey 但路由实例变化（如 /detail/:id 切换 id）时清除旧缓存；忽略菜单 parms 造成的 fullPath 抖动
+    if (tab && tab.routeCacheKey !== routeCacheKey) {
       await removeCache(tab.componentName || '');
-      tabs.value = tabs.value.filter(t => t.fullPath !== tab?.fullPath);
+      tabs.value = tabs.value.filter(t => t.routeCacheKey !== tab?.routeCacheKey);
       tab = undefined;
     }
 
@@ -315,6 +317,7 @@ export function useWeiTab(
       query,
       hash,
       fullPath,
+      routeCacheKey,
       componentName,
     };
     tab ? Object.assign(tab, newTab) : tabs.value.push(newTab);

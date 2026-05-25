@@ -1,11 +1,13 @@
 <template>
   <div class="projectBar" :style="{ width: chartWidth, height: '100%' }">
-    <v-chart :option="chartOption" class="chart" />
+    <v-chart v-if="hasChartOption" :option="chartOption" class="chart" autoresize />
+    <div v-else class="chart-empty">暂无项目进度数据</div>
   </div>
 </template>
 
 <script setup>
-import * as echarts from "echarts";
+import { ref, watch, computed } from 'vue';
+
 const chartOption = ref({});
 
 const props = defineProps({
@@ -15,182 +17,137 @@ const props = defineProps({
   },
   chartWidth: {
     type: String,
-    default: "56%",
+    default: '56%',
   },
 });
 
+const hasChartOption = computed(() => {
+  const opt = chartOption.value;
+  return opt && typeof opt === 'object' && Object.keys(opt).length > 0;
+});
+
+const calcPercent = (completeNums, taskNums) => {
+  const total = Number(taskNums) || 0;
+  const complete = Number(completeNums) || 0;
+  if (total <= 0) return 0;
+  return Math.min(100, Math.round((complete / total) * 100));
+};
+
 const initChart = () => {
-  if (!props.chartData || !props.chartData.length) return;
-  /* 项目完成率列表 */
-  const completePercentList = props.chartData.map((item) =>
-    Math.round((item.completeNums / item.taskNums) * 100)
+  const list = Array.isArray(props.chartData) ? props.chartData : [];
+  if (!list.length) {
+    chartOption.value = {};
+    return;
+  }
+
+  const completePercentList = list.map((item) =>
+    calcPercent(item.completeNums, item.taskNums),
   );
-  /* 未完成率列表 */
-  const unCompletePercentList = completePercentList.map((item) => (100 - item));
+  const unCompletePercentList = list.map((item, index) => {
+    const total = Number(item.taskNums) || 0;
+    if (total <= 0) return 0;
+    return Math.max(0, 100 - completePercentList[index]);
+  });
 
   chartOption.value = {
     tooltip: {
-      trigger: "axis",
+      trigger: 'axis',
       axisPointer: {
-        type: "shadow",
-        label: {
-          show: true,
-        },
+        type: 'shadow',
+        label: { show: true },
       },
-      formatter: function (params) {
-        const projectName = params[0].name;
-        const completeNums = props.chartData.find(item => item.projectName === projectName)?.completeNums || 0;
-        const taskNums = props.chartData.find(item => item.projectName === projectName)?.taskNums || 0;
-        const uncompletes = taskNums - completeNums;
-        // 添加圆点标识
+      formatter(params) {
+        const projectName = params[0]?.name;
+        const row = list.find((item) => item.projectName === projectName);
+        const completeNums = Number(row?.completeNums) || 0;
+        const taskNums = Number(row?.taskNums) || 0;
+        const uncompletes = Math.max(0, taskNums - completeNums);
         return `${projectName}<br />
           <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:#43CF7C;"></span>
-          已完成: ${completeNums}<br />
+          已完成: ${completeNums}/${taskNums}<br />
           <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:#24E2E2;"></span>
-          未完成: ${uncompletes}`;
-      }
+          未完成: ${uncompletes}/${taskNums}`;
+      },
     },
     grid: {
-      left: "10%",
-      top: "10%",
-      right: "5%",
-      bottom: "25%",
+      left: '10%',
+      top: '16%',
+      right: '5%',
+      bottom: '24%',
     },
     legend: {
       show: true,
-      right: "5%",
-      bottom: "5%",
+      orient: 'horizontal',
+      right: '5%',
+      top: '2%',
+      align: 'left',
+      itemGap: 20,
+      icon: 'rect',
       textStyle: {
-        color: "#ffffff",
-        fontSize: 16,
+        color: '#ffffff',
+        fontSize: 14,
       },
       itemWidth: 16,
       itemHeight: 16,
-      data: ["已完成", "未完成"],
+      data: ['已完成', '未完成'],
     },
     xAxis: {
-      data: props.chartData.map((item) => item.projectName),
+      data: list.map((item) => item.projectName),
       axisLine: {
-        show: true, //隐藏X轴轴线
-        lineStyle: {
-          color: "#163a5f",
-          width: 2,
+        show: true,
+        lineStyle: { color: '#163a5f', width: 2 },
+      },
+      axisTick: { show: false, alignWithLabel: true },
+      axisLabel: {
+        show: true,
+        color: '#fff',
+        fontSize: 14,
+        interval: 0,
+        rotate: 30,
+        formatter(value) {
+          return value && value.length > 8 ? `${value.substring(0, 8)}…` : value;
         },
       },
-      axisTick: {
-        show: false, //隐藏X轴刻度
-        alignWithLabel: true,
+    },
+    yAxis: {
+      type: 'value',
+      name: '%',
+      max: 100,
+      min: 0,
+      nameTextStyle: {
+        color: '#ffffff',
+        fontSize: 14,
+        padding: [0, 0, 8, -30],
+      },
+      splitLine: { show: false },
+      axisTick: { show: false },
+      axisLine: {
+        show: true,
+        lineStyle: { color: '#163a5f', width: 2 },
       },
       axisLabel: {
         show: true,
-        textStyle: {
-          color: "#ffffff", //X轴文字颜色
-          fontSize: 16,
-        },
-        interval: 0,
-        rotate: 45, // 文字倾斜角度(可选45、90等)
-        formatter: function (value) {
-          return value.length > 6 ? value.substring(0, 6) + "…" : value;
-        },
+        color: '#ffffff',
+        fontSize: 14,
       },
     },
-    yAxis: [
-      {
-        type: "value",
-        name: "%",
-        nameTextStyle: {
-          color: "#ffffff",
-          fontSize: 16,
-          padding: [0, 0, 12, -30]
-        },
-        splitLine: {
-          show: false,
-          lineStyle: {
-            width: 1,
-            color: "#CED2DB",
-          },
-        },
-        axisTick: {
-          show: false,
-        },
-        axisLine: {
-          show: true, //隐藏X轴轴线
-          lineStyle: {
-            color: "#163a5f",
-            width: 2,
-          },
-        },
-        axisLabel: {
-          show: true,
-          textStyle: {
-            color: "#ffffff",
-            fontSize: 16,
-          },
-          formatter: function (value) {
-            // 将原始数值转换为百分比显示
-            return value;
-          }
-        },
-        max: 100
-      },
-      {
-        type: "value",
-        name: "",
-        nameTextStyle: {
-          color: "#ffffff",
-          fontSize: 16,
-        },
-        splitLine: {
-          show: false,
-          lineStyle: {
-            width: 1,
-            color: "#CED2DB",
-          },
-        },
-        axisTick: {
-          show: false,
-        },
-        axisLine: {
-          show: false, //隐藏X轴轴线
-          lineStyle: {
-            color: "#163a5f",
-            width: 2,
-          },
-        },
-        axisLabel: {
-          show: false,
-          textStyle: {
-            color: "#43CF7C",
-            fontSize: 14,
-          },
-        },
-      },
-    ],
     series: [
       {
-        name: "已完成",
-        type: "bar",
-        stack: '项目数',
-        barWidth: 32,
-        // showBackground: true,
-        // backgroundStyle: {
-        //   color: 'rgba(36,226,226, 0.3)',
-        //   borderRadius: [10, 10, 0, 0]
-        // },
-        itemStyle: {
-          color: "#43CF7C",
-          // barBorderRadius: [10, 10, 0, 0],
-        },
+        name: '已完成',
+        type: 'bar',
+        stack: 'progress',
+        barWidth: 28,
+        itemStyle: { color: '#43CF7C' },
         data: completePercentList,
       },
       {
-        name: "未完成",
-        type: "bar",
-        stack: '项目数',
-        barWidth: 32,
+        name: '未完成',
+        type: 'bar',
+        stack: 'progress',
+        barWidth: 28,
         itemStyle: {
-          color: "#24E2E2",
-          barBorderRadius: [10, 10, 0, 0],
+          color: '#24E2E2',
+          borderRadius: [4, 4, 0, 0],
         },
         data: unCompletePercentList,
       },
@@ -200,13 +157,31 @@ const initChart = () => {
 
 watch(
   () => props.chartData,
-  (val) => {
-    if (val && val.length) {
-      initChart();
-    }
-  },
+  () => initChart(),
   { deep: true, immediate: true },
 );
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.projectBar {
+  height: 100%;
+  min-height: 200px;
+
+  .chart {
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+  }
+
+  .chart-empty {
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 14px;
+  }
+}
+</style>

@@ -201,7 +201,7 @@ onMounted(() => {
           <a-form-item>
             <a-button type="primary" style="margin-left: 15px" @click="openForm('create')">
               <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-              添加
+              新建
             </a-button>
           </a-form-item>
         </a-form>

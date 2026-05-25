@@ -240,7 +240,7 @@ function getCurrentFileName() {
 </script>
 
 <template>
-  <a-modal v-model:visible="modalVisible" title="添加exe计算" width="760px" :confirm-loading="addSubmitting" @ok="submitAddForm" @cancel="closeAddModal">
+  <a-modal v-model:visible="modalVisible" title="新建exe计算" width="760px" :confirm-loading="addSubmitting" @ok="submitAddForm" @cancel="closeAddModal">
     <a-form ref="addFormRef" :model="addForm" :rules="addRules" :label-col="{ style: { width: '90px' } }">
       <a-form-item label="计算名称" name="calcName">
         <a-input v-model:value="addForm.calcName" placeholder="请输入" />

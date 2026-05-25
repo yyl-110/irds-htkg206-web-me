@@ -90,6 +90,16 @@ export function deliveryReport(data: any) {
   });
 }
 /**
+ * 产品设计看板-项目概览（按年度，business-service）
+ */
+export function productBoardProjectOverview(data: { year: number }) {
+  return httpRequest({
+    url: "/business-service/business/project-info/product-board-project-overview",
+    method: "POST",
+    data,
+  });
+}
+/**
  * 产品设计看板：WBS 一级分类下协同发布任务、协同已完成、独立应用数（business-service）
  */
 export function collabStandaloneBoard(data: {

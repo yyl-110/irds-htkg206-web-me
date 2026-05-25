@@ -41,7 +41,7 @@
     <!-- 添加表单抽屉：左右布局，底栏按钮，表格样式与参数字典一致 -->
     <a-drawer
       v-model:visible="drawer"
-      title="添加表单"
+      title="新建表单"
       placement="right"
       width="920"
       class="form-selector-drawer"

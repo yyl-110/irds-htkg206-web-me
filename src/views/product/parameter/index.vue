@@ -1241,7 +1241,7 @@ const {
                 </a-button>
                 <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleAddOrUpdate(undefined)">
                   <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-                  {{ $t('添加') }}
+                  {{ $t('新建') }}
                 </a-button>
                 <!--删除按钮（批量删除需二次确认）-->
                 <a-popconfirm

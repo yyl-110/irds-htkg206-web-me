@@ -326,7 +326,11 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType });
       message.success(publishType === 'COLLAB' ? '撤销发布任务成功' : '撤销发布计算应用成功');
     } else {
-      await AdminApiSystemProcessTask.taskPublish({ taskId, publishType });
+      await AdminApiSystemProcessTask.taskPublish({
+        taskId,
+        publishType,
+        publishedBy: userStore.getUser.id,
+      });
       message.success(publishType === 'COLLAB' ? '发布任务成功' : '发布计算应用成功');
     }
     await loadFlowListData();
@@ -570,7 +574,7 @@ defineExpose({
       <a-input v-model:value="requestParams.processName" allow-clear placeholder="请输入流程名称" class="process-panel__search-input" @pressEnter="handleQuerySearch" />
       <a-input v-model:value="requestParams.processCode" allow-clear placeholder="请输入流程标识" class="process-panel__search-input" @pressEnter="handleQuerySearch" />
       <a-button type="primary" @click="handleQuerySearch"> <EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询 </a-button>
-      <a-button type="primary" @click="openFlowFormAdd"><EpcIcon type="icon-tianjia1" style="font-size: 12px" /> 添加</a-button>
+      <a-button type="primary" @click="openFlowFormAdd"><EpcIcon type="icon-tianjia1" style="font-size: 12px" /> {{ $t('新建') }}</a-button>
       <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarView"><EpcIcon type="icon-liulan" style="font-size: 12px" />查看</a-button>
       <a-button type="primary" :disabled="!canToolbarViewOrEdit" @click="handleToolbarEdit"><EpcIcon type="icon-bianji" style="font-size: 12px" />编辑</a-button>
     </div>
@@ -696,7 +700,7 @@ defineExpose({
 
     <a-modal
       v-model:visible="flowFormVisible"
-      :title="flowFormMode === 'add' ? '添加流程' : '编辑流程'"
+      :title="flowFormMode === 'add' ? '新建流程' : '编辑流程'"
       :width="520"
       :mask-closable="false"
       destroy-on-close

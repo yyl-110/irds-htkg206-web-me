@@ -39,6 +39,7 @@ const operationWidth = computed(() => {
 const tableColumns = computed(() => [
   { title: appCodeLabel.value, dataIndex: 'appCode', key: 'appCode', width: 300, ellipsis: true },
   { title: appNameLabel.value, dataIndex: 'appName', key: 'appName', width: 220, ellipsis: true },
+  { title: '任务版本', dataIndex: 'versionNum', key: 'versionNum', align: 'center', width: 100 },
   { title: '创建人', dataIndex: 'creatorName', key: 'creatorName', align: 'center', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 150 },
   { title: '状态', key: 'status', align: 'center', width: 96 },
@@ -296,7 +297,10 @@ void loadAppList();
         :scroll="{ x: appTableScrollX }"
         :row-class-name="getTableRowClassName">
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'status'">
+          <template v-if="column.dataIndex === 'versionNum'">
+            <span>{{ record.versionNum != null && record.versionNum !== '' ? `V${record.versionNum}.0` : 'V-.0' }}</span>
+          </template>
+          <template v-else-if="column.key === 'status'">
             <a-tag :class="['app-status-tag', resolveAppStatusTagClass(resolveAppStatusText(record))]">
               {{ resolveAppStatusText(record) }}
             </a-tag>
@@ -340,6 +344,10 @@ void loadAppList();
           </a-select>
         </div>
       </div>
+      <template #footer>
+        <a-button type="primary" :loading="createFlowLoading" @click="confirmCreateFlow">{{ $t('确定') }}</a-button>
+        <a-button @click="createFlowModalVisible = false">{{ $t('取消') }}</a-button>
+      </template>
     </a-modal>
   </div>
 </template>
