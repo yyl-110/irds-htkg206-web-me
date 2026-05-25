@@ -407,7 +407,7 @@ function tableDimensionRange(count: number) {
   return Array.from({ length: n }, (_, i) => i + 1);
 }
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'PLAIN_TEXT', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
 }
 function isTemplateBrowse3DItem(item: any) {
   return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE';
@@ -1104,6 +1104,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                   <div
                     v-if="
                       item.componentType !== 'TITLE' &&
+                      item.componentType !== 'PLAIN_TEXT' &&
                       item.componentType !== 'RADIO' &&
                       item.componentType !== 'FILE' &&
                       item.componentType !== 'DIVIDER' &&
@@ -1125,6 +1126,10 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                     <div
                       v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true"
                       class="title-divider-line"></div>
+                  </template>
+
+                  <template v-else-if="item.componentType === 'PLAIN_TEXT'">
+                    <div class="plain-text-preview-text">{{ item.paramName || '文本' }}</div>
                   </template>
 
                   <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
@@ -1611,6 +1616,13 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 }
 .title-preview-text {
   font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+.plain-text-preview-text {
+  font-size: 14px;
+  font-weight: 400;
   color: #333;
   margin-bottom: 6px;
 }

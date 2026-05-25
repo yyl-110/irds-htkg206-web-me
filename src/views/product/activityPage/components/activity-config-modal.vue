@@ -13,6 +13,7 @@ import {
   FileOutlined,
   DesktopOutlined,
   FileTextOutlined,
+  FontSizeOutlined,
   InboxOutlined,
   MinusOutlined,
   ExclamationCircleOutlined,
@@ -61,6 +62,7 @@ function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDS
     INPUT: BorderOutlined,
     TEXTAREA: BorderOutlined,
     TITLE: CheckCircleOutlined,
+    PLAIN_TEXT: FontSizeOutlined,
     SELECT: UnorderedListOutlined,
     AUTO_COMPLETE: UnorderedListOutlined,
     RADIO: AimOutlined,
@@ -109,6 +111,7 @@ const paletteGroups = [
       { label: '附件', type: 'FILE' },
       { label: '分隔线', type: 'DIVIDER' },
       { label: '数据浏览', type: 'DATA_VIEW' },
+      { label: '文本', type: 'PLAIN_TEXT' },
     ],
   },
   {
@@ -129,7 +132,7 @@ const paletteGroups = [
   },
 ];
 
-const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'PLAIN_TEXT', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
 const uploadTypes = ['FILE'];
 const tableTypes = ['TABLE'];
 const threeDTypes = ['3D_VIEW'];
@@ -148,6 +151,7 @@ const isFileComponent = computed(() => selectedComponent.value?.componentType ==
 const isSelectComponent = computed(() => ['SELECT', 'AUTO_COMPLETE'].includes(selectedComponent.value?.componentType));
 const isRadioComponent = computed(() => selectedComponent.value?.componentType === 'RADIO');
 const isTitleComponent = computed(() => selectedComponent.value?.componentType === 'TITLE');
+const isPlainTextComponent = computed(() => selectedComponent.value?.componentType === 'PLAIN_TEXT');
 const isDividerComponent = computed(() => selectedComponent.value?.componentType === 'DIVIDER');
 const isDataViewComponent = computed(() => selectedComponent.value?.componentType === 'DATA_VIEW');
 const isWorkspaceTableComponent = computed(() => {
@@ -164,6 +168,7 @@ const selectPanelKeys = ref<string[]>(['basic']);
 const radioPanelKeys = ref<string[]>(['basic']);
 const filePanelKeys = ref<string[]>(['basic']);
 const titlePanelKeys = ref<string[]>(['basic']);
+const plainTextPanelKeys = ref<string[]>(['basic']);
 const dataViewPanelKeys = ref<string[]>(['basic', 'knowledge']);
 const fixedTablePanelKeys = ref<string[]>(['info', 'rows', 'cols']);
 /** 画布表格预览中选中的单元格（行、列均为 1-based），用于右侧「单元格参数继承属性配置」 */
@@ -426,7 +431,7 @@ function createDefaultComponent(componentType: string) {
     paramCode: '',
     /** 参数字典选中行的主键，与 paramCode / paramName 一并保存 */
     parameterId: null,
-    paramName: componentType === 'RADIO' ? '单选项' : '',
+    paramName: componentType === 'RADIO' ? '单选项' : componentType === 'PLAIN_TEXT' ? '文本' : '',
     ioType: 'INPUT',
     isRequired: 0,
     customProps,
@@ -1807,7 +1812,7 @@ function getModelSelectPreviewButtons(item: any) {
   return buttons;
 }
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'PLAIN_TEXT', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
 }
 function tableDimensionRange(count: number) {
   const n = Math.max(0, Math.min(100, Number(count) || 0));
@@ -2114,6 +2119,7 @@ function getTypeText(type: string) {
     INPUT: '单行输入',
     TEXTAREA: '多行输入',
     TITLE: '标题',
+    PLAIN_TEXT: '文本',
     SELECT: '下拉选项',
     AUTO_COMPLETE: '可编辑下拉',
     RADIO: '单选项',
@@ -2226,6 +2232,10 @@ function ensureRadioDefaults(component: any) {
 function ensureTitleDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (component.customProps.hasDivider == null) component.customProps.hasDivider = 1;
+  if (!component.knowledgeContent) component.knowledgeContent = '';
+}
+function ensurePlainTextDefaults(component: any) {
+  if (!component?.customProps) component.customProps = {};
   if (!component.knowledgeContent) component.knowledgeContent = '';
 }
 function ensureRichTextDefaults(component: any) {
@@ -2495,6 +2505,7 @@ watch(
     if (component.componentType === 'SELECT' || component.componentType === 'AUTO_COMPLETE') ensureSelectDefaults(component);
     if (component.componentType === 'RADIO') ensureRadioDefaults(component);
     if (component.componentType === 'TITLE') ensureTitleDefaults(component);
+    if (component.componentType === 'PLAIN_TEXT') ensurePlainTextDefaults(component);
     if (component.componentType === 'FILE') ensureFileDefaults(component);
     if (component.componentType === 'DATA_VIEW') ensureDataViewDefaults(component);
     if (component.componentType === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(component.customProps?.tableSubtype)) {
@@ -2526,6 +2537,9 @@ watch(
     }
     if (type === 'TITLE') {
       titlePanelKeys.value = ['basic'];
+    }
+    if (type === 'PLAIN_TEXT') {
+      plainTextPanelKeys.value = ['basic'];
     }
     if (type === 'FILE') {
       filePanelKeys.value = ['basic'];
@@ -2693,6 +2707,7 @@ watch(
               <div
                 v-if="
                   item.componentType !== 'TITLE' &&
+                  item.componentType !== 'PLAIN_TEXT' &&
                   item.componentType !== 'RADIO' &&
                   item.componentType !== 'FILE' &&
                   item.componentType !== 'DIVIDER' &&
@@ -2716,6 +2731,14 @@ watch(
                   </a-tooltip>
                 </div>
                 <div v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true" class="title-divider-line"></div>
+              </template>
+              <template v-else-if="item.componentType === 'PLAIN_TEXT'">
+                <div class="plain-text-preview-text">
+                  <span>{{ item.paramName || '文本' }}</span>
+                  <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
+                    <ExclamationCircleOutlined class="component-knowledge-hint" />
+                  </a-tooltip>
+                </div>
               </template>
               <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row">
                 <a-input :value="getPreviewValue(item)" :placeholder="item.customProps?.placeholder || '请输入'" disabled class="preview-field" />
@@ -3532,6 +3555,22 @@ watch(
                 </a-collapse-panel>
               </a-collapse>
             </template>
+            <template v-else-if="isPlainTextComponent">
+              <a-collapse v-model:activeKey="plainTextPanelKeys" :bordered="false" class="text-config-collapse">
+                <a-collapse-panel key="basic" header="基础信息">
+                  <div class="row-field">
+                    <div class="row-label">文本名称：</div>
+                    <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="knowledge" header="知识配置">
+                  <div class="row-field">
+                    <div class="row-label">提示知识：</div>
+                    <div class="row-control row-control-full"><a-textarea v-model:value="selectedComponent.knowledgeContent" :rows="3" placeholder="请输入" /></div>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </template>
             <template v-else-if="isDividerComponent">
               <div class="divider-empty-panel"></div>
             </template>
@@ -3888,7 +3927,6 @@ watch(
     <div class="footer-actions">
       <a-button type="primary" :loading="saveLoading" @click="handleSave">保存配置</a-button>
       <a-button @click="emit('close')">取消</a-button>
-      
     </div>
   </a-modal>
 
@@ -4051,13 +4089,7 @@ watch(
     </template>
   </a-modal>
 
-  <a-modal
-    v-model:visible="pageButtonConfigModalVisible"
-    title="页面按钮配置"
-    :mask-closable="false"
-    :width="560"
-    :z-index="1100"
-    @cancel="pageButtonConfigModalVisible = false">
+  <a-modal v-model:visible="pageButtonConfigModalVisible" title="页面按钮配置" :mask-closable="false" :width="560" :z-index="1100" @cancel="pageButtonConfigModalVisible = false">
     <a-form layout="vertical">
       <a-form-item label="页面功能按钮">
         <a-checkbox-group v-model:value="pageFunctionButtons" :options="pageFunctionButtonOptions" />
@@ -4366,6 +4398,17 @@ watch(
 }
 .title-preview-text {
   font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.plain-text-preview-text {
+  font-size: 14px;
+  font-weight: 400;
   color: #333;
   margin-bottom: 6px;
   display: flex;

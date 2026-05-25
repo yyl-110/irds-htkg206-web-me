@@ -976,7 +976,7 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const isCalcPage = String(baseRecord?.pageType ?? '') === '2';
   const basicTypes = isCalcPage
     ? ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']
-    : ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+    : ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'PLAIN_TEXT', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
   const uploadTypes = isCalcPage ? [] : ['FILE'];
   const tableTypes = isCalcPage ? [] : ['TABLE'];
   const threeDTypes = isCalcPage ? [] : ['3D_VIEW'];

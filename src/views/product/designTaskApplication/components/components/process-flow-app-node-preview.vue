@@ -548,7 +548,7 @@ async function handle3dPreviewButtonClick(btn: string, item: any, index: number)
   message.info(`${text}（示例）`);
 }
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'PLAIN_TEXT', 'RICH_TEXT', 'FILE', 'DIVIDER', 'RADIO', 'DATA_VIEW', 'TABLE', '3D_VIEW'].includes(type);
 }
 
 function normalizeRangeOperator(op: string) {
@@ -1778,6 +1778,7 @@ defineExpose({
           <div
             v-if="
               item.componentType !== 'TITLE' &&
+              item.componentType !== 'PLAIN_TEXT' &&
               item.componentType !== 'RADIO' &&
               item.componentType !== 'FILE' &&
               item.componentType !== 'DIVIDER' &&
@@ -1796,7 +1797,13 @@ defineExpose({
 
           <template v-if="item.componentType === 'TITLE'">
             <div class="title-preview-text">{{ item.paramName || '标题' }}</div>
-            <div v-if="item.customProps?.hasDivider" class="title-divider-line"></div>
+            <div
+              v-if="item.customProps?.hasDivider === 1 || item.customProps?.hasDivider === '1' || item.customProps?.hasDivider === true"
+              class="title-divider-line"></div>
+          </template>
+
+          <template v-else-if="item.componentType === 'PLAIN_TEXT'">
+            <div class="plain-text-preview-text">{{ item.paramName || '文本' }}</div>
           </template>
 
           <div v-else-if="item.componentType === 'INPUT'" class="value-range-inline-row preview-field-trigger" @click.capture="onParamTitleClick(item)">
@@ -2237,6 +2244,13 @@ defineExpose({
   font-size: 14px;
   color: #222;
   font-weight: 700;
+  margin-bottom: 6px;
+  width: 100%;
+}
+.plain-text-preview-text {
+  font-size: 14px;
+  font-weight: 400;
+  color: #222;
   margin-bottom: 6px;
   width: 100%;
 }
