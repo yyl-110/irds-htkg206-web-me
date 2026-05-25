@@ -151,12 +151,26 @@ const effectiveCreatorName = computed(() => {
   return projectCreatorName.value;
 });
 
-/** 项目计划周期（分配分类节点时下级无日期时兜底） */
+/** 项目计划周期（节点日期须在此时段内；分类启动弹窗默认回填） */
 const projectPlanStart = ref('');
 const projectPlanEnd = ref('');
 const userIdToName = ref<Map<string, string>>(new Map());
 /** 分类启动 / 任务发布·撤销·删除·恢复 等行内操作 loading */
 const wbsOpBusyRowId = ref<string | null>(null);
+
+/** 分类「启动」/ 任务「发布」前填写计划起止时间并落库 */
+type WbsPlanModalMode = 'start' | 'publish';
+const wbsPlanModalMode = ref<WbsPlanModalMode>('start');
+const wbsStartPlanModalVisible = ref(false);
+const wbsStartPlanTarget = ref<WbsTaskNode | null>(null);
+const wbsStartPlanStart = ref('');
+const wbsStartPlanEnd = ref('');
+const wbsStartPlanSubmitting = ref(false);
+
+const wbsPlanModalTitle = computed(() =>
+  wbsPlanModalMode.value === 'publish' ? '填写计划时间并发布' : '填写计划时间并启动',
+);
+const wbsPlanModalOkText = computed(() => (wbsPlanModalMode.value === 'publish' ? '发布' : '启动'));
 
 /** 已完成任务发起变更：是否同步上游最新 + 提交 loading */
 const wbsChangeModalVisible = ref(false);
@@ -640,6 +654,132 @@ function onTaskEdit(record: WbsTaskNode) {
   message.info(`编辑：${record.taskName}`);
 }
 
+function getProjectPlanBounds(): { start: Dayjs | null; end: Dayjs | null } {
+  const ps = projectPlanStart.value ? dayjs(projectPlanStart.value).startOf('day') : null;
+  const pe = projectPlanEnd.value ? dayjs(projectPlanEnd.value).startOf('day') : null;
+  return {
+    start: ps?.isValid() ? ps : null,
+    end: pe?.isValid() ? pe : null,
+  };
+}
+
+/** 从树节点与日历兜底缓存读取计划起止（日） */
+function readNodePlanDates(record: WbsTaskNode): { start: string; end: string } {
+  const treeRow = findNodeById(treeData.value, String(record.id)) ?? record;
+  const picked = wbsLastPickedPlanDates.value[String(record.id)] ?? {};
+  return {
+    start: pickFirstNonEmptyPlanDate(treeRow.startDate, record.startDate, picked.start),
+    end: pickFirstNonEmptyPlanDate(treeRow.endDate, record.endDate, picked.end),
+  };
+}
+
+function formatPlanTimesForApi(planStart: string, planEnd: string): { planStartTime: string; planEndTime: string } {
+  const ps = dayjs(planStart).startOf('day');
+  const pe = dayjs(planEnd).startOf('day');
+  return {
+    planStartTime: ps.format('YYYY-MM-DD HH:mm:ss'),
+    planEndTime: pe.format('YYYY-MM-DD HH:mm:ss'),
+  };
+}
+
+/** 将计划起止写入 WBS 节点（复用 assign-user，需已分配负责人） */
+async function persistWbsNodePlanDates(record: WbsTaskNode, planStart: string, planEnd: string) {
+  const nodeIdStr = String(record.id).trim();
+  const assigneeIdStr = String(record.assigneeUserId ?? record.responsibleUserId ?? '').trim();
+  if (!/^\d+$/.test(nodeIdStr) || !/^\d+$/.test(assigneeIdStr)) {
+    message.error('节点或负责人无效，无法保存计划时间');
+    throw new Error('persist-plan-fail');
+  }
+  const { planStartTime, planEndTime } = formatPlanTimesForApi(planStart, planEnd);
+  const res = await AdminApiProjectTemp.projectWbsAssignUser({
+    id: nodeIdStr,
+    assigneeUserId: assigneeIdStr,
+    planStartTime,
+    planEndTime,
+  });
+  if (res?.data?.code !== 200) {
+    throw new Error('persist-plan-fail');
+  }
+}
+
+function openWbsPlanModal(record: WbsTaskNode, mode: WbsPlanModalMode) {
+  const row = findNodeById(treeData.value, String(record.id)) ?? record;
+  wbsPlanModalMode.value = mode;
+  wbsStartPlanTarget.value = row;
+  const { start, end } = readNodePlanDates(row);
+  wbsStartPlanStart.value = start || projectPlanStart.value || '';
+  wbsStartPlanEnd.value = end || projectPlanEnd.value || wbsStartPlanStart.value;
+  wbsStartPlanModalVisible.value = true;
+}
+
+function closeWbsStartPlanModal() {
+  wbsStartPlanModalVisible.value = false;
+  wbsStartPlanTarget.value = null;
+  wbsStartPlanStart.value = '';
+  wbsStartPlanEnd.value = '';
+}
+
+function disabledWbsStartPlanStartDate(current: Dayjs | undefined): boolean {
+  if (!current) return false;
+  const cur = current.startOf('day');
+  const proj = getProjectPlanBounds();
+  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
+  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
+  return false;
+}
+
+function disabledWbsStartPlanEndDate(current: Dayjs | undefined): boolean {
+  if (!current) return false;
+  const cur = current.startOf('day');
+  const start = dayjs(wbsStartPlanStart.value).startOf('day');
+  if (start.isValid() && cur.isBefore(start, 'day')) return true;
+  const proj = getProjectPlanBounds();
+  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
+  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
+  return false;
+}
+
+async function confirmWbsPlanModal() {
+  const record = wbsStartPlanTarget.value;
+  if (!record) {
+    closeWbsStartPlanModal();
+    return;
+  }
+  const sd = wbsStartPlanStart.value.trim();
+  const ed = wbsStartPlanEnd.value.trim();
+  if (!sd || !ed) {
+    message.warning('请填写计划开始与完成时间');
+    return;
+  }
+  const err = validatePlanDatesForWbsAction(sd, ed, record);
+  if (err) {
+    message.warning(err);
+    return;
+  }
+  const isPublish = wbsPlanModalMode.value === 'publish';
+  wbsStartPlanSubmitting.value = true;
+  wbsOpBusyRowId.value = record.id;
+  try {
+    await persistWbsNodePlanDates(record, sd, ed);
+    await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
+    clearWbsPickedPlan(String(record.id));
+    message.success(isPublish ? '已发布并推送至工作台待办' : '已启动并推送至工作台待办');
+    closeWbsStartPlanModal();
+    await fetchProjectWbsTree();
+    if (isPublish) {
+      await refreshWbsParamPendingHints();
+    }
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'persist-plan-fail') {
+      return;
+    }
+    showRequestErrorIfNeeded(e, isPublish ? '发布失败' : '启动失败');
+  } finally {
+    wbsStartPlanSubmitting.value = false;
+    wbsOpBusyRowId.value = null;
+  }
+}
+
 async function onTaskPublish(record: WbsTaskNode) {
   if (isWbsTaskCompletedReadonly(record)) {
     return;
@@ -648,17 +788,11 @@ async function onTaskPublish(record: WbsTaskNode) {
     message.warning('仅上级分类负责人可发布任务');
     return;
   }
-  wbsOpBusyRowId.value = record.id;
-  try {
-    await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
-    message.success('已推送至工作台待办');
-    await fetchProjectWbsTree();
-    await refreshWbsParamPendingHints();
-  } catch (e: unknown) {
-    showRequestErrorIfNeeded(e, '发布失败');
-  } finally {
-    wbsOpBusyRowId.value = null;
+  if (!record.assigneeUserId) {
+    message.warning('请先分配任务负责人后再发布');
+    return;
   }
+  openWbsPlanModal(record, 'publish');
 }
 
 async function onTaskStart(record: WbsTaskNode) {
@@ -666,16 +800,7 @@ async function onTaskStart(record: WbsTaskNode) {
     return;
   }
   if (!canShowStartButton(record)) return;
-  wbsOpBusyRowId.value = record.id;
-  try {
-    const res = await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
-    message.success('已推送至工作台待办');
-    await fetchProjectWbsTree();
-  } catch (e: unknown) {
-    showRequestErrorIfNeeded(e, '发布失败');
-  } finally {
-    wbsOpBusyRowId.value = null;
-  }
+  openWbsPlanModal(record, 'start');
 }
 
 async function onTaskUnpublish(record: WbsTaskNode) {
@@ -919,45 +1044,6 @@ async function confirmResponsiblePicker() {
     return;
   }
 
-  /**
-   * 必须用 treeData 上的节点做校验：表格里刚选的日期写在数据源上；弹窗里的 target 可能与树引用不一致。
-   * 任务节点：先读后端的「界面上的计划日期」，不要在此时 rollup（rollup 只服务分类汇总展示）。
-   */
-  const row = findNodeById(treeData.value, String(target.id)) ?? target;
-  const isCategoryNode = Number(row.type) === 1;
-
-  let planStart = '';
-  let planEnd = '';
-
-  if (!isCategoryNode) {
-    /** 等表格/Picker 把值写回数据源后再读；合并树上节点、弹窗引用与最近一次日历选择（校验回滚后 record 可能仍为空） */
-    await nextTick();
-    const treeRow = findNodeById(treeData.value, String(target.id)) ?? row;
-    const picked = wbsLastPickedPlanDates.value[String(target.id)] ?? {};
-    const sd = pickFirstNonEmptyPlanDate(treeRow.startDate, target.startDate, picked.start);
-    const ed = pickFirstNonEmptyPlanDate(treeRow.endDate, target.endDate, picked.end);
-    if (!sd || !ed) {
-      message.warning('任务节点请先填写计划开始与完成时间');
-      return;
-    }
-    planStart = sd;
-    planEnd = ed;
-  } else {
-    rollupCategoryPlanDates(treeData.value);
-    const after = findNodeById(treeData.value, String(target.id)) ?? row;
-    planStart =
-      String(after.startDate ?? '').trim() ||
-      projectPlanStart.value ||
-      dayjs().startOf('day').format('YYYY-MM-DD');
-    planEnd =
-      String(after.endDate ?? '').trim() ||
-      projectPlanEnd.value ||
-      planStart;
-    if (dayjs(planEnd).isBefore(dayjs(planStart), 'day')) {
-      planEnd = planStart;
-    }
-  }
-
   const nodeIdStr = String(target.id).trim();
   const assigneeIdStr = String(uid).trim();
   if (!/^\d+$/.test(nodeIdStr) || !/^\d+$/.test(assigneeIdStr)) {
@@ -965,23 +1051,12 @@ async function confirmResponsiblePicker() {
     return;
   }
 
-  const ps = dayjs(planStart).startOf('day');
-  const pe = dayjs(planEnd).startOf('day');
-  if (!ps.isValid() || !pe.isValid()) {
-    message.error('计划时间无效，请检查日期数据');
-    return;
-  }
-  /** 与全局 Jackson 一致：cirpoint-common JacksonObjectMapper 使用 yyyy-MM-dd HH:mm:ss（空格，非 ISO T） */
-  const planStartTime = ps.format('YYYY-MM-DD HH:mm:ss');
-  const planEndTime = pe.format('YYYY-MM-DD HH:mm:ss');
-
   const u = responsiblePickerUsers.value.find(x => x.id === uid);
   try {
+    /** 选人仅分配负责人；计划起止在「启动/发布」时填写并落库 */
     const res = await AdminApiProjectTemp.projectWbsAssignUser({
       id: nodeIdStr,
       assigneeUserId: assigneeIdStr,
-      planStartTime,
-      planEndTime,
     });
     if (res?.data?.code === 200) {
       target.responsibleUserId = uid;
@@ -1400,6 +1475,14 @@ function validateTaskDates(record: WbsTaskNode): string | null {
   if (s.isBefore(today, 'day')) return '开始时间不能早于今天';
   if (e.isBefore(s, 'day')) return '完成时间不能早于开始时间';
 
+  const proj = getProjectPlanBounds();
+  if (proj.start && s.isBefore(proj.start, 'day')) {
+    return '开始时间不能早于项目计划开始时间';
+  }
+  if (proj.end && e.isAfter(proj.end, 'day')) {
+    return '完成时间不能晚于项目计划结束时间';
+  }
+
   const parent = getWbsParentNode(record);
   if (parent) {
     const ps = dayjs(parent.startDate).startOf('day');
@@ -1421,11 +1504,38 @@ function validateTaskDates(record: WbsTaskNode): string | null {
   return null;
 }
 
+/** 启动/发布前校验：项目周期 +（任务节点）上下级与今日规则 */
+function validatePlanDatesForWbsAction(
+  startStr: string,
+  endStr: string,
+  record?: WbsTaskNode | null,
+): string | null {
+  const s = dayjs(startStr).startOf('day');
+  const e = dayjs(endStr).startOf('day');
+  if (!s.isValid() || !e.isValid()) return '请填写有效日期';
+  if (e.isBefore(s, 'day')) return '完成时间不能早于开始时间';
+  const proj = getProjectPlanBounds();
+  if (proj.start && s.isBefore(proj.start, 'day')) {
+    return '开始时间不能早于项目计划开始时间';
+  }
+  if (proj.end && e.isAfter(proj.end, 'day')) {
+    return '完成时间不能晚于项目计划结束时间';
+  }
+  if (record && Number(record.type) === 2) {
+    return validateTaskDates({ ...record, startDate: startStr, endDate: endStr });
+  }
+  return null;
+}
+
 function disabledTaskStartDate(record: WbsTaskNode, current: Dayjs | undefined): boolean {
   if (!current) return false;
   const cur = current.startOf('day');
   const today = dayjs().startOf('day');
   if (cur.isBefore(today, 'day')) return true;
+
+  const proj = getProjectPlanBounds();
+  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
+  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
 
   const parent = getWbsParentNode(record);
   if (parent) {
@@ -1444,6 +1554,10 @@ function disabledTaskEndDate(record: WbsTaskNode, current: Dayjs | undefined): b
   const start = dayjs(record.startDate).startOf('day');
   if (!start.isValid()) return false;
   if (cur.isBefore(start, 'day')) return true;
+
+  const proj = getProjectPlanBounds();
+  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
+  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
 
   const parent = getWbsParentNode(record);
   if (parent) {
@@ -2359,6 +2473,48 @@ watch(ganttCollapsed, () => {
       </a-modal>
 
       <a-modal
+        v-model:visible="wbsStartPlanModalVisible"
+        :title="wbsPlanModalTitle"
+        width="480px"
+        :confirm-loading="wbsStartPlanSubmitting"
+        :mask-closable="false"
+        destroy-on-close
+        :ok-text="wbsPlanModalOkText"
+        cancel-text="取消"
+        @ok="confirmWbsPlanModal"
+        @cancel="closeWbsStartPlanModal">
+        <p v-if="projectPlanStart && projectPlanEnd" class="project-task-wbs__sync-modal-hint">
+          计划时间须在项目周期内：{{ projectPlanStart }} ~ {{ projectPlanEnd }}
+        </p>
+        <div class="task-wbs-start-plan-modal">
+          <div class="task-wbs-start-plan-modal__row">
+            <span class="task-wbs-start-plan-modal__label">开始时间</span>
+            <a-date-picker
+              :locale="localeDatePickerZh"
+              v-model:value="wbsStartPlanStart"
+              class="task-wbs-date-picker"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              size="small"
+              placeholder="开始时间"
+              :disabled-date="disabledWbsStartPlanStartDate" />
+          </div>
+          <div class="task-wbs-start-plan-modal__row">
+            <span class="task-wbs-start-plan-modal__label">完成时间</span>
+            <a-date-picker
+              :locale="localeDatePickerZh"
+              v-model:value="wbsStartPlanEnd"
+              class="task-wbs-date-picker"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              size="small"
+              placeholder="完成时间"
+              :disabled-date="disabledWbsStartPlanEndDate" />
+          </div>
+        </div>
+      </a-modal>
+
+      <a-modal
         v-model:visible="paramSyncModalVisible"
         title="参数与上游不一致"
         width="820px"
@@ -3136,6 +3292,25 @@ watch(ganttCollapsed, () => {
   color: rgba(0, 0, 0, 0.35);
   text-align: center;
   padding: 16px 0;
+}
+
+.task-wbs-start-plan-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.task-wbs-start-plan-modal__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-wbs-start-plan-modal__label {
+  flex: 0 0 72px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .project-task-wbs-table :deep(.ant-table-row-expand-icon-cell),

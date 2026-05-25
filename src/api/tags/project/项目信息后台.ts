@@ -191,8 +191,8 @@ export class AdminApiProjectTemp {
   static projectWbsAssignUser = (body: {
     id: string;
     assigneeUserId: string;
-    planStartTime: string;
-    planEndTime: string;
+    planStartTime?: string;
+    planEndTime?: string;
   }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
