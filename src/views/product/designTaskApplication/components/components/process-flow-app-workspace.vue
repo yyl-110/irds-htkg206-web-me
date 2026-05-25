@@ -9,7 +9,7 @@ import ProcessFlowAppCheckNodePreview from './process-flow-app-check-node-previe
 import { SPLITPANES_TREE_COLLAPSE_TOGGLE_COLLAPSED_LEFT } from '@/composables/useSplitpanesTreeCollapse'
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务'
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台'
-import FlowView from '@/components/flowview/index.vue'
+// import FlowView from '@/components/flowview/index.vue'
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理'
 import { EpcIcon } from '@/components/icon/EpcIcon'
 import { useUserStore } from '@/store/modules/user'
@@ -1695,11 +1695,11 @@ onMounted(() => {
         <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
       </Pane>
       <Pane :size="centerPaneSize" :min-size="20" class="workspace-center" :class="[{ 'workspace-center--flow': isRootNodeSelected }]">
-        <div class="workspace-center-body" :class="[{ 'workspace-center-body--flow': isRootNodeSelected }]">
+        <div class="workspace-center-body wei-scrollbar" :class="[{ 'workspace-center-body--flow': isRootNodeSelected }]">
           <div v-if="isRootNodeSelected" class="workspace-flow-mode">
             <a-spin :spinning="flowViewLoading" class="workspace-flow-spin">
               <div class="workspace-flowview-wrap">
-                <FlowView :flow-data="flowViewData" />
+                <!-- <FlowView :flow-data="flowViewData" /> -->
               </div>
             </a-spin>
           </div>
