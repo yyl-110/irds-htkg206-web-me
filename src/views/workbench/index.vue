@@ -647,6 +647,9 @@ function taskCardKindClass(task: TaskItem): string {
   }
   return map[task.taskKind] ?? 'task-card--kind-other'
 }
+function taskbpmCardKindClass(task: TaskItem): string {
+  return 'task-card--kind-wbs'
+}
 
 function taskKindBadgeLabel(task: TaskItem): string {
   return TASK_KIND_LABEL[task.taskKind] ?? TASK_KIND_LABEL.other
@@ -717,13 +720,18 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
   return true
 }
 /**
- * 流程任务待办
+ * 流程任务按钮权限
  */
 function taskbpmActionAllowed(task: TaskItem, action: string) {
-console.log(task,action,'task,action');
-  // if (action === 'detail') {
-  //   return task.status === 'done'
-  // }
+  console.log(task, 'task');
+  console.log(action,'action');
+  if (action === 'detail') {
+    return true
+  }
+  if (action === 'design' ) {
+    return true
+  }
+  return true
 }
 
 /**
@@ -1428,7 +1436,7 @@ onUnmounted(() => {
                             <div
                               v-if="workbenchShowOverdueUi(item)"
                               class="task-card__overdue-corner"
-                              :class="{ 'task-card__overdue-corner--with-menu': showWbsRejectMenu(item) }">
+                              >
                               延期
                             </div>
                             <div class="task-card__type-ribbon">
@@ -1754,7 +1762,7 @@ onUnmounted(() => {
                           :key="String(task.id)"
                           flex="0 0 350px"
                           style="width: 350px; max-width: 350px">
-                          <div class="task-card" :class="taskCardKindClass(task)">
+                          <div class="task-card" :class="taskbpmCardKindClass(task)">
                             <div
                               v-if="workbenchShowOverdueUi(task)"
                               class="task-card__overdue-corner"
@@ -1763,10 +1771,7 @@ onUnmounted(() => {
                             </div>
                             <div class="task-card__type-ribbon">
                               <span class="task-card__type-ribbon-inner">
-                                <ApartmentOutlined v-if="task.taskKind === 'wbs'" />
-                                <MobileOutlined v-else-if="task.taskKind === 'standalone'" />
-                                <CloudServerOutlined v-else-if="task.taskKind === 'compute'" />
-                                <SettingOutlined v-else />
+                                <ApartmentOutlined  />
                                 {{ '流程任务' }}
                               </span>
                             </div>
@@ -1974,30 +1979,6 @@ onUnmounted(() => {
                                   <HighlightOutlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip v-if="taskbpmActionAllowed(record, 'assign')" title="指派">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)">
-                                  <UserAddOutlined />
-                                </a>
-                              </a-tooltip>
-                              <a-tooltip v-if="taskbpmActionAllowed(record, 'transfer')" title="转办">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openTransferModal(record)">
-                                  <SwapOutlined />
-                                </a>
-                              </a-tooltip>
-                              <a-tooltip v-if="showWbsRejectMenu(record)" title="驳回">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-[#FA8C16] cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openRejectModal(record)">
-                                  <UndoOutlined />
-                                </a>
-                              </a-tooltip>
                               <a-tooltip v-if="taskbpmActionAllowed(record, 'detail')" title="详情">
                                 <a
                                   href="#"
@@ -2006,14 +1987,7 @@ onUnmounted(() => {
                                   <ProfileOutlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip v-if="taskbpmActionAllowed(record, 'change')" title="变更">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openChangeWorkspace(record)">
-                                  <FormOutlined />
-                                </a>
-                              </a-tooltip>
+                      
                             </div>
                           </template>
                         </template>
