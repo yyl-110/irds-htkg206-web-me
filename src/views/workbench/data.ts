@@ -43,6 +43,42 @@ export interface TaskItem {
   wbsPublishStatus?: number
 }
 
+/** BPM 流程待办任务（工作台「流程任务」Tab） */
+export interface WorkbenchBpmTaskItem {
+  id: number | string
+  name: string
+  taskDefinitionKey: string
+  title?: string
+  tags?: string[]
+  startTime?: string
+  endTime?: string
+  type?: string
+  category?: TaskItem['category']
+  status?: TaskItem['status']
+  progress?: number
+  delayDays?: number
+  remainDays?: number
+  creatorName?: string
+  creatorAvatar?: string
+  lastRejectRemark?: string
+  viewOnly?: boolean
+  assigneeDisplayName?: string
+  projectDisplayName?: string
+  appDisplayName?: string
+  processInstance: {
+    id: number | string
+    name: string
+    processDefinitionId: number | string
+    processDefinitionKey: string
+    processVariables?: {
+      ModelList?: Array<{ para1?: string | number; [key: string]: unknown }>
+    }
+  }
+  assigneeUser?: {
+    nickname?: string
+  }
+}
+
 /** 类型展示名 */
 export const TASK_KIND_LABEL: Record<WorkbenchTaskKind, string> = {
   wbs: 'WBS协同任务',

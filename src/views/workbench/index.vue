@@ -27,6 +27,7 @@ import {
   TASK_KIND_ACTIONS,
   TASK_KIND_LABEL,
   type TaskItem,
+  type WorkbenchBpmTaskItem,
   WORKBENCH_AUDIT_SECONDARY_TABS,
   WORKBENCH_SECONDARY_TABS,
   WORKBENCH_TABS,
@@ -77,7 +78,7 @@ const todoList = ref<TaskItem[]>([])
 /** 设计任务列表：数据来自 /business/workbench-todo-card/page */
 const todoListLoading = ref(false)
 /** 流程任务列表：OA/BPM 等独立接口接入后填充 */
-const auditList = ref<TaskItem[]>([])
+const auditList = ref<WorkbenchBpmTaskItem[]>([])
 const auditListLoading = ref(false)
 
 /** 已办 WBS：发起变更（mark-change + reopen-task），与项目页 WBS 逻辑一致 */
@@ -96,7 +97,7 @@ const transferCandidatesLoading = ref(false)
 
 /** 协同任务驳回（退回发布人或首次转出人） */
 const rejectModalVisible = ref(false)
-const rejectTargetTask = ref<TaskItem | null>(null)
+const rejectTargetTask = ref<TaskItem | WorkbenchBpmTaskItem | null>(null)
 const rejectOpinion = ref('')
 const rejectSubmitLoading = ref(false)
 
@@ -349,7 +350,7 @@ function designWorkspaceTooltip(task: TaskItem): string {
   return '协同设计'
 }
 const canAssign = (task: TaskItem) => task.category === 'assign'
-const hasTimelineInfo = (task: TaskItem) => task.category === 'product'
+const hasTimelineInfo = (task: { category?: TaskItem['category'] }) => task.category === 'product'
 
 function formatProjectDateCn(v: unknown): string {
   if (v == null || v === '') return ''
@@ -375,7 +376,13 @@ function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
  * 仅「协同任务」类 WBS 待办、且未开始执行时，展示右上角「⋯」驳回入口
  * @param task
  */
-function showWbsRejectMenu(task: TaskItem): boolean {
+function showWbsRejectMenu(task: {
+  viewOnly?: boolean
+  taskKind?: WorkbenchTaskKind
+  status?: TaskItem['status']
+  type?: string
+  progress?: number
+}): boolean {
   if (task.viewOnly) return false
   if (task.taskKind !== 'wbs') return false
   if (task.status !== 'todo') return false
@@ -404,7 +411,7 @@ function pickNonEmptyDisplay(raw: unknown): string | undefined {
 }
 
 /** 待办且存在延期天数时：红色进度条、延期文案、右上角「延期」角标 */
-function workbenchShowOverdueUi(task: TaskItem): boolean {
+function workbenchShowOverdueUi(task: { status?: TaskItem['status']; delayDays?: number }): boolean {
   return task.status === 'todo' && task.delayDays != null && task.delayDays > 0
 }
 
@@ -916,7 +923,7 @@ async function submitWorkbenchTransfer() {
   }
 }
 
-function openRejectModal(task: TaskItem) {
+function openRejectModal(task: TaskItem | WorkbenchBpmTaskItem) {
   rejectTargetTask.value = task
   rejectOpinion.value = ''
   rejectModalVisible.value = true
@@ -1203,10 +1210,10 @@ async function loadAuditListFromApi() {
   }
 }
 /** 卡片 / 列表展示标题（仅展示服务端 title， */
-function workbenchbpmCardDisplayTitle(task: TaskItem): string {
-  return String(task.processInstance.processVariables.ModelList[0].para1 ?? '').trim()
+function workbenchbpmCardDisplayTitle(task: WorkbenchBpmTaskItem): string {
+  return String(task.processInstance.processVariables?.ModelList?.[0]?.para1 ?? '').trim()
 }
-function taskbpmCardKindClass(task: TaskItem): string {
+function taskbpmCardKindClass(_task: WorkbenchBpmTaskItem): string {
   return 'task-card--kind-wbs'
 }
 /** 流程任务列表筛选（与设计任务分域，关键字与二级页签独立） */
@@ -1235,7 +1242,7 @@ const filteredAuditList = computed(() => {
 /**
  * 流程任务按钮权限
  */
- function taskbpmActionAllowed(task: TaskItem, action: string) {
+ function taskbpmActionAllowed(task: WorkbenchBpmTaskItem, action: string) {
   console.log(task, 'task');
   console.log(action,'action');
   if (action === 'detail') {
@@ -1247,10 +1254,26 @@ const filteredAuditList = computed(() => {
   return true
 }
 
-const openbpmDesignWorkspace = (task: TaskItem) => {
+const openbpmDesignWorkspace = (task: WorkbenchBpmTaskItem) => {
   console.log(task, 'task');
+  router.push({
+    name: 'BpmProcessInstanceDetail',
+    query: {
+      id: task.processInstance.id,
+      pDefinitionId: task.processInstance.processDefinitionId,
+      pProcessDefinitionKey: task.processInstance.processDefinitionKey,
+      type: task.name,
+      pIId: task.processInstance.id,
+      activeTab: 1,
+      tId: task.id,
+      pageIndex: queryParams.pageIndex,
+      // 任务节点的id
+      taskDefinitionKey: task.taskDefinitionKey,
+      taskName: task.name
+    }
+  })
 }
-const openbpmTaskAppDetail = (task: TaskItem) => {
+const openbpmTaskAppDetail = (task: WorkbenchBpmTaskItem) => {
   console.log(task, 'task');
 }
 
@@ -1874,7 +1897,7 @@ onUnmounted(() => {
                                   v-else
                                   src="../../assets/workbench/people.png"
                                   class="w-[18px] h-[18px] rounded-full mr-[4px]" />
-                                <span class="truncate max-w-[88px]">{{ task.assigneeUser.nickname }}</span>
+                                <span class="truncate max-w-[88px]">{{ task.assigneeUser?.nickname }}</span>
                               </div>
                               <div class="tc-actions ml-auto flex items-center gap-[10px]">
                                 <a-tooltip
