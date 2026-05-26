@@ -1202,9 +1202,9 @@ async function loadAuditListFromApi() {
     auditListLoading.value = false
   }
 }
-/** 卡片 / 列表展示标题（仅展示服务端 title，不追加项目/应用名括号后缀） */
+/** 卡片 / 列表展示标题（仅展示服务端 title， */
 function workbenchbpmCardDisplayTitle(task: TaskItem): string {
-  return String(task.processInstance.name ?? '').trim()
+  return String(task.processInstance.processVariables.ModelList[0].para1 ?? '').trim()
 }
 function taskbpmCardKindClass(task: TaskItem): string {
   return 'task-card--kind-wbs'
@@ -1792,7 +1792,6 @@ onUnmounted(() => {
                               <div class="title-wrap flex items-center flex-1 pr-[6px] overflow-hidden">
                                 <span
                                   class="title-text truncate font-bold text-[14px] leading-[20px] text-[#313133]"
-                                  :title="workbenchbpmCardDisplayTitle(task)"
                                   >{{ workbenchbpmCardDisplayTitle(task) }}</span
                                 >
                                 <!-- <span
@@ -1824,8 +1823,8 @@ onUnmounted(() => {
                                 }}</span>
                               </div>
                               <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
-                                <span class="w-[68px] flex-shrink-0 text-[#6A696E]">任务类型：</span>
-                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{ task.name }}</span>
+                                <span class="w-[68px] flex-shrink-0 text-[#6A696E]">流程类型：</span>
+                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{ task.processInstance.name }}</span>
                                 <template v-if="task.lastRejectRemark">
                                   <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
                                     <template #title>
