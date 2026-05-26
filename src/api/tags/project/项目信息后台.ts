@@ -1,6 +1,6 @@
-import { ContentType, httpClient, type RequestParams } from '../http-client';
-import { CommonResultListDeptResponseDTOModel } from '../../models/CommonResultListDeptResponseDTOModel';
-import { ProjectPageRequestDTOModel } from '@/api/models/project/ProjectPageRequestDTOModel';
+import { ContentType, httpClient, type RequestParams } from '../http-client'
+import { CommonResultListDeptResponseDTOModel } from '../../models/CommonResultListDeptResponseDTOModel'
+import { ProjectPageRequestDTOModel } from '@/api/models/project/ProjectPageRequestDTOModel'
 
 /**
  * 公告管理
@@ -15,7 +15,10 @@ export class AdminApiProjectTemp {
    * @request /business-service/business/product-info/page
    * @secure
    */
-  static getProjectPageList = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static getProjectPageList = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-info/page`,
@@ -25,7 +28,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /**
    * 创建项目信息
@@ -36,7 +39,10 @@ export class AdminApiProjectTemp {
    * @request /business-service/business/product-temp/create
    * @secure
    */
-  static createProject = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static createProject = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-info/create`,
@@ -46,7 +52,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /**
    * 编辑项目信息
@@ -57,7 +63,10 @@ export class AdminApiProjectTemp {
    * @request /business-service/business/product-temp/update
    * @secure
    */
-  static updateProject = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static updateProject = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-info/update`,
@@ -67,7 +76,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /**
    * 删除项目信息
@@ -78,7 +87,10 @@ export class AdminApiProjectTemp {
    * @request /business-service/business/product-temp/delete
    * @secure
    */
-  static deleteProject = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static deleteProject = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-info/delete`,
@@ -88,7 +100,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /**
    * 获取项目信息编辑文件
@@ -99,7 +111,10 @@ export class AdminApiProjectTemp {
    * @request /business-service/business/product-temp/getProjectInfoEditFile
    * @secure
    */
-  static getProjectInfoEditFile = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static getProjectInfoEditFile = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-info/getProjectInfoEditFile`,
@@ -109,7 +124,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /**
    * 项目团队列表
@@ -120,7 +135,10 @@ export class AdminApiProjectTemp {
    * @request /business-service/business/project-team/list
    * @secure
    */
-  static projectTeamList = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static projectTeamList = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-team/list`,
@@ -130,7 +148,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /**
    * 项目团队授权用户
@@ -141,7 +159,10 @@ export class AdminApiProjectTemp {
    * @request /business-service/business/project-team-user/createProjectTeamUserAuth
    * @secure
    */
-  static createProjectTeamUserAuth = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
+  static createProjectTeamUserAuth = <Req extends ProjectPageRequestDTOModel = ProjectPageRequestDTOModel>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-team-user/createProjectTeamUserAuth`,
@@ -151,7 +172,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /**
    * 按项目ID查询WBS树表
@@ -169,7 +190,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /** 产品设计看板：WBS 一级分类下协同任务与独立应用汇总 */
   static projectWbsProductBoardCollabStandalone = (
@@ -186,14 +207,17 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
-  static projectWbsAssignUser = (body: {
-    id: string;
-    assigneeUserId: string;
-    planStartTime?: string;
-    planEndTime?: string;
-  }, params: RequestParams = {}) =>
+  static projectWbsAssignUser = (
+    body: {
+      id: string
+      assigneeUserId: string
+      planStartTime?: string
+      planEndTime?: string
+    },
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-wbs/assign-user`,
@@ -204,7 +228,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static projectWbsPublishTask = (body: { id: string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -217,7 +241,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static projectWbsRevokePublish = (body: { id: string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -230,7 +254,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static projectWbsSuspendRow = (body: { id: string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -243,7 +267,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static projectWbsRestoreRow = (body: { id: string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -256,7 +280,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static projectWbsMarkChange = (body: { id: string | number }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -269,7 +293,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static projectWbsReopenTask = (
     body: { id: string | number; applyLatestValue?: number },
@@ -285,9 +309,12 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
-  static wbsTaskParamList = (query: { projectId: string | number; taskId: string | number }, params: RequestParams = {}) =>
+  static wbsTaskParamList = (
+    query: { projectId: string | number; taskId: string | number },
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-wbs/task-param/list`,
@@ -297,14 +324,14 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static wbsTaskParamConfirmSync = (
     body: {
-      projectId: string | number;
-      consumerTaskId: string | number;
-      consumerWbsId: string | number;
-      paramKeys: string[];
+      projectId: string | number
+      consumerTaskId: string | number
+      consumerWbsId: string | number
+      paramKeys: string[]
     },
     params: RequestParams = {},
   ) =>
@@ -318,7 +345,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /** 协同设计工作台：拉取 COLLAB 流程树（对齐独立应用 project-pages） */
   static wbsCollabProjectPages = (
@@ -335,7 +362,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static wbsCollabNodePageDetail = (
     body: { projectId: string | number; taskId: string | number; bpmnElementId: string },
@@ -351,9 +378,12 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
-  static wbsTaskParamMap = (query: { projectId: string | number; taskId: string | number }, params: RequestParams = {}) =>
+  static wbsTaskParamMap = (
+    query: { projectId: string | number; taskId: string | number },
+    params: RequestParams = {},
+  ) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/project-wbs/task-param/param-map`,
@@ -363,7 +393,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static wbsTaskParamSave = (body: Record<string, unknown>, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -376,7 +406,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static wbsCollabNextStep = (body: Record<string, unknown>, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -389,7 +419,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static wbsTaskParamEvaluateImpact = (body: Record<string, unknown>, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -402,7 +432,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /** 工作台首页顶部汇总（替代已下线的 ckProjectInfo/getTaskMessage 数字部分） */
   static workbenchTodoCardSummary = (body: { assigneeUserId: string }, params: RequestParams = {}) =>
@@ -416,19 +446,19 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static workbenchTodoCardPage = (
     body: {
-      pageNo: number;
-      pageSize: number;
-      assigneeUserId: string;
-      status?: string;
-      keyword?: string;
+      pageNo: number
+      pageSize: number
+      assigneeUserId: string
+      status?: string
+      keyword?: string
       /** 默认服务端按 WBS；显式传 WBS 亦可 */
-      cardKind?: string;
+      cardKind?: string
       /** 与 status=TODO 联用：DUE_5D=截止日在[今,今+5]；DUE_15D=[今,今+15]；OVERDUE=截止早于今或 overdue_days>0 */
-      timeBucket?: string;
+      timeBucket?: string
     },
     params: RequestParams = {},
   ) =>
@@ -442,7 +472,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static workbenchTodoTransferOutPage = (
     body: { pageNo: number; pageSize: number; keyword?: string },
@@ -458,7 +488,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   static workbenchTodoCardTransferCandidates = (body: { projectId: string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
@@ -471,12 +501,9 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
-  static workbenchTodoCardTransfer = (
-    body: { cardId: string; toAssigneeUserId: string },
-    params: RequestParams = {},
-  ) =>
+  static workbenchTodoCardTransfer = (body: { cardId: string; toAssigneeUserId: string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/workbench-todo-card/transfer`,
@@ -487,13 +514,10 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /** 协同任务：当前承办人驳回，退回发布人或首次转出人并写入驳回意见 */
-  static workbenchTodoCardReject = (
-    body: { cardId: string; opinion: string },
-    params: RequestParams = {},
-  ) =>
+  static workbenchTodoCardReject = (body: { cardId: string; opinion: string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/business-service/business/workbench-todo-card/reject`,
@@ -504,7 +528,7 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
 
   /** 设计任务应用工作台：操作日志列表（按 bizType 区分 WBS 协同 / 独立应用等） */
   static workspaceOperateLogList = (
@@ -527,5 +551,26 @@ export class AdminApiProjectTemp {
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
-    );
+    )
+  // 工作台流程任务我的待办列表
+  static getbpmTodoCardPage = (
+    body: {
+      pageIndex: number
+      pageRows: number
+      orderByBean?: { sortType: string; attributeName: string }
+      params: {}
+    },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `bpm-service/bpm/task/todo-page`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    )
 }

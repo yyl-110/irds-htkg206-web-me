@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons-vue'
 import * as echarts from 'echarts'
 import addModule from '../modal/addModule.vue'
+import InitiateaProcess from '../modal/InitiateaProcess.vue'
 import applicationModule from '../modal/applicationModule.vue'
 import parametricdesign from '../modal/parametricdesign.vue'
 import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequestDTOModel'
@@ -59,11 +60,13 @@ const menuId = ref<any>(null)
 const pageFlagDrawer = ref<boolean>(false)
 const modulePropertyInfo = ref<any>([])
 const AddVisible = ref<boolean>(false)
+const ProcessVisible = ref<boolean>(false)
 const addOrUpdate = ref<any>(null)
 const modalInfo = ref<any>([])
 const btnType = ref(true)
 const delBtnType = ref(true)
 const compareBtnType = ref(true)
+const selectedRowkeys = ref<any[]>([])
 const page = reactive({
   pageSize: 10,
   pageCount: 0,
@@ -75,6 +78,7 @@ const dropdownList = ref<any>([
   { id: 1, name: '导入' },
   { id: 8, name: '导出' },
   { id: 3, name: '列宽保存' },
+  { id: 4, name: '发起流程' },
 ])
 const parmDesignData = ref<any>([])
 const loading = ref(false)
@@ -106,7 +110,6 @@ onMounted(() => {
 
 const dataSource = ref<any>([])
 
-const selectedRowkeys = ref<any[]>([])
 type ModuleSortOrder = 'ascend' | 'descend' | ''
 const sortState = ref<{ key: string; order: ModuleSortOrder }>({ key: '', order: '' })
 /** 表头筛选：与 exeConfigTab 一致，仅前三列数据列可筛（当前页数据） */
@@ -152,6 +155,17 @@ const moduleTablePagination = computed(() => ({
   showQuickJumper: false,
   showTotal: (total: number) => `共 ${total} 条`,
 }))
+
+/** 选中行 para10 是否为编制中 */
+function isPara10DraftStatus(record?: any) {
+  return String(record?.para10 ?? '').trim() === '编制中'
+}
+
+/** 是否可发起流程：仅选中一条且 para10 为编制中 */
+const canInitiateProcess = computed(() => {
+  if (selectedRowkeys.value.length !== 1) return false
+  return isPara10DraftStatus(selectModelList.value[0])
+})
 
 function applyModuleSelection(selection: any[]) {
   selectModelList.value = selection
@@ -749,6 +763,10 @@ function handleSave() {
   AddVisible.value = false
 }
 // 更多
+function handleDropdownMenuClick({ key }: { key: string | number }) {
+  dropdownAction(Number(key))
+}
+
 function dropdownAction(type: number) {
   if (type == 1) {
     batchExport()
@@ -756,8 +774,19 @@ function dropdownAction(type: number) {
     cWidth()
   } else if (type == 8) {
     upDerive()
+  } else if (type == 4) {
+    if (!canInitiateProcess.value) {
+      if (selectedRowkeys.value.length !== 1) {
+        message.warning('请选择一条数据')
+      } else {
+        message.warning('仅编制中状态的数据可发起流程')
+      }
+      return
+    }
+    processMethod()
   }
 }
+
 /** 文件列表 */
 const fileList = ref<any>([])
 const batchflag = ref<boolean>(false)
@@ -862,6 +891,9 @@ async function upDerive() {
   } else {
     message.error(res.data.msg)
   }
+}
+const processMethod = () => {
+  ProcessVisible.value = true
 }
 // 下载
 function downloadFile(url: any) {
@@ -1447,12 +1479,13 @@ defineExpose({ initData, selectAllModuleInfo })
                   <DownOutlined />
                 </a>
                 <template #overlay>
-                  <a-menu>
-                    <div v-for="(item, index) in dropdownList" :key="index" style="text-align: left">
-                      <a-menu-item @click.native="dropdownAction(item.id)">
-                        {{ item.name }}
-                      </a-menu-item>
-                    </div>
+                  <a-menu @click="handleDropdownMenuClick">
+                    <a-menu-item
+                      v-for="item in dropdownList"
+                      :key="item.id"
+                      :disabled="item.id === 4 && !canInitiateProcess">
+                      {{ item.name }}
+                    </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
@@ -1896,6 +1929,13 @@ defineExpose({ initData, selectAllModuleInfo })
       <img class="module-viz-schematic-preview-img" :src="vizSchematicDisplaySrc" alt="节点树示意图预览" />
     </div>
   </a-modal>
+  <InitiateaProcess
+    ref="InitiateaProcessRef"
+    :modal-visible="ProcessVisible"
+    :selectModelList="selectModelList"
+    @handle-save="handleSave"
+    @modal-init="modalInit"
+    @on-close="ProcessVisible = false" />
 </template>
 
 <style lang="less" scoped>

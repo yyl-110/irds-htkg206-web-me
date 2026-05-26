@@ -43,6 +43,7 @@ import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
 import Empty from '@/components/Empty/index.vue'
 import { renderTableEmptyText } from '@/utils/emptyState'
+import { RRQueryParams } from './components/config/query'
 /** 列表请求参数 */
 const requestNoticeParams = reactive(new NoticePageRequestDTOModel())
 const router = useRouter()
@@ -138,22 +139,24 @@ const filteredTodoList = computed(() => {
 /** 流程任务列表筛选（与设计任务分域，关键字与二级页签独立） */
 const filteredAuditList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
+  console.log(auditList.value, 'auditList.value')
+
   const list = auditList.value.filter(item => {
     if (!keyword) return true
     const hay =
-      `${item.title} ${workbenchCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
+      `${item.title} ${workbenchbpmCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
         .trim()
         .toLowerCase()
     return hay.includes(keyword)
   })
   switch (auditSecondaryFilter.value) {
-    case 'done':
-      return list.filter(item => item.status === 'done' && !item.viewOnly)
-    case 'transfer':
-      return list
     case 'todo':
+      return list
+    case 'done':
+      return []
+    case 'transfer':
     default:
-      return list.filter(item => item.status === 'todo' && !item.viewOnly)
+      return []
   }
 })
 // 定义问候语文本
@@ -431,6 +434,10 @@ function workbenchShowOverdueUi(task: TaskItem): boolean {
 function workbenchCardDisplayTitle(task: TaskItem): string {
   return String(task.title ?? '').trim()
 }
+/** 卡片 / 列表展示标题（仅展示服务端 title，不追加项目/应用名括号后缀） */
+function workbenchbpmCardDisplayTitle(task: TaskItem): string {
+  return String(task.processInstance.name ?? '').trim()
+}
 
 /**
  * 将 workbench-todo-card/page 单行映射为首页卡片 TaskItem（含 taskKind、标签、延期/剩余天）
@@ -599,7 +606,13 @@ async function loadTodoListFromApi() {
     todoListLoading.value = false
   }
 }
-
+// 查询参数
+const queryParams = reactive<RRQueryParams>({
+  pageIndex: 1,
+  pageRows: 30,
+  orderByBean: { sortType: 'asc', attributeName: '' },
+  params: {},
+})
 /**
  * 流程任务列表：与设计任务分域，按 auditSecondaryFilter 拉取 OA/BPM 等独立数据源。
  * 接口接入后在各分支内赋值 auditList；接入前保持空列表。
@@ -609,8 +622,11 @@ async function loadAuditListFromApi() {
   try {
     switch (auditSecondaryFilter.value) {
       case 'todo':
-      case 'done':
-      case 'transfer':
+        const res = await AdminApiProjectTemp.getbpmTodoCardPage({ ...queryParams })
+        if (res.data.code === 200) {
+          auditList.value = res.data.data.data
+        }
+        break
       default:
         auditList.value = []
     }
@@ -699,6 +715,15 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
   }
   if (action === 'design') return canDesign(task)
   return true
+}
+/**
+ * 流程任务待办
+ */
+function taskbpmActionAllowed(task: TaskItem, action: string) {
+console.log(task,action,'task,action');
+  // if (action === 'detail') {
+  //   return task.status === 'done'
+  // }
 }
 
 /**
@@ -1422,6 +1447,7 @@ onUnmounted(() => {
                                   :title="workbenchCardDisplayTitle(item)"
                                   >{{ workbenchCardDisplayTitle(item) }}</span
                                 >
+
                                 <span
                                   v-for="tag in item.tags.filter(
                                     t => t !== '待办' && !(workbenchShowOverdueUi(item) && t === '延'),
@@ -1741,17 +1767,17 @@ onUnmounted(() => {
                                 <MobileOutlined v-else-if="task.taskKind === 'standalone'" />
                                 <CloudServerOutlined v-else-if="task.taskKind === 'compute'" />
                                 <SettingOutlined v-else />
-                                {{ taskKindBadgeLabel(task) }}
+                                {{ '流程任务' }}
                               </span>
                             </div>
                             <div class="tc-header flex justify-between items-start">
                               <div class="title-wrap flex items-center flex-1 pr-[6px] overflow-hidden">
                                 <span
                                   class="title-text truncate font-bold text-[14px] leading-[20px] text-[#313133]"
-                                  :title="workbenchCardDisplayTitle(task)"
-                                  >{{ workbenchCardDisplayTitle(task) }}</span
+                                  :title="workbenchbpmCardDisplayTitle(task)"
+                                  >{{ workbenchbpmCardDisplayTitle(task) }}</span
                                 >
-                                <span
+                                <!-- <span
                                   v-for="tag in task.tags.filter(
                                     t => t !== '待办' && !(workbenchShowOverdueUi(task) && t === '延'),
                                   )"
@@ -1759,7 +1785,7 @@ onUnmounted(() => {
                                   class="tc-tag flex-shrink-0"
                                   :class="getTagClass(tag)"
                                   >{{ tag }}</span
-                                >
+                                > -->
                               </div>
                               <a-dropdown v-if="showWbsRejectMenu(task)" :trigger="['hover']">
                                 <EllipsisOutlined class="text-[18px] text-[#999] cursor-pointer" />
@@ -1781,7 +1807,7 @@ onUnmounted(() => {
                               </div>
                               <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
                                 <span class="w-[68px] flex-shrink-0 text-[#6A696E]">任务类型：</span>
-                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{ task.type }}</span>
+                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{ task.name }}</span>
                                 <template v-if="task.lastRejectRemark">
                                   <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
                                     <template #title>
@@ -1831,12 +1857,12 @@ onUnmounted(() => {
                                   v-else
                                   src="../../assets/workbench/people.png"
                                   class="w-[18px] h-[18px] rounded-full mr-[4px]" />
-                                <span class="truncate max-w-[88px]">{{ task.creatorName }}</span>
+                                <span class="truncate max-w-[88px]">{{ task.assigneeUser.nickname }}</span>
                               </div>
                               <div class="tc-actions ml-auto flex items-center gap-[10px]">
                                 <a-tooltip
-                                  v-if="taskActionAllowed(task, 'design')"
-                                  :title="designWorkspaceTooltip(task)">
+                                  v-if="taskbpmActionAllowed(task, 'design')"
+                                  title="待办">
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
@@ -1844,23 +1870,7 @@ onUnmounted(() => {
                                     <HighlightOutlined />
                                   </a>
                                 </a-tooltip>
-                                <a-tooltip v-if="taskActionAllowed(task, 'assign')" title="指派">
-                                  <a
-                                    href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openWbsPersonAssignFromWorkbench(task)">
-                                    <UserAddOutlined />
-                                  </a>
-                                </a-tooltip>
-                                <a-tooltip v-if="taskActionAllowed(task, 'transfer')" title="转办">
-                                  <a
-                                    href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openTransferModal(task)">
-                                    <SwapOutlined />
-                                  </a>
-                                </a-tooltip>
-                                <a-tooltip v-if="taskActionAllowed(task, 'detail')" title="详情">
+                                <a-tooltip v-if="taskbpmActionAllowed(task, 'detail')" title="详情">
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
@@ -1868,14 +1878,7 @@ onUnmounted(() => {
                                     <ProfileOutlined />
                                   </a>
                                 </a-tooltip>
-                                <a-tooltip v-if="taskActionAllowed(task, 'change')" title="变更">
-                                  <a
-                                    href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openChangeWorkspace(task)">
-                                    <FormOutlined />
-                                  </a>
-                                </a-tooltip>
+                  
                               </div>
                             </div>
                           </div>
@@ -1885,136 +1888,136 @@ onUnmounted(() => {
 
                     <template v-else>
                       <a-table
-                      :columns="todoColumns"
-                      :data-source="tableAuditList"
-                      :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
-                      :row-class-name="rowClassName"
-                      :pagination="false"
-                      :row-key="rowKey"
-                      bordered
-                      class="workbench-main-table bg-white"
-                      :scroll="{ x: 1386 }"
-                      @resize-column="handleResizeColumn">
-                      <template
-                        #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
-                        <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
-                          <a-input
-                            :value="selectedKeys[0]"
-                            placeholder="搜索任务名称"
-                            allow-clear
-                            @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
-                            @press-enter="confirm()" />
-                          <div class="mt-[10px] flex gap-[8px]">
-                            <a-button type="primary" size="small" @click="confirm()"> 确定 </a-button>
-                            <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
-                          </div>
-                        </div>
-                      </template>
-                      <template #customFilterIcon="{ filtered, column }">
-                        <FilterOutlined
-                          v-if="column.key === 'title'"
-                          :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
-                      </template>
-                      <template #bodyCell="{ column, record }">
-                        <template v-if="column.key === 'title'">
-                          <div class="flex items-center gap-[8px] min-w-0">
-                            <span class="font-bold text-[#313133] truncate">{{
-                              workbenchCardDisplayTitle(record)
-                            }}</span>
-                            <span
-                              v-if="workbenchShowOverdueUi(record)"
-                              class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]"
-                              >延期</span
-                            >
-                          </div>
-                        </template>
-                        <template v-if="column.key === 'type'">
-                          <div class="wb-cell-type min-w-0 max-w-full">
-                            <div
-                              class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]"
-                              :title="workbenchTaskTypeListTooltip(record) || undefined">
-                              {{ workbenchTaskTypeListLine(record) }}
+                        :columns="todoColumns"
+                        :data-source="tableAuditList"
+                        :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
+                        :row-class-name="rowClassName"
+                        :pagination="false"
+                        :row-key="rowKey"
+                        bordered
+                        class="workbench-main-table bg-white"
+                        :scroll="{ x: 1386 }"
+                        @resize-column="handleResizeColumn">
+                        <template
+                          #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+                          <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
+                            <a-input
+                              :value="selectedKeys[0]"
+                              placeholder="搜索任务名称"
+                              allow-clear
+                              @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
+                              @press-enter="confirm()" />
+                            <div class="mt-[10px] flex gap-[8px]">
+                              <a-button type="primary" size="small" @click="confirm()"> 确定 </a-button>
+                              <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
                             </div>
                           </div>
                         </template>
-                        <template v-if="column.key === 'time'">
-                          {{ record.displayTime }}
+                        <template #customFilterIcon="{ filtered, column }">
+                          <FilterOutlined
+                            v-if="column.key === 'title'"
+                            :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
                         </template>
-                        <template v-if="column.key === 'progress'">
-                          <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
-                            <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums"
-                              >{{ record.progress }}%</span
-                            >
-                            <a-progress
-                              class="wb-progress-inline flex-1 min-w-[64px] !mb-0"
-                              :percent="record.progress"
-                              :show-info="false"
-                              :stroke-width="8"
-                              trail-color="#F0F0F0"
-                              :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'" />
-                            <a-tooltip v-if="workbenchShowOverdueUi(record)" :title="`已延期 ${record.delayDays} 天`">
-                              <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default"
-                                >延期{{ record.delayDays }}天</span
+                        <template #bodyCell="{ column, record }">
+                          <template v-if="column.key === 'title'">
+                            <div class="flex items-center gap-[8px] min-w-0">
+                              <span class="font-bold text-[#313133] truncate">{{
+                                workbenchbpmCardDisplayTitle(record)
+                              }}</span>
+                              <span
+                                v-if="workbenchShowOverdueUi(record)"
+                                class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]"
+                                >延期</span
                               >
-                            </a-tooltip>
-                          </div>
+                            </div>
+                          </template>
+                          <template v-if="column.key === 'type'">
+                            <div class="wb-cell-type min-w-0 max-w-full">
+                              <div
+                                class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]"
+                                :title="workbenchTaskTypeListTooltip(record) || undefined">
+                                {{ workbenchTaskTypeListLine(record) }}
+                              </div>
+                            </div>
+                          </template>
+                          <template v-if="column.key === 'time'">
+                            {{ record.displayTime }}
+                          </template>
+                          <template v-if="column.key === 'progress'">
+                            <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
+                              <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums"
+                                >{{ record.progress }}%</span
+                              >
+                              <a-progress
+                                class="wb-progress-inline flex-1 min-w-[64px] !mb-0"
+                                :percent="record.progress"
+                                :show-info="false"
+                                :stroke-width="8"
+                                trail-color="#F0F0F0"
+                                :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'" />
+                              <a-tooltip v-if="workbenchShowOverdueUi(record)" :title="`已延期 ${record.delayDays} 天`">
+                                <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default"
+                                  >延期{{ record.delayDays }}天</span
+                                >
+                              </a-tooltip>
+                            </div>
+                          </template>
+                          <template v-if="column.key === 'action'">
+                            <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
+                              <a-tooltip
+                                v-if="taskbpmActionAllowed(record, 'design')"
+                                title="待办">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openDesignWorkspace(record)">
+                                  <HighlightOutlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip v-if="taskbpmActionAllowed(record, 'assign')" title="指派">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)">
+                                  <UserAddOutlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip v-if="taskbpmActionAllowed(record, 'transfer')" title="转办">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openTransferModal(record)">
+                                  <SwapOutlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip v-if="showWbsRejectMenu(record)" title="驳回">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-[#FA8C16] cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openRejectModal(record)">
+                                  <UndoOutlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip v-if="taskbpmActionAllowed(record, 'detail')" title="详情">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openTaskAppDetail(record)">
+                                  <ProfileOutlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip v-if="taskbpmActionAllowed(record, 'change')" title="变更">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openChangeWorkspace(record)">
+                                  <FormOutlined />
+                                </a>
+                              </a-tooltip>
+                            </div>
+                          </template>
                         </template>
-                        <template v-if="column.key === 'action'">
-                          <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                            <a-tooltip
-                              v-if="taskActionAllowed(record, 'design')"
-                              :title="designWorkspaceTooltip(record)">
-                              <a
-                                href="#"
-                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                @click.prevent.stop="openDesignWorkspace(record)">
-                                <HighlightOutlined />
-                              </a>
-                            </a-tooltip>
-                            <a-tooltip v-if="taskActionAllowed(record, 'assign')" title="指派">
-                              <a
-                                href="#"
-                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                @click.prevent.stop="openWbsPersonAssignFromWorkbench(record)">
-                                <UserAddOutlined />
-                              </a>
-                            </a-tooltip>
-                            <a-tooltip v-if="taskActionAllowed(record, 'transfer')" title="转办">
-                              <a
-                                href="#"
-                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                @click.prevent.stop="openTransferModal(record)">
-                                <SwapOutlined />
-                              </a>
-                            </a-tooltip>
-                            <a-tooltip v-if="showWbsRejectMenu(record)" title="驳回">
-                              <a
-                                href="#"
-                                class="tc-action-icon text-[#FA8C16] cursor-pointer text-[16px] leading-none"
-                                @click.prevent.stop="openRejectModal(record)">
-                                <UndoOutlined />
-                              </a>
-                            </a-tooltip>
-                            <a-tooltip v-if="taskActionAllowed(record, 'detail')" title="详情">
-                              <a
-                                href="#"
-                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                @click.prevent.stop="openTaskAppDetail(record)">
-                                <ProfileOutlined />
-                              </a>
-                            </a-tooltip>
-                            <a-tooltip v-if="taskActionAllowed(record, 'change')" title="变更">
-                              <a
-                                href="#"
-                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                @click.prevent.stop="openChangeWorkspace(record)">
-                                <FormOutlined />
-                              </a>
-                            </a-tooltip>
-                          </div>
-                        </template>
-                      </template>
-                    </a-table>
+                      </a-table>
                     </template>
                   </div>
                 </a-spin>
@@ -2761,4 +2764,4 @@ onUnmounted(() => {
 .normal-progress :deep(.ant-progress-bg) {
   background: linear-gradient(270deg, #6f86fa 2.51%, #1a58e8 72.46%) !important;
 }
-</style>
+</style
