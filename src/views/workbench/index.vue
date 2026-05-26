@@ -1219,9 +1219,9 @@ function taskbpmCardKindClass(_task: WorkbenchBpmTaskItem): string {
 }
 const processColumns = ref([
   {
-    title: '任务名称',
-    dataIndex: 'title',
-    key: 'title',
+    title: '流程节点',
+    dataIndex: 'name',
+    key: 'name',
     ellipsis: true,
     width: 250,
     fixed: 'left',
@@ -1233,17 +1233,32 @@ const processColumns = ref([
       workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
   },
   {
-    title: '任务大类',
-    dataIndex: 'type',
-    key: 'type',
+    title: '主题',
+    dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
+    key: 'PROCESS_BUSINESS_TYPE_NAME',
     width: 176,
     resizable: true,
     ellipsis: true,
-    sorter: (a: TaskItem, b: TaskItem) => a.taskKind.localeCompare(b.taskKind) || a.type.localeCompare(b.type),
   },
   {
-    title: '项目时间',
-    key: 'time',
+    title: '流程状态',
+    dataIndex: 'state',
+    key: 'state',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+  },
+  {
+    title: '执行人',
+    dataIndex: 'nickname',
+    key: 'nickname',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+  },
+  {
+    title: '发起时间',
+    key: 'createTime',
     width: 240,
     resizable: true,
     sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
@@ -2014,17 +2029,27 @@ onUnmounted(() => {
                               >
                             </div>
                           </template>
-                          <template v-if="column.key === 'type'">
+                          <template v-if="column.key === 'PROCESS_BUSINESS_TYPE_NAME'">
                             <div class="wb-cell-type min-w-0 max-w-full">
                               <div
-                                class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]"
-                                :title="workbenchTaskTypeListTooltip(record) || undefined">
-                                {{ '流程任务' }}
+                                class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]">
+                                {{ record.processInstance.processVariables.PROCESS_BUSINESS_TYPE_NAME}}
                               </div>
                             </div>
                           </template>
-                          <template v-if="column.key === 'time'">
-                            {{ record.displayTime }}
+                          <template v-if="column.key === 'state'">
+                            <a-tag v-if="record.name === '编制'" size="small" type="success" style="color: #2e8702;">
+                              {{ $t('编制中') }}
+                            </a-tag>
+                            <a-tag v-else type="primary" size="small">
+                              {{ $t('审批中') }}
+                            </a-tag>
+                          </template>
+                          <template v-if="column.key === 'nickname'">
+                            {{ record.assigneeUser.nickname }}
+                          </template>
+                          <template v-if="column.key === 'createTime'">
+                            {{ record.createTime }}
                           </template>
                           <template v-if="column.key === 'progress'">
                             <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
