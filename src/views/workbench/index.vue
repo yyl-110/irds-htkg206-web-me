@@ -1062,12 +1062,7 @@ const tableTodoList = computed(() =>
     displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
   })),
 )
-const tableAuditList = computed(() =>
-  filteredAuditList.value.map(item => ({
-    ...item,
-    displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
-  })),
-)
+
 
 /** 列表请求参数 */
 const requestParams = reactive(new NoticePageRequestDTOModel())
@@ -1209,6 +1204,12 @@ async function loadAuditListFromApi() {
     auditListLoading.value = false
   }
 }
+const tableProcessList = computed(() =>
+  filteredAuditList.value.map(item => ({
+    ...item,
+    displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
+  })),
+)
 /** 卡片 / 列表展示标题（仅展示服务端 title， */
 function workbenchbpmCardDisplayTitle(task: WorkbenchBpmTaskItem): string {
   return String(task.processInstance.processVariables?.ModelList?.[0]?.para1 ?? '').trim()
@@ -1216,6 +1217,48 @@ function workbenchbpmCardDisplayTitle(task: WorkbenchBpmTaskItem): string {
 function taskbpmCardKindClass(_task: WorkbenchBpmTaskItem): string {
   return 'task-card--kind-wbs'
 }
+const processColumns = ref([
+  {
+    title: '任务名称',
+    dataIndex: 'title',
+    key: 'title',
+    ellipsis: true,
+    width: 250,
+    fixed: 'left',
+    resizable: true,
+    customFilterDropdown: true,
+    onFilter: (value: string, record: TaskItem) =>
+      workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
+    sorter: (a: TaskItem, b: TaskItem) =>
+      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
+  },
+  {
+    title: '任务大类',
+    dataIndex: 'type',
+    key: 'type',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+    sorter: (a: TaskItem, b: TaskItem) => a.taskKind.localeCompare(b.taskKind) || a.type.localeCompare(b.type),
+  },
+  {
+    title: '项目时间',
+    key: 'time',
+    width: 240,
+    resizable: true,
+    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+  },
+  {
+    title: '当前进度',
+    dataIndex: 'progress',
+    key: 'progress',
+    width: 248,
+    resizable: true,
+    ellipsis: true,
+    sorter: (a: TaskItem, b: TaskItem) => a.progress - b.progress,
+  },
+  { title: '操作', key: 'action', width: 140, align: 'center', fixed: 'right', resizable: true },
+])
 /** 流程任务列表筛选（与设计任务分域，关键字与二级页签独立） */
 const filteredAuditList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
@@ -1284,7 +1327,7 @@ let todoSearchDebounce: ReturnType<typeof setTimeout> | null = null
 watch(searchQuery, () => {
   if (todoSearchDebounce) clearTimeout(todoSearchDebounce)
   todoSearchDebounce = setTimeout(() => {
-    if (activeName.value === 'audit') {
+    if (activeName.value === 'process') {
       void loadAuditListFromApi()
     } else {
       void loadTodoListFromApi()
@@ -1301,7 +1344,7 @@ watch(auditSecondaryFilter, () => {
 })
 
 watch(activeName, name => {
-  if (name === 'audit') {
+  if (name === 'process') {
     void loadAuditListFromApi()
   }
 })
@@ -1759,7 +1802,7 @@ onUnmounted(() => {
                   </div>
                 </a-spin>
               </div>
-              <div v-else-if="item.name === 'audit'" class="task-content flex flex-col flex-1 min-h-0 h-full">
+              <div v-else-if="item.name === 'process'" class="task-content flex flex-col flex-1 min-h-0 h-full">
                 <div class="filter-bar flex-shrink-0 flex justify-between items-center mb-[16px] mt-[3px]">
                   <div class="capsule-group flex gap-[12px]">
                     <div
@@ -1928,8 +1971,8 @@ onUnmounted(() => {
 
                     <template v-else>
                       <a-table
-                        :columns="todoColumns"
-                        :data-source="tableAuditList"
+                        :columns="processColumns"
+                        :data-source="tableProcessList"
                         :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
                         :row-class-name="rowClassName"
                         :pagination="false"
@@ -1976,7 +2019,7 @@ onUnmounted(() => {
                               <div
                                 class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]"
                                 :title="workbenchTaskTypeListTooltip(record) || undefined">
-                                {{ workbenchTaskTypeListLine(record) }}
+                                {{ '流程任务' }}
                               </div>
                             </div>
                           </template>

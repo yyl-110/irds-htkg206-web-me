@@ -111,7 +111,7 @@ export const TASK_KIND_ACTIONS: Record<
  */
 export const WORKBENCH_TABS = [
   { title: '设计任务', name: 'todo' },
-  { title: '流程任务', name: 'audit' },
+  { title: '流程任务', name: 'process' },
 ]
 
 /**
