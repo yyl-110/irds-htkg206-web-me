@@ -1218,27 +1218,27 @@ function taskbpmCardKindClass(_task: WorkbenchBpmTaskItem): string {
   return 'task-card--kind-wbs'
 }
 const processColumns = ref([
-  {
-    title: '流程节点',
-    dataIndex: 'name',
-    key: 'name',
-    ellipsis: true,
-    width: 250,
-    fixed: 'left',
-    resizable: true,
-    customFilterDropdown: true,
-    onFilter: (value: string, record: TaskItem) =>
-      workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
-    sorter: (a: TaskItem, b: TaskItem) =>
-      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
-  },
-  {
+{
     title: '主题',
     dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
     key: 'PROCESS_BUSINESS_TYPE_NAME',
     width: 176,
     resizable: true,
     ellipsis: true,
+    fixed: 'left',
+  },
+  {
+    title: '流程节点',
+    dataIndex: 'name',
+    key: 'name',
+    ellipsis: true,
+    width: 100,
+    resizable: true,
+    customFilterDropdown: true,
+    onFilter: (value: string, record: TaskItem) =>
+      workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
+    sorter: (a: TaskItem, b: TaskItem) =>
+      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
   },
   {
     title: '流程状态',
@@ -1895,7 +1895,7 @@ onUnmounted(() => {
                                 }}</span>
                               </div>
                               <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
-                                <span class="w-[68px] flex-shrink-0 text-[#6A696E]">流程类型：</span>
+                                <span class="w-[68px] flex-shrink-0 text-[#6A696E]">流程主题：</span>
                                 <span class="text-[#313133] min-w-0 flex-1 truncate">{{task.processInstance.name }}</span>
                                 <template v-if="task.lastRejectRemark">
                                   <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
@@ -1915,7 +1915,13 @@ onUnmounted(() => {
                                   <span class="text-[#313133]">{{ task.name === '编制' ? $t('编制中') : $t('审批中') }}</span>
                                 </div>
                               </div>
-                              <div style="height: 22px"></div>
+                              <div class="flex justify-between items-center pr-[6px]">
+                                <div class="flex min-w-0">
+                                  <span class="w-[68px] flex-shrink-0">执行人：</span>
+                                  <span class="text-[#313133]">{{ task.assigneeUser?.nickname}}</span>
+                                </div>
+                              </div>
+                              <div style="height: 2px"></div>
                             </div>
 
                             <div class="tc-footer mt-[8px] flex items-center text-[13px] leading-[18px] text-[#6A696E]">
