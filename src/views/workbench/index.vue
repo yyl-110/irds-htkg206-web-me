@@ -136,29 +136,7 @@ const filteredTodoList = computed(() => {
       return list.filter(item => item.status === 'todo' && !item.viewOnly)
   }
 })
-/** 流程任务列表筛选（与设计任务分域，关键字与二级页签独立） */
-const filteredAuditList = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase()
-  console.log(auditList.value, 'auditList.value')
 
-  const list = auditList.value.filter(item => {
-    if (!keyword) return true
-    const hay =
-      `${item.title} ${workbenchbpmCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
-        .trim()
-        .toLowerCase()
-    return hay.includes(keyword)
-  })
-  switch (auditSecondaryFilter.value) {
-    case 'todo':
-      return list
-    case 'done':
-      return []
-    case 'transfer':
-    default:
-      return []
-  }
-})
 // 定义问候语文本
 const greetingText = ref('')
 // 定时器标识，用于清除定时器
@@ -434,10 +412,7 @@ function workbenchShowOverdueUi(task: TaskItem): boolean {
 function workbenchCardDisplayTitle(task: TaskItem): string {
   return String(task.title ?? '').trim()
 }
-/** 卡片 / 列表展示标题（仅展示服务端 title，不追加项目/应用名括号后缀） */
-function workbenchbpmCardDisplayTitle(task: TaskItem): string {
-  return String(task.processInstance.name ?? '').trim()
-}
+
 
 /**
  * 将 workbench-todo-card/page 单行映射为首页卡片 TaskItem（含 taskKind、标签、延期/剩余天）
@@ -606,37 +581,7 @@ async function loadTodoListFromApi() {
     todoListLoading.value = false
   }
 }
-// 查询参数
-const queryParams = reactive<RRQueryParams>({
-  pageIndex: 1,
-  pageRows: 30,
-  orderByBean: { sortType: 'asc', attributeName: '' },
-  params: {},
-})
-/**
- * 流程任务列表：与设计任务分域，按 auditSecondaryFilter 拉取 OA/BPM 等独立数据源。
- * 接口接入后在各分支内赋值 auditList；接入前保持空列表。
- */
-async function loadAuditListFromApi() {
-  auditListLoading.value = true
-  try {
-    switch (auditSecondaryFilter.value) {
-      case 'todo':
-        const res = await AdminApiProjectTemp.getbpmTodoCardPage({ ...queryParams })
-        if (res.data.code === 200) {
-          auditList.value = res.data.data.data
-        }
-        break
-      default:
-        auditList.value = []
-    }
-  } catch {
-    message.error('加载流程任务列表失败')
-    auditList.value = []
-  } finally {
-    auditListLoading.value = false
-  }
-}
+
 
 function taskCardKindClass(task: TaskItem): string {
   const map: Record<WorkbenchTaskKind, string> = {
@@ -646,9 +591,6 @@ function taskCardKindClass(task: TaskItem): string {
     other: 'task-card--kind-other',
   }
   return map[task.taskKind] ?? 'task-card--kind-other'
-}
-function taskbpmCardKindClass(task: TaskItem): string {
-  return 'task-card--kind-wbs'
 }
 
 function taskKindBadgeLabel(task: TaskItem): string {
@@ -717,20 +659,6 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
     return canRejectOrTransfer(task)
   }
   if (action === 'design') return canDesign(task)
-  return true
-}
-/**
- * 流程任务按钮权限
- */
-function taskbpmActionAllowed(task: TaskItem, action: string) {
-  console.log(task, 'task');
-  console.log(action,'action');
-  if (action === 'detail') {
-    return true
-  }
-  if (action === 'design' ) {
-    return true
-  }
   return true
 }
 
@@ -1242,6 +1170,91 @@ async function seeDetailFun(id: string) {
     powerModel.value.getDetailFromMain(data, filedata)
   })
 }
+// ------------------------流程任务----------------------------
+// 查询参数
+const queryParams = reactive<RRQueryParams>({
+  pageIndex: 1,
+  pageRows: 30,
+  orderByBean: { sortType: 'asc', attributeName: '' },
+  params: {},
+})
+/**
+ * 流程任务列表：与设计任务分域，按 auditSecondaryFilter 拉取 OA/BPM 等独立数据源。
+ * 接口接入后在各分支内赋值 auditList；接入前保持空列表。
+ */
+async function loadAuditListFromApi() {
+  auditListLoading.value = true
+  try {
+    switch (auditSecondaryFilter.value) {
+      case 'todo':
+        const res = await AdminApiProjectTemp.getbpmTodoCardPage({ ...queryParams })
+        if (res.data.code === 200) {
+          auditList.value = res.data.data.data
+        }
+        break
+      default:
+        auditList.value = []
+    }
+  } catch {
+    message.error('加载流程任务列表失败')
+    auditList.value = []
+  } finally {
+    auditListLoading.value = false
+  }
+}
+/** 卡片 / 列表展示标题（仅展示服务端 title，不追加项目/应用名括号后缀） */
+function workbenchbpmCardDisplayTitle(task: TaskItem): string {
+  return String(task.processInstance.name ?? '').trim()
+}
+function taskbpmCardKindClass(task: TaskItem): string {
+  return 'task-card--kind-wbs'
+}
+/** 流程任务列表筛选（与设计任务分域，关键字与二级页签独立） */
+const filteredAuditList = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase()
+  console.log(auditList.value, 'auditList.value')
+
+  const list = auditList.value.filter(item => {
+    if (!keyword) return true
+    const hay =
+      `${item.title} ${workbenchbpmCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
+        .trim()
+        .toLowerCase()
+    return hay.includes(keyword)
+  })
+  switch (auditSecondaryFilter.value) {
+    case 'todo':
+      return list
+    case 'done':
+      return []
+    case 'transfer':
+    default:
+      return []
+  }
+})
+/**
+ * 流程任务按钮权限
+ */
+ function taskbpmActionAllowed(task: TaskItem, action: string) {
+  console.log(task, 'task');
+  console.log(action,'action');
+  if (action === 'detail') {
+    return true
+  }
+  if (action === 'design' ) {
+    return true
+  }
+  return true
+}
+
+const openbpmDesignWorkspace = (task: TaskItem) => {
+  console.log(task, 'task');
+}
+const openbpmTaskAppDetail = (task: TaskItem) => {
+  console.log(task, 'task');
+}
+
+
 
 // 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
 let todoSearchDebounce: ReturnType<typeof setTimeout> | null = null
@@ -1871,7 +1884,7 @@ onUnmounted(() => {
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openDesignWorkspace(task)">
+                                    @click.prevent.stop="openbpmDesignWorkspace(task)">
                                     <HighlightOutlined />
                                   </a>
                                 </a-tooltip>
@@ -1879,7 +1892,7 @@ onUnmounted(() => {
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openTaskAppDetail(task)">
+                                    @click.prevent.stop="openbpmTaskAppDetail(task)">
                                     <ProfileOutlined />
                                   </a>
                                 </a-tooltip>
@@ -1975,7 +1988,7 @@ onUnmounted(() => {
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openDesignWorkspace(record)">
+                                  @click.prevent.stop="openbpmDesignWorkspace(record)">
                                   <HighlightOutlined />
                                 </a>
                               </a-tooltip>
@@ -1983,7 +1996,7 @@ onUnmounted(() => {
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openTaskAppDetail(record)">
+                                  @click.prevent.stop="openbpmTaskAppDetail(record)">
                                   <ProfileOutlined />
                                 </a>
                               </a-tooltip>
