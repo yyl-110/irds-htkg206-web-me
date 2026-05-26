@@ -13,6 +13,7 @@
       <ProcessInstanceHeader
         :id="id"
         :process-instance="processInstance"
+        :audit-icons-map="auditIconsMap"
         :task-definition-key="taskActivityId"
         :task-name="tName" />
 
@@ -204,6 +205,7 @@ import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
 import { getBusinessTypeComponent } from './businessTypes/index'
 import { useMessage } from '@/hooks/web/useMessage'
 import { ContentWrap } from '@/components/ContentWrap'
+import { TaskStatusEnum } from '@/api/bpm/task'
 // 导入组件
 import ProcessInstanceHeader from './components/ProcessInstanceHeader.vue'
 import ProcessInstanceBpmnViewer from './ProcessInstanceBpmnViewer.vue'
@@ -215,19 +217,11 @@ import ProcessInstanceTimeline from './ProcessInstanceTimeline.vue'
 import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
 import ProcessOpinion from './components/ProcessOpinion.vue'
 import ProcessStatusSelector from './components/ProcessStatusSelector.vue'
-// import FeatureDetailModal from '@/views/ProductMgt/SalesFeature/component/FeatureDetailModal.vue'
-// import BomOrderSet from '@/views/Order/component/BomOrderSet.vue'
-// import CustomizeFeatureDetailModal from '@/views/ProductMgt/TechnicalFeature/component/CustomizeFeatureDetailModal.vue'
-// import ProjectConfigDeatil from '@/components/ProjectConfigDetail/index.vue'
-// import EpOnlyCompareDrawer from '@/components/EpOnlyCompareDrawer'
-// import VersionCompareDrawer from '@/views/Order/component/VersionCompareDrawer.vue'
-// import SuperBom from '@/components/SuperBom'
-// import UserSelectFormRadio from '@/components/UserSelectFormRadio/index.vue'
 
-// import runningSvg from '@/assets/svgs/bpm/running.svg'
-// import approveSvg from '@/assets/svgs/bpm/approve.svg'
-// import rejectSvg from '@/assets/svgs/bpm/reject.svg'
-// import cancelSvg from '@/assets/svgs/bpm/cancel.svg'
+import runningSvg from '@/assets/svgs/bpm/running.svg'
+import approveSvg from '@/assets/svgs/bpm/approve.svg'
+import rejectSvg from '@/assets/svgs/bpm/reject.svg'
+import cancelSvg from '@/assets/svgs/bpm/cancel.svg'
 defineOptions({ name: 'BpmProcessInstanceDetail' })
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 const props = defineProps<{
@@ -246,12 +240,12 @@ const processInstance = ref<any>({})
 const processDefinition = ref<any>({})
 const processModelView = ref<any>({})
 const operationButtonRef = ref()
-// const auditIconsMap = {
-//   [TaskStatusEnum.RUNNING]: runningSvg,
-//   [TaskStatusEnum.APPROVE]: approveSvg,
-//   [TaskStatusEnum.REJECT]: rejectSvg,
-//   [TaskStatusEnum.CANCEL]: cancelSvg,
-// }
+const auditIconsMap = {
+  [TaskStatusEnum.RUNNING]: runningSvg,
+  [TaskStatusEnum.APPROVE]: approveSvg,
+  [TaskStatusEnum.REJECT]: rejectSvg,
+  [TaskStatusEnum.CANCEL]: cancelSvg,
+}
 
 // 表单相关
 const fApi = ref<ApiAttrs>()
@@ -283,8 +277,6 @@ const FeatureDetailModalRef = ref(null)
 const OrderSetRef = ref(null)
 const CustomizeFeatureDetailModalRef = ref(null)
 const projectConfigDeatilRef = ref(null)
-const refSuperBom = ref(null)
-const versionCompareDrawerRef = ref(null)
 const userSelectFormRef = ref()
 
 // 其他状态

@@ -1,5 +1,5 @@
 <template>
-  <div class="order-mbom">
+  <div class="technical-feature">
     <CommonApprovalContent
       v-if="titleList.length > 0"
       :title-list="titleList"
@@ -7,8 +7,7 @@
       :opinion="opinion"
       :clickable-fields="['name', 'orderNo', 'areaConfigName', 'designModel']"
       @search="handleSearch"
-      @row-click="handleRowClick"
-    />
+      @row-click="handleRowClick" />
   </div>
 </template>
 
@@ -24,7 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'search', content: string): void
-  (e: 'show-order-set', row: any): void
+  (e: 'show-customize-feature', row: any): void
 }>()
 
 const handleSearch = (content: string) => {
@@ -36,12 +35,12 @@ const handleRowClick = (row: any, field: string) => {
     return
   }
 
-  emit('show-order-set', row)
+  emit('show-customize-feature', row)
 }
 </script>
 
 <style lang="scss" scoped>
-.order-mbom {
+.technical-feature {
   width: 100%;
 }
 </style>

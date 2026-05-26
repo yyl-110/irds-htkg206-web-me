@@ -1,9 +1,13 @@
 <template>
   <div class="process-instance-header">
-    <!-- <img class="position-absolute right-20px" width="150" :src="auditIconsMap[processInstance.status]" alt="" /> -->
+    <img
+      class="position-absolute right-20px top-35px"
+      width="150"
+      :src="auditIconsMap[processInstance.status]"
+      alt="" />
     <div class="text-#878c93 h-15px">{{ $t('编号：') }}{{ id }}</div>
     <el-divider class="!my-8px" />
-    <div class="flex items-center gap-5 mb-10px h-40px">
+    <div class="flex items-center gap-5 mb-10px h-40px truncate">
       <div class="text-26px font-bold mb-5px">
         <span v-if="taskName">{{ taskName }} -</span>
         {{ processInstance.formVariables?.PROCESS_BUSINESS_TYPE_NAME }}
@@ -30,17 +34,24 @@
 <script lang="ts" setup>
 import { formatDate } from '@/utils/formatTime'
 import { DICT_TYPE } from '@/utils/dict'
-
+import DictTag from '@/components/DictTag/src/DictTag.vue'
 defineProps<{
   id: string
   processInstance: any
-  // auditIconsMap: Record<number, string>
+  auditIconsMap: Record<number, string>
   taskDefinitionKey: string
   taskName: string
 }>()
 </script>
 
 <style lang="scss" scoped>
+.position-absolute {
+  position: absolute;
+}
+.truncate {
+  font-size: 22px;
+  color: #161e2e;
+}
 .process-instance-header {
   position: relative;
 }

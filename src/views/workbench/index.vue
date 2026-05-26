@@ -1263,15 +1263,6 @@ const processColumns = ref([
     resizable: true,
     sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
   },
-  {
-    title: '当前进度',
-    dataIndex: 'progress',
-    key: 'progress',
-    width: 248,
-    resizable: true,
-    ellipsis: true,
-    sorter: (a: TaskItem, b: TaskItem) => a.progress - b.progress,
-  },
   { title: '操作', key: 'action', width: 140, align: 'center', fixed: 'right', resizable: true },
 ])
 /** 流程任务列表筛选（与设计任务分域，关键字与二级页签独立） */
@@ -1898,14 +1889,14 @@ onUnmounted(() => {
 
                             <div class="tc-body mt-[8px] space-y-[6px] text-[13px] leading-[18px] text-[#6A696E]">
                               <div class="flex">
-                                <span class="w-[68px] flex-shrink-0">项目时间：</span>
-                                <span class="min-w-0 truncate">{{
-                                  hasTimelineInfo(task) ? `${task.startTime} ~ ${task.endTime}` : '/'
+                                <span class="w-[68px] flex-shrink-0">创建时间：</span>
+                                <span class="min-w-0 truncate text-[#313133] ">{{
+                                 task.createTime
                                 }}</span>
                               </div>
                               <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
                                 <span class="w-[68px] flex-shrink-0 text-[#6A696E]">流程类型：</span>
-                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{ task.processInstance.name }}</span>
+                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{task.processInstance.name }}</span>
                                 <template v-if="task.lastRejectRemark">
                                   <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
                                     <template #title>
@@ -1918,29 +1909,13 @@ onUnmounted(() => {
                                   </a-tooltip>
                                 </template>
                               </div>
-                              <div v-if="task.viewOnly && task.assigneeDisplayName" class="flex">
-                                <span class="w-[68px] flex-shrink-0">当前承办：</span>
-                                <span class="text-[#313133] font-medium truncate">{{ task.assigneeDisplayName }}</span>
-                              </div>
                               <div class="flex justify-between items-center pr-[6px]">
                                 <div class="flex min-w-0">
-                                  <span class="w-[68px] flex-shrink-0">当前进度：</span>
-                                  <span class="text-[#313133] font-bold">{{ task.progress }}%</span>
+                                  <span class="w-[68px] flex-shrink-0">流程状态：</span>
+                                  <span class="text-[#313133]">{{ task.name === '编制' ? $t('编制中') : $t('审批中') }}</span>
                                 </div>
-                                <span v-if="task.status === 'todo' && task.delayDays" class="text-[#FF4D4F]"
-                                  >已延期 {{ task.delayDays }} 天</span
-                                >
-                                <span v-else-if="hasTimelineInfo(task) && task.remainDays" class="text-[#6A696E]"
-                                  >距截止还剩 {{ task.remainDays }} 天</span
-                                >
                               </div>
-                              <a-progress
-                                :percent="task.progress"
-                                :show-info="false"
-                                :stroke-width="6"
-                                trail-color="#F0F0F0"
-                                class="mt-[4px] !mb-0"
-                                :class="workbenchShowOverdueUi(task) ? 'delay-progress' : 'normal-progress'" />
+                              <div style="height: 22px"></div>
                             </div>
 
                             <div class="tc-footer mt-[8px] flex items-center text-[13px] leading-[18px] text-[#6A696E]">
@@ -2050,25 +2025,6 @@ onUnmounted(() => {
                           </template>
                           <template v-if="column.key === 'createTime'">
                             {{ record.createTime }}
-                          </template>
-                          <template v-if="column.key === 'progress'">
-                            <div class="wb-cell-progress flex items-center gap-[8px] w-full min-w-0">
-                              <span class="text-[#313133] font-bold whitespace-nowrap flex-shrink-0 tabular-nums"
-                                >{{ record.progress }}%</span
-                              >
-                              <a-progress
-                                class="wb-progress-inline flex-1 min-w-[64px] !mb-0"
-                                :percent="record.progress"
-                                :show-info="false"
-                                :stroke-width="8"
-                                trail-color="#F0F0F0"
-                                :class="workbenchShowOverdueUi(record) ? 'delay-progress' : 'normal-progress'" />
-                              <a-tooltip v-if="workbenchShowOverdueUi(record)" :title="`已延期 ${record.delayDays} 天`">
-                                <span class="text-[#FF4D4F] text-[12px] whitespace-nowrap flex-shrink-0 cursor-default"
-                                  >延期{{ record.delayDays }}天</span
-                                >
-                              </a-tooltip>
-                            </div>
                           </template>
                           <template v-if="column.key === 'action'">
                             <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">

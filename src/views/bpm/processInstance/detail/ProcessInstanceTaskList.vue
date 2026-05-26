@@ -55,7 +55,7 @@ import { DICT_TYPE } from '@/utils/dict'
 import type { ApiAttrs } from '@form-create/element-ui/types/config'
 import { setConfAndFields2 } from '@/utils/formCreate'
 import * as TaskApi from '@/api/bpm/task'
-
+import DictTag from '@/components/DictTag/src/DictTag.vue'
 defineOptions({ name: 'BpmProcessInstanceTaskList' })
 
 const props = defineProps({
