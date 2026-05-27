@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, defineComponent, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed,  nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import { DICT_TYPE } from '@/utils/dict'
 import { Modal, message } from 'ant-design-vue'
 import {
   ApartmentOutlined,
@@ -34,6 +35,7 @@ import {
   WORKBENCH_TABS,
   type WorkbenchTaskKind,
 } from './data'
+import DictTag from '@/components/DictTag/src/DictTag.vue'
 import { useUserStore } from '@/store/modules/user'
 import { sortermethod } from '@/utils/tools'
 import { EpcIcon } from '@/components/icon/EpcIcon'
@@ -43,11 +45,13 @@ import { showRequestErrorIfNeeded } from '@/httpRequest'
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务'
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
+import { formatPast2 } from '@/utils/formatTime'
 import { getMyTodoTask, getMyDoneTask, getMyTask } from '@/api/bpm/task'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import Empty from '@/components/Empty/index.vue'
 import { renderTableEmptyText } from '@/utils/emptyState'
 import { RRQueryParams } from './components/config/query'
+import { useDictStore } from '@/store/modules/dict'
 import {
   buildWorkbenchReturnQuery,
   isWorkbenchReturnRouteQuery,
@@ -64,7 +68,8 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: renderTableEmptyText('数据为空'),
 })
-
+/** 获取字典 */
+const useDict = useDictStore()
 const isShowRigth = ref('收起')
 const userInfoObj = ref<any>({
   name: '',
@@ -72,7 +77,6 @@ const userInfoObj = ref<any>({
 })
 const projectStatistics = ref<any>({})
 const activeName = ref('todo')
-
 const searchQuery = ref('')
 const secondaryFilter = ref<(typeof WORKBENCH_SECONDARY_TABS)[number]['value']>('todo')
 const auditSecondaryFilter = ref<(typeof WORKBENCH_AUDIT_SECONDARY_TABS)[number]['value']>('todo')
@@ -1311,8 +1315,99 @@ const processColumns = ref([
     resizable: true,
     sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
   },
-  { title: '操作', key: 'action', width: 140, align: 'center', fixed: 'right', resizable: true },
+  { title: '操作', key: 'action', width: 80, align: 'center', fixed: 'right', resizable: true },
 ])
+const doneColumns = ref([
+{
+    title: '主题',
+    dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
+    key: 'PROCESS_BUSINESS_TYPE_NAME',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+    fixed: 'left',
+  },
+  {
+    title: '流程节点',
+    dataIndex: 'name',
+    key: 'name',
+    ellipsis: true,
+    width: 100,
+    resizable: true,
+    customFilterDropdown: true,
+    onFilter: (value: string, record: TaskItem) =>
+      workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
+    sorter: (a: TaskItem, b: TaskItem) =>
+      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
+  },
+  {
+    title: '流程状态',
+    dataIndex: 'state',
+    key: 'state',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+  },
+  {
+    title: '执行人',
+    dataIndex: 'nickname',
+    key: 'nickname',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+  },
+  {
+    title: '发起时间',
+    key: 'createTime',
+    width: 240,
+    resizable: true,
+    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+  },
+  {
+    title: '任务开始时间',
+    key: 'createTime',
+    width: 240,
+    resizable: true,
+    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+  },
+  {
+    title: '任务结束时间',
+    key: 'endTime',
+    width: 240,
+    resizable: true,
+    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+  },
+  {
+    title: '审批建议',
+    dataIndex: 'reason',
+    key: 'reason',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+  },
+  {
+    title: '耗时',
+    dataIndex: 'durationInMillis',
+    key: 'durationInMillis',
+    width: 176,
+    resizable: true,
+    ellipsis: true,
+  },
+  { title: '操作', key: 'action', width: 80, align: 'center', fixed: 'right', resizable: true },
+])
+
+/** 流程任务列表视图：待办用 processColumns，已办/我的流程用 doneColumns */
+const currentProcessTableColumns = computed(() =>
+  auditSecondaryFilter.value === 'done' || auditSecondaryFilter.value === 'myProcess'
+    ? doneColumns.value
+    : processColumns.value,
+)
+
+const processTableScrollX = computed(() => {
+  const cols = currentProcessTableColumns.value
+  return cols.reduce((sum, col) => sum + (typeof col.width === 'number' ? col.width : 0), 0) + 24
+})
+
 /** 流程任务列表筛选（关键字前端过滤；列表数据由接口按二级 Tab 返回） */
 const filteredAuditList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
@@ -2059,7 +2154,10 @@ onUnmounted(() => {
                               <div class="flex justify-between items-center pr-[6px]">
                                 <div class="flex min-w-0">
                                   <span class="w-[68px] flex-shrink-0">流程状态：</span>
-                                  <span class="text-[#313133]">{{ task.name === '编制' ? $t('编制中') : $t('审批中') }}</span>
+                                  <span v-if="auditSecondaryFilter === 'done' || auditSecondaryFilter === 'myProcess'" class="text-[#313133]">
+                                    {{ useDict.getIntDictOptions(DICT_TYPE.BPM_TASK_STATUS).find(item => item.value === task.status)?.label || '' }}
+                                  </span>
+                                  <span v-else class="text-[#313133]">{{ task.name === '编制' ? $t('编制中') : $t('审批中') }}</span>
                                 </div>
                               </div>
                               <div class="flex justify-between items-center pr-[6px]">
@@ -2129,7 +2227,7 @@ onUnmounted(() => {
 
                     <template v-else>
                       <a-table
-                        :columns="processColumns"
+                        :columns="currentProcessTableColumns"
                         :data-source="tableProcessList"
                         :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
                         :row-class-name="rowClassName"
@@ -2137,7 +2235,7 @@ onUnmounted(() => {
                         :row-key="rowKey"
                         bordered
                         class="workbench-main-table bg-white"
-                        :scroll="{ x: 1386 }"
+                        :scroll="{ x: processTableScrollX }"
                         @resize-column="handleResizeColumn">
                         <template
                           #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
@@ -2181,18 +2279,38 @@ onUnmounted(() => {
                             </div>
                           </template>
                           <template v-if="column.key === 'state'">
-                            <a-tag v-if="record.name === '编制'" size="small" color="success" style="color: #2e8702;">
+                            <div v-if="auditSecondaryFilter === 'done' || auditSecondaryFilter === 'myProcess'">
+                              <dict-tag
+                                :type="DICT_TYPE.BPM_TASK_STATUS"
+                                :value="record.status"/>
+                            </div>
+                            <div v-else>
+                              <a-tag v-if="record.name === '编制'" size="small" color="success" style="color: #2e8702;">
                               {{ $t('编制中') }}
                             </a-tag>
                             <a-tag v-else type="primary" size="small" color="processing">
                               {{ $t('审批中') }}
                             </a-tag>
+                            </div>
+                      
                           </template>
                           <template v-if="column.key === 'nickname'">
                             {{ record.assigneeUser.nickname }}
                           </template>
                           <template v-if="column.key === 'createTime'">
                             {{ record.createTime }}
+                          </template>
+                          <template v-if="column.key === 'taskCreateTime'">
+                            {{ record.createTime }}
+                          </template>
+                          <template v-if="column.key === 'endTime'">
+                            {{ record.endTime }}
+                          </template>
+                          <template v-if="column.key === 'reason'">
+                            {{ record.reason }}
+                          </template>
+                          <template v-if="column.key === 'durationInMillis'">
+                            {{ formatPast2(record.durationInMillis) }}
                           </template>
                           <template v-if="column.key === 'action'">
                             <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">

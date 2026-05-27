@@ -66,6 +66,9 @@ export interface WorkbenchBpmTaskItem {
   projectDisplayName?: string
   appDisplayName?: string
   createTime?: string
+  endTime?: string
+  reason?: string
+  durationInMillis?: number
   processInstance: {
     id: number | string
     name: string
