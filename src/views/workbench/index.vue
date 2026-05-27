@@ -47,7 +47,7 @@ import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台�
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
 import { formatPast2 } from '@/utils/formatTime'
-import { getMyTodoTask, getMyDoneTask, getMyTask } from '@/api/bpm/task'
+import { getMyTodoTask, getMyDoneTask, getMyProcessInstance } from '@/api/bpm/task'
 import Empty from '@/components/Empty/index.vue'
 import { renderTableEmptyText } from '@/utils/emptyState'
 import { RRQueryParams } from './components/config/query'
@@ -1240,7 +1240,7 @@ async function loadAuditListFromApi() {
         res = await getMyDoneTask(requestBody)
         break
       case 'myProcess':
-        res = await getMyTask(requestBody)
+        res = await getMyProcessInstance(requestBody)
         break
       default:
         auditList.value = []

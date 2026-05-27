@@ -210,13 +210,20 @@ export function getMyDoneTask(data: any) {
   })
 }
 
+export function getMyTask(data: any) {
+  return httpRequest({
+    url: `bpm-service/bpm/task/manager-page`,
+    data,
+    method: 'POST',
+  })
+}
 /**
  * 工作台——获取我的流程列表
  * @param data
  */
-export function getMyTask(data: any) {
+export function getMyProcessInstance(data: any) {
   return httpRequest({
-    url: `bpm-service/bpm/task/manager-page`,
+    url: `bpm-service/bpm/process-instance/manager-page`,
     data,
     method: 'POST',
   })
