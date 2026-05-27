@@ -82,15 +82,17 @@ const MAX_CATEGORY_DEPTH = 1;
 
 function trimTreeToSecondLevelOnly(nodes: ModuleCategoryNode[] | undefined | null, depth = 0): ModuleCategoryNode[] {
   if (!nodes?.length) return [];
-  return nodes.map(node => {
-    const next: ModuleCategoryNode = { ...node };
-    if (depth >= MAX_CATEGORY_DEPTH) {
-      next.children = undefined;
-    } else if (node.children?.length) {
-      next.children = trimTreeToSecondLevelOnly(node.children, depth + 1);
-    }
-    return next;
-  });
+  return nodes
+    .filter(node => node.categoryType === 1 || node.categoryType === 2) // 过滤：只保留 categoryType 为 1 或 2 的节点
+    .map(node => {
+      const next: ModuleCategoryNode = { ...node };
+      if (depth >= MAX_CATEGORY_DEPTH) {
+        next.children = undefined;
+      } else if (node.children?.length) {
+        next.children = trimTreeToSecondLevelOnly(node.children, depth + 1);
+      }
+      return next;
+    });
 }
 
 /**
