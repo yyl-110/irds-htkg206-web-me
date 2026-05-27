@@ -434,8 +434,10 @@ import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
 import { UserVO } from '@/api/system/user'
 // import UserSelectFormRadio from '@/components/UserSelectFormRadio/index.vue'
 import { useMessage } from '@/hooks/web/useMessage'
+import { pickWorkbenchReturnQueryFromRoute } from '@/views/workbench/workbenchRouteQuery'
 defineOptions({ name: 'ProcessInstanceBtnContainer' })
 const router = useRouter() // 路由
+const route = useRoute()
 const { push } = useRouter()
 const message = useMessage() // 消息弹窗
 
@@ -664,14 +666,15 @@ watch(
 )
 
 const handleGoBack = () => {
+  const query = pickWorkbenchReturnQueryFromRoute(route.query)
   push({
     name: '/home/workbench',
-    query: { activeName: 'process' },
+    query: Object.keys(query).length ? query : { activeName: 'process' },
   })
 }
 
 /** 弹出气泡卡 */
-const openPopover = async (type: string, buttonName: string) => {
+const openPopover = async (type: string, buttonName?: string) => {
   Object.keys(popOverVisible.value).forEach(item => {
     popOverVisible.value[item] = item === type
   })

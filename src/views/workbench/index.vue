@@ -12,6 +12,7 @@ import {
   FilterOutlined,
   FormOutlined,
   HighlightOutlined,
+  HistoryOutlined,
   MobileOutlined,
   ProfileOutlined,
   ReloadOutlined,
@@ -42,9 +43,16 @@ import { showRequestErrorIfNeeded } from '@/httpRequest'
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务'
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
+import { getMyTodoTask, getMyDoneTask, getMyTask } from '@/api/bpm/task'
+import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import Empty from '@/components/Empty/index.vue'
 import { renderTableEmptyText } from '@/utils/emptyState'
 import { RRQueryParams } from './components/config/query'
+import {
+  buildWorkbenchReturnQuery,
+  isWorkbenchReturnRouteQuery,
+  parseWorkbenchRouteQuery,
+} from './workbenchRouteQuery'
 /** 列表请求参数 */
 const requestNoticeParams = reactive(new NoticePageRequestDTOModel())
 const router = useRouter()
@@ -94,11 +102,17 @@ const transferSubmitLoading = ref(false)
 const transferCandidateOptions = ref<Array<{ userId: string; displayName: string }>>([])
 const transferCandidatesLoading = ref(false)
 
-/** 协同任务驳回（退回发布人或首次转出人） */
+/** 驳回弹窗 */
 const rejectModalVisible = ref(false)
 const rejectTargetTask = ref<TaskItem | WorkbenchBpmTaskItem | null>(null)
 const rejectOpinion = ref('')
 const rejectSubmitLoading = ref(false)
+
+/** 我的流程 — 取消流程弹窗 */
+const bpmCancelModalVisible = ref(false)
+const bpmCancelTargetTask = ref<WorkbenchBpmTaskItem | null>(null)
+const bpmCancelReason = ref('')
+const bpmCancelSubmitLoading = ref(false)
 
 const transferSelectOptions = computed(() =>
   transferCandidateOptions.value.map(u => ({
@@ -1171,7 +1185,7 @@ async function seeDetailFun(id: string) {
     powerModel.value.getDetailFromMain(data, filedata)
   })
 }
-// ------------------------流程任务----------------------------
+// -----------------------------------------------流程任务-------------------------------------------------------
 // 查询参数
 const queryParams = reactive<RRQueryParams>({
   pageIndex: 1,
@@ -1180,24 +1194,59 @@ const queryParams = reactive<RRQueryParams>({
   params: {},
 })
 /**
- * 流程任务列表：与设计任务分域，按 auditSecondaryFilter 拉取 OA/BPM 等独立数据源。
- * 接口接入后在各分支内赋值 auditList；接入前保持空列表。
+ * 流程任务列表：按 auditSecondaryFilter 分别调用待办 / 已办 / 我的流程接口。
  */
+function buildProcessQueryParams() {
+  const keyword = searchQuery.value.trim()
+  return {
+    pageIndex: queryParams.pageIndex,
+    pageRows: queryParams.pageRows,
+    orderByBean: queryParams.orderByBean,
+    params: {
+      ...queryParams.params,
+      ...(keyword ? { name: keyword } : {}),
+    },
+  }
+}
+
+/** 解析 BPM 分页响应（兼容 data 为数组或 { data, count } 嵌套） */
+function parseBpmTaskPageList(res: { data?: { code?: number; data?: unknown } }): WorkbenchBpmTaskItem[] {
+  const body = res?.data
+  if (!body || (body.code !== 200 && body.code !== 0)) {
+    return []
+  }
+  const inner = body.data
+  if (Array.isArray(inner)) {
+    return inner as WorkbenchBpmTaskItem[]
+  }
+  if (inner && typeof inner === 'object' && Array.isArray((inner as { data?: unknown[] }).data)) {
+    return (inner as { data: WorkbenchBpmTaskItem[] }).data
+  }
+  return []
+}
+
 async function loadAuditListFromApi() {
   auditListLoading.value = true
   try {
+    const requestBody = buildProcessQueryParams()
+    let res
     switch (auditSecondaryFilter.value) {
       case 'todo':
-        const res = await AdminApiProjectTemp.getbpmTodoCardPage({ ...queryParams })
-        if (res.data.code === 200) {
-          auditList.value = res.data.data.data
-        }
+        res = await getMyTodoTask(requestBody)
+        break
+      case 'done':
+        res = await getMyDoneTask(requestBody)
+        break
+      case 'myProcess':
+        res = await getMyTask(requestBody)
         break
       default:
         auditList.value = []
+        return
     }
-  } catch {
-    message.error('加载流程任务列表失败')
+    auditList.value = parseBpmTaskPageList(res)
+  } catch (e) {
+    showRequestErrorIfNeeded(e, '加载流程任务列表失败')
     auditList.value = []
   } finally {
     auditListLoading.value = false
@@ -1264,46 +1313,35 @@ const processColumns = ref([
   },
   { title: '操作', key: 'action', width: 140, align: 'center', fixed: 'right', resizable: true },
 ])
-/** 流程任务列表筛选（与设计任务分域，关键字与二级页签独立） */
+/** 流程任务列表筛选（关键字前端过滤；列表数据由接口按二级 Tab 返回） */
 const filteredAuditList = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
-  console.log(auditList.value, 'auditList.value')
+  if (!keyword) return auditList.value
 
-  const list = auditList.value.filter(item => {
-    if (!keyword) return true
-    const hay =
-      `${item.title} ${workbenchbpmCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
-        .trim()
-        .toLowerCase()
+  return auditList.value.filter(item => {
+    const hay = `${item.name ?? ''} ${workbenchbpmCardDisplayTitle(item)} ${item.processInstance?.name ?? ''} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
+      .trim()
+      .toLowerCase()
     return hay.includes(keyword)
   })
+})
+type BpmTaskAction = 'design' | 'detail' | 'history' | 'cancel'
+
+/** 流程任务按钮权限：待办=待办+详情，已办=历史，我的流程=详情+取消 */
+function taskbpmActionAllowed(_task: WorkbenchBpmTaskItem, action: BpmTaskAction) {
   switch (auditSecondaryFilter.value) {
     case 'todo':
-      return list
+      return action === 'design' || action === 'detail'
     case 'done':
-      return []
-    case 'transfer':
+      return action === 'history'
+    case 'myProcess':
+      return action === 'detail' || action === 'cancel'
     default:
-      return []
+      return false
   }
-})
-/**
- * 流程任务按钮权限
- */
- function taskbpmActionAllowed(task: WorkbenchBpmTaskItem, action: string) {
-  console.log(task, 'task');
-  console.log(action,'action');
-  if (action === 'detail') {
-    return true
-  }
-  if (action === 'design' ) {
-    return true
-  }
-  return true
 }
 
 const openbpmDesignWorkspace = (task: WorkbenchBpmTaskItem) => {
-  console.log(task, 'task');
   router.push({
     name: 'BpmProcessInstanceDetail',
     query: {
@@ -1315,14 +1353,85 @@ const openbpmDesignWorkspace = (task: WorkbenchBpmTaskItem) => {
       activeTab: 1,
       tId: task.id,
       pageIndex: queryParams.pageIndex,
-      // 任务节点的id
       taskDefinitionKey: task.taskDefinitionKey,
-      taskName: task.name
-    }
+      taskName: task.name,
+      ...buildWorkbenchReturnQuery({
+        activeName: activeName.value as 'todo' | 'process',
+        auditSecondaryFilter: auditSecondaryFilter.value,
+        secondaryFilter: secondaryFilter.value,
+      }),
+    },
   })
 }
+
 const openbpmTaskAppDetail = (task: WorkbenchBpmTaskItem) => {
-  console.log(task, 'task');
+  router.push({
+    name: 'BpmProcessInstanceDetail',
+    query: {
+      id: task.processInstance.id,
+      pDefinitionId: task.processInstance.processDefinitionId,
+      pProcessDefinitionKey: task.processInstance.processDefinitionKey,
+      pIId: task.processInstance.id,
+      pageIndex: queryParams.pageIndex,
+      ...buildWorkbenchReturnQuery({
+        activeName: activeName.value as 'todo' | 'process',
+        auditSecondaryFilter: auditSecondaryFilter.value,
+        secondaryFilter: secondaryFilter.value,
+      }),
+    },
+  })
+}
+
+const openbpmTaskHistory = (task: WorkbenchBpmTaskItem) => {
+  router.push({
+    name: 'BpmProcessInstanceDetail',
+    query: {
+      id: task.processInstance.id,
+      taskId: task.id,
+      ...buildWorkbenchReturnQuery({
+        activeName: activeName.value as 'todo' | 'process',
+        auditSecondaryFilter: auditSecondaryFilter.value,
+        secondaryFilter: secondaryFilter.value,
+      }),
+    },
+  })
+}
+
+function openBpmCancelModal(task: WorkbenchBpmTaskItem) {
+  bpmCancelTargetTask.value = task
+  bpmCancelReason.value = ''
+  bpmCancelModalVisible.value = true
+}
+
+function closeBpmCancelModal() {
+  bpmCancelModalVisible.value = false
+  bpmCancelTargetTask.value = null
+  bpmCancelReason.value = ''
+}
+
+async function submitBpmCancel() {
+  const reason = bpmCancelReason.value.trim()
+  if (!reason) {
+    message.warning('请输入取消原因')
+    return Promise.reject()
+  }
+  const processInstanceId = bpmCancelTargetTask.value?.processInstance?.id
+  if (!processInstanceId) {
+    message.warning('缺少流程实例标识')
+    return Promise.reject()
+  }
+  bpmCancelSubmitLoading.value = true
+  try {
+    await ProcessInstanceApi.cancelProcessInstanceByStartUser(Number(processInstanceId), reason)
+    message.success('取消成功')
+    closeBpmCancelModal()
+    void loadAuditListFromApi()
+  } catch (e) {
+    showRequestErrorIfNeeded(e, '取消失败')
+    return Promise.reject()
+  } finally {
+    bpmCancelSubmitLoading.value = false
+  }
 }
 
 
@@ -1362,18 +1471,36 @@ watch(
   },
 )
 
-const WORKBENCH_TAB_NAME_SET = new Set(WORKBENCH_TABS.map(tab => tab.name))
 
-/** 从流程详情等页面返回时，根据路由 query 切换顶栏 Tab */
-function syncActiveNameFromRouteQuery() {
-  const tab = route.query.activeName
-  if (typeof tab === 'string' && WORKBENCH_TAB_NAME_SET.has(tab)) {
-    activeName.value = tab
+/** 从流程详情返回时，根据路由 query 恢复顶栏 / 二级 Tab 并加载列表 */
+function applyWorkbenchRouteQuery() {
+  if (!isWorkbenchReturnRouteQuery(route.query)) {
+    return
+  }
+
+  const parsed = parseWorkbenchRouteQuery(route.query)
+  if (parsed.activeName) {
+    activeName.value = parsed.activeName
+  }
+  if (parsed.auditSecondaryFilter) {
+    auditSecondaryFilter.value = parsed.auditSecondaryFilter
+  }
+  if (parsed.secondaryFilter) {
+    secondaryFilter.value = parsed.secondaryFilter
+  }
+
+  if (activeName.value === 'process') {
+    void loadAuditListFromApi()
+  } else {
     void loadTodoListFromApi()
   }
 }
 
-watch(() => route.query.activeName, syncActiveNameFromRouteQuery, { immediate: true })
+watch(
+  () => [route.query.activeName, route.query.auditSecondaryFilter, route.query.secondaryFilter],
+  () => applyWorkbenchRouteQuery(),
+  { immediate: true },
+)
 
 onMounted(() => {
   syncLoginUserInfo()
@@ -1391,13 +1518,20 @@ onMounted(() => {
 /** 从设计工作台等子页 router.back 返回时 Main keep-alive 不会触发 onMounted，需在此刷新列表与顶部指标（跳过首次与 onMounted 重复的一次） */
 const skipWorkbenchActivatedRefreshOnce = ref(true)
 onActivated(() => {
-  syncActiveNameFromRouteQuery()
+  const restoredFromRoute = isWorkbenchReturnRouteQuery(route.query)
+  applyWorkbenchRouteQuery()
   if (skipWorkbenchActivatedRefreshOnce.value) {
     skipWorkbenchActivatedRefreshOnce.value = false
     return
   }
   void loadWorkbenchSummary()
-  void loadTodoListFromApi()
+  if (!restoredFromRoute) {
+    if (activeName.value === 'process') {
+      void loadAuditListFromApi()
+    } else {
+      void loadTodoListFromApi()
+    }
+  }
 })
 
 // 页面卸载时清除定时器，避免内存泄漏
@@ -1970,7 +2104,22 @@ onUnmounted(() => {
                                     <ProfileOutlined />
                                   </a>
                                 </a-tooltip>
-                  
+                                <a-tooltip v-if="taskbpmActionAllowed(task, 'history')" title="历史">
+                                  <a
+                                    href="#"
+                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
+                                    @click.prevent.stop="openbpmTaskHistory(task)">
+                                    <HistoryOutlined />
+                                  </a>
+                                </a-tooltip>
+                                <a-tooltip v-if="taskbpmActionAllowed(task, 'cancel')" title="取消">
+                                  <a
+                                    href="#"
+                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
+                                    @click.prevent.stop="openBpmCancelModal(task)">
+                                    <UndoOutlined />
+                                  </a>
+                                </a-tooltip>
                               </div>
                             </div>
                           </div>
@@ -2065,7 +2214,22 @@ onUnmounted(() => {
                                   <ProfileOutlined />
                                 </a>
                               </a-tooltip>
-                      
+                              <a-tooltip v-if="taskbpmActionAllowed(record, 'history')" title="历史">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openbpmTaskHistory(record)">
+                                  <HistoryOutlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip v-if="taskbpmActionAllowed(record, 'cancel')" title="取消">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openBpmCancelModal(record)">
+                                  <UndoOutlined />
+                                </a>
+                              </a-tooltip>
                             </div>
                           </template>
                         </template>
@@ -2204,6 +2368,30 @@ onUnmounted(() => {
       :maxlength="500"
       show-count
       placeholder="请说明不适宜承办的原因，便于对方调整分配"
+      allow-clear />
+  </a-modal>
+
+  <a-modal
+    v-model:visible="bpmCancelModalVisible"
+    title="取消流程"
+    width="520px"
+    :confirm-loading="bpmCancelSubmitLoading"
+    :mask-closable="false"
+    destroy-on-close
+    ok-text="确认取消"
+    cancel-text="关闭"
+    @ok="submitBpmCancel"
+    @cancel="closeBpmCancelModal">
+    <p v-if="bpmCancelTargetTask" style="margin-bottom: 12px; color: #666; line-height: 1.6">
+      确定要取消流程「{{ bpmCancelTargetTask.processInstance?.name }}」吗？取消后流程将终止。
+    </p>
+    <div style="margin-bottom: 8px; color: #313133">取消原因</div>
+    <a-textarea
+      v-model:value="bpmCancelReason"
+      :rows="4"
+      :maxlength="500"
+      show-count
+      placeholder="请输入取消原因"
       allow-clear />
   </a-modal>
 </template>

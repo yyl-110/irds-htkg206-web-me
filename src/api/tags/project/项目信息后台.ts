@@ -552,25 +552,4 @@ export class AdminApiProjectTemp {
       },
       CommonResultListDeptResponseDTOModel,
     )
-  // 工作台流程任务我的待办列表
-  static getbpmTodoCardPage = (
-    body: {
-      pageIndex: number
-      pageRows: number
-      orderByBean?: { sortType: string; attributeName: string }
-      params: {}
-    },
-    params: RequestParams = {},
-  ) =>
-    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
-      {
-        path: `bpm-service/bpm/task/todo-page`,
-        method: 'POST',
-        type: ContentType.Json,
-        body,
-        secure: true,
-        ...params,
-      },
-      CommonResultListDeptResponseDTOModel,
-    )
 }

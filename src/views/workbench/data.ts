@@ -65,6 +65,7 @@ export interface WorkbenchBpmTaskItem {
   assigneeDisplayName?: string
   projectDisplayName?: string
   appDisplayName?: string
+  createTime?: string
   processInstance: {
     id: number | string
     name: string
@@ -134,7 +135,7 @@ export const WORKBENCH_SECONDARY_TABS = [
 export const WORKBENCH_AUDIT_SECONDARY_TABS = [
   { title: '待办', value: 'todo' },
   { title: '已办', value: 'done' },
-  { title: '已转办', value: 'transfer' },
+  { title: '我的流程', value: 'myProcess' },
 ] as const
 
 export const MOCK_TODO_LIST: TaskItem[] = [

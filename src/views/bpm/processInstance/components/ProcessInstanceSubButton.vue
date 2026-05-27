@@ -24,10 +24,12 @@ import { NodeType, CandidateStrategy } from '@/components/SimpleProcessDesignerV
 import { BpmModelFormType } from '@/utils/constants'
 import type { FormInstance } from 'element-plus'
 import { isEmpty } from '@/utils/is'
+import { pickWorkbenchReturnQueryFromRoute } from '@/views/workbench/workbenchRouteQuery'
 
 defineOptions({ name: 'ProcessInstanceBtnContainer' })
 import { useMessage } from '@/hooks/web/useMessage'
 const router = useRouter() // 路由
+const route = useRoute()
 const { push } = useRouter()
 const message = useMessage() // 消息弹窗
 const emit = defineEmits(['success']) // 定义 success 事件，用于操作成功后的回调
@@ -110,16 +112,17 @@ const handleCancel = async () => {
       message.success('取消成功')
       push({
         name: '/home/workbench',
-        query: { activeName: 'process' },
+        query: pickWorkbenchReturnQueryFromRoute(route.query),
       })
     })
     .catch(() => {})
 }
 
 const handleGoBack = () => {
+  const query = pickWorkbenchReturnQueryFromRoute(route.query)
   push({
     name: '/home/workbench',
-    query: { activeName: 'process' },
+    query: Object.keys(query).length ? query : { activeName: 'process' },
   })
 }
 
