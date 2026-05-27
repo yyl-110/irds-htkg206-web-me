@@ -14,11 +14,11 @@
         <div class="approval-personnel-row__approver">
           <span class="approval-personnel-row__label">{{ $t('审批人:') }}</span>
           <span class="approval-personnel-row__approver-name">
-            {{ approveUser[index]?.nickname || approveUser[index]?.psnName || '' }}
+            {{ approveUser[index]?.nickname || approveUser[index]?.psnName || approveUser[index]?.name || '' }}
           </span>
         </div>
 
-        <a-button v-if="editType === 1" type="primary" @click="handleSelectUser(index, 'normal')">
+        <a-button v-if="editType === 1" type="primary" @click="handleSelectUser(index)">
           {{ $t('选择审批人') }}
         </a-button>
       </div>
@@ -30,16 +30,15 @@
 defineProps<{
   processDefinitionList: any[]
   approveUser: any[]
-  mainEnginePlantsUser: any[]
   editType: number
 }>()
 
 const emit = defineEmits<{
-  (e: 'select-user', index: number, type: 'normal' | 'mainEngine'): void
+  (e: 'select-user', index: number): void
 }>()
 
-const handleSelectUser = (index: number, type: 'normal' | 'mainEngine') => {
-  emit('select-user', index, type)
+const handleSelectUser = (index: number) => {
+  emit('select-user', index)
 }
 </script>
 

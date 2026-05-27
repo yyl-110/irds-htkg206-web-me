@@ -58,7 +58,6 @@ const props = defineProps<{
 }>()
 
 const modelList = computed<any[]>(() => {
-  console.log(props.processInstance?.formVariables, 'props.processInstance?.formVariables')
   const vars = props.processInstance?.formVariables ?? props.processInstance?.processVariables ?? {}
   const list = vars.ModelList
   return Array.isArray(list) ? list : []

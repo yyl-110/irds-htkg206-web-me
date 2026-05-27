@@ -56,7 +56,7 @@ const locale = ref({
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: renderTableEmptyText('数据为空'),
 })
-const viewTypeName = ref('任务卡片')
+
 const isShowRigth = ref('收起')
 const userInfoObj = ref<any>({
   name: '',
@@ -64,7 +64,6 @@ const userInfoObj = ref<any>({
 })
 const projectStatistics = ref<any>({})
 const activeName = ref('todo')
-const taskIndex = ref('1')
 
 const searchQuery = ref('')
 const secondaryFilter = ref<(typeof WORKBENCH_SECONDARY_TABS)[number]['value']>('todo')
@@ -1363,6 +1362,19 @@ watch(
   },
 )
 
+const WORKBENCH_TAB_NAME_SET = new Set(WORKBENCH_TABS.map(tab => tab.name))
+
+/** 从流程详情等页面返回时，根据路由 query 切换顶栏 Tab */
+function syncActiveNameFromRouteQuery() {
+  const tab = route.query.activeName
+  if (typeof tab === 'string' && WORKBENCH_TAB_NAME_SET.has(tab)) {
+    activeName.value = tab
+    void loadTodoListFromApi()
+  }
+}
+
+watch(() => route.query.activeName, syncActiveNameFromRouteQuery, { immediate: true })
+
 onMounted(() => {
   syncLoginUserInfo()
   void loadWorkbenchSummary()
@@ -1379,6 +1391,7 @@ onMounted(() => {
 /** 从设计工作台等子页 router.back 返回时 Main keep-alive 不会触发 onMounted，需在此刷新列表与顶部指标（跳过首次与 onMounted 重复的一次） */
 const skipWorkbenchActivatedRefreshOnce = ref(true)
 onActivated(() => {
+  syncActiveNameFromRouteQuery()
   if (skipWorkbenchActivatedRefreshOnce.value) {
     skipWorkbenchActivatedRefreshOnce.value = false
     return

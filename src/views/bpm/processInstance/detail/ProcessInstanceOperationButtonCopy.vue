@@ -664,17 +664,9 @@ watch(
 )
 
 const handleGoBack = () => {
-  if (props.pageIndex === '0') {
-    history.back()
-    return
-  }
   push({
-    name: 'Home',
-    query: {
-      aTab: props.aTab,
-      reface: '0',
-      pageIndex: props.pageIndex,
-    },
+    name: '/home/workbench',
+    query: { activeName: 'process' },
   })
 }
 

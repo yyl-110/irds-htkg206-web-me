@@ -109,27 +109,17 @@ const handleCancel = async () => {
       await ProcessInstanceApi.cancelProcessInstanceByStartUser(props.processInstance.id, props.opinion)
       message.success('取消成功')
       push({
-        name: 'Home',
-        query: {
-          aTab: props.aTab,
-        },
+        name: '/home/workbench',
+        query: { activeName: 'process' },
       })
     })
     .catch(() => {})
 }
 
 const handleGoBack = () => {
-  if (props.pageIndex === '0') {
-    history.back()
-    return
-  }
   push({
-    name: 'Home',
-    query: {
-      aTab: props.aTab,
-      reface: '0',
-      pageIndex: props.pageIndex,
-    },
+    name: '/home/workbench',
+    query: { activeName: 'process' },
   })
 }
 

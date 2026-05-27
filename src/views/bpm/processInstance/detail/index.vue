@@ -34,19 +34,12 @@
                       :error-title-list="errorTitleList"
                       :error-insatnce-list="errorInsatnceList"
                       :opinion="opinion"
-                      :todo-task="todoTask"
-                      @show-feature-detail="handleShowModal('feature', $event)"
-                      @show-order-set="handleShowModal('orderSet', $event)"
-                      @show-customize-feature="handleShowModal('customizeFeature', $event)"
-                      @show-project-config="handleShowModal('projectConfig', $event)"
-                      @show-super-bom="handleShowSuperBom"
-                      @show-ep-compare="handleShowEpCompare" />
+                      :todo-task="todoTask" />
 
                     <!-- 节点审批人员组件 -->
                     <ApprovalPersonnel
                       :process-definition-list="processDefinitionList"
                       :approve-user="approveUser"
-                      :main-engine-plants-user="approvEmainEnginePlantsUser"
                       :edit-type="editType"
                       @select-user="handleSelectApprover" />
 
@@ -107,7 +100,6 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-
       <!-- 操作栏按钮 -->
       <div v-if="orderRedType" class="process-instance-footer b--solid border--1px border-[var(--el-border-color)]">
         <ProcessInstanceOperationButtonCopy
@@ -130,7 +122,6 @@
           :isManual="isManual"
           :areaSaleRelease="areaSaleRelease"
           :firstTimeEditSubmit="firstTimeEditSubmit" />
-
         <ProcessInstanceSubButton
           v-else
           ref="operationButtonRef"
@@ -148,21 +139,20 @@
           :pageIndex="route.query.pageIndex"
           :firstTimeEditSubmit="firstTimeEditSubmit" />
       </div>
-
-      <!-- 弹窗和抽屉 -->
-      <!-- <UserSelectFormRadio ref="userSelectFormRef" :singleType="true" @confirm="handleUserSelectConfirm" /> -->
-      <!-- <FeatureDetailModal ref="FeatureDetailModalRef" /> -->
-      <!-- <BomOrderSet title="订单BOM" ref="OrderSetRef" /> -->
-      <!-- <CustomizeFeatureDetailModal ref="CustomizeFeatureDetailModalRef" /> -->
-      <!-- <ProjectConfigDeatil ref="projectConfigDeatilRef" /> -->
       <!-- <EpOnlyCompareDrawer
         v-model="showEpCompareDrawer"
         :configNo="configNo"
         :orderID="orderID"
         :orderNo="orderNo"
         :designModelId="designModelId" /> -->
-      <!-- <VersionCompareDrawer ref="versionCompareDrawerRef" /> -->
-      <!-- <SuperBom ref="refSuperBom" /> -->
+      <!-- 用户选择弹窗 -->
+      <MemberAuthPicker
+        v-model:visible="memberAuthVisible"
+        :title="$t('选择审批人')"
+        :users="memberAuthUsers"
+        :depts="memberAuthDepts"
+        :authorized-user-ids="memberAuthUserIds"
+        @confirm="handleMemberAuthConfirm" />
 
       <!-- 流程变量弹窗 -->
       <el-dialog v-model="processVariablesDialogVisible" title="流程变量" width="60%" :close-on-click-modal="false">
@@ -195,7 +185,6 @@ import { setConfAndFields2 } from '@/utils/formCreate'
 import { registerComponent } from '@/utils/routerHelper'
 import type { ApiAttrs } from '@form-create/element-ui/types/config'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
-import * as UserApi from '@/api/system/user'
 import { FieldPermissionType } from '@/components/SimpleProcessDesignerV2/src/consts'
 import { ETASKTYPE } from '../components/config/constant'
 import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
@@ -203,6 +192,7 @@ import { getBusinessTypeComponent } from './businessTypes/index'
 import { useMessage } from '@/hooks/web/useMessage'
 import { ContentWrap } from '@/components/ContentWrap'
 import { TaskStatusEnum } from '@/api/bpm/task'
+import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
 // 导入组件
 import ProcessInstanceHeader from './components/ProcessInstanceHeader.vue'
 import ProcessInstanceBpmnViewer from './ProcessInstanceBpmnViewer.vue'
@@ -214,7 +204,6 @@ import ProcessInstanceTimeline from './ProcessInstanceTimeline.vue'
 import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
 import ProcessOpinion from './components/ProcessOpinion.vue'
 import ProcessStatusSelector from './components/ProcessStatusSelector.vue'
-
 import runningSvg from '@/assets/svgs/bpm/running.svg'
 import approveSvg from '@/assets/svgs/bpm/approve.svg'
 import rejectSvg from '@/assets/svgs/bpm/reject.svg'
@@ -227,10 +216,8 @@ const props = defineProps<{
   activityId?: string
   orderInstance?: object
 }>()
-
 const route = useRoute()
 const message = useMessage()
-
 // ==================== 核心状态 ====================
 const processInstanceLoading = ref(false)
 const processInstance = ref<any>({})
@@ -243,12 +230,22 @@ const auditIconsMap = {
   [TaskStatusEnum.REJECT]: rejectSvg,
   [TaskStatusEnum.CANCEL]: cancelSvg,
 }
-
+type MemberAuthUser = {
+  id: string
+  name: string
+  username: string
+  deptId?: string
+}
+type MemberAuthDept = {
+  id: string
+  name: string
+}
 // 表单相关
 const fApi = ref<ApiAttrs>()
 const detailForm = ref({ rule: [], option: {}, value: {} })
 const writableFields: Array<any> = []
-
+const memberAuthUsers = ref<MemberAuthUser[]>([])
+const memberAuthDepts = ref<MemberAuthDept[]>([])
 // 业务数据
 const titleList = ref<any>([])
 const insatnceList = ref<any>([])
@@ -266,26 +263,14 @@ const areaSaleRelease = ref<any>({
   processOwnerToAdmin: false,
   processOwnerToRdOwner: false,
 })
-
-// Refs
-const FeatureDetailModalRef = ref(null)
-const OrderSetRef = ref(null)
-const CustomizeFeatureDetailModalRef = ref(null)
-const projectConfigDeatilRef = ref(null)
-const userSelectFormRef = ref()
-
+const memberAuthUserIds = ref<string[]>([])
 // 其他状态
 const todoTask = ref<any>()
 const todoTaskStatus = computed(() => {
   return ['标配Mbom确认', '重新推送', '正式发布', '研发审核', '工艺审核'].includes(todoTask.value?.name)
 })
-const userType = ref<any>('1')
+const memberAuthVisible = ref(false)
 const loadingFlag = ref<boolean>(false)
-const showEpCompareDrawer = ref<boolean>(false)
-const designModelId = ref<string>('')
-const configNo = ref<string>('')
-const orderID = ref()
-const orderNo = ref()
 const activeTab = ref('form')
 const taskType = ref('')
 const taskActivityId = ref('')
@@ -301,7 +286,6 @@ const processInstanceId = ref<any>('')
 const editType = ref<any>(1)
 const aTab = ref<any>('')
 const firstTimeEditSubmit = ref(true)
-const approvEmainEnginePlantsUser = ref<any>([])
 const toTaskId = ref<any>('')
 const userOptions = ref<[]>([])
 const BusinessFormComponent = ref<any>(null)
@@ -354,50 +338,64 @@ watch(
   { immediate: true },
 )
 
-const handleShowModal = (type: string, row: any) => {
-  const modalMap = {
-    feature: () => FeatureDetailModalRef.value?.show(1, row.id, 'optional'),
-    orderSet: () => OrderSetRef.value?.show('detail', row.configureIden, 'process'),
-    customizeFeature: () => CustomizeFeatureDetailModalRef.value?.show(3, row.id),
-    projectConfig: () => projectConfigDeatilRef.value?.show(row.id),
-  }
-  modalMap[type]?.()
-}
-
-const handleShowSuperBom = ({ areaSConfigId, type, bomData }) => {
-  // refSuperBom.value?.show(areaSConfigId, type, bomData)
-}
-
-const handleShowEpCompare = ({ orderId, orderNo: orderNum, designModelId: dmId, configNo: cfgNo }) => {
-  designModelId.value = dmId
-  orderID.value = orderId
-  configNo.value = cfgNo
-  orderNo.value = orderNum
-  showEpCompareDrawer.value = true
-}
-
-const handleSelectApprover = (index: number, type: 'normal' | 'mainEngine') => {
+const handleSelectApprover = (index: number) => {
   rowIndex.value = index
-  let list = []
-  userType.value = type === 'normal' ? '1' : '2'
-  if (approveUser.value[index]) {
-    list = [approveUser.value[index]]
-  } else if (approvEmainEnginePlantsUser.value[index]) {
-    list = [approvEmainEnginePlantsUser.value[index]]
-  }
-
-  userSelectFormRef.value.open(0, list)
+  const current = approveUser.value[index]
+  const userId = current?.id ?? current?.userId
+  memberAuthUserIds.value = userId ? [String(userId)].slice(0, 1) : []
+  memberAuthVisible.value = true
 }
 
-const handleUserSelectConfirm = (_, users: []) => {
-  debugger
-  if (users) {
-    window.$message.success('选择成功')
+/** 将 MemberAuthPicker 用户结构转为审批人展示/提交结构 */
+function mapMemberToApproveUser(user: MemberAuthUser & { nickname?: string; psnName?: string }) {
+  const displayName = user.name || user.nickname || user.psnName || user.username || ''
+  return {
+    ...user,
+    id: user.id,
+    userId: user.id,
+    nickname: displayName,
+    psnName: displayName,
+    name: displayName,
   }
-  const targetArray = userType.value === '1' ? approveUser : approvEmainEnginePlantsUser
-  targetArray.value[rowIndex.value] = users[0]
-  processVariablesList.value[rowIndex.value][processDefinitionList.value[rowIndex.value].assigneePlaceholder] =
-    users[0].userId
+}
+
+function handleMemberAuthConfirm(userIds: string[]) {
+  if (!userIds.length) {
+    memberAuthVisible.value = false
+    return
+  }
+
+  if (userIds.length > 1) {
+    message.warning('只能选择一个审批人')
+    return
+  }
+
+  const selectedUser = pickUsersByIds([userIds[0]])[0]
+  if (!selectedUser) {
+    message.warning('未找到所选用户')
+    return
+  }
+
+  const mappedUser = mapMemberToApproveUser(selectedUser)
+  approveUser.value[rowIndex.value] = mappedUser
+  approveUser.value = [...approveUser.value]
+
+  const placeholder = processDefinitionList.value[rowIndex.value]?.assigneePlaceholder
+  if (placeholder) {
+    if (!processVariablesList.value[rowIndex.value]) {
+      processVariablesList.value[rowIndex.value] = {}
+    }
+    processVariablesList.value[rowIndex.value][placeholder] = mappedUser.id
+  }
+
+  memberAuthUserIds.value = [String(mappedUser.id)]
+  message.success('选择成功')
+  memberAuthVisible.value = false
+}
+
+function pickUsersByIds(userIds: string[]) {
+  const userIdSet = new Set(userIds.map(String))
+  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id)))
 }
 
 /** 查看流程变量 */
@@ -625,7 +623,14 @@ watch(activeTab, newVal => {
 const getDeptuseInfo = async () => {
   const res = await AdminApiSystemDept.getDeptInfo({})
   if (res.data.code === 200) {
-    userOptions.value = res.data?.data?.adminUserResponseDTO || []
+    const rawUsers = res.data?.data?.adminUserResponseDTO || []
+    userOptions.value = rawUsers
+    memberAuthUsers.value = rawUsers.map((u: any) => ({
+      id: String(u.id ?? u.userId),
+      name: u.nickname ?? u.psnName ?? u.name ?? u.username ?? '',
+      username: u.username ?? '',
+      deptId: u.deptId != null ? String(u.deptId) : undefined,
+    }))
   }
 }
 onMounted(async () => {
@@ -675,8 +680,6 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .process-instance-detail-wrap {
-  // height: calc(100vh - var(--top-tool-height) - var(--tags-view-height) - var(--app-footer-height) - 35px);
-  // max-height: calc(100vh - var(--top-tool-height) - var(--tags-view-height) - var(--app-footer-height) - 35px);
   height: 100%;
   margin-bottom: 0 !important;
   display: flex;

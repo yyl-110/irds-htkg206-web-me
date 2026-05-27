@@ -1,6 +1,6 @@
 <template>
-  <el-card style="margin: 10px; min-height: 100px; margin-right: 30px" v-if="visible">
-    <template #header>
+  <a-card style="margin: 10px; min-height: 100px; margin-right: 30px" v-if="visible">
+    <template #title>
       <div class="card-header">
         <span>{{ $t('处理意见') }}</span>
       </div>
@@ -11,10 +11,9 @@
         @update:model-value="handleUpdate"
         type="textarea"
         :rows="4"
-        :disabled="disabled"
-      ></el-input>
+        :disabled="disabled"></el-input>
     </el-row>
-  </el-card>
+  </a-card>
 </template>
 
 <script lang="ts" setup>
@@ -37,10 +36,10 @@ const handleUpdate = (value: string) => {
 .card-header {
   font-weight: 600;
   display: flex;
+  font-size: 16px;
 }
 
 .intstance-row {
-  padding: 10px;
   border-radius: 10px;
   margin-bottom: 10px;
 }
