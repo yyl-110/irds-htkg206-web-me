@@ -25,6 +25,7 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons-vue'
 import NoticeDetail from './components/notice-detail.vue'
+import CancellationProcess from './components/modal/cancellationProcess.vue'
 import {
   TASK_KIND_ACTIONS,
   TASK_KIND_LABEL,
@@ -47,7 +48,6 @@ import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
 import { formatPast2 } from '@/utils/formatTime'
 import { getMyTodoTask, getMyDoneTask, getMyTask } from '@/api/bpm/task'
-import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import Empty from '@/components/Empty/index.vue'
 import { renderTableEmptyText } from '@/utils/emptyState'
 import { RRQueryParams } from './components/config/query'
@@ -115,8 +115,6 @@ const rejectSubmitLoading = ref(false)
 /** 我的流程 — 取消流程弹窗 */
 const bpmCancelModalVisible = ref(false)
 const bpmCancelTargetTask = ref<WorkbenchBpmTaskItem | null>(null)
-const bpmCancelReason = ref('')
-const bpmCancelSubmitLoading = ref(false)
 
 const transferSelectOptions = computed(() =>
   transferCandidateOptions.value.map(u => ({
@@ -1494,38 +1492,13 @@ const openbpmTaskHistory = (task: WorkbenchBpmTaskItem) => {
 
 function openBpmCancelModal(task: WorkbenchBpmTaskItem) {
   bpmCancelTargetTask.value = task
-  bpmCancelReason.value = ''
   bpmCancelModalVisible.value = true
 }
 
-function closeBpmCancelModal() {
-  bpmCancelModalVisible.value = false
-  bpmCancelTargetTask.value = null
-  bpmCancelReason.value = ''
-}
-
-async function submitBpmCancel() {
-  const reason = bpmCancelReason.value.trim()
-  if (!reason) {
-    message.warning('请输入取消原因')
-    return Promise.reject()
-  }
-  const processInstanceId = bpmCancelTargetTask.value?.processInstance?.id
-  if (!processInstanceId) {
-    message.warning('缺少流程实例标识')
-    return Promise.reject()
-  }
-  bpmCancelSubmitLoading.value = true
-  try {
-    await ProcessInstanceApi.cancelProcessInstanceByStartUser(Number(processInstanceId), reason)
-    message.success('取消成功')
-    closeBpmCancelModal()
-    void loadAuditListFromApi()
-  } catch (e) {
-    showRequestErrorIfNeeded(e, '取消失败')
-    return Promise.reject()
-  } finally {
-    bpmCancelSubmitLoading.value = false
+function handleBpmCancelVisibleChange(visible: boolean) {
+  bpmCancelModalVisible.value = visible
+  if (!visible) {
+    bpmCancelTargetTask.value = null
   }
 }
 
@@ -2489,29 +2462,11 @@ onUnmounted(() => {
       allow-clear />
   </a-modal>
 
-  <a-modal
-    v-model:visible="bpmCancelModalVisible"
-    title="取消流程"
-    width="520px"
-    :confirm-loading="bpmCancelSubmitLoading"
-    :mask-closable="false"
-    destroy-on-close
-    ok-text="确认取消"
-    cancel-text="关闭"
-    @ok="submitBpmCancel"
-    @cancel="closeBpmCancelModal">
-    <p v-if="bpmCancelTargetTask" style="margin-bottom: 12px; color: #666; line-height: 1.6">
-      确定要取消流程「{{ bpmCancelTargetTask.processInstance?.name }}」吗？取消后流程将终止。
-    </p>
-    <div style="margin-bottom: 8px; color: #313133">取消原因</div>
-    <a-textarea
-      v-model:value="bpmCancelReason"
-      :rows="4"
-      :maxlength="500"
-      show-count
-      placeholder="请输入取消原因"
-      allow-clear />
-  </a-modal>
+  <CancellationProcess
+    :visible="bpmCancelModalVisible"
+    :target-task="bpmCancelTargetTask"
+    @update:visible="handleBpmCancelVisibleChange"
+    @success="() => void loadAuditListFromApi()" />
 </template>
 
 <style lang="less" scoped>

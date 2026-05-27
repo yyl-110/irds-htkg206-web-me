@@ -77,7 +77,7 @@ export function createProcessInstance(data: any) {
   })
 }
 
-export function cancelProcessInstanceByStartUser(id: number, reason: string) {
+export function cancelProcessInstanceByStartUser(id: string | number, reason: string) {
   const data = {
     id,
     reason,
