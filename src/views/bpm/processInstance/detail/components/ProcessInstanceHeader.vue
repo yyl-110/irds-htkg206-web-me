@@ -1,12 +1,6 @@
 <template>
   <div class="process-instance-header">
-    <img
-      class="position-absolute right-20px top-35px"
-      width="150"
-      :src="auditIconsMap[processInstance.status]"
-      alt="" />
-    <div class="text-#878c93 h-15px">{{ $t('编号：') }}{{ id }}</div>
-    <el-divider class="!my-8px" />
+    <img class="position-absolute right-20px top-5px" width="150" :src="auditIconsMap[processInstance.status]" alt="" />
     <div class="flex items-center gap-5 mb-10px h-40px truncate">
       <div class="text-26px font-bold mb-5px">
         <span v-if="taskName">{{ taskName }} -</span>

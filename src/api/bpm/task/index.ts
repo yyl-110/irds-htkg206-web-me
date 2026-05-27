@@ -223,7 +223,7 @@ export function getMyTask(data: any) {
  */
 export function getMyProcessInstance(data: any) {
   return httpRequest({
-    url: `bpm-service/bpm/process-instance/manager-page`,
+    url: `bpm-service/bpm/process-instance/my-page`,
     data,
     method: 'POST',
   })
