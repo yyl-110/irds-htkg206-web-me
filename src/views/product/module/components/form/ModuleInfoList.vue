@@ -156,12 +156,12 @@ const moduleTablePagination = computed(() => ({
   showTotal: (total: number) => `共 ${total} 条`,
 }))
 
-/** 选中行 para10 是否为编制中 */
+/** 选中行 para10 是否为设计中 */
 function isPara10DraftStatus(record?: any) {
-  return String(record?.para10 ?? '').trim() === '编制中'
+  return String(record?.para10 ?? '').trim() === '设计中'
 }
 
-/** 是否可发起流程：仅选中一条且 para10 为编制中 */
+/** 是否可发起流程：仅选中一条且 para10 为设计中 */
 const canInitiateProcess = computed(() => {
   if (selectedRowkeys.value.length !== 1) return false
   return isPara10DraftStatus(selectModelList.value[0])
@@ -779,7 +779,7 @@ function dropdownAction(type: number) {
       if (selectedRowkeys.value.length !== 1) {
         message.warning('请选择一条数据')
       } else {
-        message.warning('仅编制中状态的数据可发起流程')
+        message.warning('仅设计中状态的数据可发起流程')
       }
       return
     }
@@ -1933,7 +1933,6 @@ defineExpose({ initData, selectAllModuleInfo })
     ref="InitiateaProcessRef"
     :modal-visible="ProcessVisible"
     :selectModelList="selectModelList"
-    @handle-save="handleSave"
     @modal-init="modalInit"
     @on-close="ProcessVisible = false" />
 </template>

@@ -127,6 +127,8 @@ async function handleSave() {
           processDefinitionKey: selectedProcess.value.id,
           variables: {
             ModelList: props.selectModelList,
+            businessName: props.selectModelList[0].para3, //模型名称
+            businessCode: props.selectModelList[0].para2, //模型编号
           },
           businessKey: props.selectModelList[0].id,
           startUserSelectAssignees: {},

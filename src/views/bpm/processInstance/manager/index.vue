@@ -470,9 +470,10 @@ onMounted(async () => {
     :mask-closable="false"
     :get-container="processVariablesModalGetContainer"
     :z-index="PROCESS_VARIABLES_MODAL_Z_INDEX">
-    <a-textarea
+    <el-input
       v-model:value="processVariablesContent"
       :rows="20"
+      type="textarea"
       readonly
       placeholder="流程变量内容将显示在这里"
       class="process-variables-textarea" />
