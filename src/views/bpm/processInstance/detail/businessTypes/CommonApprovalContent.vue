@@ -1,71 +1,48 @@
 <template>
   <div class="tableinfo">
-    <el-card>
-      <template #header>
-        <div class="tableinfo__header">
-          <span>{{ $t('签审列表') }}</span>
-        </div>
+    <div class="tableinfo__header">
+      <span>{{ $t('签审列表') }}</span>
+    </div>
+    <div class="tableinfo__search">
+      <a-input v-model:value="searchContent" allow-clear :placeholder="$t('请输入关键字检索')" style="width: 245px" />
+    </div>
+    <a-table
+      :columns="tableColumns"
+      :data-source="tableData"
+      :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
+      :row-class-name="rowClassName"
+      :pagination="false"
+      :row-key="rowKey"
+      bordered
+      class="workbench-main-table bg-white tableinfo__table"
+      :scroll="{ x: tableScrollX }"
+      @resize-column="handleResizeColumn">
+      <template #bodyCell="{ column, record, index }">
+        <template v-if="column.key === '__index'">
+          {{ index + 1 }}
+        </template>
+        <template v-else-if="column.key === 'para10' || column.key === 'state'">
+          <a-tag v-if="record[column.key]" :color="getStatusTagColor(record[column.key])">
+            {{ record[column.key] }}
+          </a-tag>
+          <span v-else class="text-[#8c8c8c]">—</span>
+        </template>
+        <template v-else>
+          <span
+            :class="{ 'wb-cell-link': isClickable(column.key) }"
+            :title="String(record[column.key] ?? '')"
+            @click="isClickable(column.key) && handleRowClick(record, column.key)">
+            {{ record[column.key] ?? '—' }}
+          </span>
+        </template>
       </template>
-      <div class="tableinfo__search">
-        <el-input
-          v-model="searchContent"
-          clearable
-          :placeholder="$t('请输入')"
-          style="width: 245px"
-          @clear="handleClear"
-        ></el-input>
-        <el-button type="primary" plain @click="handleSearch">
-          {{ $t('查询') }}
-        </el-button>
-      </div>
-      <div class="noborder-adujst-column-styles">
-        <el-table
-          class="tableinfo__table"
-          header-cell-class-name="table-header-gray"
-          :data="tableData"
-          height="300"
-          resizable
-          border
-        >
-          <el-table-column :label="$t('序号')" type="index" width="60px" />
-          <el-table-column
-            v-for="(item, index) in titleList"
-            :key="index"
-            :label="item.value"
-            width="120px"
-            :prop="item.key"
-            show-overflow-tooltip
-          >
-            <template #default="scope">
-              <span v-if="item.key === 'state'">
-                <n-tag :type="renderTableTagFun(scope.row[item.key])?.type">
-                  {{ scope.row[item.key] }}
-                  <template #icon>
-                    <gs-icon
-                      svg
-                      :icon="renderTableTagFun(scope.row[item.key])?.icon"
-                      size="16px"
-                    />
-                  </template>
-                </n-tag>
-              </span>
-              <span
-                v-else
-                :style="handleStyle(item.key)"
-                @click="handleRowClick(scope.row, item.key)"
-              >
-                {{ scope.row[item.key] }}
-              </span>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-    </el-card>
+    </a-table>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { renderTableEmptyText } from '@/utils/emptyState'
 
 const props = defineProps<{
   titleList: any[]
@@ -75,140 +52,146 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'search', content: string): void
   (e: 'row-click', row: any, field: string): void
 }>()
 
 const searchContent = ref<string>('')
+const tableColumns = ref<any[]>([])
 
-const tableData = computed(() => props.dataList)
-const handleClear = () => {
-  searchContent.value = ''
-  emit('search', '')
+const tableData = computed(() => {
+  const keyword = searchContent.value.trim().toLowerCase()
+  const source = props.dataList ?? []
+  if (!keyword) return source
+
+  const searchKeys = (props.titleList ?? []).map(item => item.key)
+  return source.filter(row => {
+    const values = searchKeys.length ? searchKeys.map(key => row?.[key]) : Object.values(row ?? {})
+    return values.some(val =>
+      String(val ?? '')
+        .toLowerCase()
+        .includes(keyword),
+    )
+  })
+})
+
+const tableScrollX = computed(() => tableColumns.value.reduce((sum, col) => sum + (Number(col.width) || 120), 0))
+
+watch(
+  () => props.titleList,
+  list => {
+    tableColumns.value = [
+      { title: '序号', key: '__index', width: 60, align: 'center', fixed: 'left', resizable: true },
+      ...(list ?? []).map((item: any) => ({
+        title: item.value,
+        dataIndex: item.key,
+        key: item.key,
+        width: item.colWidth ?? 150,
+        ellipsis: true,
+        resizable: true,
+      })),
+    ]
+  },
+  { immediate: true, deep: true },
+)
+
+function handleResizeColumn(width: number, col: any) {
+  col.width = width
 }
 
-const handleSearch = () => {
-  emit('search', searchContent.value)
+const rowKey = (record: any, index?: number) => String(record?.id ?? record?.ROW_ID ?? index ?? '')
+
+function rowClassName(_record: any, index: number) {
+  return index % 2 === 1 ? 'table-striped' : ''
+}
+
+function isClickable(field: string) {
+  const clickable = props.clickableFields || ['name', 'orderNo', 'areaConfigName', 'designModel']
+  return clickable.includes(field)
 }
 
 const handleRowClick = (row: any, field: string) => {
   emit('row-click', row, field)
 }
 
-const handleStyle = (field: any) => {
-  const clickable = props.clickableFields || ['name', 'orderNo', 'areaConfigName', 'designModel']
-  return {
-    color: clickable.includes(field) ? '#0158F0' : '#161e2e',
-    cursor: 'pointer',
-    'text-decoration': clickable.includes(field) ? 'underline' : 'none'
+function getStatusTagColor(status: string) {
+  const map: Record<string, string> = {
+    设计中: 'processing',
+    编制中: 'success',
+    已发布: 'success',
+    审核中: 'warning',
+    停用: 'default',
+    已停用: 'default',
+    审阅中: 'processing',
+    重新工作: 'processing',
   }
-}
-watch(() => props.dataList, (newVal) => {
-  console.log(newVal, props.titleList,'>>>>>>>>newVal')
-}, {
-  immediate: true
-})
-const renderTableTagFun = (status: any) => {
-  if (!status) return null
-  const iconList = {
-    审阅中: { icon: 'icon_examine', type: 'info' },
-    设计中: { icon: 'nav_cppz', type: 'info', color: { textColor: '#834BF4' } },
-    重新工作: { icon: 'icon_examine', type: 'info' },
-    已发布: { icon: 'yfb', type: 'success' },
-    已关闭: { icon: 'ygb', type: 'success', color: { textColor: '#555D6D' } },
-    已停售: { icon: 'ygb', type: 'success', color: { textColor: '#555D6D' } },
-    废弃: { icon: 'ygb', type: 'success', color: { textColor: '#555D6D' } },
-    发布异常: { icon: 'ygb', type: '', color: { textColor: '#555D6D' } }
-  }
-
-  return {
-    bordered: false,
-    type: iconList[status]?.type,
-    size: 'small',
-    color: iconList[status]?.color || undefined,
-    icon: iconList[status]?.icon
-  }
+  return map[status] ?? 'default'
 }
 </script>
+
 <style lang="scss" scoped>
-.tableinfo{
+.tableinfo {
   padding: 10px 30px 10px 10px;
-  &__header{
+
+  &__header {
+    margin-bottom: 12px;
+    font-size: 15px;
     font-weight: 700;
+    color: #313133;
   }
-  &__search{
+
+  &__search {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: end;
+    justify-content: flex-end;
     gap: 8px;
+    margin-bottom: 12px;
   }
-  &__table{
-    margin-top: 16px;
+
+  &__table {
+    margin-top: 4px;
   }
 }
-.noborder-adujst-column-styles {
-  :deep(.el-table--border .el-table__cell) {
-    border-right: none !important ;
-  }
-  :deep(.el-table__border-left-patch) {
-    display: none !important;
-  }
-  :deep(.el-table--border .el-table__inner-wrapper::after),
-  :deep(.el-table--border .el-table__inner-wrapper::before),
-  :deep(.el-table--border:before),
-  :deep(.el-table--border:after) {
-    width: 0px !important;
-  }
-  :deep(.el-table .el-table__header thead th.is-leaf:not(:last-child)) {
-    .cell {
-      border-right: 1px solid var(--el-table-border-color) !important;
-    }
-  }
-  :deep(.el-table) {
-    .el-table__row {
-      color: #161e2e;
-    }
-    .cell{
-      .el-button {
-        font-family: 'PingFang SC, Microsoft YaHei';
-        font-weight: 400;
-        background: none !important;
-        color: #0158f0;
-        height: 24px;
-        font-size: 14px;
-        padding: 0;
-        margin-left: 0;
-        &:not(.is-disabled):hover {
-          color: #0158f0;
-        }
-        &.is-disabled {
-          color: #161e2e;
-        }
-        &:not(:last-child){
-          margin-right: 16px;
-        }
-      }
-    }
-  }
-  // 列头单元格内容容器样式
-  :deep(.el-table__header-wrapper) {
-    .el-table__header {
-      .el-table__cell {
-        & > .cell {
-          // 直接子元素.cell
-          overflow-x: hidden;
-          white-space: nowrap; // 强制不换行
-          display: inline-flex; // 行内弹性布局
-          align-items: center; // 垂直居中
-          width:100%;
-        }
-      }
-    }
-  }
-  // 排序图标样式
-  :deep(.el-table__sort-icon) {
-    margin-left: 4px; // 与标题保持间距
-  }
+
+.wb-cell-link {
+  color: #1a71ff;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+:deep(.workbench-main-table .ant-table-thead > tr > th) {
+  background: #f7f8fa;
+  color: #313133;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eaeaf1;
+}
+
+:deep(.workbench-main-table .ant-table-tbody > tr > td) {
+  padding: 10px 12px;
+  color: #313133;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+:deep(.workbench-main-table .ant-table-tbody > tr:hover > td) {
+  background: #f9fbff;
+}
+
+:deep(.workbench-main-table .ant-table-thead > tr > th.ant-table-cell-fix-left),
+:deep(.workbench-main-table .ant-table-thead > tr > th.ant-table-cell-fix-right) {
+  background: #f7f8fa;
+}
+
+:deep(.workbench-main-table .ant-table-tbody > tr > td.ant-table-cell-fix-left),
+:deep(.workbench-main-table .ant-table-tbody > tr > td.ant-table-cell-fix-right) {
+  background: #fff;
+}
+
+:deep(.workbench-main-table .ant-table-tbody > tr.table-striped > td) {
+  background: #fafbfc;
+}
+
+:deep(.ant-table-column-title) {
+  flex: none;
 }
 </style>

@@ -31,12 +31,10 @@
                       :is="currentBusinessComponent"
                       :process-instance="processInstance"
                       :title-list="titleList"
-                      :approval-data="approvalData"
                       :error-title-list="errorTitleList"
                       :error-insatnce-list="errorInsatnceList"
                       :opinion="opinion"
                       :todo-task="todoTask"
-                      @search="handleBusinessSearch"
                       @show-feature-detail="handleShowModal('feature', $event)"
                       @show-order-set="handleShowModal('orderSet', $event)"
                       @show-customize-feature="handleShowModal('customizeFeature', $event)"
@@ -49,7 +47,6 @@
                       :process-definition-list="processDefinitionList"
                       :approve-user="approveUser"
                       :main-engine-plants-user="approvEmainEnginePlantsUser"
-                      :is-main-engine-plants="emainEnginePlants"
                       :edit-type="editType"
                       @select-user="handleSelectApprover" />
 
@@ -258,8 +255,6 @@ const insatnceList = ref<any>([])
 const errorTitleList = ref<any>([])
 const errorInsatnceList = ref<any>([])
 const opinion = ref<any>('')
-const approvalData = ref<any>([])
-const content = ref<string>()
 const isManual = ref<boolean>(false)
 const showStatus = ref<boolean>(false)
 const areaSaleRelease = ref<any>({
@@ -307,7 +302,6 @@ const editType = ref<any>(1)
 const aTab = ref<any>('')
 const firstTimeEditSubmit = ref(true)
 const approvEmainEnginePlantsUser = ref<any>([])
-const emainEnginePlants = ref<boolean>(false)
 const toTaskId = ref<any>('')
 const userOptions = ref<[]>([])
 const BusinessFormComponent = ref<any>(null)
@@ -359,12 +353,6 @@ watch(
   },
   { immediate: true },
 )
-
-// ==================== 事件处理 ====================
-const handleBusinessSearch = (searchContent: string) => {
-  content.value = searchContent
-  getProcessLinkedBusinessList()
-}
 
 const handleShowModal = (type: string, row: any) => {
   const modalMap = {
@@ -445,18 +433,6 @@ const copyProcessVariables = async () => {
   }
 }
 
-// ==================== API 调用 ====================
-const getProcessLinkedBusinessList = () => {
-  let data = {
-    businessType: processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE,
-    content: content.value,
-    processId: props.id,
-  }
-  ProcessInstanceApi.getProcessLinkedBusiness(data).then(res => {
-    approvalData.value = res.data
-  })
-}
-
 const getApprovalDetail = async () => {
   processInstanceLoading.value = true
   try {
@@ -494,7 +470,6 @@ const getApprovalDetail = async () => {
       processInstance.value?.formVariables?.PROCESS_BUSINESS_TYPE != BpmBusinessProcessTypeEnum.TASK_OWNER_NOTICE &&
       processInstance.value?.formVariables?.PROCESS_BUSINESS_TYPE != BpmBusinessProcessTypeEnum.STANDARD_PROCESSROUTE_RE
     ) {
-      // await getProcessLinkedBusinessList()
     }
 
     if (processInstance.value.formVariables?.BUSINESS_COLLECTION_TITILE) {
@@ -558,7 +533,6 @@ const getApprovalDetail = async () => {
 
     operationButtonRef.value?.loadTodoTask(data.todoTask, toTaskId.value)
     showStatus.value = data.todoTask?.name === '销售审批'
-    emainEnginePlants.value = data.todoTask?.name === '主机厂技术主管审批'
   } finally {
     processInstanceLoading.value = false
   }

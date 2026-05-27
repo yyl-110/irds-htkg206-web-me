@@ -2019,10 +2019,10 @@ onUnmounted(() => {
                             </div>
                           </template>
                           <template v-if="column.key === 'state'">
-                            <a-tag v-if="record.name === '编制'" size="small" type="success" style="color: #2e8702;">
+                            <a-tag v-if="record.name === '编制'" size="small" color="success" style="color: #2e8702;">
                               {{ $t('编制中') }}
                             </a-tag>
-                            <a-tag v-else type="primary" size="small">
+                            <a-tag v-else type="primary" size="small" color="processing">
                               {{ $t('审批中') }}
                             </a-tag>
                           </template>
