@@ -1065,6 +1065,9 @@ const vizSchematicFileId = computed(() => {
 })
 
 const vizSchematicImageUrl = computed(() => {
+  const row = vizDetailRow.value
+  const categoryUrl = vizPickFileId(row, ['categorySchematicUrl'])
+  if (categoryUrl) return categoryUrl
   const id = vizSchematicFileId.value
   if (!id) return ''
   return previewUrlFile(id)
@@ -1795,7 +1798,7 @@ defineExpose({ initData, selectAllModuleInfo })
             <div class="module-viz-section module-viz-2d">
               <div class="module-viz-section-title module-viz-section-title--2d">2D示意图</div>
               <div class="module-viz-2d-card">
-                <img class="module-viz-2d-img" :src="vizSchematicDisplaySrc" alt="节点树示意图" />
+                <img class="module-viz-2d-img" :src="vizSchematicDisplaySrc" alt="2D示意图" />
                 <button
                   type="button"
                   class="module-viz-2d-eye"

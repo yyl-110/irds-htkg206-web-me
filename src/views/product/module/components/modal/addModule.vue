@@ -41,7 +41,6 @@ const userStore = useUserStore();
 const typeValue = ref<any>([
   { label: 'prt', value: 'prt' },
   { label: 'asm', value: 'asm' },
-  { label: 'fat', value: 'fat' },
   { label: 'gph', value: 'gph' },
 ]);
 const moduleTypeValue = ref<any>([
