@@ -44,7 +44,7 @@ const columns = ref<TableColumnType<FormRow>[]>([
     align: 'center',
     customRender: ({ text }) => useRender.renderDate(text),
   },
-  { title: '操作', dataIndex: 'operation', key: 'operation', width: 220, align: 'center', fixed: 'right' },
+  { title: '操作', dataIndex: 'operation', key: 'operation', width: 150, align: 'center', fixed: 'right' },
 ])
 
 const BPM_FORM_TABLE_SCROLL_BUFFER = 24

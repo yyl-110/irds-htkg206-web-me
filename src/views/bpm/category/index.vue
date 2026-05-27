@@ -32,10 +32,17 @@ const queryParams = reactive({
 type CategoryRow = CategoryVO
 
 const columns = ref<TableColumnType<CategoryRow>[]>([
-  { title: '分类编号', dataIndex: 'id', key: 'id', width: 100, align: 'center', ellipsis: { showTitle: true } },
+  { title: '分类编号', dataIndex: 'id', key: 'id', width: 150, align: 'center', ellipsis: { showTitle: true } },
   { title: '分类名', dataIndex: 'name', key: 'name', width: 140, align: 'left', ellipsis: { showTitle: true } },
   { title: '分类标志', dataIndex: 'code', key: 'code', width: 120, align: 'center', ellipsis: { showTitle: true } },
-  { title: '分类描述', dataIndex: 'description', key: 'description', width: 160, align: 'left', ellipsis: { showTitle: true } },
+  {
+    title: '分类描述',
+    dataIndex: 'description',
+    key: 'description',
+    width: 160,
+    align: 'left',
+    ellipsis: { showTitle: true },
+  },
   { title: '分类状态', dataIndex: 'status', key: 'status', width: 96, align: 'center' },
   { title: '分类排序', dataIndex: 'sort', key: 'sort', width: 100, align: 'center' },
   {
@@ -46,7 +53,7 @@ const columns = ref<TableColumnType<CategoryRow>[]>([
     align: 'center',
     customRender: ({ text }) => useRender.renderDate(text),
   },
-  { title: '操作', dataIndex: 'operation', key: 'operation', width: 160, align: 'center', fixed: 'right' },
+  { title: '操作', dataIndex: 'operation', key: 'operation', width: 80, align: 'center', fixed: 'right' },
 ])
 
 const BPM_CATEGORY_TABLE_SCROLL_BUFFER = 24
@@ -178,12 +185,8 @@ onMounted(() => {
               placeholder="请选择分类状态"
               allow-clear
               show-search>
-              <a-select-option :value="0">
-                开启
-              </a-select-option>
-              <a-select-option :value="1">
-                关闭
-              </a-select-option>
+              <a-select-option :value="0"> 开启 </a-select-option>
+              <a-select-option :value="1"> 关闭 </a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item>
@@ -227,21 +230,13 @@ onMounted(() => {
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.dataIndex === 'status'">
-              <a-tag v-if="isCategoryStatusEnabled(record.status)" color="blue">
-                开启
-              </a-tag>
-              <a-tag v-else>
-                关闭
-              </a-tag>
+              <a-tag v-if="isCategoryStatusEnabled(record.status)" color="blue"> 开启 </a-tag>
+              <a-tag v-else> 关闭 </a-tag>
             </template>
             <template v-else-if="column.dataIndex === 'operation'">
               <a @click="openForm('update', record.id)">修改</a>
               <a-divider type="vertical" />
-              <a-popconfirm
-                title="确定要删除吗?"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm="handleDelete(record.id)">
+              <a-popconfirm title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
                 <a class="del-text">删除</a>
               </a-popconfirm>
             </template>

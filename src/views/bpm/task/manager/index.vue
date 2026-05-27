@@ -49,7 +49,7 @@ const columns = ref<TableColumnType<TaskManagerRow>[]>([
     title: '流程主题',
     dataIndex: 'processSubject',
     key: 'processSubject',
-    width: 180,
+    width: 280,
     align: 'left',
     ellipsis: { showTitle: true },
   },
@@ -83,15 +83,15 @@ const columns = ref<TableColumnType<TaskManagerRow>[]>([
   { title: '审批状态', dataIndex: 'status', key: 'status', width: 120, align: 'center' },
   { title: '审批建议', dataIndex: 'reason', key: 'reason', width: 180, align: 'left', ellipsis: { showTitle: true } },
   { title: '耗时', dataIndex: 'durationInMillis', key: 'durationInMillis', width: 160, align: 'center' },
-  {
-    title: '流程编号',
-    dataIndex: 'processInstanceId',
-    key: 'processInstanceId',
-    width: 220,
-    align: 'center',
-    ellipsis: { showTitle: true },
-  },
-  { title: '任务编号', dataIndex: 'id', key: 'id', width: 220, align: 'center', ellipsis: { showTitle: true } },
+  // {
+  //   title: '流程编号',
+  //   dataIndex: 'processInstanceId',
+  //   key: 'processInstanceId',
+  //   width: 220,
+  //   align: 'center',
+  //   ellipsis: { showTitle: true },
+  // },
+  // { title: '任务编号', dataIndex: 'id', key: 'id', width: 220, align: 'center', ellipsis: { showTitle: true } },
   { title: '操作', dataIndex: 'operation', key: 'id', width: 80, align: 'center', fixed: 'right' },
 ])
 

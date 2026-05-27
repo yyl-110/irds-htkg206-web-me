@@ -118,8 +118,8 @@ const columns = ref<TableColumnType<ProcessInstanceRow>[]>([
     align: 'left',
     customRender: ({ text }) => useRender.renderDate(text),
   },
-  { title: '流程编号', dataIndex: 'id', key: 'id', width: 320, align: 'center', ellipsis: { showTitle: true } },
-  { title: '操作', dataIndex: 'operation', key: 'operation', width: 190, align: 'center', fixed: 'right' },
+  // { title: '流程编号', dataIndex: 'id', key: 'id', width: 320, align: 'center', ellipsis: { showTitle: true } },
+  { title: '操作', dataIndex: 'operation', key: 'operation', width: 160, align: 'left', fixed: 'right' },
 ])
 
 const BPM_PI_MANAGER_TABLE_SCROLL_BUFFER = 24
@@ -606,6 +606,11 @@ onMounted(async () => {
 
 .bpm-pi-manager-list-card :deep(.ant-table-tbody > tr > td:last-child) {
   border-right: 1px solid #e8e8e8 !important;
+  text-align: left !important;
+}
+
+.bpm-pi-manager-list-card :deep(.ant-table-thead > tr > th:last-child) {
+  text-align: left !important;
 }
 
 .bpm-pi-manager-list-card :deep(.ant-table-tbody > tr:last-child > td) {
