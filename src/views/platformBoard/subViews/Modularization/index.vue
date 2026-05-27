@@ -92,7 +92,7 @@ onMounted(() => {
             <a-col :span="7" style="height: 60%">
               <div class="evaluate">
                 <Title
-                  text="模块评价体系"
+                  text="各科室模块使用情况"
                   showSelect
                   :optionsProject="projectList"
                 >
