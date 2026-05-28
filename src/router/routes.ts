@@ -1,6 +1,6 @@
-import type { RouteRecordRaw } from 'vue-router'
-import { UserOutlined, DashboardOutlined } from '@ant-design/icons-vue'
-import { demoRoutes } from './demoRoutes'
+import type { RouteRecordRaw } from 'vue-router';
+import { UserOutlined, DashboardOutlined } from '@ant-design/icons-vue';
+import { demoRoutes } from './demoRoutes';
 // import Main from '@/views/Main.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -260,8 +260,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'design-task-app-detail',
         name: 'DesignTaskAppDetail',
-        component: () =>
-          import('@/views/product/designTaskApplication/components/components/process-flow-app-detail.vue'),
+        component: () => import('@/views/product/designTaskApplication/components/components/process-flow-app-detail.vue'),
         meta: {
           hidden: true,
           title: '设计任务应用',
@@ -465,45 +464,45 @@ export const routes: RouteRecordRaw[] = [
           activeMenu: '/bpm/task/my',
         },
       },
-      {
-        path: 'task/todo',
-        component: () => import('@/views/bpm/task/todo/index.vue'),
-        name: 'Todo',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '我的任务',
-          activeMenu: '/bpm/task/todo',
-        },
-      },
-      {
-        path: 'task/done',
-        component: () => import('@/views/bpm/task/done/index.vue'),
-        name: 'Done',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '已办任务',
-          activeMenu: '/bpm/task/done',
-        },
-      },
-      {
-        path: 'task/copy',
-        component: () => import('@/views/bpm/task/copy/index.vue'),
-        name: 'Copy',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '抄送我的',
-          activeMenu: '/bpm/task/copy',
-        },
-      },
+      // {
+      //   path: 'task/todo',
+      //   component: () => import('@/views/bpm/task/todo/index.vue'),
+      //   name: 'Todo',
+      //   meta: {
+      //     noCache: true,
+      //     hidden: true,
+      //     canTo: true,
+      //     title: '我的任务',
+      //     activeMenu: '/bpm/task/todo',
+      //   },
+      // },
+      // {
+      //   path: 'task/done',
+      //   component: () => import('@/views/bpm/task/done/index.vue'),
+      //   name: 'Done',
+      //   meta: {
+      //     noCache: true,
+      //     hidden: true,
+      //     canTo: true,
+      //     title: '已办任务',
+      //     activeMenu: '/bpm/task/done',
+      //   },
+      // },
+      // {
+      //   path: 'task/copy',
+      //   component: () => import('@/views/bpm/task/copy/index.vue'),
+      //   name: 'Copy',
+      //   meta: {
+      //     noCache: true,
+      //     hidden: true,
+      //     canTo: true,
+      //     title: '抄送我的',
+      //     activeMenu: '/bpm/task/copy',
+      //   },
+      // },
     ],
   },
-]
+];
 
 // 当在开发环境或构建为 Demo 站点时加入 Demo 路由页面
-if (['development', 'demo'].includes(import.meta.env.MODE)) routes.push(...demoRoutes)
+if (['development', 'demo'].includes(import.meta.env.MODE)) routes.push(...demoRoutes);
