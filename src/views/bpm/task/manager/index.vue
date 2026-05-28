@@ -174,6 +174,7 @@ const handleAudit = (row: any) => {
     name: 'BpmProcessInstanceDetailA',
     query: {
       id: row.processInstance.id,
+      readType: 0,
     },
   })
 }

@@ -57,6 +57,44 @@ export function isWorkbenchReturnRouteQuery(routeQuery: Record<string, unknown>)
   return typeof activeName === 'string' && TOP_TAB_SET.has(activeName)
 }
 
+type ProcessDetailRouteContext = {
+  name?: string | symbol | null
+  meta?: Record<string, unknown>
+  query: Record<string, unknown>
+}
+
+export type ProcessDetailBackRouteLocation = {
+  name?: string
+  path?: string
+  query?: Record<string, string>
+}
+
+/** 流程详情页关闭/返回：工作台 / 流程实例 / 流程任务 */
+export function resolveProcessInstanceDetailBackRoute(
+  route: ProcessDetailRouteContext,
+): ProcessDetailBackRouteLocation {
+  if (isWorkbenchReturnRouteQuery(route.query)) {
+    const query = pickWorkbenchReturnQueryFromRoute(route.query)
+    return {
+      name: '/home/workbench',
+      query: Object.keys(query).length ? query : { activeName: 'process' },
+    }
+  }
+
+  if (route.name === 'BpmProcessInstanceDetailA' || route.meta?.activeMenu === '/bpm/task') {
+    return { path: '/bpm/task' }
+  }
+
+  if (route.name === 'BpmProcessInstanceDetail' || route.meta?.activeMenu === '/bpm/processInstance') {
+    return { path: '/bpm/processInstance' }
+  }
+
+  return {
+    name: '/home/workbench',
+    query: { activeName: 'process' },
+  }
+}
+
 export function parseWorkbenchRouteQuery(routeQuery: Record<string, unknown>) {
   const result: {
     activeName?: WorkbenchTopTab

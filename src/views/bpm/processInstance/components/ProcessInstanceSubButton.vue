@@ -38,7 +38,7 @@ import { NodeType, CandidateStrategy } from '@/components/SimpleProcessDesignerV
 import { BpmModelFormType } from '@/utils/constants'
 import type { FormInstance } from 'element-plus'
 import { isEmpty } from '@/utils/is'
-import { pickWorkbenchReturnQueryFromRoute } from '@/views/workbench/workbenchRouteQuery'
+import { resolveProcessInstanceDetailBackRoute } from '@/views/workbench/workbenchRouteQuery'
 import { ETASKTYPE } from '@/views/bpm/processInstance/components/config/constant'
 import { TaskStatusEnum } from '@/api/bpm/task'
 
@@ -141,10 +141,7 @@ const handleCancel = async () => {
           props.opinion ? props.opinion : '取消',
         )
         message.success('取消成功')
-        push({
-          name: '/home/workbench',
-          query: pickWorkbenchReturnQueryFromRoute(route.query),
-        })
+        push(resolveProcessInstanceDetailBackRoute(route))
       } finally {
         formLoading.value = false
         emit('handleLoading', false)
@@ -154,11 +151,7 @@ const handleCancel = async () => {
 }
 
 const handleGoBack = () => {
-  const query = pickWorkbenchReturnQueryFromRoute(route.query)
-  push({
-    name: '/home/workbench',
-    query: Object.keys(query).length ? query : { activeName: 'process' },
-  })
+  push(resolveProcessInstanceDetailBackRoute(route))
 }
 
 /** 审批通过时，校验每个自选审批人的节点是否都已配置了审批人 */

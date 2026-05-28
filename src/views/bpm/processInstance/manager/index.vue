@@ -230,6 +230,7 @@ const handleDetail = (row: ProcessInstanceRow) => {
     query: {
       id: row.id,
       pageIndex: 0,
+      readType: 0,
       orderNo: row.processVariables.orderNo,
     },
   })

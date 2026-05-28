@@ -440,9 +440,10 @@ onBeforeUnmount(() => {
         <!-- 右侧按钮 -->
         <div class="w-200px flex items-center justify-end gap-2 pr-40px">
           <el-button v-if="actionType === 'update'" type="success" @click="handleDeploy">
-            {{ $t('发布') }}
+            <Icon icon="ep:promotion" class="mr-5px" />{{ $t('发布') }}
           </el-button>
           <el-button type="primary" @click="handleSave">
+            <Icon :icon="actionType === 'definition' ? 'ep:refresh-left' : 'ep:check'" class="mr-5px" />
             <span v-if="actionType === 'definition'">{{ $t('恢复') }}</span>
             <span v-else>{{ $t('保存') }}</span>
           </el-button>

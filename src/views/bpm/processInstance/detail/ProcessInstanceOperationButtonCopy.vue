@@ -450,7 +450,7 @@ import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
 import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
 import { UserVO } from '@/api/system/user'
 import { useMessage } from '@/hooks/web/useMessage'
-import { pickWorkbenchReturnQueryFromRoute } from '@/views/workbench/workbenchRouteQuery'
+import { resolveProcessInstanceDetailBackRoute } from '@/views/workbench/workbenchRouteQuery'
 defineOptions({ name: 'ProcessInstanceBtnContainer' })
 const router = useRouter() // 路由
 const route = useRoute()
@@ -753,11 +753,7 @@ watch(
 )
 
 const handleGoBack = () => {
-  const query = pickWorkbenchReturnQueryFromRoute(route.query)
-  push({
-    name: '/home/workbench',
-    query: Object.keys(query).length ? query : { activeName: 'process' },
-  })
+  push(resolveProcessInstanceDetailBackRoute(route))
 }
 
 /** 弹出气泡卡 */
