@@ -1572,6 +1572,7 @@ const openbpmTaskAppDetail = (task: WorkbenchBpmTaskItem) => {
       pDefinitionId: task.processInstance.processDefinitionId,
       pProcessDefinitionKey: task.processInstance.processDefinitionKey,
       pIId: task.processInstance.id,
+      readType: 0,
       pageIndex: queryParams.pageIndex,
       ...buildWorkbenchReturnQuery({
         activeName: activeName.value as 'todo' | 'process',
