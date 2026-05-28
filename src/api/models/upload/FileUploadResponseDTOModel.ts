@@ -13,3 +13,25 @@ export class PreviewFileDTOModel extends BaseModel {
   data?: string = '';
   msg?: string = '';
 }
+
+/** 按模型件号查询 PVZ 文件接口 data 结构 */
+export class PvzFileByModuleNumDTOModel extends BaseModel {
+  id?: string | number | null;
+  newFileName?: string;
+  oldFileName?: string;
+  pdfFileName?: string;
+  fileUrl?: string;
+  confidentialLevel?: string;
+  creator?: string;
+  createName?: string;
+  documentName?: string;
+  fileType?: string;
+  createData?: string;
+}
+
+export class CommonResultPvzFileByModuleNumDTOModel extends BaseModel {
+  /** @format int32 */
+  code?: number = 0;
+  data?: PvzFileByModuleNumDTOModel = new PvzFileByModuleNumDTOModel();
+  msg?: string = '';
+}

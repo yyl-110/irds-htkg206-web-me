@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import type { TableColumnType } from 'ant-design-vue'
+import type { TableColumnType, UploadFile, UploadProps } from 'ant-design-vue'
 import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue'
 import _ from 'lodash-es'
 import {
@@ -79,6 +79,7 @@ const dropdownList = ref<any>([
   { id: 8, name: '导出' },
   { id: 3, name: '列宽保存' },
   { id: 4, name: '提交审核' },
+  { id: 5, name: '上传pvz' },
 ])
 const parmDesignData = ref<any>([])
 const loading = ref(false)
@@ -784,7 +785,80 @@ function dropdownAction(type: number) {
       return
     }
     processMethod()
+  } else if (type == 5) {
+    openPvzUpload()
   }
+}
+
+/** PVZ 上传弹窗 */
+const pvzUploadVisible = ref(false)
+const pvzUploadSubmitting = ref(false)
+const pvzFileList = ref<any[]>([])
+const pvzUploadAntList = ref<UploadFile[]>([])
+
+function openPvzUpload() {
+  pvzFileList.value = []
+  pvzUploadAntList.value = []
+  pvzUploadVisible.value = true
+}
+
+function closePvzUpload() {
+  pvzUploadVisible.value = false
+  pvzFileList.value = []
+  pvzUploadAntList.value = []
+}
+
+const beforeUploadPvz: UploadProps['beforeUpload'] = file => {
+  if (!String(file.name ?? '')
+    .toLowerCase()
+    .endsWith('.pvz')) {
+    message.warning('仅支持上传 .pvz 文件')
+    return false
+  }
+  return true
+}
+
+async function pvzCustomRequest(options: any) {
+  const file = options.file as File
+  pvzUploadSubmitting.value = true
+  try {
+    const res = await AdminApiSystemUploadFile.uploadFilePvz({ file })
+    const code = res.data?.code
+    if (code === 0 || code === 200) {
+      pvzFileList.value[0] = { uploaded: true, name: file.name }
+      pvzUploadAntList.value = [
+        {
+          uid: '-1',
+          name: file.name,
+          status: 'done',
+        },
+      ]
+      message.success(WeiI18n.t('上传成功').value)
+      options.onSuccess?.(res.data)
+    } else {
+      message.error(res.data?.msg || WeiI18n.t('上传失败').value)
+      options.onError?.(new Error(String(res.data?.msg ?? 'upload failed')))
+    }
+  } catch (err) {
+    console.log(err)
+    message.error(WeiI18n.t('上传失败').value)
+    options.onError?.(err instanceof Error ? err : new Error(String(err)))
+  } finally {
+    pvzUploadSubmitting.value = false
+  }
+}
+
+function onPvzFileRemove() {
+  pvzFileList.value = []
+  pvzUploadAntList.value = []
+}
+
+function confirmPvzUpload() {
+  if (!pvzFileList.value[0]?.uploaded) {
+    message.warning('请先上传 PVZ 文件')
+    return
+  }
+  closePvzUpload()
 }
 
 /** 文件列表 */
@@ -1037,15 +1111,29 @@ function vizFileIdFromModalInfo(info: any[], keywords: string[]): string {
   return ''
 }
 
-const vizPvzUrl = computed(() => {
-  const row = vizDetailRow.value
-  // const row = { ...vizDetailRow.value, fileUrl: 'http://39.106.130.85:9000/irds/20260521105922490.pvz' }
-  const fromRow = vizPickFileId(row, ['pvzFileUrl', 'fileUrl'])
-  if (fromRow) return fromRow
-  return vizFileIdFromModalInfo(modalInfo.value, ['pvz', '轻量化', 'lightweight'])
-})
+/** 接口按模型件号查询到的 PVZ 地址（有 data.fileUrl 则展示，否则为空） */
+const vizPvzUrlFromApi = ref('')
+
+const vizPvzUrl = computed(() => vizPvzUrlFromApi.value)
+
+async function fetchVizPvzByModuleNum(row: any) {
+  vizPvzUrlFromApi.value = ''
+  const moduleNum = row?.para1 != null && String(row.para1).trim() !== '' ? String(row.para1).trim() : ''
+  if (!moduleNum) return
+  try {
+    const res = await AdminApiSystemUploadFile.getPvzFileByModuleNum({ moduleNum })
+    if (res.data.code == 0) {
+      vizPvzUrlFromApi.value = res.data?.fileUrl
+    }
+
+  } catch (err) {
+    console.log(err)
+    vizPvzUrlFromApi.value = ''
+  }
+}
 
 async function loadVizPvzByFileUrl(fileUrl: string) {
+  if (!fileUrl) return
   await nextTick()
   ddViewRef.value?.loadModel?.(fileUrl, {})
 }
@@ -1105,6 +1193,9 @@ function clickEvent(row: any, key: any) {
   PDMid.value = row.id
   pdmModelType.value = row.para4
   moduleDetails(row)
+  if (key === 'para2') {
+    void fetchVizPvzByModuleNum(row)
+  }
 }
 
 function handleGlobalModelNumClick(record: any) {
@@ -1775,6 +1866,29 @@ defineExpose({ initData, selectAllModuleInfo })
     @template-download="templateDownload"
     @import-successful-fun="importSuccessfulFun"
     @close="batchflag = false" />
+  <a-modal
+    v-model:visible="pvzUploadVisible"
+    class="module-pvz-upload-modal"
+    title="上传 PVZ"
+    width="520px"
+    :mask-closable="false"
+    :confirm-loading="pvzUploadSubmitting"
+    @ok="confirmPvzUpload"
+    @cancel="closePvzUpload">
+    <p class="module-pvz-upload-tip">仅支持上传 .pvz 格式的 3D 轻量化文件</p>
+    <a-upload
+      v-model:file-list="pvzUploadAntList"
+      :max-count="1"
+      accept=".pvz"
+      :before-upload="beforeUploadPvz"
+      :custom-request="pvzCustomRequest"
+      @remove="onPvzFileRemove">
+      <a-button type="primary">
+        <EpcIcon type="icon-shangchuanwenjian1" style="font-size: 14px" />
+        选择文件
+      </a-button>
+    </a-upload>
+  </a-modal>
   <a-drawer
     v-model:visible="pageFlagDrawer"
     class="module-detail-drawer"
@@ -2532,5 +2646,12 @@ defineExpose({ initData, selectAllModuleInfo })
   position: sticky !important;
   top: 0;
   z-index: 4 !important;
+}
+
+.module-pvz-upload-tip {
+  margin: 0 0 12px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  line-height: 1.5;
 }
 </style>

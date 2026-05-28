@@ -1,7 +1,11 @@
 // import { OpenApiActions, type OpenApiTag } from "@wei/openapi-codegen/es/src/OpenApiTags";
 import { ContentType, httpClient, type RequestParams } from './http-client';
 import { CommonResultFileUploadResponseDTOModel } from '../models/upload/CommonResultFileUploadResponseDTOModel';
-import { FileUploadResponseDTOModel, PreviewFileDTOModel } from '../models/upload/FileUploadResponseDTOModel';
+import {
+  CommonResultPvzFileByModuleNumDTOModel,
+  FileUploadResponseDTOModel,
+  PreviewFileDTOModel,
+} from '../models/upload/FileUploadResponseDTOModel';
 
 /**
  * 文件上传
@@ -196,6 +200,71 @@ export class AdminApiSystemUploadFile {
         ...params,
       },
       CommonResultFileUploadResponseDTOModel,
+    );
+
+    /**
+   * 模块上传pvz
+   *
+   * @tags 模块上传pvz - 上传
+   * @name uploadFilePvz
+   * @summary  模块上传pvz
+   * @request POST:system-service/fileManagerController/uploadFilePvz.json
+   * @secure
+   */
+  static uploadFilePvz = <
+    Req extends {
+      /** @format binary */
+      fileId?: String;
+      file: any;
+    } = {
+      /** @format binary */
+      fileId?: String;
+      file: any;
+    },
+  >(
+    data: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultFileUploadResponseDTOModel, any>(
+      {
+        path: `/system-service/fileManagerController/uploadFilePvz.json`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        type: ContentType.FormData,
+        ...params,
+      },
+      CommonResultFileUploadResponseDTOModel,
+    );
+
+  /**
+   * 根据模型件号查询 PVZ 轻量化文件
+   *
+   * @tags 模块上传pvz - 查询
+   * @name getPvzFileByModuleNum
+   * @summary 根据模型件号查询 PVZ 文件
+   * @request GET:system-service/fileManagerController/getPvzFileByModuleNum.json
+   * @secure
+   */
+  static getPvzFileByModuleNum = <
+    Req extends {
+      moduleNum?: string;
+    } = {
+      moduleNum?: string;
+    },
+  >(
+    data: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultPvzFileByModuleNumDTOModel, any>(
+      {
+        path: `/system-service/fileManagerController/getPvzFileByModuleNum.json`,
+        method: 'GET',
+        query: data,
+        secure: true,
+        ...params,
+      },
+      CommonResultPvzFileByModuleNumDTOModel,
     );
 
   /**

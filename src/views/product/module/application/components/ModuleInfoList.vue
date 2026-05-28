@@ -1014,14 +1014,28 @@ function vizFileIdFromModalInfo(info: any[], keywords: string[]): string {
   return ''
 }
 
-const vizPvzUrl = computed(() => {
-  const row = vizDetailRow.value
-  // const row = { ...vizDetailRow.value, fileUrl: 'http://39.106.130.85:9000/irds/20260521105922490.pvz' }
-  const fromRow = vizPickFileId(row, ['pvzFileUrl', 'fileUrl'])
-  if (fromRow) return fromRow
-  return vizFileIdFromModalInfo(modalInfo.value, ['pvz', '轻量化', 'lightweight'])
-})
+/** 接口按模型件号查询到的 PVZ 地址（有 data.fileUrl 则展示，否则为空） */
+const vizPvzUrlFromApi = ref('')
+
+const vizPvzUrl = computed(() => vizPvzUrlFromApi.value)
+
+async function fetchVizPvzByModuleNum(row: any) {
+  vizPvzUrlFromApi.value = ''
+  const moduleNum = row?.para1 != null && String(row.para1).trim() !== '' ? String(row.para1).trim() : ''
+  if (!moduleNum) return
+  try {
+    const res = await AdminApiSystemUploadFile.getPvzFileByModuleNum({ moduleNum })
+    if (res.data.code == 0) {
+      vizPvzUrlFromApi.value = res.data?.fileUrl
+    }
+
+  } catch (err) {
+    console.log(err)
+    vizPvzUrlFromApi.value = ''
+  }
+}
 async function loadVizPvzByFileUrl(fileUrl: string) {
+  if (!fileUrl) return
   await nextTick()
   ddViewRef.value?.loadModel?.(fileUrl, {})
 }
@@ -1081,6 +1095,9 @@ function clickEvent(row: any, key: any) {
   PDMid.value = row.id
   pdmModelType.value = row.para4
   moduleDetails(row)
+  if (key === 'para2') {
+    void fetchVizPvzByModuleNum(row)
+  }
 }
 
 const compareParm = ref<number>(0)
