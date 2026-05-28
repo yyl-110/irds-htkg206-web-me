@@ -121,12 +121,12 @@
           :rules="transferFormRule"
           label-width="100px">
           <el-form-item label="新审批人" prop="assigneeUserId">
-            <el-button type="info" @click="handleSelectUser" v-if="editType === 1">
+            <el-button type="primary" @click="handleSelectUser" v-if="editType === 1">
               {{ '选择转办对象' }}
             </el-button>
             <div v-if="transferForm.assigneeUserId" class="ml-10px">
               <el-tag>
-                {{ approveUser[0].psnName }}
+                {{ transferUser[0]?.psnName }}
               </el-tag>
             </div>
           </el-form-item>
@@ -142,11 +142,6 @@
         </el-form>
       </div>
     </el-popover>
-    <!-- <UserSelectFormRadio
-      ref="userSelectFormRef"
-      :operationType="currentOperationType"
-      :singleType="currentOperationType === 'transfer'"
-      @confirm="handleUserSelectConfirm" /> -->
     <!-- 【委派】按钮 -->
     <!-- <el-popover
       :visible="popOverVisible.delegate"
@@ -422,6 +417,16 @@
 
   <!-- 签名弹窗 -->
   <SignDialog ref="signRef" @success="handleSignFinish" />
+  <!-- 用户选择弹窗 -->
+  <MemberAuthPicker
+    v-model:visible="memberAuthVisible"
+    :title="$t('选择审批人')"
+    :users="memberAuthUsers"
+    :depts="memberAuthDepts"
+    :authorized-user-ids="memberAuthUserIds"
+    :z-index="4000"
+    wrap-class-name="process-instance-operation-member-auth-modal"
+    @confirm="handleMemberAuthConfirm" />
 </template>
 <script lang="ts" setup>
 import { setConfAndFields2 } from '@/utils/formCreate'
@@ -437,12 +442,13 @@ import {
 import { BpmModelFormType, BpmProcessInstanceStatus } from '@/utils/constants'
 import type { FormInstance, FormRules } from 'element-plus'
 import SignDialog from './SignDialog.vue'
+import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 import { ElMessageBox } from 'element-plus'
 import { isEmpty } from '@/utils/is'
 import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
 import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
 import { UserVO } from '@/api/system/user'
-// import UserSelectFormRadio from '@/components/UserSelectFormRadio/index.vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { pickWorkbenchReturnQueryFromRoute } from '@/views/workbench/workbenchRouteQuery'
 defineOptions({ name: 'ProcessInstanceBtnContainer' })
@@ -474,60 +480,131 @@ const props = defineProps<{
   isMainEnginePlants: boolean
   currentOperationType: string
 }>()
-const approveUser = ref<any>([])
-const userOptions = ref<UserApi.UserVO[]>([])
-const userSelectFormRef = ref(null)
-const currentOperationType = ref('')
-const addSignUser = ref<any>([])
-// 用户选择回显
-const handleSelectUser = () => {
-  let list = []
-  if (approveUser.value.length > 0) {
-    list = approveUser.value
-  }
-  //通过当前操作类型区分转办和加签
-  currentOperationType.value = 'transfer'
-  userSelectFormRef.value.open(0, list)
+type MemberAuthUser = {
+  id: string
+  name: string
+  username: string
+  deptId?: string
 }
-// 用户选择确认
-const handleUserSelectConfirm = (_, users: UserVO[]) => {
+type MemberAuthDept = {
+  id: string
+  name: string
+}
+const transferUser = ref<any[]>([])
+const userOptions = ref<UserApi.UserVO[]>([])
+const currentOperationType = ref('')
+const addSignUser = ref<any[]>([])
+const memberAuthVisible = ref(false)
+const memberAuthUserIds = ref<string[]>([])
+const memberAuthUsers = ref<MemberAuthUser[]>([])
+const memberAuthDepts = ref<MemberAuthDept[]>([])
+
+function pickUsersByIds(userIds: string[]) {
+  const userIdSet = new Set(userIds.map(String))
+  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id)))
+}
+
+/** 将 MemberAuthPicker 用户结构转为审批人展示/提交结构 */
+function mapMemberToApproveUser(user: MemberAuthUser & { nickname?: string; psnName?: string }) {
+  const displayName = user.name || user.nickname || user.psnName || user.username || ''
+  return {
+    ...user,
+    id: user.id,
+    userId: user.id,
+    nickname: displayName,
+    psnName: displayName,
+    name: displayName,
+  }
+}
+
+const loadMemberAuthData = async () => {
+  const res = await AdminApiSystemDept.getDeptInfo({})
+  if (res.data.code === 200) {
+    const rawUsers = res.data?.data?.adminUserResponseDTO || []
+    memberAuthUsers.value = rawUsers.map((u: any) => ({
+      id: String(u.id ?? u.userId),
+      name: u.nickname ?? u.psnName ?? u.name ?? u.username ?? '',
+      username: u.username ?? '',
+      deptId: u.deptId != null ? String(u.deptId) : undefined,
+    }))
+    memberAuthDepts.value = (res.data?.data?.adminDeptResponseDTO || []).map((d: any) => ({
+      id: String(d.id),
+      name: d.name ?? d.deptName ?? '',
+    }))
+  } else {
+    memberAuthUsers.value = []
+    memberAuthDepts.value = []
+  }
+}
+
+/** 打开转办选人弹窗 */
+const handleSelectUser = () => {
+  currentOperationType.value = 'transfer'
+  const current = transferUser.value[0]
+  const userId = current?.id ?? current?.userId
+  memberAuthUserIds.value = userId ? [String(userId)] : []
+  memberAuthVisible.value = true
+}
+
+/** 打开加签选人弹窗 */
+const handleaddSignSelectUser = () => {
+  currentOperationType.value = 'addSign'
+  memberAuthUserIds.value = (addSignUser.value || [])
+    .map((user: any) => String(user?.id ?? user?.userId ?? ''))
+    .filter(Boolean)
+  memberAuthVisible.value = true
+}
+
+/** 用户选择确认 */
+const handleMemberAuthConfirm = (userIds: string[]) => {
   if (currentOperationType.value === 'transfer') {
-    if (users.length === 0) {
-      window.message.error('请选择一位用户')
+    if (!userIds.length) {
+      transferForm.assigneeUserId = undefined
+      transferUser.value = []
+      memberAuthUserIds.value = []
+      memberAuthVisible.value = false
       return
     }
-    if (users.length > 0) {
-      window.message.success('选择成功')
+    if (userIds.length > 1) {
+      message.warning('转办只能选择一位用户')
+      return
     }
-    transferForm.assigneeUserId = users[0].userId
-    approveUser.value = users
-  }
-  if (currentOperationType.value === 'addSign') {
-    if (users.length > 0) {
-      window.message.success('选择成功')
+    const selectedUser = pickUsersByIds([userIds[0]])[0]
+    if (!selectedUser) {
+      message.warning('未找到所选用户')
+      return
     }
-    addSignForm.addSignUserIds = users.map(user => user.userId)
-    addSignUser.value = users
+    const mappedUser = mapMemberToApproveUser(selectedUser)
+    transferUser.value = [mappedUser]
+    transferForm.assigneeUserId = mappedUser.id
+    memberAuthUserIds.value = [String(mappedUser.id)]
+    message.success('选择成功')
+    memberAuthVisible.value = false
+    return
   }
-}
-const handleaddSignSelectUser = () => {
-  let list = []
-  // 将选中的用户添加到list 中
-  if (addSignUser.value && addSignUser.value.length > 0) {
-    list = addSignUser.value
-  }
-  //通过当前操作类型区分转办和加签
-  currentOperationType.value = 'addSign'
-  userSelectFormRef.value.open(0, list)
-}
-// 移除加签对象的处
-const handleRemoveUser = userId => {
-  // 从 addSignUser 中移除
-  addSignUser.value = addSignUser.value.filter(user => user.userId !== userId)
 
-  // 同步更新 addSignForm.addSignUserIds
-  addSignForm.addSignUserIds = addSignForm.addSignUserIds.filter(id => id !== userId)
+  if (currentOperationType.value === 'addSign') {
+    const selectedUsers = pickUsersByIds(userIds).map(mapMemberToApproveUser)
+    addSignUser.value = selectedUsers
+    addSignForm.addSignUserIds = selectedUsers.map(user => user.id)
+    memberAuthUserIds.value = userIds.map(String)
+    if (selectedUsers.length > 0) {
+      message.success('选择成功')
+    }
+    memberAuthVisible.value = false
+  }
 }
+
+/** 移除加签对象 */
+const handleRemoveUser = (userId: string) => {
+  addSignUser.value = addSignUser.value.filter((user: any) => user.userId !== userId)
+  addSignForm.addSignUserIds = (addSignForm.addSignUserIds || []).filter(id => id !== userId)
+  memberAuthUserIds.value = (addSignForm.addSignUserIds || []).map(String)
+}
+
+onMounted(() => {
+  loadMemberAuthData()
+})
 const formLoading = ref(false) // 表单加载中
 const popOverVisible = ref({
   approve: false,
@@ -602,7 +679,7 @@ const copyFormRule = reactive<FormRules<typeof copyForm>>({
 // 转办表单
 const transferFormRef = ref<FormInstance>()
 const transferForm = reactive({
-  assigneeUserId: undefined,
+  assigneeUserId: undefined as string | undefined,
   reason: '',
 })
 const transferFormRule = reactive<FormRules<typeof transferForm>>({
@@ -624,7 +701,7 @@ const delegateFormRule = reactive<FormRules<typeof delegateForm>>({
 // 加签表单
 const addSignFormRef = ref<FormInstance>()
 const addSignForm = reactive({
-  addSignUserIds: undefined,
+  addSignUserIds: [] as string[],
   reason: '',
 })
 const addSignFormRule = reactive<FormRules<typeof addSignForm>>({
@@ -829,6 +906,14 @@ const closePopover = (type: string, formRef: FormInstance | undefined) => {
   if (formRef) {
     formRef.resetFields()
   }
+  if (type === 'transfer') {
+    transferUser.value = []
+    memberAuthUserIds.value = []
+  }
+  if (type === 'addSign') {
+    addSignUser.value = []
+    memberAuthUserIds.value = []
+  }
   popOverVisible.value[type] = false
   nextAssigneesActivityNode.value = []
 }
@@ -1013,6 +1098,8 @@ const handleTransfer = async () => {
     }
     await TaskApi.transferTask(data)
     transferFormRef.value.resetFields()
+    transferUser.value = []
+    memberAuthUserIds.value = []
     popOverVisible.value.transfer = false
     message.success('操作成功')
     // 2. 加载最新数据
@@ -1064,6 +1151,8 @@ const handlerAddSign = async (type: string) => {
     await TaskApi.signCreateTask(data)
     message.success('操作成功')
     addSignFormRef.value.resetFields()
+    addSignUser.value = []
+    memberAuthUserIds.value = []
     popOverVisible.value.addSign = false
     // 2 加载最新数据
     reload()
@@ -1342,5 +1431,11 @@ defineExpose({ loadTodoTask })
       color: #6db5ff;
     }
   }
+}
+</style>
+
+<style lang="scss">
+.process-instance-operation-member-auth-modal {
+  z-index: 4000 !important;
 }
 </style>

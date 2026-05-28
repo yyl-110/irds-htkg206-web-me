@@ -272,11 +272,6 @@
         </div>
       </template>
     </el-dialog>
-    <!-- <UserSelectFormRadio
-      ref="userSelectFormRef"
-      :operationType="currentOperationType"
-      :singleType="currentOperationType === 'transfer'"
-      @confirm="handleUserSelectConfirm" /> -->
     <!-- 任务变量弹窗 -->
     <el-dialog title="任务变量" v-model="taskVariablesDialogVisible" width="800px" :close-on-click-modal="false">
       <div class="task-variables-container">
@@ -928,8 +923,6 @@ const nextAssigneesActivityNode = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([])
 const taskId = ref<any>('')
 const message = useMessage() // 消息弹窗
 const approveUser = ref<any>([])
-const userOptions = ref<UserApi.UserVO[]>([])
-const userSelectFormRef = ref(null)
 const currentOperationType = ref('')
 const addSignUser = ref<any>([])
 const emit = defineEmits(['success']) // 定义 success 事件，用于操作成功后的回调
@@ -1065,7 +1058,6 @@ const handleSelectUser = () => {
   }
   //通过当前操作类型区分转办和加签
   currentOperationType.value = 'transfer'
-  userSelectFormRef.value.open(0, list)
 }
 // 用户选择确认
 const handleUserSelectConfirm = (_, users: UserVO[]) => {

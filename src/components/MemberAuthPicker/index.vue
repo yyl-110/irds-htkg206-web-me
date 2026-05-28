@@ -1,5 +1,13 @@
 <template>
-  <a-modal :visible="visible" :title="title" :width="1200" :mask-closable="false" :footer="null" @cancel="handleCancel">
+  <a-modal
+    :visible="visible"
+    :title="title"
+    :width="1200"
+    :z-index="zIndex"
+    :wrap-class-name="wrapClassName"
+    :mask-closable="false"
+    :footer="null"
+    @cancel="handleCancel">
     <div class="member-auth-picker">
       <div class="picker-panel">
         <div class="panel-title">
@@ -94,6 +102,8 @@ const props = withDefaults(
     users: MemberUser[]
     depts: MemberDept[]
     authorizedUserIds: string[]
+    zIndex?: number
+    wrapClassName?: string
   }>(),
   {
     title: '成员授权',
