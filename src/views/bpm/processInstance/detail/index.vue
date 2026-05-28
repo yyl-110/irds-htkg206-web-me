@@ -23,7 +23,7 @@
           <div class="form-scroll-area">
             <el-scrollbar>
               <el-row>
-                <el-col :span="17" class="!flex !flex-col formCol">
+                <el-col :span="18" class="!flex !flex-col formCol">
                   <div v-loading="processInstanceLoading" class="form-box flex flex-col mb-30px flex-1">
                     <!-- 动态业务类型组件 - 包含审批内容和审签信息 -->
                     <component
@@ -44,7 +44,10 @@
                       @select-user="handleSelectApprover" />
 
                     <!-- 处理意见组件 -->
-                    <ProcessOpinion v-model="opinion" :disabled="editType === 0" :visible="aTab != 3" />
+                    <ProcessOpinion
+                      v-model="opinion"
+                      :disabled="editType === 0"
+                      :visible="aTab != 3 && !isAtEstablishmentNode" />
 
                     <!-- 流程状态选择组件 -->
                     <ProcessStatusSelector
@@ -57,7 +60,7 @@
                   </div>
                 </el-col>
 
-                <el-col :span="7">
+                <el-col :span="6">
                   <!-- 审批记录时间线 -->
                   <ProcessInstanceTimeline :activity-nodes="activityNodes" />
                 </el-col>
@@ -319,6 +322,14 @@ const showStatusSelectorCard = computed(() => {
   )
 })
 
+/** 流程是否处于「编制」节点（进行中/待处理） */
+const isAtEstablishmentNode = computed(() =>
+  activityNodes.value.some(
+    node =>
+      node.name === ETASKTYPE.ESTABLISHMENT && [TaskStatusEnum.WAIT, TaskStatusEnum.RUNNING].includes(node.status),
+  ),
+)
+
 // ==================== 监听器 ====================
 watch(
   () => processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE,
@@ -361,6 +372,15 @@ function mapMemberToApproveUser(user: MemberAuthUser & { nickname?: string; psnN
 
 function handleMemberAuthConfirm(userIds: string[]) {
   if (!userIds.length) {
+    approveUser.value[rowIndex.value] = undefined
+    approveUser.value = [...approveUser.value]
+
+    const placeholder = processDefinitionList.value[rowIndex.value]?.assigneePlaceholder
+    if (placeholder && processVariablesList.value[rowIndex.value]) {
+      processVariablesList.value[rowIndex.value][placeholder] = ''
+    }
+
+    memberAuthUserIds.value = []
     memberAuthVisible.value = false
     return
   }

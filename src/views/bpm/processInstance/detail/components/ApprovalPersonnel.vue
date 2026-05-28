@@ -2,7 +2,7 @@
   <a-card
     v-if="processDefinitionList.length > 0"
     class="approval-personnel-card"
-    :bordered="true"
+    :bordered="false"
     :title="$t('节点审批人员')">
     <div class="approval-personnel-list">
       <div v-for="(item, index) in processDefinitionList" :key="index" class="approval-personnel-row">
@@ -19,6 +19,9 @@
         </div>
 
         <a-button v-if="editType === 1" type="primary" @click="handleSelectUser(index)">
+          <template #icon>
+            <UserAddOutlined />
+          </template>
           {{ $t('选择审批人') }}
         </a-button>
       </div>
@@ -27,6 +30,8 @@
 </template>
 
 <script lang="ts" setup>
+import { UserAddOutlined } from '@ant-design/icons-vue'
+
 defineProps<{
   processDefinitionList: any[]
   approveUser: any[]
@@ -44,7 +49,7 @@ const handleSelectUser = (index: number) => {
 
 <style lang="scss" scoped>
 .approval-personnel-card {
-  margin: 10px 30px 10px 10px;
+  margin: 10px 10px 10px 0;
   min-height: 100px;
 
   :deep(.ant-card-head) {
@@ -56,8 +61,8 @@ const handleSelectUser = (index: number) => {
 
   :deep(.ant-card-head-title) {
     padding: 12px 0;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: #313133;
   }
 
@@ -70,7 +75,7 @@ const handleSelectUser = (index: number) => {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  width: 80%;
+  width: 70%;
 }
 
 .approval-personnel-row {

@@ -1,8 +1,12 @@
 <template>
   <div class="process-instance-header">
-    <img class="position-absolute right-20px top-5px" width="150" :src="auditIconsMap[processInstance.status]" alt="" />
+    <img
+      class="position-absolute right-50px top-24px"
+      width="100"
+      :src="auditIconsMap[processInstance.status]"
+      alt="" />
     <div class="flex items-center gap-5 mb-10px h-40px truncate">
-      <div class="text-26px font-bold mb-5px">
+      <div class="text-26px font-bold mb-2px">
         <span v-if="taskName">{{ taskName }} -</span>
         {{ processInstance.formVariables?.PROCESS_BUSINESS_TYPE_NAME }}
       </div>
@@ -43,7 +47,7 @@ defineProps<{
   position: absolute;
 }
 .truncate {
-  font-size: 22px;
+  font-size: 14px;
   color: #161e2e;
 }
 .process-instance-header {

@@ -1,11 +1,9 @@
 <template>
-  <div class="tableinfo">
-    <div class="tableinfo__header">
-      <span>{{ $t('签审列表') }}</span>
-    </div>
-    <div class="tableinfo__search">
+  <a-card class="common-approval-content-card" :bordered="false" :title="$t('签审列表')">
+    <template #extra>
       <a-input v-model:value="searchContent" allow-clear :placeholder="$t('请输入关键字检索')" style="width: 245px" />
-    </div>
+    </template>
+
     <a-table
       :columns="tableColumns"
       :data-source="tableData"
@@ -37,7 +35,7 @@
         </template>
       </template>
     </a-table>
-  </div>
+  </a-card>
 </template>
 
 <script lang="ts" setup>
@@ -129,27 +127,30 @@ function getStatusTagColor(status: string) {
 </script>
 
 <style lang="scss" scoped>
-.tableinfo {
-  padding: 10px 30px 10px 10px;
+.common-approval-content-card {
+  margin: 10px 10px 10px 0;
+  min-height: 100px;
 
-  &__header {
-    margin-bottom: 12px;
+  :deep(.ant-card-head) {
+    min-height: 48px;
+    padding: 0 16px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  :deep(.ant-card-head-title) {
+    padding: 12px 0;
     font-size: 15px;
     font-weight: 700;
     color: #313133;
   }
 
-  &__search {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-bottom: 12px;
+  :deep(.ant-card-extra) {
+    padding: 8px 0;
   }
 
-  &__table {
-    margin-top: 4px;
+  :deep(.ant-card-body) {
+    padding: 16px;
   }
 }
 

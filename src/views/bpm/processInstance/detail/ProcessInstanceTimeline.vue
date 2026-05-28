@@ -313,7 +313,7 @@ const handleChildProcess = (activity: any) => {
 <style lang="scss" scoped>
 .bpm-process-timeline {
   padding-left: 4px;
-
+  padding-right: 10px;
   :deep(.el-timeline-item__wrapper) {
     padding-left: 40px;
     top: 0;
