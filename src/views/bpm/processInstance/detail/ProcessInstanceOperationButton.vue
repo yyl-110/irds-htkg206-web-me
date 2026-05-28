@@ -778,7 +778,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
         firstTimeEditSubmit: props.firstTimeEditSubmit, // 是否是第一次编辑提交
       } as any
       // 签名
-      if (runningTask.value.signEnable) {
+      if (runningTask.value?.signEnable) {
         data.signPicUrl = approveReasonForm.signPicUrl
       }
       // 多表单处理，并且有额外的 approveForm 表单，需要校验 + 拼接到 data 表单里提交

@@ -138,6 +138,7 @@
           :aTab="aTab"
           :opinion="opinion"
           :taskType="taskType"
+          :activity-nodes="activityNodes"
           :areaSaleRelease="areaSaleRelease"
           :pageIndex="route.query.pageIndex"
           :firstTimeEditSubmit="firstTimeEditSubmit" />
@@ -477,7 +478,8 @@ const getApprovalDetail = async () => {
     processInstance.value = data.processInstance
     processDefinition.value = data.processDefinition
 
-    if (taskType.value === ETASKTYPE.ESTABLISHMENT || taskType.value === ETASKTYPE.MAIN_ENGINE_PLANTS) {
+    let taskBpmType = taskType.value ? taskType.value : data.todoTask?.name
+    if (taskBpmType === ETASKTYPE.ESTABLISHMENT || taskBpmType === ETASKTYPE.MAIN_ENGINE_PLANTS) {
       await getprocessUserModel()
     }
 
@@ -548,8 +550,9 @@ const getApprovalDetail = async () => {
     if (!taskType.value) {
       taskType.value = data.todoTask?.name
     }
-
-    operationButtonRef.value?.loadTodoTask(data.todoTask, toTaskId.value)
+    nextTick(() => {
+      operationButtonRef.value?.loadTodoTask(data.todoTask, toTaskId.value)
+    })
     showStatus.value = data.todoTask?.name === '销售审批'
   } finally {
     processInstanceLoading.value = false
@@ -596,10 +599,10 @@ const handleLoading = (loading: boolean) => {
 }
 
 async function getprocessUserModel() {
-  if (!processDefinitionKey.value) return
+  // if (!processDefinitionKey.value) return
   let data = {
-    processDefinitionKey: processDefinitionKey.value,
-    processInstanceId: processInstanceId.value,
+    processDefinitionKey: processDefinitionKey.value ? processDefinition.value.key : processDefinition.value.key,
+    processInstanceId: processInstanceId.value ? processInstanceId.value : processInstance.value.id,
     director:
       taskType.value === ETASKTYPE.ESTABLISHMENT &&
       (processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE ===

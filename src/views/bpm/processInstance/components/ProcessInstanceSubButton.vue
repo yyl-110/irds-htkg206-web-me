@@ -25,6 +25,8 @@ import { BpmModelFormType } from '@/utils/constants'
 import type { FormInstance } from 'element-plus'
 import { isEmpty } from '@/utils/is'
 import { pickWorkbenchReturnQueryFromRoute } from '@/views/workbench/workbenchRouteQuery'
+import { ETASKTYPE } from '@/views/bpm/processInstance/components/config/constant'
+import { TaskStatusEnum } from '@/api/bpm/task'
 
 defineOptions({ name: 'ProcessInstanceBtnContainer' })
 import { useMessage } from '@/hooks/web/useMessage'
@@ -45,6 +47,7 @@ const props = defineProps<{
   firstTimeEditSubmit: boolean // 是否是第一次编辑提交
   opinion: any // 处理意见
   taskType: any // 节点类型
+  activityNodes?: ProcessInstanceApi.ApprovalNodeInfo[] // 审批节点信息
   areaSaleRelease: any // 区域销售审批信息
   pageIndex: any // 当前页码
 }>()
@@ -68,6 +71,14 @@ const approveForm = ref<any>({}) // 审批通过时，额外的补充信息
 const approveFormFApi = ref<any>({}) // approveForms 的 fAPi
 const nodeTypeName = ref('审批') // 节点类型名称
 const subButton = ref<boolean>(true) // 是否显示子按钮
+
+/** 流程是否处于「编制」节点（进行中/待处理） */
+const isAtEstablishmentNode = computed(() =>
+  (props.activityNodes ?? []).some(
+    node =>
+      node.name === ETASKTYPE.ESTABLISHMENT && [TaskStatusEnum.WAIT, TaskStatusEnum.RUNNING].includes(node.status),
+  ),
+)
 
 // 审批通过意见表单
 const reasonRequire = ref()
@@ -97,7 +108,8 @@ watch(
 )
 
 const handleCancel = async () => {
-  if (!props.opinion) {
+  // 编制节点不需要处理意见
+  if (!isAtEstablishmentNode.value && !String(props.opinion ?? '').trim()) {
     message.error('处理意见不能为空！')
     return
   }
@@ -108,7 +120,10 @@ const handleCancel = async () => {
   })
     .then(async () => {
       //调用取消流程接口
-      await ProcessInstanceApi.cancelProcessInstanceByStartUser(props.processInstance.id, props.opinion)
+      await ProcessInstanceApi.cancelProcessInstanceByStartUser(
+        props.processInstance.id,
+        props.opinion ? props.opinion : '取消',
+      )
       message.success('取消成功')
       push({
         name: '/home/workbench',
@@ -167,14 +182,14 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
       const variables = getUpdatedProcessInstanceVariables()
       // 审批通过数据
       const data = {
-        id: taskId.value, //runningTask.value.id
+        id: taskId.value ? taskId.value : runningTask.value.id, //runningTask.value.id
         reason: '编制任务提交',
         variables, // 审批通过, 把修改的字段值赋于流程实例变量
         nextAssignees: approveReasonForm.nextAssignees, // 下个自选节点选择的审批人信息
         firstTimeEditSubmit: props.firstTimeEditSubmit,
       } as any
       // 签名
-      if (runningTask.value.signEnable) {
+      if (runningTask.value?.signEnable) {
         data.signPicUrl = approveReasonForm.signPicUrl
       }
       // 多表单处理，并且有额外的 approveForm 表单，需要校验 + 拼接到 data 表单里提交
@@ -195,7 +210,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
     } else {
       // 审批不通过数据
       const data = {
-        id: taskId.value, // runningTask.value.id,
+        id: taskId.value ? taskId.value : runningTask.value.id, // runningTask.value.id,
         reason: rejectReasonForm.reason,
       }
       await TaskApi.rejectTask(data)
