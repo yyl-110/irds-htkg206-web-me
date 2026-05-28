@@ -1,11 +1,15 @@
 <template>
-  <div class="h-50px bottom-10 text-14px flex items-center color-#32373c dark:color-#fff font-bold btn-container">
+  <div
+    class="h-50px bottom-10 text-14px flex items-center color-#32373c dark:color-#fff font-bold btn-container"
+    v-loading="formLoading">
     <!-- 【通过】按钮 -->
     <el-button
       v-if="runningTask && isHandleTaskStatus() && isShowButton(OperationButtonType.APPROVE) && subButton"
       plain
       class="mr-20px"
       type="success"
+      :loading="formLoading"
+      :disabled="formLoading"
       @click="openPopover('approve')">
       <Icon icon="ep:select" />&nbsp; {{ getButtonDisplayName(OperationButtonType.APPROVE) }}
     </el-button>
@@ -15,15 +19,23 @@
       class="mr-20px"
       plain
       type="danger"
+      :loading="formLoading"
+      :disabled="formLoading"
       @click="openPopover('reject')">
       <Icon icon="ep:close" />&nbsp; {{ getButtonDisplayName(OperationButtonType.REJECT) }}
     </el-button>
 
-    <el-button type="danger" @click="handleCancel" class="mr-20px" v-if="cancelFlag && runningTask">
+    <el-button
+      type="danger"
+      :loading="formLoading"
+      :disabled="formLoading"
+      @click="handleCancel"
+      class="mr-20px"
+      v-if="cancelFlag && runningTask">
       <Icon icon="ep:close" />&nbsp; {{ '取消' }}
     </el-button>
 
-    <el-button type="info" @click="handleGoBack" class="mr-20px">
+    <el-button type="info" :disabled="formLoading" @click="handleGoBack" class="mr-20px">
       <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }}
     </el-button>
 
@@ -870,6 +882,7 @@ const validateNextAssignees = () => {
 /** 处理审批通过和不通过的操作 */
 const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => {
   formLoading.value = true
+  emit('handleLoading', true)
   try {
     // 校验表单
     // if (!formRef) return
@@ -1098,17 +1111,22 @@ const handleCancel = async () => {
     type: 'warning',
   })
     .then(async () => {
-      //调用取消流程接口
-      // return
-      await ProcessInstanceApi.cancelProcessInstanceByStartUser(props.processInstance.id, props.opinion)
-      message.success('取消成功')
-      push({
-        name: 'Home',
-        query: {
-          aTab: props.aTab,
-          pageIndex: props.pageIndex,
-        },
-      })
+      formLoading.value = true
+      emit('handleLoading', true)
+      try {
+        await ProcessInstanceApi.cancelProcessInstanceByStartUser(props.processInstance.id, props.opinion)
+        message.success('取消成功')
+        push({
+          name: 'Home',
+          query: {
+            aTab: props.aTab,
+            pageIndex: props.pageIndex,
+          },
+        })
+      } finally {
+        formLoading.value = false
+        emit('handleLoading', false)
+      }
     })
     .catch(() => {})
 }

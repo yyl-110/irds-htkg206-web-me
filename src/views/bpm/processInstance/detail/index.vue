@@ -134,6 +134,7 @@
           :normal-form-api="fApi"
           :writable-fields="processVariablesList"
           @success="refresh"
+          @handleLoading="handleLoading"
           :editType="editType"
           :aTab="aTab"
           :opinion="opinion"

@@ -1,18 +1,30 @@
 <template>
-  <div class="h-50px bottom-10 text-14px flex items-center color-#32373c dark:color-#fff font-bold btn-container">
+  <div
+    class="h-50px bottom-10 text-14px flex items-center color-#32373c dark:color-#fff font-bold btn-container"
+    v-loading="formLoading">
     <el-button
       type="primary"
+      :loading="formLoading"
+      :disabled="formLoading"
       @click="handleAudit(true, rejectFormRef)"
       class="m-r10px"
       v-if="editType === 1 && subButton">
       <Icon icon="ep:select" /> &nbsp; {{ '提交' }}
     </el-button>
 
-    <el-button type="danger" @click="handleCancel" class="m-r10px" v-if="editType === 1 && subButton">
+    <el-button
+      type="danger"
+      :loading="formLoading"
+      :disabled="formLoading"
+      @click="handleCancel"
+      class="m-r10px"
+      v-if="editType === 1 && subButton">
       <Icon icon="ep:close" />&nbsp; {{ '取消' }}
     </el-button>
 
-    <el-button type="info" @click="handleGoBack"> <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }} </el-button>
+    <el-button type="info" :disabled="formLoading" @click="handleGoBack">
+      <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }}
+    </el-button>
   </div>
 </template>
 <script lang="ts" setup>
@@ -34,7 +46,7 @@ const router = useRouter() // 路由
 const route = useRoute()
 const { push } = useRouter()
 const message = useMessage() // 消息弹窗
-const emit = defineEmits(['success']) // 定义 success 事件，用于操作成功后的回调
+const emit = defineEmits(['success', 'handleLoading']) // 定义 success 事件，用于操作成功后的回调
 
 const props = defineProps<{
   processInstance: any // 流程实例信息
@@ -119,16 +131,22 @@ const handleCancel = async () => {
     type: 'warning',
   })
     .then(async () => {
-      //调用取消流程接口
-      await ProcessInstanceApi.cancelProcessInstanceByStartUser(
-        props.processInstance.id,
-        props.opinion ? props.opinion : '取消',
-      )
-      message.success('取消成功')
-      push({
-        name: '/home/workbench',
-        query: pickWorkbenchReturnQueryFromRoute(route.query),
-      })
+      formLoading.value = true
+      emit('handleLoading', true)
+      try {
+        await ProcessInstanceApi.cancelProcessInstanceByStartUser(
+          props.processInstance.id,
+          props.opinion ? props.opinion : '取消',
+        )
+        message.success('取消成功')
+        push({
+          name: '/home/workbench',
+          query: pickWorkbenchReturnQueryFromRoute(route.query),
+        })
+      } finally {
+        formLoading.value = false
+        emit('handleLoading', false)
+      }
     })
     .catch(() => {})
 }
@@ -159,6 +177,7 @@ const validateNextAssignees = () => {
 /** 处理审批通过和不通过的操作 */
 const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => {
   formLoading.value = true
+  emit('handleLoading', true)
   try {
     // 校验表单
     // if (!formRef) return
@@ -222,6 +241,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
     reload()
   } finally {
     formLoading.value = false
+    emit('handleLoading', false)
   }
 }
 
