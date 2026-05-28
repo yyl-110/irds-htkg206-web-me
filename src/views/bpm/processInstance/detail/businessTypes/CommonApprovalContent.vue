@@ -25,6 +25,14 @@
           </a-tag>
           <span v-else class="text-[#8c8c8c]">—</span>
         </template>
+        <template v-else-if="isLinkField(column.key)">
+          <a
+            class="wb-cell-link"
+            :title="String(record[column.key] ?? '')"
+            @click.stop="handleRowClick(record, column.key)">
+            {{ record[column.key] ?? '—' }}
+          </a>
+        </template>
         <template v-else>
           <span
             :class="{ 'wb-cell-link': isClickable(column.key) }"
@@ -47,6 +55,7 @@ const props = defineProps<{
   dataList: any[]
   opinion?: string
   clickableFields?: string[]
+  linkFields?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -105,6 +114,10 @@ function rowClassName(_record: any, index: number) {
 function isClickable(field: string) {
   const clickable = props.clickableFields || ['name', 'orderNo', 'areaConfigName', 'designModel']
   return clickable.includes(field)
+}
+
+function isLinkField(field: string) {
+  return (props.linkFields ?? []).includes(field)
 }
 
 const handleRowClick = (row: any, field: string) => {

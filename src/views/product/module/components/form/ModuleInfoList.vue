@@ -811,9 +811,11 @@ function closePvzUpload() {
 }
 
 const beforeUploadPvz: UploadProps['beforeUpload'] = file => {
-  if (!String(file.name ?? '')
-    .toLowerCase()
-    .endsWith('.pvz')) {
+  if (
+    !String(file.name ?? '')
+      .toLowerCase()
+      .endsWith('.pvz')
+  ) {
     message.warning('仅支持上传 .pvz 文件')
     return false
   }
@@ -1127,7 +1129,6 @@ async function fetchVizPvzByModuleNum(row: any) {
     if (res.data.code == 0) {
       vizPvzUrlFromApi.value = res.data?.fileUrl
     }
-
   } catch (err) {
     console.log(err)
     vizPvzUrlFromApi.value = ''
@@ -2065,6 +2066,7 @@ defineExpose({ initData, selectAllModuleInfo })
     ref="InitiateaProcessRef"
     :modal-visible="ProcessVisible"
     :selectModelList="selectModelList"
+    :modulePropertyInfo="modulePropertyInfo"
     @modal-init="modalInit"
     @on-close="ProcessVisible = false" />
 </template>

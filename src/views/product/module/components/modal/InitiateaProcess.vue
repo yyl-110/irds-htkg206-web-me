@@ -17,6 +17,10 @@ const props = defineProps({
     type: Array as () => any[],
     default: () => [],
   },
+  modulePropertyInfo: {
+    type: Array as () => any[],
+    default: () => [],
+  },
 })
 const router = useRouter()
 const emit = defineEmits<{
@@ -117,7 +121,6 @@ async function handleSave() {
     message.warning('请先选择要发起审批的模型数据')
     return
   }
-
   Modal.confirm({
     title: `${WeiI18n.$t('此数据确认要发起流程吗')}?`,
     content: `将使用「${selectedProcess.value.name}」对「${selectedModelLabel.value}」发起审批`,
@@ -127,7 +130,8 @@ async function handleSave() {
         const res = await instanceCreateProcess({
           processDefinitionKey: selectedProcess.value.id,
           variables: {
-            ModelList: props.selectModelList,
+            ModelList: props.selectModelList || [],
+            modulePropertyInfo: props.modulePropertyInfo || [],
             businessName: props.selectModelList[0].para3, //模型名称
             businessCode: props.selectModelList[0].para2, //模型编号
           },
