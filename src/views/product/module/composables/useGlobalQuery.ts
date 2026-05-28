@@ -17,6 +17,7 @@ export function getGlobalQueryPara10Status(text: unknown): { label: string; colo
   const byLabel: Record<string, { label: string; color: string }> = {
     已发布: { label: '已发布', color: 'rgba(80, 188, 109, 1)' },
     设计中: { label: '设计中', color: 'rgb(83, 112, 199)' },
+    已停用: { label: '已停用', color: '#a2a1a6' },
     停用: { label: '停用', color: '#a2a1a6' },
     审核中: { label: '审核中', color: 'rgb(240, 231, 73)' },
   };
