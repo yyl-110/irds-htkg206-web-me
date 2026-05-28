@@ -46,7 +46,7 @@ import { showRequestErrorIfNeeded } from '@/httpRequest'
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务'
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
-import { formatPast2 } from '@/utils/formatTime'
+import { formatPast2, timestampToDateString } from '@/utils/formatTime'
 import { getMyTodoTask, getMyDoneTask, getMyProcessInstance } from '@/api/bpm/task'
 import Empty from '@/components/Empty/index.vue'
 import { renderTableEmptyText } from '@/utils/emptyState'
@@ -81,7 +81,6 @@ const searchQuery = ref('')
 const secondaryFilter = ref<(typeof WORKBENCH_SECONDARY_TABS)[number]['value']>('todo')
 const auditSecondaryFilter = ref<(typeof WORKBENCH_AUDIT_SECONDARY_TABS)[number]['value']>('todo')
 const viewMode = ref('grid') // 'grid' | 'list'
-const auditViewMode = ref('grid') // 流程任务：'grid' | 'list'
 
 const secondaryTabs = WORKBENCH_SECONDARY_TABS
 const auditSecondaryTabs = WORKBENCH_AUDIT_SECONDARY_TABS
@@ -214,6 +213,29 @@ function getTimeSortValue(task: TaskItem) {
   const start = task.startTime.replace('年', '-').replace('月', '-').replace('日', '')
   const timestamp = new Date(start).getTime()
   return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+/** 我的流程：时间戳/日期格式化；待办/已办：原样展示 */
+function formatWorkbenchDateTime(value: unknown, fallback?: unknown): string {
+  if (auditSecondaryFilter.value !== 'myProcess') {
+    const raw = value ?? fallback
+    if (raw == null || raw === '') return ''
+    return String(raw)
+  }
+  return timestampToDateString(value ?? fallback)
+}
+
+function getBpmFieldTimestamp(value: unknown): number {
+  if (value == null || value === '') return 0
+  if (typeof value === 'number') return value < 1e12 ? value * 1000 : value
+  const n = Number(value)
+  if (!Number.isNaN(n) && /^\d+$/.test(String(value).trim())) return n < 1e12 ? n * 1000 : n
+  const t = dayjs(value as string).valueOf()
+  return Number.isNaN(t) ? 0 : t
+}
+
+function getBpmRecordTimeSortValue(record: Record<string, unknown>, field: string) {
+  return getBpmFieldTimestamp(record[field])
 }
 
 // 待办任务统计 mock 数据
@@ -1264,15 +1286,12 @@ const tableProcessList = computed(() =>
 function workbenchbpmCardDisplayTitle(task: WorkbenchBpmTaskItem): string {
   return String(task.processInstance.processVariables?.ModelList?.[0]?.para1 ?? '').trim()
 }
-function taskbpmCardKindClass(_task: WorkbenchBpmTaskItem): string {
-  return 'task-card--kind-wbs'
-}
 const processColumns = ref([
 {
     title: '主题',
     dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
     key: 'PROCESS_BUSINESS_TYPE_NAME',
-    width: 176,
+    width: 250,
     resizable: true,
     ellipsis: true,
     fixed: 'left',
@@ -1282,8 +1301,9 @@ const processColumns = ref([
     dataIndex: 'name',
     key: 'name',
     ellipsis: true,
-    width: 100,
+    width: 80,
     resizable: true,
+    align: 'center',
     customFilterDropdown: true,
     onFilter: (value: string, record: TaskItem) =>
       workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
@@ -1294,7 +1314,8 @@ const processColumns = ref([
     title: '流程状态',
     dataIndex: 'state',
     key: 'state',
-    width: 176,
+    width: 100,
+    align: 'center',
     resizable: true,
     ellipsis: true,
   },
@@ -1302,14 +1323,16 @@ const processColumns = ref([
     title: '执行人',
     dataIndex: 'nickname',
     key: 'nickname',
-    width: 176,
+    width: 120,
+    align: 'center',
     resizable: true,
     ellipsis: true,
   },
   {
     title: '发起时间',
     key: 'createTime',
-    width: 240,
+    width: 150,
+    align: 'center',
     resizable: true,
     sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
   },
@@ -1320,7 +1343,7 @@ const doneColumns = ref([
     title: '主题',
     dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
     key: 'PROCESS_BUSINESS_TYPE_NAME',
-    width: 176,
+    width: 250,
     resizable: true,
     ellipsis: true,
     fixed: 'left',
@@ -1330,8 +1353,9 @@ const doneColumns = ref([
     dataIndex: 'name',
     key: 'name',
     ellipsis: true,
-    width: 100,
+    width: 80,
     resizable: true,
+    align: 'center',
     customFilterDropdown: true,
     onFilter: (value: string, record: TaskItem) =>
       workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
@@ -1342,7 +1366,8 @@ const doneColumns = ref([
     title: '流程状态',
     dataIndex: 'state',
     key: 'state',
-    width: 176,
+    width: 100,
+    align: 'center',
     resizable: true,
     ellipsis: true,
   },
@@ -1350,30 +1375,34 @@ const doneColumns = ref([
     title: '执行人',
     dataIndex: 'nickname',
     key: 'nickname',
-    width: 176,
+    width: 120,
+    align: 'center',
     resizable: true,
     ellipsis: true,
   },
   {
     title: '发起时间',
     key: 'createTime',
-    width: 240,
+    width: 150,
+    align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+    sorter: (a: any, b: any) => getBpmRecordTimeSortValue(a, 'createTime') - getBpmRecordTimeSortValue(b, 'createTime'),
   },
   {
     title: '任务开始时间',
-    key: 'createTime',
-    width: 240,
+    key: 'taskCreateTime',
+    width: 150,
+    align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+    sorter: (a: any, b: any) => getBpmRecordTimeSortValue(a, 'createTime') - getBpmRecordTimeSortValue(b, 'createTime'),
   },
   {
     title: '任务结束时间',
     key: 'endTime',
-    width: 240,
+    width: 150,
+    align: 'center',
     resizable: true,
-    sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
+    sorter: (a: any, b: any) => getBpmRecordTimeSortValue(a, 'endTime') - getBpmRecordTimeSortValue(b, 'endTime'),
   },
   {
     title: '审批建议',
@@ -1387,19 +1416,90 @@ const doneColumns = ref([
     title: '耗时',
     dataIndex: 'durationInMillis',
     key: 'durationInMillis',
-    width: 176,
+    width: 100,
     resizable: true,
     ellipsis: true,
   },
   { title: '操作', key: 'action', width: 80, align: 'center', fixed: 'right', resizable: true },
 ])
-
-/** 流程任务列表视图：待办用 processColumns，已办/我的流程用 doneColumns */
-const currentProcessTableColumns = computed(() =>
-  auditSecondaryFilter.value === 'done' || auditSecondaryFilter.value === 'myProcess'
-    ? doneColumns.value
-    : processColumns.value,
-)
+const myProcessColumns = ref([
+{
+    title: '主题',
+    dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
+    key: 'PROCESS_BUSINESS_TYPE_NAME',
+    width: 250,
+    resizable: true,
+    ellipsis: true,
+    fixed: 'left',
+  },
+  {
+    title: '流程节点',
+    dataIndex: 'name',
+    key: 'name',
+    ellipsis: true,
+    width: 140,
+    resizable: true,
+    align: 'center',
+    customFilterDropdown: true,
+    onFilter: (value: string, record: TaskItem) =>
+      workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
+    sorter: (a: TaskItem, b: TaskItem) =>
+      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
+  },
+  {
+    title: '流程状态',
+    dataIndex: 'state',
+    key: 'state',
+    width: 100,
+    align: 'center',
+    resizable: true,
+    ellipsis: true,
+  },
+  {
+    title: '发起时间',
+    key: 'createTime',
+    width: 150,
+    align: 'center',
+    resizable: true,
+    sorter: (a: any, b: any) => getBpmRecordTimeSortValue(a, 'createTime') - getBpmRecordTimeSortValue(b, 'createTime'),
+  },
+  {
+    title: '任务开始时间',
+    key: 'startTime',
+    width: 150,
+    align: 'center',
+    resizable: true,
+    sorter: (a: any, b: any) => getBpmRecordTimeSortValue(a, 'startTime') - getBpmRecordTimeSortValue(b, 'startTime'),
+  },
+  {
+    title: '任务结束时间',
+    key: 'endTime',
+    width: 150,
+    align: 'center',
+    resizable: true,
+    sorter: (a: any, b: any) => getBpmRecordTimeSortValue(a, 'endTime') - getBpmRecordTimeSortValue(b, 'endTime'),
+  },
+  {
+    title: '耗时',
+    dataIndex: 'durationInMillis',
+    key: 'durationInMillis',
+    width: 100,
+    resizable: true,
+    ellipsis: true,
+  },
+  { title: '操作', key: 'action', width: 80, align: 'center', fixed: 'right', resizable: true },
+  ])
+/** 流程任务列表视图：待办 processColumns，已办 doneColumns，我的流程 myProcessColumns */
+const currentProcessTableColumns = computed(() => {
+  switch (auditSecondaryFilter.value) {
+    case 'myProcess':
+      return myProcessColumns.value
+    case 'done':
+      return doneColumns.value
+    default:
+      return processColumns.value
+  }
+})
 
 const processTableScrollX = computed(() => {
   const cols = currentProcessTableColumns.value
@@ -2024,7 +2124,7 @@ onUnmounted(() => {
                 </a-spin>
               </div>
               <div v-else-if="item.name === 'process'" class="task-content flex flex-col flex-1 min-h-0 h-full">
-                <div class="filter-bar flex-shrink-0 flex justify-between items-center mb-[16px] mt-[3px]">
+                <div class="filter-bar flex-shrink-0 flex items-center mb-[16px] mt-[3px]">
                   <div class="capsule-group flex gap-[12px]">
                     <div
                       v-for="subTab in auditSecondaryTabs"
@@ -2035,171 +2135,11 @@ onUnmounted(() => {
                       {{ subTab.title }}
                     </div>
                   </div>
-                  <div class="view-toggles flex gap-[16px] text-[18px]">
-                    <AppstoreOutlined
-                      :class="{
-                        'text-[var(--ant-primary-color)]': auditViewMode === 'grid',
-                        'text-[#999]': auditViewMode !== 'grid',
-                      }"
-                      class="cursor-pointer"
-                      @click="auditViewMode = 'grid'" />
-                    <UnorderedListOutlined
-                      :class="{
-                        'text-[var(--ant-primary-color)]': auditViewMode === 'list',
-                        'text-[#999]': auditViewMode !== 'list',
-                      }"
-                      class="cursor-pointer"
-                      @click="auditViewMode = 'list'" />
-                  </div>
                 </div>
 
                 <a-spin :spinning="auditListLoading" class="task-list-spin flex-1 min-h-0 flex flex-col">
                   <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
-                    <template v-if="auditViewMode === 'grid'">
-                      <a-row :gutter="[16, 12]" align="top">
-                        <a-col
-                          v-for="task in filteredAuditList"
-                          :key="String(task.id)"
-                          flex="0 0 350px"
-                          style="width: 350px; max-width: 350px">
-                          <div class="task-card" :class="taskbpmCardKindClass(task)">
-                            <div
-                              v-if="workbenchShowOverdueUi(task)"
-                              class="task-card__overdue-corner"
-                              :class="{ 'task-card__overdue-corner--with-menu': showWbsRejectMenu(task) }">
-                              延期
-                            </div>
-                            <div class="task-card__type-ribbon">
-                              <span class="task-card__type-ribbon-inner">
-                                <ApartmentOutlined  />
-                                {{ '流程任务' }}
-                              </span>
-                            </div>
-                            <div class="tc-header flex justify-between items-start">
-                              <div class="title-wrap flex items-center flex-1 pr-[6px] overflow-hidden">
-                                <span
-                                  class="title-text truncate font-bold text-[14px] leading-[20px] text-[#313133]"
-                                  >{{ workbenchbpmCardDisplayTitle(task) }}</span
-                                >
-                                <!-- <span
-                                  v-for="tag in task.tags.filter(
-                                    t => t !== '待办' && !(workbenchShowOverdueUi(task) && t === '延'),
-                                  )"
-                                  :key="tag"
-                                  class="tc-tag flex-shrink-0"
-                                  :class="getTagClass(tag)"
-                                  >{{ tag }}</span
-                                > -->
-                              </div>
-                              <a-dropdown v-if="showWbsRejectMenu(task)" :trigger="['hover']">
-                                <EllipsisOutlined class="text-[18px] text-[#999] cursor-pointer" />
-                                <template #overlay>
-                                  <a-menu
-                                    @click="({ key }: { key: string }) => key === 'reject' && openRejectModal(task)">
-                                    <a-menu-item key="reject"> 驳回 </a-menu-item>
-                                  </a-menu>
-                                </template>
-                              </a-dropdown>
-                            </div>
-
-                            <div class="tc-body mt-[8px] space-y-[6px] text-[13px] leading-[18px] text-[#6A696E]">
-                              <div class="flex">
-                                <span class="w-[68px] flex-shrink-0">创建时间：</span>
-                                <span class="min-w-0 truncate text-[#313133] ">{{
-                                 task.createTime
-                                }}</span>
-                              </div>
-                              <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
-                                <span class="w-[68px] flex-shrink-0 text-[#6A696E]">流程主题：</span>
-                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{task.processInstance.name }}</span>
-                                <template v-if="task.lastRejectRemark">
-                                  <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
-                                    <template #title>
-                                      <span style="white-space: pre-wrap">驳回：{{ task.lastRejectRemark }}</span>
-                                    </template>
-                                    <span
-                                      class="reject-inline flex-shrink-0 max-w-[42%] min-w-0 text-[12px] font-medium text-[#FA8C16] truncate cursor-default border-l border-[#F0F0F0] pl-[8px] ml-[2px]">
-                                      驳回：{{ task.lastRejectRemark }}
-                                    </span>
-                                  </a-tooltip>
-                                </template>
-                              </div>
-                              <div class="flex justify-between items-center pr-[6px]">
-                                <div class="flex min-w-0">
-                                  <span class="w-[68px] flex-shrink-0">流程状态：</span>
-                                  <span v-if="auditSecondaryFilter === 'done' || auditSecondaryFilter === 'myProcess'" class="text-[#313133]">
-                                    {{ useDict.getIntDictOptions(DICT_TYPE.BPM_TASK_STATUS).find(item => item.value === task.status)?.label || '' }}
-                                  </span>
-                                  <span v-else class="text-[#313133]">{{ task.name === '编制' ? $t('编制中') : $t('审批中') }}</span>
-                                </div>
-                              </div>
-                              <div class="flex justify-between items-center pr-[6px]">
-                                <div class="flex min-w-0">
-                                  <span class="w-[68px] flex-shrink-0">执行人：</span>
-                                  <span class="text-[#313133]">{{ task.assigneeUser?.nickname}}</span>
-                                </div>
-                              </div>
-                              <div style="height: 2px"></div>
-                            </div>
-
-                            <div class="tc-footer mt-[8px] flex items-center text-[13px] leading-[18px] text-[#6A696E]">
-                              <span class="w-[52px] flex-shrink-0">创建人：</span>
-                              <div
-                                class="creator-badge flex items-center bg-[#F4F4F5] rounded-[12px] px-[6px] py-[1px]">
-                                <img
-                                  v-if="task.creatorAvatar"
-                                  :src="task.creatorAvatar"
-                                  class="w-[18px] h-[18px] rounded-full mr-[4px]" />
-                                <img
-                                  v-else
-                                  src="../../assets/workbench/people.png"
-                                  class="w-[18px] h-[18px] rounded-full mr-[4px]" />
-                                <span class="truncate max-w-[88px]">{{ task.assigneeUser?.nickname }}</span>
-                              </div>
-                              <div class="tc-actions ml-auto flex items-center gap-[10px]">
-                                <a-tooltip
-                                  v-if="taskbpmActionAllowed(task, 'design')"
-                                  title="待办">
-                                  <a
-                                    href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openbpmDesignWorkspace(task)">
-                                    <HighlightOutlined />
-                                  </a>
-                                </a-tooltip>
-                                <a-tooltip v-if="taskbpmActionAllowed(task, 'detail')" title="详情">
-                                  <a
-                                    href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openbpmTaskAppDetail(task)">
-                                    <ProfileOutlined />
-                                  </a>
-                                </a-tooltip>
-                                <a-tooltip v-if="taskbpmActionAllowed(task, 'history')" title="历史">
-                                  <a
-                                    href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openbpmTaskHistory(task)">
-                                    <HistoryOutlined />
-                                  </a>
-                                </a-tooltip>
-                                <a-tooltip v-if="taskbpmActionAllowed(task, 'cancel')" title="取消">
-                                  <a
-                                    href="#"
-                                    class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
-                                    @click.prevent.stop="openBpmCancelModal(task)">
-                                    <UndoOutlined />
-                                  </a>
-                                </a-tooltip>
-                              </div>
-                            </div>
-                          </div>
-                        </a-col>
-                      </a-row>
-                    </template>
-
-                    <template v-else>
-                      <a-table
+                    <a-table
                         :columns="currentProcessTableColumns"
                         :data-source="tableProcessList"
                         :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
@@ -2268,16 +2208,19 @@ onUnmounted(() => {
                       
                           </template>
                           <template v-if="column.key === 'nickname'">
-                            {{ record.assigneeUser.nickname }}
+                            {{ record.assigneeUser?.nickname }}
                           </template>
                           <template v-if="column.key === 'createTime'">
-                            {{ record.createTime }}
+                            {{ formatWorkbenchDateTime(record.createTime, record.startTime) }}
                           </template>
                           <template v-if="column.key === 'taskCreateTime'">
-                            {{ record.createTime }}
+                            {{ formatWorkbenchDateTime(record.createTime) }}
+                          </template>
+                          <template v-if="column.key === 'startTime'">
+                            {{ formatWorkbenchDateTime(record.startTime) }}
                           </template>
                           <template v-if="column.key === 'endTime'">
-                            {{ record.endTime }}
+                            {{ formatWorkbenchDateTime(record.endTime) }}
                           </template>
                           <template v-if="column.key === 'reason'">
                             {{ record.reason }}
@@ -2325,7 +2268,6 @@ onUnmounted(() => {
                           </template>
                         </template>
                       </a-table>
-                    </template>
                   </div>
                 </a-spin>
               </div>
