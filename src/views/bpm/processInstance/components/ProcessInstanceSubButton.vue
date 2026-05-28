@@ -1,28 +1,30 @@
 <template>
   <div
-    class="h-50px bottom-10 text-14px flex items-center color-#32373c dark:color-#fff font-bold btn-container"
+    class="h-40px bottom-10 text-13px flex items-center color-#32373c dark:color-#fff font-bold btn-container"
     v-loading="formLoading">
     <el-button
-      type="primary"
+      plain
+      type="success"
       :loading="formLoading"
       :disabled="formLoading"
       @click="handleAudit(true, rejectFormRef)"
-      class="m-r10px"
+      class="action-btn"
       v-if="editType === 1 && subButton">
       <Icon icon="ep:select" /> &nbsp; {{ '提交' }}
     </el-button>
 
     <el-button
+      plain
       type="danger"
       :loading="formLoading"
       :disabled="formLoading"
       @click="handleCancel"
-      class="m-r10px"
+      class="action-btn"
       v-if="editType === 1 && subButton">
       <Icon icon="ep:close" />&nbsp; {{ '取消' }}
     </el-button>
 
-    <el-button type="info" :disabled="formLoading" @click="handleGoBack">
+    <el-button type="info" :disabled="formLoading" @click="handleGoBack" class="action-btn">
       <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }}
     </el-button>
   </div>
@@ -368,9 +370,16 @@ defineExpose({ loadTodoTask })
 }
 
 .btn-container {
+  gap: 8px;
+
+  .action-btn {
+    margin: 0;
+    padding: 5px 10px;
+  }
+
   > div {
     display: flex;
-    margin: 0 8px;
+    margin: 0;
     cursor: pointer;
     align-items: center;
 

@@ -1,12 +1,12 @@
 <template>
   <div
-    class="h-50px bottom-10 text-14px flex items-center color-#32373c dark:color-#fff font-bold btn-container"
+    class="h-40px bottom-10 text-13px flex items-center color-#32373c dark:color-#fff font-bold btn-container"
     v-loading="formLoading">
     <!-- 【通过】按钮 -->
     <el-button
       v-if="runningTask && isHandleTaskStatus() && isShowButton(OperationButtonType.APPROVE) && subButton"
       plain
-      class="mr-20px"
+      class="action-btn"
       type="success"
       :loading="formLoading"
       :disabled="formLoading"
@@ -16,7 +16,7 @@
 
     <el-button
       v-if="runningTask && isHandleTaskStatus() && isShowButton(OperationButtonType.REJECT) && subButton"
-      class="mr-20px"
+      class="action-btn"
       plain
       type="danger"
       :loading="formLoading"
@@ -30,12 +30,12 @@
       :loading="formLoading"
       :disabled="formLoading"
       @click="handleCancel"
-      class="mr-20px"
+      class="action-btn"
       v-if="cancelFlag && runningTask">
       <Icon icon="ep:close" />&nbsp; {{ '取消' }}
     </el-button>
 
-    <el-button type="info" :disabled="formLoading" @click="handleGoBack" class="mr-20px">
+    <el-button type="info" :disabled="formLoading" @click="handleGoBack" class="action-btn">
       <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }}
     </el-button>
 
@@ -96,8 +96,6 @@
         </el-form>
       </div>
     </el-popover> -->
-    <!-- {{ runningTask}}
-    {{ isHandleTaskStatus() }} -->
     <!-- 【转办】按钮 -->
     <el-popover
       :visible="popOverVisible.transfer"
@@ -109,10 +107,10 @@
      是否显示转办按钮 isShowButton(OperationButtonType.TRANSFER)
       -->
       <template #reference>
-        <div @click="openPopover('transfer')" class="hover-bg-gray-100 rounded-xl p-6px">
+        <el-button plain type="primary" class="action-btn" :disabled="formLoading" @click="openPopover('transfer')">
           <Icon :size="14" icon="fa:share-square-o" />&nbsp;
           {{ getButtonDisplayName(OperationButtonType.TRANSFER) }}
-        </div>
+        </el-button>
       </template>
       <div class="flex flex-col flex-1 pt-20px px-20px" v-loading="formLoading">
         <el-form
@@ -1204,8 +1202,6 @@ const isShowButton = (btnType: OperationButtonType): boolean => {
   if (props.editType === 0) {
     isShow = false
   }
-
-  //console.log('isShowButton1111', btnType, isShow)
   return isShow
 }
 
@@ -1329,9 +1325,16 @@ defineExpose({ loadTodoTask })
 }
 
 .btn-container {
+  gap: 8px;
+
+  .action-btn {
+    margin: 0;
+    padding: 5px 10px;
+  }
+
   > div {
     display: flex;
-    margin: 0 8px;
+    margin: 0;
     cursor: pointer;
     align-items: center;
 
