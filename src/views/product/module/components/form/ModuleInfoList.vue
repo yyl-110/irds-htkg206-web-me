@@ -363,6 +363,7 @@ async function modalInit() {
   data.currentPage = page.currentPage
   data.numberPage = page.pageSize
   data.menuId = menuId.value
+  data.type = '2'
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
 
   const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data)
@@ -467,6 +468,7 @@ async function fetchModuleList(filterArr?: any) {
     pageNo: page.currentPage,
     pageSize: page.pageSize,
     menuId: menuId.value,
+    type: '2',
   }
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
   if (res.data.code == 200) {
@@ -1198,6 +1200,22 @@ function clickEvent(row: any, key: any) {
   }
 }
 
+function isModuleStatusColumn(column: any) {
+  const dataIndex = String(column?.dataIndex ?? '')
+  const title = String(column?.title ?? '').trim()
+  return dataIndex === 'status' || dataIndex === 'para10' || title === '状态'
+}
+
+function getModuleStatusCellText(record: any, column: any, text: unknown) {
+  const dataIndex = String(column?.dataIndex ?? '')
+  if (dataIndex === 'status' && record?.status !== undefined && record?.status !== null && record?.status !== '') {
+    return record.status
+  }
+  if (text !== undefined && text !== null && String(text).trim() !== '') return text
+  if (dataIndex) return record?.[dataIndex]
+  return undefined
+}
+
 function handleGlobalModelNumClick(record: any) {
   globalQueryModalVisible.value = false
   emit('getCategory', record.categoryId)
@@ -1678,13 +1696,8 @@ defineExpose({ initData, selectAllModuleInfo })
             </template>
           </template>
           <template #bodyCell="{ column, record, text }">
-            <template v-if="column.dataIndex === 'status'">
-              <span>
-                <span v-if="record.status === 0" style="color: rgba(80, 188, 109, 1)">已发布</span>
-                <span v-else-if="record.status === 1" style="color: rgb(83, 112, 199)">设计中</span>
-                <span v-else-if="record.status === 2" style="color: #a2a1a6">已停用</span>
-                <span v-else-if="record.status === 3" style="color: rgb(240, 231, 73)">审核中</span>
-              </span>
+            <template v-if="isModuleStatusColumn(column)">
+              <GlobalQueryPara10Cell :text="getModuleStatusCellText(record, column, text)" />
             </template>
             <template v-else-if="column.dataIndex === 'para2'">
               <a
@@ -1817,7 +1830,9 @@ defineExpose({ initData, selectAllModuleInfo })
           <template v-if="column.dataIndex === 'para1'">
             <a @click.stop="handleGlobalModelNumClick(record)">{{ record.para1 }}</a>
           </template>
-          <GlobalQueryPara10Cell v-else-if="column.dataIndex === 'para10'" :text="text" />
+          <GlobalQueryPara10Cell
+            v-else-if="isModuleStatusColumn(column)"
+            :text="getModuleStatusCellText(record, column, text)" />
           <template v-else>{{ text }}</template>
         </template>
       </a-table>

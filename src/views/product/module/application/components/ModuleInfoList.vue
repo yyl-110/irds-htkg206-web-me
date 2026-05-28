@@ -44,15 +44,20 @@ import moduleIcon2 from '@/assets/images/module2.png'
 import moduleIcon3 from '@/assets/images/module3.png'
 import moduleIcon4 from '@/assets/images/module4.png'
 
-defineProps({
+const props = defineProps({
   /** 反馈详情 id */
   categoryid: {
     require: false,
     type: String,
     default: '',
   },
+  /** 嵌入选择弹窗：仅查询区+表格+详情，无全局查询/比较/操作列 */
+  pickerMode: {
+    type: Boolean,
+    default: false,
+  },
 })
-const emit = defineEmits(['nodeListInfo', 'getCategory'])
+const emit = defineEmits(['nodeListInfo', 'getCategory', 'picker-confirm'])
 const instance = getCurrentInstance()
 const userStore = useUserStore()
 const categoryid = ref('')
@@ -98,7 +103,68 @@ const {
   addGlobalQueryGroup,
   removeGlobalQueryGroup,
   resetGlobalQueryGroups,
+  globalQueryTableScrollY,
 } = useGlobalQuery(menuId)
+
+const globalQuerySelectedRowKeys = ref<any[]>([])
+const globalQuerySelectedRow = ref<any>(null)
+
+const globalQueryRowSelection = computed(() => {
+  if (!props.pickerMode) return undefined
+  return {
+    type: 'radio' as const,
+    selectedRowKeys: globalQuerySelectedRowKeys.value,
+    onChange: (selectedRowKeys: any[], selectedRows: any[]) => {
+      const keys = selectedRowKeys.length ? [selectedRowKeys[selectedRowKeys.length - 1]] : []
+      const rows = selectedRows.length ? [selectedRows[selectedRows.length - 1]] : []
+      globalQuerySelectedRowKeys.value = keys
+      globalQuerySelectedRow.value = rows[0] ?? null
+    },
+  }
+})
+
+function openPickerGlobalQuery() {
+  globalQuerySelectedRowKeys.value = []
+  globalQuerySelectedRow.value = null
+  selectAllModuleInfo()
+}
+
+function onPickerGlobalQueryConfirm() {
+  const row = globalQuerySelectedRow.value
+  if (!row) {
+    message.warning('请选择一条模型库数据')
+    return
+  }
+  globalQueryModalVisible.value = false
+  emit('picker-confirm', { row, columns: buildPickerConfirmColumns() })
+}
+
+function globalQueryCustomRow(record: any) {
+  if (!props.pickerMode) return {}
+  return {
+    onClick: () => {
+      const key = record._rowKey ?? record.id
+      globalQuerySelectedRowKeys.value = [key]
+      globalQuerySelectedRow.value = record
+    },
+  }
+}
+
+function isModuleStatusColumn(column: any) {
+  const dataIndex = String(column?.dataIndex ?? '')
+  const title = String(column?.title ?? '').trim()
+  return dataIndex === 'status' || dataIndex === 'para10' || title === '状态'
+}
+
+function getModuleStatusCellText(record: any, column: any, text: unknown) {
+  const dataIndex = String(column?.dataIndex ?? '')
+  if (dataIndex === 'status' && record?.status !== undefined && record?.status !== null && record?.status !== '') {
+    return record.status
+  }
+  if (text !== undefined && text !== null && String(text).trim() !== '') return text
+  if (dataIndex) return record?.[dataIndex]
+  return undefined
+}
 
 // 处理需要计算的属性，比如modelHeight
 const modelHeight = ref(0)
@@ -174,15 +240,38 @@ function applyModuleSelection(selection: any[]) {
   }
 }
 
-const rowSelection = computed(() => ({
-  selectedRowKeys: selectedRowkeys.value,
-  onChange: (selectedRowKeys: any[], selectedRows: any[]) => {
-    selectedRowkeys.value = selectedRowKeys
-    applyModuleSelection(selectedRows)
-  },
-}))
+const rowSelection = computed(() => {
+  if (props.pickerMode) {
+    return {
+      type: 'radio' as const,
+      selectedRowKeys: selectedRowkeys.value,
+      onChange: (selectedRowKeys: any[], selectedRows: any[]) => {
+        const keys = selectedRowKeys.length ? [selectedRowKeys[selectedRowKeys.length - 1]] : []
+        const rows = selectedRows.length ? [selectedRows[selectedRows.length - 1]] : []
+        selectedRowkeys.value = keys
+        applyModuleSelection(rows)
+      },
+    }
+  }
+  return {
+    selectedRowKeys: selectedRowkeys.value,
+    onChange: (selectedRowKeys: any[], selectedRows: any[]) => {
+      selectedRowkeys.value = selectedRowKeys
+      applyModuleSelection(selectedRows)
+    },
+  }
+})
 
 function customRow(record: any) {
+  if (props.pickerMode) {
+    return {
+      onClick: () => {
+        selectedRowkeys.value = [record.id]
+        selectModelList.value = [record]
+        applyModuleSelection([record])
+      },
+    }
+  }
   return {
     onClick: () => {
       const selectedRowKeys = [...selectedRowkeys.value]
@@ -301,6 +390,12 @@ function handleAddOrUpdate() {
 }
 
 function handleGlobalModelNumClick(record: any) {
+  if (props.pickerMode) {
+    const key = record._rowKey ?? record.id
+    globalQuerySelectedRowKeys.value = [key]
+    globalQuerySelectedRow.value = record
+    return
+  }
   globalQueryModalVisible.value = false
   emit('getCategory', record.categoryId)
 }
@@ -332,14 +427,46 @@ function updModule() {
   })
 }
 const pdmType = ref<string>('')
-async function initData(categoryidStr: string, menuid: any, permissionType: any) {
+async function initData(
+  categoryidStr: string,
+  menuid: any,
+  permissionType: any,
+  queryPrefill?: Record<string, string> | null,
+) {
   permissionTypes.value = permissionType
   categoryid.value = categoryidStr
   menuId.value = menuid
   selectModelList.value = []
   selectedRowkeys.value = []
   sortState.value = { key: '', order: '' }
-  modalInit()
+  await modalInit()
+  applyPickerQueryPrefill(queryPrefill)
+}
+
+/** 选择弹窗：按参数代号（parameterNum）匹配默认查询条件并自动查询 */
+function applyPickerQueryPrefill(prefill?: Record<string, string> | null) {
+  if (!prefill || typeof prefill !== 'object') return false
+  const byCode = new Map<string, string>()
+  Object.entries(prefill).forEach(([code, rawVal]) => {
+    const key = String(code ?? '')
+      .trim()
+      .toUpperCase()
+    const val = String(rawVal ?? '').trim()
+    if (key && val) byCode.set(key, val)
+  })
+  if (!byCode.size) return false
+
+  let matched = false
+  queryColumns.value.forEach((c: any) => {
+    const paramNum = String(c.parameterNum ?? '')
+      .trim()
+      .toUpperCase()
+    if (!paramNum || !byCode.has(paramNum)) return
+    queryForm[c.key] = byCode.get(paramNum)
+    matched = true
+  })
+  if (matched) void handleQuery(true)
+  return matched
 }
 // 列表初始化
 async function modalInit() {
@@ -360,6 +487,7 @@ async function modalInit() {
   data.currentPage = page.currentPage
   data.numberPage = page.pageSize
   data.menuId = menuId.value
+  data.type = '1'
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
 
   const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data)
@@ -395,6 +523,7 @@ async function modalInit() {
           id: resData[i].id,
           title: resData[i].propertyName,
           key,
+          parameterNum: String(resData[i].parameterNum ?? resData[i].paramNum ?? '').trim(),
           inputType: 'select',
           options,
         })
@@ -430,16 +559,18 @@ async function modalInit() {
       }
     })
     moduleFilterableColumnKeys.value = filterKeys
-    parm.push({
-      title: '操作',
-      dataIndex: 'operation',
-      key: 'operation',
-      align: 'center',
-      width: 180,
-      fixed: 'right',
-      resizable: false,
-      ellipsis: false,
-    })
+    if (!props.pickerMode) {
+      parm.push({
+        title: '操作',
+        dataIndex: 'operation',
+        key: 'operation',
+        align: 'center',
+        width: 180,
+        fixed: 'right',
+        resizable: false,
+        ellipsis: false,
+      })
+    }
     columns.value = parm
   } else {
     moduleFilterableColumnKeys.value = []
@@ -464,6 +595,7 @@ async function fetchModuleList(filterArr?: any) {
     pageNo: page.currentPage,
     pageSize: page.pageSize,
     menuId: menuId.value,
+    type: '1',
   }
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
   if (res.data.code == 200) {
@@ -1417,21 +1549,75 @@ function handleNameClick(row: any) {
   })
 }
 
-defineExpose({ initData, selectAllModuleInfo })
+function buildPickerConfirmColumns() {
+  const resData = Array.isArray(modulePropertyInfo.value) ? modulePropertyInfo.value : []
+  return resData
+    .filter((item: any) => item.showFlag == 0)
+    .map((item: any) => {
+      const dataIndex = item.propertyName == '贡献者' ? 'para7Name' : item.dataProp
+      return {
+        title: item.propertyName,
+        dataIndex,
+        key: String(dataIndex),
+        parameterNum: String(item.parameterNum ?? item.paramNum ?? ''),
+        propertyType: Number(item.propertyType ?? 1),
+      }
+    })
+    .filter((c: any) => c.dataIndex)
+}
+
+function getPickerConfirmPayload() {
+  return {
+    row: selectModelList.value[0] ?? null,
+    columns: buildPickerConfirmColumns(),
+  }
+}
+
+defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
 </script>
 
 <template>
-  <div class="module-body h-full min-h-0 flex flex-1 flex-col p-[16px]">
+  <div class="module-body h-full min-h-0 flex flex-1 flex-col" :class="pickerMode ? 'module-body--picker' : 'p-[16px]'">
     <div class="selectLeft">
       <div class="btn-box">
-        <div class="top-right-actions">
+        <div v-if="!pickerMode" class="top-right-actions">
           <a-button type="link" @click="selectAllModuleInfo">全局查询</a-button>
         </div>
         <div class="btn-box-middle" v-if="queryColumns.length">
           <div class="query-scroll">
             <a-row :gutter="[12, 6]">
               <a-col v-for="item in queryColumns" :key="item.key" :span="8">
-                <a-form-item class="query-item">
+                <a-form-item v-if="pickerMode" class="query-item query-item--picker">
+                  <div class="query-item-picker-row">
+                    <span class="query-item-picker-label">{{ item.title }}：</span>
+                    <a-select
+                      v-if="item.inputType === 'select'"
+                      v-model:value="queryForm[item.key]"
+                      allowClear
+                      show-search
+                      class="query-item-picker-control"
+                      :filter-option="
+                        (input, option) =>
+                          String(option?.value ?? '')
+                            .toLowerCase()
+                            .includes(String(input ?? '').toLowerCase())
+                      "
+                      size="middle"
+                      :placeholder="'请选择' + item.title">
+                      <a-select-option v-for="opt in item.options" :key="opt" :value="opt">
+                        {{ opt }}
+                      </a-select-option>
+                    </a-select>
+                    <a-input
+                      v-else
+                      v-model:value="queryForm[item.key]"
+                      allowClear
+                      size="middle"
+                      class="query-item-picker-control"
+                      placeholder="请输入" />
+                  </div>
+                </a-form-item>
+                <a-form-item v-else class="query-item">
                   <a-select
                     v-if="item.inputType === 'select'"
                     v-model:value="queryForm[item.key]"
@@ -1455,16 +1641,21 @@ defineExpose({ initData, selectAllModuleInfo })
               </a-col>
             </a-row>
           </div>
-          <div class="query-actions">
-            <a-button type="primary" size="middle" @click="handleQuery()"
-              ><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button
-            >
-            <a-button size="middle" @click="handleQueryReset"
-              ><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button
-            >
+          <div class="query-actions" :class="{ 'query-actions--picker': pickerMode }">
+            <a-button v-if="pickerMode" type="link" class="picker-global-query-link" @click="openPickerGlobalQuery">
+              全局查询
+            </a-button>
+            <div class="query-actions-btns">
+              <a-button type="primary" size="middle" @click="handleQuery()"
+                ><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button
+              >
+              <a-button size="middle" @click="handleQueryReset"
+                ><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button
+              >
+            </div>
           </div>
         </div>
-        <div class="btn-box-container">
+        <div v-if="!pickerMode" class="btn-box-container">
           <div class="btn-box-left">
             <div
               :class="{
@@ -1524,7 +1715,7 @@ defineExpose({ initData, selectAllModuleInfo })
       <a-card class="calc-table-card module-info-list-table-card">
         <a-table
           class="exe-config-table"
-          :scroll="{ x: moduleTableScrollX, y: 'calc(100vh - 386px)' }"
+          :scroll="{ x: moduleTableScrollX, y: pickerMode ? '420px' : 'calc(100vh - 386px)' }"
           :row-key="getModuleRowKey"
           :columns="columns"
           :data-source="moduleTableDisplayList"
@@ -1590,13 +1781,8 @@ defineExpose({ initData, selectAllModuleInfo })
             </template>
           </template>
           <template #bodyCell="{ column, record, text }">
-            <template v-if="column.dataIndex === 'status'">
-              <span>
-                <span v-if="record.status === 0" style="color: rgba(80, 188, 109, 1)">已发布</span>
-                <span v-else-if="record.status === 1" style="color: rgb(83, 112, 199)">设计中</span>
-                <span v-else-if="record.status === 2" style="color: #a2a1a6">已停用</span>
-                <span v-else-if="record.status === 3" style="color: rgb(240, 231, 73)">审核中</span>
-              </span>
+            <template v-if="isModuleStatusColumn(column)">
+              <GlobalQueryPara10Cell :text="getModuleStatusCellText(record, column, text)" />
             </template>
             <template v-else-if="column.dataIndex === 'para2'">
               <a
@@ -1721,9 +1907,11 @@ defineExpose({ initData, selectAllModuleInfo })
         row-key="_rowKey"
         :columns="globalQueryColumns"
         :data-source="globalQueryList"
-        :scroll="{ x: 'max-content' }"
+        :scroll="{ x: 'max-content', y: globalQueryTableScrollY }"
         :pagination="globalQueryTablePagination"
         :loading="globalQueryLoading"
+        :row-selection="globalQueryRowSelection"
+        :custom-row="globalQueryCustomRow"
         @change="handleGlobalTableChange">
         <template #bodyCell="{ column, record, text }">
           <template v-if="column.dataIndex === 'para1'">
@@ -1734,7 +1922,11 @@ defineExpose({ initData, selectAllModuleInfo })
         </template>
       </a-table>
       <template #footer>
-        <a-button type="primary" @click="globalQueryModalVisible = false"> 关闭 </a-button>
+        <template v-if="pickerMode">
+          <a-button type="primary" @click="onPickerGlobalQueryConfirm">确定</a-button>
+          <a-button @click="globalQueryModalVisible = false">关闭</a-button>
+        </template>
+        <a-button v-else type="primary" @click="globalQueryModalVisible = false"> 关闭 </a-button>
       </template>
     </a-modal>
   </div>
@@ -2101,6 +2293,69 @@ defineExpose({ initData, selectAllModuleInfo })
 :deep(.query-item .ant-select-selection-placeholder) {
   line-height: 28px !important;
 }
+.module-body--picker .query-item-picker-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 0;
+}
+.module-body--picker .query-item-picker-label {
+  flex: 0 0 100px;
+  width: 100px;
+  box-sizing: border-box;
+  padding-right: 8px;
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 14px;
+  line-height: 32px;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.module-body--picker .query-item-picker-control {
+  flex: 0 0 calc(100% - 100px);
+  width: calc(100% - 100px);
+  min-width: 0;
+  max-width: calc(100% - 100px);
+}
+.module-body--picker :deep(.query-item--picker .ant-form-item-control-input-content) {
+  min-width: 0;
+}
+.module-body--picker :deep(.query-item-picker-control.ant-select),
+.module-body--picker :deep(.query-item-picker-control.ant-input-affix-wrapper),
+.module-body--picker :deep(.query-item-picker-control.ant-input) {
+  width: 100% !important;
+}
+/* 浏览弹窗：查询区容纳三行条件，避免末行被裁切 */
+.module-body--picker .btn-box-middle {
+  height: auto;
+  min-height: 120px;
+  overflow: visible;
+}
+.module-body--picker .query-scroll {
+  max-height: 132px;
+}
+.module-body--picker .query-actions {
+  flex-direction: column;
+  align-items: flex-end;
+  padding-top: 0;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+.module-body--picker .query-actions-btns {
+  margin-top: 36px;
+}
+.module-body--picker .picker-global-query-link {
+  height: 28px;
+  padding: 0 4px;
+  line-height: 28px;
+}
+.query-actions-btns {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
 .btn-item-select {
   min-width: 28px;
   height: 35px;
@@ -2390,7 +2645,6 @@ defineExpose({ initData, selectAllModuleInfo })
   right: 88px;
   z-index: 10;
 }
-
 /* 模块主表：与 exeConfigTab 列表区一致 */
 .module-info-table-wrap {
   margin-top: 10px;

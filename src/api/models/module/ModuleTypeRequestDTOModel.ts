@@ -7,6 +7,7 @@ export class ModuleTypeRequestDTOModel extends BaseModel {
   categoryType?: string = '';
   rootType?: string = '';
   userId?: string = '';
+  type?: string = '';
 }
 
 /** 数据 */
@@ -20,4 +21,5 @@ export class parameterDictionaryRequestDTOModel extends BaseModel {
   parameterNum?: string = '';
   currentPage?: number = 1;
   pageSize?: number = 10;
+  type?: string = '';
 }

@@ -57,6 +57,7 @@ const modulePickerMode = ref<'dataView' | 'templateBrowse' | 'modelSelectBrowse'
 const modulePickerItemKey = ref('');
 const modulePickerSourceComponentIndex = ref(-1);
 const modulePickerTableBodyRowIndex = ref(1);
+const modulePickerQueryPrefill = ref<Record<string, string>>({});
 
 function normalizeValidateRule(raw: unknown): any {
   if (raw == null) return null;
@@ -255,6 +256,24 @@ function shouldDisable3dModelInput(item: any) {
   return isOutputIoType(item) || !!item?.customProps?.btnApplyPartNo;
 }
 
+const MODULE_PICKER_QUERY_PREFILL_TYPES = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE']);
+
+/** 收集当前页文本框、下拉等组件的参数代号与当前值，供模块库浏览预填查询条件 */
+function buildModulePickerQueryPrefill(): Record<string, string> {
+  const prefill: Record<string, string> = {};
+  previewList.value.forEach((item: any, index: number) => {
+    if (!isPreviewConstraintVisible(item)) return;
+    const type = String(item?.componentType ?? '').toUpperCase();
+    if (!MODULE_PICKER_QUERY_PREFILL_TYPES.has(type)) return;
+    const paramCode = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+    if (!paramCode) return;
+    const key = getPreviewItemKey(item, index);
+    const val = String(previewFieldValueMap.value[key] ?? item?.paramValue ?? '').trim();
+    if (val) prefill[paramCode] = val;
+  });
+  return prefill;
+}
+
 function showModuleInfo(item: any, index: number, mode: 'dataView' | 'templateBrowse' | 'modelSelectBrowse' = 'dataView') {
   const isTemplateBrowse = mode === 'templateBrowse';
   const isModelSelectBrowse = mode === 'modelSelectBrowse';
@@ -268,6 +287,7 @@ function showModuleInfo(item: any, index: number, mode: 'dataView' | 'templateBr
     message.warning(isTemplateBrowse || isModelSelectBrowse ? '请先在配置中选择关联模型库分类' : '请先在配置中选择基础资源库类型和分类节点');
     return;
   }
+  modulePickerQueryPrefill.value = buildModulePickerQueryPrefill();
   modulePickerMode.value = mode;
   modulePickerItemKey.value = String(item?.id ?? '');
   modulePickerTargetFieldKey.value =
@@ -847,6 +867,7 @@ function showModuleTableBrowse(item: any, componentIndex: number, bodyRowIndex: 
     message.warning('请先在活动配置中为该行选择关联模型库分类');
     return;
   }
+  modulePickerQueryPrefill.value = buildModulePickerQueryPrefill();
   modulePickerMode.value = 'moduleTableBrowse';
   modulePickerSourceComponentIndex.value = componentIndex;
   modulePickerTableBodyRowIndex.value = bodyRowIndex;
@@ -2112,6 +2133,7 @@ defineExpose({
     :category-id="modulePickerCategoryId"
     :menu-id="modulePickerMenuId"
     :user-id="userStore.getUser.id"
+    :query-prefill="modulePickerQueryPrefill"
     @confirm="onModulePickerConfirm" />
 </template>
 
