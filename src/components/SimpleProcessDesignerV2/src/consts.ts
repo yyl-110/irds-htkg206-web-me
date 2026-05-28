@@ -538,10 +538,10 @@ NODE_DEFAULT_NAME.set(NodeType.CHILD_PROCESS_NODE, '子流程')
 
 // 候选人策略。暂时不从字典中取。 后续可能调整。控制显示顺序
 export const CANDIDATE_STRATEGY: DictDataVO[] = [
-  // { label: '指定成员', value: CandidateStrategy.USER },
+  { label: '指定成员', value: CandidateStrategy.USER },
   // { label: '指定角色', value: CandidateStrategy.ROLE },
   // { label: '指定岗位', value: CandidateStrategy.POST },
-  // { label: '部门成员', value: CandidateStrategy.DEPT_MEMBER },
+  { label: '部门成员', value: CandidateStrategy.DEPT_MEMBER },
   { label: '部门负责人', value: CandidateStrategy.DEPT_LEADER },
   { label: '连续多级部门负责人', value: CandidateStrategy.MULTI_LEVEL_DEPT_LEADER },
   { label: '发起人自选', value: CandidateStrategy.START_USER_SELECT },

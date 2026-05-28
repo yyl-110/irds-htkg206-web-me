@@ -438,7 +438,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- 右侧按钮 -->
-        <div class="w-200px flex items-center justify-end gap-2">
+        <div class="w-200px flex items-center justify-end gap-2 pr-40px">
           <el-button v-if="actionType === 'update'" type="success" @click="handleDeploy">
             {{ $t('发布') }}
           </el-button>

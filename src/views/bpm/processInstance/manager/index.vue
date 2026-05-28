@@ -81,8 +81,8 @@ const columns = ref<TableColumnType<ProcessInstanceRow>[]>([
     fixed: 'left',
     ellipsis: { showTitle: false },
   },
-  { title: '任务名称', dataIndex: 'tasks', key: 'tasks', width: 120, align: 'center' },
   { title: '当前审批人', dataIndex: 'taskUser', key: 'taskUser', width: 120, align: 'center' },
+  { title: '任务名称', dataIndex: 'tasks', key: 'tasks', width: 120, align: 'center' },
   { title: '流程名称', dataIndex: 'name', key: 'name', width: 180, align: 'left', ellipsis: { showTitle: true } },
   {
     title: '流程分类',
@@ -400,12 +400,7 @@ onMounted(async () => {
             <template v-else-if="column.dataIndex === 'tasks'">
               <template v-if="record.tasks?.length">
                 <div v-for="task in record.tasks" :key="task.id">
-                  <a-tooltip placement="top">
-                    <template #title>
-                      <component :is="getTipContent(task, '任务名称')" />
-                    </template>
-                    <a>{{ task.name }}</a>
-                  </a-tooltip>
+                  <span>{{ task.name }}</span>
                 </div>
               </template>
               <span v-else>-</span>

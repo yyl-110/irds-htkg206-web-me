@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ref, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { AuditOutlined, CheckCircleFilled, NodeIndexOutlined } from '@ant-design/icons-vue'
 import { WeiI18n } from '@/utils/WeiI18n'
@@ -17,7 +18,7 @@ const props = defineProps({
     default: () => [],
   },
 })
-
+const router = useRouter()
 const emit = defineEmits<{
   onClose: [visible: boolean]
   handleSave: [resource: any]
@@ -137,6 +138,12 @@ async function handleSave() {
         })
         if (res.data.code === 200) {
           message.success('操作成功')
+          router.push({
+            name: 'BpmProcessInstanceDetail',
+            query: {
+              id: res.data.data,
+            },
+          })
           emit('onClose', false)
         }
       } catch (error) {

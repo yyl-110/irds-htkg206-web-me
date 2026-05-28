@@ -174,7 +174,13 @@
   </el-form>
 
   <!-- 用户选择弹窗 -->
-  <!-- <UserSelectFormRadio ref="userSelectFormRef" @confirm="handleUserSelectConfirm" /> -->
+  <MemberAuthPicker
+    v-model:visible="memberAuthVisible"
+    :title="$t('选择用户')"
+    :users="memberAuthUsers"
+    :depts="memberAuthDepts"
+    :authorized-user-ids="memberAuthUserIds"
+    @confirm="handleMemberAuthConfirm" />
 </template>
 
 <script lang="ts" setup>
@@ -189,6 +195,8 @@ import * as RoleApi from '@/api/system/role'
 // import * as PostApi from '@/api/system/post'
 import * as UserApi from '@/api/system/user'
 import * as UserGroupApi from '@/api/bpm/userGroup'
+import { useMessage } from '@/hooks/web/useMessage'
+import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
 // @ts-ignore
 import ProcessExpressionDialog from './ProcessExpressionDialog.vue'
 import { ProcessExpressionVO } from '@/api/bpm/processExpression'
@@ -197,11 +205,13 @@ import { UserVO } from '@/api/system/user'
 import { XButton, XTextButton } from '@/components/XButton'
 // import { getUserById, findPaginationByUsers, findPagination } from '@/api/system-manage/user/index'
 import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
+const memberAuthVisible = ref(false)
 defineOptions({ name: 'UserTask' })
 const props = defineProps({
   id: String,
   type: String,
 })
+const message = useMessage()
 const prefix = inject('prefix')
 const userTaskForm = ref({
   candidateStrategy: undefined as any, // 分配规则
@@ -216,52 +226,82 @@ const defaultProps = {
   isLeaf: 'leaf',
   emitPath: false, // 用于 cascader 组件：在选中节点改变时，是否返回由该节点所在的各级菜单的值所组成的数组，若设置 false，则只返回该节点的值
 }
+type MemberAuthUser = {
+  id: string
+  name: string
+  username: string
+  deptId?: string
+  psnName?: string
+  loginAccount?: string
+}
+type MemberAuthDept = {
+  id: string
+  name: string
+}
 const bpmnInstances = () => (window as any)?.bpmnInstances
-
 const roleOptions = ref<[]>([]) // 角色列表
 const deptTreeOptions = ref() // 部门树
 const postOptions = ref<[]>([]) // 岗位列表
 const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const userGroupOptions = ref<UserGroupApi.UserGroupVO[]>([]) // 用户组列表
-
-const userSelectFormRef = ref<any>(null)
-
+const memberAuthUsers = ref<MemberAuthUser[]>([])
+const memberAuthDepts = ref<MemberAuthDept[]>([])
+const memberAuthUserIds = ref<string[]>([])
 /**
- * 显示用户信息的处理函数
+ * 显示用户选择弹窗，并回显已选用户
  */
 const handleShowUser = () => {
-  userSelectFormRef.value?.open(0, userTaskForm.value.candidateParam)
+  memberAuthUserIds.value = selectedUsers.value.map(u => String(u.userId)).filter(Boolean)
+  if (!memberAuthUserIds.value.length && userTaskForm.value.candidateParam?.length) {
+    memberAuthUserIds.value = userTaskForm.value.candidateParam.map((id: any) => String(id))
+  }
+  memberAuthVisible.value = true
+}
+
+function pickUsersByIds(userIds: string[]) {
+  const userIdSet = new Set(userIds.map(String))
+  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id)))
+}
+
+function buildUserDetailFromMember(user: MemberAuthUser) {
+  return {
+    userId: user.id,
+    psnName: user.psnName || user.name,
+    nickName: user.username || user.name,
+    loginAccount: user.loginAccount || user.id,
+  }
 }
 
 /** 处理用户选择确认 */
-const handleUserSelectConfirm = async (_, users: UserVO[]) => {
+function handleMemberAuthConfirm(userIds: string[]) {
+  if (!userIds.length) {
+    selectedUsers.value = []
+    userTaskForm.value.candidateParam = []
+    memberAuthUserIds.value = []
+    updateElementTask()
+    return
+  }
+
+  const pickedUsers = pickUsersByIds(userIds)
+  if (!pickedUsers.length) {
+    message.warning('未找到所选用户')
+    return
+  }
+
   const list: string[] = []
   const userDetails: any[] = []
 
-  // 处理所有选中的用户
-  for (const user of users) {
-    if (user.userId) {
-      list.push(user.userId)
-
-      // 构建用户信息对象
-      const userInfo = {
-        userId: user.userId,
-        psnName: (user as any).psnName || user.nickname,
-        nickName: user.nickname,
-        loginAccount: (user as any).loginAccount || user.userId,
-      }
-
-      // 将用户信息加入缓存
-      userCache.value.set(user.userId, userInfo)
-      console.log('用户信息已缓存:', userInfo)
-
-      userDetails.push(userInfo)
-    }
+  for (const user of pickedUsers) {
+    if (!user.id) continue
+    list.push(String(user.id))
+    const userInfo = buildUserDetailFromMember(user)
+    userCache.value.set(String(user.id), userInfo)
+    userDetails.push(userInfo)
   }
 
-  // 更新选中的用户列表
   selectedUsers.value = userDetails
-  userTaskForm.value['candidateParam'] = list
+  userTaskForm.value.candidateParam = list
+  memberAuthUserIds.value = [...list]
   updateElementTask()
 }
 
@@ -275,98 +315,22 @@ const getUserName = async (userId: string) => {
   // userName.value = name
 }
 
-// 批量获取用户详细信息（带缓存）
+// 批量获取用户详细信息（带缓存，优先 memberAuthUsers）
 const getBatchUserInfo = async (userIds: string[]) => {
-  console.log('开始批量获取用户信息，用户ID列表:', userIds)
-
-  // 分离已缓存和未缓存的用户
-  const cachedUsers: any[] = []
-  const uncachedUserIds: string[] = []
-
-  // for (const userId of userIds) {
-  //   if (userCache.value.has(userId)) {
-  //     cachedUsers.push(userCache.value.get(userId))
-  //     console.log('从缓存获取用户信息:', userId, userCache.value.get(userId))
-  //   } else {
-  //     uncachedUserIds.push(userId)
-  //   }
-  // }
-
-  // // 如果有未缓存的用户，批量查询
-  // if (uncachedUserIds.length > 0) {
-  //   try {
-  //     console.log('批量查询未缓存的用户信息:', uncachedUserIds)
-
-  //     // 直接使用 findPaginationByUsers API 根据用户ID列表查询
-  //     console.log('调用API: findPaginationByUsers，参数:', uncachedUserIds)
-  //     const res = await findPaginationByUsers(uncachedUserIds)
-  //     console.log('findPaginationByUsers API响应:', res)
-
-  //     console.log('API响应状态:', res?.status)
-  //     console.log('API响应数据:', res?.data)
-  //     console.log('API响应数据类型:', typeof res?.data)
-  //     console.log('API响应数据长度:', res?.data?.length)
-
-  //     if (res?.data && res.data.length > 0) {
-  //       for (const userInfo of res.data) {
-  //         // 输出原始用户信息，帮助调试
-  //         console.log('=== 原始用户信息 ===')
-  //         console.log('用户ID:', (userInfo as any)?.userId)
-  //         console.log('ID:', (userInfo as any)?.id)
-  //         console.log('loginAccount:', (userInfo as any)?.loginAccount)
-  //         console.log('username:', (userInfo as any)?.username)
-  //         console.log('nickName:', (userInfo as any)?.nickName)
-  //         console.log('nickname:', (userInfo as any)?.nickname)
-  //         console.log('psnName:', (userInfo as any)?.psnName)
-  //         console.log('realName:', (userInfo as any)?.realName)
-  //         console.log('完整原始数据:', JSON.stringify(userInfo, null, 2))
-  //         console.log('==================')
-
-  //         const completeUserInfo = {
-  //           userId: (userInfo as any)?.userId || (userInfo as any)?.id || (userInfo as any)?.loginAccount,
-  //           loginAccount: (userInfo as any)?.loginAccount || (userInfo as any)?.username || (userInfo as any)?.userId,
-  //           nickName: (userInfo as any)?.nickName || (userInfo as any)?.nickname || (userInfo as any)?.psnName || `用户${(userInfo as any)?.userId || (userInfo as any)?.id}`,
-  //           psnName: (userInfo as any)?.psnName || (userInfo as any)?.realName || (userInfo as any)?.nickName || (userInfo as any)?.nickname || `用户${(userInfo as any)?.userId || (userInfo as any)?.id}`
-  //         }
-
-  //         // 缓存用户信息
-  //         userCache.value.set(completeUserInfo.userId, completeUserInfo)
-  //         cachedUsers.push(completeUserInfo)
-  //         console.log('处理后的用户信息:', completeUserInfo)
-  //       }
-  //     } else {
-  //       // 如果批量查询失败，为每个用户创建默认信息
-  //       for (const userId of uncachedUserIds) {
-  //         const fallbackInfo = {
-  //           userId,
-  //           loginAccount: userId,
-  //           nickName: `用户${userId}`,
-  //           psnName: `用户${userId}`
-  //         }
-  //         userCache.value.set(userId, fallbackInfo)
-  //         cachedUsers.push(fallbackInfo)
-  //         console.log('批量查询失败，使用默认用户信息:', fallbackInfo)
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error('批量获取用户信息失败:', error)
-  //     // 为每个用户创建默认信息
-  //     for (const userId of uncachedUserIds) {
-  //       const fallbackInfo = {
-  //         userId,
-  //         loginAccount: userId,
-  //         nickName: `用户${userId}`,
-  //         psnName: `用户${userId}`
-  //       }
-  //       userCache.value.set(userId, fallbackInfo)
-  //       cachedUsers.push(fallbackInfo)
-  //       console.log('批量查询异常，使用默认用户信息:', fallbackInfo)
-  //     }
-  //   }
-  // }
-
-  console.log('批量获取用户信息完成，结果:', cachedUsers)
-  return cachedUsers
+  const result: any[] = []
+  for (const userId of userIds.map(String)) {
+    if (userCache.value.has(userId)) {
+      result.push(userCache.value.get(userId))
+      continue
+    }
+    const member = memberAuthUsers.value.find(u => String(u.id) === userId)
+    if (member) {
+      const userInfo = buildUserDetailFromMember(member)
+      userCache.value.set(userId, userInfo)
+      result.push(userInfo)
+    }
+  }
+  return result
 }
 
 // 获取单个用户详细信息（带缓存）
@@ -449,8 +413,8 @@ const getUserInfo = async (userId: string) => {
 // 移除用户
 const removeUser = (index: number) => {
   selectedUsers.value.splice(index, 1)
-  // 更新 candidateParam
   userTaskForm.value.candidateParam = selectedUsers.value.map(user => user.userId)
+  memberAuthUserIds.value = userTaskForm.value.candidateParam.map((id: any) => String(id))
   updateElementTask()
 }
 
@@ -583,6 +547,8 @@ const resetTaskForm = () => {
 const changeCandidateStrategy = () => {
   userTaskForm.value.candidateParam = []
   deptLevel.value = 1
+  selectedUsers.value = []
+  memberAuthUserIds.value = []
   if (userTaskForm.value.candidateStrategy === CandidateStrategy.FORM_USER) {
     // 特殊处理表单内用户字段，当只有发起人选项时应选中发起人
     if (!userFieldOnFormOptions.value || userFieldOnFormOptions.value.length <= 1) {
@@ -665,36 +631,22 @@ watch(
       resetTaskForm()
 
       if (userTaskForm.value.candidateStrategy == CandidateStrategy.USER) {
-        // 处理多个用户的情况
         if (userTaskForm.value.candidateParam && userTaskForm.value.candidateParam.length > 0) {
-          console.log('=== 开始加载用户信息 ===')
-          console.log('候选策略: USER')
-          console.log('用户ID列表:', userTaskForm.value.candidateParam)
-          console.log('用户ID列表长度:', userTaskForm.value.candidateParam.length)
-
-          // 使用批量获取用户信息
           const userDetails = await getBatchUserInfo(userTaskForm.value.candidateParam)
-          console.log('批量获取到的用户详情数量:', userDetails.length)
-
-          // 确保用户信息格式正确
-          const formattedUserDetails = userDetails.map(user => ({
+          selectedUsers.value = userDetails.map(user => ({
             userId: user.userId,
             psnName: user.psnName || user.nickName || `用户${user.userId}`,
             nickName: user.nickName || `用户${user.userId}`,
             loginAccount: user.loginAccount || user.userId,
           }))
-
-          selectedUsers.value = formattedUserDetails
-          console.log('最终用户详情列表:', selectedUsers.value)
-          console.log('最终用户详情列表长度:', selectedUsers.value.length)
-          console.log('=== 用户信息加载完成 ===')
+          memberAuthUserIds.value = selectedUsers.value.map(u => String(u.userId))
         } else {
-          console.log('没有用户ID，清空用户选择')
           selectedUsers.value = []
+          memberAuthUserIds.value = []
         }
       } else {
-        // 如果不是用户策略，清空用户选择
         selectedUsers.value = []
+        memberAuthUserIds.value = []
       }
     })
   },
@@ -702,14 +654,26 @@ watch(
 )
 
 onMounted(async () => {
-  // 获得角色列表
   const res = await AdminApiSystemDept.getDeptInfo({})
   if (res.data.code === 200) {
     deptTreeOptions.value = res.data?.data?.adminDeptResponseDTO || []
-    roleOptions.value = res.data?.data?.adminUserResponseDTO || []
+    const rawUsers = res.data?.data?.adminUserResponseDTO || []
+    memberAuthUsers.value = rawUsers.map((u: any) => ({
+      id: String(u.id ?? u.userId),
+      name: u.nickname ?? u.psnName ?? u.name ?? u.username ?? '',
+      username: u.username ?? u.loginAccount ?? '',
+      deptId: u.deptId != null ? String(u.deptId) : undefined,
+      psnName: u.psnName,
+      loginAccount: u.loginAccount,
+    }))
+    memberAuthDepts.value = (res.data?.data?.adminDeptResponseDTO || []).map((d: any) => ({
+      id: String(d.id),
+      name: d.name ?? d.deptName ?? '',
+    }))
   } else {
     deptTreeOptions.value = []
-    roleOptions.value = []
+    memberAuthUsers.value = []
+    memberAuthDepts.value = []
   }
   // 获得岗位列表
   // postOptions.value = await PostApi.getSimplePostList()
