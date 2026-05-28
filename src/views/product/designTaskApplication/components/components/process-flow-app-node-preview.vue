@@ -754,6 +754,10 @@ function isWorkspaceTableOperationColumn(item: any, colIndex: number) {
   if (!shouldShowWorkspaceTableOperationColumn(item)) return false;
   return colIndex === getWorkspaceTablePreviewColCount(item);
 }
+function isWorkspaceTableIndexColumn(item: any, colIndex: number) {
+  if (colIndex !== 1) return false;
+  return String(item?.customProps?.firstColumnType || 'INDEX') === 'INDEX';
+}
 function getWorkspaceTableOperationButtons(item: any) {
   const p = item?.customProps || {};
   const biz = String(p.tableBizType ?? '');
@@ -1936,7 +1940,10 @@ defineExpose({
                     <th
                       v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
                       :key="`h-${c}`"
-                      :class="{ 'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c) }"
+                      :class="{
+                        'fixed-table-preview-th--op': isWorkspaceTableOperationColumn(item, c),
+                        'fixed-table-preview-th--index': isWorkspaceTableIndexColumn(item, c),
+                      }"
                       :style="getFixedTableColumnPreviewStyle(item, c)">
                       {{ getFixedTableHeaderLabel(item, c) }}
                     </th>
@@ -1948,7 +1955,10 @@ defineExpose({
                       v-for="c in tableDimensionRange(getWorkspaceTablePreviewColCount(item))"
                       :key="`b-${r}-${c}`"
                       class="fixed-table-preview-td"
-                      :class="{ 'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c) }"
+                      :class="{
+                        'fixed-table-preview-td--op': isWorkspaceTableOperationColumn(item, c),
+                        'fixed-table-preview-td--index': isWorkspaceTableIndexColumn(item, c),
+                      }"
                       :style="getFixedTableColumnPreviewStyle(item, c)">
                       <template v-if="c === 1 && String(item.customProps?.firstColumnType || 'INDEX') === 'INDEX'">{{ r }}</template>
                       <template v-else-if="isWorkspaceTableOperationColumn(item, c)">
@@ -2127,6 +2137,7 @@ defineExpose({
   --activity-preview-wide-component-width: 650px;
   --activity-preview-file-upload-width: 600px;
   --activity-preview-table-width: 700px;
+  --activity-preview-table-max-width: 95%;
   --activity-preview-grid-column-gap: 120px;
   --activity-preview-grid-row-gap: 12px;
 }
@@ -2202,9 +2213,10 @@ defineExpose({
 .component-card.full-row-item .rich-preview-wrap,
 .component-card.full-row-item .file-preview-wrap,
 .component-card.full-row-item .radio-preview-wrap,
+.component-card.full-row-item .fixed-table-preview,
 .component-card.full-row-item .fixed-table-preview-scroll {
   width: 100%;
-  max-width: 100%;
+  max-width: var(--activity-preview-table-max-width);
 }
 .component-title {
   font-size: 13px;
@@ -2301,10 +2313,13 @@ defineExpose({
 .ant-input.preview-input-range-error {
   border-color: #ff4d4f !important;
 }
-.radio-preview-wrap,
-.fixed-table-preview {
+.radio-preview-wrap {
   width: var(--activity-preview-wide-component-width);
   max-width: 100%;
+}
+.fixed-table-preview {
+  width: 100%;
+  max-width: var(--activity-preview-table-max-width);
 }
 .rich-preview-wrap {
   width: 100%;
@@ -2354,7 +2369,7 @@ defineExpose({
   overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
-  max-width: min(100%, var(--activity-preview-table-width));
+  max-width: var(--activity-preview-table-max-width);
   padding-right: 0;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
@@ -2371,7 +2386,7 @@ defineExpose({
   position: sticky;
   right: 0;
   z-index: 2;
-  box-shadow: none;
+  box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.1);
   border-right: 1px solid #e8e8e8;
 }
 .fixed-table-preview-grid th.fixed-table-preview-th--op {
@@ -2385,11 +2400,21 @@ defineExpose({
 .fixed-table-preview-grid td {
   border: 1px solid #e8e8e8;
   padding: 10px 12px;
-  text-align: left;
 }
 .fixed-table-preview-grid th {
   font-weight: 600;
   background: #fafafa;
+  text-align: center;
+}
+.fixed-table-preview-grid td {
+  text-align: left;
+}
+.fixed-table-preview-grid td.fixed-table-preview-td--index {
+  text-align: center;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op,
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  text-align: center;
 }
 .fixed-table-preview-title-row {
   justify-content: flex-start;
@@ -2412,6 +2437,7 @@ defineExpose({
 .fixed-table-preview-td--op .fixed-table-cell-op-btns {
   flex-wrap: nowrap;
   gap: 6px;
+  justify-content: center;
 }
 .fixed-table-cell-op-link {
   color: #1677ff;

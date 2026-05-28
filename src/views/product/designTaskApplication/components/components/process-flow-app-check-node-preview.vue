@@ -464,9 +464,9 @@ defineExpose({
 <style scoped lang="less">
 .activity-preview-canvas {
   position: relative;
-  width: max-content;
+  width: 100%;
   min-width: 100%;
-  max-width: none;
+  max-width: 100%;
   height: auto;
   min-height: min-content;
   overflow: visible;
@@ -474,6 +474,7 @@ defineExpose({
   box-sizing: border-box;
   --activity-preview-component-width: 300px;
   --activity-preview-wide-component-width: 650px;
+  --activity-preview-table-max-width: 95%;
   --activity-preview-grid-column-gap: 120px;
   --activity-preview-grid-row-gap: 12px;
 }
@@ -496,6 +497,63 @@ defineExpose({
   color: #595959;
   line-height: 1.8;
   min-height: 420px;
+  :deep(.ant-table-wrapper) {
+    max-width: var(--activity-preview-table-max-width);
+  }
+}
+.fixed-table-preview {
+  width: 100%;
+  max-width: var(--activity-preview-table-max-width);
+}
+.fixed-table-preview-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: var(--activity-preview-table-max-width);
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+.component-card.full-row-item .fixed-table-preview,
+.component-card.full-row-item .fixed-table-preview-scroll {
+  max-width: var(--activity-preview-table-max-width);
+}
+.fixed-table-preview-grid th,
+.fixed-table-preview-grid td {
+  border: 1px solid #e8e8e8;
+  padding: 10px 12px;
+}
+.fixed-table-preview-grid th {
+  font-weight: 600;
+  background: #fafafa;
+  text-align: center;
+}
+.fixed-table-preview-grid td {
+  text-align: left;
+}
+.fixed-table-preview-grid td.fixed-table-preview-td--index {
+  text-align: center;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op,
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  box-shadow: inset 8px 0 8px -6px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid #e8e8e8;
+  text-align: center;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op {
+  z-index: 3;
+  background: #fafafa;
+}
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  background: #fff;
+}
+.fixed-table-preview-td--op .fixed-table-cell-op-btns {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: center;
 }
 .impact-eval-toolbar {
   display: flex;
