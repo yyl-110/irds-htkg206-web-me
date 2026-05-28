@@ -2400,13 +2400,14 @@ onUnmounted(() => {
       将退回给上级分配人（分配操作人或父节点负责人），对方待办将重新打开；协同/分类类已发布任务将撤销发布以便重新选人分配。请填写驳回原因（对方在任务类型旁可见摘要，悬停查看全文）。
     </p>
     <div style="margin-bottom: 8px; color: #313133">驳回意见</div>
-    <a-textarea
-      v-model:value="rejectOpinion"
+    <el-input
+      v-model="rejectOpinion"
+      type="textarea"
       :rows="4"
-      :maxlength="500"
-      show-count
+      maxlength="500"
+      show-word-limit
       placeholder="请说明不适宜承办的原因，便于对方调整分配"
-      allow-clear />
+      clearable />
   </a-modal>
 
   <CancellationProcess
