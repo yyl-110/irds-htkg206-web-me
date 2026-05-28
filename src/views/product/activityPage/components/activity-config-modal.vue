@@ -26,6 +26,7 @@ import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import UploadModal from '@/views/product/components/upload-modal.vue';
 import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue';
 import FormulaEditorModal from './formula-editor-modal.vue';
+import ActivityJsMethodSelect from './activity-js-method-select.vue';
 import { businessApiLibrary } from '@/api/tags/library/基础资源库';
 import { LibraryPageRequestDTOModel } from '@/api/models/library/LibraryPageRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
@@ -2492,6 +2493,20 @@ function hasKnowledgeHint(item: any): boolean {
 }
 
 watch(
+  () => selectedComponent.value?.ioType,
+  ioType => {
+    const component = selectedComponent.value;
+    if (!component) return;
+    if (['INPUT', 'TEXTAREA'].includes(component.componentType) && ioType === 'OUTPUT') {
+      ensureTextLikeDefaults(component);
+      if (!textPanelKeys.value.includes('formula')) {
+        textPanelKeys.value = [...textPanelKeys.value, 'formula'];
+      }
+    }
+  },
+);
+
+watch(
   () => selectedComponent.value,
   component => {
     if (!component) return;
@@ -3151,7 +3166,12 @@ watch(
                   </div>
                   <div class="row-field">
                     <div class="row-label">调用JS：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" /></div>
+                    <div class="row-control">
+                      <ActivityJsMethodSelect
+                        v-model="selectedComponent.validateRule.formula.jsMethodName"
+                        :record="props.record || {}"
+                        placeholder="请选择JS方法" />
+                    </div>
                   </div>
                 </a-collapse-panel>
               </a-collapse>

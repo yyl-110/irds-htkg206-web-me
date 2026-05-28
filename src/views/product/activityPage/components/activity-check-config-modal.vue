@@ -22,6 +22,7 @@ import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { handleEpcDownload } from '@/utils/file';
+import ActivityJsMethodSelect from './activity-js-method-select.vue';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
@@ -1853,6 +1854,9 @@ function ensureCalcButtonDefaults(component: any) {
   if (component.customProps.buttonText == null || String(component.customProps.buttonText).trim() === '') {
     component.customProps.buttonText = '计算';
   }
+  if (component.customProps.jsMethodName == null) {
+    component.customProps.jsMethodName = '';
+  }
 }
 function applyModuleLibReadFixedColumnNames(p: Record<string, any>) {
   if (p.tableBizType !== 'MODULE_LIB_READ' || !Array.isArray(p.tableColDefs)) return;
@@ -2131,6 +2135,20 @@ function knowledgeHintText(item: any): string {
 function hasKnowledgeHint(item: any): boolean {
   return knowledgeHintText(item) !== '';
 }
+
+watch(
+  () => selectedComponent.value?.ioType,
+  ioType => {
+    const component = selectedComponent.value;
+    if (!component) return;
+    if (['INPUT', 'TEXTAREA'].includes(component.componentType) && ioType === 'OUTPUT') {
+      ensureTextLikeDefaults(component);
+      if (!textPanelKeys.value.includes('formula')) {
+        textPanelKeys.value = [...textPanelKeys.value, 'formula'];
+      }
+    }
+  },
+);
 
 watch(
   () => selectedComponent.value,
@@ -2544,7 +2562,12 @@ watch(
                   </div>
                   <div class="row-field">
                     <div class="row-label">调用JS：</div>
-                    <div class="row-control"><a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" /></div>
+                    <div class="row-control">
+                      <ActivityJsMethodSelect
+                        v-model="selectedComponent.validateRule.formula.jsMethodName"
+                        :record="props.record || {}"
+                        placeholder="请选择JS方法" />
+                    </div>
                   </div>
                 </a-collapse-panel>
               </a-collapse>
@@ -2731,6 +2754,12 @@ watch(
               <div class="row-field">
                 <div class="row-label">按钮文案：</div>
                 <div class="row-control"><a-input v-model:value="selectedComponent.customProps.buttonText" placeholder="如：计算" /></div>
+              </div>
+              <div class="row-field">
+                <div class="row-label">调用JS方法：</div>
+                <div class="row-control">
+                  <ActivityJsMethodSelect v-model="selectedComponent.customProps.jsMethodName" :record="props.record || {}" placeholder="请选择计算调用的JS方法" />
+                </div>
               </div>
             </template>
             <template v-else-if="isTitleComponent">

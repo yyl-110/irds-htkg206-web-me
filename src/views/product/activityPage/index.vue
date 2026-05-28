@@ -921,6 +921,145 @@ async function handleUploadFile() {
   fileList.value = [];
   batchflag.value = true;
 }
+
+/** 另存为：待复制的源活动行 */
+const saveAsSourceRecord = ref<any>(null);
+const saveAsPlatformVisible = ref(false);
+const saveAsTreeVisible = ref(false);
+const saveAsTargetMenuId = ref<string>('');
+const saveAsTreeData = ref<any[]>([]);
+const saveAsTreeSelectedKey = ref<string>('');
+/** 产品平台选择器用途：menu=进入页面选平台，saveAs=另存为选目标平台 */
+const platformPickerMode = ref<'menu' | 'saveAs'>('menu');
+
+const platformPickerVisible = computed(() => titleVisible.value || saveAsPlatformVisible.value);
+const platformPickerMounted = computed(() => shouldShowDrawer.value || saveAsPlatformVisible.value);
+
+function onPlatformPickerSelect(item: any) {
+  if (platformPickerMode.value === 'saveAs') {
+    void onSaveAsPlatformSelected(item);
+    return;
+  }
+  void updateMenu(item);
+}
+
+function onPlatformPickerClose() {
+  if (platformPickerMode.value === 'saveAs') {
+    saveAsPlatformVisible.value = false;
+    platformPickerMode.value = 'menu';
+    return;
+  }
+  onCloseDrawer();
+}
+
+function handleSaveAs() {
+  const rows = selectedRowList.value?.length ? selectedRowList.value : [];
+  if (rows.length !== 1) {
+    message.warning('请勾选一条活动数据进行另存为');
+    return;
+  }
+  saveAsSourceRecord.value = rows[0];
+  if (!titleList.value.length) {
+    message.warning('暂无可选产品平台');
+    return;
+  }
+  platformPickerMode.value = 'saveAs';
+  if (titleList.value.length === 1) {
+    void onSaveAsPlatformSelected(titleList.value[0]);
+    return;
+  }
+  saveAsPlatformVisible.value = true;
+}
+
+async function onSaveAsPlatformSelected(item: any) {
+  saveAsPlatformVisible.value = false;
+  platformPickerMode.value = 'menu';
+  saveAsTargetMenuId.value = String(item?.id ?? '');
+  if (!saveAsTargetMenuId.value) {
+    message.warning('产品平台无效');
+    return;
+  }
+  try {
+    const res = await AdminApiActivityPage.getActivityTree({ menuId: saveAsTargetMenuId.value });
+    const rawData = Array.isArray(res?.data?.data) ? res.data.data : res?.data?.data ? [res.data.data] : [];
+    if (!rawData.length) {
+      message.warning('目标平台下暂无活动树，请先维护活动树');
+      return;
+    }
+    saveAsTreeData.value = convertToTreeNodes(rawData);
+    saveAsTreeSelectedKey.value = '';
+    saveAsTreeVisible.value = true;
+  } catch (error) {
+    console.error('load save-as tree failed:', error);
+    message.error('加载活动树失败');
+  }
+}
+
+function onSaveAsTreeNodeSelect(selectedKeys: any[]) {
+  saveAsTreeSelectedKey.value = selectedKeys?.[0] ?? '';
+}
+
+function cancelSaveAsTree() {
+  saveAsTreeVisible.value = false;
+  saveAsTreeSelectedKey.value = '';
+}
+
+function handleSelectTreeNodeChange(selectedKeys: any[], info: any) {
+  if (saveAsTreeVisible.value) {
+    onSaveAsTreeNodeSelect(selectedKeys);
+    return;
+  }
+  handleSelectTreeNode(selectedKeys, info);
+}
+
+function handleSelectTreeConfirm() {
+  if (saveAsTreeVisible.value) {
+    void confirmSaveAsTree();
+    return;
+  }
+  confirmSelectTreeNode(undefined);
+}
+
+function handleSelectTreeCancel() {
+  if (saveAsTreeVisible.value) {
+    cancelSaveAsTree();
+    return;
+  }
+  cancelSelectTreeNode();
+}
+
+async function confirmSaveAsTree() {
+  if (!saveAsTreeSelectedKey.value) {
+    message.warning('请选择目标活动树节点');
+    return;
+  }
+  if (!saveAsSourceRecord.value?.id) {
+    message.warning('源活动数据无效');
+    return;
+  }
+  try {
+    const res = await AdminApiActivityPage.saveAsActivityInfo({
+      sourceActivityPageId: saveAsSourceRecord.value.id,
+      targetMenuId: saveAsTargetMenuId.value,
+      targetTreeId: saveAsTreeSelectedKey.value,
+    });
+    if (res?.data?.code === 0 || res?.data?.code === 200) {
+      message.success('另存为成功');
+      saveAsTreeVisible.value = false;
+      saveAsSourceRecord.value = null;
+      selectedRowkeys.value = [];
+      selectedRowList.value = [];
+      if (menuId.value === saveAsTargetMenuId.value) {
+        await loadParameterListData();
+      }
+    } else {
+      message.error(res?.data?.msg || '另存为失败');
+    }
+  } catch (error) {
+    console.error('save-as failed:', error);
+    message.error('另存为失败');
+  }
+}
 // 下载附件
 async function templateDownload() {
   const res = await AdminApiActivityPage.downloadExcel({});
@@ -964,6 +1103,21 @@ function toNumOrFallback(v: any, fallback = Number.MIN_SAFE_INTEGER) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
+/** 保证页面配置弹窗能拿到 JS 脚本访问路径（列表 fillFileInfos 或兜底 download URL） */
+function ensureJsFileFields(record: any) {
+  const r = { ...(record || {}) };
+  const path = String(r.jsFilePath ?? r.jsFileInfo?.filePath ?? '').trim();
+  if (path) {
+    r.jsFilePath = path;
+    return r;
+  }
+  const fileId = r.jsFileId ?? r.jsFileInfo?.fileId;
+  if (fileId != null && String(fileId) !== '') {
+    r.jsFilePath = `/Api/system-service/fileManagerController/download.json?fileId=${fileId}`;
+  }
+  return r;
+}
+
 /** 将 pageConfigList 的扁平 data[] 归并为设计器可直接初始化的 record 结构 */
 function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const list = Array.isArray(rows) ? rows : [];
@@ -1010,7 +1164,7 @@ function handlePageConfigClick(record: any) {
 async function showPageConfigModal(record: any) {
   const res = await AdminApiActivityPage.pageConfigList({ activityPageId: record.id });
   const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
-  const normalizedRecord = normalizePageConfigResponseToRecord(record, rows);
+  const normalizedRecord = ensureJsFileFields(normalizePageConfigResponseToRecord(record, rows));
   if (String(record?.pageType ?? '') === '2') {
     currentCheckConfigRecord.value = normalizedRecord;
     activityConfigVisible.value = false;
@@ -1220,7 +1374,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                     </a-button>
                   </a-popconfirm>
                   <!--导入数据按钮-->
-                  <a-button type="primary" @click="handleUploadFile()">
+                  <a-button type="primary" @click="handleSaveAs">
                     <EpcIcon type="icon-daiyanshou1" style="font-size: 12px" />
                     {{ $t('另存为') }}
                   </a-button>
@@ -1392,12 +1546,12 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
     <!-- 其他弹窗/组件 -->
     <SelectBoomTree
       ref="selectBoomTreeRef"
-      :modal-visible="selectTreeVisible"
-      :select-tree-data="selectTreeData"
-      :select-tree-selected-keys="selectTreeSelectedKeys"
-      @confirm-select-tree-node="confirmSelectTreeNode"
-      @cancel-select-tree-node="cancelSelectTreeNode"
-      @handle-select-tree-node="handleSelectTreeNode" />
+      :modal-visible="selectTreeVisible || saveAsTreeVisible"
+      :select-tree-data="saveAsTreeVisible ? saveAsTreeData : selectTreeData"
+      :select-tree-selected-keys="saveAsTreeVisible ? saveAsTreeSelectedKey : selectTreeSelectedKeys"
+      @confirm-select-tree-node="handleSelectTreeConfirm"
+      @cancel-select-tree-node="handleSelectTreeCancel"
+      @handle-select-tree-node="handleSelectTreeNodeChange" />
     <ActivityAdd ref="addModel" :modal-visible="visible" @refresh-table-data="loadParameterListData" @close="handleCloseAddModal" />
     <ActivityUpdate ref="updateModel" :modal-visible="updateVisible" @refresh-table-data="loadParameterListData" @close="handleCloseUpdateModal" />
     <ImportFile
@@ -1429,12 +1583,12 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
       @close="closeActivityCheckPreviewModal" />
   </div>
   <ProductPlatformPicker
-    v-if="shouldShowDrawer"
-    :visible="titleVisible"
+    v-if="platformPickerMounted"
+    :visible="platformPickerVisible"
     :drawer-style="drawerStyle"
     :list="titleList"
-    @select="updateMenu"
-    @close="onCloseDrawer" />
+    @select="onPlatformPickerSelect"
+    @close="onPlatformPickerClose" />
 </template>
 
 <style lang="less" scoped>

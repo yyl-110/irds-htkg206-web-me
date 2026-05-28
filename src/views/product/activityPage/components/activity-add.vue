@@ -38,10 +38,13 @@ export default defineComponent({
     const unitId = ref<any>();
     const excelFileList = ref<any[]>([]);
     const wordFileList = ref<any[]>([]);
+    const jsFileList = ref<any[]>([]);
     const openExcelUploadModal = ref(false);
     const openWordUploadModal = ref(false);
+    const openJsUploadModal = ref(false);
     const excelConfidentialLevel = ref(1);
     const wordConfidentialLevel = ref(1);
+    const jsConfidentialLevel = ref(1);
     const formData = ref({
       pageName: '',
       pageType: '1',
@@ -49,6 +52,7 @@ export default defineComponent({
       url: '',
       excelId: '',
       wordId: '',
+      jsId: '',
       auditProcess: '',
       isSynergy: '0',
       tempNum: '',
@@ -86,6 +90,9 @@ export default defineComponent({
       data.remark = remark.value;
       data.treeId = categoryid.value;
       data.calculateFileId = formData.value.excelId;
+      if (formData.value.jsId) {
+        data.jsFileId = formData.value.jsId;
+      }
       if (formData.value.pageType === '2') {
         data.reportFileId = formData.value.wordId;
       }
@@ -112,11 +119,13 @@ export default defineComponent({
       formData.value.groupName = '';
       formData.value.excelId = '';
       formData.value.wordId = '';
+      formData.value.jsId = '';
       formData.value.auditProcess = '';
       formData.value.isSynergy = '0';
       formData.value.tempNum = '';
       excelFileList.value = [];
       wordFileList.value = [];
+      jsFileList.value = [];
       remark.value = '';
       categoryid.value = categoryidStr;
       templateFieldsVisible.value = false;
@@ -138,6 +147,11 @@ export default defineComponent({
     function isWordFile(fileName = '') {
       const lowerName = fileName.toLowerCase();
       return lowerName.endsWith('.doc') || lowerName.endsWith('.docx');
+    }
+
+    function isJsFile(fileName = '') {
+      const lowerName = fileName.toLowerCase();
+      return lowerName.endsWith('.js');
     }
 
     async function customRequestExcel(options: any) {
@@ -254,6 +268,61 @@ export default defineComponent({
       formData.value.wordId = '';
     }
 
+    async function customRequestJs(options: any) {
+      const fileName = options?.file?.name || '';
+      if (!isJsFile(fileName)) {
+        message.warning('请上传JS文件（.js）');
+        options?.onError?.(new Error('invalid js file'));
+        return;
+      }
+      const res = await AdminApiSystemUploadFile.uploadFile({
+        file: options.file as File,
+        userId: userStore.getUser.id,
+        confidentialLevel: 1,
+      });
+      if (res.data.code == 0) {
+        const file: any = {
+          uid: String(res.data?.id || Date.now()),
+          id: res.data?.id || '',
+          name: res.data?.oldFileName || options?.file?.name || 'script.js',
+          status: 'done',
+          response: res.data,
+          url: res.data?.filePath || '',
+        };
+        jsFileList.value[0] = file;
+        formData.value.jsId = res.data.id || '';
+        options?.onSuccess?.(res.data, options.file);
+        message.success('JS文件上传成功');
+      } else {
+        options?.onError?.(new Error('js upload failed'));
+        message.error('JS文件上传失败');
+      }
+    }
+
+    function jsFileChange(info: UploadChangeParam) {
+      jsFileList.value = info?.fileList || [];
+      if (jsFileList.value.length === 0) {
+        formData.value.jsId = '';
+      }
+    }
+
+    function beforeUploadJs(file: File) {
+      if (!isJsFile(file?.name || '')) {
+        message.warning('请上传JS文件（.js）');
+        return false;
+      }
+      return true;
+    }
+
+    function handleJsUploadConfirm() {
+      openJsUploadModal.value = false;
+    }
+
+    function clearJsFile() {
+      jsFileList.value = [];
+      formData.value.jsId = '';
+    }
+
     function clearTemplatePageFields() {
       formData.value.auditProcess = '';
       formData.value.isSynergy = '0';
@@ -302,6 +371,14 @@ export default defineComponent({
       handleWordUploadConfirm,
       clearExcelFile,
       clearWordFile,
+      jsFileList,
+      openJsUploadModal,
+      jsConfidentialLevel,
+      customRequestJs,
+      jsFileChange,
+      beforeUploadJs,
+      handleJsUploadConfirm,
+      clearJsFile,
       showTemplatePageFields,
     };
   },
@@ -358,6 +435,10 @@ export default defineComponent({
           <a-button type="primary" @click="openWordUploadModal = true">上传Word文件</a-button>
           <span style="margin-left: 8px">{{ wordFileList[0]?.name || '未上传文件' }}</span>
         </a-form-item>
+        <a-form-item label="上传JS文件" name="jsId" v-if="formData.pageType === '1' || formData.pageType === '2'">
+          <a-button type="primary" @click="openJsUploadModal = true">上传JS文件</a-button>
+          <span style="margin-left: 8px">{{ jsFileList[0]?.name || '未上传文件' }}</span>
+        </a-form-item>
       </a-form>
       <UploadModal
         v-model:visible="openExcelUploadModal"
@@ -381,6 +462,17 @@ export default defineComponent({
         @upload-change="wordFileChange"
         @remove-file="clearWordFile"
         @confirm="handleWordUploadConfirm" />
+      <UploadModal
+        v-model:visible="openJsUploadModal"
+        v-model:confidential-level="jsConfidentialLevel"
+        modal-title="上传JS文件"
+        accept=".js"
+        :file-list="jsFileList"
+        :before-upload="beforeUploadJs"
+        :custom-request="customRequestJs"
+        @upload-change="jsFileChange"
+        @remove-file="clearJsFile"
+        @confirm="handleJsUploadConfirm" />
       <template #footer>
         <a-button type="primary" @click="savePageInfo">
           {{ $t('确定') }}

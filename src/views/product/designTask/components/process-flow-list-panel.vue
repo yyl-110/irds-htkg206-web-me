@@ -249,11 +249,28 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'center',
-    width: 300,
+    width: 360,
     fixed: 'right',
     resizable: false,
   },
 ]);
+
+type TaskUsedParamItem = {
+  paramCode?: string;
+  paramName?: string;
+  paramSource?: string;
+  activityPageId?: number | string;
+  activityName?: string;
+  bpmnElementId?: string;
+  nodeName?: string;
+};
+
+function resolveTaskUsedParamSourceText(source?: string) {
+  const s = String(source ?? '').trim().toUpperCase();
+  if (s === 'COMPONENT') return '组件';
+  if (s === 'FORMULA') return '公式';
+  return source || '—';
+}
 
 /** 横向滚动：列宽之和 + 勾选列 + 缓冲（与 parameter/index.vue 一致） */
 const SCROLL_X_BUFFER_PX = 2;
@@ -482,6 +499,48 @@ async function showVersionHistory(record: FlowRow, publishType: PublishType) {
 function closeHistoryModal() {
   visibleHistoryModal.value = false;
   historyList.value = [];
+}
+
+const taskUsedParamModalVisible = ref(false);
+const taskUsedParamLoading = ref(false);
+const taskUsedParamList = ref<TaskUsedParamItem[]>([]);
+const taskUsedParamModalTitle = ref('任务使用参数');
+
+const taskUsedParamColumns: TableColumnType<TaskUsedParamItem>[] = [
+  { title: '参数代码', dataIndex: 'paramCode', key: 'paramCode', width: 140, ellipsis: true },
+  { title: '参数名称', dataIndex: 'paramName', key: 'paramName', width: 160, ellipsis: true },
+  { title: '来源', dataIndex: 'paramSource', key: 'paramSource', width: 80, align: 'center' },
+  { title: '活动名称', dataIndex: 'activityName', key: 'activityName', width: 160, ellipsis: true },
+  { title: '流程节点', dataIndex: 'nodeName', key: 'nodeName', ellipsis: true },
+];
+
+async function openTaskUsedParamsModal(record: FlowRow) {
+  if (!record?.id) return;
+  taskUsedParamModalTitle.value = `${record.processName || '设计任务'} - 使用参数`;
+  taskUsedParamModalVisible.value = true;
+  taskUsedParamList.value = [];
+  taskUsedParamLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.listTaskUsedParams({ taskId: record.id });
+    const ok = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200';
+    if (!ok) {
+      message.error(res?.data?.msg || '加载失败');
+      return;
+    }
+    const raw = res?.data?.data;
+    taskUsedParamList.value = Array.isArray(raw?.items) ? raw.items : [];
+  } catch {
+    message.error('加载任务使用参数失败');
+    taskUsedParamList.value = [];
+  } finally {
+    taskUsedParamLoading.value = false;
+  }
+}
+
+function closeTaskUsedParamsModal() {
+  taskUsedParamModalVisible.value = false;
+  taskUsedParamList.value = [];
+  taskUsedParamModalTitle.value = '任务使用参数';
 }
 
 /** 发布任务、独立应用均为未发布时，才允许进入「配置」 */
@@ -885,6 +944,7 @@ defineExpose({
               <span v-else class="operation-disabled">删除</span>
               </template>
               <a v-if="canRowShare(record)" href="#" @click.prevent="openDesignShareModal(record)">共享</a>
+              <a href="#" @click.prevent="openTaskUsedParamsModal(record)">使用参数</a>
             </div>
           </template>
         </template>
@@ -937,6 +997,39 @@ defineExpose({
         <div class="process-panel__flow-view-footer">
           <a-button type="primary" @click="closeFlowView"> <EpcIcon type="icon-quxiao" style="font-size: 14px" /> 关闭 </a-button>
         </div>
+      </template>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="taskUsedParamModalVisible"
+      :title="taskUsedParamModalTitle"
+      :width="900"
+      :mask-closable="true"
+      destroy-on-close
+      @cancel="closeTaskUsedParamsModal">
+      <a-spin :spinning="taskUsedParamLoading">
+        <a-table
+          v-if="taskUsedParamList.length"
+          :columns="taskUsedParamColumns"
+          :data-source="taskUsedParamList"
+          :pagination="false"
+          :scroll="{ y: 420 }"
+          :row-key="(record, index) => `${index}-${record.paramCode}-${record.activityPageId}-${record.paramSource}`"
+          size="small"
+          bordered>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'paramSource'">
+              <span>{{ resolveTaskUsedParamSourceText(record.paramSource) }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'paramName'">
+              <span>{{ record.paramName || '—' }}</span>
+            </template>
+          </template>
+        </a-table>
+        <a-empty v-else-if="!taskUsedParamLoading" description="该任务未配置关联活动，或活动页未引用参数" />
+      </a-spin>
+      <template #footer>
+        <a-button type="primary" @click="closeTaskUsedParamsModal">关闭</a-button>
       </template>
     </a-modal>
 

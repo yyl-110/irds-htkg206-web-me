@@ -175,6 +175,23 @@ export class AdminApiActivityPage {
     );
 
   /**
+   * 另存为：复制活动到指定产品平台的活动树节点
+   *
+   * @request POST /business-service/business/activity-basic-info/save-as
+   */
+  static saveAsActivityInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/save-as`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 编辑活动页面信息
    *
    * @tags 管理后台 - 编辑活动页面信息

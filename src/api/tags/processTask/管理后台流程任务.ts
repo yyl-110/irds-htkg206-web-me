@@ -345,6 +345,27 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 查询设计任务关联活动使用的参数
+   *
+   * @tags 管理后台 - 设计任务
+   * @name listTaskUsedParams
+   * @summary 查询设计任务 BPMN 节点关联活动使用的参数
+   * @request POST:/business-service/business/task-basic-info/used-params/list
+   * @secure
+   */
+  static listTaskUsedParams = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/used-params/list`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 配置可视化流程初始化功能
    *
    * @tags 管理后台 - 配置可视化流程初始化功能
