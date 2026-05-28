@@ -8,6 +8,7 @@ import { Modal, message } from 'ant-design-vue'
 import {
   ApartmentOutlined,
   AppstoreOutlined,
+  AuditOutlined,
   CloudServerOutlined,
   EllipsisOutlined,
   FilterOutlined,
@@ -48,6 +49,7 @@ import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
 import { encryptValue } from '@/utils'
 import { formatPast2, timestampToDateString } from '@/utils/formatTime'
 import { getMyTodoTask, getMyDoneTask, getMyProcessInstance } from '@/api/bpm/task'
+import { ETASKTYPE } from '@/views/bpm/processInstance/components/config/constant'
 import Empty from '@/components/Empty/index.vue'
 import { renderTableEmptyText } from '@/utils/emptyState'
 import { RRQueryParams } from './components/config/query'
@@ -1520,6 +1522,11 @@ const filteredAuditList = computed(() => {
 })
 type BpmTaskAction = 'design' | 'detail' | 'history' | 'cancel'
 
+/** 流程待办：编制节点展示「提交」，其余节点展示「审批」 */
+function isBpmEstablishmentTask(task: WorkbenchBpmTaskItem) {
+  return task.name === ETASKTYPE.ESTABLISHMENT
+}
+
 /** 流程任务按钮权限：待办=待办+详情，已办=历史，我的流程=详情+取消 */
 function taskbpmActionAllowed(_task: WorkbenchBpmTaskItem, action: BpmTaskAction) {
   switch (auditSecondaryFilter.value) {
@@ -2171,18 +2178,6 @@ onUnmounted(() => {
                             :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
                         </template>
                         <template #bodyCell="{ column, record }">
-                          <template v-if="column.key === 'title'">
-                            <div class="flex items-center gap-[8px] min-w-0">
-                              <span class="font-bold text-[#313133] truncate">{{
-                                workbenchbpmCardDisplayTitle(record)
-                              }}</span>
-                              <span
-                                v-if="workbenchShowOverdueUi(record)"
-                                class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]"
-                                >延期</span
-                              >
-                            </div>
-                          </template>
                           <template v-if="column.key === 'PROCESS_BUSINESS_TYPE_NAME'">
                             <div class="wb-cell-type min-w-0 max-w-full">
                               <div
@@ -2198,7 +2193,7 @@ onUnmounted(() => {
                                 :value="record.status"/>
                             </div>
                             <div v-else>
-                              <a-tag v-if="record.name === '编制'" size="small" color="success" style="color: #2e8702;">
+                              <a-tag v-if="isBpmEstablishmentTask(record)" size="small" color="success" style="color: #2e8702;">
                               {{ $t('编制中') }}
                             </a-tag>
                             <a-tag v-else type="primary" size="small" color="processing">
@@ -2231,13 +2226,23 @@ onUnmounted(() => {
                           <template v-if="column.key === 'action'">
                             <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
                               <a-tooltip
-                                v-if="taskbpmActionAllowed(record, 'design')"
-                                title="待办">
+                                v-if="taskbpmActionAllowed(record, 'design') && isBpmEstablishmentTask(record)"
+                                title="提交">
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
                                   @click.prevent.stop="openbpmDesignWorkspace(record)">
-                                  <HighlightOutlined />
+                                  <FormOutlined />
+                                </a>
+                              </a-tooltip>
+                              <a-tooltip
+                                v-else-if="taskbpmActionAllowed(record, 'design')"
+                                title="审批">
+                                <a
+                                  href="#"
+                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                  @click.prevent.stop="openbpmDesignWorkspace(record)">
+                                  <AuditOutlined />
                                 </a>
                               </a-tooltip>
                               <a-tooltip v-if="taskbpmActionAllowed(record, 'detail')" title="详情">
