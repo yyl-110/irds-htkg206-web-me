@@ -429,84 +429,84 @@
     @confirm="handleMemberAuthConfirm" />
 </template>
 <script lang="ts" setup>
-import { setConfAndFields2 } from '@/utils/formCreate'
-import * as TaskApi from '@/api/bpm/task'
-import * as ProcessInstanceApi from '@/api/bpm/processInstance'
-import * as UserApi from '@/api/system/user'
+import { setConfAndFields2 } from '@/utils/formCreate';
+import * as TaskApi from '@/api/bpm/task';
+import * as ProcessInstanceApi from '@/api/bpm/processInstance';
+import * as UserApi from '@/api/system/user';
 import {
   NodeType,
   OPERATION_BUTTON_NAME,
   OperationButtonType,
   CandidateStrategy,
-} from '@/components/SimpleProcessDesignerV2/src/consts'
-import { BpmModelFormType, BpmProcessInstanceStatus } from '@/utils/constants'
-import type { FormInstance, FormRules } from 'element-plus'
-import SignDialog from './SignDialog.vue'
-import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
-import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
-import { ElMessageBox } from 'element-plus'
-import { isEmpty } from '@/utils/is'
-import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
-import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
-import { UserVO } from '@/api/system/user'
-import { useMessage } from '@/hooks/web/useMessage'
-import { resolveProcessInstanceDetailBackRoute } from '@/views/workbench/workbenchRouteQuery'
-defineOptions({ name: 'ProcessInstanceBtnContainer' })
-const router = useRouter() // 路由
-const route = useRoute()
-const { push } = useRouter()
-const message = useMessage() // 消息弹窗
+} from '@/components/SimpleProcessDesignerV2/src/consts';
+import { BpmModelFormType, BpmProcessInstanceStatus } from '@/utils/constants';
+import type { FormInstance, FormRules } from 'element-plus';
+import SignDialog from './SignDialog.vue';
+import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue';
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
+import { ElMessageBox } from 'element-plus';
+import { isEmpty } from '@/utils/is';
+import { BpmBusinessProcessTypeEnum } from '@/components/config/consts';
+import ApprovalPersonnel from './components/ApprovalPersonnel.vue';
+import { UserVO } from '@/api/system/user';
+import { useMessage } from '@/hooks/web/useMessage';
+import { resolveProcessInstanceDetailBackRoute } from '@/views/workbench/workbenchRouteQuery';
+defineOptions({ name: 'ProcessInstanceBtnContainer' });
+const router = useRouter(); // 路由
+const route = useRoute();
+const { push } = useRouter();
+const message = useMessage(); // 消息弹窗
 
-const emit = defineEmits(['success', 'handleLoading']) // 定义 success 事件，用于操作成功后的回调
+const emit = defineEmits(['success', 'handleLoading']); // 定义 success 事件，用于操作成功后的回调
 
 const props = defineProps<{
-  processInstance: any // 流程实例信息
-  processDefinition: any // 流程定义信息
-  userOptions: UserApi.UserVO[]
-  normalForm: any // 流程表单 formCreate
-  normalFormApi: any // 流程表单 formCreate Api
-  writableFields: string[] // 流程表单可以编辑的字段
-  writableFieldsCopy: any[] // 流程表单选人字段
-  editType: number // 编辑类型  0:查看 1:编辑
-  aTab: string // 流程表单的 aTab
-  firstTimeEditSubmit: boolean // 是否是第一次编辑提交
-  opinion: string // 处理意见
-  isManual: boolean // 是否手动更改销售配置
-  taskType: any // 节点类型
-  areaSaleRelease: any // 区域销售审批信息
-  pageIndex: any // 当前页码
-  approveUser: any[]
-  mainEnginePlantsUser: any[]
-  isMainEnginePlants: boolean
-  currentOperationType: string
-}>()
+  processInstance: any; // 流程实例信息
+  processDefinition: any; // 流程定义信息
+  userOptions: UserApi.UserVO[];
+  normalForm: any; // 流程表单 formCreate
+  normalFormApi: any; // 流程表单 formCreate Api
+  writableFields: string[]; // 流程表单可以编辑的字段
+  writableFieldsCopy: any[]; // 流程表单选人字段
+  editType: number; // 编辑类型  0:查看 1:编辑
+  aTab: string; // 流程表单的 aTab
+  firstTimeEditSubmit: boolean; // 是否是第一次编辑提交
+  opinion: string; // 处理意见
+  isManual: boolean; // 是否手动更改销售配置
+  taskType: any; // 节点类型
+  areaSaleRelease: any; // 区域销售审批信息
+  pageIndex: any; // 当前页码
+  approveUser: any[];
+  mainEnginePlantsUser: any[];
+  isMainEnginePlants: boolean;
+  currentOperationType: string;
+}>();
 type MemberAuthUser = {
-  id: string
-  name: string
-  username: string
-  deptId?: string
-}
+  id: string;
+  name: string;
+  username: string;
+  deptId?: string;
+};
 type MemberAuthDept = {
-  id: string
-  name: string
-}
-const transferUser = ref<any[]>([])
-const userOptions = ref<UserApi.UserVO[]>([])
-const currentOperationType = ref('')
-const addSignUser = ref<any[]>([])
-const memberAuthVisible = ref(false)
-const memberAuthUserIds = ref<string[]>([])
-const memberAuthUsers = ref<MemberAuthUser[]>([])
-const memberAuthDepts = ref<MemberAuthDept[]>([])
+  id: string;
+  name: string;
+};
+const transferUser = ref<any[]>([]);
+const userOptions = ref<UserApi.UserVO[]>([]);
+const currentOperationType = ref('');
+const addSignUser = ref<any[]>([]);
+const memberAuthVisible = ref(false);
+const memberAuthUserIds = ref<string[]>([]);
+const memberAuthUsers = ref<MemberAuthUser[]>([]);
+const memberAuthDepts = ref<MemberAuthDept[]>([]);
 
 function pickUsersByIds(userIds: string[]) {
-  const userIdSet = new Set(userIds.map(String))
-  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id)))
+  const userIdSet = new Set(userIds.map(String));
+  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id)));
 }
 
 /** 将 MemberAuthPicker 用户结构转为审批人展示/提交结构 */
 function mapMemberToApproveUser(user: MemberAuthUser & { nickname?: string; psnName?: string }) {
-  const displayName = user.name || user.nickname || user.psnName || user.username || ''
+  const displayName = user.name || user.nickname || user.psnName || user.username || '';
   return {
     ...user,
     id: user.id,
@@ -514,98 +514,98 @@ function mapMemberToApproveUser(user: MemberAuthUser & { nickname?: string; psnN
     nickname: displayName,
     psnName: displayName,
     name: displayName,
-  }
+  };
 }
 
 const loadMemberAuthData = async () => {
-  const res = await AdminApiSystemDept.getDeptInfo({})
+  const res = await AdminApiSystemDept.getDeptInfo({});
   if (res.data.code === 200) {
-    const rawUsers = res.data?.data?.adminUserResponseDTO || []
+    const rawUsers = res.data?.data?.adminUserResponseDTO || [];
     memberAuthUsers.value = rawUsers.map((u: any) => ({
       id: String(u.id ?? u.userId),
       name: u.nickname ?? u.psnName ?? u.name ?? u.username ?? '',
       username: u.username ?? '',
       deptId: u.deptId != null ? String(u.deptId) : undefined,
-    }))
+    }));
     memberAuthDepts.value = (res.data?.data?.adminDeptResponseDTO || []).map((d: any) => ({
       id: String(d.id),
       name: d.name ?? d.deptName ?? '',
-    }))
+    }));
   } else {
-    memberAuthUsers.value = []
-    memberAuthDepts.value = []
+    memberAuthUsers.value = [];
+    memberAuthDepts.value = [];
   }
-}
+};
 
 /** 打开转办选人弹窗 */
 const handleSelectUser = () => {
-  currentOperationType.value = 'transfer'
-  const current = transferUser.value[0]
-  const userId = current?.id ?? current?.userId
-  memberAuthUserIds.value = userId ? [String(userId)] : []
-  memberAuthVisible.value = true
-}
+  currentOperationType.value = 'transfer';
+  const current = transferUser.value[0];
+  const userId = current?.id ?? current?.userId;
+  memberAuthUserIds.value = userId ? [String(userId)] : [];
+  memberAuthVisible.value = true;
+};
 
 /** 打开加签选人弹窗 */
 const handleaddSignSelectUser = () => {
-  currentOperationType.value = 'addSign'
+  currentOperationType.value = 'addSign';
   memberAuthUserIds.value = (addSignUser.value || [])
     .map((user: any) => String(user?.id ?? user?.userId ?? ''))
-    .filter(Boolean)
-  memberAuthVisible.value = true
-}
+    .filter(Boolean);
+  memberAuthVisible.value = true;
+};
 
 /** 用户选择确认 */
 const handleMemberAuthConfirm = (userIds: string[]) => {
   if (currentOperationType.value === 'transfer') {
     if (!userIds.length) {
-      transferForm.assigneeUserId = undefined
-      transferUser.value = []
-      memberAuthUserIds.value = []
-      memberAuthVisible.value = false
-      return
+      transferForm.assigneeUserId = undefined;
+      transferUser.value = [];
+      memberAuthUserIds.value = [];
+      memberAuthVisible.value = false;
+      return;
     }
     if (userIds.length > 1) {
-      message.warning('转办只能选择一位用户')
-      return
+      message.warning('转办只能选择一位用户');
+      return;
     }
-    const selectedUser = pickUsersByIds([userIds[0]])[0]
+    const selectedUser = pickUsersByIds([userIds[0]])[0];
     if (!selectedUser) {
-      message.warning('未找到所选用户')
-      return
+      message.warning('未找到所选用户');
+      return;
     }
-    const mappedUser = mapMemberToApproveUser(selectedUser)
-    transferUser.value = [mappedUser]
-    transferForm.assigneeUserId = mappedUser.id
-    memberAuthUserIds.value = [String(mappedUser.id)]
-    message.success('选择成功')
-    memberAuthVisible.value = false
-    return
+    const mappedUser = mapMemberToApproveUser(selectedUser);
+    transferUser.value = [mappedUser];
+    transferForm.assigneeUserId = mappedUser.id;
+    memberAuthUserIds.value = [String(mappedUser.id)];
+    message.success('选择成功');
+    memberAuthVisible.value = false;
+    return;
   }
 
   if (currentOperationType.value === 'addSign') {
-    const selectedUsers = pickUsersByIds(userIds).map(mapMemberToApproveUser)
-    addSignUser.value = selectedUsers
-    addSignForm.addSignUserIds = selectedUsers.map(user => user.id)
-    memberAuthUserIds.value = userIds.map(String)
+    const selectedUsers = pickUsersByIds(userIds).map(mapMemberToApproveUser);
+    addSignUser.value = selectedUsers;
+    addSignForm.addSignUserIds = selectedUsers.map(user => user.id);
+    memberAuthUserIds.value = userIds.map(String);
     if (selectedUsers.length > 0) {
-      message.success('选择成功')
+      message.success('选择成功');
     }
-    memberAuthVisible.value = false
+    memberAuthVisible.value = false;
   }
-}
+};
 
 /** 移除加签对象 */
 const handleRemoveUser = (userId: string) => {
-  addSignUser.value = addSignUser.value.filter((user: any) => user.userId !== userId)
-  addSignForm.addSignUserIds = (addSignForm.addSignUserIds || []).filter(id => id !== userId)
-  memberAuthUserIds.value = (addSignForm.addSignUserIds || []).map(String)
-}
+  addSignUser.value = addSignUser.value.filter((user: any) => user.userId !== userId);
+  addSignForm.addSignUserIds = (addSignForm.addSignUserIds || []).filter(id => id !== userId);
+  memberAuthUserIds.value = (addSignForm.addSignUserIds || []).map(String);
+};
 
 onMounted(() => {
-  loadMemberAuthData()
-})
-const formLoading = ref(false) // 表单加载中
+  loadMemberAuthData();
+});
+const formLoading = ref(false); // 表单加载中
 const popOverVisible = ref({
   approve: false,
   reject: false,
@@ -616,154 +616,151 @@ const popOverVisible = ref({
   copy: false,
   cancel: false,
   deleteSign: false,
-}) // 气泡卡是否展示
-const returnList = ref([] as any) // 退回节点
+}); // 气泡卡是否展示
+const returnList = ref([] as any); // 退回节点
 
 // ========== 审批信息 ==========
-const runningTask = ref<any>() // 运行中的任务
-const approveForm = ref<any>({}) // 审批通过时，额外的补充信息
-const approveFormFApi = ref<any>({}) // approveForms 的 fAPi
-const nodeTypeName = ref('审批') // 节点类型名称
-const subButton = ref<boolean>(true) // 是否显示子按钮
+const runningTask = ref<any>(); // 运行中的任务
+const approveForm = ref<any>({}); // 审批通过时，额外的补充信息
+const approveFormFApi = ref<any>({}); // approveForms 的 fAPi
+const nodeTypeName = ref('审批'); // 节点类型名称
+const subButton = ref<boolean>(true); // 是否显示子按钮
 const cancelFlag = computed(() => {
-  if (
-    props.processInstance.formVariables?.salesRole == '' ||
-    props.processInstance.formVariables?.salesRole === false
-  ) {
-    return true
+  if (props.processInstance.formVariables?.salesRole == '' || props.processInstance.formVariables?.salesRole === false) {
+    return true;
   } else {
-    return false
+    return false;
   }
-}) // 是否显示取消按钮
+}); // 是否显示取消按钮
 
 // 审批通过意见表单
-const reasonRequire = ref()
-const approveFormRef = ref<FormInstance>()
-const signRef = ref()
-const approveSignFormRef = ref()
-const nextAssigneesActivityNode = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([]) // 下一个审批节点信息
+const reasonRequire = ref();
+const approveFormRef = ref<FormInstance>();
+const signRef = ref();
+const approveSignFormRef = ref();
+const nextAssigneesActivityNode = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([]); // 下一个审批节点信息
 const approveReasonForm = reactive({
   reason: '',
   signPicUrl: '',
   nextAssignees: {},
-})
+});
 const approveReasonRule = computed(() => {
   return {
     reason: [{ required: reasonRequire.value, message: nodeTypeName + '意见不能为空', trigger: 'blur' }],
     signPicUrl: [{ required: true, message: '签名不能为空', trigger: 'change' }],
     nextAssignees: [{ required: true, message: '审批人不能为空', trigger: 'blur' }],
-  }
-})
+  };
+});
 
 // 拒绝表单
-const rejectFormRef = ref<FormInstance>()
+const rejectFormRef = ref<FormInstance>();
 const rejectReasonForm = reactive({
   reason: '',
-})
+});
 const rejectReasonRule = computed(() => {
   return {
     reason: [{ required: reasonRequire.value, message: '审批意见不能为空', trigger: 'blur' }],
-  }
-})
+  };
+});
 
 // 抄送表单
-const copyFormRef = ref<FormInstance>()
+const copyFormRef = ref<FormInstance>();
 const copyForm = reactive({
   copyUserIds: [],
   copyReason: '',
-})
+});
 const copyFormRule = reactive<FormRules<typeof copyForm>>({
   copyUserIds: [{ required: true, message: '抄送人不能为空', trigger: 'change' }],
-})
+});
 
 // 转办表单
-const transferFormRef = ref<FormInstance>()
+const transferFormRef = ref<FormInstance>();
 const transferForm = reactive({
   assigneeUserId: undefined as string | undefined,
   reason: '',
-})
+});
 const transferFormRule = reactive<FormRules<typeof transferForm>>({
   assigneeUserId: [{ required: true, message: '新审批人不能为空', trigger: 'change' }],
   reason: [{ required: true, message: '转办意见不能为空', trigger: 'blur' }],
-})
+});
 
 // 委派表单
-const delegateFormRef = ref<FormInstance>()
+const delegateFormRef = ref<FormInstance>();
 const delegateForm = reactive({
   delegateUserId: undefined,
   reason: '',
-})
+});
 const delegateFormRule = reactive<FormRules<typeof delegateForm>>({
   delegateUserId: [{ required: true, message: '接收人不能为空', trigger: 'change' }],
   reason: [{ required: true, message: '审批意见不能为空', trigger: 'blur' }],
-})
+});
 
 // 加签表单
-const addSignFormRef = ref<FormInstance>()
+const addSignFormRef = ref<FormInstance>();
 const addSignForm = reactive({
   addSignUserIds: [] as string[],
   reason: '',
-})
+});
 const addSignFormRule = reactive<FormRules<typeof addSignForm>>({
   addSignUserIds: [{ required: true, message: '加签处理人不能为空', trigger: 'change' }],
   reason: [{ required: true, message: '审批意见不能为空', trigger: 'blur' }],
-})
+});
 
 // 减签表单
-const deleteSignFormRef = ref<FormInstance>()
+const deleteSignFormRef = ref<FormInstance>();
 const deleteSignForm = reactive({
   deleteSignTaskId: undefined,
   reason: '',
-})
+});
 const deleteSignFormRule = reactive<FormRules<typeof deleteSignForm>>({
   deleteSignTaskId: [{ required: true, message: '减签人员不能为空', trigger: 'change' }],
   reason: [{ required: true, message: '审批意见不能为空', trigger: 'blur' }],
-})
+});
 
 // 退回表单
-const returnFormRef = ref<FormInstance>()
+const returnFormRef = ref<FormInstance>();
 const returnForm = reactive({
   targetTaskDefinitionKey: undefined,
   returnReason: '',
-})
+});
 const returnFormRule = reactive<FormRules<typeof returnForm>>({
   targetTaskDefinitionKey: [{ required: true, message: '退回节点不能为空', trigger: 'change' }],
   returnReason: [{ required: true, message: '退回理由不能为空', trigger: 'blur' }],
-})
+});
 
 // 取消表单
-const cancelFormRef = ref<FormInstance>()
+const cancelFormRef = ref<FormInstance>();
 const cancelForm = reactive({
   cancelReason: '',
-})
+});
 const cancelFormRule = reactive<FormRules<typeof cancelForm>>({
   cancelReason: [{ required: true, message: '取消理由不能为空', trigger: 'blur' }],
-})
+});
 
 /** 监听 approveFormFApis，实现它对应的 form-create 初始化后，隐藏掉对应的表单提交按钮 */
 watch(
   () => approveFormFApi.value,
   val => {
-    val?.btn?.show(false)
-    val?.resetBtn?.show(false)
+    val?.btn?.show(false);
+    val?.resetBtn?.show(false);
   },
   {
     deep: true,
   },
-)
+);
 
 const handleGoBack = () => {
-  push(resolveProcessInstanceDetailBackRoute(route))
-}
+  push(resolveProcessInstanceDetailBackRoute(route));
+};
 
 /** 弹出气泡卡 */
 const openPopover = async (type: string, buttonName?: string) => {
   Object.keys(popOverVisible.value).forEach(item => {
-    popOverVisible.value[item] = item === type
-  })
+    popOverVisible.value[item] = item === type;
+  });
 
   if (!taskId.value) {
-    message.warning('任务ID不存在，无法执行操作!')
+    message.warning('任务ID不存在，无法执行操作!');
   }
 
   if (type === 'approve') {
@@ -772,27 +769,27 @@ const openPopover = async (type: string, buttonName?: string) => {
       props.processInstance.formVariables?.PROCESS_BUSINESS_TYPE ===
         BpmBusinessProcessTypeEnum.PRODUCT_MODEL_FINALIZATION_CHANGE
     ) {
-      const variables = getUpdatedProcessInstanceVariables()
+      const variables = getUpdatedProcessInstanceVariables();
       if (!variables?.director) {
-        message.error('请选择主机厂所长审批节点人员')
-        return
+        message.error('请选择主机厂所长审批节点人员');
+        return;
       }
     } else {
-      const valid2 = await validateUserForm()
+      const valid2 = await validateUserForm();
       if (!valid2) {
-        message.warning('请选择节点审批人!')
-        return
+        message.warning('请选择节点审批人!');
+        return;
       }
       // 校验流程表单
-      const valid = await validateNormalForm()
-      const valid3 = await validateAreaSaleRelease()
+      const valid = await validateNormalForm();
+      const valid3 = await validateAreaSaleRelease();
       if (!valid || !valid3) {
-        message.warning('表单校验不通过，请先完善表单!!')
-        return
+        message.warning('表单校验不通过，请先完善表单!!');
+        return;
       }
     }
     // return
-    initNextAssigneesFormField()
+    initNextAssigneesFormField();
 
     await ElMessageBox.confirm('确认 ' + getButtonDisplayName(OperationButtonType.APPROVE) + ' 操作吗？', '温馨提示', {
       confirmButtonText: '确定',
@@ -800,29 +797,29 @@ const openPopover = async (type: string, buttonName?: string) => {
       type: 'warning',
     })
       .then(async () => {
-        emit('handleLoading', true)
+        emit('handleLoading', true);
         //调用提交接口
-        handleAudit(true, approveFormRef.value)
+        handleAudit(true, approveFormRef.value);
       })
       .catch(() => {
-        emit('handleLoading', false)
-      })
+        emit('handleLoading', false);
+      });
   }
   if (type === 'return') {
     // 获取退回节点
-    returnList.value = await TaskApi.getTaskListByReturn(runningTask.value.id)
+    returnList.value = await TaskApi.getTaskListByReturn(runningTask.value.id);
     if (returnList.value.length === 0) {
-      message.warning('当前没有可退回的节点')
-      return
+      message.warning('当前没有可退回的节点');
+      return;
     }
   }
 
   // 驳回
   if (type === 'reject') {
-    const regectLabel = getButtonDisplayName(OperationButtonType.REJECT)
+    const regectLabel = getButtonDisplayName(OperationButtonType.REJECT);
     if (!props.opinion && !regectLabel?.includes('解算')) {
-      message.error('处理意见不能为空！')
-      return
+      message.error('处理意见不能为空！');
+      return;
     }
 
     if (
@@ -830,10 +827,10 @@ const openPopover = async (type: string, buttonName?: string) => {
       props.processInstance.formVariables?.PROCESS_BUSINESS_TYPE ===
         BpmBusinessProcessTypeEnum.PRODUCT_MODEL_FINALIZATION_CHANGE
     ) {
-      const variables = getUpdatedProcessInstanceVariables()
+      const variables = getUpdatedProcessInstanceVariables();
       if (!variables?.drafter) {
-        message.error('请选择编制节点人员')
-        return
+        message.error('请选择编制节点人员');
+        return;
       }
     }
 
@@ -843,18 +840,18 @@ const openPopover = async (type: string, buttonName?: string) => {
       type: 'warning',
     })
       .then(async () => {
-        emit('handleLoading', true)
+        emit('handleLoading', true);
         //调用提交接口
-        handleAudit(false, rejectFormRef.value)
+        handleAudit(false, rejectFormRef.value);
       })
       .catch(() => {
-        emit('handleLoading', false)
-      })
+        emit('handleLoading', false);
+      });
   }
 
   // await nextTick()
   // formRef.value.resetFields()
-}
+};
 
 /**
  * 验证区域销售发布的有效性
@@ -862,23 +859,23 @@ const openPopover = async (type: string, buttonName?: string) => {
  * @returns {boolean} 返回布尔值，表示验证结果。如果验证通过，则返回true；否则返回false。
  */
 const validateAreaSaleRelease = () => {
-  let falg = true
+  let falg = true;
   if (['标配Mbom确认', '重新推送', '正式发布', '工艺审核', '研发审核'].includes(props.taskType)) {
     if (props.taskType === '标配Mbom确认') {
       if (props.areaSaleRelease.areaSaleRelease_genStMbomConfirm === null) {
-        falg = false
+        falg = false;
       }
     }
 
     if (props.taskType === '重新推送') {
       if (props.areaSaleRelease.areaSaleRelease_rePushScpStMbomPre === null) {
-        falg = false
+        falg = false;
       }
     }
 
     if (props.taskType === '正式发布') {
       if (props.areaSaleRelease.areaSaleRelease_officiallyReleased === null) {
-        falg = false
+        falg = false;
       }
     }
 
@@ -890,39 +887,39 @@ const validateAreaSaleRelease = () => {
 
     if (props.taskType === '研发审核') {
       if (props.areaSaleRelease.rdOwnerToAdmin === null) {
-        falg = false
+        falg = false;
       }
     }
   }
-  return falg
-}
+  return falg;
+};
 
 /** 关闭气泡卡 */
 const closePopover = (type: string, formRef: FormInstance | undefined) => {
   if (formRef) {
-    formRef.resetFields()
+    formRef.resetFields();
   }
   if (type === 'transfer') {
-    transferUser.value = []
-    memberAuthUserIds.value = []
+    transferUser.value = [];
+    memberAuthUserIds.value = [];
   }
   if (type === 'addSign') {
-    addSignUser.value = []
-    memberAuthUserIds.value = []
+    addSignUser.value = [];
+    memberAuthUserIds.value = [];
   }
-  popOverVisible.value[type] = false
-  nextAssigneesActivityNode.value = []
-}
+  popOverVisible.value[type] = false;
+  nextAssigneesActivityNode.value = [];
+};
 
 /** 流程通过时，根据表单变量查询新的流程节点，判断下一个节点类型是否为自选审批人 */
 const initNextAssigneesFormField = async () => {
   // 获取修改的流程变量, 暂时只支持流程表单
-  const variables = getUpdatedProcessInstanceVariables()
+  const variables = getUpdatedProcessInstanceVariables();
   const data = await ProcessInstanceApi.getNextApprovalNodes({
     processInstanceId: props.processInstance.id,
     taskId: runningTask.value.id,
     processVariablesStr: JSON.stringify(variables),
-  })
+  });
   if (data && data.length > 0) {
     data.forEach((node: any) => {
       if (
@@ -933,51 +930,51 @@ const initNextAssigneesFormField = async () => {
         // 情况二：当前节点是审批人自选
         CandidateStrategy.APPROVE_USER_SELECT === node.candidateStrategy
       ) {
-        nextAssigneesActivityNode.value.push(node)
+        nextAssigneesActivityNode.value.push(node);
       }
-    })
+    });
   }
-}
+};
 
 /** 选择下一个节点的审批人 */
 const selectNextAssigneesConfirm = (id: string, userList: any[]) => {
-  approveReasonForm.nextAssignees[id] = userList?.map((item: any) => item.id)
-}
+  approveReasonForm.nextAssignees[id] = userList?.map((item: any) => item.id);
+};
 /** 审批通过时，校验每个自选审批人的节点是否都已配置了审批人 */
 const validateNextAssignees = () => {
   if (Object.keys(nextAssigneesActivityNode.value).length === 0) {
-    return true
+    return true;
   }
   // 如果需要自选审批人，则校验每个节点是否都已配置审批人
   for (const item of nextAssigneesActivityNode.value) {
     if (isEmpty(approveReasonForm.nextAssignees[item.id])) {
-      message.warning('下一个节点的审批人不能为空!')
-      return false
+      message.warning('下一个节点的审批人不能为空!');
+      return false;
     }
   }
-  return true
-}
+  return true;
+};
 
 /** 处理审批通过和不通过的操作 */
 const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => {
-  formLoading.value = true
-  emit('handleLoading', true)
+  formLoading.value = true;
+  emit('handleLoading', true);
   try {
     // 校验表单
     // if (!formRef) return
     // await formRef.validate()
     // 校验流程表单必填字段
-    const valid = await validateNormalForm()
+    const valid = await validateNormalForm();
     if (!valid) {
-      emit('handleLoading', false)
-      message.warning('表单校验不通过，请先完善表单!!')
-      return
+      emit('handleLoading', false);
+      message.warning('表单校验不通过，请先完善表单!!');
+      return;
     }
 
     if (pass) {
-      const nextAssigneesValid = validateNextAssignees()
-      if (!nextAssigneesValid) return
-      const variables = getUpdatedProcessInstanceVariables()
+      const nextAssigneesValid = validateNextAssignees();
+      if (!nextAssigneesValid) return;
+      const variables = getUpdatedProcessInstanceVariables();
 
       // 审批通过数据
       const data = {
@@ -986,207 +983,207 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
         variables, // 审批通过, 把修改的字段值赋于流程实例变量
         nextAssignees: approveReasonForm.nextAssignees, // 下个自选节点选择的审批人信息
         firstTimeEditSubmit: props.firstTimeEditSubmit, // 是否是第一次编辑提交
-      } as any
+      } as any;
       // 签名
       if (runningTask.value?.signEnable) {
-        data.signPicUrl = approveReasonForm.signPicUrl
+        data.signPicUrl = approveReasonForm.signPicUrl;
       }
 
-      data.variables.ManualChange = props.isManual
+      data.variables.ManualChange = props.isManual;
 
       // 多表单处理，并且有额外的 approveForm 表单，需要校验 + 拼接到 data 表单里提交
       // TODO 芋艿 任务有多表单这里要如何处理，会和可编辑的字段冲突
-      const formCreateApi = approveFormFApi.value
+      const formCreateApi = approveFormFApi.value;
       if (Object.keys(formCreateApi)?.length > 0) {
-        await formCreateApi.validate()
+        await formCreateApi.validate();
         // @ts-ignore
-        data.variables = approveForm.value.value
+        data.variables = approveForm.value.value;
       }
-      await TaskApi.approveTask(data)
-      popOverVisible.value.approve = false
-      subButton.value = false
-      nextAssigneesActivityNode.value = []
-      emit('handleLoading', false)
-      message.success('审批成功')
-      handleGoBack()
+      await TaskApi.approveTask(data);
+      popOverVisible.value.approve = false;
+      subButton.value = false;
+      nextAssigneesActivityNode.value = [];
+      emit('handleLoading', false);
+      message.success('审批成功');
+      handleGoBack();
     } else {
-      const variables = getUpdatedProcessInstanceVariables()
+      const variables = getUpdatedProcessInstanceVariables();
 
       // 审批不通过数据
       const data = {
         id: taskId.value,
         reason: props.opinion,
         variables,
-      }
-      await TaskApi.rejectTask(data)
-      popOverVisible.value.reject = false
-      subButton.value = false
-      emit('handleLoading', false)
-      const regectLabel = getButtonDisplayName(OperationButtonType.REJECT)
-      message.success(regectLabel?.includes('解算') ? '重新解算成功' : '提交成功')
+      };
+      await TaskApi.rejectTask(data);
+      popOverVisible.value.reject = false;
+      subButton.value = false;
+      emit('handleLoading', false);
+      const regectLabel = getButtonDisplayName(OperationButtonType.REJECT);
+      message.success(regectLabel?.includes('解算') ? '重新解算成功' : '提交成功');
       //重新结算的需要等待，不跳回列表
 
       if (regectLabel?.includes('解算')) {
-        return
+        return;
       }
-      handleGoBack()
+      handleGoBack();
     }
     // 重置表单
     // formRef.resetFields()
     // 加载最新数据
-    reload()
+    reload();
   } finally {
-    emit('handleLoading', false)
-    formLoading.value = false
+    emit('handleLoading', false);
+    formLoading.value = false;
   }
-}
+};
 
 /** 校验流程表单 */
 const validateUserForm = async (): Promise<boolean> => {
-  let flag = true
-  const list = props.writableFieldsCopy
+  let flag = true;
+  const list = props.writableFieldsCopy;
   list.forEach(item => {
-    const obj = item
+    const obj = item;
     for (var key in item) {
       if (!obj[key]) {
-        flag = false
-        return
+        flag = false;
+        return;
       }
     }
-  })
-  return flag
-}
+  });
+  return flag;
+};
 
 /** 处理抄送 */
 const handleCopy = async () => {
-  formLoading.value = true
+  formLoading.value = true;
   try {
     // 1. 校验表单
-    if (!copyFormRef.value) return
-    await copyFormRef.value.validate()
+    if (!copyFormRef.value) return;
+    await copyFormRef.value.validate();
     // 2. 提交抄送
     const data = {
       id: runningTask.value.id,
       reason: copyForm.copyReason,
       copyUserIds: copyForm.copyUserIds,
-    }
-    await TaskApi.copyTask(data)
-    copyFormRef.value.resetFields()
-    popOverVisible.value.copy = false
-    message.success('操作成功')
+    };
+    await TaskApi.copyTask(data);
+    copyFormRef.value.resetFields();
+    popOverVisible.value.copy = false;
+    message.success('操作成功');
   } finally {
-    formLoading.value = false
+    formLoading.value = false;
   }
-}
+};
 
 /** 处理转办 */
 const handleTransfer = async () => {
-  formLoading.value = true
+  formLoading.value = true;
   try {
     // 1.1 校验表单
-    if (!transferFormRef.value) return
-    await transferFormRef.value.validate()
+    if (!transferFormRef.value) return;
+    await transferFormRef.value.validate();
     // 1.2 提交转交
     const data = {
       id: runningTask.value.id,
       reason: transferForm.reason,
       assigneeUserId: transferForm.assigneeUserId,
-    }
-    await TaskApi.transferTask(data)
-    transferFormRef.value.resetFields()
-    transferUser.value = []
-    memberAuthUserIds.value = []
-    popOverVisible.value.transfer = false
-    message.success('操作成功')
+    };
+    await TaskApi.transferTask(data);
+    transferFormRef.value.resetFields();
+    transferUser.value = [];
+    memberAuthUserIds.value = [];
+    popOverVisible.value.transfer = false;
+    message.success('操作成功');
     // 2. 加载最新数据
-    reload()
+    reload();
   } finally {
-    formLoading.value = false
+    formLoading.value = false;
   }
-}
+};
 
 /** 处理委派 */
 const handleDelegate = async () => {
-  formLoading.value = true
+  formLoading.value = true;
   try {
     // 1.1 校验表单
-    if (!delegateFormRef.value) return
-    await delegateFormRef.value.validate()
+    if (!delegateFormRef.value) return;
+    await delegateFormRef.value.validate();
     // 1.2 处理委派
     const data = {
       id: runningTask.value.id,
       reason: delegateForm.reason,
       delegateUserId: delegateForm.delegateUserId,
-    }
+    };
 
-    await TaskApi.delegateTask(data)
-    popOverVisible.value.delegate = false
-    delegateFormRef.value.resetFields()
-    message.success('操作成功')
+    await TaskApi.delegateTask(data);
+    popOverVisible.value.delegate = false;
+    delegateFormRef.value.resetFields();
+    message.success('操作成功');
     // 2. 加载最新数据
-    reload()
+    reload();
   } finally {
-    formLoading.value = false
+    formLoading.value = false;
   }
-}
+};
 
 /** 处理加签 */
 const handlerAddSign = async (type: string) => {
-  formLoading.value = true
+  formLoading.value = true;
   try {
     // 1.1 校验表单
-    if (!addSignFormRef.value) return
-    await addSignFormRef.value.validate()
+    if (!addSignFormRef.value) return;
+    await addSignFormRef.value.validate();
     // 1.2 提交加签
     const data = {
       id: runningTask.value.id,
       type,
       reason: addSignForm.reason,
       userIds: addSignForm.addSignUserIds,
-    }
-    await TaskApi.signCreateTask(data)
-    message.success('操作成功')
-    addSignFormRef.value.resetFields()
-    addSignUser.value = []
-    memberAuthUserIds.value = []
-    popOverVisible.value.addSign = false
+    };
+    await TaskApi.signCreateTask(data);
+    message.success('操作成功');
+    addSignFormRef.value.resetFields();
+    addSignUser.value = [];
+    memberAuthUserIds.value = [];
+    popOverVisible.value.addSign = false;
     // 2 加载最新数据
-    reload()
+    reload();
   } finally {
-    formLoading.value = false
+    formLoading.value = false;
   }
-}
+};
 
 /** 处理退回 */
 const handleReturn = async () => {
-  formLoading.value = true
+  formLoading.value = true;
   try {
     // 1.1 校验表单
-    if (!returnFormRef.value) return
-    await returnFormRef.value.validate()
+    if (!returnFormRef.value) return;
+    await returnFormRef.value.validate();
     // 1.2 提交退回
     const data = {
       id: runningTask.value.id,
       reason: returnForm.returnReason,
       targetTaskDefinitionKey: returnForm.targetTaskDefinitionKey,
-    }
+    };
 
-    await TaskApi.returnTask(data)
-    popOverVisible.value.return = false
-    returnFormRef.value.resetFields()
-    message.success('操作成功')
+    await TaskApi.returnTask(data);
+    popOverVisible.value.return = false;
+    returnFormRef.value.resetFields();
+    message.success('操作成功');
     // 2 重新加载数据
-    reload()
+    reload();
   } finally {
-    formLoading.value = false
+    formLoading.value = false;
   }
-}
+};
 
 /** 处理取消 */
 const handleCancel = async () => {
   if (!props.opinion) {
-    message.error('处理意见不能为空！')
-    return
+    message.error('处理意见不能为空！');
+    return;
   }
   await ElMessageBox.confirm('是否取消当前审批流程', '温馨提示', {
     confirmButtonText: '确定',
@@ -1194,25 +1191,25 @@ const handleCancel = async () => {
     type: 'warning',
   })
     .then(async () => {
-      formLoading.value = true
-      emit('handleLoading', true)
+      formLoading.value = true;
+      emit('handleLoading', true);
       try {
-        await ProcessInstanceApi.cancelProcessInstanceByStartUser(props.processInstance.id, props.opinion)
-        message.success('取消成功')
+        await ProcessInstanceApi.cancelProcessInstanceByStartUser(props.processInstance.id, props.opinion);
+        message.success('取消成功');
         push({
           name: 'Home',
           query: {
             aTab: props.aTab,
             pageIndex: props.pageIndex,
           },
-        })
+        });
       } finally {
-        formLoading.value = false
-        emit('handleLoading', false)
+        formLoading.value = false;
+        emit('handleLoading', false);
       }
     })
-    .catch(() => {})
-}
+    .catch(() => {});
+};
 
 /** 处理再次提交 */
 const handleReCreate = async () => {
@@ -1220,178 +1217,178 @@ const handleReCreate = async () => {
   await router.push({
     name: 'BpmProcessInstanceCreate',
     query: { processInstanceId: props.processInstance?.id },
-  })
-}
+  });
+};
 
 /** 获取减签人员标签 */
 const getDeleteSignUserLabel = (task: any): string => {
-  const deptName = task?.assigneeUser?.deptName || task?.ownerUser?.deptName
-  const nickname = task?.assigneeUser?.nickname || task?.ownerUser?.nickname
-  return `{nickname} ( 所属部门：{deptName} )`
-}
+  const deptName = task?.assigneeUser?.deptName || task?.ownerUser?.deptName;
+  const nickname = task?.assigneeUser?.nickname || task?.ownerUser?.nickname;
+  return `{nickname} ( 所属部门：{deptName} )`;
+};
 /** 处理减签 */
 const handlerDeleteSign = async () => {
-  formLoading.value = true
+  formLoading.value = true;
   try {
     // 1.1 校验表单
-    if (!deleteSignFormRef.value) return
-    await deleteSignFormRef.value.validate()
+    if (!deleteSignFormRef.value) return;
+    await deleteSignFormRef.value.validate();
     // 1.2 提交减签
     const data = {
       id: deleteSignForm.deleteSignTaskId,
       reason: deleteSignForm.reason,
-    }
-    await TaskApi.signDeleteTask(data)
-    message.success('减签成功')
-    deleteSignFormRef.value.resetFields()
-    popOverVisible.value.deleteSign = false
+    };
+    await TaskApi.signDeleteTask(data);
+    message.success('减签成功');
+    deleteSignFormRef.value.resetFields();
+    popOverVisible.value.deleteSign = false;
     // 2 加载最新数据
-    reload()
+    reload();
   } finally {
-    formLoading.value = false
+    formLoading.value = false;
   }
-}
+};
 /** 重新加载数据 */
 const reload = () => {
-  emit('success')
-}
+  emit('success');
+};
 
 /** 任务是否为处理中状态 */
 const isHandleTaskStatus = () => {
-  let canHandle = false
+  let canHandle = false;
   if (TaskApi.TaskStatusEnum.RUNNING === runningTask.value?.status) {
-    canHandle = true
+    canHandle = true;
   }
-  return canHandle
-}
+  return canHandle;
+};
 
 /** 流程状态是否为结束状态 */
 const isEndProcessStatus = (status: number) => {
-  let isEndStatus = false
+  let isEndStatus = false;
   if (
     BpmProcessInstanceStatus.APPROVE === status ||
     BpmProcessInstanceStatus.REJECT === status ||
     BpmProcessInstanceStatus.CANCEL === status
   ) {
-    isEndStatus = true
+    isEndStatus = true;
   }
-  return isEndStatus
-}
+  return isEndStatus;
+};
 
 /** 是否显示按钮 */
 const isShowButton = (btnType: OperationButtonType): boolean => {
-  let isShow = true
+  let isShow = true;
   if (runningTask.value?.buttonsSetting && runningTask.value?.buttonsSetting[btnType]) {
-    isShow = runningTask.value.buttonsSetting[btnType].enable
+    isShow = runningTask.value.buttonsSetting[btnType].enable;
   }
   if (props.editType === 0) {
-    isShow = false
+    isShow = false;
   }
-  return isShow
-}
+  return isShow;
+};
 
 /** 获取按钮的显示名称 */
 const getButtonDisplayName = (btnType: OperationButtonType) => {
-  let displayName = OPERATION_BUTTON_NAME.get(btnType)
+  let displayName = OPERATION_BUTTON_NAME.get(btnType);
   if (runningTask.value?.buttonsSetting && runningTask.value?.buttonsSetting[btnType]) {
-    displayName = runningTask.value.buttonsSetting[btnType].displayName
+    displayName = runningTask.value.buttonsSetting[btnType].displayName;
   }
-  return displayName
-}
+  return displayName;
+};
 
-const taskId = ref<any>('')
+const taskId = ref<any>('');
 
 const loadTodoTask = (task: any, id: any) => {
-  approveForm.value = {}
-  runningTask.value = task
-  taskId.value = id
-  approveFormFApi.value = {}
-  reasonRequire.value = task?.reasonRequire ?? false
-  nodeTypeName.value = task?.nodeType === NodeType.TRANSACTOR_NODE ? '办理' : '审批'
+  approveForm.value = {};
+  runningTask.value = task;
+  taskId.value = id;
+  approveFormFApi.value = {};
+  reasonRequire.value = task?.reasonRequire ?? false;
+  nodeTypeName.value = task?.nodeType === NodeType.TRANSACTOR_NODE ? '办理' : '审批';
 
   // 添加按钮配置转换逻辑
   if (task?.buttonsSetting && Array.isArray(task.buttonsSetting)) {
     // 将数组转换为对象，以按钮类型为键
-    const buttonsSettingObj = {}
+    const buttonsSettingObj = {};
     task.buttonsSetting.forEach(button => {
-      buttonsSettingObj[button.id] = button
-    })
-    runningTask.value.buttonsSetting = buttonsSettingObj
+      buttonsSettingObj[button.id] = button;
+    });
+    runningTask.value.buttonsSetting = buttonsSettingObj;
   }
 
   // 处理 approve 表单.
   if (task && task.formId && task.formConf) {
-    const tempApproveForm = {}
-    setConfAndFields2(tempApproveForm, task.formConf, task.formFields, task.formVariables)
-    approveForm.value = tempApproveForm
+    const tempApproveForm = {};
+    setConfAndFields2(tempApproveForm, task.formConf, task.formFields, task.formVariables);
+    approveForm.value = tempApproveForm;
   } else {
-    approveForm.value = {} // 占位，避免为空
+    approveForm.value = {}; // 占位，避免为空
   }
-}
+};
 
 /** 校验流程表单 */
 const validateNormalForm = async () => {
   if (props.processDefinition?.formType === BpmModelFormType.NORMAL) {
-    let valid = true
+    let valid = true;
     try {
-      await props.normalFormApi?.validate()
+      await props.normalFormApi?.validate();
     } catch {
-      valid = false
+      valid = false;
     }
-    return valid
+    return valid;
   } else {
-    return true
+    return true;
   }
-}
+};
 
 /** 从可以编辑的流程表单字段，获取需要修改的流程实例的变量 */
 const getUpdatedProcessInstanceVariables = () => {
-  const variables = {}
+  const variables = {};
   props.writableFields.forEach(field => {
-    variables[field] = props.normalFormApi.getValue(field)
-  })
+    variables[field] = props.normalFormApi.getValue(field);
+  });
 
   // 选择的人员字段
   props.writableFieldsCopy.forEach(field => {
-    variables[Object.keys(field)[0]] = field[Object.keys(field)[0]]
-  })
+    variables[Object.keys(field)[0]] = field[Object.keys(field)[0]];
+  });
 
   // 区域销售状态
   if (['标配Mbom确认', '重新推送', '正式发布', '工艺审核', '研发审核'].includes(props.taskType)) {
     if (props.taskType === '标配Mbom确认') {
       if (props.areaSaleRelease.areaSaleRelease_genStMbomConfirm !== null) {
-        variables['areaSaleRelease_genStMbomConfirm'] = props.areaSaleRelease?.areaSaleRelease_genStMbomConfirm
+        variables['areaSaleRelease_genStMbomConfirm'] = props.areaSaleRelease?.areaSaleRelease_genStMbomConfirm;
       }
     }
     if (props.taskType === '重新推送') {
       if (props.areaSaleRelease.areaSaleRelease_rePushScpStMbomPre !== null) {
-        variables['areaSaleRelease_rePushScpStMbomPre'] = props.areaSaleRelease?.areaSaleRelease_rePushScpStMbomPre
+        variables['areaSaleRelease_rePushScpStMbomPre'] = props.areaSaleRelease?.areaSaleRelease_rePushScpStMbomPre;
       }
     }
 
     if (props.taskType === '正式发布') {
       if (props.areaSaleRelease.areaSaleRelease_officiallyReleased !== null) {
-        variables['areaSaleRelease_officiallyReleased'] = props.areaSaleRelease?.areaSaleRelease_officiallyReleased
+        variables['areaSaleRelease_officiallyReleased'] = props.areaSaleRelease?.areaSaleRelease_officiallyReleased;
       }
     }
     if (props.taskType === '研发审核') {
-      variables['rdOwnerToAdmin'] = props.areaSaleRelease?.rdOwnerToAdmin
+      variables['rdOwnerToAdmin'] = props.areaSaleRelease?.rdOwnerToAdmin;
     }
 
     if (props.taskType === '工艺审核') {
-      variables['processOwnerToAdmin'] = props.areaSaleRelease?.processOwnerToAdmin
-      variables['processOwnerToRdOwner'] = props.areaSaleRelease?.processOwnerToRdOwner
+      variables['processOwnerToAdmin'] = props.areaSaleRelease?.processOwnerToAdmin;
+      variables['processOwnerToRdOwner'] = props.areaSaleRelease?.processOwnerToRdOwner;
     }
   }
 
-  return variables
-}
+  return variables;
+};
 
 /** 处理签名完成 */
 const handleSignFinish = (url: string) => {
-  approveReasonForm.signPicUrl = url
-  approveSignFormRef.value.validate('change')
-}
+  approveReasonForm.signPicUrl = url;
+  approveSignFormRef.value.validate('change');
+};
 
 // const emits = defineEmits<{
 //   (e: 'select-user', index: number, type: 'normal' | 'mainEngine'): void
@@ -1401,7 +1398,7 @@ const handleSignFinish = (url: string) => {
 //   emit('select-user', index, type)
 // }
 
-defineExpose({ loadTodoTask })
+defineExpose({ loadTodoTask });
 </script>
 
 <style lang="scss" scoped>

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import type { TableColumnType, UploadFile, UploadProps } from 'ant-design-vue'
-import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue'
-import _ from 'lodash-es'
+import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import type { TableColumnType, UploadFile, UploadProps } from 'ant-design-vue';
+import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue';
+import _ from 'lodash-es';
 import {
   CaretDownOutlined,
   CaretUpOutlined,
@@ -11,38 +11,38 @@ import {
   FilterOutlined,
   LeftOutlined,
   SearchOutlined,
-} from '@ant-design/icons-vue'
-import * as echarts from 'echarts'
-import addModule from '../modal/addModule.vue'
-import InitiateaProcess from '../modal/InitiateaProcess.vue'
-import applicationModule from '../modal/applicationModule.vue'
-import parametricdesign from '../modal/parametricdesign.vue'
-import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequestDTOModel'
-import { AdminApiSystemModule } from '@/api/tags/module/系统模块库'
-import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket'
-import { useUserStore } from '@/store/modules/user'
-import { characterToList, sortermethod } from '@/utils/tools'
-import { EpcIcon } from '@/components/icon/EpcIcon.js'
-import Empty from '@/components/Empty/index.vue'
-import ImportFile from '@/components/ImportFile/index.vue'
-import { AdminApiSystemUploadFile } from '@/api/tags/文件上传'
-import { handleEpcDownload, previewUrlFile } from '@/utils/file'
-import Ddview from '@/components/Ddview/index.vue'
-import vizSchematicPlaceholder from '@/assets/images/viz-schematic-placeholder.png'
-
+} from '@ant-design/icons-vue';
+import * as echarts from 'echarts';
+import addModule from '../modal/addModule.vue';
+import InitiateaProcess from '../modal/InitiateaProcess.vue';
+import applicationModule from '../modal/applicationModule.vue';
+import parametricdesign from '../modal/parametricdesign.vue';
+import { ModuleTypeRequestDTOModel } from '@/api/models/module/ModuleTypeRequestDTOModel';
+import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
+import { AdminApiwebSocketAuth } from '@/api/tags/管理webSocket';
+import { useUserStore } from '@/store/modules/user';
+import { characterToList, sortermethod } from '@/utils/tools';
+import { EpcIcon } from '@/components/icon/EpcIcon.js';
+import Empty from '@/components/Empty/index.vue';
+import ImportFile from '@/components/ImportFile/index.vue';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { handleEpcDownload, previewUrlFile } from '@/utils/file';
+import Ddview from '@/components/Ddview/index.vue';
+import vizSchematicPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
+import { useRouter } from 'vue-router';
 import {
   openDrawingInfoNew,
   openModuleInfoNew,
   assembleModuleInfoNew,
   insertModelLibraryStatisticsLog,
-} from '@/libs/webSocketNew'
-import { AdminApiSystemAuth } from '@/api/tags/管理后台认证'
-import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery'
-import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue'
-import moduleIcon1 from '@/assets/images/module1.png'
-import moduleIcon2 from '@/assets/images/module2.png'
-import moduleIcon3 from '@/assets/images/module3.png'
-import moduleIcon4 from '@/assets/images/module4.png'
+} from '@/libs/webSocketNew';
+import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
+import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
+import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
+import moduleIcon1 from '@/assets/images/module1.png';
+import moduleIcon2 from '@/assets/images/module2.png';
+import moduleIcon3 from '@/assets/images/module3.png';
+import moduleIcon4 from '@/assets/images/module4.png';
 
 defineProps({
   /** 反馈详情 id */
@@ -51,40 +51,41 @@ defineProps({
     type: String,
     default: '',
   },
-})
-const emit = defineEmits(['nodeListInfo', 'getCategory'])
-const instance = getCurrentInstance()
-const userStore = useUserStore()
-const categoryid = ref('')
-const menuId = ref<any>(null)
-const pageFlagDrawer = ref<boolean>(false)
-const modulePropertyInfo = ref<any>([])
-const AddVisible = ref<boolean>(false)
-const ProcessVisible = ref<boolean>(false)
-const addOrUpdate = ref<any>(null)
-const modalInfo = ref<any>([])
-const btnType = ref(true)
-const delBtnType = ref(true)
-const compareBtnType = ref(true)
-const selectedRowkeys = ref<any[]>([])
+});
+const emit = defineEmits(['nodeListInfo', 'getCategory']);
+const router = useRouter();
+const instance = getCurrentInstance();
+const userStore = useUserStore();
+const categoryid = ref('');
+const menuId = ref<any>(null);
+const pageFlagDrawer = ref<boolean>(false);
+const modulePropertyInfo = ref<any>([]);
+const AddVisible = ref<boolean>(false);
+const ProcessVisible = ref<boolean>(false);
+const addOrUpdate = ref<any>(null);
+const modalInfo = ref<any>([]);
+const btnType = ref(true);
+const delBtnType = ref(true);
+const compareBtnType = ref(true);
+const selectedRowkeys = ref<any[]>([]);
 const page = reactive({
   pageSize: 10,
   pageCount: 0,
   currentPage: 1,
-})
-const columns = ref<TableColumnType<any>[]>([])
-const queryColumns = ref<any>([])
+});
+const columns = ref<TableColumnType<any>[]>([]);
+const queryColumns = ref<any>([]);
 const dropdownList = ref<any>([
   { id: 1, name: '导入' },
   { id: 8, name: '导出' },
   { id: 3, name: '列宽保存' },
   { id: 4, name: '提交审核' },
   { id: 5, name: '上传pvz' },
-])
-const parmDesignData = ref<any>([])
-const loading = ref(false)
-const selectModelList = ref<any[]>([])
-const queryForm = reactive<Record<string, any>>({})
+]);
+const parmDesignData = ref<any>([]);
+const loading = ref(false);
+const selectModelList = ref<any[]>([]);
+const queryForm = reactive<Record<string, any>>({});
 
 const {
   globalQueryModalVisible,
@@ -101,51 +102,51 @@ const {
   addGlobalQueryGroup,
   removeGlobalQueryGroup,
   resetGlobalQueryGroups,
-} = useGlobalQuery(menuId)
+} = useGlobalQuery(menuId);
 
 // 处理需要计算的属性，比如modelHeight
-const modelHeight = ref(0)
+const modelHeight = ref(0);
 onMounted(() => {
-  modelHeight.value = document.body.clientHeight - 240
-})
+  modelHeight.value = document.body.clientHeight - 240;
+});
 
-const dataSource = ref<any>([])
+const dataSource = ref<any>([]);
 
-type ModuleSortOrder = 'ascend' | 'descend' | ''
-const sortState = ref<{ key: string; order: ModuleSortOrder }>({ key: '', order: '' })
+type ModuleSortOrder = 'ascend' | 'descend' | '';
+const sortState = ref<{ key: string; order: ModuleSortOrder }>({ key: '', order: '' });
 /** 表头筛选：与 exeConfigTab 一致，仅前三列数据列可筛（当前页数据） */
-const moduleFilterableColumnKeys = ref<string[]>([])
-const moduleTableColumnFilter = ref<Record<string, string>>({})
-const moduleTableFilterOpenMap = ref<Record<string, boolean>>({})
-const SCROLL_X_BUFFER_PX = 2
-const TABLE_SELECTION_COL_WIDTH_PX = 60
+const moduleFilterableColumnKeys = ref<string[]>([]);
+const moduleTableColumnFilter = ref<Record<string, string>>({});
+const moduleTableFilterOpenMap = ref<Record<string, boolean>>({});
+const SCROLL_X_BUFFER_PX = 2;
+const TABLE_SELECTION_COL_WIDTH_PX = 60;
 
 const moduleTableScrollX = computed(() => {
   const sum = columns.value.reduce((acc, col) => {
-    const w = col.width
-    return acc + (typeof w === 'number' ? w : Number(w) || 0)
-  }, 0)
-  return sum + TABLE_SELECTION_COL_WIDTH_PX + SCROLL_X_BUFFER_PX
-})
+    const w = col.width;
+    return acc + (typeof w === 'number' ? w : Number(w) || 0);
+  }, 0);
+  return sum + TABLE_SELECTION_COL_WIDTH_PX + SCROLL_X_BUFFER_PX;
+});
 
 const moduleTableDisplayList = computed(() => {
-  let list = [...dataSource.value]
+  let list = [...dataSource.value];
   moduleFilterableColumnKeys.value.forEach((key: string) => {
     const filterValue = String(moduleTableColumnFilter.value[key] ?? '')
       .trim()
-      .toLowerCase()
-    if (!filterValue) return
+      .toLowerCase();
+    if (!filterValue) return;
     list = list.filter((item: any) =>
       String(item?.[key] ?? '')
         .toLowerCase()
         .includes(filterValue),
-    )
-  })
-  if (!sortState.value.key || !sortState.value.order) return list
-  const key = sortState.value.key
-  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]))
-  return sortState.value.order === 'ascend' ? sorted : sorted.reverse()
-})
+    );
+  });
+  if (!sortState.value.key || !sortState.value.order) return list;
+  const key = sortState.value.key;
+  const sorted = [...list].sort((a: any, b: any) => sortermethod(a[key], b[key]));
+  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
 
 const moduleTablePagination = computed(() => ({
   current: page.currentPage,
@@ -155,163 +156,163 @@ const moduleTablePagination = computed(() => ({
   pageSizeOptions: ['10', '20', '30', '40', '50'],
   showQuickJumper: false,
   showTotal: (total: number) => `共 ${total} 条`,
-}))
+}));
 
-/** 选中行 para10 是否为设计中 */
+/** 选中行 para10 是否为设计中或者编制中 */
 function isPara10DraftStatus(record?: any) {
-  return String(record?.para10 ?? '').trim() === '设计中'
+  return String(record?.para10 ?? '').trim() === '设计中' || String(record?.para10 ?? '').trim() === '编制中';
 }
 
-/** 是否可发起流程：仅选中一条且 para10 为设计中 */
+/** 是否可发起流程：仅选中一条且 para10 为设计中或者编制中*/
 const canInitiateProcess = computed(() => {
-  if (selectedRowkeys.value.length !== 1) return false
-  return isPara10DraftStatus(selectModelList.value[0])
-})
+  if (selectedRowkeys.value.length !== 1) return false;
+  return isPara10DraftStatus(selectModelList.value[0]);
+});
 
 function applyModuleSelection(selection: any[]) {
-  selectModelList.value = selection
+  selectModelList.value = selection;
   if (selection.length == 1) {
-    btnType.value = false
+    btnType.value = false;
   } else {
-    btnType.value = true
+    btnType.value = true;
   }
   if (selection.length == 0) {
-    delBtnType.value = true
+    delBtnType.value = true;
   } else {
-    delBtnType.value = false
+    delBtnType.value = false;
   }
   if (selection.length == 0 || selection.length == 1) {
-    compareBtnType.value = true
+    compareBtnType.value = true;
   }
   if (selection.length >= 2) {
-    compareBtnType.value = false
+    compareBtnType.value = false;
   }
 }
 
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowkeys.value,
   onChange: (selectedRowKeys: any[], selectedRows: any[]) => {
-    selectedRowkeys.value = selectedRowKeys
-    applyModuleSelection(selectedRows)
+    selectedRowkeys.value = selectedRowKeys;
+    applyModuleSelection(selectedRows);
   },
-}))
+}));
 
 function customRow(record: any) {
   return {
     onClick: () => {
-      const selectedRowKeys = [...selectedRowkeys.value]
-      const selectedRows = [...(selectModelList.value as any[])]
-      const key = record.id
+      const selectedRowKeys = [...selectedRowkeys.value];
+      const selectedRows = [...(selectModelList.value as any[])];
+      const key = record.id;
       if (selectedRowKeys.includes(key)) {
-        selectedRowkeys.value = selectedRowKeys.filter((k: any) => k !== key)
-        selectModelList.value = selectedRows.filter((item: any) => item.id !== key)
+        selectedRowkeys.value = selectedRowKeys.filter((k: any) => k !== key);
+        selectModelList.value = selectedRows.filter((item: any) => item.id !== key);
       } else {
-        selectedRowkeys.value = [...selectedRowKeys, key]
-        selectModelList.value = [...selectedRows, record]
+        selectedRowkeys.value = [...selectedRowKeys, key];
+        selectModelList.value = [...selectedRows, record];
       }
-      applyModuleSelection(selectModelList.value as any[])
+      applyModuleSelection(selectModelList.value as any[]);
     },
-  }
+  };
 }
 
 function isModuleTableSelectionColumn(column: any) {
-  const c = column?.className
-  if (typeof c === 'string') return c.includes('selection-column')
-  if (Array.isArray(c)) return c.some((x: unknown) => String(x).includes('selection-column'))
-  return false
+  const c = column?.className;
+  if (typeof c === 'string') return c.includes('selection-column');
+  if (Array.isArray(c)) return c.some((x: unknown) => String(x).includes('selection-column'));
+  return false;
 }
 
 function isSortableModuleColumn(column: any) {
-  const di = column?.dataIndex
-  if (!di || di === 'operation') return false
-  return true
+  const di = column?.dataIndex;
+  if (!di || di === 'operation') return false;
+  return true;
 }
 
 function isModuleFilterableColumn(column: any) {
-  const di = column?.dataIndex
-  if (!di) return false
-  return moduleFilterableColumnKeys.value.includes(String(di))
+  const di = column?.dataIndex;
+  if (!di) return false;
+  return moduleFilterableColumnKeys.value.includes(String(di));
 }
 
 function setModuleFilterOpen(key: string, open: boolean) {
-  moduleTableFilterOpenMap.value = { ...moduleTableFilterOpenMap.value, [key]: open }
+  moduleTableFilterOpenMap.value = { ...moduleTableFilterOpenMap.value, [key]: open };
 }
 
 function handleModuleFilterOpenChange(key: string, open: boolean) {
-  setModuleFilterOpen(key, open)
+  setModuleFilterOpen(key, open);
 }
 
 function getModuleFilterOpen(key: string) {
-  return Boolean(moduleTableFilterOpenMap.value[key])
+  return Boolean(moduleTableFilterOpenMap.value[key]);
 }
 
 function applyModuleColumnFilter(key: string) {
-  setModuleFilterOpen(key, false)
+  setModuleFilterOpen(key, false);
 }
 
 function resetModuleColumnFilter(key: string) {
-  moduleTableColumnFilter.value = { ...moduleTableColumnFilter.value, [key]: '' }
-  setModuleFilterOpen(key, false)
+  moduleTableColumnFilter.value = { ...moduleTableColumnFilter.value, [key]: '' };
+  setModuleFilterOpen(key, false);
 }
 
 function toggleModuleColumnSort(column: any) {
-  if (!isSortableModuleColumn(column)) return
-  const key = String(column.dataIndex)
+  if (!isSortableModuleColumn(column)) return;
+  const key = String(column.dataIndex);
   if (sortState.value.key !== key) {
-    sortState.value = { key, order: 'ascend' }
-    return
+    sortState.value = { key, order: 'ascend' };
+    return;
   }
   if (sortState.value.order === 'ascend') {
-    sortState.value = { key, order: 'descend' }
-    return
+    sortState.value = { key, order: 'descend' };
+    return;
   }
   if (sortState.value.order === 'descend') {
-    sortState.value = { key: '', order: '' }
-    return
+    sortState.value = { key: '', order: '' };
+    return;
   }
-  sortState.value = { key, order: 'ascend' }
+  sortState.value = { key, order: 'ascend' };
 }
 
 function getModuleSortOrder(key: string): ModuleSortOrder {
-  return sortState.value.key === key ? sortState.value.order : ''
+  return sortState.value.key === key ? sortState.value.order : '';
 }
 
 function handleModuleTableChange(pag: any) {
-  if (!pag) return
+  if (!pag) return;
   if (pag.current !== page.currentPage || pag.pageSize !== page.pageSize) {
-    page.currentPage = pag.current
-    page.pageSize = pag.pageSize
-    selectedRowkeys.value = []
-    selectModelList.value = []
-    btnType.value = true
-    delBtnType.value = true
-    compareBtnType.value = true
+    page.currentPage = pag.current;
+    page.pageSize = pag.pageSize;
+    selectedRowkeys.value = [];
+    selectModelList.value = [];
+    btnType.value = true;
+    delBtnType.value = true;
+    compareBtnType.value = true;
     const hasFilter = queryColumns.value.some((c: any) => {
-      const v = queryForm[c.key]
-      return v !== undefined && v !== null && String(v).trim() !== ''
-    })
-    if (hasFilter) void handleQuery(false)
-    else void fetchModuleList()
+      const v = queryForm[c.key];
+      return v !== undefined && v !== null && String(v).trim() !== '';
+    });
+    if (hasFilter) void handleQuery(false);
+    else void fetchModuleList();
   }
 }
 
 function handleResizeColumn(w: number, col: TableColumnType<any>) {
-  col.width = w
+  col.width = w;
 }
 
 function getModuleRowKey(record: any) {
-  return record.id
+  return record.id;
 }
 
 function getModuleTableRowClassName(_record: any, index: number) {
-  return index % 2 === 0 ? 'odd' : 'even'
+  return index % 2 === 0 ? 'odd' : 'even';
 }
 
 function handleAddOrUpdate() {
-  AddVisible.value = true
+  AddVisible.value = true;
   nextTick(() => {
-    addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value, menuId.value)
-  })
+    addOrUpdate.value?.handleModalAdd(categoryid.value, pdmType.value, menuId.value);
+  });
 }
 function updModule() {
   if (selectModelList.value.length == 0) {
@@ -319,95 +320,95 @@ function updModule() {
       content: '请选择一条数据进行修改!',
       duration: 3,
       closable: true,
-    })
-    return
+    });
+    return;
   }
   if (selectModelList.value.length >= 2) {
     message.warning({
       content: '只能选中一条数据进行修改!',
       duration: 3,
       closable: true,
-    })
-    return
+    });
+    return;
   }
-  AddVisible.value = true
+  AddVisible.value = true;
   nextTick(() => {
-    addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0], menuId.value)
-  })
+    addOrUpdate.value?.handleModalUpdate(categoryid.value, selectModelList.value[0], menuId.value);
+  });
 }
-const pdmType = ref<string>('')
+const pdmType = ref<string>('');
 async function initData(categoryidStr: string, menuid: any) {
-  categoryid.value = categoryidStr
-  menuId.value = menuid
-  selectModelList.value = []
-  selectedRowkeys.value = []
-  sortState.value = { key: '', order: '' }
-  modalInit()
+  categoryid.value = categoryidStr;
+  menuId.value = menuid;
+  selectModelList.value = [];
+  selectedRowkeys.value = [];
+  sortState.value = { key: '', order: '' };
+  modalInit();
 }
 // 列表初始化
 async function modalInit() {
-  loading.value = true
-  delBtnType.value = true
-  btnType.value = true
-  compareBtnType.value = true
-  selectedRowkeys.value = []
-  selectModelList.value = []
-  sortState.value = { key: '', order: '' }
-  columns.value = []
-  queryColumns.value = []
-  dataSource.value = []
-  const data: any = {}
-  data.userId = userStore.getUser.id
-  data.moduleParaList = []
-  data.categoryId = categoryid.value
-  data.currentPage = page.currentPage
-  data.numberPage = page.pageSize
-  data.menuId = menuId.value
-  data.type = '2'
-  const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
+  loading.value = true;
+  delBtnType.value = true;
+  btnType.value = true;
+  compareBtnType.value = true;
+  selectedRowkeys.value = [];
+  selectModelList.value = [];
+  sortState.value = { key: '', order: '' };
+  columns.value = [];
+  queryColumns.value = [];
+  dataSource.value = [];
+  const data: any = {};
+  data.userId = userStore.getUser.id;
+  data.moduleParaList = [];
+  data.categoryId = categoryid.value;
+  data.currentPage = page.currentPage;
+  data.numberPage = page.pageSize;
+  data.menuId = menuId.value;
+  data.type = '2';
+  const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
 
-  const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data)
+  const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data);
   const distinctValues: Record<string, any[]> =
-    (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {}
+    (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
 
-  const param: any = {}
-  param.categoryId = categoryid.value
-  param.menuId = menuId.value
-  const libRes = await AdminApiSystemModule.findCurrentModuleInfoByCategoryId(param)
+  const param: any = {};
+  param.categoryId = categoryid.value;
+  param.menuId = menuId.value;
+  const libRes = await AdminApiSystemModule.findCurrentModuleInfoByCategoryId(param);
   if (libRes.data.code == 200) {
-    modulePropertyInfo.value = libRes.data.data
-    const resData: any = libRes.data.data
-    const parm: TableColumnType<any>[] = []
-    const filterKeys: string[] = []
-    let moduleDataColIndex = 0
-    moduleTableColumnFilter.value = {}
-    moduleTableFilterOpenMap.value = {}
+    modulePropertyInfo.value = libRes.data.data;
+    const resData: any = libRes.data.data;
+    const parm: TableColumnType<any>[] = [];
+    const filterKeys: string[] = [];
+    let moduleDataColIndex = 0;
+    moduleTableColumnFilter.value = {};
+    moduleTableFilterOpenMap.value = {};
     for (let i = 0; i < resData.length; i++) {
       // 动态查询条件：searchFlag == 0（默认查询）
       if (resData[i].searchFlag == 0) {
-        const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp
+        const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
         // 查询字段全部以下拉形式展示；下拉值来源于 clumnsRes 返回的 distinctValues
         const valueKeyCandidates = [
           String(resData[i].dataProp ?? ''),
           String(key ?? ''),
           String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
-        ].filter(Boolean)
+        ].filter(Boolean);
         const rawOptions =
-          valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || []
-        const options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '')
+          valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
+        const options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
         queryColumns.value.push({
           id: resData[i].id,
           title: resData[i].propertyName,
           key,
           inputType: 'select',
           options,
-        })
-        if (!(key in queryForm)) queryForm[key] = undefined
+        });
+        if (!(key in queryForm)) queryForm[key] = undefined;
       }
 
       if (resData[i].showFlag == 0) {
-        const dataKey = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp
-        const w = resData[i].colWidth == undefined ? 70 : resData[i].colWidth
+        const dataKey = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
+        const w = resData[i].colWidth == undefined ? 70 : resData[i].colWidth;
         const col: TableColumnType<any> = {
           title: resData[i].propertyName,
           dataIndex: dataKey,
@@ -416,24 +417,24 @@ async function modalInit() {
           resizable: true,
           width: w,
           ellipsis: dataKey !== 'para2' && dataKey !== 'status',
-        }
+        };
         if (moduleDataColIndex < 2) {
-          col.fixed = 'left'
-          col.resizable = moduleDataColIndex !== 0
+          col.fixed = 'left';
+          col.resizable = moduleDataColIndex !== 0;
         }
-        if (moduleDataColIndex < 3) filterKeys.push(String(dataKey))
-        ;(col as any).metaId = resData[i].id
-        parm.push(col)
-        moduleDataColIndex++
+        if (moduleDataColIndex < 3) filterKeys.push(String(dataKey));
+        (col as any).metaId = resData[i].id;
+        parm.push(col);
+        moduleDataColIndex++;
       }
     }
     queryColumns.value.forEach((c: any) => {
       if (c.inputType === 'select') {
-        const v = queryForm[c.key]
-        if (v === '' || v === null) queryForm[c.key] = undefined
+        const v = queryForm[c.key];
+        if (v === '' || v === null) queryForm[c.key] = undefined;
       }
-    })
-    moduleFilterableColumnKeys.value = filterKeys
+    });
+    moduleFilterableColumnKeys.value = filterKeys;
     parm.push({
       title: '操作',
       dataIndex: 'operation',
@@ -443,24 +444,24 @@ async function modalInit() {
       fixed: 'right',
       resizable: false,
       ellipsis: false,
-    })
-    columns.value = parm
+    });
+    columns.value = parm;
   } else {
-    moduleFilterableColumnKeys.value = []
-    moduleTableColumnFilter.value = {}
-    moduleTableFilterOpenMap.value = {}
+    moduleFilterableColumnKeys.value = [];
+    moduleTableColumnFilter.value = {};
+    moduleTableFilterOpenMap.value = {};
   }
   if (res.data.code == 200) {
-    const resData: any = res.data.data
-    const moduleListData = resData.list || []
-    dataSource.value = moduleListData
+    const resData: any = res.data.data;
+    const moduleListData = resData.list || [];
+    dataSource.value = moduleListData;
     // 总条数：优先使用 total（总记录数），其次 pageCount / totalPage
-    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0
+    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
   }
-  loading.value = false
+  loading.value = false;
 }
 async function fetchModuleList(filterArr?: any) {
-  loading.value = true
+  loading.value = true;
   const data: any = {
     userId: userStore.getUser.id,
     moduleParaList: filterArr || [],
@@ -469,18 +470,18 @@ async function fetchModuleList(filterArr?: any) {
     pageSize: page.pageSize,
     menuId: menuId.value,
     type: '2',
-  }
-  const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
+  };
+  const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
   if (res.data.code == 200) {
-    const resData: any = res.data.data
-    dataSource.value = resData.list || []
-    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0
+    const resData: any = res.data.data;
+    dataSource.value = resData.list || [];
+    page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
   }
-  loading.value = false
+  loading.value = false;
 }
 
 async function queryModuleLibrary(filterArr?: any) {
-  await fetchModuleList(filterArr)
+  await fetchModuleList(filterArr);
 }
 // 删除列表数据
 function delModule() {
@@ -489,8 +490,8 @@ function delModule() {
       content: '请选择数据进行删除!',
       duration: 3,
       closable: true,
-    })
-    return
+    });
+    return;
   }
   Modal.confirm({
     title: '确认删除此数据？',
@@ -498,147 +499,147 @@ function delModule() {
     cancelText: WeiI18n.t('取消').value,
     onOk: async () => {
       // 直接从 selectModelList 提取 id 数组
-      const moduleIds = selectModelList.value.map(val => `${val.id}`)
+      const moduleIds = selectModelList.value.map(val => `${val.id}`);
       // 直接传递数组
-      const res = await AdminApiSystemModule.batchDeleteModuleInfo(moduleIds)
-      message.info('删除成功')
-      modalInit()
-      btnType.value = true
-      delBtnType.value = true
+      const res = await AdminApiSystemModule.batchDeleteModuleInfo(moduleIds);
+      message.info('删除成功');
+      modalInit();
+      btnType.value = true;
+      delBtnType.value = true;
     },
-  })
+  });
 }
 
 async function moduleDetails(rowRecord: any) {
-  pageFlagDrawer.value = true
-  parmType.value = 'viz'
-  const moduleParaList = modulePropertyInfo.value
+  pageFlagDrawer.value = true;
+  parmType.value = 'viz';
+  const moduleParaList = modulePropertyInfo.value;
   modalInfo.value = moduleParaList
     .filter((item: any) => item.dataProp !== 'para11')
     .map((item: any) => ({
       name: item.propertyName,
       str: item.dataProp,
       val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
-    }))
+    }));
 }
 
 function buildFilterArr() {
-  const moduleParaList: any[] = []
+  const moduleParaList: any[] = [];
   queryColumns.value.forEach((c: any) => {
-    const v = queryForm[c.key]
+    const v = queryForm[c.key];
     if (v !== undefined && v !== null && String(v).trim() !== '') {
       moduleParaList.push({
         modelInfoProp: c.key,
         modelInfoPropValue: String(v).trim(),
-      })
+      });
     }
-  })
-  return moduleParaList
+  });
+  return moduleParaList;
 }
 
 function handleQuery(resetPage = true) {
   if (resetPage) {
-    page.currentPage = 1
-    selectedRowkeys.value = []
-    selectModelList.value = []
-    btnType.value = true
-    delBtnType.value = true
-    compareBtnType.value = true
+    page.currentPage = 1;
+    selectedRowkeys.value = [];
+    selectModelList.value = [];
+    btnType.value = true;
+    delBtnType.value = true;
+    compareBtnType.value = true;
   }
-  const filterArr = buildFilterArr()
+  const filterArr = buildFilterArr();
   if (filterArr.length > 0) {
-    queryModuleLibrary(filterArr)
+    queryModuleLibrary(filterArr);
   } else {
-    fetchModuleList()
+    fetchModuleList();
   }
 }
 
 function handleQueryReset() {
   queryColumns.value.forEach((c: any) => {
-    queryForm[c.key] = c.inputType === 'select' ? undefined : ''
-  })
-  page.currentPage = 1
-  selectedRowkeys.value = []
-  selectModelList.value = []
-  btnType.value = true
-  delBtnType.value = true
-  compareBtnType.value = true
-  fetchModuleList()
+    queryForm[c.key] = c.inputType === 'select' ? undefined : '';
+  });
+  page.currentPage = 1;
+  selectedRowkeys.value = [];
+  selectModelList.value = [];
+  btnType.value = true;
+  delBtnType.value = true;
+  compareBtnType.value = true;
+  fetchModuleList();
 }
 // 打开模型
 function openMx(data: any) {
   if (data.length == 1) {
-    void openModuleInfoNew(data[0].para1, data[0].para4, '', '', '')
-    addModelLog(data[0], 8)
+    void openModuleInfoNew(data[0].para1, data[0].para4, '', '', '');
+    addModelLog(data[0], 8);
   } else {
     message.warning({
       content: '只能选择一条数据进行操作！',
       duration: 3,
       closable: true,
-    })
+    });
   }
 }
 // 添加日志
 async function addModelLog(moduleInfo: any, logUpdateType: any) {
-  const data: any = {}
-  data.categoryId = categoryid.value
-  data.userId = userStore.getUser.id
-  data.userName = userStore.getUser.userName
-  data.moduleId = moduleInfo.id
-  data.moduleNum = moduleInfo.para1 == undefined ? '' : moduleInfo.para1
-  data.logUpdateType = logUpdateType
+  const data: any = {};
+  data.categoryId = categoryid.value;
+  data.userId = userStore.getUser.id;
+  data.userName = userStore.getUser.userName;
+  data.moduleId = moduleInfo.id;
+  data.moduleNum = moduleInfo.para1 == undefined ? '' : moduleInfo.para1;
+  data.logUpdateType = logUpdateType;
   // const res = await AdminApiwebSocketAuth.setOperationalModel(data);
 }
 // 装配模型
 function fitoutMx(data: any) {
   if (data.length == 1) {
-    assembleModuleInfoNew(data[0].para1, data[0].para4, '', '', '', '')
-    addModelLog(data[0], 9)
+    assembleModuleInfoNew(data[0].para1, data[0].para4, '', '', '', '');
+    addModelLog(data[0], 9);
   } else {
     message.warning({
       content: '只能选择一条数据进行操作！',
       duration: 3,
       closable: true,
-    })
+    });
   }
 }
-const bomInfoData = ref<any>([])
-const applicationEditFlag = ref<boolean>(false)
+const bomInfoData = ref<any>([]);
+const applicationEditFlag = ref<boolean>(false);
 // 编辑应用
 function editMx(data: any) {
-  applicationEdit(data)
+  applicationEdit(data);
 }
 /**
  * 应用编辑
  * @param list
  */
 async function applicationEdit(list: any) {
-  const arr = list || selectModelList.value
+  const arr = list || selectModelList.value;
   if (arr.length === 1) {
-    const fos = arr[0]
+    const fos = arr[0];
     if (fos.para4 === 'prt') {
-      const data: any = {}
-      data.number = fos.para1
-      const res = await AdminApiwebSocketAuth.getBomNewNumberApi(data)
+      const data: any = {};
+      data.number = fos.para1;
+      const res = await AdminApiwebSocketAuth.getBomNewNumberApi(data);
       if (res.data.code == 0) {
-        const { moduleNewNum } = res.data.data
-        void openModuleInfoNew(fos.para1, fos.para4, moduleNewNum, '', '')
+        const { moduleNewNum } = res.data.data;
+        void openModuleInfoNew(fos.para1, fos.para4, moduleNewNum, '', '');
       } else {
-        message.error(res.data.msg)
+        message.error(res.data.msg);
       }
     } else {
-      const data: any = {}
-      data.number = fos.para1
-      data.commonName = fos.para3
-      data.userId = userStore.getUser.id
-      const res = await AdminApiwebSocketAuth.getBomInfoTestApi(data)
+      const data: any = {};
+      data.number = fos.para1;
+      data.commonName = fos.para3;
+      data.userId = userStore.getUser.id;
+      const res = await AdminApiwebSocketAuth.getBomInfoTestApi(data);
       if (res.data.code == 0) {
-        const newTree = await recursiveMapWithAction(res.data)
-        bomInfoData.value = []
-        bomInfoData.value.push(newTree.data)
-        applicationEditFlag.value = true
+        const newTree = await recursiveMapWithAction(res.data);
+        bomInfoData.value = [];
+        bomInfoData.value.push(newTree.data);
+        applicationEditFlag.value = true;
       } else {
-        message.error(res.data.msg)
+        message.error(res.data.msg);
       }
     }
   }
@@ -649,165 +650,170 @@ async function applicationEdit(list: any) {
  */
 function recursiveMapWithAction(tree: any) {
   if (Array.isArray(tree)) {
-    return Promise.all(tree.map((subtree: any) => recursiveMapWithAction(subtree)))
+    return Promise.all(tree.map((subtree: any) => recursiveMapWithAction(subtree)));
   } else if (typeof tree === 'object' && tree !== null) {
-    const mapped: any = {}
-    const promises = []
+    const mapped: any = {};
+    const promises = [];
     for (const key in tree) {
       if (tree.hasOwnProperty(key)) {
         const promise = new Promise(resolve => {
           recursiveMapWithAction(tree[key]).then(result => {
-            mapped[key] = result
-            resolve()
-          })
-        })
-        promises.push(promise)
+            mapped[key] = result;
+            resolve();
+          });
+        });
+        promises.push(promise);
       }
     }
     return Promise.all(promises).then(() => {
       return new Promise(resolve => {
         if (mapped.supeq === 0) {
-          mapped.action = '自动命名'
+          mapped.action = '自动命名';
           resolve(
             AdminApiwebSocketAuth.getBomNewNumberApi({
               number: mapped.equnr,
             }).then(res => {
               if (res.data.code === 0) {
-                const { moduleNewNum } = res.data
-                mapped.moduleNewNum = moduleNewNum
-                return mapped
+                const { moduleNewNum } = res.data;
+                mapped.moduleNewNum = moduleNewNum;
+                return mapped;
               } else {
-                message.error(res.data.msg)
-                return mapped
+                message.error(res.data.msg);
+                return mapped;
               }
             }),
-          )
+          );
         } else {
-          mapped.action = '重新使用'
-          resolve(mapped)
+          mapped.action = '重新使用';
+          resolve(mapped);
         }
-      })
-    })
+      });
+    });
   } else {
-    return Promise.resolve(tree)
+    return Promise.resolve(tree);
   }
 }
 //打开二维图
 function openEwt(data: any) {
   if (data.length == 1) {
-    void openDrawingInfoNew(data[0].para1)
+    void openDrawingInfoNew(data[0].para1);
   } else {
     message.warning({
       content: '只能选择一条数据进行操作！',
       duration: 3,
       closable: true,
-    })
+    });
   }
 }
 
-const parmDesign = ref<any>(false)
-const moduleId = ref<string>('')
+const parmDesign = ref<any>(false);
+const moduleId = ref<string>('');
 const paramsObject = ref<any>({
   templateModuleNum: '',
   templateModuleType: '',
   inputVal: '',
-})
+});
 async function argsMx(row: any) {
-  const params: any = {}
-  params.categoryId = categoryid.value
-  params.userId = userStore.getUser.id
-  const parmDesignData1: any = []
-  paramsObject.value.templateModuleNum = ''
-  paramsObject.value.templateModuleType = ''
-  paramsObject.value.inputVal = ''
+  const params: any = {};
+  params.categoryId = categoryid.value;
+  params.userId = userStore.getUser.id;
+  const parmDesignData1: any = [];
+  paramsObject.value.templateModuleNum = '';
+  paramsObject.value.templateModuleType = '';
+  paramsObject.value.inputVal = '';
   if (row.length > 0) {
-    params.moduleId = row[0].id
-    const res = await AdminApiwebSocketAuth.modelDesignParametric(params)
-    console.log(res)
-    const data: any = res.data.data
+    params.moduleId = row[0].id;
+    const res = await AdminApiwebSocketAuth.modelDesignParametric(params);
+    console.log(res);
+    const data: any = res.data.data;
     if (data.moduleNum != null && data.moduleNum != '') {
-      paramsObject.value.templateModuleNum = data.moduleNum
+      paramsObject.value.templateModuleNum = data.moduleNum;
     }
     if (data.moduleType != null && data.moduleType != '') {
-      paramsObject.value.templateModuleType = data.moduleType
+      paramsObject.value.templateModuleType = data.moduleType;
     }
-    moduleId.value = data.moduleId
+    moduleId.value = data.moduleId;
     if (data.moduleParaList && data.moduleParaList.length > 0) {
-      const rowRecord = row[0]
+      const rowRecord = row[0];
       parmDesignData.value = data.moduleParaList.map((item: any) => ({
         ...item,
         parameterValue: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
-      }))
+      }));
     } else {
-      parmDesignData.value = []
+      parmDesignData.value = [];
     }
-    parmDesign.value = true
-    const rec = row[0]
-    const displayName =
-      rec?.para3 != null && String(rec.para3).trim() !== '' ? String(rec.para3) : String(rec?.para1 ?? '')
-    const modelNumStr = rec?.para1 != null ? String(rec.para1) : ''
-    insertModelLibraryStatisticsLog('参数化设计', displayName, modelNumStr)
-    addModelLog(row[0], 10)
+    parmDesign.value = true;
+    const rec = row[0];
+    const displayName = rec?.para3 != null && String(rec.para3).trim() !== '' ? String(rec.para3) : String(rec?.para1 ?? '');
+    const modelNumStr = rec?.para1 != null ? String(rec.para1) : '';
+    insertModelLibraryStatisticsLog('参数化设计', displayName, modelNumStr);
+    addModelLog(row[0], 10);
   } else {
     message.warning({
       content: '请选择数据，进行设计',
       duration: 3,
       closable: true,
-    })
+    });
   }
 }
 function changeData(moduleNewNum: string) {
-  paramsObject.value.inputVal = moduleNewNum
+  paramsObject.value.inputVal = moduleNewNum;
 }
 function updateParmDesignData(data: any[]) {
-  parmDesignData.value = data
+  parmDesignData.value = data;
 }
 function handleSave() {
-  AddVisible.value = false
+  AddVisible.value = false;
 }
 // 更多
 function handleDropdownMenuClick({ key }: { key: string | number }) {
-  dropdownAction(Number(key))
+  dropdownAction(Number(key));
 }
 
 function dropdownAction(type: number) {
   if (type == 1) {
-    batchExport()
+    batchExport();
   } else if (type == 3) {
-    cWidth()
+    cWidth();
   } else if (type == 8) {
-    upDerive()
+    upDerive();
   } else if (type == 4) {
-    if (!canInitiateProcess.value) {
-      if (selectedRowkeys.value.length !== 1) {
-        message.warning('请选择一条数据')
-      } else {
-        message.warning('仅设计中状态的数据可发起流程')
+    if (canInitiateProcess.value) {
+      if (selectModelList.value[0]?.para10?.trim() === '设计中') {
+        processMethod();
+      } else if (selectModelList.value[0]?.para10?.trim() === '编制中') {
+        router.push({
+          name: 'BpmProcessInstanceDetail',
+          query: {
+            id: selectModelList.value[0]?.para50,
+          },
+        });
       }
-      return
+    } else {
+      message.warning('请选择一条数据进行操作!');
+      return;
     }
-    processMethod()
   } else if (type == 5) {
-    openPvzUpload()
+    openPvzUpload();
   }
 }
 
 /** PVZ 上传弹窗 */
-const pvzUploadVisible = ref(false)
-const pvzUploadSubmitting = ref(false)
-const pvzFileList = ref<any[]>([])
-const pvzUploadAntList = ref<UploadFile[]>([])
+const pvzUploadVisible = ref(false);
+const pvzUploadSubmitting = ref(false);
+const pvzFileList = ref<any[]>([]);
+const pvzUploadAntList = ref<UploadFile[]>([]);
 
 function openPvzUpload() {
-  pvzFileList.value = []
-  pvzUploadAntList.value = []
-  pvzUploadVisible.value = true
+  pvzFileList.value = [];
+  pvzUploadAntList.value = [];
+  pvzUploadVisible.value = true;
 }
 
 function closePvzUpload() {
-  pvzUploadVisible.value = false
-  pvzFileList.value = []
-  pvzUploadAntList.value = []
+  pvzUploadVisible.value = false;
+  pvzFileList.value = [];
+  pvzUploadAntList.value = [];
 }
 
 const beforeUploadPvz: UploadProps['beforeUpload'] = file => {
@@ -816,180 +822,180 @@ const beforeUploadPvz: UploadProps['beforeUpload'] = file => {
       .toLowerCase()
       .endsWith('.pvz')
   ) {
-    message.warning('仅支持上传 .pvz 文件')
-    return false
+    message.warning('仅支持上传 .pvz 文件');
+    return false;
   }
-  return true
-}
+  return true;
+};
 
 async function pvzCustomRequest(options: any) {
-  const file = options.file as File
-  pvzUploadSubmitting.value = true
+  const file = options.file as File;
+  pvzUploadSubmitting.value = true;
   try {
-    const res = await AdminApiSystemUploadFile.uploadFilePvz({ file })
-    const code = res.data?.code
+    const res = await AdminApiSystemUploadFile.uploadFilePvz({ file });
+    const code = res.data?.code;
     if (code === 0 || code === 200) {
-      pvzFileList.value[0] = { uploaded: true, name: file.name }
+      pvzFileList.value[0] = { uploaded: true, name: file.name };
       pvzUploadAntList.value = [
         {
           uid: '-1',
           name: file.name,
           status: 'done',
         },
-      ]
-      message.success(WeiI18n.t('上传成功').value)
-      options.onSuccess?.(res.data)
+      ];
+      message.success(WeiI18n.t('上传成功').value);
+      options.onSuccess?.(res.data);
     } else {
-      message.error(res.data?.msg || WeiI18n.t('上传失败').value)
-      options.onError?.(new Error(String(res.data?.msg ?? 'upload failed')))
+      message.error(res.data?.msg || WeiI18n.t('上传失败').value);
+      options.onError?.(new Error(String(res.data?.msg ?? 'upload failed')));
     }
   } catch (err) {
-    console.log(err)
-    message.error(WeiI18n.t('上传失败').value)
-    options.onError?.(err instanceof Error ? err : new Error(String(err)))
+    console.log(err);
+    message.error(WeiI18n.t('上传失败').value);
+    options.onError?.(err instanceof Error ? err : new Error(String(err)));
   } finally {
-    pvzUploadSubmitting.value = false
+    pvzUploadSubmitting.value = false;
   }
 }
 
 function onPvzFileRemove() {
-  pvzFileList.value = []
-  pvzUploadAntList.value = []
+  pvzFileList.value = [];
+  pvzUploadAntList.value = [];
 }
 
 function confirmPvzUpload() {
   if (!pvzFileList.value[0]?.uploaded) {
-    message.warning('请先上传 PVZ 文件')
-    return
+    message.warning('请先上传 PVZ 文件');
+    return;
   }
-  closePvzUpload()
+  closePvzUpload();
 }
 
 /** 文件列表 */
-const fileList = ref<any>([])
-const batchflag = ref<boolean>(false)
+const fileList = ref<any>([]);
+const batchflag = ref<boolean>(false);
 // 导入
 function batchExport() {
-  fileList.value = []
-  batchflag.value = true
+  fileList.value = [];
+  batchflag.value = true;
 }
 function filechange(file: any) {
-  fileList.value[0] = file
+  fileList.value[0] = file;
 }
 async function customRequest(options: any) {
   try {
     const res = await AdminApiSystemUploadFile.uploadFileTransfer({
       file: options.file as File,
       userId: userStore.getUser.id,
-    })
+    });
     if (res.data.code === 0) {
-      const file: any = { ...res.data, name: res.data?.oldFileName }
-      fileList.value[0] = file
-      message.success(WeiI18n.t('上传成功').value)
+      const file: any = { ...res.data, name: res.data?.oldFileName };
+      fileList.value[0] = file;
+      message.success(WeiI18n.t('上传成功').value);
     } else {
-      message.error(WeiI18n.t('上传失败').value)
+      message.error(WeiI18n.t('上传失败').value);
     }
   } catch (err) {
-    console.log(err)
+    console.log(err);
   }
 }
 // 下载附件
 async function templateDownload() {
-  const data: any = {}
-  data.categoryId = categoryid.value
-  data.userid = userStore.getUser.id
-  const res = await AdminApiSystemModule.createModuleLibraryTemplateApi(data)
-  console.log(res)
+  const data: any = {};
+  data.categoryId = categoryid.value;
+  data.userid = userStore.getUser.id;
+  const res = await AdminApiSystemModule.createModuleLibraryTemplateApi(data);
+  console.log(res);
   if (res.data.code == 200) {
-    downloadFile(res.data.data.fileUrl)
-    message.success(res.data.msg == '' || res.data.msg == null ? '导出模版成功' : res.data.msg)
+    downloadFile(res.data.data.fileUrl);
+    message.success(res.data.msg == '' || res.data.msg == null ? '导出模版成功' : res.data.msg);
   } else {
-    message.error(res.data.msg)
+    message.error(res.data.msg);
   }
 }
 // 导入附件
 async function importSuccessfulFun() {
-  const exceldata: any = {}
-  exceldata.categoryId = categoryid.value
-  exceldata.userId = userStore.getUser.id
-  exceldata.userName = userStore.getUser.userName
-  exceldata.moduleName = fileList.value[0].newFileName
-  exceldata.menuId = menuId.value
-  const res = await AdminApiSystemModule.importingModelInformationNew(exceldata)
+  const exceldata: any = {};
+  exceldata.categoryId = categoryid.value;
+  exceldata.userId = userStore.getUser.id;
+  exceldata.userName = userStore.getUser.userName;
+  exceldata.moduleName = fileList.value[0].newFileName;
+  exceldata.menuId = menuId.value;
+  const res = await AdminApiSystemModule.importingModelInformationNew(exceldata);
   if (res.data.code == 200) {
     message.info({
       top: 80,
       duration: 10,
       content: res.data.data,
       closable: true,
-    })
-    batchflag.value = false
-    modalInit()
+    });
+    batchflag.value = false;
+    modalInit();
   } else {
     message.error({
       top: 80,
       duration: 10,
       content: res.data.data,
       closable: true,
-    })
+    });
   }
 }
 // 列宽保存
 function cWidth() {
-  const columnList: any[] = []
+  const columnList: any[] = [];
   for (const col of columns.value) {
-    const metaId = (col as any).metaId
-    const w = col.width
+    const metaId = (col as any).metaId;
+    const w = col.width;
     if (metaId != null && w != null) {
       columnList.push({
         id: metaId,
         colWidth: typeof w === 'number' ? w : Number(w) || 0,
-      })
+      });
     }
   }
-  const data: any = {}
-  data.categoryId = categoryid.value
-  data.userId = userStore.getUser.id
-  data.scene = 0
-  data.columnList = columnList
-  AdminApiSystemModule.columnWidthSave(data)
-  message.success('列宽保存成功')
+  const data: any = {};
+  data.categoryId = categoryid.value;
+  data.userId = userStore.getUser.id;
+  data.scene = 0;
+  data.columnList = columnList;
+  AdminApiSystemModule.columnWidthSave(data);
+  message.success('列宽保存成功');
 }
 // 导出
 async function upDerive() {
-  const data: any = {}
-  data.categoryId = categoryid.value
-  data.menuId = menuId.value
-  data.userName = userStore.getUser.userName
-  data.userId = userStore.getUser.id
-  const res = await AdminApiSystemModule.exportModuleLibraryApi(data)
+  const data: any = {};
+  data.categoryId = categoryid.value;
+  data.menuId = menuId.value;
+  data.userName = userStore.getUser.userName;
+  data.userId = userStore.getUser.id;
+  const res = await AdminApiSystemModule.exportModuleLibraryApi(data);
   if (res.data.code == 200) {
-    downloadFile(res.data.data.fileUrl)
-    message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg)
+    downloadFile(res.data.data.fileUrl);
+    message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg);
   } else {
-    message.error(res.data.msg)
+    message.error(res.data.msg);
   }
 }
 const processMethod = () => {
-  ProcessVisible.value = true
-}
+  ProcessVisible.value = true;
+};
 // 下载
 function downloadFile(url: any) {
-  const link = document.createElement('a')
-  link.href = url
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  const link = document.createElement('a');
+  link.href = url;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function getDynamicComponentVal(comp: any) {
   // 获取动态组件内的查询条件
-  const prmList = comp.value
-  const moduleParaList: any = []
+  const prmList = comp.value;
+  const moduleParaList: any = [];
   if (prmList != undefined) {
     prmList.forEach((item: any) => {
-      let val = ''
-      const newModeTypeVal = item.newModeTypeVal
+      let val = '';
+      const newModeTypeVal = item.newModeTypeVal;
       if (newModeTypeVal != undefined && newModeTypeVal != '' && item.typeKey == 'para4') {
         val =
           newModeTypeVal.toLowerCase() == 'prt'
@@ -998,22 +1004,22 @@ function getDynamicComponentVal(comp: any) {
               ? 'asm'
               : newModeTypeVal.toLowerCase() == 'gph'
                 ? 'gph'
-                : ''
+                : '';
       } else {
-        val = item.newModeTypeVal
+        val = item.newModeTypeVal;
       }
       moduleParaList.push({
         modelInfoProp: item.typeKey,
         modelInfoPropValue: val,
-      })
-    })
+      });
+    });
   }
-  return moduleParaList
+  return moduleParaList;
 }
-const radioModal = ref<any>({})
-const radioList = ref<any>([])
-const radarflag = ref(false)
-const myRadar = ref<any>(null)
+const radioModal = ref<any>({});
+const radioList = ref<any>([]);
+const radarflag = ref(false);
+const myRadar = ref<any>(null);
 const locale = ref({
   cancelSort: WeiI18n.t('点击取消排序').value,
   triggerAsc: WeiI18n.t('点击升序').value,
@@ -1022,7 +1028,7 @@ const locale = ref({
     description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
-})
+});
 const option = ref({
   isArgs: false,
   width: '100%',
@@ -1051,98 +1057,98 @@ const option = ref({
       data: [{ name: 'MKWLM110137', value: '1级,2级,2级,2级,,4级' }],
     },
   ],
-})
+});
 /**
  * 雷达图展示
  */
 async function openRadarInfo() {
-  radioModal.value = {}
-  radarflag.value = true
-  let myChart: any
+  radioModal.value = {};
+  radarflag.value = true;
+  let myChart: any;
   if (selectModelList.value.length) {
-    radioList.value = selectModelList.value
+    radioList.value = selectModelList.value;
     nextTick(() => {
-      myChart = echarts.init(myRadar.value)
-    })
-    const list = selectModelList.value.map(item => ({ id: item.id }))
-    const data: any = {}
-    data.moduleIdList = list
-    const res = await AdminApiSystemModule.moduleRadarDataMapApi(data)
+      myChart = echarts.init(myRadar.value);
+    });
+    const list = selectModelList.value.map(item => ({ id: item.id }));
+    const data: any = {};
+    data.moduleIdList = list;
+    const res = await AdminApiSystemModule.moduleRadarDataMapApi(data);
     if (res.data.code == 0) {
-      const { dataList = [] } = res.data.data
-      option.value.legend.data = dataList.map((item: any) => item.name)
-      option.value.series[0].data = dataList
+      const { dataList = [] } = res.data.data;
+      option.value.legend.data = dataList.map((item: any) => item.name);
+      option.value.series[0].data = dataList;
       nextTick(() => {
-        myChart.setOption(option.value)
-      })
+        myChart.setOption(option.value);
+      });
     } else {
-      message.error(res.data.msg)
+      message.error(res.data.msg);
     }
   }
 }
-const fileData1 = ref<any>([])
-const fileData2 = ref<any>([])
-const parmType = ref<string | number>('viz')
-const pdmModuleCode = ref<any>()
-const PDMid = ref<any>()
-const pdmModelType = ref<any>()
+const fileData1 = ref<any>([]);
+const fileData2 = ref<any>([]);
+const parmType = ref<string | number>('viz');
+const pdmModuleCode = ref<any>();
+const PDMid = ref<any>();
+const pdmModelType = ref<any>();
 
 /** 详情抽屉「可视化」：当前行数据（用于 PVZ / 节点树示意图文件 ID） */
-const vizDetailRow = ref<any>(null)
-const ddViewRef = ref<any>(null)
-const schematicPreviewVisible = ref(false)
+const vizDetailRow = ref<any>(null);
+const ddViewRef = ref<any>(null);
+const schematicPreviewVisible = ref(false);
 
 function vizPickFileId(row: any, keys: string[]): string {
-  if (!row) return ''
+  if (!row) return '';
   for (const k of keys) {
-    const v = row[k]
-    if (v != null && String(v).trim() !== '' && String(v) !== '-1000') return String(v).trim()
+    const v = row[k];
+    if (v != null && String(v).trim() !== '' && String(v) !== '-1000') return String(v).trim();
   }
-  return ''
+  return '';
 }
 
 /** 从分类参数字段名中解析文件类属性（兼容后台用中文列名配置） */
 function vizFileIdFromModalInfo(info: any[], keywords: string[]): string {
-  if (!info?.length) return ''
-  const kws = keywords.map(k => k.toLowerCase())
+  if (!info?.length) return '';
+  const kws = keywords.map(k => k.toLowerCase());
   for (const item of info) {
-    const label = String(item?.name ?? '').toLowerCase()
+    const label = String(item?.name ?? '').toLowerCase();
     if (kws.some(kw => label.includes(kw))) {
-      const v = item?.val
-      if (v != null && String(v).trim() !== '' && String(v) !== '-1000') return String(v).trim()
+      const v = item?.val;
+      if (v != null && String(v).trim() !== '' && String(v) !== '-1000') return String(v).trim();
     }
   }
-  return ''
+  return '';
 }
 
 /** 接口按模型件号查询到的 PVZ 地址（有 data.fileUrl 则展示，否则为空） */
-const vizPvzUrlFromApi = ref('')
+const vizPvzUrlFromApi = ref('');
 
-const vizPvzUrl = computed(() => vizPvzUrlFromApi.value)
+const vizPvzUrl = computed(() => vizPvzUrlFromApi.value);
 
 async function fetchVizPvzByModuleNum(row: any) {
-  vizPvzUrlFromApi.value = ''
-  const moduleNum = row?.para1 != null && String(row.para1).trim() !== '' ? String(row.para1).trim() : ''
-  if (!moduleNum) return
+  vizPvzUrlFromApi.value = '';
+  const moduleNum = row?.para1 != null && String(row.para1).trim() !== '' ? String(row.para1).trim() : '';
+  if (!moduleNum) return;
   try {
-    const res = await AdminApiSystemUploadFile.getPvzFileByModuleNum({ moduleNum })
+    const res = await AdminApiSystemUploadFile.getPvzFileByModuleNum({ moduleNum });
     if (res.data.code == 0) {
-      vizPvzUrlFromApi.value = res.data?.fileUrl
+      vizPvzUrlFromApi.value = res.data?.fileUrl;
     }
   } catch (err) {
-    console.log(err)
-    vizPvzUrlFromApi.value = ''
+    console.log(err);
+    vizPvzUrlFromApi.value = '';
   }
 }
 
 async function loadVizPvzByFileUrl(fileUrl: string) {
-  if (!fileUrl) return
-  await nextTick()
-  ddViewRef.value?.loadModel?.(fileUrl, {})
+  if (!fileUrl) return;
+  await nextTick();
+  ddViewRef.value?.loadModel?.(fileUrl, {});
 }
 
 const vizSchematicFileId = computed(() => {
-  const row = vizDetailRow.value
+  const row = vizDetailRow.value;
   const fromRow = vizPickFileId(row, [
     'nodeTreeDiagramFileId',
     'treeDiagramFileId',
@@ -1150,126 +1156,125 @@ const vizSchematicFileId = computed(() => {
     'diagramFileId',
     'nodeTreeImageId',
     'treeImageFileId',
-  ])
-  if (fromRow) return fromRow
-  return vizFileIdFromModalInfo(modalInfo.value, ['节点树', '示意图', '树图', 'schematic', 'diagram'])
-})
+  ]);
+  if (fromRow) return fromRow;
+  return vizFileIdFromModalInfo(modalInfo.value, ['节点树', '示意图', '树图', 'schematic', 'diagram']);
+});
 
 const vizSchematicImageUrl = computed(() => {
-  const row = vizDetailRow.value
-  const categoryUrl = vizPickFileId(row, ['categorySchematicUrl'])
-  if (categoryUrl) return categoryUrl
-  const id = vizSchematicFileId.value
-  if (!id) return ''
-  return previewUrlFile(id)
-})
+  const row = vizDetailRow.value;
+  const categoryUrl = vizPickFileId(row, ['categorySchematicUrl']);
+  if (categoryUrl) return categoryUrl;
+  const id = vizSchematicFileId.value;
+  if (!id) return '';
+  return previewUrlFile(id);
+});
 
 /** 无示意图时使用缺省图；有文件 ID 时用预览地址 */
-const vizSchematicDisplaySrc = computed(() => vizSchematicImageUrl.value || vizSchematicPlaceholder)
+const vizSchematicDisplaySrc = computed(() => vizSchematicImageUrl.value || vizSchematicPlaceholder);
 
 function openSchematicPreview() {
-  schematicPreviewVisible.value = true
+  schematicPreviewVisible.value = true;
 }
 
 watch(
   () => [pageFlagDrawer.value, parmType.value, vizPvzUrl.value, modalInfo.value?.length ?? 0] as const,
   ([open, tab, vizPvzUrl]) => {
-    if (!open || tab !== 'viz') return
-    loadVizPvzByFileUrl(vizPvzUrl)
+    if (!open || tab !== 'viz') return;
+    loadVizPvzByFileUrl(vizPvzUrl);
   },
   { flush: 'post' },
-)
+);
 
 // 详情
 function clickEvent(row: any, key: any) {
   if (key === 'para2') {
-    const displayName =
-      row?.para3 != null && String(row.para3).trim() !== '' ? String(row.para3) : String(row?.para1 ?? '')
-    const modelNumStr = row?.para1 != null ? String(row.para1) : String(row?.para2 ?? '')
-    insertModelLibraryStatisticsLog('数据查询', displayName, modelNumStr)
+    const displayName = row?.para3 != null && String(row.para3).trim() !== '' ? String(row.para3) : String(row?.para1 ?? '');
+    const modelNumStr = row?.para1 != null ? String(row.para1) : String(row?.para2 ?? '');
+    insertModelLibraryStatisticsLog('数据查询', displayName, modelNumStr);
   }
-  fileData1.value = []
-  fileData2.value = []
-  parmType.value = 'viz'
-  vizDetailRow.value = row
-  pdmModuleCode.value = row[key]
-  PDMid.value = row.id
-  pdmModelType.value = row.para4
-  moduleDetails(row)
+  fileData1.value = [];
+  fileData2.value = [];
+  parmType.value = 'viz';
+  vizDetailRow.value = row;
+  pdmModuleCode.value = row[key];
+  PDMid.value = row.id;
+  pdmModelType.value = row.para4;
+  moduleDetails(row);
   if (key === 'para2') {
-    void fetchVizPvzByModuleNum(row)
+    void fetchVizPvzByModuleNum(row);
   }
 }
 
 function isModuleStatusColumn(column: any) {
-  const dataIndex = String(column?.dataIndex ?? '')
-  const title = String(column?.title ?? '').trim()
-  return dataIndex === 'status' || dataIndex === 'para10' || title === '状态'
+  const dataIndex = String(column?.dataIndex ?? '');
+  const title = String(column?.title ?? '').trim();
+  return dataIndex === 'status' || dataIndex === 'para10' || title === '状态';
 }
 
 function getModuleStatusCellText(record: any, column: any, text: unknown) {
-  const dataIndex = String(column?.dataIndex ?? '')
+  const dataIndex = String(column?.dataIndex ?? '');
   if (dataIndex === 'status' && record?.status !== undefined && record?.status !== null && record?.status !== '') {
-    return record.status
+    return record.status;
   }
-  if (text !== undefined && text !== null && String(text).trim() !== '') return text
-  if (dataIndex) return record?.[dataIndex]
-  return undefined
+  if (text !== undefined && text !== null && String(text).trim() !== '') return text;
+  if (dataIndex) return record?.[dataIndex];
+  return undefined;
 }
 
 function handleGlobalModelNumClick(record: any) {
-  globalQueryModalVisible.value = false
-  emit('getCategory', record.categoryId)
+  globalQueryModalVisible.value = false;
+  emit('getCategory', record.categoryId);
 }
 
 function customGetContainer() {
   // 返回自定义挂载节点
-  return document.querySelector('.moduleInfoListComponents')
+  return document.querySelector('.moduleInfoListComponents');
 }
 
-const compareParm = ref<number>(0)
-const tabularflag = ref(false)
-const tabularColumn = ref()
-const tabularData = ref<any>([])
-const checkParmList = ref<any>([])
+const compareParm = ref<number>(0);
+const tabularflag = ref(false);
+const tabularColumn = ref();
+const tabularData = ref<any>([]);
+const checkParmList = ref<any>([]);
 function tabularCheckList() {
-  let parm1 = 0
-  let parm2 = 0
-  let str = 0
+  let parm1 = 0;
+  let parm2 = 0;
+  let str = 0;
   if (checkParmList.value.length > 0) {
     checkParmList.value.forEach((item: any) => {
       if (item == '隐藏相同项') {
-        parm1 = 1
+        parm1 = 1;
       }
       if (item == '只看关键项') {
-        parm2 = 1
+        parm2 = 1;
       }
-    })
+    });
     if (parm1 === 1 && parm2 === 1) {
-      str = 3
+      str = 3;
     } else if (parm1 === 1 && parm2 === 0) {
-      str = 1
+      str = 1;
     } else if (parm1 === 0 && parm2 === 1) {
-      str = 2
+      str = 2;
     }
   }
-  compareParm.value = str
-  compareData()
+  compareParm.value = str;
+  compareData();
 }
 async function compareData() {
-  const data: any = {}
-  data.categoryId = categoryid.value
-  data.userId = userStore.getUser.id
-  data.moduleInfoList = selectModelList.value
-  data.compareType = compareParm.value
-  data.menuId = menuId.value
-  const res = await AdminApiSystemModule.moduleDataComparison(data)
-  let parmList = []
-  const parm = []
-  const list = []
-  parmList = res.data.data.listPropertyName
-  const strlist = res.data.data.listModule
-  let str: any = { A: '选择' }
+  const data: any = {};
+  data.categoryId = categoryid.value;
+  data.userId = userStore.getUser.id;
+  data.moduleInfoList = selectModelList.value;
+  data.compareType = compareParm.value;
+  data.menuId = menuId.value;
+  const res = await AdminApiSystemModule.moduleDataComparison(data);
+  let parmList = [];
+  const parm = [];
+  const list = [];
+  parmList = res.data.data.listPropertyName;
+  const strlist = res.data.data.listModule;
+  let str: any = { A: '选择' };
   parm.push({
     id: '数据',
     title: '列名',
@@ -1277,7 +1282,7 @@ async function compareData() {
     dataIndex: '数据',
     align: 'center',
     minWidth: 100,
-  })
+  });
   for (let j = 0; j < strlist.length; j++) {
     if (list.length == 0) {
       // str['A' + j] = false;
@@ -1288,61 +1293,61 @@ async function compareData() {
         dataIndex: `数据${j}`,
         align: 'center',
         minWidth: 100,
-      })
+      });
     }
   }
   for (let i = 0; i < parmList.length; i++) {
-    debugger
+    debugger;
     // 循环左侧标题key
-    const parmKey = Object.keys(parmList[i])[0]
+    const parmKey = Object.keys(parmList[i])[0];
     // 循环左侧标题Val
-    const parmVal = parmList[i][parmKey]
-    str = {}
-    str['数据'] = parmVal
+    const parmVal = parmList[i][parmKey];
+    str = {};
+    str['数据'] = parmVal;
     for (let k = 0; k < strlist.length; k++) {
-      const id = parmKey
-      const val = strlist[k][id]
-      str[`数据${k}`] = val
+      const id = parmKey;
+      const val = strlist[k][id];
+      str[`数据${k}`] = val;
     }
-    list.push(str)
+    list.push(str);
   }
-  tabularColumn.value = parm
-  tabularData.value = list
-  const arr: any = []
+  tabularColumn.value = parm;
+  tabularData.value = list;
+  const arr: any = [];
   for (let i = 0; i < tabularColumn.value.length; i++) {
-    arr.push(i)
+    arr.push(i);
   }
   tabularData.value.forEach((item: any) => {
-    const brr: any = []
+    const brr: any = [];
     arr.map(i => {
       if (item[`数据${i}`]) {
-        brr.push(item[`数据${i}`])
+        brr.push(item[`数据${i}`]);
       }
-    })
+    });
     if (brr.length === arr.length - 1 && brr.every(item => item === brr[0])) {
       arr.map(i => {
-        item[`数据${i}`] = item[`数据${i}`] ? `${item[`数据${i}`]} ✅` : ''
-      })
+        item[`数据${i}`] = item[`数据${i}`] ? `${item[`数据${i}`]} ✅` : '';
+      });
     }
-  })
+  });
   if (!tabularflag.value) {
-    tabularflag.value = true
+    tabularflag.value = true;
   }
 }
 
 function handlefileSave() {
-  tabularflag.value = false
+  tabularflag.value = false;
 }
 // 使用ref创建响应式变量
-const pdmDataFlag = ref(false)
-const attributeParmList = ref<any>([])
-const doudata = ref<any>([])
-const pdmData = ref<any>([])
+const pdmDataFlag = ref(false);
+const attributeParmList = ref<any>([]);
+const doudata = ref<any>([]);
+const pdmData = ref<any>([]);
 function toParm(type: any) {
-  pdmDataFlag.value = false
-  parmType.value = type
-  attributeParmList.value = []
-  doudata.value = []
+  pdmDataFlag.value = false;
+  parmType.value = type;
+  attributeParmList.value = [];
+  doudata.value = [];
   const params = {
     id: PDMid.value,
     pdmModuleNum: pdmModuleCode.value,
@@ -1351,52 +1356,52 @@ function toParm(type: any) {
     pdmModelType: pdmModelType.value,
     moduleNum: pdmModuleCode.value,
     moduleType: pdmModelType.value,
-  }
+  };
   if (type == 3) {
     AdminApiSystemModule.findAllModuleAttachment(params).then(res => {
-      console.log(res)
+      console.log(res);
       if (res.data.code == 200) {
-        const data: any = res.data.data
+        const data: any = res.data.data;
         if (data.attachmentList.length > 0) {
-          fileData1.value = data.attachmentList || []
-          fileData2.value = data.pdmsResults || []
+          fileData1.value = data.attachmentList || [];
+          fileData2.value = data.pdmsResults || [];
         }
       }
-    })
+    });
   } else if (type == 1) {
     AdminApiSystemModule.krAttribute(params).then(res => {
-      console.log(res)
+      console.log(res);
       if (res.data.code == 200) {
-        const data: any = res.data.data
+        const data: any = res.data.data;
         if (data.pdmsResults) {
-          pdmData.value = data.pdmsResults
-          pdmDataFlag.value = true
-          const str = Object.keys(pdmData.value.parameter)
+          pdmData.value = data.pdmsResults;
+          pdmDataFlag.value = true;
+          const str = Object.keys(pdmData.value.parameter);
           str.forEach(item => {
-            const parm: any = {}
-            parm.name = item
-            parm.val = pdmData.value.parameter[item] == null ? '' : pdmData.value.parameter[item]
-            attributeParmList.value.push(parm)
-          })
+            const parm: any = {};
+            parm.name = item;
+            parm.val = pdmData.value.parameter[item] == null ? '' : pdmData.value.parameter[item];
+            attributeParmList.value.push(parm);
+          });
         }
       }
-    })
+    });
   } else if (type == 5) {
-    supGbomcolumns.value = []
-    let data: any = {}
-    data.categoryId = categoryid.value
-    data.menuId = menuId.value
-    data.moduleId = PDMid.value
+    supGbomcolumns.value = [];
+    let data: any = {};
+    data.categoryId = categoryid.value;
+    data.menuId = menuId.value;
+    data.moduleId = PDMid.value;
     AdminApiSystemModule.findParametricDesign(data).then(res => {
-      console.log(res)
+      console.log(res);
       if (res.data.code == 200) {
-        doudata.value = res.data.data.modulesList || []
-        const resData = res.data.data.moduleParaList || []
+        doudata.value = res.data.data.modulesList || [];
+        const resData = res.data.data.moduleParaList || [];
         for (let i = 0; i < resData.length; i++) {
           if (resData[i].propertyName == '模型件号') {
-            resData[i].dataProp = 'moduleNewNum'
+            resData[i].dataProp = 'moduleNewNum';
           } else if (resData[i].propertyName == '模型类型') {
-            resData[i].dataProp = 'moduleType'
+            resData[i].dataProp = 'moduleType';
           }
           supGbomcolumns.value.push({
             title: resData[i].propertyName,
@@ -1406,36 +1411,36 @@ function toParm(type: any) {
             resizable: true,
             minWidth: resData[i].colWidth == undefined ? 70 : resData[i].colWidth,
             sortable: true,
-          })
+          });
         }
       } else {
-        message.error(res.data.msg)
+        message.error(res.data.msg);
       }
-    })
+    });
   }
 }
-const udfBoxRef = ref<any>()
+const udfBoxRef = ref<any>();
 function udfBoxStyle(): Record<string, string> {
-  let lastPixelRatio: any = window.devicePixelRatio
+  let lastPixelRatio: any = window.devicePixelRatio;
   window.addEventListener('resize', () => {
-    const currentPixelRatio: any = window.devicePixelRatio
+    const currentPixelRatio: any = window.devicePixelRatio;
     if (currentPixelRatio !== lastPixelRatio) {
-      const screenheight = window.innerHeight
-      let pageHeight = 0
+      const screenheight = window.innerHeight;
+      let pageHeight = 0;
       if (lastPixelRatio < 1 && currentPixelRatio != 1) {
-        pageHeight = screenheight - 220
+        pageHeight = screenheight - 220;
       } else if (currentPixelRatio == 1 && Number.parseFloat(currentPixelRatio) > Number.parseFloat(lastPixelRatio)) {
-        pageHeight = screenheight - 241
+        pageHeight = screenheight - 241;
       } else if (lastPixelRatio == 1 && Number.parseFloat(currentPixelRatio) > Number.parseFloat(lastPixelRatio)) {
-        pageHeight = screenheight
+        pageHeight = screenheight;
       } else {
-        pageHeight = screenheight
+        pageHeight = screenheight;
       }
-      udfBoxRef.value.style.minHeight = `${pageHeight}px`
+      udfBoxRef.value.style.minHeight = `${pageHeight}px`;
     }
-    lastPixelRatio = currentPixelRatio
-  })
-  return {}
+    lastPixelRatio = currentPixelRatio;
+  });
+  return {};
 }
 const supGbomcolumns = ref<any>([
   {
@@ -1462,7 +1467,7 @@ const supGbomcolumns = ref<any>([
     resizable: true,
     sortDirections: ['descend', 'ascend'],
   },
-])
+]);
 const fileColumns1 = ref<any>([
   {
     title: '文件名称',
@@ -1489,7 +1494,7 @@ const fileColumns1 = ref<any>([
     resizable: true,
     minWidth: 100,
   },
-])
+]);
 const fileColumns2 = ref<any>([
   {
     title: '文件编号',
@@ -1507,30 +1512,30 @@ const fileColumns2 = ref<any>([
     minWidth: 150,
     resizable: true,
   },
-])
+]);
 function setFixedRowClass(record, index) {
   // 为前三行分别添加类名：fixed-row-0、fixed-row-1、fixed-row-2
-  return index < 3 ? `fixed-row-${index}` : ''
+  return index < 3 ? `fixed-row-${index}` : '';
 }
 async function downloadPDF(id: number, documentName: any) {
   const downLoadItem: any = {
     fileId: id,
-  }
-  handleEpcDownload(downLoadItem, documentName)
+  };
+  handleEpcDownload(downLoadItem, documentName);
 }
 function handleNameClick(row: any) {
-  const data: any = {}
-  data.docnumber = row.docnumber
+  const data: any = {};
+  data.docnumber = row.docnumber;
   AdminApiSystemModule.getURLApi(data).then(res => {
     if (res.data.code == 0) {
-      window.open(res.data.data)
+      window.open(res.data.data);
     } else {
-      message.error(res.data.msg)
+      message.error(res.data.msg);
     }
-  })
+  });
 }
 
-defineExpose({ initData, selectAllModuleInfo })
+defineExpose({ initData, selectAllModuleInfo });
 </script>
 
 <template>
@@ -1650,9 +1655,7 @@ defineExpose({ initData, selectAllModuleInfo })
               <span />
             </template>
             <template v-else>
-              <div
-                class="header-cell-main"
-                :class="{ 'header-cell-main--has-filter': isModuleFilterableColumn(column) }">
+              <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isModuleFilterableColumn(column) }">
                 <span
                   class="header-title-sort"
                   :class="{ 'header-title-sort--disabled': !isSortableModuleColumn(column) }"
@@ -1677,16 +1680,11 @@ defineExpose({ initData, selectAllModuleInfo })
                           :placeholder="`搜索 ${column.title}`"
                           allow-clear />
                         <div class="header-filter-actions">
-                          <a-button
-                            type="primary"
-                            size="small"
-                            @click="applyModuleColumnFilter(String(column.dataIndex))">
+                          <a-button type="primary" size="small" @click="applyModuleColumnFilter(String(column.dataIndex))">
                             <SearchOutlined />
                             确定
                           </a-button>
-                          <a-button size="small" @click="resetModuleColumnFilter(String(column.dataIndex))"
-                            >重置</a-button
-                          >
+                          <a-button size="small" @click="resetModuleColumnFilter(String(column.dataIndex))">重置</a-button>
                         </div>
                       </div>
                     </template>
@@ -1713,20 +1711,10 @@ defineExpose({ initData, selectAllModuleInfo })
                   <img class="act-btns" :src="moduleIcon1" alt="打开模型" @click="openMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="装配模型" placement="topLeft">
-                  <img
-                    class="act-btns"
-                    style="width: 28px"
-                    :src="moduleIcon2"
-                    alt="装配模型"
-                    @click="fitoutMx([record])" />
+                  <img class="act-btns" style="width: 28px" :src="moduleIcon2" alt="装配模型" @click="fitoutMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="打开二维图" placement="topLeft">
-                  <img
-                    class="act-btns"
-                    style="width: 28px"
-                    :src="moduleIcon3"
-                    alt="打开二维图"
-                    @click="openEwt([record])" />
+                  <img class="act-btns" style="width: 28px" :src="moduleIcon3" alt="打开二维图" @click="openEwt([record])" />
                 </a-tooltip>
                 <a-tooltip title="参数化设计" placement="topLeft">
                   <img class="act-btns" :src="moduleIcon4" alt="参数化设计" @click="argsMx([record])" />
@@ -1929,11 +1917,7 @@ defineExpose({ initData, selectAllModuleInfo })
               <div class="module-viz-section-title module-viz-section-title--2d">2D示意图</div>
               <div class="module-viz-2d-card">
                 <img class="module-viz-2d-img" :src="vizSchematicDisplaySrc" alt="2D示意图" />
-                <button
-                  type="button"
-                  class="module-viz-2d-eye"
-                  aria-label="放大查看"
-                  @click.stop="openSchematicPreview">
+                <button type="button" class="module-viz-2d-eye" aria-label="放大查看" @click.stop="openSchematicPreview">
                   <EyeOutlined />
                 </button>
               </div>
