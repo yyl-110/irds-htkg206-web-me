@@ -440,7 +440,7 @@ defineExpose({ getResourcesByParent });
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyProjectTableColumnFilter('projectNum')">
                             <SearchOutlined />
-                            {{ $t('确定') }}
+                            {{ $t('搜索') }}
                           </a-button>
                           <a-button size="small" @click="resetProjectTableColumnFilter('projectNum')">{{ $t('重置') }}</a-button>
                         </div>
@@ -468,7 +468,7 @@ defineExpose({ getResourcesByParent });
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyProjectTableColumnFilter('projectName')">
                             <SearchOutlined />
-                            {{ $t('确定') }}
+                            {{ $t('搜索') }}
                           </a-button>
                           <a-button size="small" @click="resetProjectTableColumnFilter('projectName')">{{ $t('重置') }}</a-button>
                         </div>

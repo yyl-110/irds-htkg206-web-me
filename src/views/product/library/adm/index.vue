@@ -569,7 +569,7 @@ function handleFinish() {
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyLibraryTableColumnFilter('menuName')">
                             <SearchOutlined />
-                            {{ $t('确定') }}
+                            {{ $t('搜索') }}
                           </a-button>
                           <a-button size="small" @click="resetLibraryTableColumnFilter('menuName')">{{ $t('重置') }}</a-button>
                         </div>

@@ -78,7 +78,7 @@
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyMapColumnFilter(String(column.dataIndex))">
                             <SearchOutlined />
-                            确定
+                            搜索
                           </a-button>
                           <a-button size="small" @click="resetMapColumnFilter(String(column.dataIndex))">重置</a-button>
                         </div>

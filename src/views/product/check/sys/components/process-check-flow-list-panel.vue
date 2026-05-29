@@ -626,7 +626,7 @@ defineExpose({
                       <div class="header-filter-actions">
                         <a-button type="primary" size="small" @click="applyProcessFlowColumnFilter(String(column.dataIndex))">
                           <SearchOutlined />
-                          确定
+                          搜索
                         </a-button>
                         <a-button size="small" @click="resetProcessFlowColumnFilter(String(column.dataIndex))">重置</a-button>
                       </div>
@@ -680,11 +680,11 @@ defineExpose({
               <a-popconfirm
                 v-else
                 placement="topLeft"
-                title="确定要取消发布应用吗？"
+                title="确定要撤销发布应用吗？"
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>取消计算应用</a>
+                <a href="#" @click.prevent>撤销计算发布</a>
               </a-popconfirm>
               <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
               <span v-else class="operation-disabled">配置</span>

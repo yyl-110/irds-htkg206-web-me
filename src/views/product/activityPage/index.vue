@@ -1129,7 +1129,7 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, Number.MAX_SAFE_INTEGER) - toNumOrFallback(b?.sortNo, Number.MAX_SAFE_INTEGER));
   const isCalcPage = String(baseRecord?.pageType ?? '') === '2';
   const basicTypes = isCalcPage
-    ? ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']
+    ? ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE']
     : ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'PLAIN_TEXT', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
   const uploadTypes = isCalcPage ? [] : ['FILE'];
   const tableTypes = isCalcPage ? [] : ['TABLE'];
@@ -1429,7 +1429,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                               <div class="header-filter-actions">
                                 <a-button type="primary" size="small" @click="applyActivityColumnFilter(String(column.dataIndex))">
                                   <SearchOutlined />
-                                  {{ $t('确定') }}
+                                  {{ $t('搜索') }}
                                 </a-button>
                                 <a-button size="small" @click="resetActivityColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
                               </div>

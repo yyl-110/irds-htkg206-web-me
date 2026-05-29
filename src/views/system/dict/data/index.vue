@@ -512,7 +512,7 @@ export default defineComponent({
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyDictDataColumnFilter('label')">
                             <SearchOutlined />
-                            {{ $t('确定') }}
+                            {{ $t('搜索') }}
                           </a-button>
                           <a-button size="small" @click="resetDictDataColumnFilter('label')">{{ $t('重置') }}</a-button>
                         </div>
