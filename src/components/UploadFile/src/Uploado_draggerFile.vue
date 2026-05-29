@@ -79,14 +79,9 @@ function onUploadChange(info: UploadChangeParam) {
 }
 
 function onUploadPreview(file: UploadFile) {
-  let fileUels = '';
-  const f = file as UploadFile & { filePathl?: string; filePath?: string; fileUrl?: string };
-  if (f.filePathl) fileUels = f.filePathl;
-  else if (f.filePath) fileUels = f.filePath;
-  else if (f.fileUrl) fileUels = f.fileUrl;
-  if (!fileUels) return;
-  if (fileUels.startsWith('http')) window.open(fileUels);
-  else window.open(`${import.meta.env.VITE_MINIO_PREVIEW_URL}${fileUels}`);
+  const previewUrl = getListedFilePreviewUrl(file);
+  if (!previewUrl) return;
+  window.open(previewUrl);
 }
 
 function onRemoveFile() {
@@ -118,6 +113,23 @@ function parseUploadFileId(file: UploadFile): string {
   return String(body.id ?? body.queryId ?? '').trim();
 }
 
+function parseUploadFileUrlFromResponse(raw: unknown): string {
+  if (!raw || typeof raw !== 'object')
+    return '';
+  const body = raw as Record<string, unknown>;
+  let record: Record<string, unknown> = body;
+  const nested = body.data;
+  if (nested && typeof nested === 'object') {
+    const nestedRecord = nested as Record<string, unknown>;
+    if (nestedRecord.fileUrl != null || nestedRecord.filePath != null || nestedRecord.url != null)
+      record = nestedRecord;
+    else if (body.fileUrl == null && body.filePath == null && body.url == null)
+      record = nestedRecord;
+  }
+  const fileUrl = record.fileUrl ?? record.filePath ?? record.url;
+  return fileUrl != null ? String(fileUrl).trim() : '';
+}
+
 function getListedFilePreviewUrl(file: UploadFile): string {
   if (file.url)
     return String(file.url);
@@ -131,6 +143,8 @@ function getListedFilePreviewUrl(file: UploadFile): string {
     path = f.filePath;
   else if (f.fileUrl)
     path = f.fileUrl;
+  else
+    path = parseUploadFileUrlFromResponse(file.response);
   if (path) {
     return path.startsWith('http') ? path : `${import.meta.env.VITE_MINIO_PREVIEW_URL}${path}`;
   }
