@@ -7,6 +7,7 @@ import { getRouteCacheKey } from '@/utils/routeCacheKey';
 import { WeiPageTabMenus } from '@/wei-components/WeiPageTabs/typings';
 import { router } from '@/router';
 import { CloseLayoutTabEventKey, RevealSiderMenuEventKey, SetTabTitleEventKey } from '@/utils/EventBus';
+import { isPlatformPickerDrawerRoute, markSkipPlatformPickerDrawerOnTab } from '@/utils/platformPickerDrawerNav';
 
 // const route = useRoute()
 // const router = useRouter()
@@ -146,6 +147,13 @@ async function removeTab(key: string = '') {
  * @param tab
  */
 async function gotoTab(tab: any) {
+  const resolved = router.resolve({
+    path: tab.path,
+    query: tab.query,
+    hash: tab.hash,
+  });
+  if (isPlatformPickerDrawerRoute(resolved))
+    markSkipPlatformPickerDrawerOnTab();
   await router.push({
     path: tab.path,
     query: tab.query,

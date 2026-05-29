@@ -20,6 +20,8 @@ import ModuleInfoList from './components/form/ModuleInfoListAdm.vue';
 import TreeModule from './components/modal/TreeModule.vue';
 import { decryptValue } from '@/utils';
 import { useLayoutStore } from '@/store/modules/layout/layout';
+import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
+import { consumeSkipPlatformPickerDrawerOnTab } from '@/utils/platformPickerDrawerNav';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 const layoutStore = useLayoutStore();
@@ -622,7 +624,11 @@ function filterTitleListForDrawer(list: any[]): any[] {
   });
 }
 /** 获取分类数据 */
-async function getMenuListData() {
+async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
+  if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
+    titleVisible.value = false;
+    return;
+  }
   titleVisible.value = true;
   treeData.value = [];
   drawerStyle.value = {
@@ -893,9 +899,10 @@ function handleSelectTreeNode1(selectedKeys: any[], info: any) {
   selectTreeSelectedKeys1.value = selectedKeys[0];
 }
 
-onMounted(() => {
-  // 获取树数据
-  getMenuListData();
+usePlatformPickerDrawerLifecycle(getMenuListData, {
+  onTabSkip: () => {
+    titleVisible.value = false;
+  },
 });
 
 const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } = useSplitpanesTreeCollapse();

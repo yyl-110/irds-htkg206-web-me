@@ -1,16 +1,40 @@
-// 弹窗底栏：主按钮（确定）排在取消前；兼容默认 footer 与自定义 footer
-.ant-modal-footer,
-.ant-modal-confirm-btns {
+// 确认类弹窗底栏：主按钮（确定）在左，取消在右
+// 覆盖 Modal.confirm、a-popconfirm、Element Plus MessageBox 等
+
+.confirm-dialog-btns() {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+  text-align: right;
 
-  .ant-btn + .ant-btn {
+  .ant-btn + .ant-btn,
+  button + button {
     margin-inline-start: 0;
+    margin-left: 0;
   }
 
-  .ant-btn-primary {
+  .ant-btn-primary,
+  .el-button--primary {
     order: -1;
+  }
+}
+
+.ant-modal-footer,
+.ant-modal-confirm-btns {
+  .confirm-dialog-btns();
+}
+
+// a-popconfirm（删除确认气泡等）
+.ant-popconfirm .ant-popover-buttons {
+  .confirm-dialog-btns();
+}
+
+// Element Plus MessageBox.confirm / useMessage().delConfirm 等
+.el-message-box__btns {
+  .confirm-dialog-btns();
+
+  .el-button + .el-button {
+    margin-left: 0;
   }
 }

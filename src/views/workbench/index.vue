@@ -2390,6 +2390,7 @@ onUnmounted(() => {
     v-model:visible="rejectModalVisible"
     title="驳回任务"
     width="520px"
+    class="workbench-reject-modal"
     :confirm-loading="rejectSubmitLoading"
     :mask-closable="false"
     destroy-on-close
@@ -2397,18 +2398,18 @@ onUnmounted(() => {
     cancel-text="取消"
     @ok="submitWorkbenchReject"
     @cancel="closeRejectModal">
-    <p v-if="rejectTargetTask" style="margin-bottom: 12px; color: #666; line-height: 1.6">
+    <p v-if="rejectTargetTask" class="workbench-reject-modal__tip">
       将退回给上级分配人（分配操作人或父节点负责人），对方待办将重新打开；协同/分类类已发布任务将撤销发布以便重新选人分配。请填写驳回原因（对方在任务类型旁可见摘要，悬停查看全文）。
     </p>
-    <div style="margin-bottom: 8px; color: #313133">驳回意见</div>
-    <el-input
-      v-model="rejectOpinion"
-      type="textarea"
+    <div class="workbench-reject-modal__label">驳回意见</div>
+    <a-textarea
+      v-model:value="rejectOpinion"
+      class="workbench-reject-modal__textarea"
       :rows="4"
-      maxlength="500"
-      show-word-limit
+      :maxlength="500"
+      show-count
       placeholder="请说明不适宜承办的原因，便于对方调整分配"
-      clearable />
+      allow-clear />
   </a-modal>
 
   <CancellationProcess
@@ -3026,4 +3027,50 @@ onUnmounted(() => {
 .normal-progress :deep(.ant-progress-bg) {
   background: linear-gradient(270deg, #6f86fa 2.51%, #1a58e8 72.46%) !important;
 }
-</style
+
+.workbench-reject-modal__tip {
+  margin-bottom: 12px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.workbench-reject-modal__label {
+  margin-bottom: 8px;
+  color: #313133;
+}
+
+.workbench-reject-modal__textarea {
+  :deep(textarea.ant-input) {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: calc(1.5715 * 14px * 4 + 8px);
+    resize: vertical;
+    overflow: auto;
+  }
+}
+</style>
+
+<style lang="less">
+.workbench-reject-modal {
+  .ant-modal {
+    max-width: calc(100vw - 32px);
+  }
+
+  .ant-modal-content {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ant-modal-body {
+    overflow: hidden;
+    word-break: break-word;
+  }
+
+  .ant-input-affix-wrapper-textarea-with-clear-btn {
+    display: block;
+    height: auto !important;
+    overflow: visible;
+  }
+}
+</style>

@@ -640,11 +640,14 @@ async function moduleDetails(rowRecord: any) {
   pageFlagDrawer.value = true
   parmType.value = 'viz'
   const moduleParaList = modulePropertyInfo.value
-  modalInfo.value = moduleParaList.map((item: any) => ({
-    name: item.propertyName,
-    str: item.dataProp,
-    val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
-  }))
+  modalInfo.value = moduleParaList.map((item: any) => {
+    const dataKey = item.propertyName == '贡献者' ? 'para7Name' : item.dataProp
+    return {
+      name: item.propertyName,
+      str: item.dataProp,
+      val: rowRecord != null && dataKey != null ? rowRecord[dataKey] : undefined,
+    }
+  })
 }
 
 function buildFilterArr() {

@@ -1,5 +1,7 @@
 <script lang="ts" setup>
-import { computed, h, nextTick, reactive, ref } from 'vue';
+import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
+import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
+import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
 import { useRouter } from 'vue-router';
 import { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
@@ -205,13 +207,15 @@ const productTempTableDisplayList = computed(() => {
 });
 
 onMounted(() => {
-  drawerStyle.value = {
-    marginLeft: layoutStore.asideWidthStyle,
-    marginTop: '0px',
-    width: 'calc(100% - 241px)',
-    height: 'calc(100vh)',
-  };
-  getMenuListData();
+  drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+});
+
+usePlatformPickerDrawerLifecycle(getMenuListData, {
+  onTabSkip: () => {
+    shouldShowDrawer.value = false;
+    titleVisible.value = false;
+    resetDrawerStyle();
+  },
 });
 
 function handleResizeColumn(w, col) {
@@ -307,7 +311,7 @@ async function handleDelete(id: any) {
   getResources();
 }
 
-async function getMenuListData() {
+async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
     titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
@@ -323,16 +327,22 @@ async function getMenuListData() {
       }
       return;
     }
-    if (titleList.value.length === 1) {
+    if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
       shouldShowDrawer.value = false;
       titleVisible.value = false;
-      menuId.value = String(titleList.value[0]?.id ?? '');
       resetDrawerStyle();
-      await getResources();
+      if (menuId.value) {
+        return;
+      }
+      if (titleList.value.length > 0) {
+        menuId.value = String(titleList.value[0]?.id ?? '');
+        await getResources();
+      }
       return;
     }
-    shouldShowDrawer.value = titleList.value.length > 1;
-    titleVisible.value = shouldShowDrawer.value;
+    drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+    shouldShowDrawer.value = true;
+    titleVisible.value = true;
   } catch (error) {
     console.error('获取平台分类失败:', error);
   }

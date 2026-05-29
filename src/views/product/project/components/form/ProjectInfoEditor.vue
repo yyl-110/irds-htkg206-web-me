@@ -43,7 +43,7 @@ const projectForm = reactive({
   planEndTime: undefined as string | undefined,
   confidentialLevel: 1,
   remarks: '',
-  dataConfidentialLevel: '公开',
+  dataConfidentialLevel: 1,
   productTempName: '',
   productTempId: '',
   actualEndTime: '',
@@ -57,6 +57,11 @@ const confidentialOptions = [
   { label: '秘密', value: 3 },
   { label: '机密', value: 4 },
 ];
+
+function normalizeConfidentialLevel(value: unknown, fallback = 1): number {
+  const level = Number(value);
+  return Number.isFinite(level) ? level : fallback;
+}
 
 const projectFormLabelCol = { style: { width: '120px' } };
 const projectFormWrapperCol = { span: 18 };
@@ -115,7 +120,7 @@ function resetProjectForm() {
   projectForm.planEndTime = undefined;
   projectForm.confidentialLevel = 1;
   projectForm.remarks = '';
-  projectForm.dataConfidentialLevel = '公开';
+  projectForm.dataConfidentialLevel = 1;
   basicInfoRef.value?.resetMaterialFiles();
 }
 
@@ -239,7 +244,10 @@ async function getProjectInfo() {
   projectForm.projectName = projectDto.projectName;
   projectForm.planStartTime = projectDto.planStartTime;
   projectForm.planEndTime = projectDto.planEndTime;
-  projectForm.confidentialLevel = projectDto.confidentialLevel;
+  projectForm.confidentialLevel = normalizeConfidentialLevel(projectDto.confidentialLevel);
+  if (projectDto.dataConfidentialLevel != null && projectDto.dataConfidentialLevel !== '') {
+    projectForm.dataConfidentialLevel = normalizeConfidentialLevel(projectDto.dataConfidentialLevel);
+  }
   projectForm.remarks = projectDto.remarks;
   projectForm.productTempName = projectDto.productTempName;
   projectForm.productTempId = projectDto.productTempId;

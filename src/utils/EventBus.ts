@@ -16,3 +16,9 @@ export const SetTabTitleEventKey: EventBusKey<string> = Symbol('SetTabTitle')
  * 侧栏折叠时，点击当前已打开页签以展开二/三级菜单路径
  */
 export const RevealSiderMenuEventKey: EventBusKey<string> = Symbol('RevealSiderMenu')
+
+/** 侧栏再次点击带平台选择抽屉的菜单时打开抽屉 */
+export const OpenPlatformPickerDrawerEventKey: EventBusKey<void> = Symbol('OpenPlatformPickerDrawer')
+
+/** @deprecated 使用 OpenPlatformPickerDrawerEventKey */
+export const OpenModuleLibDrawerEventKey = OpenPlatformPickerDrawerEventKey

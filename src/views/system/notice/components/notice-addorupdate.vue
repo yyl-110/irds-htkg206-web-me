@@ -36,11 +36,29 @@ const ckeditorRef = ref();
 
 const uploadModalVisible = ref(false);
 
-/** handle close */
-function handleClose() {
+function resetNoticeForm() {
+  id.value = 0;
+  title.value = '';
+  type.value = '1';
+  content.value = '';
   fileList.value = [];
   uploadModalVisible.value = false;
-  title.value = '';
+  confidentialLevel.value = 0;
+  requestParams.id = 0;
+  requestParams.fileId = '';
+  requestParams.title = '';
+  requestParams.type = '1';
+  requestParams.content = '';
+  nextTick(() => {
+    nextTick(() => {
+      ckeditorRef.value?.setData('');
+    });
+  });
+}
+
+/** handle close */
+function handleClose() {
+  resetNoticeForm();
   emit('close');
 }
 
@@ -93,8 +111,7 @@ async function savePageInfo() {
       ...requestParams,
     });
   }
-  title.value = '';
-  fileList.value = [];
+  resetNoticeForm();
   // 刷新父页面列表数据
   emit('refreshtabledata');
   emit('close');
@@ -183,18 +200,7 @@ function noticeInfoAddOrUpdate(data: any, filedata: any) {
       }
     });
   } else {
-    id.value = 0;
-    title.value = '';
-    type.value = '1';
-    content.value = '';
-    fileList.value = [];
-    uploadModalVisible.value = false;
-    confidentialLevel.value = 0;
-    nextTick(() => {
-      if (ckeditorRef.value) {
-        ckeditorRef.value.setData(data.content);
-      }
-    });
+    resetNoticeForm();
   }
 }
 function customGetContainer() {

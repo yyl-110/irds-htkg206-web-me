@@ -9,7 +9,8 @@ import WeiLayoutSiderMenuItem from './components/WeiLayoutSiderMenuItem/index.vu
 import WeiLayoutSiderSubMenu from './components/WeiLayoutSiderSubMenu/index.vue';
 import appStore from '@/store';
 import { useProjectUiStore } from '@/store/modules/layout/projectUi';
-import { RevealSiderMenuEventKey } from '@/utils/EventBus';
+import { OpenPlatformPickerDrawerEventKey, RevealSiderMenuEventKey } from '@/utils/EventBus';
+import { isPlatformPickerDrawerRoute } from '@/utils/platformPickerDrawerNav';
 import { isSameMenuRoutePath } from '@/utils/routeCacheKey';
 type MenuRoute = RouteRecord | RouteRecordRaw;
 const props = withDefaults(defineProps<{ collapsed: boolean; mode?: MenuProps['mode'] }>(), { mode: 'inline' });
@@ -208,6 +209,7 @@ watch(isInlineCollapsed, collapsed => {
 });
 
 const revealSiderMenuBus = useEventBus(RevealSiderMenuEventKey);
+const openPlatformPickerDrawerBus = useEventBus(OpenPlatformPickerDrawerEventKey);
 revealSiderMenuBus.on(() => revealCollapsedMenu());
 
 /**
@@ -220,8 +222,11 @@ const onClickMenuItem: MenuClickEventHandler = event => {
     window.open(import.meta.env.VITE_KANBAN_SERVE, '_blank');
     return;
   }
-  // 已在当前页：避免无意义 parms 导航导致 Tab/keep-alive 反复销毁重建
+  // 已在当前页：带平台选择抽屉的菜单须再次弹出；其它页避免无意义导航导致 Tab/keep-alive 反复销毁重建
   if (isSameMenuRoutePath(targetPath, route)) {
+    const resolved = router.resolve({ path: targetPath });
+    if (isPlatformPickerDrawerRoute(resolved))
+      openPlatformPickerDrawerBus.emit();
     return;
   }
   router.push({ path: targetPath });

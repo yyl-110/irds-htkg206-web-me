@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, h, inject, nextTick, reactive, ref } from 'vue';
+import { computed, h, inject, nextTick, onMounted, reactive, ref } from 'vue';
+import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
+import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
@@ -430,20 +432,23 @@ async function getListData(type?: string) {
   }
 }
 
-async function getMenuListData() {
+async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
     titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
-    if (titleList.value.length === 1) {
+    if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
       shouldShowDrawer.value = false;
       titleVisible.value = false;
-      menuId.value = String(titleList.value[0]?.id ?? '');
       resetDrawerStyle();
-      await getListData();
+      if (!menuId.value && titleList.value.length > 0) {
+        menuId.value = String(titleList.value[0]?.id ?? '');
+        await getListData();
+      }
       return;
     }
-    shouldShowDrawer.value = titleList.value.length > 1;
-    titleVisible.value = shouldShowDrawer.value;
+    drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+    shouldShowDrawer.value = true;
+    titleVisible.value = true;
   } catch (error) {
     console.error('获取平台分类失败:', error);
   }
@@ -461,13 +466,15 @@ function onCloseDrawer() {
 }
 
 onMounted(() => {
-  drawerStyle.value = {
-    marginLeft: layoutStore.asideWidthStyle,
-    marginTop: '0px',
-    width: 'calc(100% - 241px)',
-    height: 'calc(100vh)',
-  };
-  getMenuListData();
+  drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+});
+
+usePlatformPickerDrawerLifecycle(getMenuListData, {
+  onTabSkip: () => {
+    shouldShowDrawer.value = false;
+    titleVisible.value = false;
+    resetDrawerStyle();
+  },
 });
 
 /** 将数据转换为树结构所需格式 */

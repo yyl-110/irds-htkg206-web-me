@@ -516,11 +516,14 @@ async function moduleDetails(rowRecord: any) {
   const moduleParaList = modulePropertyInfo.value;
   modalInfo.value = moduleParaList
     .filter((item: any) => item.dataProp !== 'para11')
-    .map((item: any) => ({
-      name: item.propertyName,
-      str: item.dataProp,
-      val: rowRecord != null && item.dataProp != null ? rowRecord[item.dataProp] : undefined,
-    }));
+    .map((item: any) => {
+      const dataKey = item.propertyName == '贡献者' ? 'para7Name' : item.dataProp;
+      return {
+        name: item.propertyName,
+        str: item.dataProp,
+        val: rowRecord != null && dataKey != null ? rowRecord[dataKey] : undefined,
+      };
+    });
 }
 
 function buildFilterArr() {

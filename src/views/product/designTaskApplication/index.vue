@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, reactive, ref } from 'vue';
+import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
+import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
@@ -47,7 +49,7 @@ const updateMenu = async (item: any) => {
 };
 
 /** 获取分类数据 */
-async function getMenuListData() {
+async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
     titleList.value = res.data.data;
@@ -65,19 +67,26 @@ async function getMenuListData() {
       }
       return;
     }
-    if (res.data.data.length == 1) {
+    if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
       shouldShowDrawer.value = false;
       titleVisible.value = false;
-      projectListVisible.value = true;
       resetDrawerStyle();
-      menuId.value = res.data.data[0].id;
-      await nextTick();
-      designTaskComRef.value?.initInfoList(menuId.value, res.data.data[0].categoryName);
-    } else {
-      projectListVisible.value = false;
-      shouldShowDrawer.value = true;
-      titleVisible.value = true;
+      if (menuId.value) {
+        projectListVisible.value = true;
+        return;
+      }
+      if (Array.isArray(res.data.data) && res.data.data.length > 0) {
+        menuId.value = res.data.data[0].id;
+        projectListVisible.value = true;
+        await nextTick();
+        designTaskComRef.value?.initInfoList(menuId.value, res.data.data[0].categoryName);
+      }
+      return;
     }
+    projectListVisible.value = false;
+    drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+    shouldShowDrawer.value = true;
+    titleVisible.value = true;
   } catch (error) {
     console.error('获取平台分类失败:', error);
   }
@@ -88,13 +97,17 @@ function onClose() {
 }
 
 onMounted(() => {
-  drawerStyle.value = {
-    marginLeft: layoutStore.asideWidthStyle,
-    marginTop: '0px',
-    width: 'calc(100% - 241px)',
-    height: 'calc(100vh)',
-  };
-  getMenuListData();
+  drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+});
+
+usePlatformPickerDrawerLifecycle(getMenuListData, {
+  onTabSkip: () => {
+    shouldShowDrawer.value = false;
+    titleVisible.value = false;
+    resetDrawerStyle();
+    if (menuId.value)
+      projectListVisible.value = true;
+  },
 });
 </script>
 
