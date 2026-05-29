@@ -75,7 +75,7 @@ defineExpose({ searchInput });
     <div class="filter-actions">
       <a-button type="primary" size="small" @click="onSearch">
         <template #icon><SearchOutlined /></template>
-        确定
+        {{ $t('搜索') }}
       </a-button>
       <a-button size="small" @click="onReset">重置</a-button>
     </div>

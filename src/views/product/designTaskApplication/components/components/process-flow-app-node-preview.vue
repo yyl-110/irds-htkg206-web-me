@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch, type Directive } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { message } from 'ant-design-vue';
@@ -58,6 +58,29 @@ const modulePickerItemKey = ref('');
 const modulePickerSourceComponentIndex = ref(-1);
 const modulePickerTableBodyRowIndex = ref(1);
 const modulePickerQueryPrefill = ref<Record<string, string>>({});
+
+/** 文本域纵向拖拽时同步 grid 卡片高度，避免遮挡下方组件 */
+const vTextareaGridSync: Directive<HTMLElement> = {
+  mounted(el) {
+    const textarea = el.querySelector('textarea');
+    const card = el.closest('.component-card') as HTMLElement | null;
+    if (!textarea || !card) return;
+
+    const syncCardHeight = () => {
+      const cardTop = card.getBoundingClientRect().top;
+      const textareaBottom = textarea.getBoundingClientRect().bottom;
+      card.style.minHeight = `${Math.ceil(textareaBottom - cardTop + 2)}px`;
+    };
+
+    const observer = new ResizeObserver(syncCardHeight);
+    observer.observe(textarea);
+    syncCardHeight();
+    (el as HTMLElement & { __textareaGridSyncCleanup?: () => void }).__textareaGridSyncCleanup = () => observer.disconnect();
+  },
+  unmounted(el) {
+    (el as HTMLElement & { __textareaGridSyncCleanup?: () => void }).__textareaGridSyncCleanup?.();
+  },
+};
 
 function normalizeValidateRule(raw: unknown): any {
   if (raw == null) return null;
@@ -1842,7 +1865,7 @@ defineExpose({
               @blur="() => onPreviewInputBlur(item, index)" />
             <span v-if="getInputValueRangeHint(item)" class="value-range-hint-chip">{{ getInputValueRangeHint(item) }}</span>
           </div>
-          <div v-else-if="item.componentType === 'TEXTAREA'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+          <div v-else-if="item.componentType === 'TEXTAREA'" v-textarea-grid-sync class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <a-textarea
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :rows="item.customProps?.rows || 4"
@@ -2199,6 +2222,7 @@ defineExpose({
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
   align-content: start;
+  grid-auto-rows: min-content;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -2207,12 +2231,12 @@ defineExpose({
   position: relative;
   z-index: 0;
   isolation: isolate;
+  align-self: start;
   border: none;
   border-radius: 4px;
   padding: 2px 0;
   box-sizing: border-box;
 }
-.component-card--textarea:focus-within,
 .component-card--rich-text:focus-within {
   z-index: 2;
 }
@@ -2363,11 +2387,24 @@ defineExpose({
   resize: vertical;
   max-height: min(480px, 50vh);
 }
+.component-card--textarea .preview-field-trigger {
+  display: block;
+  height: auto;
+  overflow: visible;
+}
+.component-card--textarea :deep(.ant-input-affix-wrapper),
+.component-card--textarea :deep(.ant-input-affix-wrapper-textarea-with-clear-btn) {
+  display: block;
+  height: auto !important;
+  overflow: visible;
+}
 .component-card--textarea :deep(textarea.ant-input) {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   resize: vertical;
   overflow: auto;
   max-height: min(400px, 45vh);
-  vertical-align: top;
 }
 .file-preview-wrap {
   width: var(--activity-preview-file-upload-width);

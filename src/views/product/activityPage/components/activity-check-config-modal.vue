@@ -55,6 +55,7 @@ function getPaletteItemIcon(item: { type: string; tableSubtype?: string; threeDS
     DIVIDER: MinusOutlined,
     DATA_VIEW: DesktopOutlined,
     CALC_BUTTON: CalculatorOutlined,
+    OUTPUT_IMAGE: FileImageOutlined,
   };
   return map[item.type] || BorderOutlined;
 }
@@ -75,14 +76,15 @@ const paletteGroups = [
       { label: '分隔线', type: 'DIVIDER' },
       { label: '数据浏览', type: 'DATA_VIEW' },
       { label: '计算按钮', type: 'CALC_BUTTON' },
+      { label: '输出图片', type: 'OUTPUT_IMAGE' },
     ],
   },
 ];
 
 /** 计算页面仅保留的基础组件类型（加载配置时丢弃其它类型，避免误配） */
-const checkPageAllowedComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']);
+const checkPageAllowedComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE']);
 
-const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'];
+const basicTypes = ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE'];
 const uploadTypes: string[] = [];
 const tableTypes: string[] = [];
 const threeDTypes: string[] = [];
@@ -104,6 +106,7 @@ const isTitleComponent = computed(() => selectedComponent.value?.componentType =
 const isDividerComponent = computed(() => selectedComponent.value?.componentType === 'DIVIDER');
 const isDataViewComponent = computed(() => selectedComponent.value?.componentType === 'DATA_VIEW');
 const isCalcButtonComponent = computed(() => selectedComponent.value?.componentType === 'CALC_BUTTON');
+const isOutputImageComponent = computed(() => selectedComponent.value?.componentType === 'OUTPUT_IMAGE');
 
 const reportDownloading = ref(false);
 /** 画布已配置计算按钮且列表行 reportFileInfo.fileId 有值时，在计算旁展示「输出报告」 */
@@ -304,7 +307,7 @@ function createDefaultComponent(componentType: string) {
     /** 参数字典选中行的主键，与 paramCode / paramName 一并保存 */
     parameterId: null,
     paramName: '',
-    ioType: 'INPUT',
+    ioType: componentType === 'OUTPUT_IMAGE' ? 'OUTPUT' : 'INPUT',
     isRequired: 0,
     customProps,
     constraintRules: [],
@@ -319,7 +322,11 @@ function createDefaultComponent(componentType: string) {
     knowledgeId: null,
   };
 }
-function canAddComponent(_componentType: string) {
+function canAddComponent(componentType: string) {
+  if (componentType === 'OUTPUT_IMAGE' && componentList.value.some((c: any) => c?.componentType === 'OUTPUT_IMAGE')) {
+    message.warning('一个页面只能有一个输出图片占位符');
+    return false;
+  }
   return true;
 }
 function parsePalettePayload(raw: string) {
@@ -1432,7 +1439,7 @@ function getModelSelectPreviewButtons(item: any) {
   return buttons;
 }
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE'].includes(type);
 }
 function tableDimensionRange(count: number) {
   const n = Math.max(0, Math.min(100, Number(count) || 0));
@@ -1705,6 +1712,7 @@ function getTypeText(type: string) {
     DIVIDER: '分隔线',
     DATA_VIEW: '数据浏览',
     CALC_BUTTON: '',
+    OUTPUT_IMAGE: '',
     TABLE: '表格',
     '3D_VIEW': '三维',
   };
@@ -1857,6 +1865,11 @@ function ensureCalcButtonDefaults(component: any) {
   if (component.customProps.jsMethodName == null) {
     component.customProps.jsMethodName = '';
   }
+}
+function ensureOutputImageDefaults(component: any) {
+  if (!component) return;
+  if (component.ioType !== 'OUTPUT') component.ioType = 'OUTPUT';
+  if (!component.customProps || typeof component.customProps !== 'object') component.customProps = {};
 }
 function applyModuleLibReadFixedColumnNames(p: Record<string, any>) {
   if (p.tableBizType !== 'MODULE_LIB_READ' || !Array.isArray(p.tableColDefs)) return;
@@ -2167,6 +2180,7 @@ watch(
     if (component.componentType === 'FILE') ensureFileDefaults(component);
     if (component.componentType === 'DATA_VIEW') ensureDataViewDefaults(component);
     if (component.componentType === 'CALC_BUTTON') ensureCalcButtonDefaults(component);
+    if (component.componentType === 'OUTPUT_IMAGE') ensureOutputImageDefaults(component);
     if (component.componentType === 'TABLE' && ['FIXED', 'ROW_EXPAND'].includes(component.customProps?.tableSubtype)) {
       ensureWorkspaceTableDefaults(component);
     }
@@ -2422,6 +2436,9 @@ watch(
                 <a-button v-if="showReportOutputButton" type="primary" class="data-view-assemble-btn" :loading="reportDownloading" @click="onReportOutputClick">
                   输出报告
                 </a-button>
+              </div>
+              <div v-else-if="item.componentType === 'OUTPUT_IMAGE'" class="output-image-preview">
+                <div class="output-image-placeholder">图片占位符</div>
               </div>
               <div v-else class="component-type-text">{{ getTypeText(item.componentType) }}</div>
             </div>
@@ -2760,6 +2777,19 @@ watch(
                 <div class="row-control">
                   <ActivityJsMethodSelect v-model="selectedComponent.customProps.jsMethodName" :record="props.record || {}" placeholder="请选择计算调用的JS方法" />
                 </div>
+              </div>
+            </template>
+            <template v-else-if="isOutputImageComponent">
+              <div class="row-field">
+                <div class="row-label">参数代号：</div>
+                <div class="row-control">
+                  <a-input v-model:value="selectedComponent.paramCode" placeholder="请输入" disabled />
+                  <a-button type="primary" size="small" @click="showParameter()">浏览</a-button>
+                </div>
+              </div>
+              <div class="row-field">
+                <div class="row-label">参数名称：</div>
+                <div class="row-control"><a-input v-model:value="selectedComponent.paramName" placeholder="请输入" /></div>
               </div>
             </template>
             <template v-else-if="isTitleComponent">
@@ -3712,6 +3742,21 @@ watch(
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+.output-image-preview {
+  width: 100%;
+  max-width: 900px;
+}
+.output-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #999;
+  font-size: 14px;
 }
 .data-view-preview-title {
   font-size: 14px;

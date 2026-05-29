@@ -183,82 +183,82 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, defineAsyncComponent, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { BpmModelType, BpmModelFormType } from '@/utils/constants'
-import { setConfAndFields2 } from '@/utils/formCreate'
-import { registerComponent } from '@/utils/routerHelper'
-import type { ApiAttrs } from '@form-create/element-ui/types/config'
-import * as ProcessInstanceApi from '@/api/bpm/processInstance'
-import { FieldPermissionType } from '@/components/SimpleProcessDesignerV2/src/consts'
-import { ETASKTYPE } from '../components/config/constant'
-import { BpmBusinessProcessTypeEnum } from '@/components/config/consts'
-import { getBusinessTypeComponent } from './businessTypes/index'
-import { useMessage } from '@/hooks/web/useMessage'
-import { ContentWrap } from '@/components/ContentWrap'
-import { TaskStatusEnum } from '@/api/bpm/task'
-import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
+import { ref, computed, defineAsyncComponent, watch, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { BpmModelType, BpmModelFormType } from '@/utils/constants';
+import { setConfAndFields2 } from '@/utils/formCreate';
+import { registerComponent } from '@/utils/routerHelper';
+import type { ApiAttrs } from '@form-create/element-ui/types/config';
+import * as ProcessInstanceApi from '@/api/bpm/processInstance';
+import { FieldPermissionType } from '@/components/SimpleProcessDesignerV2/src/consts';
+import { ETASKTYPE } from '../components/config/constant';
+import { BpmBusinessProcessTypeEnum } from '@/components/config/consts';
+import { getBusinessTypeComponent } from './businessTypes/index';
+import { useMessage } from '@/hooks/web/useMessage';
+import { ContentWrap } from '@/components/ContentWrap';
+import { TaskStatusEnum } from '@/api/bpm/task';
+import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue';
 // 导入组件
-import ProcessInstanceHeader from './components/ProcessInstanceHeader.vue'
-import ProcessInstanceBpmnViewer from './ProcessInstanceBpmnViewer.vue'
-import ProcessInstanceSimpleViewer from './ProcessInstanceSimpleViewer.vue'
-import ProcessInstanceTaskList from './ProcessInstanceTaskList.vue'
-import ProcessInstanceOperationButtonCopy from './ProcessInstanceOperationButtonCopy.vue'
-import ProcessInstanceSubButton from '../components/ProcessInstanceSubButton.vue'
-import ProcessInstanceTimeline from './ProcessInstanceTimeline.vue'
-import ApprovalPersonnel from './components/ApprovalPersonnel.vue'
-import ProcessOpinion from './components/ProcessOpinion.vue'
-import ProcessStatusSelector from './components/ProcessStatusSelector.vue'
-import runningSvg from '@/assets/svgs/bpm/running.svg'
-import approveSvg from '@/assets/svgs/bpm/approve.svg'
-import rejectSvg from '@/assets/svgs/bpm/reject.svg'
-import cancelSvg from '@/assets/svgs/bpm/cancel.svg'
-defineOptions({ name: 'BpmProcessInstanceDetail' })
-import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
+import ProcessInstanceHeader from './components/ProcessInstanceHeader.vue';
+import ProcessInstanceBpmnViewer from './ProcessInstanceBpmnViewer.vue';
+import ProcessInstanceSimpleViewer from './ProcessInstanceSimpleViewer.vue';
+import ProcessInstanceTaskList from './ProcessInstanceTaskList.vue';
+import ProcessInstanceOperationButtonCopy from './ProcessInstanceOperationButtonCopy.vue';
+import ProcessInstanceSubButton from '../components/ProcessInstanceSubButton.vue';
+import ProcessInstanceTimeline from './ProcessInstanceTimeline.vue';
+import ApprovalPersonnel from './components/ApprovalPersonnel.vue';
+import ProcessOpinion from './components/ProcessOpinion.vue';
+import ProcessStatusSelector from './components/ProcessStatusSelector.vue';
+import runningSvg from '@/assets/svgs/bpm/running.svg';
+import approveSvg from '@/assets/svgs/bpm/approve.svg';
+import rejectSvg from '@/assets/svgs/bpm/reject.svg';
+import cancelSvg from '@/assets/svgs/bpm/cancel.svg';
+defineOptions({ name: 'BpmProcessInstanceDetail' });
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 const props = defineProps<{
-  id: string
-  taskId?: string
-  activityId?: string
-  orderInstance?: object
-}>()
-const route = useRoute()
-const message = useMessage()
+  id: string;
+  taskId?: string;
+  activityId?: string;
+  orderInstance?: object;
+}>();
+const route = useRoute();
+const message = useMessage();
 // ==================== 核心状态 ====================
-const processInstanceLoading = ref(false)
-const processInstance = ref<any>({})
-const processDefinition = ref<any>({})
-const processModelView = ref<any>({})
-const operationButtonRef = ref()
+const processInstanceLoading = ref(false);
+const processInstance = ref<any>({});
+const processDefinition = ref<any>({});
+const processModelView = ref<any>({});
+const operationButtonRef = ref();
 const auditIconsMap = {
   [TaskStatusEnum.RUNNING]: runningSvg,
   [TaskStatusEnum.APPROVE]: approveSvg,
   [TaskStatusEnum.REJECT]: rejectSvg,
   [TaskStatusEnum.CANCEL]: cancelSvg,
-}
+};
 type MemberAuthUser = {
-  id: string
-  name: string
-  username: string
-  deptId?: string
-}
+  id: string;
+  name: string;
+  username: string;
+  deptId?: string;
+};
 type MemberAuthDept = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 // 表单相关
-const fApi = ref<ApiAttrs>()
-const detailForm = ref({ rule: [], option: {}, value: {} })
-const writableFields: Array<any> = []
-const memberAuthUsers = ref<MemberAuthUser[]>([])
-const memberAuthDepts = ref<MemberAuthDept[]>([])
+const fApi = ref<ApiAttrs>();
+const detailForm = ref({ rule: [], option: {}, value: {} });
+const writableFields: Array<any> = [];
+const memberAuthUsers = ref<MemberAuthUser[]>([]);
+const memberAuthDepts = ref<MemberAuthDept[]>([]);
 // 业务数据
-const titleList = ref<any>([])
-const insatnceList = ref<any>([])
-const errorTitleList = ref<any>([])
-const errorInsatnceList = ref<any>([])
-const opinion = ref<any>('')
-const isManual = ref<boolean>(false)
-const showStatus = ref<boolean>(false)
+const titleList = ref<any>([]);
+const insatnceList = ref<any>([]);
+const errorTitleList = ref<any>([]);
+const errorInsatnceList = ref<any>([]);
+const opinion = ref<any>('');
+const isManual = ref<boolean>(false);
+const showStatus = ref<boolean>(false);
 const areaSaleRelease = ref<any>({
   areaSaleRelease_genStMbomConfirm: null,
   areaSaleRelease_rePushScpStMbomPre: null,
@@ -267,39 +267,39 @@ const areaSaleRelease = ref<any>({
   rdOwnerToAdmin: false,
   processOwnerToAdmin: false,
   processOwnerToRdOwner: false,
-})
-const memberAuthUserIds = ref<string[]>([])
+});
+const memberAuthUserIds = ref<string[]>([]);
 // 其他状态
-const todoTask = ref<any>()
+const todoTask = ref<any>();
 const todoTaskStatus = computed(() => {
-  return ['标配Mbom确认', '重新推送', '正式发布', '研发审核', '工艺审核'].includes(todoTask.value?.name)
-})
-const memberAuthVisible = ref(false)
-const loadingFlag = ref<boolean>(false)
-const activeTab = ref('form')
-const taskType = ref('')
-const taskActivityId = ref('')
-const tName = ref('')
-const qId = ref<any>('')
-const processDefinitionId = ref<any>('')
-const processDefinitionKey = ref<any>('')
-const processDefinitionList = ref<any>([])
-const approveUser = ref<any>([])
-const processVariablesList = ref<any[]>([])
-const rowIndex = ref(0)
-const processInstanceId = ref<any>('')
-const editType = ref<any>(1)
-const aTab = ref<any>('')
-const firstTimeEditSubmit = ref(true)
-const toTaskId = ref<any>('')
-const userOptions = ref<[]>([])
-const BusinessFormComponent = ref<any>(null)
-const activityNodes = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([])
-const currentBusinessComponent = ref<any>(null)
+  return ['标配Mbom确认', '重新推送', '正式发布', '研发审核', '工艺审核'].includes(todoTask.value?.name);
+});
+const memberAuthVisible = ref(false);
+const loadingFlag = ref<boolean>(false);
+const activeTab = ref('form');
+const taskType = ref('');
+const taskActivityId = ref('');
+const tName = ref('');
+const qId = ref<any>('');
+const processDefinitionId = ref<any>('');
+const processDefinitionKey = ref<any>('');
+const processDefinitionList = ref<any>([]);
+const approveUser = ref<any>([]);
+const processVariablesList = ref<any[]>([]);
+const rowIndex = ref(0);
+const processInstanceId = ref<any>('');
+const editType = ref<any>(1);
+const aTab = ref<any>('');
+const firstTimeEditSubmit = ref(true);
+const toTaskId = ref<any>('');
+const userOptions = ref<[]>([]);
+const BusinessFormComponent = ref<any>(null);
+const activityNodes = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([]);
+const currentBusinessComponent = ref<any>(null);
 
 // 流程变量弹窗相关
-const processVariablesDialogVisible = ref(false) // 弹窗显示状态
-const processVariablesContent = ref('') // 流程变量内容
+const processVariablesDialogVisible = ref(false); // 弹窗显示状态
+const processVariablesContent = ref(''); // 流程变量内容
 
 // ==================== 计算属性 ====================
 const showManualConfigCard = computed(() => {
@@ -309,59 +309,57 @@ const showManualConfigCard = computed(() => {
     processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE ===
       BpmBusinessProcessTypeEnum.PRODUCT_MODEL_FINALIZATION_CHANGE &&
     showStatus.value
-  )
-})
+  );
+});
 
 const showStatusSelectorCard = computed(() => {
   return (
     aTab.value != 3 &&
     (processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE === BpmBusinessProcessTypeEnum.REGIONAL_SALES_RELEASE ||
       processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE === BpmBusinessProcessTypeEnum.REGIONAL_SALES_CHANGE ||
-      processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE ===
-        BpmBusinessProcessTypeEnum.REGIONAL_SALES_RELEASE_TEM ||
+      processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE === BpmBusinessProcessTypeEnum.REGIONAL_SALES_RELEASE_TEM ||
       processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE === BpmBusinessProcessTypeEnum.ORDER_CONFIG_PROCESS) &&
     todoTaskStatus.value
-  )
-})
+  );
+});
 
 /** 流程是否处于「编制」节点（进行中/待处理） */
 const isAtEstablishmentNode = computed(() =>
   activityNodes.value.some(
-    node =>
-      node.name === ETASKTYPE.ESTABLISHMENT && [TaskStatusEnum.WAIT, TaskStatusEnum.RUNNING].includes(node.status),
+    node => node.name === ETASKTYPE.ESTABLISHMENT && [TaskStatusEnum.WAIT, TaskStatusEnum.RUNNING].includes(node.status),
   ),
-)
+);
 
 // ==================== 监听器 ====================
 watch(
   () => processInstance.value.formVariables?.PROCESS_BUSINESS_TYPE,
   async businessType => {
     if (businessType) {
-      let componentLoader = getBusinessTypeComponent(businessType)
+      let componentLoader = getBusinessTypeComponent(businessType);
       if (!componentLoader) {
-        componentLoader = getBusinessTypeComponent(BpmBusinessProcessTypeEnum.DEFAULT)
+        componentLoader = getBusinessTypeComponent(BpmBusinessProcessTypeEnum.DEFAULT);
       }
       if (componentLoader) {
-        currentBusinessComponent.value = defineAsyncComponent(componentLoader)
+        currentBusinessComponent.value = defineAsyncComponent(componentLoader);
       } else {
-        currentBusinessComponent.value = null
+        currentBusinessComponent.value = null;
       }
     }
   },
   { immediate: true },
-)
+);
 
 const handleSelectApprover = (index: number) => {
-  rowIndex.value = index
-  const current = approveUser.value[index]
-  const userId = current?.id ?? current?.userId
-  memberAuthUserIds.value = userId ? [String(userId)].slice(0, 1) : []
-  memberAuthVisible.value = true
-}
+  rowIndex.value = index;
+  const current = approveUser.value[index];
+  const userId = current?.id ?? current?.userId;
+  memberAuthUserIds.value = userId ? [String(userId)].slice(0, 1) : [];
+  memberAuthVisible.value = true;
+};
 
 /** 将 MemberAuthPicker 用户结构转为审批人展示/提交结构 */
 function mapMemberToApproveUser(user: MemberAuthUser & { nickname?: string; psnName?: string }) {
-  const displayName = user.name || user.nickname || user.psnName || user.username || ''
+  const displayName = user.name || user.nickname || user.psnName || user.username || '';
   return {
     ...user,
     id: user.id,
@@ -369,119 +367,119 @@ function mapMemberToApproveUser(user: MemberAuthUser & { nickname?: string; psnN
     nickname: displayName,
     psnName: displayName,
     name: displayName,
-  }
+  };
 }
 
 function handleMemberAuthConfirm(userIds: string[]) {
   if (!userIds.length) {
-    approveUser.value[rowIndex.value] = undefined
-    approveUser.value = [...approveUser.value]
+    approveUser.value[rowIndex.value] = undefined;
+    approveUser.value = [...approveUser.value];
 
-    const placeholder = processDefinitionList.value[rowIndex.value]?.assigneePlaceholder
+    const placeholder = processDefinitionList.value[rowIndex.value]?.assigneePlaceholder;
     if (placeholder && processVariablesList.value[rowIndex.value]) {
-      processVariablesList.value[rowIndex.value][placeholder] = ''
+      processVariablesList.value[rowIndex.value][placeholder] = '';
     }
 
-    memberAuthUserIds.value = []
-    memberAuthVisible.value = false
-    return
+    memberAuthUserIds.value = [];
+    memberAuthVisible.value = false;
+    return;
   }
 
   if (userIds.length > 1) {
-    message.warning('只能选择一个审批人')
-    return
+    message.warning('只能选择一个审批人');
+    return;
   }
 
-  const selectedUser = pickUsersByIds([userIds[0]])[0]
+  const selectedUser = pickUsersByIds([userIds[0]])[0];
   if (!selectedUser) {
-    message.warning('未找到所选用户')
-    return
+    message.warning('未找到所选用户');
+    return;
   }
 
-  const mappedUser = mapMemberToApproveUser(selectedUser)
-  approveUser.value[rowIndex.value] = mappedUser
-  approveUser.value = [...approveUser.value]
+  const mappedUser = mapMemberToApproveUser(selectedUser);
+  approveUser.value[rowIndex.value] = mappedUser;
+  approveUser.value = [...approveUser.value];
 
-  const placeholder = processDefinitionList.value[rowIndex.value]?.assigneePlaceholder
+  const placeholder = processDefinitionList.value[rowIndex.value]?.assigneePlaceholder;
   if (placeholder) {
     if (!processVariablesList.value[rowIndex.value]) {
-      processVariablesList.value[rowIndex.value] = {}
+      processVariablesList.value[rowIndex.value] = {};
     }
-    processVariablesList.value[rowIndex.value][placeholder] = mappedUser.id
+    processVariablesList.value[rowIndex.value][placeholder] = mappedUser.id;
   }
 
-  memberAuthUserIds.value = [String(mappedUser.id)]
-  message.success('选择成功')
-  memberAuthVisible.value = false
+  memberAuthUserIds.value = [String(mappedUser.id)];
+  message.success('选择成功');
+  memberAuthVisible.value = false;
 }
 
 function pickUsersByIds(userIds: string[]) {
-  const userIdSet = new Set(userIds.map(String))
-  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id)))
+  const userIdSet = new Set(userIds.map(String));
+  return memberAuthUsers.value.filter(u => userIdSet.has(String(u.id)));
 }
 
 /** 查看流程变量 */
 const showProcessVariables = async () => {
   try {
-    processVariablesContent.value = '加载中...'
-    processVariablesDialogVisible.value = true
+    processVariablesContent.value = '加载中...';
+    processVariablesDialogVisible.value = true;
 
     // 调用API获取流程变量
-    const response = await ProcessInstanceApi.getProcessVariables(props.id)
+    const response = await ProcessInstanceApi.getProcessVariables(props.id);
 
     if (response && response.data) {
       // 格式化JSON数据，使其更易读
-      processVariablesContent.value = JSON.stringify(response.data, null, 2)
+      processVariablesContent.value = JSON.stringify(response.data, null, 2);
     } else {
-      processVariablesContent.value = '暂无流程变量数据'
+      processVariablesContent.value = '暂无流程变量数据';
     }
   } catch (error) {
-    console.error('获取流程变量失败:', error)
-    processVariablesContent.value = '获取流程变量失败，请重试'
-    message.error('获取流程变量失败')
+    console.error('获取流程变量失败:', error);
+    processVariablesContent.value = '获取流程变量失败，请重试';
+    message.error('获取流程变量失败');
   }
-}
+};
 
 /** 复制流程变量内容 */
 const copyProcessVariables = async () => {
   try {
-    await navigator.clipboard.writeText(processVariablesContent.value)
-    message.success('内容已复制到剪贴板')
+    await navigator.clipboard.writeText(processVariablesContent.value);
+    message.success('内容已复制到剪贴板');
   } catch (error) {
-    console.error('复制失败:', error)
-    message.error('复制失败，请手动复制')
+    console.error('复制失败:', error);
+    message.error('复制失败，请手动复制');
   }
-}
+};
 
 const getApprovalDetail = async () => {
-  processInstanceLoading.value = true
+  processInstanceLoading.value = true;
   try {
     const param = {
       processInstanceId: props.id || qId.value,
       activityId: props.activityId,
       taskId: props.taskId,
-    }
-    const res = await ProcessInstanceApi.getApprovalDetail(param)
-    let data = null
+    };
+    const res = await ProcessInstanceApi.getApprovalDetail(param);
+    let data = null;
     if (res.data.code === 200) {
-      data = res.data.data
+      data = res.data.data;
     }
-    debugger
+    debugger;
     if (!data) {
-      message.error('查询不到审批详情信息！')
-      return
+      message.error('查询不到审批详情信息！');
+      return;
     }
     if (!data.processDefinition || !data.processInstance) {
-      message.error('查询不到流程信息！')
-      return
+      message.error('查询不到流程信息！');
+      return;
     }
 
-    processInstance.value = data.processInstance
-    processDefinition.value = data.processDefinition
+    processInstance.value = data.processInstance;
+    processDefinition.value = data.processDefinition;
 
-    let taskBpmType = taskType.value ? taskType.value : data.todoTask?.name
+    let taskBpmType = taskType.value ? taskType.value : data.todoTask?.name;
     if (taskBpmType === ETASKTYPE.ESTABLISHMENT || taskBpmType === ETASKTYPE.MAIN_ENGINE_PLANTS) {
-      await getprocessUserModel()
+      await getprocessUserModel();
     }
 
     if (
@@ -494,110 +492,110 @@ const getApprovalDetail = async () => {
     }
 
     if (processInstance.value.formVariables?.BUSINESS_COLLECTION_TITILE) {
-      const obj = JSON.parse(processInstance.value.formVariables?.BUSINESS_COLLECTION_TITILE)
-      titleList.value = Object.keys(obj).map(key => ({ key, value: obj[key] }))
+      const obj = JSON.parse(processInstance.value.formVariables?.BUSINESS_COLLECTION_TITILE);
+      titleList.value = Object.keys(obj).map(key => ({ key, value: obj[key] }));
     }
 
     if (processInstance.value.formVariables?.BUSINESS_COLLECTION_VALUE) {
-      const list = JSON.parse(processInstance.value.formVariables?.BUSINESS_COLLECTION_VALUE)
-      insatnceList.value = list
+      const list = JSON.parse(processInstance.value.formVariables?.BUSINESS_COLLECTION_VALUE);
+      insatnceList.value = list;
     }
 
     if (processInstance.value.formVariables?.BUSINESS_ERROR_MESSAGE_TITILE) {
-      const obj = JSON.parse(processInstance.value.formVariables?.BUSINESS_ERROR_MESSAGE_TITILE)
-      errorTitleList.value = Object.keys(obj).map(key => ({ key, value: obj[key] }))
+      const obj = JSON.parse(processInstance.value.formVariables?.BUSINESS_ERROR_MESSAGE_TITILE);
+      errorTitleList.value = Object.keys(obj).map(key => ({ key, value: obj[key] }));
     }
 
     if (processInstance.value.formVariables?.BUSINESS_ERROR_MESSAGE_VALUE) {
-      const list = JSON.parse(processInstance.value.formVariables?.BUSINESS_ERROR_MESSAGE_VALUE)
+      const list = JSON.parse(processInstance.value.formVariables?.BUSINESS_ERROR_MESSAGE_VALUE);
       if (list) {
         list.forEach((item: any) => {
-          item['orderId'] = processInstance.value.formVariables?.orderId
-          item['areaSaleConfigId'] = processInstance.value.formVariables?.BUSINESS_KEY
-        })
+          item['orderId'] = processInstance.value.formVariables?.orderId;
+          item['areaSaleConfigId'] = processInstance.value.formVariables?.BUSINESS_KEY;
+        });
       }
-      errorInsatnceList.value = list
+      errorInsatnceList.value = list;
     }
 
     if (processDefinition.value.formType === BpmModelFormType.NORMAL) {
-      const formFieldsPermission = data.formFieldsPermission
-      writableFields.splice(0)
+      const formFieldsPermission = data.formFieldsPermission;
+      writableFields.splice(0);
       if (detailForm.value.rule?.length > 0) {
-        detailForm.value.value = processInstance.value.formVariables
+        detailForm.value.value = processInstance.value.formVariables;
       } else {
         setConfAndFields2(
           detailForm,
           processDefinition.value.formConf,
           processDefinition.value.formFields,
           processInstance.value.formVariables,
-        )
+        );
       }
       nextTick().then(() => {
-        fApi.value?.btn.show(false)
-        fApi.value?.resetBtn.show(false)
+        fApi.value?.btn.show(false);
+        fApi.value?.resetBtn.show(false);
         //@ts-ignore
-        fApi.value?.disabled(true)
+        fApi.value?.disabled(true);
         if (formFieldsPermission) {
           Object.keys(data.formFieldsPermission).forEach(item => {
-            setFieldPermission(item, formFieldsPermission[item])
-          })
+            setFieldPermission(item, formFieldsPermission[item]);
+          });
         }
-      })
+      });
     } else {
-      BusinessFormComponent.value = registerComponent(data.processDefinition.formCustomViewPath)
+      BusinessFormComponent.value = registerComponent(data.processDefinition.formCustomViewPath);
     }
-    activityNodes.value = data.activityNodes
-    todoTask.value = data.todoTask
+    activityNodes.value = data.activityNodes;
+    todoTask.value = data.todoTask;
     if (!taskType.value) {
-      taskType.value = data.todoTask?.name
+      taskType.value = data.todoTask?.name;
     }
     nextTick(() => {
-      operationButtonRef.value?.loadTodoTask(data.todoTask, toTaskId.value)
-    })
-    showStatus.value = data.todoTask?.name === '销售审批'
+      operationButtonRef.value?.loadTodoTask(data.todoTask, toTaskId.value);
+    });
+    showStatus.value = data.todoTask?.name === '销售审批';
   } finally {
-    processInstanceLoading.value = false
+    processInstanceLoading.value = false;
   }
-}
+};
 
 const getProcessModelView = async () => {
   if (BpmModelType.BPMN === processDefinition.value?.modelType) {
-    processModelView.value = { bpmnXml: '' }
+    processModelView.value = { bpmnXml: '' };
   }
-  const res = await ProcessInstanceApi.getProcessInstanceBpmnModelView(props.id)
+  const res = await ProcessInstanceApi.getProcessInstanceBpmnModelView(props.id);
   if (res.data.code === 200) {
-    processModelView.value = res.data.data
+    processModelView.value = res.data.data;
   }
-}
+};
 
 const setFieldPermission = (field: string, permission: string) => {
   if (permission === FieldPermissionType.READ) {
     //@ts-ignore
-    fApi.value?.disabled(true, field)
+    fApi.value?.disabled(true, field);
   }
   if (permission === FieldPermissionType.WRITE) {
     //@ts-ignore
-    fApi.value?.disabled(false, field)
-    writableFields.push(field)
+    fApi.value?.disabled(false, field);
+    writableFields.push(field);
   }
   if (permission === FieldPermissionType.NONE) {
     //@ts-ignore
-    fApi.value?.hidden(true, field)
+    fApi.value?.hidden(true, field);
   }
-}
+};
 
 const refresh = () => {
-  getApprovalDetail()
-  getProcessModelView()
-}
+  getApprovalDetail();
+  getProcessModelView();
+};
 
 const refreshProcessDiagram = () => {
-  getProcessModelView()
-}
+  getProcessModelView();
+};
 
 const handleLoading = (loading: boolean) => {
-  loadingFlag.value = loading
-}
+  loadingFlag.value = loading;
+};
 
 async function getprocessUserModel() {
   // if (!processDefinitionKey.value) return
@@ -612,63 +610,63 @@ async function getprocessUserModel() {
           BpmBusinessProcessTypeEnum.PRODUCT_MODEL_FINALIZATION_RELEASE)
         ? ETASKTYPE.MAIN_ENGINE_PLANTS
         : '',
-  }
+  };
 
-  const res = await ProcessInstanceApi.getUserModel(data)
+  const res = await ProcessInstanceApi.getUserModel(data);
   if (res.data.code === 200) {
-    processDefinitionList.value = res.data.data
+    processDefinitionList.value = res.data.data;
   }
   if (processDefinitionList.value) {
     processDefinitionList.value.map((item, index) => {
       if (item.userInfo) {
         if (taskType.value === ETASKTYPE.MAIN_ENGINE_PLANTS) {
-          approvEmainEnginePlantsUser.value[index] = { ...item.userInfo }
+          approvEmainEnginePlantsUser.value[index] = { ...item.userInfo };
         } else {
-          approveUser.value[index] = { ...item.userInfo }
+          approveUser.value[index] = { ...item.userInfo };
         }
-        firstTimeEditSubmit.value = false
+        firstTimeEditSubmit.value = false;
       }
       processVariablesList.value.push({
         [item?.assigneePlaceholder]: item.userInfo?.id || '',
-      })
-    })
+      });
+    });
   }
 }
 
-const orderRedType = ref(true)
+const orderRedType = ref(true);
 
 watch(activeTab, newVal => {
   if (newVal === 'diagram') {
     setTimeout(() => {
-      refreshProcessDiagram()
-    }, 50)
+      refreshProcessDiagram();
+    }, 50);
   }
-})
+});
 const getDeptuseInfo = async () => {
-  const res = await AdminApiSystemDept.getDeptInfo({})
+  const res = await AdminApiSystemDept.getDeptInfo({});
   if (res.data.code === 200) {
-    const rawUsers = res.data?.data?.adminUserResponseDTO || []
-    userOptions.value = rawUsers
+    const rawUsers = res.data?.data?.adminUserResponseDTO || [];
+    userOptions.value = rawUsers;
     memberAuthUsers.value = rawUsers.map((u: any) => ({
       id: String(u.id ?? u.userId),
       name: u.nickname ?? u.psnName ?? u.name ?? u.username ?? '',
       username: u.username ?? '',
       deptId: u.deptId != null ? String(u.deptId) : undefined,
-    }))
+    }));
   }
-}
+};
 onMounted(async () => {
   if (props.orderInstance) {
-    orderRedType.value = props.orderInstance?.operationType === 1 ? false : true
-    qId.value = props.orderInstance?.id || ('' as string)
-    processDefinitionId.value = '0'
-    processDefinitionKey.value = ''
-    processInstanceId.value = props.orderInstance?.id
-    editType.value = Number(props.orderInstance?.readType)
-    aTab.value = ''
-    opinion.value = ''
-    taskActivityId.value = ''
-    tName.value = ''
+    orderRedType.value = props.orderInstance?.operationType === 1 ? false : true;
+    qId.value = props.orderInstance?.id || ('' as string);
+    processDefinitionId.value = '0';
+    processDefinitionKey.value = '';
+    processInstanceId.value = props.orderInstance?.id;
+    editType.value = Number(props.orderInstance?.readType);
+    aTab.value = '';
+    opinion.value = '';
+    taskActivityId.value = '';
+    tName.value = '';
   } else {
     const {
       id,
@@ -682,24 +680,24 @@ onMounted(async () => {
       reason,
       taskDefinitionKey,
       taskName,
-    } = route.query
-    taskType.value = type as string
-    toTaskId.value = tId || ''
-    qId.value = id || ('' as string)
-    processDefinitionId.value = pDefinitionId || ('' as string)
-    processDefinitionKey.value = pProcessDefinitionKey || ('' as string)
-    processInstanceId.value = pIId || ('' as string)
-    editType.value = Number(readType || (1 as number))
-    aTab.value = activeTab || ('' as string)
-    opinion.value = reason || ('' as string)
-    taskActivityId.value = taskDefinitionKey || ('' as string)
-    tName.value = taskName || ('' as string)
+    } = route.query;
+    taskType.value = type as string;
+    toTaskId.value = tId || '';
+    qId.value = id || ('' as string);
+    processDefinitionId.value = pDefinitionId || ('' as string);
+    processDefinitionKey.value = pProcessDefinitionKey || ('' as string);
+    processInstanceId.value = pIId || ('' as string);
+    editType.value = Number(readType || (1 as number));
+    aTab.value = activeTab || ('' as string);
+    opinion.value = reason || ('' as string);
+    taskActivityId.value = taskDefinitionKey || ('' as string);
+    tName.value = taskName || ('' as string);
   }
 
-  loadingFlag.value = false
-  refresh()
-  getDeptuseInfo()
-})
+  loadingFlag.value = false;
+  refresh();
+  getDeptuseInfo();
+});
 </script>
 
 <style lang="scss" scoped>

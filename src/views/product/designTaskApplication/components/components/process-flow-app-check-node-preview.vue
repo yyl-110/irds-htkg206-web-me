@@ -18,7 +18,7 @@ const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
 }>();
 
-const calcCheckPreviewTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']);
+const calcCheckPreviewTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE']);
 const calcIoParamComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'DATA_VIEW']);
 const userStore = useUserStore();
 
@@ -34,6 +34,7 @@ const impactEvalModalVisible = ref(false);
 const impactSelectedParamCode = ref('');
 const impactAnalyzing = ref(false);
 const impactResultRows = ref<Array<{ key: string; activityName: string; taskCreatorName: string; taskName: string; taskStatus: string }>>([]);
+const previewCanvasRef = ref<HTMLElement | null>(null);
 
 const showReportOutputButton = computed(() => previewList.value.some((c: any) => String(c?.componentType) === 'CALC_BUTTON'));
 
@@ -93,7 +94,7 @@ function onParamTitleClick(item: any) {
   });
 }
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE'].includes(type);
 }
 const impactScopeTypes = new Set(['INPUT', 'RICH_TEXT', 'SELECT', 'AUTO_COMPLETE', 'RADIO']);
 const impactParamOptions = computed(() =>
@@ -191,6 +192,20 @@ function pickNodeFileId(detail: Record<string, any>, directKey: string, infoKey:
   return String(detail?.[directKey] ?? detail?.[infoKey]?.fileId ?? detail?.[infoKey]?.id ?? '').trim();
 }
 
+/** 页面仍存在「图片占位符」时传 ifImg=1，否则传空 */
+function resolveIfImgParam(): string {
+  const root = previewCanvasRef.value;
+  if (root) {
+    const placeholders = root.querySelectorAll('.output-image-placeholder');
+    for (let i = 0; i < placeholders.length; i++) {
+      const text = String(placeholders[i].textContent ?? '').trim();
+      if (text.includes('图片占位符')) return '1';
+    }
+    return '';
+  }
+  return previewList.value.some((item: any) => String(item?.componentType) === 'OUTPUT_IMAGE') ? '1' : '';
+}
+
 function buildCalcSubmitPayload() {
   const detail = props.nodeDetailData || {};
   const calculateFileId = pickNodeFileId(detail, 'calculateFileId', 'calculateFileInfo');
@@ -202,7 +217,7 @@ function buildCalcSubmitPayload() {
     if (String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT') exputParam.push(row);
     else inputParam.push(row);
   });
-  return { inputParam, exputParam, calculateFileId, excelFileId: calculateFileId };
+  return { inputParam, exputParam, calculateFileId, excelFileId: calculateFileId, ifImg: resolveIfImgParam() };
 }
 
 function applyCalculateExputToPreview(res: any) {
@@ -243,7 +258,7 @@ function buildReportOutputPayload() {
       return { paramCode, paramValue };
     })
     .filter((row: any) => row && row.paramCode);
-  return { reportFileId, reportValue };
+  return { reportFileId, reportValue, ifImg: resolveIfImgParam() };
 }
 
 function getCurrentSaveParamValues() {
@@ -351,7 +366,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="activity-preview-canvas">
+  <div ref="previewCanvasRef" class="activity-preview-canvas">
     <div class="param-impact-scope-entry-anchor">
       <a-tooltip title="参数影响分析" placement="left">
         <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
@@ -448,6 +463,9 @@ defineExpose({
               @click="onReportOutputClick">
               输出报告
             </a-button>
+          </div>
+          <div v-else-if="item.componentType === 'OUTPUT_IMAGE'" class="output-image-preview">
+            <div class="output-image-placeholder">图片占位符</div>
           </div>
         </div>
       </div>
@@ -630,5 +648,20 @@ defineExpose({
   color: #999;
   padding: 40px 0;
   text-align: center;
+}
+.output-image-preview {
+  width: 100%;
+  max-width: 900px;
+}
+.output-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #999;
+  font-size: 14px;
 }
 </style>

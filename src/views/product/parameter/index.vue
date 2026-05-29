@@ -1304,7 +1304,7 @@ const {
                             <div class="header-filter-actions">
                               <a-button type="primary" size="small" @click="applySelectionColumnFilter">
                                 <SearchOutlined />
-                                {{ $t('确定') }}
+                                {{ $t('搜索') }}
                               </a-button>
                               <a-button size="small" @click="resetSelectionColumnFilter">{{ $t('重置') }}</a-button>
                             </div>
@@ -1343,7 +1343,7 @@ const {
                             <div class="header-filter-actions">
                               <a-button type="primary" size="small" @click="applyParameterColumnFilter(String(column.dataIndex))">
                                 <SearchOutlined />
-                                {{ $t('确定') }}
+                                {{ $t('搜索') }}
                               </a-button>
                               <a-button size="small" @click="resetParameterColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
                             </div>

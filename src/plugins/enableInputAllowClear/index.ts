@@ -83,15 +83,12 @@ function wrapClearableComponent(Original: ComponentWithProps, clearProp: ClearPr
   }) as Component;
 }
 
-const ANT_CLEARABLE_COMPONENTS: ComponentWithProps[] = [
+/** 仅 patch 文本输入底层默认；分页等内部 Select 不启用 allowClear */
+const ANT_INPUT_CLEARABLE_COMPONENTS: ComponentWithProps[] = [
   Input,
   Textarea,
   Input.Password,
   Input.Search,
-  Select,
-  AutoComplete,
-  TreeSelect,
-  Cascader,
 ];
 
 /** ant-design-vue 全局注册名 -> 组件 */
@@ -107,7 +104,7 @@ const ANT_APP_COMPONENTS: Array<[string, ComponentWithProps]> = [
 ];
 
 function patchAntDesignVueDefaults() {
-  for (const component of ANT_CLEARABLE_COMPONENTS) {
+  for (const component of ANT_INPUT_CLEARABLE_COMPONENTS) {
     patchBooleanPropDefault(component, 'allowClear', true);
   }
 }

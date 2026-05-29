@@ -15,7 +15,7 @@ const props = defineProps({
 
 const emit = defineEmits<{ close: [] }>();
 /** 计算页面预览仅展示的组件类型 */
-const calcCheckPreviewTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON']);
+const calcCheckPreviewTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE']);
 const visible = computed({ get: () => props.modalVisible, set: value => !value && emit('close') });
 const userStore = useUserStore();
 const previewImageList = computed(() => {
@@ -321,7 +321,7 @@ function tableDimensionRange(count: number) {
   return Array.from({ length: n }, (_, i) => i + 1);
 }
 function isFullRowComponent(type: string) {
-  return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON'].includes(type);
+  return ['TEXTAREA', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE'].includes(type);
 }
 function isTemplateBrowse3DItem(item: any) {
   return item?.componentType === '3D_VIEW' && item?.customProps?.threeDSubtype === 'TEMPLATE_BROWSE';
@@ -1207,6 +1207,9 @@ async function onCalcButtonPreviewClick() {
                       输出报告
                     </a-button>
                   </div>
+                  <div v-else-if="item.componentType === 'OUTPUT_IMAGE'" class="output-image-preview">
+                    <div class="output-image-placeholder">图片占位符</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1705,5 +1708,20 @@ async function onCalcButtonPreviewClick() {
   height: 32px;
   padding: 0 10px;
   border-radius: 4px;
+}
+.output-image-preview {
+  width: 100%;
+  max-width: 900px;
+}
+.output-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #999;
+  font-size: 14px;
 }
 </style>

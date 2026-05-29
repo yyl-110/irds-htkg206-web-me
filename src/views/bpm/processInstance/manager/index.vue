@@ -1,35 +1,35 @@
 <script lang="ts" setup>
-import { computed, h, onActivated, onMounted, reactive, ref } from 'vue'
-import type { TableColumnType } from 'ant-design-vue'
-import { message } from 'ant-design-vue'
-import { DICT_TYPE } from '@/utils/dict'
-import { useDictStore } from '@/store/modules/dict'
-import * as ProcessInstanceApi from '@/api/bpm/processInstance'
-import { CategoryApi } from '@/api/bpm/category'
-import { useDateRangeParams } from '@/hooks/useDate'
-import { useRender } from '@/components/escape'
-import Empty from '@/components/Empty/index.vue'
-import { EpcIcon } from '@/components/icon/EpcIcon'
-import DictTag from '@/components/DictTag/src/DictTag.vue'
-import ProcessDetailDrawer from './components/ProcessDetailDrawer.vue'
-import { useMessage } from '@/hooks/web/useMessage'
-import { WeiI18n } from '@/utils/WeiI18n'
-import { useI18n } from 'vue-i18n'
+import { computed, h, onActivated, onMounted, reactive, ref } from 'vue';
+import type { TableColumnType } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
+import { DICT_TYPE } from '@/utils/dict';
+import { useDictStore } from '@/store/modules/dict';
+import * as ProcessInstanceApi from '@/api/bpm/processInstance';
+import { CategoryApi } from '@/api/bpm/category';
+import { useDateRangeParams } from '@/hooks/useDate';
+import { useRender } from '@/components/escape';
+import Empty from '@/components/Empty/index.vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
+import DictTag from '@/components/DictTag/src/DictTag.vue';
+import ProcessDetailDrawer from './components/ProcessDetailDrawer.vue';
+import { useMessage } from '@/hooks/web/useMessage';
+import { WeiI18n } from '@/utils/WeiI18n';
+import { useI18n } from 'vue-i18n';
 
-const router = useRouter() // 路由
-defineOptions({ name: 'BpmProcessInstanceManager' })
+const router = useRouter(); // 路由
+defineOptions({ name: 'BpmProcessInstanceManager' });
 
-const { t } = useI18n()
-const msgBox = useMessage()
-const dictStore = useDictStore()
+const { t } = useI18n();
+const msgBox = useMessage();
+const dictStore = useDictStore();
 
-const loading = ref(true)
-const total = ref(0)
-const list = ref<Record<string, any>[]>([])
+const loading = ref(true);
+const total = ref(0);
+const list = ref<Record<string, any>[]>([]);
 
 const queryParams = reactive({
   pageIndex: 1,
-  pageRows: 20,
+  pageRows: 10,
   orderByBean: {
     attributeName: '',
     sortType: '',
@@ -45,31 +45,31 @@ const queryParams = reactive({
     createTime: [] as string[] | undefined,
     formFieldsParams: '{}',
   },
-})
+});
 
 const categoryQueryParams = reactive({
   pageIndex: 1,
   pageRows: 9999,
   params: {},
-})
+});
 
-const categoryList = ref<any[]>([])
-const { dateRange, dateRangeParams } = useDateRangeParams()
+const categoryList = ref<any[]>([]);
+const { dateRange, dateRangeParams } = useDateRangeParams();
 
-const processVariablesDialogVisible = ref(false)
-const processVariablesContent = ref('')
+const processVariablesDialogVisible = ref(false);
+const processVariablesContent = ref('');
 /** 流程变量弹窗需高于 el-drawer（约 2000），避免在详情抽屉内打开时被遮挡 */
-const PROCESS_VARIABLES_MODAL_Z_INDEX = 3000
+const PROCESS_VARIABLES_MODAL_Z_INDEX = 3000;
 
 function processVariablesModalGetContainer() {
-  return document.body
+  return document.body;
 }
-const processDetailDrawerVisible = ref(false)
-const currentProcessDetail = ref<Record<string, any>>()
+const processDetailDrawerVisible = ref(false);
+const currentProcessDetail = ref<Record<string, any>>();
 
-const processInstanceStatusOptions = computed(() => dictStore.getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS))
+const processInstanceStatusOptions = computed(() => dictStore.getIntDictOptions(DICT_TYPE.BPM_PROCESS_INSTANCE_STATUS));
 
-type ProcessInstanceRow = Record<string, any>
+type ProcessInstanceRow = Record<string, any>;
 
 const columns = ref<TableColumnType<ProcessInstanceRow>[]>([
   {
@@ -120,17 +120,17 @@ const columns = ref<TableColumnType<ProcessInstanceRow>[]>([
   },
   // { title: '流程编号', dataIndex: 'id', key: 'id', width: 320, align: 'center', ellipsis: { showTitle: true } },
   { title: '操作', dataIndex: 'operation', key: 'operation', width: 160, align: 'left', fixed: 'right' },
-])
+]);
 
-const BPM_PI_MANAGER_TABLE_SCROLL_BUFFER = 24
+const BPM_PI_MANAGER_TABLE_SCROLL_BUFFER = 24;
 const piManagerTableScrollX = computed(() => {
-  let sum = 0
+  let sum = 0;
   for (const col of columns.value) {
-    const w = col.width
-    sum += typeof w === 'number' ? w : Number(w) || 0
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
   }
-  return sum + BPM_PI_MANAGER_TABLE_SCROLL_BUFFER
-})
+  return sum + BPM_PI_MANAGER_TABLE_SCROLL_BUFFER;
+});
 
 const locale = ref({
   cancelSort: WeiI18n.t('点击取消排序').value,
@@ -140,18 +140,18 @@ const locale = ref({
     description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
-})
+});
 
 function piManagerTableRowClassName(_record: ProcessInstanceRow, index: number) {
-  return index % 2 === 0 ? 'odd' : 'even'
+  return index % 2 === 0 ? 'odd' : 'even';
 }
 
 function piManagerPaginationShowTotal(totalCount: number) {
-  return `${WeiI18n.$t('共')}${totalCount}${WeiI18n.$t('条')}`
+  return `${WeiI18n.$t('共')}${totalCount}${WeiI18n.$t('条')}`;
 }
 
 function piManagerPaginationBuildOptionText(prop: { value: number }) {
-  return `${prop.value}${WeiI18n.$t('条/页')}`
+  return `${prop.value}${WeiI18n.$t('条/页')}`;
 }
 
 function getTipContent(row: Record<string, any>, label: string) {
@@ -159,10 +159,10 @@ function getTipContent(row: Record<string, any>, label: string) {
     return h('div', [
       h('div', `名称：${row.assigneeUser?.nickname ?? ''}`),
       h('div', `工号：${row.assigneeUser?.account ?? ''}`),
-    ])
+    ]);
   }
   if (label === '任务名称') {
-    return h('div', '暂无任务状态')
+    return h('div', '暂无任务状态');
   }
   if (label === '主题') {
     return h('div', [
@@ -180,13 +180,13 @@ function getTipContent(row: Record<string, any>, label: string) {
       h('div', `结束时间：${row.endTime || '-'}`),
       h('div', `发起人：${row.startUser?.nickname}`),
       h('div', `发起部门：${row.startUser?.deptName}`),
-    ])
+    ]);
   }
-  return h('div', '暂无定义提示信息')
+  return h('div', '暂无定义提示信息');
 }
 
 async function getList() {
-  loading.value = true
+  loading.value = true;
   try {
     const data = await ProcessInstanceApi.getProcessInstanceManagerPage({
       ...queryParams,
@@ -194,34 +194,34 @@ async function getList() {
         ...queryParams.params,
         createTime: dateRangeParams.value,
       },
-    })
+    });
     if (data.data.code === 200) {
-      list.value = data.data.data.data || []
-      total.value = data.data.data.count || 0
+      list.value = data.data.data.data || [];
+      total.value = data.data.data.count || 0;
     }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function handleQuery() {
-  queryParams.pageIndex = 1
-  const formFields: Record<string, string> = { PROCESS_BUSINESS_TYPE_NAME: '' }
+  queryParams.pageIndex = 1;
+  const formFields: Record<string, string> = { PROCESS_BUSINESS_TYPE_NAME: '' };
   if (queryParams.params.processBusinessTypeName) {
-    formFields.PROCESS_BUSINESS_TYPE_NAME = queryParams.params.processBusinessTypeName
+    formFields.PROCESS_BUSINESS_TYPE_NAME = queryParams.params.processBusinessTypeName;
   }
-  queryParams.params.formFieldsParams = JSON.stringify(formFields)
-  getList()
+  queryParams.params.formFieldsParams = JSON.stringify(formFields);
+  getList();
 }
 
 function resetQuery() {
-  queryParams.params.name = ''
-  queryParams.params.processBusinessTypeName = undefined
-  queryParams.params.category = undefined
-  queryParams.params.status = undefined
-  queryParams.params.processInstanceId = undefined
-  dateRange.value = null
-  handleQuery()
+  queryParams.params.name = '';
+  queryParams.params.processBusinessTypeName = undefined;
+  queryParams.params.category = undefined;
+  queryParams.params.status = undefined;
+  queryParams.params.processInstanceId = undefined;
+  dateRange.value = null;
+  handleQuery();
 }
 /** 查看详情 */
 const handleDetail = (row: ProcessInstanceRow) => {
@@ -233,25 +233,25 @@ const handleDetail = (row: ProcessInstanceRow) => {
       readType: 0,
       orderNo: row.processVariables.orderNo,
     },
-  })
-}
+  });
+};
 
 function handlePagTable(page: number, pageSize: number) {
-  queryParams.pageIndex = page
-  queryParams.pageRows = pageSize
-  getList()
+  queryParams.pageIndex = page;
+  queryParams.pageRows = pageSize;
+  getList();
 }
 
 async function handleCancel(row: ProcessInstanceRow) {
   try {
-    const { value } = await msgBox.prompt('请输入取消原因', '取消流程')
+    const { value } = await msgBox.prompt('请输入取消原因', '取消流程');
     if (!value || !/^[\s\S]*.*\S[\s\S]*$/.test(value)) {
-      message.error('取消原因不能为空')
-      return
+      message.error('取消原因不能为空');
+      return;
     }
-    await ProcessInstanceApi.cancelProcessInstanceByAdmin(row.id, value)
-    message.success(t('取消成功'))
-    await getList()
+    await ProcessInstanceApi.cancelProcessInstanceByAdmin(row.id, value);
+    message.success(t('取消成功'));
+    await getList();
   } catch {
     /* 取消或失败 */
   }
@@ -259,42 +259,42 @@ async function handleCancel(row: ProcessInstanceRow) {
 
 async function showProcessVariables(row: ProcessInstanceRow) {
   try {
-    processVariablesContent.value = '加载中...'
-    processVariablesDialogVisible.value = true
-    const response = await ProcessInstanceApi.getProcessVariables(row.id)
-    const payload = response?.data?.data
+    processVariablesContent.value = '加载中...';
+    processVariablesDialogVisible.value = true;
+    const response = await ProcessInstanceApi.getProcessVariables(row.id);
+    const payload = response?.data?.data;
     if (payload != null && payload !== '') {
-      processVariablesContent.value = JSON.stringify(payload, null, 2)
+      processVariablesContent.value = JSON.stringify(payload, null, 2);
     } else {
-      processVariablesContent.value = '暂无流程变量数据'
+      processVariablesContent.value = '暂无流程变量数据';
     }
   } catch (error) {
-    console.error('获取流程变量失败:', error)
-    processVariablesContent.value = '获取流程变量失败，请重试'
-    message.error('获取流程变量失败')
+    console.error('获取流程变量失败:', error);
+    processVariablesContent.value = '获取流程变量失败，请重试';
+    message.error('获取流程变量失败');
   }
 }
 
 async function copyProcessVariables() {
   try {
-    await navigator.clipboard.writeText(processVariablesContent.value)
-    message.success('内容已复制到剪贴板')
+    await navigator.clipboard.writeText(processVariablesContent.value);
+    message.success('内容已复制到剪贴板');
   } catch (error) {
-    console.error('复制失败:', error)
-    message.error('复制失败，请手动复制')
+    console.error('复制失败:', error);
+    message.error('复制失败，请手动复制');
   }
 }
 
 function showProcessDetail(row: ProcessInstanceRow) {
-  currentProcessDetail.value = row
-  processDetailDrawerVisible.value = true
+  currentProcessDetail.value = row;
+  processDetailDrawerVisible.value = true;
 }
 
 onMounted(async () => {
-  await getList()
-  const resp = await CategoryApi.getCategoryPage(categoryQueryParams)
-  categoryList.value = resp.data.data.data || []
-})
+  await getList();
+  const resp = await CategoryApi.getCategoryPage(categoryQueryParams);
+  categoryList.value = resp.data.data.data || [];
+});
 </script>
 
 <template>

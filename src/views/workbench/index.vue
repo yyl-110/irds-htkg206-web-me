@@ -2017,7 +2017,7 @@ onUnmounted(() => {
                               @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
                               @press-enter="confirm()" />
                             <div class="mt-[10px] flex gap-[8px]">
-                              <a-button type="primary" size="small" @click="confirm()"> 确定 </a-button>
+                              <a-button type="primary" size="small" @click="confirm()"> 搜索 </a-button>
                               <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
                             </div>
                           </div>
@@ -2168,7 +2168,7 @@ onUnmounted(() => {
                               @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
                               @press-enter="confirm()" />
                             <div class="mt-[10px] flex gap-[8px]">
-                              <a-button type="primary" size="small" @click="confirm()"> 确定 </a-button>
+                              <a-button type="primary" size="small" @click="confirm()"> 搜索 </a-button>
                               <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
                             </div>
                           </div>

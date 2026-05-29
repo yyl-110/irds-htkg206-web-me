@@ -1766,7 +1766,7 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
                             size="small"
                             @click="applyModuleColumnFilter(String(column.dataIndex))">
                             <SearchOutlined />
-                            确定
+                            搜索
                           </a-button>
                           <a-button size="small" @click="resetModuleColumnFilter(String(column.dataIndex))"
                             >重置</a-button

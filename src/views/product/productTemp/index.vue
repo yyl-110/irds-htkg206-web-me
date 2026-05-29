@@ -468,7 +468,7 @@ function openWbsStructure(record: any) {
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyProductTempColumnFilter(String(column.dataIndex))">
                             <SearchOutlined />
-                            {{ $t('确定') }}
+                            {{ $t('搜索') }}
                           </a-button>
                           <a-button size="small" @click="resetProductTempColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
                         </div>
