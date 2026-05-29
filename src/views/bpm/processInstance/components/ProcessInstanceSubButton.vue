@@ -24,7 +24,7 @@
       <Icon icon="ep:close" />&nbsp; {{ '取消' }}
     </el-button>
 
-    <el-button type="info" :disabled="formLoading" @click="handleGoBack" class="action-btn">
+    <el-button type="info" :disabled="formLoading" @click="handleGoBack('cancel')" class="action-btn">
       <Icon :size="14" icon="ep:back" />&nbsp; {{ '关闭' }}
     </el-button>
   </div>
@@ -38,7 +38,10 @@ import { NodeType, CandidateStrategy } from '@/components/SimpleProcessDesignerV
 import { BpmModelFormType } from '@/utils/constants';
 import type { FormInstance } from 'element-plus';
 import { isEmpty } from '@/utils/is';
-import { resolveProcessInstanceDetailBackRoute } from '@/views/workbench/workbenchRouteQuery';
+import {
+  resolveProcessInstanceDetailBackRoute,
+  pickWorkbenchReturnQueryFromRoute,
+} from '@/views/workbench/workbenchRouteQuery';
 import { ETASKTYPE } from '@/views/bpm/processInstance/components/config/constant';
 import { TaskStatusEnum } from '@/api/bpm/task';
 
@@ -140,7 +143,7 @@ const handleCancel = async () => {
           props.opinion ? props.opinion : '取消',
         );
         message.success('取消成功');
-        push(resolveProcessInstanceDetailBackRoute(route));
+        push({ name: '/home/workbench', query: pickWorkbenchReturnQueryFromRoute(route.query) });
       } finally {
         formLoading.value = false;
         emit('handleLoading', false);
@@ -148,9 +151,13 @@ const handleCancel = async () => {
     })
     .catch(() => {});
 };
-
-const handleGoBack = () => {
-  push(resolveProcessInstanceDetailBackRoute(route));
+// 关闭返回各自打开的路由页面,其他的返回主页
+const handleGoBack = (type: string) => {
+  if (type && type !== 'cancel') {
+    push({ name: '/home/workbench', query: pickWorkbenchReturnQueryFromRoute(route.query) });
+  } else {
+    push(resolveProcessInstanceDetailBackRoute(route));
+  }
 };
 
 /** 审批通过时，校验每个自选审批人的节点是否都已配置了审批人 */
@@ -219,7 +226,7 @@ const handleAudit = async (pass: boolean, formRef: FormInstance | undefined) => 
       subButton.value = false;
       nextAssigneesActivityNode.value = [];
       message.success('审批通过成功');
-      handleGoBack();
+      handleGoBack('approve');
     } else {
       // 审批不通过数据
       const data = {
