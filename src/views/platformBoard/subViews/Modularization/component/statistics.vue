@@ -25,7 +25,11 @@
           v-for="(item, index) in moduleNumList"
           :key="index"
         >
-          <img src="@/assets/data-screen/module/point.png" alt="" class="rotating" />
+          <img
+            src="@/assets/data-screen/module/point.png"
+            alt=""
+            class="rotating"
+          />
           <div class="rotate"></div>
           <div>{{ item.moduleName }}</div>
           <span>{{ item.moduleNum }}%</span>
@@ -58,6 +62,10 @@
               class="item"
               v-for="(item, index) in computedResNumList.slice(2)"
               :key="index"
+              :style="{
+                marginTop:
+                  computedResNumList.slice(2).length === 1 ? '0px' : '',
+              }"
             >
               <span class="name">{{ item.majorName }}</span>
               <div>
@@ -83,11 +91,18 @@
 import countTo from '../../../components/count-to.vue';
 
 const pointList = [
-  { label: "标准模块", rate: "34.12%" },
-  { label: "预组装模块", rate: "38.12%" },
-  { label: "基型模块", rate: "34.12%" },
+  { label: '标准模块', rate: '34.12%' },
+  { label: '预组装模块', rate: '38.12%' },
+  { label: '基型模块', rate: '34.12%' },
 ];
-const defaultOrder = ["车体", "柴油机", "转向架", "制动系统", "电传动", "辅助系统"];
+const defaultOrder = [
+  '车体',
+  '柴油机',
+  '转向架',
+  '制动系统',
+  '电传动',
+  '辅助系统',
+];
 
 const computedResNumList = computed(() => {
   if (!props.resNumList || props.resNumList.length === 0) {
@@ -96,12 +111,12 @@ const computedResNumList = computed(() => {
   // 计算总数
   const total = props.resNumList.reduce(
     (sum, item) => sum + (item.moduleNum || 0),
-    0
+    0,
   );
   // 返回带计算比率的新数组
   const listWithRate = props.resNumList.map((item) => {
     const rate =
-      total > 0 ? ((item.moduleNum / total) * 100).toFixed(0) + "%" : "0%";
+      total > 0 ? ((item.moduleNum / total) * 100).toFixed(0) + '%' : '0%';
     return {
       ...item,
       rate: rate,
@@ -158,7 +173,7 @@ const props = defineProps({
 
     .count-style {
       font-size: 80px;
-      font-family: "MyFont", sans-serif !important;
+      font-family: 'MyFont', sans-serif !important;
       background: linear-gradient(to bottom, #fff, #006fd0);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -178,7 +193,7 @@ const props = defineProps({
     flex: 1;
     width: 100%;
     height: 0;
-    background-image: url("@/assets/data-screen/module/bg1.png");
+    background-image: url('@/assets/data-screen/module/bg1.png');
     background-repeat: no-repeat;
     background-size: 790px 295px;
     background-position: center bottom;
@@ -268,7 +283,7 @@ const props = defineProps({
 
         &:nth-of-type(3) {
           left: 50%;
-          bottom: -20%;
+          bottom: -14%;
           transform: translateX(-50%);
         }
 
@@ -309,7 +324,7 @@ const props = defineProps({
       .item {
         width: 145px;
         height: 106px;
-        background-image: url("@/assets/data-screen/module/countBg.png");
+        background-image: url('@/assets/data-screen/module/countBg.png');
         background-size: 100% 100%;
         background-repeat: no-repeat;
         display: flex;

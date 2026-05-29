@@ -1,132 +1,167 @@
 <script setup lang="ts">
 import * as echarts from 'echarts'
+import { useRouter } from 'vue-router'
+
+interface DeptUsageItem {
+  deptName?: string
+  usageCount?: string | number
+}
+
 const props = defineProps({
   chartData: {
-    type: Object,
-    default: () => {
-      return {
-        data: [
-          {
-            name: '研发',
-            value: [0, 0, 0, 0, 0],
-          },
-          {
-            name: '制造',
-            value: [0, 0, 0, 0, 0],
-          },
-          {
-            name: '运维',
-            value: [0, 0, 0, 0, 0],
-          },
-        ],
-        indicator: [
-          {
-            max: 0,
-            name: '独立性',
-          },
-          {
-            max: 0,
-            name: '通用性',
-          },
-          {
-            max: 0,
-            name: '构成最少化',
-          },
-          {
-            max: 0,
-            name: '接口简统化',
-          },
-          {
-            max: 0,
-            name: '柔性化',
-          },
-        ],
-        title: ['研发', '制造', '运维'],
-      }
-    },
+    type: Array,
+    default: () => [],
+  },
+  jumpPaths: {
+    type: Array,
+    default: () => ['/product/module/application', '/product/module'],
   },
 })
 
+const emit = defineEmits(['deptClick'])
+
+const router = useRouter()
 const chartOption = ref({})
 
-const initChart = () => {
-  const colorList = ['#1890FF', '#FACC14', '#2FC25B']
-  const dataList = props.chartData.data
-  const nameList = props.chartData.title
-  let indicatorList = props.chartData.indicator
+const dataList = computed<DeptUsageItem[]>(() => {
+  if (!Array.isArray(props.chartData))
+    return []
 
-  const seriesDataList = dataList.map((item, index) => {
-    return {
-      ...item,
-      symbolSize: [6, 6],
-      lineStyle: {
-        //边缘颜色
-        color: colorList[index],
-      },
-      itemStyle: {
-        color: colorList[index],
-      },
-    }
-  })
+  return props.chartData.map(item => ({
+    deptName: item?.deptName || '',
+    usageCount: Number(item?.usageCount || 0),
+  }))
+})
+
+const initChart = () => {
+  const xData = dataList.value.map(item => item.deptName)
+  const barValues = dataList.value.map(item => Number(item.usageCount) || 0)
+  const colorList = [['#15728C', '#92D1DE']]
 
   chartOption.value = {
+    grid: {
+      left: '0',
+      right: '0',
+      bottom: '10%',
+      top: '20%',
+      containLabel: true,
+    },
+    color: ['#92D1DE'],
     tooltip: {
-      show: false, // 弹层数据去掉
+      trigger: 'axis',
+      formatter(params) {
+        const item = params?.[0]
+        if (!item)
+          return ''
+
+        return `${item.name}：${item.value}`
+      },
     },
     legend: {
-      data: nameList,
-      icon: 'circle',
-      show: true,
-      bottom: '5%',
-      center: 0,
-      itemWidth: 12,
-      itemHeight: 12,
-      itemGap: 26,
+      data: ['使用次数'],
+      x: 'center',
+      bottom: '3%',
+      align: 'left',
+      itemHeight: 13,
+      icon: 'rect',
+      itemWidth: 22,
+      itemGap: 20,
       textStyle: {
-        fontSize: 14,
-        color: '#fff',
+        fontSize: 12,
+        color: '#CCCCCC',
       },
     },
-    radar: {
-      center: ['50%', '50%'], // 外圆的位置
-      radius: '55%',
-      name: {
-        textStyle: {
-          color: '#F0F5FF',
-          fontSize: 16,
-        },
-      },
-      // TODO:
-      indicator: indicatorList,
-      splitArea: {
-        // 坐标轴在 grid 区域中的分隔区域，默认不显示。
-        show: true,
-        areaStyle: {
-          // 分隔区域的样式设置。
-          color: '#000A5F', // 分隔区域颜色。分隔区域会按数组中颜色的顺序依次循环设置颜色。默认是一个深浅的间隔色。
-        },
-      },
+    xAxis: {
+      showBackground: true,
       axisLine: {
-        // 指向外圈文本的分隔线样式
+        show: false,
         lineStyle: {
-          color: 'rgba(255,255,255,0)',
+          color: '#555f58',
         },
+      },
+      axisLabel: {
+        interval: 0,
+        color: '#fff',
+        margin: 15,
+        formatter(value) {
+          return value.length > 8 ? `${value.substring(0, 8)}...` : value
+        },
+      },
+      axisTick: {
+        show: false,
       },
       splitLine: {
+        show: false,
+      },
+      data: xData,
+      type: 'category',
+    },
+    yAxis: {
+      axisLine: {
+        show: false,
         lineStyle: {
-          type: 'solid',
-          color: '#2F4276', // 分隔线颜色
-          width: 2, // 分隔线线宽
+          color: 'rgba(220,220,220,0.3)',
+        },
+      },
+      axisTick: {
+        show: false,
+      },
+      axisLabel: {
+        color: '#CCCCCC',
+        fontSize: 12,
+      },
+      splitLine: {
+        show: false,
+        lineStyle: {
+          color: 'rgba(220,220,220,0.3)',
         },
       },
     },
     series: [
       {
-        type: 'radar',
-        data: seriesDataList,
+        name: '使用次数',
+        type: 'bar',
+        barWidth: '16',
+        data: barValues,
+        label: {
+          show: true,
+          color: '#fff',
+          fontSize: 12,
+          position: 'top',
+        },
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 1, 0, 0, [
+            { offset: 0, color: colorList[0][0] },
+            { offset: 1, color: colorList[0][1] },
+          ]),
+        },
       },
     ],
   }
+}
+
+const handleDeptClick = async (params) => {
+  const deptName = params?.name
+  const usageCount = params?.value
+
+  if (!deptName)
+    return
+
+  emit('deptClick', {
+    deptName,
+    usageCount,
+  })
+
+  const targetPath = props.jumpPaths.find(path => router.resolve({ path }).matched.length)
+  if (!targetPath)
+    return
+
+  await router.push({
+    path: targetPath,
+    query: {
+      deptName,
+    },
+  })
 }
 
 watch(
@@ -134,14 +169,18 @@ watch(
   () => {
     initChart()
   },
-  { deep: true }
+  { deep: true, immediate: true },
 )
 </script>
 
 <template>
-  <div style="width: 100%; height: 100%">
-    <v-chart :option="chartOption" class="chart" />
+  <div style="width: 90%; height: 100%">
+    <v-chart :option="chartOption" class="chart" autoresize @click="handleDeptClick" />
   </div>
 </template>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.chart {
+  cursor: pointer;
+}
+</style>

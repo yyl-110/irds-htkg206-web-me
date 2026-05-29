@@ -78,12 +78,12 @@ onMounted(() => {
             alt=""
             class="back"
             @click="back"
-          />
+          >
           <img
             src="@/assets/data-screen/common/moduleTitle.png"
             alt=""
             class="title"
-          />
+          >
           <!-- 时间 -->
           <time-clock />
         </header>
@@ -102,7 +102,7 @@ onMounted(() => {
                   </div> -->
                 </Title>
                 <div class="wrap">
-                  <!-- <evaluate :chartData="moduleInfo?.creatorContributorList" /> -->
+                  <evaluate :chartData="moduleInfo?.deptModuleLibraryUsageList" />
                 </div>
               </div>
             </a-col>
