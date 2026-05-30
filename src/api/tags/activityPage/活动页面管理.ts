@@ -234,6 +234,24 @@ export class AdminApiActivityPage {
     );
 
   /**
+   * 公式编辑器表达式求值（后台计算，参数占位 [参数代号]）
+   *
+   * @name evaluateFormula
+   * @request POST /business-service/business/activity-basic-info/evaluateFormula
+   */
+  static evaluateFormula = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/evaluateFormula`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * Excel 公式计算（按单元格写入输入并重算后读取输出）
    *
    * @tags 管理后台 - Excel 公式计算（按单元格写入输入并重算后读取输出）
