@@ -129,6 +129,11 @@ export default defineConfig({
           });
         },
       },
+      /** pdf.js 预览 share 静态文件，避免直连 8099 触发 CORS */
+      '/share': {
+        target: 'http://127.0.0.1:8099',
+        changeOrigin: true,
+      },
       '/Lang': {
         target: 'http://172.16.7.44',
         ws: false,

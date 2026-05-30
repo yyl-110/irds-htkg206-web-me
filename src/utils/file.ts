@@ -1,6 +1,7 @@
 import { downloadFile, newPreviewFile } from '@/api/common';
 import { getAccessToken } from '@/utils/auth';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { ContentType, httpClient } from '@/api/tags/http-client';
 import { WeiMessage } from '@/utils/WeiMessage';
 /**
  * 文件流附件下载
@@ -151,6 +152,36 @@ export function previewUrlFile(fileId: string) {
 }
 
 /**
+ * 将 share/minio 绝对地址转为 pdf.js 可用的同源路径，避免跨域 CORS
+ * @param rawUrl 列表 pdfUrl 或完整 share 地址
+ * @param fileId 兜底：走网关下载（同源）
+ */
+export function normalizePdfViewerUrl(rawUrl: string, fileId?: string): string {
+  const url = rawUrl?.trim();
+  if (!url) {
+    return fileId ? previewUrlFile(String(fileId)) : '';
+  }
+  if (url.startsWith('/share/') || url.startsWith('/Api/')) {
+    return url;
+  }
+  try {
+    const parsed = new URL(url);
+    const shareIdx = parsed.pathname.indexOf('/share/');
+    if (shareIdx >= 0) {
+      return parsed.pathname.slice(shareIdx) + parsed.search;
+    }
+  } catch {
+    if (!url.startsWith('/')) {
+      return `/share/${url.replace(/^\/+/, '')}`;
+    }
+  }
+  if (fileId) {
+    return previewUrlFile(String(fileId));
+  }
+  return url;
+}
+
+/**
  * 预览水印pdf
  * @param fileId 文件id
  */
@@ -192,4 +223,42 @@ export function handleEpcDownload(params: downLoadEpcItem, fileName: string) {
   AdminApiSystemUploadFile.downloadEpcFile(params).then((res: any) => {
     exportFile(res, fileName);
   });
+}
+
+/**
+ * 解析 upload.json 响应（兼容直接返回文件 DTO 与 CommonResult 包装）
+ */
+export function parseUploadFileResponse(raw: unknown): {
+  ok: boolean;
+  fileId: string;
+  fileUrl: string;
+  oldFileName: string;
+  record: Record<string, unknown>;
+  errMsg?: string;
+} {
+  if (!raw || typeof raw !== 'object') {
+    return { ok: false, fileId: '', fileUrl: '', oldFileName: '', record: {}, errMsg: '响应为空' };
+  }
+  const body = raw as Record<string, unknown>;
+  const code = body.code;
+  const successCodes: Array<number | string> = [0, 200, '0', '200'];
+  if (code !== undefined && code !== null && !successCodes.includes(code as number | string)) {
+    return { ok: false, fileId: '', fileUrl: '', oldFileName: '', record: {}, errMsg: String(body.msg ?? '上传失败') };
+  }
+  let record: Record<string, unknown> = body;
+  const nested = body.data;
+  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) {
+    record = nested as Record<string, unknown>;
+  } else if (body.id == null && body.queryId == null && nested && typeof nested === 'object') {
+    record = nested as Record<string, unknown>;
+  }
+  const fileId = String(record.id ?? record.queryId ?? '').trim();
+  if (!fileId) {
+    return { ok: false, fileId: '', fileUrl: '', oldFileName: '', record: {}, errMsg: '未获取到上传文件ID' };
+  }
+  const fileUrl = String(record.fileUrl ?? record.filePath ?? record.url ?? '').trim();
+  const oldFileName = String(
+    record.oldFileName ?? record.oldfileName ?? record.fileName ?? record.documentName ?? '',
+  ).trim();
+  return { ok: true, fileId, fileUrl, oldFileName, record };
 }

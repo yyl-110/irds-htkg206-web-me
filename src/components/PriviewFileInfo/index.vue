@@ -81,10 +81,13 @@ function customGetContainer() {
       :footer="null"
       :maskClosable="false"
       @cancel="cancel">
+      {{ fileType }}
+
       <div id="part_modal_pdf">
         <div class="drawerContent">
           <div class="center-body">
             <div v-if="fileType == '.docx'" style="height: 100%; overflow: auto">
+              {{ pdfUrl }}
               <vue-office-docx :src="pdfUrl" />
             </div>
             <div v-else-if="fileType == '.xlsx' || fileType == '.xls'" style="height: 100%; overflow: auto">

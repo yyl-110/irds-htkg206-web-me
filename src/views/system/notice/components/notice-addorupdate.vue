@@ -131,11 +131,7 @@ function getNoticeUploadedFileId(): string {
   return id != null ? String(id).trim() : '';
 }
 
-async function noticeUploadCustomRequest(options: {
-  file: File | Blob;
-  onSuccess?: (body: unknown, file?: File) => void;
-  onError?: (e: Error) => void;
-}) {
+async function noticeUploadCustomRequest(options: { file: File | Blob; onSuccess?: (body: unknown, file?: File) => void; onError?: (e: Error) => void }) {
   const { file, onSuccess, onError } = options;
   try {
     const res = await AdminApiSystemUploadFile.uploadWordToPDF({

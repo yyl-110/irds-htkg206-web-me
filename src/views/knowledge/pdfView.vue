@@ -3,6 +3,7 @@ import { ref, watch, nextTick, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { LearningCompleted } from '@/api/knowledge';
+import { normalizePdfViewerUrl } from '@/utils/file';
 
 const router = useRouter();
 const route = useRoute();
@@ -52,7 +53,10 @@ watch(
         } else {
           hidden.value = false;
         }
-        fileDataUrl.value = docId.value;
+        fileDataUrl.value = normalizePdfViewerUrl(
+          docId.value,
+          newVal.query.fileId != null ? String(newVal.query.fileId) : undefined,
+        );
       });
     }
   },
