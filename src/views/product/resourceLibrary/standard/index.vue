@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { nextTick, onMounted, reactive, ref } from 'vue';
 import { Pane, Splitpanes } from 'splitpanes';
 import { message, Tooltip } from 'ant-design-vue';
@@ -11,8 +11,6 @@ import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/Produ
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
 import SelectBoomTree from '@/views/product/module/components/selectBoomTree.vue';
-import MaterialImgList from './components/form/MaterialImgList.vue';
-import MaterialInfoList from './components/form/MaterialListAdm.vue';
 
 const loadingTree = ref<boolean>(false);
 const treeData = ref<any[]>([]);
@@ -20,13 +18,7 @@ const rawTreeData = ref<any[]>([]);
 const selectedKeys = ref<string>('');
 const expandedKeys = ref<any>();
 const currentNode = ref<any>(null);
-const categoryid = ref<string>('');
-const menuId = ref<string>('15');
-const categoryType = ref<string>('');
-const loading = ref<boolean>(false);
 const treePage = ref<any>(null);
-const ModuleMaterialImgListRef = ref<InstanceType<typeof MaterialImgList>>();
-const ModuleMaterialInfoListRef = ref<InstanceType<typeof MaterialInfoList>>();
 const treeNodeColmoun = ref<any[]>([]);
 const treeRequestParams = reactive(new ProductModuleTreeInfoRequestDTOModel());
 const currentSelectField = ref<any>(null);
@@ -111,52 +103,6 @@ async function getListData(targetKey?: string) {
 function selectNode(node: any) {
   currentNode.value = node;
   selectedKeys.value = String(node?.key || '');
-  categoryid.value = node?.key ? String(node.key) : String(node?.id || '');
-  menuId.value = '15';
-  categoryType.value = String(node?.categoryType ?? '');
-  if (categoryType.value == '2') {
-    nextTick(() => {
-      ModuleMaterialImgListRef.value?.infoReload(categoryid.value, menuId.value, 'manager');
-    });
-  } else {
-    nextTick(() => {
-      ModuleMaterialInfoListRef.value?.infoReload(categoryid.value, menuId.value);
-    });
-  }
-}
-
-function actionNode(item: any) {
-  nextTick(() => {
-    selectNode(item);
-    selectedKeys.value = String(item?.id || item?.key || '');
-  });
-}
-
-function findNodePathById(nodes: any[], targetId: string, path: any[] = []): any[] | null {
-  for (const node of nodes || []) {
-    const nextPath = [...path, node];
-    if (String(node?.key ?? node?.id ?? '') === targetId) {
-      return nextPath;
-    }
-    if (node?.children?.length) {
-      const childPath = findNodePathById(node.children, targetId, nextPath);
-      if (childPath) return childPath;
-    }
-  }
-  return null;
-}
-
-async function getCategory(categoryId: any) {
-  const targetId = String(categoryId ?? '');
-  if (!targetId) return;
-  const path = findNodePathById(treeData.value, targetId);
-  if (!path || path.length === 0) return;
-  const targetNode = path[path.length - 1];
-  selectedKeys.value = targetId;
-  expandedKeys.value = path.map((n: any) => n.key).join(',');
-  nextTick(() => {
-    selectNode(targetNode);
-  });
 }
 
 async function upNode(node: any) {
@@ -455,9 +401,8 @@ async function reloadTree() {
           </a-spin>
         </Pane>
         <Pane class="splitpane-cls module-index-right-pane" :size="rightTreePaneSize">
-          <div v-if="!loading" class="module-index-right-inner">
-            <MaterialImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleMaterialImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
-            <MaterialInfoList v-else ref="ModuleMaterialInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
+          <div class="module-index-right-inner">
+            <div class="udf-placeholder">UDF</div>
           </div>
         </Pane>
       </Splitpanes>
@@ -502,7 +447,7 @@ async function reloadTree() {
   box-sizing: border-box;
 }
 
-.material-placeholder {
+.udf-placeholder {
   flex: 1;
   display: flex;
   align-items: center;
