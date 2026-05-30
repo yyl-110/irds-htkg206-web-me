@@ -11,8 +11,8 @@ import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/Produ
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
 import SelectBoomTree from '@/views/product/module/components/selectBoomTree.vue';
-// import ModuleImgList from './ModuleImgList.vue';
-// import ModuleInfoList from './ModuleInfoListAdm.vue';
+import UdfImgList from './components/form/UdfImgList.vue';
+import UdfInfoList from './components/form/UdfListAdm.vue';
 
 const loadingTree = ref<boolean>(false);
 const treeData = ref<any[]>([]);
@@ -25,8 +25,8 @@ const menuId = ref<string>('10');
 const categoryType = ref<string>('');
 const loading = ref<boolean>(false);
 const treePage = ref<any>(null);
-// const ModuleUdfImgListRef = ref<InstanceType<typeof ModuleImgList>>();
-// const ModuleUdfInfoListRef = ref<InstanceType<typeof ModuleInfoList>>();
+const ModuleUdfImgListRef = ref<InstanceType<typeof UdfImgList>>();
+const ModuleUdfInfoListRef = ref<InstanceType<typeof UdfInfoList>>();
 const treeNodeColmoun = ref<any[]>([]);
 const treeRequestParams = reactive(new ProductModuleTreeInfoRequestDTOModel());
 const currentSelectField = ref<any>(null);
@@ -114,7 +114,7 @@ function selectNode(node: any) {
   categoryid.value = node?.key ? String(node.key) : String(node?.id || '');
   menuId.value = '10';
   categoryType.value = String(node?.categoryType ?? '');
-  if (categoryType.value == '2' || categoryType.value == '3') {
+  if (categoryType.value == '2') {
     nextTick(() => {
       ModuleUdfImgListRef.value?.infoReload(categoryid.value, menuId.value, 'manager');
     });
@@ -456,8 +456,8 @@ async function reloadTree() {
         </Pane>
         <Pane class="splitpane-cls module-index-right-pane" :size="rightTreePaneSize">
           <div v-if="!loading" class="module-index-right-inner">
-            <!-- <ModuleImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleUdfImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
-            <ModuleInfoList v-else ref="ModuleUdfInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" /> -->
+            <UdfImgList v-if="categoryType == '1' || categoryType == '2' || categoryType == '3'" ref="ModuleUdfImgListRef" @actionNode="actionNode" @getCategory="getCategory" />
+            <UdfInfoList v-else ref="ModuleUdfInfoListRef" :categoryid="categoryid" :menuId="menuId" @getCategory="getCategory" />
           </div>
         </Pane>
       </Splitpanes>

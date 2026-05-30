@@ -73,6 +73,7 @@ interface Props {
   // /** 图片大小限制, 默认为 5M */
   fileSize?: number;
   selectedKeys?: string;
+  menuId?: number;
   // /** 文件类型 */
   // fileType?: string[];
   // /** 组件高度 */
@@ -159,7 +160,7 @@ watch(
   (newVal: any, oldVal) => {
     UploadfileList.value = newVal;
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 //excel 导出
