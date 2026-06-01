@@ -404,18 +404,6 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'manager/user-group',
-        component: () => import('@/views/bpm/group/index.vue'),
-        name: 'UserGroup',
-        meta: {
-          noCache: true,
-          hidden: true,
-          canTo: true,
-          title: '用户分组',
-          activeMenu: '/bpm/manager/user-group',
-        },
-      },
-      {
         path: 'manager/process-listener',
         component: () => import('@/views/bpm/processListener/index.vue'),
         name: 'ProcessListener',
@@ -464,42 +452,6 @@ export const routes: RouteRecordRaw[] = [
           activeMenu: '/bpm/task/my',
         },
       },
-      // {
-      //   path: 'task/todo',
-      //   component: () => import('@/views/bpm/task/todo/index.vue'),
-      //   name: 'Todo',
-      //   meta: {
-      //     noCache: true,
-      //     hidden: true,
-      //     canTo: true,
-      //     title: '我的任务',
-      //     activeMenu: '/bpm/task/todo',
-      //   },
-      // },
-      // {
-      //   path: 'task/done',
-      //   component: () => import('@/views/bpm/task/done/index.vue'),
-      //   name: 'Done',
-      //   meta: {
-      //     noCache: true,
-      //     hidden: true,
-      //     canTo: true,
-      //     title: '已办任务',
-      //     activeMenu: '/bpm/task/done',
-      //   },
-      // },
-      // {
-      //   path: 'task/copy',
-      //   component: () => import('@/views/bpm/task/copy/index.vue'),
-      //   name: 'Copy',
-      //   meta: {
-      //     noCache: true,
-      //     hidden: true,
-      //     canTo: true,
-      //     title: '抄送我的',
-      //     activeMenu: '/bpm/task/copy',
-      //   },
-      // },
     ],
   },
 ];

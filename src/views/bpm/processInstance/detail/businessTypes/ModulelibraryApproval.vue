@@ -17,66 +17,65 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
-import CommonApprovalContent from './CommonApprovalContent.vue'
-import ModuleLibraryDetailDrawer from './ModuleLibraryDetailDrawer.vue'
+import { computed, ref } from 'vue';
+import CommonApprovalContent from './CommonApprovalContent.vue';
+import ModuleLibraryDetailDrawer from './ModuleLibraryDetailDrawer.vue';
 const props = defineProps<{
-  processInstance: any
-  titleList: any[]
-  opinion: string
-}>()
-
-const moduleDetailDrawerRef = ref<InstanceType<typeof ModuleLibraryDetailDrawer> | null>(null)
+  processInstance: any;
+  titleList: any[];
+  opinion: string;
+}>();
+const moduleDetailDrawerRef = ref<InstanceType<typeof ModuleLibraryDetailDrawer> | null>(null);
 
 function getFormVariables() {
-  return props.processInstance?.formVariables ?? props.processInstance?.processVariables ?? {}
+  return props.processInstance?.formVariables ?? props.processInstance?.processVariables ?? {};
 }
 
 function getColumnKey(item: any) {
-  return item.propertyName === '贡献者' ? 'para7Name' : item.dataProp
+  return item.propertyName === '贡献者' ? 'para7Name' : item.dataProp;
 }
 
 const modulePropertyInfo = computed<any[]>(() => {
-  const list = getFormVariables().modulePropertyInfo
+  const list = getFormVariables().modulePropertyInfo;
 
-  return Array.isArray(list) ? list : []
-})
+  return Array.isArray(list) ? list : [];
+});
 
 /** 由 modulePropertyInfo 生成表格列（保持接口返回顺序，showFlag == 0 才展示） */
 
 function buildColumnsFromPropertyInfo() {
   if (!modulePropertyInfo.value.length) {
-    return []
+    return [];
   }
   return modulePropertyInfo.value
     .filter((item: any) => item.showFlag == 0 && getColumnKey(item))
     .map((item: any) => {
-      const key = getColumnKey(item)
+      const key = getColumnKey(item);
       return {
         key,
         value: item.propertyName,
         colWidth: item.colWidth == undefined ? 150 : item.colWidth,
-      }
-    })
+      };
+    });
 }
 
 const modelList = computed<any[]>(() => {
-  const list = getFormVariables().ModelList
-  return Array.isArray(list) ? list : []
-})
+  const list = getFormVariables().ModelList;
+  return Array.isArray(list) ? list : [];
+});
 
 const displayTitleList = computed(() => {
-  if (props.titleList?.length) return props.titleList
-  return buildColumnsFromPropertyInfo()
-})
+  if (props.titleList?.length) return props.titleList;
+  return buildColumnsFromPropertyInfo();
+});
 
 const displayDataList = computed(() => {
-  return modelList.value
-})
+  return modelList.value;
+});
 
 function handleRowClick(row: any, field: string) {
   if (field === 'para2') {
-    moduleDetailDrawerRef.value?.openModuleDetail(row, field)
+    moduleDetailDrawerRef.value?.openModuleDetail(row, field);
   }
 }
 </script>

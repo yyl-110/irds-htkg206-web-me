@@ -223,7 +223,6 @@ const handleSubmitAudit = async (item: Record<string, any>) => {
       cardType: CARD_TYPE_MAP[tabValue.value] || '文档',
     },
   ];
-  console.log(selectModelList.value, 'selectModelList.value');
   if (String(item.approveStatus) === Knowledgebase.DESIGNING) {
     await nextTick();
     ProcessVisible.value = true;
