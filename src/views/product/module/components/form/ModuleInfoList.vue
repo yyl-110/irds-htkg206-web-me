@@ -3,7 +3,15 @@ import { computed, defineEmits, getCurrentInstance, h, nextTick, onMounted, reac
 import type { TableColumnType, UploadFile, UploadProps } from 'ant-design-vue';
 import { Button, Modal, Popconfirm, TableProps, message } from 'ant-design-vue';
 import _ from 'lodash-es';
-import { CaretDownOutlined, CaretUpOutlined, DownOutlined, EyeOutlined, FilterOutlined, LeftOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import {
+  CaretDownOutlined,
+  CaretUpOutlined,
+  DownOutlined,
+  EyeOutlined,
+  FilterOutlined,
+  LeftOutlined,
+  SearchOutlined,
+} from '@ant-design/icons-vue';
 import * as echarts from 'echarts';
 import addModule from '../modal/addModule.vue';
 import InitiateaProcess from '../modal/InitiateaProcess.vue';
@@ -22,7 +30,12 @@ import { handleEpcDownload, previewUrlFile } from '@/utils/file';
 import Ddview from '@/components/Ddview/index.vue';
 import vizSchematicPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
 import { useRouter } from 'vue-router';
-import { openDrawingInfoNew, openModuleInfoNew, assembleModuleInfoNew, insertModelLibraryStatisticsLog } from '@/libs/webSocketNew';
+import {
+  openDrawingInfoNew,
+  openModuleInfoNew,
+  assembleModuleInfoNew,
+  insertModelLibraryStatisticsLog,
+} from '@/libs/webSocketNew';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
@@ -355,7 +368,8 @@ async function modalInit() {
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data);
 
   const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data);
-  const distinctValues: Record<string, any[]> = (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
+  const distinctValues: Record<string, any[]> =
+    (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
 
   const param: any = {};
   param.categoryId = categoryid.value;
@@ -374,8 +388,13 @@ async function modalInit() {
       if (resData[i].searchFlag == 0) {
         const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
         // 查询字段全部以下拉形式展示；下拉值来源于 clumnsRes 返回的 distinctValues
-        const valueKeyCandidates = [String(resData[i].dataProp ?? ''), String(key ?? ''), String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : ''].filter(Boolean);
-        const rawOptions = valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
+        const valueKeyCandidates = [
+          String(resData[i].dataProp ?? ''),
+          String(key ?? ''),
+          String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
+        ].filter(Boolean);
+        const rawOptions =
+          valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
         const options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
         queryColumns.value.push({
           id: resData[i].id,
@@ -982,7 +1001,14 @@ function getDynamicComponentVal(comp: any) {
       let val = '';
       const newModeTypeVal = item.newModeTypeVal;
       if (newModeTypeVal != undefined && newModeTypeVal != '' && item.typeKey == 'para4') {
-        val = newModeTypeVal.toLowerCase() == 'prt' ? 'prt' : newModeTypeVal.toLowerCase() == 'asm' ? 'asm' : newModeTypeVal.toLowerCase() == 'gph' ? 'gph' : '';
+        val =
+          newModeTypeVal.toLowerCase() == 'prt'
+            ? 'prt'
+            : newModeTypeVal.toLowerCase() == 'asm'
+              ? 'asm'
+              : newModeTypeVal.toLowerCase() == 'gph'
+                ? 'gph'
+                : '';
       } else {
         val = item.newModeTypeVal;
       }
@@ -1127,7 +1153,14 @@ async function loadVizPvzByFileUrl(fileUrl: string) {
 
 const vizSchematicFileId = computed(() => {
   const row = vizDetailRow.value;
-  const fromRow = vizPickFileId(row, ['nodeTreeDiagramFileId', 'treeDiagramFileId', 'schematicFileId', 'diagramFileId', 'nodeTreeImageId', 'treeImageFileId']);
+  const fromRow = vizPickFileId(row, [
+    'nodeTreeDiagramFileId',
+    'treeDiagramFileId',
+    'schematicFileId',
+    'diagramFileId',
+    'nodeTreeImageId',
+    'treeImageFileId',
+  ]);
   if (fromRow) return fromRow;
   return vizFileIdFromModalInfo(modalInfo.value, ['节点树', '示意图', '树图', 'schematic', 'diagram']);
 });
@@ -1542,8 +1575,12 @@ defineExpose({ initData, selectAllModuleInfo });
             </a-row>
           </div>
           <div class="query-actions">
-            <a-button type="primary" size="middle" @click="handleQuery()"><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button>
-            <a-button size="middle" @click="handleQueryReset"><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button>
+            <a-button type="primary" size="middle" @click="handleQuery()"
+              ><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button
+            >
+            <a-button size="middle" @click="handleQueryReset"
+              ><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button
+            >
           </div>
         </div>
         <div class="btn-box-container">
@@ -1565,7 +1602,10 @@ defineExpose({ initData, selectAllModuleInfo });
                 </a>
                 <template #overlay>
                   <a-menu @click="handleDropdownMenuClick">
-                    <a-menu-item v-for="item in dropdownList" :key="item.id" :disabled="item.id === 4 && !canInitiateProcess">
+                    <a-menu-item
+                      v-for="item in dropdownList"
+                      :key="item.id"
+                      :disabled="item.id === 4 && !canInitiateProcess">
                       {{ item.name }}
                     </a-menu-item>
                   </a-menu>
@@ -1620,7 +1660,10 @@ defineExpose({ initData, selectAllModuleInfo });
             </template>
             <template v-else>
               <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isModuleFilterableColumn(column) }">
-                <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableModuleColumn(column) }" @click.stop="toggleModuleColumnSort(column)">
+                <span
+                  class="header-title-sort"
+                  :class="{ 'header-title-sort--disabled': !isSortableModuleColumn(column) }"
+                  @click.stop="toggleModuleColumnSort(column)">
                   <span>{{ column.title }}</span>
                   <span v-if="isSortableModuleColumn(column)" class="header-sort-icon">
                     <CaretUpOutlined v-if="getModuleSortOrder(String(column.dataIndex)) === 'ascend'" />
@@ -1636,7 +1679,10 @@ defineExpose({ initData, selectAllModuleInfo });
                     @openChange="handleModuleFilterOpenChange(String(column.dataIndex), $event)">
                     <template #content>
                       <div class="header-filter-pop">
-                        <a-input v-model:value="moduleTableColumnFilter[String(column.dataIndex)]" :placeholder="`搜索 ${column.title}`" allow-clear />
+                        <a-input
+                          v-model:value="moduleTableColumnFilter[String(column.dataIndex)]"
+                          :placeholder="`搜索 ${column.title}`"
+                          allow-clear />
                         <div class="header-filter-actions">
                           <a-button type="primary" size="small" @click="applyModuleColumnFilter(String(column.dataIndex))">
                             <SearchOutlined />
@@ -1657,7 +1703,11 @@ defineExpose({ initData, selectAllModuleInfo });
               <GlobalQueryPara10Cell :text="getModuleStatusCellText(record, column, text)" />
             </template>
             <template v-else-if="column.dataIndex === 'para2'">
-              <a style="color: #1979e0; text-decoration: underline; cursor: pointer" @click.stop="clickEvent(record, 'para2')">{{ record.para2 }}</a>
+              <a
+                style="color: #1979e0; text-decoration: underline; cursor: pointer"
+                @click.stop="clickEvent(record, 'para2')"
+                >{{ record.para2 }}</a
+              >
             </template>
             <template v-else-if="column.dataIndex === 'operation'">
               <div class="model-vxe-op-icons" @click.stop>
@@ -1686,8 +1736,16 @@ defineExpose({ initData, selectAllModuleInfo });
       </a-card>
     </div>
   </div>
-  <addModule ref="addOrUpdate" :modal-visible="AddVisible" @handle-save="handleSave" @modal-init="modalInit" @on-close="AddVisible = false" />
-  <applicationModule :bom-info-data="bomInfoData" :modal-visible="applicationEditFlag" @on-close="applicationEditFlag = false" />
+  <addModule
+    ref="addOrUpdate"
+    :modal-visible="AddVisible"
+    @handle-save="handleSave"
+    @modal-init="modalInit"
+    @on-close="AddVisible = false" />
+  <applicationModule
+    :bom-info-data="bomInfoData"
+    :modal-visible="applicationEditFlag"
+    @on-close="applicationEditFlag = false" />
   <parametricdesign
     :module-id="moduleId"
     :categoryid="categoryid"
@@ -1724,16 +1782,31 @@ defineExpose({ initData, selectAllModuleInfo });
       :mask-closable="false"
       @on-cancel="globalQueryModalVisible = false">
       <div style="margin-bottom: 12px">
-        <div v-for="(group, idx) in globalQueryGroups" :key="idx" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
+        <div
+          v-for="(group, idx) in globalQueryGroups"
+          :key="idx"
+          style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
           <a-select v-model:value="group.field" style="width: 140px" :options="globalQueryFieldOptions" />
           <a-select v-model:value="group.queryType" style="width: 140px" :options="globalQueryTypeOptions" />
           <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 180px" />
-          <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
-          <EpcIcon v-if="globalQueryGroups.length > 1" type="icon-shanchu2" style="color: #ff4d4f; font-size: 16px; cursor: pointer" @click="removeGlobalQueryGroup(idx)" />
+          <EpcIcon
+            type="icon-md-add"
+            style="color: #1a71ff; font-size: 18px; cursor: pointer"
+            @click="addGlobalQueryGroup" />
+          <EpcIcon
+            v-if="globalQueryGroups.length > 1"
+            type="icon-shanchu2"
+            style="color: #ff4d4f; font-size: 16px; cursor: pointer"
+            @click="removeGlobalQueryGroup(idx)" />
           <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center">
-          <a-button type="primary" :loading="globalQueryLoading" @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize, 'manager')">查询</a-button>
+          <a-button
+            type="primary"
+            :loading="globalQueryLoading"
+            @click="fetchGlobalQueryData(1, globalQueryTablePagination.pageSize, 'manager')"
+            >查询</a-button
+          >
           <a-button @click="resetGlobalQueryGroups">重置</a-button>
         </div>
       </div>
@@ -1750,7 +1823,9 @@ defineExpose({ initData, selectAllModuleInfo });
           <template v-if="column.dataIndex === 'para1'">
             <a @click.stop="handleGlobalModelNumClick(record)">{{ record.para1 }}</a>
           </template>
-          <GlobalQueryPara10Cell v-else-if="isModuleStatusColumn(column)" :text="getModuleStatusCellText(record, column, text)" />
+          <GlobalQueryPara10Cell
+            v-else-if="isModuleStatusColumn(column)"
+            :text="getModuleStatusCellText(record, column, text)" />
           <template v-else>{{ text }}</template>
         </template>
       </a-table>
@@ -1779,7 +1854,13 @@ defineExpose({ initData, selectAllModuleInfo });
       </a-checkbox-group>
     </div>
 
-    <a-table ref="elementTable" :scroll="{ x: 'max-content' }" :pagination="false" :columns="tabularColumn" :data-source="tabularData" :row-class-name="setFixedRowClass" />
+    <a-table
+      ref="elementTable"
+      :scroll="{ x: 'max-content' }"
+      :pagination="false"
+      :columns="tabularColumn"
+      :data-source="tabularData"
+      :row-class-name="setFixedRowClass" />
     <template #footer>
       <a-button type="primary" @click="handlefileSave"> 确定 </a-button>
       <a-button type="text" @click="tabularflag = false"> 取消 </a-button>
@@ -1803,14 +1884,26 @@ defineExpose({ initData, selectAllModuleInfo });
     @ok="confirmPvzUpload"
     @cancel="closePvzUpload">
     <p class="module-pvz-upload-tip">仅支持上传 .pvz 格式的 3D 轻量化文件</p>
-    <a-upload v-model:file-list="pvzUploadAntList" :max-count="1" accept=".pvz" :before-upload="beforeUploadPvz" :custom-request="pvzCustomRequest" @remove="onPvzFileRemove">
+    <a-upload
+      v-model:file-list="pvzUploadAntList"
+      :max-count="1"
+      accept=".pvz"
+      :before-upload="beforeUploadPvz"
+      :custom-request="pvzCustomRequest"
+      @remove="onPvzFileRemove">
       <a-button type="primary">
         <EpcIcon type="icon-shangchuanwenjian1" style="font-size: 14px" />
         选择文件
       </a-button>
     </a-upload>
   </a-modal>
-  <a-drawer v-model:visible="pageFlagDrawer" class="module-detail-drawer" title="模块详情" placement="right" :closable="false" width="800">
+  <a-drawer
+    v-model:visible="pageFlagDrawer"
+    class="module-detail-drawer"
+    title="模块详情"
+    placement="right"
+    :closable="false"
+    width="800">
     <div ref="udfBoxRef" class="module-detail-drawer-inner px-[16px]" :style="udfBoxStyle()">
       <a-tabs v-model:activeKey="parmType" class="module-detail-udf-tabs" @change="toParm" :animated="false">
         <a-tab-pane :key="'viz'" tab="可视化">
@@ -1869,7 +1962,12 @@ defineExpose({ initData, selectAllModuleInfo });
               </a-descriptions>
             </div>
             <div>
-              <a-descriptions v-for="item in attributeParmList" :key="item.id" style="margin-top: 20px" size="small" bordered>
+              <a-descriptions
+                v-for="item in attributeParmList"
+                :key="item.id"
+                style="margin-top: 20px"
+                size="small"
+                bordered>
                 <a-descriptions-item :label="item.name" style="width: 200px">
                   {{ item.val }}
                 </a-descriptions-item>

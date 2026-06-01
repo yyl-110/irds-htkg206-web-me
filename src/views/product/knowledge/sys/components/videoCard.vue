@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { doCollectFile, modifyInit, removeFile, saveLookFileLog, updateKldCounting } from "@/api/knowledge";
-import { useUserStore } from "@/store/modules/user";
-import { getTimes } from "@/utils/dateUtils";
-import {
-  CaretRightFilled,
-  EditOutlined,
-  DeleteOutlined
-} from "@ant-design/icons-vue";
-import { message } from "ant-design-vue";
-import shareCell from "@/views/knowledge/components/share.vue";
-import Video from "@/views/knowledge/components/videoImg.vue";
+import { doCollectFile, modifyInit, removeFile, saveLookFileLog, updateKldCounting } from '@/api/knowledge';
+import { useUserStore } from '@/store/modules/user';
+import { getTimes } from '@/utils/dateUtils';
+import { CaretRightFilled, EditOutlined, DeleteOutlined, AuditOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
+import shareCell from '@/views/knowledge/components/share.vue';
+import Video from '@/views/knowledge/components/videoImg.vue';
+import { Knowledgebase, getKnowledgebaseColor, getKnowledgebaseLabel } from '@/enums/Knowledgebase';
 
 const props = defineProps({
   videoData: {
@@ -18,10 +15,10 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(["handleFetchList", 'handleEdit']);
+const emits = defineEmits(['handleFetchList', 'handleEdit', 'handleSubmitAudit']);
 
 const shareDialogVisible = ref(false);
-const docId = ref("");
+const docId = ref('');
 const showDetail = ref(false);
 const formInline = ref<Record<string, any>>({});
 const videoHide = ref(false);
@@ -33,7 +30,7 @@ const viewPdfFun = () => {
     name: useUserStore().getUser.userName,
     userId: useUserStore().getUser.id,
     kldId: item.id,
-    type: "1",
+    type: '1',
   };
   saveLookFileLog(logParams);
   fileUrlPlay.value = item.fileUrl;
@@ -47,31 +44,40 @@ const getVideoHide = (val: boolean) => {
 
 const deleteData = async () => {
   try {
-    const res = await removeFile({ kldFileId: props.videoData.id })
+    const res = await removeFile({ kldFileId: props.videoData.id });
     if (res.data.code === '0') {
-      message.success('删除成功')
+      message.success('删除成功');
       emits('handleFetchList');
     }
   } catch (error) {
-    console.log('error:', error)
+    console.log('error:', error);
   }
-}
+};
 
 const confidentialLevel = computed(() => {
-  if (props.videoData.confidential_level === '0')
-    return '公开';
-  if (props.videoData.confidential_level === '1')
-    return '内部';
-  if (props.videoData.confidential_level === '2')
-    return '秘密';
-  if (props.videoData.confidential_level === '3')
-    return '机密';
+  if (props.videoData.confidential_level === '0') return '公开';
+  if (props.videoData.confidential_level === '1') return '内部';
+  if (props.videoData.confidential_level === '2') return '秘密';
+  if (props.videoData.confidential_level === '3') return '机密';
   return '公开';
-})
+});
 
 const handleEditCard = () => {
   emits('handleEdit');
-}
+};
+const handleSubmitAudit = () => {
+  if (!canSubmitAudit.value) return;
+  emits('handleSubmitAudit');
+};
+
+const canSubmitAudit = computed(() => {
+  const status = String(props.videoData.approveStatus ?? '');
+  const isAllowedStatus = status === Knowledgebase.DESIGNING || status === Knowledgebase.COMPILING;
+  const isOwner = String(props.videoData.userId ?? '') === String(useUserStore().getUser.id ?? '');
+  return isAllowedStatus && isOwner;
+});
+
+const approveStatus = computed(() => String(props.videoData.approveStatus ?? ''));
 </script>
 
 <template>
@@ -82,9 +88,7 @@ const handleEditCard = () => {
     <video class="video-list" :src="videoData.fileUrl" width="199" height="142"></video>
     <div class="video-wrap-title">
       <a-tooltip :title="videoData.fileName + '.' + videoData.fileType" placement="top">
-        <h3 class="fontHide w-full mt-[6px] mb-0" @click="viewPdfFun">
-          {{ videoData.fileName }}.{{ videoData.fileType }}
-        </h3>
+        <h3 class="fontHide w-full mt-[6px] mb-0" @click="viewPdfFun">{{ videoData.fileName }}.{{ videoData.fileType }}</h3>
       </a-tooltip>
     </div>
     <div class="video-wrap-title-right justify-between">
@@ -92,15 +96,29 @@ const handleEditCard = () => {
       <span v-if="videoData.releaseStatus === 0">【已发布】</span>
       <span v-else-if="videoData.releaseStatus === 1">【未发布】</span>
     </div>
-    <div class="author pr-[16px]" style="display: flex">
-      <span class="name">{{ videoData.userName }}</span>
-      <span class="time">{{ getTimes(Date.parse(videoData.addTime)) || '' }}</span>
-      <span class="level ml-auto">{{ confidentialLevel }}</span>
-      <span></span>
+    <div class="meta-info">
+      <div class="meta-row">
+        <span class="meta-name">{{ videoData.userName }}</span>
+        <span class="meta-time">{{ getTimes(Date.parse(videoData.addTime)) || '' }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-level">{{ confidentialLevel }}</span>
+        <span class="meta-divider">|</span>
+        <span class="meta-status" :style="{ color: getKnowledgebaseColor(approveStatus) }">
+          {{ getKnowledgebaseLabel(approveStatus) }}
+        </span>
+      </div>
     </div>
 
-    <div class="flex items-center px-[16px] justify-end mt-[6px]">
-      <span class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer" @click="handleEditCard">
+    <div class="card-actions">
+      <span
+        class="ml-[8px] flex items-center gap-[2px] text-[12px]"
+        :class="canSubmitAudit ? 'text-primary cursor-pointer' : 'submit-audit-disabled'"
+        @click="handleSubmitAudit">
+        <audit-outlined :class="{ imgColor: canSubmitAudit }" />
+        <span class="author-elEdit-text">提交审核</span>
+      </span>
+      <span class="ml-[8px] flex items-center gap-[2px] text-[12px] text-primary cursor-pointer" @click="handleEditCard">
         <edit-outlined class="imgColor" /><span class="author-elEdit-text">编辑</span>
       </span>
       <span class="ml-[8px]">
@@ -113,7 +131,11 @@ const handleEditCard = () => {
       </span>
     </div>
 
-    <Video :video-hide="videoHide" :file-url-play="fileUrlPlay" dialog-type="2" title-type="视频播放"
+    <Video
+      :video-hide="videoHide"
+      :file-url-play="fileUrlPlay"
+      dialog-type="2"
+      title-type="视频播放"
       @get-video-hide="getVideoHide" />
   </div>
 </template>
@@ -124,7 +146,7 @@ const handleEditCard = () => {
 }
 
 .fontHide {
-  width: 285px;
+  width: 198px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,12 +173,24 @@ const handleEditCard = () => {
 }
 
 .doc-list {
-  // margin-bottom: 16px;
   width: 230px;
-  height: 270px;
-  border-radius: 6px 6px 6px 6px;
+  min-height: 300px;
+  border-radius: 6px;
   border: 1px solid #eaeaf1;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 12px;
+  box-sizing: border-box;
+
+  .imgColor {
+    color: var(--ant-primary-color);
+  }
+
+  .submit-audit-disabled {
+    color: rgba(0, 0, 0, 0.25);
+    cursor: not-allowed;
+  }
 
   &:hover {
     border-color: var(--ant-primary-color);
@@ -208,21 +242,58 @@ const handleEditCard = () => {
     padding-left: 16px;
   }
 
-  .author {
-    margin-left: 16px;
+  .meta-info {
+    padding: 4px 16px 0;
+    flex-shrink: 0;
 
-    span {
-      height: 22px;
+    .meta-row {
+      display: flex;
+      align-items: center;
+      min-height: 20px;
+      line-height: 20px;
       font-size: 12px;
-      font-family: PingFang-SC, PingFang-SC;
-      font-weight: 500;
       color: #969799;
-      line-height: 22px;
+
+      & + .meta-row {
+        margin-top: 2px;
+      }
     }
 
-    span.time {
-      margin-left: 13px;
+    .meta-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+
+    .meta-time {
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .meta-level,
+    .meta-status {
+      flex-shrink: 0;
+    }
+
+    .meta-divider {
+      margin: 0 6px;
+      color: #dcdee0;
+    }
+
+    .meta-status {
+      font-weight: 500;
+    }
+  }
+
+  .card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 16px 0;
+    margin-top: auto;
+    flex-shrink: 0;
   }
 }
 </style>

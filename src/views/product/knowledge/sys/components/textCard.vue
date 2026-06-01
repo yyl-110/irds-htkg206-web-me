@@ -1,15 +1,34 @@
 <script setup lang="ts">
-import { doCollectFile, getPdfPreviewPath, modifyInit, removeFile, saveLookFileLog, updateKldCounting } from '@/api/knowledge';
+import {
+  doCollectFile,
+  getPdfPreviewPath,
+  modifyInit,
+  removeFile,
+  saveLookFileLog,
+  updateKldCounting,
+} from '@/api/knowledge';
 import comment from '@/components/Comment/index.vue';
 import { useUserStore } from '@/store/modules/user';
 import { getTimes } from '@/utils/dateUtils';
-import { EyeOutlined, MessageOutlined, StarOutlined, StarFilled, ShareAltOutlined, DownloadOutlined, InfoCircleFilled, UserOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue';
+import {
+  EyeOutlined,
+  MessageOutlined,
+  StarOutlined,
+  StarFilled,
+  ShareAltOutlined,
+  DownloadOutlined,
+  InfoCircleFilled,
+  UserOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  AuditOutlined,
+} from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import shareCell from '@/views/knowledge/components/share.vue';
 import HttpRequestConfig from '@/httpRequest/config';
 import { downloadFileFromStream } from '@/utils/file';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-
+import { Knowledgebase, getKnowledgebaseColor, getKnowledgebaseLabel } from '@/enums/Knowledgebase';
 const router = useRouter();
 
 const props = defineProps({
@@ -21,25 +40,19 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(['handleFetchList', 'handleEdit']);
+const emits = defineEmits(['handleFetchList', 'handleEdit', 'handleSubmitAudit']);
 
 const commentDialogVisible = ref(false);
 const shareDialogVisible = ref(false);
 const commentDetail = ref({});
 const docId = ref('');
-const formInline = ref({});
-
 const confidentialLevel = computed(() => {
-  if (props.textData.confidential_level === '0')
-    return '公开';
-  if (props.textData.confidential_level === '1')
-    return '内部';
-  if (props.textData.confidential_level === '2')
-    return '秘密';
-  if (props.textData.confidential_level === '3')
-    return '机密';
+  if (props.textData.confidential_level === '0') return '公开';
+  if (props.textData.confidential_level === '1') return '内部';
+  if (props.textData.confidential_level === '2') return '秘密';
+  if (props.textData.confidential_level === '3') return '机密';
   return '公开';
-})
+});
 
 const viewPdfFun = async () => {
   const params = {
@@ -54,11 +67,10 @@ const viewPdfFun = async () => {
 };
 
 // 查看pdf
-const viewPdf = async (item) => {
+const viewPdf = async item => {
   try {
     updateKldCounting({ kldFileId: item.id, countingType: 1 });
     const res = await getPdfPreviewPath({ id: item.fileId });
-    console.log('res:', res);
     const filePath = res.data.fileUrl;
     router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
   } catch (error) {
@@ -115,27 +127,39 @@ const download = async () => {
   const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: props.textData.fileId } as any);
   //根据fileID查找文件信息
   const fileInfo = await AdminApiSystemUploadFile.getFileByIds({ fileIds: props.textData.fileId } as any);
-  console.log('fileInfo:', fileInfo);
   const stream = (res as any)?.data !== undefined ? (res as any).data : res;
-    console.log('res:',res)
-    downloadFileFromStream(stream, fileInfo.data[0].oldFileName || '知识文件.doc');
+  downloadFileFromStream(stream, fileInfo.data[0].oldFileName || '知识文件.doc');
 };
 
 const deleteData = async () => {
   try {
-    const res = await removeFile({ kldFileId: props.textData.id })
+    const res = await removeFile({ kldFileId: props.textData.id });
     if (res.data.code === '0') {
-      message.success('删除成功')
+      message.success('删除成功');
       emits('handleFetchList');
     }
   } catch (error) {
-    console.log('error:', error)
+    console.log('error:', error);
   }
-}
+};
 
 const handleEditCard = () => {
   emits('handleEdit');
-}
+};
+
+const handleSubmitAudit = () => {
+  if (!canSubmitAudit.value) return;
+  emits('handleSubmitAudit');
+};
+
+const canSubmitAudit = computed(() => {
+  const status = String(props.textData.approveStatus ?? '');
+  const isAllowedStatus = status === Knowledgebase.DESIGNING || status === Knowledgebase.COMPILING;
+  const isOwner = String(props.textData.userId ?? '') === String(useUserStore().getUser.id ?? '');
+  return isAllowedStatus && isOwner;
+});
+
+const approveStatus = computed(() => String(props.textData.approveStatus ?? ''));
 </script>
 
 <template>
@@ -145,14 +169,16 @@ const handleEditCard = () => {
         <span>{{ textData.fileType[0] }}</span>
       </div>
       <div style="width: 85%">
-        <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0"
-          class="box-item">
-          <div v-html="textData.highlightFields?.fileName[0] + '.' + textData.fileType" class="highlightName"
+        <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0" class="box-item">
+          <div
+            v-html="textData.highlightFields?.fileName[0] + '.' + textData.fileType"
+            class="highlightName"
             @click="viewPdfFun"></div>
         </div>
         <div v-else class="box-item">
-          <div class="highlightName" @click="viewPdfFun">{{ textData.fileName }}.{{ textData.fileType
-            }}【{{ textData.version || '' }}】 <span v-if="textData.releaseStatus === 0">【已发布】</span>
+          <div class="highlightName" @click="viewPdfFun">
+            {{ textData.fileName }}.{{ textData.fileType }}【{{ textData.version || '' }}】
+            <span v-if="textData.releaseStatus === 0">【已发布】</span>
             <span v-else-if="textData.releaseStatus === 1">【未发布】</span>
           </div>
         </div>
@@ -161,12 +187,19 @@ const handleEditCard = () => {
             <a-breadcrumb-item>{{ textData.userName }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ getTimes(Date.parse(textData.addTime)) || '' }}</a-breadcrumb-item>
             <a-breadcrumb-item>{{ confidentialLevel }}</a-breadcrumb-item>
+            <a-breadcrumb-item>
+              <span :style="{ color: getKnowledgebaseColor(approveStatus) }">
+                {{ getKnowledgebaseLabel(approveStatus) }}
+              </span>
+            </a-breadcrumb-item>
           </a-breadcrumb>
         </div>
       </div>
     </div>
-    <div v-if="textData.highlightFields?.summary && textData.highlightFields?.summary.length > 0"
-      v-html="textData.highlightFields?.summary[0]" class="desc descColor"></div>
+    <div
+      v-if="textData.highlightFields?.summary && textData.highlightFields?.summary.length > 0"
+      v-html="textData.highlightFields?.summary[0]"
+      class="desc descColor"></div>
     <div v-else class="desc">{{ textData.summary }}</div>
     <div class="doc-list-bottom">
       <div class="action-wrap">
@@ -200,7 +233,14 @@ const handleEditCard = () => {
         </a-tooltip>
       </div>
       <div class="flex items-center">
-        <span class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer" @click="handleEditCard">
+        <span
+          class="ml-[8px] flex items-center gap-[2px] text-[12px]"
+          :class="canSubmitAudit ? 'text-primary cursor-pointer' : 'submit-audit-disabled'"
+          @click="handleSubmitAudit">
+          <audit-outlined :class="{ imgColor: canSubmitAudit }" />
+          <span class="author-elEdit-text">提交审核</span>
+        </span>
+        <span class="ml-[8px] flex items-center gap-[2px] text-[12px] text-primary cursor-pointer" @click="handleEditCard">
           <edit-outlined class="imgColor" /><span class="author-elEdit-text">编辑</span>
         </span>
         <span class="ml-[8px]">
@@ -213,10 +253,17 @@ const handleEditCard = () => {
         </span>
       </div>
     </div>
-    <comment :comment-dialog-visible="commentDialogVisible" :common-deail="commentDetail"
-      @close-comment-dialog-notification="closeCommentDialogNotification" @get-flag-list="getList" />
+    <comment
+      :comment-dialog-visible="commentDialogVisible"
+      :common-deail="commentDetail"
+      @close-comment-dialog-notification="closeCommentDialogNotification"
+      @get-flag-list="getList" />
 
-    <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="1" :tab-flag="1"
+    <shareCell
+      :share-dialog-visible="shareDialogVisible"
+      :doc-id="docId"
+      :quest-flag="1"
+      :tab-flag="1"
       @close-share="closeShare" />
   </div>
 </template>
@@ -231,6 +278,18 @@ const handleEditCard = () => {
 
   .imgColor {
     color: var(--ant-primary-color);
+  }
+
+  .submit-audit-btn {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 22px;
+  }
+
+  .submit-audit-disabled {
+    color: rgba(0, 0, 0, 0.25);
+    cursor: not-allowed;
   }
 
   .header {
