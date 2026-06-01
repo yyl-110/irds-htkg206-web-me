@@ -203,10 +203,10 @@
       trigger="click"
       v-if="runningTask && isHandleTaskStatus() && isShowButton(OperationButtonType.ADD_SIGN)">
       <template #reference>
-        <div @click="openPopover('addSign')" class="hover-bg-gray-100 rounded-xl p-6px">
+        <el-button plain type="primary" class="action-btn" :disabled="formLoading" @click="openPopover('addSign')">
           <Icon :size="14" icon="ep:plus" />&nbsp;
           {{ getButtonDisplayName(OperationButtonType.ADD_SIGN) }}
-        </div>
+        </el-button>
       </template>
       <div class="flex flex-col flex-1 pt-20px px-20px" v-loading="formLoading">
         <el-form
@@ -225,7 +225,7 @@
                 :value="item.id"
               />
             </el-select> -->
-            <el-button type="info" @click="handleaddSignSelectUser" v-if="editType === 1">
+            <el-button type="primary" @click="handleaddSignSelectUser" v-if="editType === 1">
               {{ '选择加签对象' }}
             </el-button>
             <div v-if="addSignForm.addSignUserIds && addSignForm.addSignUserIds.length > 0" class="ml-10px">
