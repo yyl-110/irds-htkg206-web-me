@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
-import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, FormOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
+import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, ExportOutlined, FormOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { WeiMessage } from '@/utils/WeiMessage';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -72,6 +72,13 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+
+  /** 是否显示批量导出按钮 */
+  showBatchExport: {
+    require: false,
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits<{
@@ -111,6 +118,9 @@ const emit = defineEmits<{
   selectBoomTree1: [item: any];
   /** 浏览人员*/
   Personnelselection: [item: any];
+
+  /** 批量导出 */
+  batchExport: [selectedKeys: any];
 }>();
 
 const searchValue = ref<string>('');
@@ -279,6 +289,12 @@ function toDownTreeNode() {
 function delTree() {
   if (checkedNode()) {
     emit('deleteTreeNode', selectedNode.value);
+  }
+}
+
+function onBatchExport() {
+  if (checkedNode()) {
+    emit('batchExport', selectedNode.value);
   }
 }
 
@@ -683,6 +699,13 @@ defineExpose({
                 <DeleteOutlined />
               </a-popconfirm>
             </div>
+          </div>
+        </a-tooltip>
+
+        <a-tooltip v-if="props.showBatchExport" class="tree-action-tooltip" placement="top" :mouse-enter-delay="0.2">
+          <template #title>{{ $t('批量导出') }}</template>
+          <div class="icon" @click="onBatchExport">
+            <ExportOutlined />
           </div>
         </a-tooltip>
       </div>

@@ -392,6 +392,27 @@ export class AdminApiSystemModule {
   /**
    *
    *
+   * @tags 数据管理批量导出
+   * @name moduleLibraryBatchExportData
+   * @summary 数据管理批量导出
+   * @request /business-service/business/library-data/moduleLibraryBatchExportData
+   * @secure
+   */
+  static moduleLibraryBatchExportData = (query: any, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-data/moduleLibraryBatchExportData`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   *
+   *
    * @tags 列宽保存
    * @name columnWidthSave
    * @summary 列宽保存

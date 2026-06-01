@@ -899,6 +899,72 @@ function handleSelectTreeNode1(selectedKeys: any[], info: any) {
   selectTreeSelectedKeys1.value = selectedKeys[0];
 }
 
+/** 是否为可导出数据的模块库节点（与右侧数据管理列表展示条件一致） */
+function isModuleLibraryDataNode(node: any): boolean {
+  const categoryType = Number(node?.categoryType);
+  return categoryType !== 2 && categoryType !== 3;
+}
+
+/** 收集选中节点及其子树中所有模块库类型节点 */
+function collectModuleLibraryNodes(node: any): any[] {
+  const result: any[] = [];
+  const walk = (current: any) => {
+    if (!current) return;
+    if (isModuleLibraryDataNode(current)) {
+      result.push(current);
+    }
+    if (Array.isArray(current.children)) {
+      current.children.forEach(walk);
+    }
+  };
+  walk(node);
+  return result;
+}
+
+function downloadFile(url: string) {
+  const link = document.createElement('a');
+  link.href = url;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+const batchExportLoading = ref(false);
+
+/** 批量导出选中节点及子树中的模块库数据 */
+async function handleBatchExport(node: any) {
+  if (!node?.key) {
+    message.warning('请先选择树节点');
+    return;
+  }
+  const moduleNodes = collectModuleLibraryNodes(node);
+  if (!moduleNodes.length) {
+    message.warning('当前节点下没有可导出的模块库数据');
+    return;
+  }
+  const data: any = {
+    categoryId: node.key,
+    categoryIds: moduleNodes.map((item: any) => item.key),
+    menuId: node.menuId || menuId.value,
+    userName: userStore.getUser.userName,
+    userId: userStore.getUser.id,
+  };
+  batchExportLoading.value = true;
+  try {
+    const res = await AdminApiSystemModule.moduleLibraryBatchExportData(data);
+    if (res.data.code == 200) {
+      downloadFile(res.data.data.fileUrl);
+      message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg);
+    } else {
+      message.error(res.data.msg);
+    }
+  } catch {
+    message.error('导出失败');
+  } finally {
+    batchExportLoading.value = false;
+  }
+}
+
 usePlatformPickerDrawerLifecycle(getMenuListData, {
   onTabSkip: () => {
     titleVisible.value = false;
@@ -935,6 +1001,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
             <Tree
               ref="treePage"
               :operate-flag="true"
+              :show-batch-export="true"
               :tree-data="treeData"
               bomType="unBom"
               :selected-keys="selectedKeys"
@@ -950,7 +1017,8 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
               @select-boom-tree1="selectBoomTree1"
               @edit="editTreeData"
               @reload-tree="reloadTree"
-              @change-select-key="handleChangeSelectKey" />
+              @change-select-key="handleChangeSelectKey"
+              @batch-export="handleBatchExport" />
           </a-spin>
         </Pane>
         <!-- 右侧内容区域：定高 flex 链，避免主表区把整页撑出滚动条 -->
