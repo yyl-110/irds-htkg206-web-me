@@ -38,6 +38,10 @@ const props = defineProps({
       return {};
     },
   },
+  hideSubmitAudit: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emits = defineEmits(['handleFetchList', 'handleEdit', 'handleSubmitAudit']);
@@ -208,12 +212,12 @@ const approveStatus = computed(() => String(props.textData.approveStatus ?? ''))
             <eye-outlined /><span>{{ JSON.parse(textData.counting).previewed }}</span>
           </div>
         </a-tooltip>
-        <a-tooltip :mouse-enter-delay="0.5" title="评论" placement="topLeft">
+        <a-tooltip :mouse-enter-delay="0.5" title="评论" placement="topLeft" v-if="!hideSubmitAudit">
           <div class="act-list elChatDotSquare" @click="commentFun(textData)">
             <message-outlined /><span>{{ JSON.parse(textData.counting).commented }}</span>
           </div>
         </a-tooltip>
-        <a-tooltip :mouse-enter-delay="0.5" title="收藏" placement="topLeft">
+        <a-tooltip :mouse-enter-delay="0.5" title="收藏" placement="topLeft" v-if="!hideSubmitAudit">
           <div v-if="!textData.collectedLight" class="act-list elStarFilled" @click="followFun">
             <star-outlined /><span>{{ JSON.parse(textData.counting).collectd }}</span>
           </div>
@@ -221,7 +225,7 @@ const approveStatus = computed(() => String(props.textData.approveStatus ?? ''))
             <star-filled /><span>{{ JSON.parse(textData.counting).collectd }}</span>
           </div>
         </a-tooltip>
-        <a-tooltip :mouse-enter-delay="0.5" title="分享" placement="topLeft">
+        <a-tooltip :mouse-enter-delay="0.5" title="分享" placement="topLeft" v-if="!hideSubmitAudit">
           <div class="act-list elShare" @click="shareFun">
             <share-alt-outlined /><span>{{ JSON.parse(textData.counting).shared }}</span>
           </div>
@@ -232,7 +236,7 @@ const approveStatus = computed(() => String(props.textData.approveStatus ?? ''))
           </div>
         </a-tooltip>
       </div>
-      <div class="flex items-center">
+      <div class="flex items-center" v-if="!hideSubmitAudit">
         <span
           class="ml-[8px] flex items-center gap-[2px] text-[12px]"
           :class="canSubmitAudit ? 'text-primary cursor-pointer' : 'submit-audit-disabled'"

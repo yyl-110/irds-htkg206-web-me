@@ -26,3 +26,17 @@ export const getKnowledgebaseLabel = (status: string | Knowledgebase): string =>
 export const getKnowledgebaseColor = (status: string | Knowledgebase): string => {
   return KnowledgebaseColor[status as Knowledgebase] || '';
 };
+
+export const KnowledgeCardType = {
+  TEXT: '文档',
+  VIDEO: '视频',
+  IMAGE: '图片',
+} as const;
+
+export type KnowledgeCardTypeValue = (typeof KnowledgeCardType)[keyof typeof KnowledgeCardType];
+
+export const KNOWLEDGE_CARD_TYPE_MAP: Record<number, KnowledgeCardTypeValue> = {
+  1: KnowledgeCardType.TEXT,
+  2: KnowledgeCardType.VIDEO,
+  3: KnowledgeCardType.IMAGE,
+};

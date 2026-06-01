@@ -12,6 +12,10 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  hideSubmitAudit: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emits = defineEmits(['handleFetchList', 'handleEdit', 'handleSubmitAudit']);
@@ -106,7 +110,7 @@ const approveStatus = computed(() => String(props.imgData.approveStatus ?? ''));
       </div>
     </div>
 
-    <div class="card-actions">
+    <div class="card-actions" v-if="!hideSubmitAudit">
       <span
         class="ml-[8px] flex items-center gap-[2px] text-[12px]"
         :class="canSubmitAudit ? 'text-primary cursor-pointer' : 'submit-audit-disabled'"

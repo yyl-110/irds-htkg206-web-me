@@ -118,7 +118,7 @@ import { Empty, message } from 'ant-design-vue';
 import knowledgeModal from './knowledgeModal.vue';
 import batchUpload from './batchUpload.vue';
 import KnowledgeBaseApproval from './knowledgeBaseApproval.vue';
-import { Knowledgebase } from '@/enums/Knowledgebase';
+import { Knowledgebase, KNOWLEDGE_CARD_TYPE_MAP } from '@/enums/Knowledgebase';
 import { useRouter } from 'vue-router';
 const props = defineProps({
   kldTreeId: {
@@ -145,11 +145,6 @@ const searchData = ref({
   dataCreate: '',
 });
 const tabValue = ref(1);
-const CARD_TYPE_MAP: Record<number, string> = {
-  1: '文档',
-  2: '视频',
-  3: '图片',
-};
 const documentList = ref([]);
 const loading = ref(false);
 const knowledgeModalRef = ref(null);
@@ -220,7 +215,7 @@ const handleSubmitAudit = async (item: Record<string, any>) => {
   selectModelList.value = [
     {
       ...item,
-      cardType: CARD_TYPE_MAP[tabValue.value] || '文档',
+      cardType: KNOWLEDGE_CARD_TYPE_MAP[tabValue.value] || KNOWLEDGE_CARD_TYPE_MAP[1],
     },
   ];
   if (String(item.approveStatus) === Knowledgebase.DESIGNING) {
