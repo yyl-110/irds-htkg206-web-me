@@ -4,23 +4,23 @@
 // import { ElementPlusInfoType } from '@/types/elementPlus'
 // type ElementPlusInfoType = 'success' | 'info' | 'warning' | 'danger'
 // import { DictDataVO, listSimpleDictData } from '../api/system/dict/dict.data'
-import appStore from '@/store'
-import type { DictDataType } from '@/store/modules/dict'
+import appStore from '@/store';
+import type { DictDataType } from '@/store/modules/dict';
 
-const { useDictStore } = appStore
+const { useDictStore } = appStore;
 
 /** @deprecated 已迁移至 `@/store/modules/dict.ts`, 应该优先使用 pinia 中的 dictStore */
-export const dictStore = useDictStore
+export const dictStore = useDictStore;
 
 /**
  * 原项目将数据缓存到 pinia, 参考自: `src/store/modules/dict.ts`
  * @deprecated 已弃用
  */
 export interface DictState {
-  dictMap: { [key: string]: any }
-  isSetDict: boolean
-  getDictByType: (type: string) => any
-  setDictMap: () => Promise<void>
+  dictMap: { [key: string]: any };
+  isSetDict: boolean;
+  getDictByType: (type: string) => any;
+  setDictMap: () => Promise<void>;
 }
 
 // /**
@@ -57,13 +57,21 @@ export interface DictState {
 // }
 
 /** @deprecated 已迁移至 `@/store/modules/dict.ts`, 应该优先使用 pinia 中的 dictStore */
-export const getDictOptions = useDictStore.getDictOptions.bind(useDictStore)
+export function getDictOptions(dictType: string, valueType?: 'int' | 'string' | 'boolean') {
+  return useDictStore.getDictOptions(dictType, valueType);
+}
 /** @deprecated 已迁移至 `@/store/modules/dict.ts`, 应该优先使用 pinia 中的 dictStore */
-export const getIntDictOptions = useDictStore.getIntDictOptions.bind(useDictStore)
+export function getIntDictOptions(dictType: string) {
+  return useDictStore.getIntDictOptions(dictType);
+}
 /** @deprecated 已迁移至 `@/store/modules/dict.ts`, 应该优先使用 pinia 中的 dictStore */
-export const getStrDictOptions = useDictStore.getStrDictOptions.bind(useDictStore)
+export function getStrDictOptions(dictType: string) {
+  return useDictStore.getStrDictOptions(dictType);
+}
 /** @deprecated 已迁移至 `@/store/modules/dict.ts`, 应该优先使用 pinia 中的 dictStore */
-export const getBoolDictOptions = useDictStore.getBoolDictOptions.bind(useDictStore)
+export function getBoolDictOptions(dictType: string) {
+  return useDictStore.getBoolDictOptions(dictType);
+}
 
 /**
  * get dict object
@@ -72,10 +80,10 @@ export const getBoolDictOptions = useDictStore.getBoolDictOptions.bind(useDictSt
  * @deprecated 弃用
  */
 export function getDictObj(dictType: string, value: any) {
-  const dictOptions: DictDataType[] = getDictOptions(dictType)
+  const dictOptions: DictDataType[] = getDictOptions(dictType);
   dictOptions.forEach((dict: DictDataType) => {
-    if (dict.value === value.toString()) return dict
-  })
+    if (dict.value === value.toString()) return dict;
+  });
 }
 
 /**
@@ -84,7 +92,7 @@ export function getDictObj(dictType: string, value: any) {
  * @param dictType 字典类型
  * @param value 字典数据的值
  */
-export const getDictLabel = (dictType: string, value: any) => useDictStore.getDictLabel(dictType, value)
+export const getDictLabel = (dictType: string, value: any) => useDictStore.getDictLabel(dictType, value);
 
 export enum DICT_TYPE {
   USER_TYPE = 'user_type',
