@@ -297,6 +297,7 @@ export const routes: RouteRecordRaw[] = [
           noCache: true,
         },
       },
+      // -------------------------自定义页面------------------------
       {
         path: 'customized-process-ansys',
         name: 'CustomizedProcessAnsys',
@@ -304,6 +305,16 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           hidden: true,
           title: '弯板ANSYS计算',
+          noCache: true,
+        },
+      },
+      {
+        path: 'customized-process-jsinvoke',
+        name: 'CustomizedProcessJsinvoke',
+        component: () => import('@/views/product/activityPage/custompage/customizedProcess-jsinvoke.vue'),
+        meta: {
+          hidden: true,
+          title: 'JS计算',
           noCache: true,
         },
       },

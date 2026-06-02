@@ -7,6 +7,10 @@ import {
   loadAnsysPageParameters,
   type AnsysParameterItem,
 } from '@/views/product/activityPage/custompage/utils/loadAnsysPageParameters';
+import {
+  loadJsinvokePageParameters,
+  type JsinvokeParameterItem,
+} from '@/views/product/activityPage/custompage/utils/loadJsinvokePageParameters';
 import { loadCustomPageComponent, resolveCustomPageKey } from '../../../activityPage/custompage/utils/customPageRegistry';
 
 const props = defineProps<{
@@ -24,7 +28,7 @@ const loading = ref(false);
 const ready = ref(false);
 const resolvedComponent = shallowRef<Component | null>(null);
 const customComponentRef = ref<{ getCurrentSaveParamValues?: () => unknown[] } | null>(null);
-const parameterTempList = ref<AnsysParameterItem[]>([]);
+const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem>>([]);
 const pageKey = ref<string | null>(null);
 
 async function loadPageContent() {
@@ -45,6 +49,8 @@ async function loadPageContent() {
     resolvedComponent.value = component;
     if (pageKey.value === 'customized-process-ansys') {
       parameterTempList.value = await loadAnsysPageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
+    } else if (pageKey.value === 'customized-process-jsinvoke') {
+      parameterTempList.value = await loadJsinvokePageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
     }
     ready.value = true;
   } catch (error) {

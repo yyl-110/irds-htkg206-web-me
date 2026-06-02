@@ -4,11 +4,13 @@ export type CustomPageLoader = () => Promise<{ default: Component }>;
 
 export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-ansys': () => import('@/views/product/activityPage/custompage/customizedProcess-ansys.vue'),
+  'customized-process-jsinvoke': () => import('@/views/product/activityPage/custompage/customizedProcess-jsinvoke.vue'),
 };
 
 /** 自定义页 key → 前端路由 path */
 export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-ansys': '/internal/customized-process-ansys',
+  'customized-process-jsinvoke': '/internal/customized-process-jsinvoke',
 };
 
 export type CustomPagePreviewTarget =
@@ -39,6 +41,14 @@ export function resolveCustomPageKey(pageUrl?: string | null, pageName?: string 
     name.includes('ansys')
   ) {
     return 'customized-process-ansys';
+  }
+  if (
+    url.includes('customized-process-jsinvoke') ||
+    url.includes('customizedprocess-jsinvoke') ||
+    url.includes('jsinvoke') ||
+    name.includes('js')
+  ) {
+    return 'customized-process-jsinvoke';
   }
   return null;
 }

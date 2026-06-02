@@ -35,3 +35,19 @@ export function executeAnsysSimulate(data: Record<string, unknown>) {
     data: data,
   });
 }
+
+export function getJsContent(data: Record<string, unknown>) {
+  return httpRequest({
+    url: '/flow/getJsContent.json',
+    method: 'POST',
+    data,
+  });
+}
+
+export function setJsContent(data: Record<string, unknown>) {
+  return httpRequest({
+    url: '/flow/setJsContent.json',
+    method: 'POST',
+    data,
+  });
+}
