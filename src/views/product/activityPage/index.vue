@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { computed, h, inject, nextTick, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
 import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
-import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, LeftOutlined, RightOutlined, SearchOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
+import {
+  CaretDownOutlined,
+  CaretUpOutlined,
+  FilterOutlined,
+  LeftOutlined,
+  RightOutlined,
+  SearchOutlined,
+  ShareAltOutlined,
+} from '@ant-design/icons-vue';
 import knowledgeConfig from '../components/knowledge-config.vue';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
@@ -30,6 +39,7 @@ import CustomPageParamModal from './components/custom-page-param-modal.vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { downloadFileFromStream } from '@/utils/file';
 import { normalizeListSnowflakeIds, toSnowflakeIdStr } from '@/utils/snowflakeId';
+import { resolveCustomPagePreviewTarget } from './custompage/utils/customPageRegistry';
 import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
@@ -49,6 +59,7 @@ const loadingTree = ref<boolean>(false);
 const treeNodeColmoun = ref<any[]>([]);
 const userStore = useUserStore();
 const layoutStore = useLayoutStore();
+const router = useRouter();
 const pageName = ref<string>('');
 const selectNodeKeys = ref<string>('');
 const currentNode = ref<any>();
@@ -175,9 +186,10 @@ function resetDrawerStyle() {
 }
 const addModel = ref<any>();
 const updateModel = ref<any>();
-const isTestEnv = String(import.meta.env.VITE_BASE_URL_TEST ?? '')
-  .replace(/['"]/g, '')
-  .toLowerCase() === 'true';
+const isTestEnv =
+  String(import.meta.env.VITE_BASE_URL_TEST ?? '')
+    .replace(/['"]/g, '')
+    .toLowerCase() === 'true';
 
 function randomSynergyDisplay() {
   return Math.random() < 0.5 ? '是' : '否';
@@ -228,7 +240,7 @@ const columns = ref<TableColumnType<Menus>[]>([
     resizable: true,
     width: 130,
   },
-  
+
   {
     title: WeiI18n.$t('备注'),
     dataIndex: 'remark',
@@ -607,9 +619,7 @@ async function loadParameterListData() {
     data.pageSize = requestParams.pageSize;
     const res = await AdminApiActivityPage.getActivityPage(data);
     const list = normalizeListSnowflakeIds(res.data.data.list || []);
-    datasource.value = isTestEnv
-      ? list.map((row: any) => ({ ...row, isSynergy: randomSynergyDisplay() }))
-      : list;
+    datasource.value = isTestEnv ? list.map((row: any) => ({ ...row, isSynergy: randomSynergyDisplay() })) : list;
     pagination.total = res.data.data.total;
   } finally {
     loading.value = false;
@@ -1137,11 +1147,25 @@ function normalizePageConfigResponseToRecord(baseRecord: any, rows: any[]) {
   const latestFormId = list.reduce((max, item) => Math.max(max, toNumOrFallback(item?.formId)), Number.MIN_SAFE_INTEGER);
   const filtered = list.filter(item => toNumOrFallback(item?.formId) === latestFormId);
   const finalList = filtered.length ? filtered : list;
-  const sorted = [...finalList].sort((a, b) => toNumOrFallback(a?.sortNo, Number.MAX_SAFE_INTEGER) - toNumOrFallback(b?.sortNo, Number.MAX_SAFE_INTEGER));
+  const sorted = [...finalList].sort(
+    (a, b) => toNumOrFallback(a?.sortNo, Number.MAX_SAFE_INTEGER) - toNumOrFallback(b?.sortNo, Number.MAX_SAFE_INTEGER),
+  );
   const isCalcPage = String(baseRecord?.pageType ?? '') === '2';
   const basicTypes = isCalcPage
     ? ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE']
-    : ['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'RADIO', 'DATE', 'TITLE', 'PLAIN_TEXT', 'RICH_TEXT', 'DIVIDER', 'DATA_VIEW'];
+    : [
+        'INPUT',
+        'TEXTAREA',
+        'SELECT',
+        'AUTO_COMPLETE',
+        'RADIO',
+        'DATE',
+        'TITLE',
+        'PLAIN_TEXT',
+        'RICH_TEXT',
+        'DIVIDER',
+        'DATA_VIEW',
+      ];
   const uploadTypes = isCalcPage ? [] : ['FILE'];
   const tableTypes = isCalcPage ? [] : ['TABLE'];
   const threeDTypes = isCalcPage ? [] : ['3D_VIEW'];
@@ -1187,19 +1211,19 @@ async function showPageConfigModal(record: any) {
   activityConfigVisible.value = true;
 }
 
-/** 自定义页面（pageType=3）预览：打开配置的页面 URL，不走表单设计器预览 */
+/** 自定义页面（pageType=3）预览：支持 page key（如 customizedProcess-ansys）或完整 URL */
 function previewCustomActivityPage(record: any) {
-  const raw = String(record?.url ?? '').trim();
-  if (!raw) {
+  const target = resolveCustomPagePreviewTarget(record);
+  if (!target) {
     message.warning('该自定义页面未配置页面URL');
     return;
   }
-  try {
-    const href = /^https?:\/\//i.test(raw) ? raw : new URL(raw, window.location.origin).href;
-    window.open(href, '_blank', 'noopener,noreferrer');
-  } catch {
-    message.error('页面URL格式无效');
-  }
+  const href =
+    target.type === 'external'
+      ? target.href
+      : `${window.location.origin}${window.location.pathname}${router.resolve({ path: target.path, query: target.query }).href}`;
+  console.log(href, 'href');
+  window.open(href, '_blank', 'noopener,noreferrer');
 }
 
 function handleActivityPagePreview(record: any) {
@@ -1328,8 +1352,16 @@ function closeShareModal() {
   shareModalTitle.value = '';
 }
 
-const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } =
-  useSplitpanesTreeCollapse();
+const {
+  leftTreeCollapsed,
+  leftTreePaneSize,
+  rightTreePaneSize,
+  minExpanded,
+  onSplitpanesResized,
+  toggleLeftTreePanel,
+  splitToggleStyle,
+  splitpanesTreeCollapseWrapClass,
+} = useSplitpanesTreeCollapse();
 </script>
 
 <template>
@@ -1364,7 +1396,12 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
         <Pane class="splitpane-cls activity-right-pane" :size="rightTreePaneSize">
           <div class="calc-config-pane">
             <a-card class="calc-toolbar-card">
-              <a-form class="calc-toolbar-form" layout="inline" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
+              <a-form
+                class="calc-toolbar-form"
+                layout="inline"
+                :label-col="{ style: { width: '100px' } }"
+                :model="requestParams"
+                @finish="handleFinish">
                 <a-form-item name="pageName">
                   <a-input v-model:value="pageName" style="width: 220px" allow-clear :placeholder="$t('请输入活动名称')" />
                 </a-form-item>
@@ -1378,7 +1415,12 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                     {{ $t('新建') }}
                   </a-button>
                   <!--删除按钮（批量删除需二次确认）-->
-                  <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(undefined)">
+                  <a-popconfirm
+                    placement="topLeft"
+                    :title="`${$t('确定要删除吗')}?`"
+                    ok-text="确定"
+                    cancel-text="取消"
+                    @confirm.stop.prevent="handleParameterDelete(undefined)">
                     <a-button type="primary" danger :disabled="deleteFlag">
                       <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
                       {{ $t('删除') }}
@@ -1419,8 +1461,13 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                     <span />
                   </template>
                   <template v-else-if="isSortableActivityColumn(column) || isFilterableActivityColumn(column)">
-                    <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableActivityColumn(column) }">
-                      <span class="header-title-sort" :class="{ 'header-title-sort--disabled': !isSortableActivityColumn(column) }" @click.stop="toggleActivityColumnSort(column)">
+                    <div
+                      class="header-cell-main"
+                      :class="{ 'header-cell-main--has-filter': isFilterableActivityColumn(column) }">
+                      <span
+                        class="header-title-sort"
+                        :class="{ 'header-title-sort--disabled': !isSortableActivityColumn(column) }"
+                        @click.stop="toggleActivityColumnSort(column)">
                         <span>{{ column.title }}</span>
                         <span v-if="isSortableActivityColumn(column)" class="header-sort-icon">
                           <CaretUpOutlined v-if="getActivitySortOrder(String(column.dataIndex)) === 'ascend'" />
@@ -1436,13 +1483,21 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                           @openChange="handleActivityFilterOpenChange(String(column.dataIndex), $event)">
                           <template #content>
                             <div class="header-filter-pop">
-                              <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`${$t('搜索')} ${column.title}`" allow-clear />
+                              <a-input
+                                v-model:value="filterValueMap[String(column.dataIndex)]"
+                                :placeholder="`${$t('搜索')} ${column.title}`"
+                                allow-clear />
                               <div class="header-filter-actions">
-                                <a-button type="primary" size="small" @click="applyActivityColumnFilter(String(column.dataIndex))">
+                                <a-button
+                                  type="primary"
+                                  size="small"
+                                  @click="applyActivityColumnFilter(String(column.dataIndex))">
                                   <SearchOutlined />
                                   {{ $t('搜索') }}
                                 </a-button>
-                                <a-button size="small" @click="resetActivityColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                                <a-button size="small" @click="resetActivityColumnFilter(String(column.dataIndex))">{{
+                                  $t('重置')
+                                }}</a-button>
                               </div>
                             </div>
                           </template>
@@ -1462,7 +1517,11 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.dataIndex === 'knowledge'">
                     <span style="display: flex; justify-content: center; align-items: center">
-                      <span v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: var(--ant-primary-color)" title="查看知识">
+                      <span
+                        v-if="record.knowledge"
+                        @click.stop.prevent="showShareModal(record)"
+                        style="cursor: pointer; color: var(--ant-primary-color)"
+                        title="查看知识">
                         <ShareAltOutlined style="font-size: 16px" />
                       </span>
                       <span v-else style="color: #bfbfbf">—</span>
@@ -1473,14 +1532,18 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                       <a @click.stop.prevent="handleActivityPagePreview(record)">{{ $t('预览') }}</a>
                       <template v-if="canRowOperate(record)">
                         <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
-                        <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
+                        <a-popconfirm
+                          placement="topLeft"
+                          :title="`${$t('确定要删除吗')}?`"
+                          ok-text="确定"
+                          cancel-text="取消"
+                          @confirm.stop.prevent="handleParameterDelete(record)">
                           <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
                         </a-popconfirm>
                         <a @click.stop.prevent="handlePageConfigClick(record)">
                           {{ String(record.pageType) === '3' ? $t('参数配置') : $t('页面配置') }}
                         </a>
                         <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
-                        
                       </template>
                       <a v-if="canRowShare(record)" @click.stop.prevent="openDesignShareModal(record)">{{ $t('共享') }}</a>
                     </div>
@@ -1508,7 +1571,12 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
 
       <!-- 叠在分隔条上的折叠/展开（略低于中线拖动手柄，避免抢拖动） -->
       <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-        <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="splitToggleStyle" @click="toggleLeftTreePanel" @mousedown.stop>
+        <button
+          type="button"
+          class="splitpanes-tree-collapse-wrap__toggle"
+          :style="splitToggleStyle"
+          @click="toggleLeftTreePanel"
+          @mousedown.stop>
           <LeftOutlined v-if="!leftTreeCollapsed" />
           <RightOutlined v-else />
         </button>
@@ -1529,7 +1597,13 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
     <CustomPageParamModal ref="customPageParamModalRef" @saved="loadParameterListData" />
 
     <!-- 分享知识弹窗：展示关联知识列表 -->
-    <draggable-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="860px" :footer="null" centered @cancel="closeShareModal">
+    <draggable-modal
+      v-model:visible="shareModalVisible"
+      :title="shareModalTitle"
+      width="860px"
+      :footer="null"
+      centered
+      @cancel="closeShareModal">
       <a-spin :spinning="shareLoading">
         <div class="share-knowledge-list min-h-[400px]">
           <template v-if="shareList.length > 0">
@@ -1564,8 +1638,16 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
       @confirm-select-tree-node="handleSelectTreeConfirm"
       @cancel-select-tree-node="handleSelectTreeCancel"
       @handle-select-tree-node="handleSelectTreeNodeChange" />
-    <ActivityAdd ref="addModel" :modal-visible="visible" @refresh-table-data="loadParameterListData" @close="handleCloseAddModal" />
-    <ActivityUpdate ref="updateModel" :modal-visible="updateVisible" @refresh-table-data="loadParameterListData" @close="handleCloseUpdateModal" />
+    <ActivityAdd
+      ref="addModel"
+      :modal-visible="visible"
+      @refresh-table-data="loadParameterListData"
+      @close="handleCloseAddModal" />
+    <ActivityUpdate
+      ref="updateModel"
+      :modal-visible="updateVisible"
+      @refresh-table-data="loadParameterListData"
+      @close="handleCloseUpdateModal" />
     <ImportFile
       :modalVisible="batchflag"
       :fileList="fileList"
@@ -1581,7 +1663,11 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
       :save-loading="activityConfigSaving"
       @close="closeActivityConfigModal"
       @save="saveActivityConfig" />
-    <ActivityPreviewModal :modal-visible="activityPreviewVisible" :record="currentPreviewRecord" :image-list="previewImageList" @close="closeActivityPreviewModal" />
+    <ActivityPreviewModal
+      :modal-visible="activityPreviewVisible"
+      :record="currentPreviewRecord"
+      :image-list="previewImageList"
+      @close="closeActivityPreviewModal" />
     <ActivityCheckConfigModal
       :modal-visible="activityCheckConfigVisible"
       :record="currentCheckConfigRecord"

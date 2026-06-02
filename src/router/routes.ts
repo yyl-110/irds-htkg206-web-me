@@ -297,6 +297,16 @@ export const routes: RouteRecordRaw[] = [
           noCache: true,
         },
       },
+      {
+        path: 'customized-process-ansys',
+        name: 'CustomizedProcessAnsys',
+        component: () => import('@/views/product/activityPage/custompage/customizedProcess-ansys.vue'),
+        meta: {
+          hidden: true,
+          title: '弯板ANSYS计算',
+          noCache: true,
+        },
+      },
     ],
   },
   {

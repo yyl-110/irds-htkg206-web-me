@@ -9,7 +9,8 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "three": ["./node_modules/@types/three/src/Three.js"]
     },
     "resolveJsonModule": true,
     "types": ["@types/node", "@intlify/unplugin-vue-i18n/types", "wei-ui-vue/dist/types/components", "./types/web-storage-cache.d.ts"],
