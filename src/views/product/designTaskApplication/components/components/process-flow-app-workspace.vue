@@ -258,10 +258,9 @@ const selectedNodeActivityType = computed(() => {
   return String(v ?? '').trim();
 });
 const isCalcNodePreview = computed(() => {
-  console.log(nodeDetailData.value, 'nodeDetailData.value');
   if (selectedNodeActivityType.value === '2') return true;
-  const nodeName = String(nodeDetailData.value?.nodeName ?? selectedNode.value?.nodeName ?? '').trim();
-  return nodeName.includes('计算');
+  // const nodeName = String(nodeDetailData.value?.nodeName ?? selectedNode.value?.nodeName ?? '').trim();
+  // return nodeName.includes('计算');
 });
 const isCustomPagePreview = computed(() => selectedNodeActivityType.value === '3');
 

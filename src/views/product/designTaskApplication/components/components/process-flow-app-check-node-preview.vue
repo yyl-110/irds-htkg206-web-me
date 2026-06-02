@@ -18,7 +18,17 @@ const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
 }>();
 
-const calcCheckPreviewTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'TITLE', 'DIVIDER', 'DATA_VIEW', 'CALC_BUTTON', 'OUTPUT_IMAGE']);
+const calcCheckPreviewTypes = new Set([
+  'INPUT',
+  'TEXTAREA',
+  'SELECT',
+  'AUTO_COMPLETE',
+  'TITLE',
+  'DIVIDER',
+  'DATA_VIEW',
+  'CALC_BUTTON',
+  'OUTPUT_IMAGE',
+]);
 const calcIoParamComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'DATA_VIEW']);
 const userStore = useUserStore();
 
@@ -33,10 +43,14 @@ const calculatedReportValue = ref<Array<{ paramCode: string; paramValue: string 
 const impactEvalModalVisible = ref(false);
 const impactSelectedParamCode = ref('');
 const impactAnalyzing = ref(false);
-const impactResultRows = ref<Array<{ key: string; activityName: string; taskCreatorName: string; taskName: string; taskStatus: string }>>([]);
+const impactResultRows = ref<
+  Array<{ key: string; activityName: string; taskCreatorName: string; taskName: string; taskStatus: string }>
+>([]);
 const previewCanvasRef = ref<HTMLElement | null>(null);
 
-const showReportOutputButton = computed(() => previewList.value.some((c: any) => String(c?.componentType) === 'CALC_BUTTON'));
+const showReportOutputButton = computed(() =>
+  previewList.value.some((c: any) => String(c?.componentType) === 'CALC_BUTTON'),
+);
 
 const canClickReportOutput = computed(() => showReportOutputButton.value && calculatedReportValue.value.length > 0);
 
@@ -54,6 +68,7 @@ function parseSavedValueMap(list: any[] | null | undefined) {
 const savedValueMap = computed(() => parseSavedValueMap(props.savedParamValues));
 
 const previewList = computed(() => {
+  console.log(props.componentsJson, 'props.componentsJson');
   const cfg = props.componentsJson || {};
   const merged = [
     ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
@@ -142,7 +157,13 @@ async function onImpactAnalyzeClick() {
       paramCode: selected,
     });
     const raw = res?.data?.data;
-    const taskList = Array.isArray(raw?.impactedActivities) ? raw.impactedActivities : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
+    const taskList = Array.isArray(raw?.impactedActivities)
+      ? raw.impactedActivities
+      : Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.list)
+          ? raw.list
+          : [];
     impactResultRows.value = taskList.map((row: any, idx: number) => ({
       key: String(row?.taskId ?? row?.id ?? `${selected}-${idx}`),
       activityName: String(row?.activityName ?? '-'),
@@ -372,13 +393,31 @@ defineExpose({
         <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
       </a-tooltip>
     </div>
-    <a-modal v-model:visible="impactEvalModalVisible" title="影响评估" width="920px" :footer="null" @cancel="onImpactEvalModalClose">
+    <a-modal
+      v-model:visible="impactEvalModalVisible"
+      title="影响评估"
+      width="920px"
+      :footer="null"
+      @cancel="onImpactEvalModalClose">
       <div class="impact-eval-modal-content">
         <div class="impact-eval-toolbar">
-          <a-select v-model:value="impactSelectedParamCode" :options="impactParamOptions" placeholder="请选择参数" class="impact-eval-param-select" allow-clear />
+          <a-select
+            v-model:value="impactSelectedParamCode"
+            :options="impactParamOptions"
+            placeholder="请选择参数"
+            class="impact-eval-param-select"
+            allow-clear />
           <a-button type="primary" :loading="impactAnalyzing" @click="onImpactAnalyzeClick">分析</a-button>
         </div>
-        <a-table :columns="impactColumns" :data-source="impactResultRows" :pagination="false" :loading="impactAnalyzing" size="small" bordered row-key="key" :scroll="{ y: 300 }" />
+        <a-table
+          :columns="impactColumns"
+          :data-source="impactResultRows"
+          :pagination="false"
+          :loading="impactAnalyzing"
+          size="small"
+          bordered
+          row-key="key"
+          :scroll="{ y: 300 }" />
       </div>
     </a-modal>
     <div v-if="previewList.length === 0" class="activity-preview-empty">暂无组件配置</div>
@@ -390,9 +429,16 @@ defineExpose({
         :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
         <div class="component-preview-wrap">
           <div
-            v-if="item.componentType !== 'TITLE' && item.componentType !== 'DIVIDER' && item.componentType !== 'DATA_VIEW' && item.componentType !== 'CALC_BUTTON'"
+            v-if="
+              item.componentType !== 'TITLE' &&
+              item.componentType !== 'DIVIDER' &&
+              item.componentType !== 'DATA_VIEW' &&
+              item.componentType !== 'CALC_BUTTON'
+            "
             class="component-title">
-            <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '未命名组件' }}</span>
+            <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{
+              item.paramName || '未命名组件'
+            }}</span>
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
@@ -403,14 +449,20 @@ defineExpose({
             <div v-if="item.customProps?.hasDivider" class="title-divider-line"></div>
           </template>
 
-          <div v-else-if="item.componentType === 'INPUT'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+          <div
+            v-else-if="item.componentType === 'INPUT'"
+            class="preview-field-trigger"
+            @click.capture="onParamTitleClick(item)">
             <a-input
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :placeholder="item.customProps?.placeholder || '请输入'"
               :disabled="isOutputIoType(item)"
               class="preview-field" />
           </div>
-          <div v-else-if="item.componentType === 'TEXTAREA'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+          <div
+            v-else-if="item.componentType === 'TEXTAREA'"
+            class="preview-field-trigger"
+            @click.capture="onParamTitleClick(item)">
             <a-textarea
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :rows="item.customProps?.rows || 4"
@@ -421,7 +473,9 @@ defineExpose({
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
             <div class="component-title">
-              <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '数据浏览' }}</span>
+              <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{
+                item.paramName || '数据浏览'
+              }}</span>
             </div>
             <div class="data-view-preview-row">
               <div class="preview-field-trigger data-view-preview-input-wrap" @click.capture="onParamTitleClick(item)">
@@ -431,10 +485,19 @@ defineExpose({
                   disabled
                   class="data-view-preview-input browse-adjoined-input" />
               </div>
-              <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index)">浏览</a-button>
+              <a-button
+                type="primary"
+                class="data-view-assemble-btn"
+                :disabled="isOutputIoType(item)"
+                @click="showModuleInfo(item, index)"
+                >浏览</a-button
+              >
             </div>
           </div>
-          <div v-else-if="item.componentType === 'SELECT'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+          <div
+            v-else-if="item.componentType === 'SELECT'"
+            class="preview-field-trigger"
+            @click.capture="onParamTitleClick(item)">
             <a-select
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
@@ -442,7 +505,10 @@ defineExpose({
               placeholder="请选择"
               class="preview-field" />
           </div>
-          <div v-else-if="item.componentType === 'AUTO_COMPLETE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
+          <div
+            v-else-if="item.componentType === 'AUTO_COMPLETE'"
+            class="preview-field-trigger"
+            @click.capture="onParamTitleClick(item)">
             <a-auto-complete
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :options="getSelectOptions(item).map(v => ({ value: v }))"
@@ -451,7 +517,12 @@ defineExpose({
               class="preview-field" />
           </div>
           <div v-else-if="item.componentType === 'CALC_BUTTON'" class="calc-button-preview-wrap">
-            <a-button type="primary" class="data-view-assemble-btn" :loading="calcSubmitting" :disabled="isOutputIoType(item)" @click="onCalcButtonPreviewClick">
+            <a-button
+              type="primary"
+              class="data-view-assemble-btn"
+              :loading="calcSubmitting"
+              :disabled="isOutputIoType(item)"
+              @click="onCalcButtonPreviewClick">
               {{ item.customProps?.buttonText || '计算' }}
             </a-button>
             <a-button
@@ -499,7 +570,7 @@ defineExpose({
 .param-impact-scope-entry-anchor {
   position: absolute;
   top: 4px;
-  right: 16px;
+  right: 86px;
   z-index: 5;
   line-height: 1;
 }
@@ -611,7 +682,7 @@ defineExpose({
   cursor: pointer;
 }
 .preview-field-trigger {
-  width: var(--activity-preview-component-width);;
+  width: var(--activity-preview-component-width);
   max-width: 100%;
   cursor: pointer;
 }
