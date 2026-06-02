@@ -21,6 +21,10 @@ export default defineComponent({
     selectTreeSelectedKeys: {
       type: String,
     },
+    confirmLoading: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props, context) {
     /** 弹窗状态 */
@@ -91,7 +95,7 @@ export default defineComponent({
         </template>
       </a-directory-tree>
       <template #footer>
-        <a-button type="primary" @click="confirmSelectTreeNode">
+        <a-button type="primary" :loading="confirmLoading || isPending" @click="confirmSelectTreeNode">
           {{ $t("确定") }}
         </a-button>
         <a-button @click="cancelSelectTreeNode">

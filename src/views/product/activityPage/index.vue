@@ -159,6 +159,7 @@ const visible = ref<boolean>(false);
 const updateVisible = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const exportLoading = ref<boolean>(false);
+const saveAsLoading = ref<boolean>(false);
 const titleVisible = ref<boolean>(false);
 const shouldShowDrawer = ref<boolean>(false);
 const titleList = ref<any[]>([]);
@@ -1044,6 +1045,7 @@ async function confirmSaveAsTree() {
     message.warning('源活动数据无效');
     return;
   }
+  saveAsLoading.value = true;
   try {
     const res = await AdminApiActivityPage.saveAsActivityInfo({
       sourceActivityPageId: saveAsSourceRecord.value.id,
@@ -1065,6 +1067,8 @@ async function confirmSaveAsTree() {
   } catch (error) {
     console.error('save-as failed:', error);
     message.error('另存为失败');
+  } finally {
+    saveAsLoading.value = false;
   }
 }
 // 下载附件
@@ -1381,7 +1385,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                     </a-button>
                   </a-popconfirm>
                   <!--导入数据按钮-->
-                  <a-button type="primary" @click="handleSaveAs">
+                  <a-button type="primary" :loading="saveAsLoading" @click="handleSaveAs">
                     <EpcIcon type="icon-daiyanshou1" style="font-size: 12px" />
                     {{ $t('另存为') }}
                   </a-button>
@@ -1554,6 +1558,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
     <SelectBoomTree
       ref="selectBoomTreeRef"
       :modal-visible="selectTreeVisible || saveAsTreeVisible"
+      :confirm-loading="saveAsTreeVisible && saveAsLoading"
       :select-tree-data="saveAsTreeVisible ? saveAsTreeData : selectTreeData"
       :select-tree-selected-keys="saveAsTreeVisible ? saveAsTreeSelectedKey : selectTreeSelectedKeys"
       @confirm-select-tree-node="handleSelectTreeConfirm"
