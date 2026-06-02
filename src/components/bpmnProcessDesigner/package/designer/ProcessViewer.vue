@@ -1,5 +1,5 @@
 <template>
-  <div class="process-viewer">
+  <div class="process-viewer" v-loading="isLoading">
     <div style="height: 100%" ref="processCanvas" v-show="!isLoading"></div>
 
     <!-- 悬浮提示框 -->
@@ -814,6 +814,7 @@ const importXML = async (xml: string) => {
 
   // 初始化流程图
   if (xml != null && xml !== '') {
+    isLoading.value = true
     try {
       bpmnViewer.value = new BpmnViewer({
         additionalModules: [MoveCanvasModule],
@@ -835,7 +836,6 @@ const importXML = async (xml: string) => {
       })
 
       // 初始化 BPMN 视图
-      isLoading.value = true
       await bpmnViewer.value.importXML(xml)
       // 自定义成功的箭头
       addCustomDefs()

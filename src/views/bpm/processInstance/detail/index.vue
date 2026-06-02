@@ -80,14 +80,14 @@
                 {{ '查看流程变量' }}
               </el-button>
             </div>
-            <div class="diagram-viewer-body">
+            <div class="diagram-viewer-body" v-loading="diagramLoading">
               <ProcessInstanceSimpleViewer
                 v-show="processDefinition.modelType && processDefinition.modelType === BpmModelType.SIMPLE"
-                :loading="processInstanceLoading"
+                :loading="diagramLoading"
                 :model-view="processModelView" />
               <ProcessInstanceBpmnViewer
                 v-show="processDefinition.modelType && processDefinition.modelType === BpmModelType.BPMN"
-                :loading="processInstanceLoading"
+                :loading="diagramLoading"
                 :model-view="processModelView"
                 @transferSuccess="refresh" />
             </div>
@@ -225,6 +225,7 @@ const route = useRoute();
 const message = useMessage();
 // ==================== 核心状态 ====================
 const processInstanceLoading = ref(false);
+const diagramLoading = ref(false);
 const processInstance = ref<any>({});
 const processDefinition = ref<any>({});
 const processModelView = ref<any>({});
@@ -559,12 +560,17 @@ const getApprovalDetail = async () => {
 };
 
 const getProcessModelView = async () => {
-  if (BpmModelType.BPMN === processDefinition.value?.modelType) {
-    processModelView.value = { bpmnXml: '' };
-  }
-  const res = await ProcessInstanceApi.getProcessInstanceBpmnModelView(props.id);
-  if (res.data.code === 200) {
-    processModelView.value = res.data.data;
+  diagramLoading.value = true;
+  try {
+    if (BpmModelType.BPMN === processDefinition.value?.modelType) {
+      processModelView.value = { bpmnXml: '' };
+    }
+    const res = await ProcessInstanceApi.getProcessInstanceBpmnModelView(props.id);
+    if (res.data.code === 200) {
+      processModelView.value = res.data.data;
+    }
+  } finally {
+    diagramLoading.value = false;
   }
 };
 
