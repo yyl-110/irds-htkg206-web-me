@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed,  nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import dayjs from 'dayjs'
-import { useRoute, useRouter } from 'vue-router'
-import * as echarts from 'echarts'
-import { DICT_TYPE } from '@/utils/dict'
-import { Modal, message } from 'ant-design-vue'
+import { computed, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import dayjs from 'dayjs';
+import { useRoute, useRouter } from 'vue-router';
+import * as echarts from 'echarts';
+import { DICT_TYPE } from '@/utils/dict';
+import { Modal, message } from 'ant-design-vue';
 import {
   ApartmentOutlined,
   AppstoreOutlined,
@@ -24,9 +24,9 @@ import {
   UndoOutlined,
   UnorderedListOutlined,
   UserAddOutlined,
-} from '@ant-design/icons-vue'
-import NoticeDetail from './components/notice-detail.vue'
-import CancellationProcess from './components/modal/cancellationProcess.vue'
+} from '@ant-design/icons-vue';
+import NoticeDetail from './components/notice-detail.vue';
+import CancellationProcess from './components/modal/cancellationProcess.vue';
 import {
   TASK_KIND_ACTIONS,
   TASK_KIND_LABEL,
@@ -36,128 +36,124 @@ import {
   WORKBENCH_SECONDARY_TABS,
   WORKBENCH_TABS,
   type WorkbenchTaskKind,
-} from './data'
-import DictTag from '@/components/DictTag/src/DictTag.vue'
-import { useUserStore } from '@/store/modules/user'
-import { sortermethod } from '@/utils/tools'
-import { EpcIcon } from '@/components/icon/EpcIcon'
-import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel'
-import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台'
-import { showRequestErrorIfNeeded } from '@/httpRequest'
-import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务'
-import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告'
-import { encryptValue } from '@/utils'
-import { formatPast2, timestampToDateString } from '@/utils/formatTime'
-import { getMyTodoTask, getMyDoneTask, getMyProcessInstance } from '@/api/bpm/task'
-import { ETASKTYPE } from '@/views/bpm/processInstance/components/config/constant'
-import Empty from '@/components/Empty/index.vue'
-import { renderTableEmptyText } from '@/utils/emptyState'
-import { RRQueryParams } from './components/config/query'
-import { useDictStore } from '@/store/modules/dict'
-import {
-  buildWorkbenchReturnQuery,
-  isWorkbenchReturnRouteQuery,
-  parseWorkbenchRouteQuery,
-} from './workbenchRouteQuery'
+} from './data';
+import DictTag from '@/components/DictTag/src/DictTag.vue';
+import { useUserStore } from '@/store/modules/user';
+import { sortermethod } from '@/utils/tools';
+import { EpcIcon } from '@/components/icon/EpcIcon';
+import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
+import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
+import { showRequestErrorIfNeeded } from '@/httpRequest';
+import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
+import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
+import { encryptValue } from '@/utils';
+import { formatPast2, timestampToDateString } from '@/utils/formatTime';
+import { getMyTodoTask, getMyDoneTask, getMyProcessInstance } from '@/api/bpm/task';
+import { ETASKTYPE } from '@/views/bpm/processInstance/components/config/constant';
+import Empty from '@/components/Empty/index.vue';
+import { renderTableEmptyText } from '@/utils/emptyState';
+import { RRQueryParams } from './components/config/query';
+import { useDictStore } from '@/store/modules/dict';
+import { buildWorkbenchReturnQuery, isWorkbenchReturnRouteQuery, parseWorkbenchRouteQuery } from './workbenchRouteQuery';
 /** 列表请求参数 */
-const requestNoticeParams = reactive(new NoticePageRequestDTOModel())
-const router = useRouter()
-const route = useRoute()
-const userStore = useUserStore()
+const requestNoticeParams = reactive(new NoticePageRequestDTOModel());
+const router = useRouter();
+const route = useRoute();
+const userStore = useUserStore();
 const locale = ref({
   cancelSort: WeiI18n.t('点击取消排序').value,
   triggerAsc: WeiI18n.t('点击升序').value,
   triggerDesc: WeiI18n.t('点击降序').value,
   emptyText: renderTableEmptyText('数据为空'),
-})
+});
 /** 获取字典 */
-const useDict = useDictStore()
-const isShowRigth = ref('收起')
+const useDict = useDictStore();
+const isShowRigth = ref('收起');
 const userInfoObj = ref<any>({
   name: '',
   departName: '',
-})
-const projectStatistics = ref<any>({})
-const activeName = ref('todo')
-const searchQuery = ref('')
-const secondaryFilter = ref<(typeof WORKBENCH_SECONDARY_TABS)[number]['value']>('todo')
-const auditSecondaryFilter = ref<(typeof WORKBENCH_AUDIT_SECONDARY_TABS)[number]['value']>('todo')
-const viewMode = ref('grid') // 'grid' | 'list'
+});
+const projectStatistics = ref<any>({});
+const activeName = ref('todo');
+const searchQuery = ref('');
+const secondaryFilter = ref<(typeof WORKBENCH_SECONDARY_TABS)[number]['value']>('todo');
+const auditSecondaryFilter = ref<(typeof WORKBENCH_AUDIT_SECONDARY_TABS)[number]['value']>('todo');
+const viewMode = ref('grid'); // 'grid' | 'list'
 
-const secondaryTabs = WORKBENCH_SECONDARY_TABS
-const auditSecondaryTabs = WORKBENCH_AUDIT_SECONDARY_TABS
-const todoList = ref<TaskItem[]>([])
+const secondaryTabs = WORKBENCH_SECONDARY_TABS;
+const auditSecondaryTabs = WORKBENCH_AUDIT_SECONDARY_TABS;
+const todoList = ref<TaskItem[]>([]);
 /** 设计任务列表：数据来自 /business/workbench-todo-card/page */
-const todoListLoading = ref(false)
+const todoListLoading = ref(false);
 /** 流程任务列表：OA/BPM 等独立接口接入后填充 */
-const auditList = ref<WorkbenchBpmTaskItem[]>([])
-const auditListLoading = ref(false)
+const auditList = ref<WorkbenchBpmTaskItem[]>([]);
+const auditListLoading = ref(false);
 
 /** 已办 WBS：发起变更（mark-change + reopen-task），与项目页 WBS 逻辑一致 */
-const wbsChangeModalVisible = ref(false)
-const wbsChangeTargetTask = ref<TaskItem | null>(null)
-const wbsChangeApplyLatest = ref<0 | 1>(0)
-const wbsChangeSubmitLoading = ref(false)
+const wbsChangeModalVisible = ref(false);
+const wbsChangeTargetTask = ref<TaskItem | null>(null);
+const wbsChangeApplyLatest = ref<0 | 1>(0);
+const wbsChangeSubmitLoading = ref(false);
 
 /** 转办弹窗 */
-const transferModalVisible = ref(false)
-const transferTargetTask = ref<TaskItem | null>(null)
-const transferSelectedUserId = ref<string | undefined>(undefined)
-const transferSubmitLoading = ref(false)
-const transferCandidateOptions = ref<Array<{ userId: string; displayName: string }>>([])
-const transferCandidatesLoading = ref(false)
+const transferModalVisible = ref(false);
+const transferTargetTask = ref<TaskItem | null>(null);
+const transferSelectedUserId = ref<string | undefined>(undefined);
+const transferSubmitLoading = ref(false);
+const transferCandidateOptions = ref<Array<{ userId: string; displayName: string }>>([]);
+const transferCandidatesLoading = ref(false);
 
 /** 驳回弹窗 */
-const rejectModalVisible = ref(false)
-const rejectTargetTask = ref<TaskItem | WorkbenchBpmTaskItem | null>(null)
-const rejectOpinion = ref('')
-const rejectSubmitLoading = ref(false)
+const rejectModalVisible = ref(false);
+const rejectTargetTask = ref<TaskItem | WorkbenchBpmTaskItem | null>(null);
+const rejectOpinion = ref('');
+const rejectSubmitLoading = ref(false);
 
 /** 我的流程 — 取消流程弹窗 */
-const bpmCancelModalVisible = ref(false)
-const bpmCancelTargetTask = ref<WorkbenchBpmTaskItem | null>(null)
+const bpmCancelModalVisible = ref(false);
+const bpmCancelTargetTask = ref<WorkbenchBpmTaskItem | null>(null);
 
 const transferSelectOptions = computed(() =>
   transferCandidateOptions.value.map(u => ({
     value: u.userId,
     label: u.displayName,
   })),
-)
+);
 
 const filteredTodoList = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase()
+  const keyword = searchQuery.value.trim().toLowerCase();
   const list = todoList.value.filter(item => {
-    if (!keyword) return true
+    if (!keyword) return true;
     const hay =
       `${item.title} ${workbenchCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
         .trim()
-        .toLowerCase()
-    return hay.includes(keyword)
-  })
+        .toLowerCase();
+    return hay.includes(keyword);
+  });
 
   switch (secondaryFilter.value) {
     case 'done':
-      return list.filter(item => item.status === 'done' && !item.viewOnly)
+      return list.filter(item => item.status === 'done' && !item.viewOnly);
     case 'transfer':
       /** 数据来自 transfer-out-page，均为已转办视图 */
-      return list
+      return list;
     case 'due5':
     case 'due15':
     case 'overdue':
       /** 列表已由接口按 WBS + timeBucket 限定，仅做关键字与只读过滤 */
-      return list.filter(item => !item.viewOnly)
+      return list.filter(item => !item.viewOnly);
     case 'all':
-      return list.filter(item => !item.viewOnly)
+      return list.filter(item => !item.viewOnly);
     case 'todo':
     default:
-      return list.filter(item => item.status === 'todo' && !item.viewOnly)
+      return list.filter(item => item.status === 'todo' && !item.viewOnly);
   }
-})
+});
 
 // 定义问候语文本
-const greetingText = ref('')
+const greetingText = ref('');
 // 定时器标识，用于清除定时器
-let timer = null
+let timer = null;
 
 const todoColumns = ref([
   {
@@ -171,8 +167,7 @@ const todoColumns = ref([
     customFilterDropdown: true,
     onFilter: (value: string, record: TaskItem) =>
       workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
-    sorter: (a: TaskItem, b: TaskItem) =>
-      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
+    sorter: (a: TaskItem, b: TaskItem) => workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
   },
   {
     title: '任务大类',
@@ -200,44 +195,44 @@ const todoColumns = ref([
     sorter: (a: TaskItem, b: TaskItem) => a.progress - b.progress,
   },
   { title: '操作', key: 'action', width: 140, align: 'center', fixed: 'right', resizable: true },
-])
+]);
 
 function handleResizeColumn(width: number, col: any) {
-  col.width = width
+  col.width = width;
 }
-const rowKey = (record: TaskItem) => String(record.id)
+const rowKey = (record: TaskItem) => String(record.id);
 function rowClassName(_record: any, index: number) {
-  return index % 2 === 1 ? 'table-striped' : ''
+  return index % 2 === 1 ? 'table-striped' : '';
 }
 
 function getTimeSortValue(task: TaskItem) {
-  if (!hasTimelineInfo(task)) return 0
-  const start = task.startTime.replace('年', '-').replace('月', '-').replace('日', '')
-  const timestamp = new Date(start).getTime()
-  return Number.isNaN(timestamp) ? 0 : timestamp
+  if (!hasTimelineInfo(task)) return 0;
+  const start = task.startTime.replace('年', '-').replace('月', '-').replace('日', '');
+  const timestamp = new Date(start).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 /** 我的流程：时间戳/日期格式化；待办/已办：原样展示 */
 function formatWorkbenchDateTime(value: unknown, fallback?: unknown): string {
   if (auditSecondaryFilter.value !== 'myProcess') {
-    const raw = value ?? fallback
-    if (raw == null || raw === '') return ''
-    return String(raw)
+    const raw = value ?? fallback;
+    if (raw == null || raw === '') return '';
+    return String(raw);
   }
-  return timestampToDateString(value ?? fallback)
+  return timestampToDateString(value ?? fallback);
 }
 
 function getBpmFieldTimestamp(value: unknown): number {
-  if (value == null || value === '') return 0
-  if (typeof value === 'number') return value < 1e12 ? value * 1000 : value
-  const n = Number(value)
-  if (!Number.isNaN(n) && /^\d+$/.test(String(value).trim())) return n < 1e12 ? n * 1000 : n
-  const t = dayjs(value as string).valueOf()
-  return Number.isNaN(t) ? 0 : t
+  if (value == null || value === '') return 0;
+  if (typeof value === 'number') return value < 1e12 ? value * 1000 : value;
+  const n = Number(value);
+  if (!Number.isNaN(n) && /^\d+$/.test(String(value).trim())) return n < 1e12 ? n * 1000 : n;
+  const t = dayjs(value as string).valueOf();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 function getBpmRecordTimeSortValue(record: Record<string, unknown>, field: string) {
-  return getBpmFieldTimestamp(record[field])
+  return getBpmFieldTimestamp(record[field]);
 }
 
 // 待办任务统计 mock 数据
@@ -247,18 +242,18 @@ const todoChartData = ref({
   audit: 0, // 审核待办
   done: 0, // 已办
   total: 0, // 参与项目
-})
+});
 
-let todoChartInstance: echarts.ECharts | null = null
+let todoChartInstance: echarts.ECharts | null = null;
 
 function initTodoChart() {
-  const el = document.getElementById('eachart-main')
-  if (!el) return
+  const el = document.getElementById('eachart-main');
+  if (!el) return;
   if (todoChartInstance) {
-    todoChartInstance.dispose()
+    todoChartInstance.dispose();
   }
-  todoChartInstance = echarts.init(el)
-  const { delay, todo, audit, done, total } = todoChartData.value
+  todoChartInstance = echarts.init(el);
+  const { delay, todo, audit, done, total } = todoChartData.value;
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: 'item',
@@ -276,8 +271,8 @@ function initTodoChart() {
         color: '#313133',
       },
       formatter: (name: string) => {
-        const map: Record<string, number> = { 延期: delay, 待办: todo, 审核待办: audit, 已办: done }
-        return `${name}  ${map[name] ?? ''}`
+        const map: Record<string, number> = { 延期: delay, 待办: todo, 审核待办: audit, 已办: done };
+        return `${name}  ${map[name] ?? ''}`;
       },
     },
     series: [
@@ -324,8 +319,8 @@ function initTodoChart() {
         ],
       },
     ],
-  }
-  todoChartInstance.setOption(option)
+  };
+  todoChartInstance.setOption(option);
 }
 
 const tabList = reactive([
@@ -334,67 +329,67 @@ const tabList = reactive([
     name: 'sysnotice',
     list: [],
   },
-])
+]);
 
-const tabs = reactive(WORKBENCH_TABS)
+const tabs = reactive(WORKBENCH_TABS);
 
 function getTagClass(tag: string) {
-  if (tag === '延') return 'tag-red'
-  if (tag === '转') return 'tag-blue'
-  if (tag === '已转办') return 'tag-blue'
-  if (tag === '待办') return 'tag-yellow'
-  return 'tag-default'
+  if (tag === '延') return 'tag-red';
+  if (tag === '转') return 'tag-blue';
+  if (tag === '已转办') return 'tag-blue';
+  if (tag === '待办') return 'tag-yellow';
+  return 'tag-default';
 }
 
 /** 待办且类型支持转办（与 TASK_KIND_ACTIONS 一致；当前仅 WBS 含 transfer） */
 function canRejectOrTransfer(task: TaskItem): boolean {
-  if (task.viewOnly) return false
-  const actions = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other
-  return actions.includes('transfer')
+  if (task.viewOnly) return false;
+  const actions = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other;
+  return actions.includes('transfer');
 }
-const canDesign = (task: TaskItem) => task.category !== 'assign'
+const canDesign = (task: TaskItem) => task.category !== 'assign';
 
 /** 后端 WBS 工作台卡片 task_type 为「协同任务」时，为真实协同设计待办（与发布任务写入一致） */
-const WBS_TASK_TYPE_COLLAB = '协同任务'
-const WBS_TASK_TYPE_CATEGORY = '分类协同（分配下级）'
-const WBS_TASK_TYPE_ASSIGN = 'WBS人员指派'
+const WBS_TASK_TYPE_COLLAB = '协同任务';
+const WBS_TASK_TYPE_CATEGORY = '分类协同（分配下级）';
+const WBS_TASK_TYPE_ASSIGN = 'WBS人员指派';
 
 /** 协同任务且接口已明确 WBS 未发布（如驳回后）：应走任务管理，不可直接进协同设计 */
 function isWbsCollabTaskUnpublishedForDesign(task: TaskItem): boolean {
-  if (task.taskKind !== 'wbs') return false
-  if (String(task.type ?? '').trim() !== WBS_TASK_TYPE_COLLAB) return false
-  const pub = task.wbsPublishStatus
-  if (pub === undefined || pub === null) return false
-  return Number(pub) !== 1
+  if (task.taskKind !== 'wbs') return false;
+  if (String(task.type ?? '').trim() !== WBS_TASK_TYPE_COLLAB) return false;
+  const pub = task.wbsPublishStatus;
+  if (pub === undefined || pub === null) return false;
+  return Number(pub) !== 1;
 }
 
 /**
  * WBS 卡片：后端 publish 分类节点时 taskType 为「分类协同…」，卡片用于提醒负责人继续分配下级，非独立协同设计任务
  */
 function isWbsCategoryCollaborationWorkbenchTask(task: TaskItem): boolean {
-  if (task.taskKind !== 'wbs') return false
-  const t = String(task.type ?? '')
-  return t.includes('分类协同') || t.includes('分类节点')
+  if (task.taskKind !== 'wbs') return false;
+  const t = String(task.type ?? '');
+  return t.includes('分类协同') || t.includes('分类节点');
 }
 
 /** 已办「变更」等协同设计能力：仅 task_type 为「协同任务」的 WBS 卡片（排除分类协同、WBS 人员指派等） */
 function isWbsDesignTaskEligibleForChange(task: TaskItem): boolean {
-  return task.taskKind === 'wbs' && String(task.type ?? '').trim() === WBS_TASK_TYPE_COLLAB
+  return task.taskKind === 'wbs' && String(task.type ?? '').trim() === WBS_TASK_TYPE_COLLAB;
 }
 
 /** 设计按钮提示：分类协同 → 任务管理；协同未发布 → 重新分配发布；否则协同设计 */
 function designWorkspaceTooltip(task: TaskItem): string {
-  if (isWbsCategoryCollaborationWorkbenchTask(task)) return '任务管理（分配下级）'
-  if (isWbsCollabTaskUnpublishedForDesign(task)) return '任务管理（重新分配并发布）'
-  return '协同设计'
+  if (isWbsCategoryCollaborationWorkbenchTask(task)) return '任务管理（分配下级）';
+  if (isWbsCollabTaskUnpublishedForDesign(task)) return '任务管理（重新分配并发布）';
+  return '协同设计';
 }
-const canAssign = (task: TaskItem) => task.category === 'assign'
-const hasTimelineInfo = (task: { category?: TaskItem['category'] }) => task.category === 'product'
+const canAssign = (task: TaskItem) => task.category === 'assign';
+const hasTimelineInfo = (task: { category?: TaskItem['category'] }) => task.category === 'product';
 
 function formatProjectDateCn(v: unknown): string {
-  if (v == null || v === '') return ''
-  const d = dayjs(v as string)
-  return d.isValid() ? d.format('YYYY年M月D日') : ''
+  if (v == null || v === '') return '';
+  const d = dayjs(v as string);
+  return d.isValid() ? d.format('YYYY年M月D日') : '';
 }
 
 /**
@@ -402,13 +397,13 @@ function formatProjectDateCn(v: unknown): string {
  * @param v
  */
 function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
-  const raw = String(v ?? '').trim()
-  const s = raw.toLowerCase().replace(/-/g, '_')
+  const raw = String(v ?? '').trim();
+  const s = raw.toLowerCase().replace(/-/g, '_');
   if (s === 'wbs' || s === 'standalone' || s === 'compute' || s === 'other') {
-    return s as WorkbenchTaskKind
+    return s as WorkbenchTaskKind;
   }
-  if (s === 'standalone_app') return 'standalone'
-  return 'other'
+  if (s === 'standalone_app') return 'standalone';
+  return 'other';
 }
 
 /**
@@ -416,100 +411,99 @@ function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
  * @param task
  */
 function showWbsRejectMenu(task: {
-  viewOnly?: boolean
-  taskKind?: WorkbenchTaskKind
-  status?: TaskItem['status']
-  type?: string
-  progress?: number
+  viewOnly?: boolean;
+  taskKind?: WorkbenchTaskKind;
+  status?: TaskItem['status'];
+  type?: string;
+  progress?: number;
 }): boolean {
-  if (task.viewOnly) return false
-  if (task.taskKind !== 'wbs') return false
-  if (task.status !== 'todo') return false
-  const t = String(task.type ?? '').trim()
-  if (t === WBS_TASK_TYPE_COLLAB && (task.progress ?? 0) > 0) return false
-  return t === WBS_TASK_TYPE_COLLAB || t === WBS_TASK_TYPE_CATEGORY || t === WBS_TASK_TYPE_ASSIGN
+  if (task.viewOnly) return false;
+  if (task.taskKind !== 'wbs') return false;
+  if (task.status !== 'todo') return false;
+  const t = String(task.type ?? '').trim();
+  if (t === WBS_TASK_TYPE_COLLAB && (task.progress ?? 0) > 0) return false;
+  return t === WBS_TASK_TYPE_COLLAB || t === WBS_TASK_TYPE_CATEGORY || t === WBS_TASK_TYPE_ASSIGN;
 }
 
 function inferCategoryForTaskItem(taskType: string, taskKind: WorkbenchTaskKind): TaskItem['category'] {
-  if (taskType.includes('指派')) return 'assign'
-  if (taskKind === 'standalone') return 'app'
-  if (taskKind === 'compute') return 'compute'
-  return 'product'
+  if (taskType.includes('指派')) return 'assign';
+  if (taskKind === 'standalone') return 'app';
+  if (taskKind === 'compute') return 'compute';
+  return 'product';
 }
 
 function inferSceneForTaskItem(taskKind: WorkbenchTaskKind): TaskItem['scene'] {
-  if (taskKind === 'standalone') return 'app'
-  if (taskKind === 'compute') return 'compute'
-  if (taskKind === 'wbs') return 'product'
-  return 'general'
+  if (taskKind === 'standalone') return 'app';
+  if (taskKind === 'compute') return 'compute';
+  if (taskKind === 'wbs') return 'product';
+  return 'general';
 }
 
 function pickNonEmptyDisplay(raw: unknown): string | undefined {
-  const s = String(raw ?? '').trim()
-  return s === '' ? undefined : s
+  const s = String(raw ?? '').trim();
+  return s === '' ? undefined : s;
 }
 
 /** 待办且存在延期天数时：红色进度条、延期文案、右上角「延期」角标 */
 function workbenchShowOverdueUi(task: { status?: TaskItem['status']; delayDays?: number }): boolean {
-  return task.status === 'todo' && task.delayDays != null && task.delayDays > 0
+  return task.status === 'todo' && task.delayDays != null && task.delayDays > 0;
 }
 
 /** 卡片 / 列表展示标题（仅展示服务端 title，不追加项目/应用名括号后缀） */
 function workbenchCardDisplayTitle(task: TaskItem): string {
-  return String(task.title ?? '').trim()
+  return String(task.title ?? '').trim();
 }
-
 
 /**
  * 将 workbench-todo-card/page 单行映射为首页卡片 TaskItem（含 taskKind、标签、延期/剩余天）
  * @param row
  */
 function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
-  const taskKind = normalizeTaskKindFromApi(row.taskKind ?? row.cardKind)
-  const st = String(row.status ?? '').toUpperCase()
-  const tags: string[] = []
+  const taskKind = normalizeTaskKindFromApi(row.taskKind ?? row.cardKind);
+  const st = String(row.status ?? '').toUpperCase();
+  const tags: string[] = [];
   if (st === 'TRANSFERRED') {
-    tags.push('转')
-    tags.push('待办')
+    tags.push('转');
+    tags.push('待办');
   } else {
-    if (st === 'TODO') tags.push('待办')
+    if (st === 'TODO') tags.push('待办');
   }
-  const startTime = formatProjectDateCn(row.projectStartDate)
-  const endTime = formatProjectDateCn(row.projectEndDate)
-  const taskTypeStr = String(row.taskType ?? '')
-  const progress = Math.min(100, Math.max(0, Number(row.progress ?? 0)))
-  const apiOverdue = Math.max(0, Number(row.overdueDays) || 0)
-  let delayDays: number | undefined = apiOverdue > 0 ? apiOverdue : undefined
-  const endRaw = row.projectEndDate ?? row.project_end_date
-  const projectEndDateRaw = endRaw != null && String(endRaw).trim() !== '' ? String(endRaw) : undefined
+  const startTime = formatProjectDateCn(row.projectStartDate);
+  const endTime = formatProjectDateCn(row.projectEndDate);
+  const taskTypeStr = String(row.taskType ?? '');
+  const progress = Math.min(100, Math.max(0, Number(row.progress ?? 0)));
+  const apiOverdue = Math.max(0, Number(row.overdueDays) || 0);
+  let delayDays: number | undefined = apiOverdue > 0 ? apiOverdue : undefined;
+  const endRaw = row.projectEndDate ?? row.project_end_date;
+  const projectEndDateRaw = endRaw != null && String(endRaw).trim() !== '' ? String(endRaw) : undefined;
   if (delayDays == null && st === 'TODO' && projectEndDateRaw) {
-    const end = dayjs(projectEndDateRaw).startOf('day')
+    const end = dayjs(projectEndDateRaw).startOf('day');
     if (end.isValid()) {
-      const late = dayjs().startOf('day').diff(end, 'day')
-      if (late > 0) delayDays = late
+      const late = dayjs().startOf('day').diff(end, 'day');
+      if (late > 0) delayDays = late;
     }
   }
-  const uiStatus: 'todo' | 'done' = st === 'DONE' ? 'done' : 'todo'
-  let remainDays: number | undefined
+  const uiStatus: 'todo' | 'done' = st === 'DONE' ? 'done' : 'todo';
+  let remainDays: number | undefined;
   if (st === 'TODO' && (delayDays == null || delayDays <= 0) && projectEndDateRaw) {
-    const end = dayjs(projectEndDateRaw).startOf('day')
+    const end = dayjs(projectEndDateRaw).startOf('day');
     if (end.isValid()) {
-      const d = end.diff(dayjs().startOf('day'), 'day')
-      if (d >= 0) remainDays = d
+      const d = end.diff(dayjs().startOf('day'), 'day');
+      if (d >= 0) remainDays = d;
     }
   }
-  const taskIdRaw = row.taskId ?? row.task_id
-  const projectIdRaw = row.projectId ?? row.project_id
-  const standaloneRaw = row.standaloneAppId ?? row.standalone_app_id
-  const projectWbsIdRaw = row.projectWbsId ?? row.project_wbs_id
-  const projectNameRaw = row.projectName ?? row.project_name
-  const appNameRaw = row.appName ?? row.app_name
-  const lastRejectRaw = row.lastRejectRemark ?? row.last_reject_remark
-  const wbsPubRaw = row.wbsPublishStatus ?? row.wbs_publish_status
-  let wbsPublishStatus: number | undefined
+  const taskIdRaw = row.taskId ?? row.task_id;
+  const projectIdRaw = row.projectId ?? row.project_id;
+  const standaloneRaw = row.standaloneAppId ?? row.standalone_app_id;
+  const projectWbsIdRaw = row.projectWbsId ?? row.project_wbs_id;
+  const projectNameRaw = row.projectName ?? row.project_name;
+  const appNameRaw = row.appName ?? row.app_name;
+  const lastRejectRaw = row.lastRejectRemark ?? row.last_reject_remark;
+  const wbsPubRaw = row.wbsPublishStatus ?? row.wbs_publish_status;
+  let wbsPublishStatus: number | undefined;
   if (wbsPubRaw !== undefined && wbsPubRaw !== null && String(wbsPubRaw).trim() !== '') {
-    const n = Number(wbsPubRaw)
-    if (!Number.isNaN(n)) wbsPublishStatus = n
+    const n = Number(wbsPubRaw);
+    if (!Number.isNaN(n)) wbsPublishStatus = n;
   }
   return {
     id: row.id != null ? String(row.id) : '',
@@ -541,7 +535,7 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
     lastRejectRemark: pickNonEmptyDisplay(lastRejectRaw),
     projectEndDateRaw,
     wbsPublishStatus,
-  }
+  };
 }
 
 /**
@@ -549,8 +543,8 @@ function mapWorkbenchApiRowToTaskItem(row: Record<string, unknown>): TaskItem {
  * @param row
  */
 function mapTransferOutRowToTaskItem(row: Record<string, unknown>): TaskItem {
-  const base = mapWorkbenchApiRowToTaskItem(row)
-  const tags = Array.from(new Set([...base.tags.filter(t => t !== '待办'), '已转办']))
+  const base = mapWorkbenchApiRowToTaskItem(row);
+  const tags = Array.from(new Set([...base.tags.filter(t => t !== '待办'), '已转办']));
   return {
     ...base,
     tags,
@@ -559,75 +553,74 @@ function mapTransferOutRowToTaskItem(row: Record<string, unknown>): TaskItem {
       row.assigneeDisplayName != null && String(row.assigneeDisplayName).trim() !== ''
         ? String(row.assigneeDisplayName)
         : base.assigneeDisplayName,
-  }
+  };
 }
 
 /** 对接 /business/workbench-todo-card/page，设计任务 Tab 仅拉取 WBS 卡片（近5天/15天/延期由 timeBucket 与结束日对比） */
 async function loadTodoListFromApi() {
-  const uid = userStore.getUser?.id
+  const uid = userStore.getUser?.id;
   if (uid == null) {
-    todoList.value = []
-    return
+    todoList.value = [];
+    return;
   }
-  todoListLoading.value = true
+  todoListLoading.value = true;
   try {
-    const kw = searchQuery.value.trim()
+    const kw = searchQuery.value.trim();
     if (secondaryFilter.value === 'transfer') {
       const res = await AdminApiProjectTemp.workbenchTodoTransferOutPage({
         pageNo: 1,
         pageSize: 500,
         ...(kw ? { keyword: kw } : {}),
-      })
-      const code = res?.data?.code
-      const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined
-      const raw = payload?.list
+      });
+      const code = res?.data?.code;
+      const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined;
+      const raw = payload?.list;
       if ((code === 0 || code === 200) && Array.isArray(raw)) {
-        todoList.value = raw.map(mapTransferOutRowToTaskItem)
+        todoList.value = raw.map(mapTransferOutRowToTaskItem);
       } else {
-        todoList.value = []
+        todoList.value = [];
       }
-      return
+      return;
     }
-    const f = secondaryFilter.value
+    const f = secondaryFilter.value;
     const pageBody: Parameters<typeof AdminApiProjectTemp.workbenchTodoCardPage>[0] = {
       pageNo: 1,
       pageSize: 500,
       assigneeUserId: String(uid),
       cardKind: 'WBS',
       ...(kw ? { keyword: kw } : {}),
-    }
+    };
     if (f === 'todo') {
-      pageBody.status = 'TODO'
+      pageBody.status = 'TODO';
     } else if (f === 'done') {
-      pageBody.status = 'DONE'
+      pageBody.status = 'DONE';
     } else if (f === 'due5') {
-      pageBody.status = 'TODO'
-      pageBody.timeBucket = 'DUE_5D'
+      pageBody.status = 'TODO';
+      pageBody.timeBucket = 'DUE_5D';
     } else if (f === 'due15') {
-      pageBody.status = 'TODO'
-      pageBody.timeBucket = 'DUE_15D'
+      pageBody.status = 'TODO';
+      pageBody.timeBucket = 'DUE_15D';
     } else if (f === 'overdue') {
-      pageBody.status = 'TODO'
-      pageBody.timeBucket = 'OVERDUE'
+      pageBody.status = 'TODO';
+      pageBody.timeBucket = 'OVERDUE';
     }
     /** 「全部」不传 status，由后端返回当前承办人下全部 WBS 卡片（待办/已办等） */
-    const res = await AdminApiProjectTemp.workbenchTodoCardPage(pageBody)
-    const code = res?.data?.code
-    const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined
-    const raw = payload?.list
+    const res = await AdminApiProjectTemp.workbenchTodoCardPage(pageBody);
+    const code = res?.data?.code;
+    const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined;
+    const raw = payload?.list;
     if ((code === 0 || code === 200) && Array.isArray(raw)) {
-      todoList.value = raw.map(mapWorkbenchApiRowToTaskItem)
+      todoList.value = raw.map(mapWorkbenchApiRowToTaskItem);
     } else {
-      todoList.value = []
+      todoList.value = [];
     }
   } catch {
-    message.error('加载待办列表失败')
-    todoList.value = []
+    message.error('加载待办列表失败');
+    todoList.value = [];
   } finally {
-    todoListLoading.value = false
+    todoListLoading.value = false;
   }
 }
-
 
 function taskCardKindClass(task: TaskItem): string {
   const map: Record<WorkbenchTaskKind, string> = {
@@ -635,12 +628,12 @@ function taskCardKindClass(task: TaskItem): string {
     standalone: 'task-card--kind-standalone',
     compute: 'task-card--kind-compute',
     other: 'task-card--kind-other',
-  }
-  return map[task.taskKind] ?? 'task-card--kind-other'
+  };
+  return map[task.taskKind] ?? 'task-card--kind-other';
 }
 
 function taskKindBadgeLabel(task: TaskItem): string {
-  return TASK_KIND_LABEL[task.taskKind] ?? TASK_KIND_LABEL.other
+  return TASK_KIND_LABEL[task.taskKind] ?? TASK_KIND_LABEL.other;
 }
 
 /** 列表「任务大类」子类型：去掉前导「类型」等冗余，避免与表头/大类重复啰嗦 */
@@ -648,24 +641,24 @@ function workbenchListTaskSubtypeClean(raw: unknown): string {
   return String(raw ?? '')
     .trim()
     .replace(/^类型[:：\s]*/u, '')
-    .trim()
+    .trim();
 }
 
 /** 列表单元格单行主文案：大类 + 子类型（中点连接，过长由 CSS 省略） */
 function workbenchTaskTypeListLine(task: TaskItem): string {
-  const kind = taskKindBadgeLabel(task)
-  const sub = workbenchListTaskSubtypeClean(task.type)
-  if (!sub) return kind
-  return `${kind} · ${sub}`
+  const kind = taskKindBadgeLabel(task);
+  const sub = workbenchListTaskSubtypeClean(task.type);
+  if (!sub) return kind;
+  return `${kind} · ${sub}`;
 }
 
 /** 悬停展示完整子类型、驳回说明（列表格内不再占第二行） */
 function workbenchTaskTypeListTooltip(task: TaskItem): string {
-  const parts: string[] = []
-  const rawType = String(task.type ?? '').trim()
-  if (rawType) parts.push(`子类型：${rawType}`)
-  if (task.lastRejectRemark) parts.push(`驳回：${task.lastRejectRemark}`)
-  return parts.join('\n')
+  const parts: string[] = [];
+  const rawType = String(task.type ?? '').trim();
+  if (rawType) parts.push(`子类型：${rawType}`);
+  if (task.lastRejectRemark) parts.push(`驳回：${task.lastRejectRemark}`);
+  return parts.join('\n');
 }
 
 /**
@@ -676,51 +669,51 @@ function workbenchTaskTypeListTooltip(task: TaskItem): string {
  */
 function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
   if (task.viewOnly) {
-    return false
+    return false;
   }
   if (action === 'detail') {
-    return task.status === 'done'
+    return task.status === 'done';
   }
   if (action === 'change') {
-    if (task.status !== 'done') return false
-    if (task.taskKind === 'standalone') return true
+    if (task.status !== 'done') return false;
+    if (task.taskKind === 'standalone') return true;
     if (task.taskKind === 'wbs') {
-      if (!isWbsDesignTaskEligibleForChange(task)) return false
-      const wid = task.projectWbsId
-      return wid !== undefined && wid !== null && String(wid).trim() !== ''
+      if (!isWbsDesignTaskEligibleForChange(task)) return false;
+      const wid = task.projectWbsId;
+      return wid !== undefined && wid !== null && String(wid).trim() !== '';
     }
-    return false
+    return false;
   }
   if (action === 'design' && task.status === 'done') {
-    return false
+    return false;
   }
   if (task.status === 'done') {
-    if (action === 'transfer' || action === 'assign') return false
+    if (action === 'transfer' || action === 'assign') return false;
   }
-  const allowed = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other
-  if (!allowed.includes(action)) return false
-  if (action === 'assign') return canAssign(task)
+  const allowed = TASK_KIND_ACTIONS[task.taskKind] ?? TASK_KIND_ACTIONS.other;
+  if (!allowed.includes(action)) return false;
+  if (action === 'assign') return canAssign(task);
   if (action === 'transfer') {
-    if ((task.progress ?? 0) > 0) return false
-    return canRejectOrTransfer(task)
+    if ((task.progress ?? 0) > 0) return false;
+    return canRejectOrTransfer(task);
   }
-  if (action === 'design') return canDesign(task)
-  return true
+  if (action === 'design') return canDesign(task);
+  return true;
 }
 
 /**
  * 「WBS分配」类待办：进入项目信息编辑 — 任务管理，用于为下层节点分配负责人（需先拉取项目创建人信息）
  */
 function openWbsPersonAssignFromWorkbench(task: TaskItem) {
-  const title = String(task.title ?? '')
+  const title = String(task.title ?? '');
   if (!title.startsWith('【WBS分配】')) {
-    message.info('请在项目任务管理中为下级分配负责人')
-    return
+    message.info('请在项目任务管理中为下级分配负责人');
+    return;
   }
-  const projectId = task.projectId != null ? String(task.projectId).trim() : ''
+  const projectId = task.projectId != null ? String(task.projectId).trim() : '';
   if (!projectId) {
-    message.warning('待办缺少项目标识')
-    return
+    message.warning('待办缺少项目标识');
+    return;
   }
   router.push({
     path: '/internal/project-info-editor',
@@ -729,7 +722,7 @@ function openWbsPersonAssignFromWorkbench(task: TaskItem) {
       tab: '3',
       wbsAssignEntry: '1',
     },
-  })
+  });
 }
 
 /**
@@ -738,12 +731,12 @@ function openWbsPersonAssignFromWorkbench(task: TaskItem) {
  */
 async function openDesignWorkspace(task: TaskItem) {
   if (task.taskKind === 'wbs') {
-    const projectId = task.projectId != null ? String(task.projectId).trim() : ''
+    const projectId = task.projectId != null ? String(task.projectId).trim() : '';
     /** 分类节点无独立「协同设计任务」：由发布/启动推送到工作台，用于提醒进入项目 WBS 继续分配人员 */
     if (isWbsCategoryCollaborationWorkbenchTask(task)) {
       if (!projectId) {
-        message.warning('待办缺少项目标识，无法进入任务管理')
-        return
+        message.warning('待办缺少项目标识，无法进入任务管理');
+        return;
       }
       await router.push({
         path: '/internal/project-info-editor',
@@ -752,16 +745,16 @@ async function openDesignWorkspace(task: TaskItem) {
           tab: '3',
           wbsAssignEntry: '1',
         },
-      })
-      return
+      });
+      return;
     }
     /** 协同任务已驳回或未发布：须先在项目 WBS 重新分配人员并发布，不可直接进协同设计 */
     if (isWbsCollabTaskUnpublishedForDesign(task)) {
       if (!projectId) {
-        message.warning('待办缺少项目标识，无法进入任务管理')
-        return
+        message.warning('待办缺少项目标识，无法进入任务管理');
+        return;
       }
-      message.info('当前任务未发布或已驳回，请先在项目任务管理中重新分配人员并发布任务')
+      message.info('当前任务未发布或已驳回，请先在项目任务管理中重新分配人员并发布任务');
       await router.push({
         path: '/internal/project-info-editor',
         query: {
@@ -769,31 +762,31 @@ async function openDesignWorkspace(task: TaskItem) {
           tab: '3',
           wbsAssignEntry: '1',
         },
-      })
-      return
+      });
+      return;
     }
-    const taskId = task.taskId != null ? String(task.taskId).trim() : ''
+    const taskId = task.taskId != null ? String(task.taskId).trim() : '';
     if (!taskId) {
-      message.warning('缺少任务标识，无法进入协同设计')
-      return
+      message.warning('缺少任务标识，无法进入协同设计');
+      return;
     }
     if (!projectId) {
-      message.warning('待办未返回项目标识，无法进入 WBS 协同设计（需接口补充 projectId）')
-      return
+      message.warning('待办未返回项目标识，无法进入 WBS 协同设计（需接口补充 projectId）');
+      return;
     }
-    const hide = message.loading('加载协同设计工作台…', 0)
+    const hide = message.loading('加载协同设计工作台…', 0);
     try {
       const res = await AdminApiProjectTemp.wbsCollabProjectPages({
         projectId,
         taskId,
-      })
-      const payload = res?.data?.data as Record<string, unknown> | undefined
+      });
+      const payload = res?.data?.data as Record<string, unknown> | undefined;
       if (!payload || typeof payload !== 'object') {
-        message.error('协同流程数据为空（请确认任务已发布 COLLAB 版本）')
-        return
+        message.error('协同流程数据为空（请确认任务已发布 COLLAB 版本）');
+        return;
       }
-      const cacheKey = `designTaskCollabWorkspace:${projectId}:${taskId}:${Date.now()}`
-      sessionStorage.setItem(cacheKey, JSON.stringify(payload))
+      const cacheKey = `designTaskCollabWorkspace:${projectId}:${taskId}:${Date.now()}`;
+      sessionStorage.setItem(cacheKey, JSON.stringify(payload));
       await router.push({
         path: '/internal/design-task-app-workspace',
         query: {
@@ -802,32 +795,32 @@ async function openDesignWorkspace(task: TaskItem) {
           projectId,
           workspaceMode: 'wbs',
         },
-      })
+      });
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { msg?: string; message?: string } } }
-      const serverMsg = err?.response?.data?.msg ?? err?.response?.data?.message
-      message.error(typeof serverMsg === 'string' && serverMsg.trim() ? serverMsg : '加载协同设计工作台失败')
+      const err = e as { response?: { data?: { msg?: string; message?: string } } };
+      const serverMsg = err?.response?.data?.msg ?? err?.response?.data?.message;
+      message.error(typeof serverMsg === 'string' && serverMsg.trim() ? serverMsg : '加载协同设计工作台失败');
     } finally {
-      hide()
+      hide();
     }
-    return
+    return;
   }
   if (task.taskKind === 'compute') {
-    message.info('计算任务设计工作台尚未接入')
-    return
+    message.info('计算任务设计工作台尚未接入');
+    return;
   }
 
-  let appId: string | undefined = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : ''
+  let appId: string | undefined = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : '';
   if (!appId || appId === '0') {
-    const tid = task.taskId != null ? String(task.taskId).trim() : ''
+    const tid = task.taskId != null ? String(task.taskId).trim() : '';
     if (tid) {
       try {
-        const res = await AdminApiSystemProcessTask.appList({ taskId: tid })
-        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined
-        const first = Array.isArray(list) && list.length ? list[0] : null
-        const aid = first?.appId ?? first?.id
+        const res = await AdminApiSystemProcessTask.appList({ taskId: tid });
+        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined;
+        const first = Array.isArray(list) && list.length ? list[0] : null;
+        const aid = first?.appId ?? first?.id;
         if (aid != null && aid !== '') {
-          appId = String(aid).trim()
+          appId = String(aid).trim();
         }
       } catch {
         // 忽略，后面统一提示
@@ -835,26 +828,26 @@ async function openDesignWorkspace(task: TaskItem) {
     }
   }
   if (!appId || appId === '0') {
-    message.warning('当前任务暂无关联独立应用，无法进入设计页面')
-    return
+    message.warning('当前任务暂无关联独立应用，无法进入设计页面');
+    return;
   }
   try {
-    const res = await AdminApiSystemProcessTask.projectPages({ appId })
-    const payload = res?.data?.data as Record<string, unknown> | undefined
+    const res = await AdminApiSystemProcessTask.projectPages({ appId });
+    const payload = res?.data?.data as Record<string, unknown> | undefined;
     if (!payload || typeof payload !== 'object') {
-      message.error('流程页面数据为空')
-      return
+      message.error('流程页面数据为空');
+      return;
     }
-    const cacheKey = `designTaskAppWorkspace:${String(payload.appId ?? appId)}:${Date.now()}`
-    sessionStorage.setItem(cacheKey, JSON.stringify(payload))
-    const taskId = String(task.taskId ?? '').trim()
-    const targetAppId = String((payload.appId as string | number | undefined) ?? appId).trim()
+    const cacheKey = `designTaskAppWorkspace:${String(payload.appId ?? appId)}:${Date.now()}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    const taskId = String(task.taskId ?? '').trim();
+    const targetAppId = String((payload.appId as string | number | undefined) ?? appId).trim();
     await router.push({
       path: '/internal/design-task-app-workspace',
       query: { cacheKey, taskId, appId: targetAppId },
-    })
+    });
   } catch {
-    message.error('获取流程页面失败')
+    message.error('获取流程页面失败');
   }
 }
 
@@ -864,61 +857,61 @@ async function openDesignWorkspace(task: TaskItem) {
  */
 function openTaskAppDetail(task: TaskItem) {
   if (task.status !== 'done') {
-    return
+    return;
   }
-  const tid = task.taskId ?? task.id
+  const tid = task.taskId ?? task.id;
   if (tid == null || tid === '') {
-    message.warning('缺少任务标识，无法打开详情')
-    return
+    message.warning('缺少任务标识，无法打开详情');
+    return;
   }
   const taskObj = {
     id: tid,
     processName: workbenchCardDisplayTitle(task),
     categoryName: workbenchCardDisplayTitle(task),
-  }
-  const cacheKey = `designTaskAppDetail:${String(tid)}:${Date.now()}`
-  sessionStorage.setItem(cacheKey, JSON.stringify(taskObj))
+  };
+  const cacheKey = `designTaskAppDetail:${String(tid)}:${Date.now()}`;
+  sessionStorage.setItem(cacheKey, JSON.stringify(taskObj));
   void router.push({
     path: '/internal/design-task-app-detail',
     query: { cacheKey, returnPath: route.fullPath },
-  })
+  });
 }
 
 function closeWbsChangeModal() {
-  wbsChangeModalVisible.value = false
-  wbsChangeTargetTask.value = null
+  wbsChangeModalVisible.value = false;
+  wbsChangeTargetTask.value = null;
 }
 
 async function openTransferModal(task: TaskItem) {
   if ((task.progress ?? 0) > 0) {
-    message.warning('任务已开始执行（进度大于 0），不可转办')
-    return
+    message.warning('任务已开始执行（进度大于 0），不可转办');
+    return;
   }
-  const pid = task.projectId != null ? String(task.projectId).trim() : ''
+  const pid = task.projectId != null ? String(task.projectId).trim() : '';
   if (!pid) {
-    message.warning('缺少项目信息，无法转办')
-    return
+    message.warning('缺少项目信息，无法转办');
+    return;
   }
-  transferTargetTask.value = task
-  transferSelectedUserId.value = undefined
-  transferCandidateOptions.value = []
-  transferModalVisible.value = true
-  await loadTransferCandidates(pid)
+  transferTargetTask.value = task;
+  transferSelectedUserId.value = undefined;
+  transferCandidateOptions.value = [];
+  transferModalVisible.value = true;
+  await loadTransferCandidates(pid);
 }
 
 function closeTransferModal() {
-  transferModalVisible.value = false
-  transferTargetTask.value = null
+  transferModalVisible.value = false;
+  transferTargetTask.value = null;
 }
 
 async function loadTransferCandidates(projectId: string) {
-  transferCandidatesLoading.value = true
-  transferCandidateOptions.value = []
+  transferCandidatesLoading.value = true;
+  transferCandidateOptions.value = [];
   try {
-    const res = await AdminApiProjectTemp.workbenchTodoTransferCandidates({ projectId })
-    const code = res?.data?.code
-    const raw = res?.data?.data as unknown
-    const list = Array.isArray(raw) ? raw : (raw as { list?: unknown[] })?.list
+    const res = await AdminApiProjectTemp.workbenchTodoTransferCandidates({ projectId });
+    const code = res?.data?.code;
+    const raw = res?.data?.data as unknown;
+    const list = Array.isArray(raw) ? raw : (raw as { list?: unknown[] })?.list;
     if ((code === 0 || code === 200) && Array.isArray(list)) {
       transferCandidateOptions.value = list
         .map((row: Record<string, unknown>) => ({
@@ -929,75 +922,75 @@ async function loadTransferCandidates(projectId: string) {
         .map(u => ({
           ...u,
           displayName: u.displayName.trim() !== '' ? u.displayName : u.userId,
-        }))
+        }));
     }
   } catch {
-    message.error('加载项目团队成员失败')
+    message.error('加载项目团队成员失败');
   } finally {
-    transferCandidatesLoading.value = false
+    transferCandidatesLoading.value = false;
   }
 }
 
 async function submitWorkbenchTransfer() {
-  const task = transferTargetTask.value
-  const toId = transferSelectedUserId.value
+  const task = transferTargetTask.value;
+  const toId = transferSelectedUserId.value;
   if (!task || !toId) {
-    message.warning('请选择接收人')
-    return
+    message.warning('请选择接收人');
+    return;
   }
-  transferSubmitLoading.value = true
+  transferSubmitLoading.value = true;
   try {
     await AdminApiProjectTemp.workbenchTodoCardTransfer({
       cardId: String(task.id),
       toAssigneeUserId: String(toId),
-    })
-    closeTransferModal()
-    message.success('转办成功')
-    await loadTodoListFromApi()
-    await loadWorkbenchSummary()
+    });
+    closeTransferModal();
+    message.success('转办成功');
+    await loadTodoListFromApi();
+    await loadWorkbenchSummary();
   } catch (e: unknown) {
-    showRequestErrorIfNeeded(e, '转办失败')
+    showRequestErrorIfNeeded(e, '转办失败');
   } finally {
-    transferSubmitLoading.value = false
+    transferSubmitLoading.value = false;
   }
 }
 
 function openRejectModal(task: TaskItem | WorkbenchBpmTaskItem) {
-  rejectTargetTask.value = task
-  rejectOpinion.value = ''
-  rejectModalVisible.value = true
+  rejectTargetTask.value = task;
+  rejectOpinion.value = '';
+  rejectModalVisible.value = true;
 }
 
 function closeRejectModal() {
-  rejectModalVisible.value = false
-  rejectTargetTask.value = null
-  rejectOpinion.value = ''
+  rejectModalVisible.value = false;
+  rejectTargetTask.value = null;
+  rejectOpinion.value = '';
 }
 
 async function submitWorkbenchReject() {
-  const task = rejectTargetTask.value
-  const opinion = rejectOpinion.value.trim()
+  const task = rejectTargetTask.value;
+  const opinion = rejectOpinion.value.trim();
   if (!task) {
-    return
+    return;
   }
   if (!opinion) {
-    message.warning('请填写驳回意见')
-    return
+    message.warning('请填写驳回意见');
+    return;
   }
-  rejectSubmitLoading.value = true
+  rejectSubmitLoading.value = true;
   try {
     await AdminApiProjectTemp.workbenchTodoCardReject({
       cardId: String(task.id),
       opinion,
-    })
-    closeRejectModal()
-    message.success('已驳回，任务已退回上级分配人，进度已重置')
-    await loadTodoListFromApi()
-    await loadWorkbenchSummary()
+    });
+    closeRejectModal();
+    message.success('已驳回，任务已退回上级分配人，进度已重置');
+    await loadTodoListFromApi();
+    await loadWorkbenchSummary();
   } catch (e: unknown) {
-    showRequestErrorIfNeeded(e, '驳回失败')
+    showRequestErrorIfNeeded(e, '驳回失败');
   } finally {
-    rejectSubmitLoading.value = false
+    rejectSubmitLoading.value = false;
   }
 }
 
@@ -1005,29 +998,29 @@ async function submitWorkbenchReject() {
  * 已办 WBS：标记变更并确认重开 → 进入协同设计（与 ProjectTaskWbsPanel 变更流程一致）
  */
 async function executeWbsChangeFromWorkbench() {
-  const task = wbsChangeTargetTask.value
-  const wbsIdRaw = task?.projectWbsId
+  const task = wbsChangeTargetTask.value;
+  const wbsIdRaw = task?.projectWbsId;
   if (!task || wbsIdRaw === undefined || wbsIdRaw === null || String(wbsIdRaw).trim() === '') {
-    message.warning('缺少 WBS 节点标识')
-    return
+    message.warning('缺少 WBS 节点标识');
+    return;
   }
-  const wbsIdStr = String(wbsIdRaw).trim()
-  const applyLatest = wbsChangeApplyLatest.value === 1 ? 1 : 0
-  wbsChangeSubmitLoading.value = true
+  const wbsIdStr = String(wbsIdRaw).trim();
+  const applyLatest = wbsChangeApplyLatest.value === 1 ? 1 : 0;
+  wbsChangeSubmitLoading.value = true;
   try {
-    await AdminApiProjectTemp.projectWbsMarkChange({ id: wbsIdStr })
+    await AdminApiProjectTemp.projectWbsMarkChange({ id: wbsIdStr });
     await AdminApiProjectTemp.projectWbsReopenTask({
       id: wbsIdStr,
       applyLatestValue: applyLatest,
-    })
-    closeWbsChangeModal()
-    message.success('已发起变更，正在进入协同设计…')
-    await openDesignWorkspace(task)
-    await loadTodoListFromApi()
+    });
+    closeWbsChangeModal();
+    message.success('已发起变更，正在进入协同设计…');
+    await openDesignWorkspace(task);
+    await loadTodoListFromApi();
   } catch (e: unknown) {
-    showRequestErrorIfNeeded(e, '变更失败')
+    showRequestErrorIfNeeded(e, '变更失败');
   } finally {
-    wbsChangeSubmitLoading.value = false
+    wbsChangeSubmitLoading.value = false;
   }
 }
 
@@ -1036,36 +1029,36 @@ async function executeWbsChangeFromWorkbench() {
  * @param task
  */
 async function openChangeWorkspace(task: TaskItem) {
-  if (task.status !== 'done') return
+  if (task.status !== 'done') return;
   if (task.taskKind === 'wbs') {
     if (!isWbsDesignTaskEligibleForChange(task)) {
-      message.info('仅「协同任务」支持发起变更；分类协同请在任务管理中分配下级，人员指派类任务无协同变更流程')
-      return
+      message.info('仅「协同任务」支持发起变更；分类协同请在任务管理中分配下级，人员指派类任务无协同变更流程');
+      return;
     }
-    const wid = task.projectWbsId
+    const wid = task.projectWbsId;
     if (wid === undefined || wid === null || String(wid).trim() === '') {
-      message.warning('待办缺少 WBS 节点标识，无法发起变更')
-      return
+      message.warning('待办缺少 WBS 节点标识，无法发起变更');
+      return;
     }
-    wbsChangeTargetTask.value = task
-    wbsChangeApplyLatest.value = 0
-    wbsChangeModalVisible.value = true
-    return
+    wbsChangeTargetTask.value = task;
+    wbsChangeApplyLatest.value = 0;
+    wbsChangeModalVisible.value = true;
+    return;
   }
   if (task.taskKind !== 'standalone') {
-    return
+    return;
   }
-  let appId: string | undefined = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : ''
+  let appId: string | undefined = task.standaloneAppId != null ? String(task.standaloneAppId).trim() : '';
   if (!appId || appId === '0') {
-    const tid = task.taskId != null ? String(task.taskId).trim() : ''
+    const tid = task.taskId != null ? String(task.taskId).trim() : '';
     if (tid) {
       try {
-        const res = await AdminApiSystemProcessTask.appList({ taskId: tid })
-        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined
-        const first = Array.isArray(list) && list.length ? list[0] : null
-        const aid = first?.appId ?? first?.id
+        const res = await AdminApiSystemProcessTask.appList({ taskId: tid });
+        const list = res?.data?.data as Array<{ appId?: unknown; id?: unknown }> | undefined;
+        const first = Array.isArray(list) && list.length ? list[0] : null;
+        const aid = first?.appId ?? first?.id;
         if (aid != null && aid !== '') {
-          appId = String(aid).trim()
+          appId = String(aid).trim();
         }
       } catch {
         /* ignore */
@@ -1073,26 +1066,26 @@ async function openChangeWorkspace(task: TaskItem) {
     }
   }
   if (!appId || appId === '0') {
-    message.warning('当前任务暂无关联独立应用，无法变更')
-    return
+    message.warning('当前任务暂无关联独立应用，无法变更');
+    return;
   }
-  const taskIdStr = String(task.taskId ?? '').trim()
+  const taskIdStr = String(task.taskId ?? '').trim();
   if (!taskIdStr) {
-    message.warning('缺少任务标识')
-    return
+    message.warning('缺少任务标识');
+    return;
   }
-  const hideLoading = message.loading('变更处理中，请稍候…', 0)
+  const hideLoading = message.loading('变更处理中，请稍候…', 0);
   try {
     await AdminApiSystemProcessTask.reopenLastNodeForChange({
       appId,
       taskId: taskIdStr,
-    })
-    await openDesignWorkspace(task)
-    await loadTodoListFromApi()
+    });
+    await openDesignWorkspace(task);
+    await loadTodoListFromApi();
   } catch (e: unknown) {
-    showRequestErrorIfNeeded(e, '变更失败')
+    showRequestErrorIfNeeded(e, '变更失败');
   } finally {
-    hideLoading()
+    hideLoading();
   }
 }
 const tableTodoList = computed(() =>
@@ -1100,83 +1093,82 @@ const tableTodoList = computed(() =>
     ...item,
     displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
   })),
-)
-
+);
 
 /** 列表请求参数 */
-const requestParams = reactive(new NoticePageRequestDTOModel())
-requestParams.releaseFlag = 0
-requestParams.userid = userStore.getUser.id
+const requestParams = reactive(new NoticePageRequestDTOModel());
+requestParams.releaseFlag = 0;
+requestParams.userid = userStore.getUser.id;
 /** 初始化绑定分页请求参数 */
-const { pagination } = usePagination(requestParams, getNoticePage)
-pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`
-pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`
-pagination.showQuickJumper = false
-const powerModel = ref<any>(null)
-const powVisible = ref<boolean>(false)
+const { pagination } = usePagination(requestParams, getNoticePage);
+pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
+pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
+pagination.showQuickJumper = false;
+const powerModel = ref<any>(null);
+const powVisible = ref<boolean>(false);
 function handleClosePowModal() {
-  powVisible.value = false
+  powVisible.value = false;
 }
 
 function showRightContent() {
   if (isShowRigth.value == '展开') {
-    isShowRigth.value = '收起'
+    isShowRigth.value = '收起';
   } else {
-    isShowRigth.value = '展开'
+    isShowRigth.value = '展开';
   }
 }
 
 function getGreeting() {
-  const hour = new Date().getHours() // 获取当前小时数（0-23）
+  const hour = new Date().getHours(); // 获取当前小时数（0-23）
 
   if (hour >= 0 && hour < 6) {
-    greetingText.value = '凌晨好'
+    greetingText.value = '凌晨好';
   } else if (hour >= 12 && hour < 18) {
     // 12-18点 下午
-    greetingText.value = '下午好'
+    greetingText.value = '下午好';
   } else if (hour >= 18 && hour < 24) {
     // 18-24点 晚上
-    greetingText.value = '晚上好'
+    greetingText.value = '晚上好';
   } else {
     // 6-12点 上午（兜底也显示上午好）
-    greetingText.value = '上午好'
+    greetingText.value = '上午好';
   }
 }
 
 function syncLoginUserInfo() {
-  const currentUser = (userStore.getUser || {}) as Record<string, any>
-  userInfoObj.value.name = currentUser.nickname || currentUser.userName || ''
+  const currentUser = (userStore.getUser || {}) as Record<string, any>;
+  userInfoObj.value.name = currentUser.nickname || currentUser.userName || '';
   userInfoObj.value.departName =
     currentUser.departName ||
     currentUser.departmentName ||
     currentUser.deptName ||
     currentUser.orgName ||
     currentUser.userCategoryName ||
-    ''
+    '';
 }
 
 /** 对接后端 WorkbenchTodoCardSummaryVO，驱动首页顶部数字条 */
 async function loadWorkbenchSummary() {
-  const uid = userStore.getUser?.id
-  if (uid == null) return
+  const uid = userStore.getUser?.id;
+  if (uid == null) return;
   try {
     const res = await AdminApiProjectTemp.workbenchTodoCardSummary({
       assigneeUserId: String(uid),
-    })
-    const code = res?.data?.code
-    const payload = res?.data?.data as Record<string, number> | undefined
+    });
+    const code = res?.data?.code;
+    const payload = res?.data?.data as Record<string, number> | undefined;
     if ((code === 0 || code === 200) && payload && typeof payload === 'object') {
-      projectStatistics.value = payload
+      projectStatistics.value = payload;
       todoChartData.value = {
         delay: payload.deferredNum ?? 0,
         todo: payload.totalNum ?? 0,
         audit: payload.participatedPlanProjectCount ?? 0,
         done: payload.doneNum ?? payload.finishNum ?? 0,
         total: payload.inNum ?? 0,
-      }
+      };
       nextTick(() => {
-        initTodoChart()
-      })
+        initTodoChart();
+      });
     }
   } catch {
     /** 汇总失败时保留默认 0，不打断首页 */
@@ -1190,11 +1182,11 @@ async function getNoticePage() {
   // requestNoticeParams.type = '';
   // requestNoticeParams.releaseFlag = 1;
   // requestNoticeParams.userid = userStore.getUser.id;
-  requestParams.currentPage = requestParams.pageNo
-  requestParams.numberPage = requestParams.pageSize
-  const res = await AdminApiSystemNotice.getNoticePageListToWork({ ...requestParams })
+  requestParams.currentPage = requestParams.pageNo;
+  requestParams.numberPage = requestParams.pageSize;
+  const res = await AdminApiSystemNotice.getNoticePageListToWork({ ...requestParams });
   if (res.data.code == 0 || res.data.code == 200) {
-    tabList[0].list = res.data.data.list
+    tabList[0].list = res.data.data.list;
   }
 }
 /**
@@ -1202,14 +1194,14 @@ async function getNoticePage() {
  * @param id
  */
 async function seeDetailFun(id: string) {
-  requestParams.id = id
-  const res = await AdminApiSystemNotice.getNoticeInfoById({ ...requestParams })
-  const data = res.data.data.systemNoticeInfoBaseDTO
-  const filedata = res.data.data
-  powVisible.value = true
+  requestParams.id = id;
+  const res = await AdminApiSystemNotice.getNoticeInfoById({ ...requestParams });
+  const data = res.data.data.systemNoticeInfoBaseDTO;
+  const filedata = res.data.data;
+  powVisible.value = true;
   nextTick(() => {
-    powerModel.value.getDetailFromMain(data, filedata)
-  })
+    powerModel.value.getDetailFromMain(data, filedata);
+  });
 }
 // -----------------------------------------------流程任务-------------------------------------------------------
 // 查询参数
@@ -1218,12 +1210,12 @@ const queryParams = reactive<RRQueryParams>({
   pageRows: 30,
   orderByBean: { sortType: 'asc', attributeName: '' },
   params: {},
-})
+});
 /**
  * 流程任务列表：按 auditSecondaryFilter 分别调用待办 / 已办 / 我的流程接口。
  */
 function buildProcessQueryParams() {
-  const keyword = searchQuery.value.trim()
+  const keyword = searchQuery.value.trim();
   return {
     pageIndex: queryParams.pageIndex,
     pageRows: queryParams.pageRows,
@@ -1232,50 +1224,50 @@ function buildProcessQueryParams() {
       ...queryParams.params,
       ...(keyword ? { name: keyword } : {}),
     },
-  }
+  };
 }
 
 /** 解析 BPM 分页响应（兼容 data 为数组或 { data, count } 嵌套） */
 function parseBpmTaskPageList(res: { data?: { code?: number; data?: unknown } }): WorkbenchBpmTaskItem[] {
-  const body = res?.data
+  const body = res?.data;
   if (!body || (body.code !== 200 && body.code !== 0)) {
-    return []
+    return [];
   }
-  const inner = body.data
+  const inner = body.data;
   if (Array.isArray(inner)) {
-    return inner as WorkbenchBpmTaskItem[]
+    return inner as WorkbenchBpmTaskItem[];
   }
   if (inner && typeof inner === 'object' && Array.isArray((inner as { data?: unknown[] }).data)) {
-    return (inner as { data: WorkbenchBpmTaskItem[] }).data
+    return (inner as { data: WorkbenchBpmTaskItem[] }).data;
   }
-  return []
+  return [];
 }
 
 async function loadAuditListFromApi() {
-  auditListLoading.value = true
+  auditListLoading.value = true;
   try {
-    const requestBody = buildProcessQueryParams()
-    let res
+    const requestBody = buildProcessQueryParams();
+    let res;
     switch (auditSecondaryFilter.value) {
       case 'todo':
-        res = await getMyTodoTask(requestBody)
-        break
+        res = await getMyTodoTask(requestBody);
+        break;
       case 'done':
-        res = await getMyDoneTask(requestBody)
-        break
+        res = await getMyDoneTask(requestBody);
+        break;
       case 'myProcess':
-        res = await getMyProcessInstance(requestBody)
-        break
+        res = await getMyProcessInstance(requestBody);
+        break;
       default:
-        auditList.value = []
-        return
+        auditList.value = [];
+        return;
     }
-    auditList.value = parseBpmTaskPageList(res)
+    auditList.value = parseBpmTaskPageList(res);
   } catch (e) {
-    showRequestErrorIfNeeded(e, '加载流程任务列表失败')
-    auditList.value = []
+    showRequestErrorIfNeeded(e, '加载流程任务列表失败');
+    auditList.value = [];
   } finally {
-    auditListLoading.value = false
+    auditListLoading.value = false;
   }
 }
 const tableProcessList = computed(() =>
@@ -1283,13 +1275,13 @@ const tableProcessList = computed(() =>
     ...item,
     displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
   })),
-)
+);
 /** 卡片 / 列表展示标题（仅展示服务端 title， */
 function workbenchbpmCardDisplayTitle(task: WorkbenchBpmTaskItem): string {
-  return String(task.processInstance.processVariables?.ModelList?.[0]?.para1 ?? '').trim()
+  return String(task.processInstance.processVariables?.ModelList?.[0]?.para1 ?? '').trim();
 }
 const processColumns = ref([
-{
+  {
     title: '主题',
     dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
     key: 'PROCESS_BUSINESS_TYPE_NAME',
@@ -1309,8 +1301,7 @@ const processColumns = ref([
     customFilterDropdown: true,
     onFilter: (value: string, record: TaskItem) =>
       workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
-    sorter: (a: TaskItem, b: TaskItem) =>
-      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
+    sorter: (a: TaskItem, b: TaskItem) => workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
   },
   {
     title: '流程状态',
@@ -1339,9 +1330,9 @@ const processColumns = ref([
     sorter: (a: any, b: any) => getTimeSortValue(a) - getTimeSortValue(b),
   },
   { title: '操作', key: 'action', width: 80, align: 'center', fixed: 'right', resizable: true },
-])
+]);
 const doneColumns = ref([
-{
+  {
     title: '主题',
     dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
     key: 'PROCESS_BUSINESS_TYPE_NAME',
@@ -1361,8 +1352,7 @@ const doneColumns = ref([
     customFilterDropdown: true,
     onFilter: (value: string, record: TaskItem) =>
       workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
-    sorter: (a: TaskItem, b: TaskItem) =>
-      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
+    sorter: (a: TaskItem, b: TaskItem) => workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
   },
   {
     title: '流程状态',
@@ -1423,9 +1413,9 @@ const doneColumns = ref([
     ellipsis: true,
   },
   { title: '操作', key: 'action', width: 80, align: 'center', fixed: 'right', resizable: true },
-])
+]);
 const myProcessColumns = ref([
-{
+  {
     title: '主题',
     dataIndex: 'PROCESS_BUSINESS_TYPE_NAME',
     key: 'PROCESS_BUSINESS_TYPE_NAME',
@@ -1445,8 +1435,7 @@ const myProcessColumns = ref([
     customFilterDropdown: true,
     onFilter: (value: string, record: TaskItem) =>
       workbenchCardDisplayTitle(record).toLowerCase().includes(String(value).toLowerCase()),
-    sorter: (a: TaskItem, b: TaskItem) =>
-      workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
+    sorter: (a: TaskItem, b: TaskItem) => workbenchCardDisplayTitle(a).localeCompare(workbenchCardDisplayTitle(b), 'zh-CN'),
   },
   {
     title: '流程状态',
@@ -1490,54 +1479,55 @@ const myProcessColumns = ref([
     ellipsis: true,
   },
   { title: '操作', key: 'action', width: 80, align: 'center', fixed: 'right', resizable: true },
-  ])
+]);
 /** 流程任务列表视图：待办 processColumns，已办 doneColumns，我的流程 myProcessColumns */
 const currentProcessTableColumns = computed(() => {
   switch (auditSecondaryFilter.value) {
     case 'myProcess':
-      return myProcessColumns.value
+      return myProcessColumns.value;
     case 'done':
-      return doneColumns.value
+      return doneColumns.value;
     default:
-      return processColumns.value
+      return processColumns.value;
   }
-})
+});
 
 const processTableScrollX = computed(() => {
-  const cols = currentProcessTableColumns.value
-  return cols.reduce((sum, col) => sum + (typeof col.width === 'number' ? col.width : 0), 0) + 24
-})
+  const cols = currentProcessTableColumns.value;
+  return cols.reduce((sum, col) => sum + (typeof col.width === 'number' ? col.width : 0), 0) + 24;
+});
 
 /** 流程任务列表筛选（关键字前端过滤；列表数据由接口按二级 Tab 返回） */
 const filteredAuditList = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase()
-  if (!keyword) return auditList.value
+  const keyword = searchQuery.value.trim().toLowerCase();
+  if (!keyword) return auditList.value;
 
   return auditList.value.filter(item => {
-    const hay = `${item.name ?? ''} ${workbenchbpmCardDisplayTitle(item)} ${item.processInstance?.name ?? ''} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
-      .trim()
-      .toLowerCase()
-    return hay.includes(keyword)
-  })
-})
-type BpmTaskAction = 'design' | 'detail' | 'history' | 'cancel'
+    const hay =
+      `${item.name ?? ''} ${workbenchbpmCardDisplayTitle(item)} ${item.processInstance?.name ?? ''} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
+        .trim()
+        .toLowerCase();
+    return hay.includes(keyword);
+  });
+});
+type BpmTaskAction = 'design' | 'detail' | 'history' | 'cancel';
 
 /** 流程待办：编制节点展示「提交」，其余节点展示「审批」 */
 function isBpmEstablishmentTask(task: WorkbenchBpmTaskItem) {
-  return task.name === ETASKTYPE.ESTABLISHMENT
+  return task.name === ETASKTYPE.ESTABLISHMENT;
 }
 
 /** 流程任务按钮权限：待办=待办+详情，已办=历史，我的流程=详情+取消 */
 function taskbpmActionAllowed(_task: WorkbenchBpmTaskItem, action: BpmTaskAction) {
   switch (auditSecondaryFilter.value) {
     case 'todo':
-      return action === 'design' || action === 'detail'
+      return action === 'design' || action === 'detail';
     case 'done':
-      return action === 'history'
+      return action === 'history';
     case 'myProcess':
-      return action === 'detail' || action === 'cancel'
+      return action === 'detail' || action === 'cancel';
     default:
-      return false
+      return false;
   }
 }
 
@@ -1561,8 +1551,8 @@ const openbpmDesignWorkspace = (task: WorkbenchBpmTaskItem) => {
         secondaryFilter: secondaryFilter.value,
       }),
     },
-  })
-}
+  });
+};
 
 const openbpmTaskAppDetail = (task: WorkbenchBpmTaskItem) => {
   router.push({
@@ -1580,8 +1570,8 @@ const openbpmTaskAppDetail = (task: WorkbenchBpmTaskItem) => {
         secondaryFilter: secondaryFilter.value,
       }),
     },
-  })
-}
+  });
+};
 
 const openbpmTaskHistory = (task: WorkbenchBpmTaskItem) => {
   router.push({
@@ -1595,80 +1585,77 @@ const openbpmTaskHistory = (task: WorkbenchBpmTaskItem) => {
         secondaryFilter: secondaryFilter.value,
       }),
     },
-  })
-}
+  });
+};
 
 function openBpmCancelModal(task: WorkbenchBpmTaskItem) {
-  bpmCancelTargetTask.value = task
-  bpmCancelModalVisible.value = true
+  bpmCancelTargetTask.value = task;
+  bpmCancelModalVisible.value = true;
 }
 
 function handleBpmCancelVisibleChange(visible: boolean) {
-  bpmCancelModalVisible.value = visible
+  bpmCancelModalVisible.value = visible;
   if (!visible) {
-    bpmCancelTargetTask.value = null
+    bpmCancelTargetTask.value = null;
   }
 }
 
-
-
 // 页面挂载时执行一次，并设置定时器每分钟更新（避免时间变化后问候语不更新）
-let todoSearchDebounce: ReturnType<typeof setTimeout> | null = null
+let todoSearchDebounce: ReturnType<typeof setTimeout> | null = null;
 watch(searchQuery, () => {
-  if (todoSearchDebounce) clearTimeout(todoSearchDebounce)
+  if (todoSearchDebounce) clearTimeout(todoSearchDebounce);
   todoSearchDebounce = setTimeout(() => {
     if (activeName.value === 'process') {
-      void loadAuditListFromApi()
+      void loadAuditListFromApi();
     } else {
-      void loadTodoListFromApi()
+      void loadTodoListFromApi();
     }
-  }, 400)
-})
+  }, 400);
+});
 
 watch(secondaryFilter, () => {
-  void loadTodoListFromApi()
-})
+  void loadTodoListFromApi();
+});
 
 watch(auditSecondaryFilter, () => {
-  void loadAuditListFromApi()
-})
+  void loadAuditListFromApi();
+});
 
 watch(activeName, name => {
   if (name === 'process') {
-    void loadAuditListFromApi()
+    void loadAuditListFromApi();
   }
-})
+});
 
 watch(
   () => userStore.getUser?.id,
   () => {
-    void loadWorkbenchSummary()
-    void loadTodoListFromApi()
+    void loadWorkbenchSummary();
+    void loadTodoListFromApi();
   },
-)
-
+);
 
 /** 从流程详情返回时，根据路由 query 恢复顶栏 / 二级 Tab 并加载列表 */
 function applyWorkbenchRouteQuery() {
   if (!isWorkbenchReturnRouteQuery(route.query)) {
-    return
+    return;
   }
 
-  const parsed = parseWorkbenchRouteQuery(route.query)
+  const parsed = parseWorkbenchRouteQuery(route.query);
   if (parsed.activeName) {
-    activeName.value = parsed.activeName
+    activeName.value = parsed.activeName;
   }
   if (parsed.auditSecondaryFilter) {
-    auditSecondaryFilter.value = parsed.auditSecondaryFilter
+    auditSecondaryFilter.value = parsed.auditSecondaryFilter;
   }
   if (parsed.secondaryFilter) {
-    secondaryFilter.value = parsed.secondaryFilter
+    secondaryFilter.value = parsed.secondaryFilter;
   }
 
   if (activeName.value === 'process') {
-    void loadAuditListFromApi()
+    void loadAuditListFromApi();
   } else {
-    void loadTodoListFromApi()
+    void loadTodoListFromApi();
   }
 }
 
@@ -1676,48 +1663,48 @@ watch(
   () => [route.query.activeName, route.query.auditSecondaryFilter, route.query.secondaryFilter],
   () => applyWorkbenchRouteQuery(),
   { immediate: true },
-)
+);
 
 onMounted(() => {
-  syncLoginUserInfo()
-  void loadWorkbenchSummary()
-  void loadTodoListFromApi()
-  getNoticePage()
-  getGreeting()
+  syncLoginUserInfo();
+  void loadWorkbenchSummary();
+  void loadTodoListFromApi();
+  getNoticePage();
+  getGreeting();
   // 每分钟更新一次，确保时间准确
-  timer = setInterval(getGreeting, 60 * 1000)
+  timer = setInterval(getGreeting, 60 * 1000);
   nextTick(() => {
-    initTodoChart()
-  })
-})
+    initTodoChart();
+  });
+});
 
 /** 从设计工作台等子页 router.back 返回时 Main keep-alive 不会触发 onMounted，需在此刷新列表与顶部指标（跳过首次与 onMounted 重复的一次） */
-const skipWorkbenchActivatedRefreshOnce = ref(true)
+const skipWorkbenchActivatedRefreshOnce = ref(true);
 onActivated(() => {
-  const restoredFromRoute = isWorkbenchReturnRouteQuery(route.query)
-  applyWorkbenchRouteQuery()
+  const restoredFromRoute = isWorkbenchReturnRouteQuery(route.query);
+  applyWorkbenchRouteQuery();
   if (skipWorkbenchActivatedRefreshOnce.value) {
-    skipWorkbenchActivatedRefreshOnce.value = false
-    return
+    skipWorkbenchActivatedRefreshOnce.value = false;
+    return;
   }
-  void loadWorkbenchSummary()
+  void loadWorkbenchSummary();
   if (!restoredFromRoute) {
     if (activeName.value === 'process') {
-      void loadAuditListFromApi()
+      void loadAuditListFromApi();
     } else {
-      void loadTodoListFromApi()
+      void loadTodoListFromApi();
     }
   }
-})
+});
 
 // 页面卸载时清除定时器，避免内存泄漏
 onUnmounted(() => {
   // clearInterval(timer);
   if (todoChartInstance) {
-    todoChartInstance.dispose()
-    todoChartInstance = null
+    todoChartInstance.dispose();
+    todoChartInstance = null;
   }
-})
+});
 </script>
 
 <template>
@@ -1777,10 +1764,7 @@ onUnmounted(() => {
         <div class="work-wrap">
           <a-tabs v-model:active-key="activeName" class="work_nav_top">
             <template #rightExtra>
-              <a-input
-                v-model:value="searchQuery"
-                placeholder="请输入任务名称"
-                style="width: 240px; border-radius: 4px">
+              <a-input v-model:value="searchQuery" placeholder="请输入任务名称" style="width: 240px; border-radius: 4px">
                 <template #suffix>
                   <SearchOutlined style="color: rgba(0, 0, 0, 0.45)" />
                 </template>
@@ -1797,6 +1781,10 @@ onUnmounted(() => {
                   <a-badge
                     v-if="item.name === 'todo' && (projectStatistics.todoNum ?? 0) > 0"
                     :count="projectStatistics.todoNum"
+                    :overflow-count="99" />
+                  <a-badge
+                    v-if="item.name === 'process' && (projectStatistics.participatedPlanProjectCount ?? 0) > 0"
+                    :count="projectStatistics.participatedPlanProjectCount"
                     :overflow-count="99" />
                 </div>
               </template>
@@ -1841,12 +1829,7 @@ onUnmounted(() => {
                           flex="0 0 350px"
                           style="width: 350px; max-width: 350px">
                           <div class="task-card" :class="taskCardKindClass(item)">
-                            <div
-                              v-if="workbenchShowOverdueUi(item)"
-                              class="task-card__overdue-corner"
-                              >
-                              延期
-                            </div>
+                            <div v-if="workbenchShowOverdueUi(item)" class="task-card__overdue-corner">延期</div>
                             <div class="task-card__type-ribbon">
                               <span class="task-card__type-ribbon-inner">
                                 <ApartmentOutlined v-if="item.taskKind === 'wbs'" />
@@ -1877,8 +1860,7 @@ onUnmounted(() => {
                               <a-dropdown v-if="showWbsRejectMenu(item)" :trigger="['hover']">
                                 <EllipsisOutlined class="text-[18px] text-[#999] cursor-pointer" />
                                 <template #overlay>
-                                  <a-menu
-                                    @click="({ key }: { key: string }) => key === 'reject' && openRejectModal(item)">
+                                  <a-menu @click="({ key }: { key: string }) => key === 'reject' && openRejectModal(item)">
                                     <a-menu-item key="reject"> 驳回 </a-menu-item>
                                   </a-menu>
                                 </template>
@@ -1934,8 +1916,7 @@ onUnmounted(() => {
 
                             <div class="tc-footer mt-[8px] flex items-center text-[13px] leading-[18px] text-[#6A696E]">
                               <span class="w-[52px] flex-shrink-0">创建人：</span>
-                              <div
-                                class="creator-badge flex items-center bg-[#F4F4F5] rounded-[12px] px-[6px] py-[1px]">
+                              <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[12px] px-[6px] py-[1px]">
                                 <img
                                   v-if="item.creatorAvatar"
                                   :src="item.creatorAvatar"
@@ -1947,9 +1928,7 @@ onUnmounted(() => {
                                 <span class="truncate max-w-[88px]">{{ item.creatorName }}</span>
                               </div>
                               <div class="tc-actions ml-auto flex items-center gap-[10px]">
-                                <a-tooltip
-                                  v-if="taskActionAllowed(item, 'design')"
-                                  :title="designWorkspaceTooltip(item)">
+                                <a-tooltip v-if="taskActionAllowed(item, 'design')" :title="designWorkspaceTooltip(item)">
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
@@ -2007,8 +1986,7 @@ onUnmounted(() => {
                         class="workbench-main-table bg-white"
                         :scroll="{ x: 1386 }"
                         @resize-column="handleResizeColumn">
-                        <template
-                          #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+                        <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
                           <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
                             <a-input
                               :value="selectedKeys[0]"
@@ -2030,9 +2008,7 @@ onUnmounted(() => {
                         <template #bodyCell="{ column, record }">
                           <template v-if="column.key === 'title'">
                             <div class="flex items-center gap-[8px] min-w-0">
-                              <span class="font-bold text-[#313133] truncate">{{
-                                workbenchCardDisplayTitle(record)
-                              }}</span>
+                              <span class="font-bold text-[#313133] truncate">{{ workbenchCardDisplayTitle(record) }}</span>
                               <span
                                 v-if="workbenchShowOverdueUi(record)"
                                 class="flex-shrink-0 px-[6px] py-[1px] text-[11px] font-semibold leading-[18px] rounded text-white bg-[#FF4D4F]"
@@ -2073,9 +2049,7 @@ onUnmounted(() => {
                           </template>
                           <template v-if="column.key === 'action'">
                             <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                              <a-tooltip
-                                v-if="taskActionAllowed(record, 'design')"
-                                :title="designWorkspaceTooltip(record)">
+                              <a-tooltip v-if="taskActionAllowed(record, 'design')" :title="designWorkspaceTooltip(record)">
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
@@ -2148,132 +2122,125 @@ onUnmounted(() => {
                 <a-spin :spinning="auditListLoading" class="task-list-spin flex-1 min-h-0 flex flex-col">
                   <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
                     <a-table
-                        :columns="currentProcessTableColumns"
-                        :data-source="tableProcessList"
-                        :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
-                        :row-class-name="rowClassName"
-                        :pagination="false"
-                        :row-key="rowKey"
-                        bordered
-                        class="workbench-main-table bg-white"
-                        :scroll="{ x: processTableScrollX }"
-                        @resize-column="handleResizeColumn">
-                        <template
-                          #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
-                          <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
-                            <a-input
-                              :value="selectedKeys[0]"
-                              placeholder="搜索任务名称"
-                              allow-clear
-                              @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
-                              @press-enter="confirm()" />
-                            <div class="mt-[10px] flex gap-[8px]">
-                              <a-button type="primary" size="small" @click="confirm()"> 搜索 </a-button>
-                              <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
+                      :columns="currentProcessTableColumns"
+                      :data-source="tableProcessList"
+                      :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
+                      :row-class-name="rowClassName"
+                      :pagination="false"
+                      :row-key="rowKey"
+                      bordered
+                      class="workbench-main-table bg-white"
+                      :scroll="{ x: processTableScrollX }"
+                      @resize-column="handleResizeColumn">
+                      <template #customFilterDropdown="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }">
+                        <div v-if="column.key === 'title'" class="p-[12px] w-[220px]">
+                          <a-input
+                            :value="selectedKeys[0]"
+                            placeholder="搜索任务名称"
+                            allow-clear
+                            @change="setSelectedKeys($event.target.value ? [$event.target.value] : [])"
+                            @press-enter="confirm()" />
+                          <div class="mt-[10px] flex gap-[8px]">
+                            <a-button type="primary" size="small" @click="confirm()"> 搜索 </a-button>
+                            <a-button size="small" @click="clearFilters({ confirm: true })"> 重置 </a-button>
+                          </div>
+                        </div>
+                      </template>
+                      <template #customFilterIcon="{ filtered, column }">
+                        <FilterOutlined
+                          v-if="column.key === 'title'"
+                          :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
+                      </template>
+                      <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'PROCESS_BUSINESS_TYPE_NAME'">
+                          <div class="wb-cell-type min-w-0 max-w-full">
+                            <div class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]">
+                              {{ record.processInstance.processVariables.PROCESS_BUSINESS_TYPE_NAME }}
                             </div>
                           </div>
                         </template>
-                        <template #customFilterIcon="{ filtered, column }">
-                          <FilterOutlined
-                            v-if="column.key === 'title'"
-                            :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
-                        </template>
-                        <template #bodyCell="{ column, record }">
-                          <template v-if="column.key === 'PROCESS_BUSINESS_TYPE_NAME'">
-                            <div class="wb-cell-type min-w-0 max-w-full">
-                              <div
-                                class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]">
-                                {{ record.processInstance.processVariables.PROCESS_BUSINESS_TYPE_NAME}}
-                              </div>
-                            </div>
-                          </template>
-                          <template v-if="column.key === 'state'">
-                            <div v-if="auditSecondaryFilter === 'done' || auditSecondaryFilter === 'myProcess'">
-                              <dict-tag
-                                :type="DICT_TYPE.BPM_TASK_STATUS"
-                                :value="record.status"/>
-                            </div>
-                            <div v-else>
-                              <a-tag v-if="isBpmEstablishmentTask(record)" size="small" color="success" style="color: #2e8702;">
+                        <template v-if="column.key === 'state'">
+                          <div v-if="auditSecondaryFilter === 'done' || auditSecondaryFilter === 'myProcess'">
+                            <dict-tag :type="DICT_TYPE.BPM_TASK_STATUS" :value="record.status" />
+                          </div>
+                          <div v-else>
+                            <a-tag v-if="isBpmEstablishmentTask(record)" size="small" color="success" style="color: #2e8702">
                               {{ $t('编制中') }}
                             </a-tag>
                             <a-tag v-else type="primary" size="small" color="processing">
                               {{ $t('审批中') }}
                             </a-tag>
-                            </div>
-                      
-                          </template>
-                          <template v-if="column.key === 'nickname'">
-                            {{ record.assigneeUser?.nickname }}
-                          </template>
-                          <template v-if="column.key === 'createTime'">
-                            {{ formatWorkbenchDateTime(record.createTime, record.startTime) }}
-                          </template>
-                          <template v-if="column.key === 'taskCreateTime'">
-                            {{ formatWorkbenchDateTime(record.createTime) }}
-                          </template>
-                          <template v-if="column.key === 'startTime'">
-                            {{ formatWorkbenchDateTime(record.startTime) }}
-                          </template>
-                          <template v-if="column.key === 'endTime'">
-                            {{ formatWorkbenchDateTime(record.endTime) }}
-                          </template>
-                          <template v-if="column.key === 'reason'">
-                            {{ record.reason }}
-                          </template>
-                          <template v-if="column.key === 'durationInMillis'">
-                            {{ formatPast2(record.durationInMillis) }}
-                          </template>
-                          <template v-if="column.key === 'action'">
-                            <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
-                              <a-tooltip
-                                v-if="taskbpmActionAllowed(record, 'design') && isBpmEstablishmentTask(record)"
-                                title="提交">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openbpmDesignWorkspace(record)">
-                                  <FormOutlined />
-                                </a>
-                              </a-tooltip>
-                              <a-tooltip
-                                v-else-if="taskbpmActionAllowed(record, 'design')"
-                                title="审批">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openbpmDesignWorkspace(record)">
-                                  <AuditOutlined />
-                                </a>
-                              </a-tooltip>
-                              <a-tooltip v-if="taskbpmActionAllowed(record, 'detail')" title="详情">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openbpmTaskAppDetail(record)">
-                                  <ProfileOutlined />
-                                </a>
-                              </a-tooltip>
-                              <a-tooltip v-if="taskbpmActionAllowed(record, 'history')" title="历史">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openbpmTaskHistory(record)">
-                                  <HistoryOutlined />
-                                </a>
-                              </a-tooltip>
-                              <a-tooltip v-if="taskbpmActionAllowed(record, 'cancel')" title="取消">
-                                <a
-                                  href="#"
-                                  class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
-                                  @click.prevent.stop="openBpmCancelModal(record)">
-                                  <UndoOutlined />
-                                </a>
-                              </a-tooltip>
-                            </div>
-                          </template>
+                          </div>
                         </template>
-                      </a-table>
+                        <template v-if="column.key === 'nickname'">
+                          {{ record.assigneeUser?.nickname }}
+                        </template>
+                        <template v-if="column.key === 'createTime'">
+                          {{ formatWorkbenchDateTime(record.createTime, record.startTime) }}
+                        </template>
+                        <template v-if="column.key === 'taskCreateTime'">
+                          {{ formatWorkbenchDateTime(record.createTime) }}
+                        </template>
+                        <template v-if="column.key === 'startTime'">
+                          {{ formatWorkbenchDateTime(record.startTime) }}
+                        </template>
+                        <template v-if="column.key === 'endTime'">
+                          {{ formatWorkbenchDateTime(record.endTime) }}
+                        </template>
+                        <template v-if="column.key === 'reason'">
+                          {{ record.reason }}
+                        </template>
+                        <template v-if="column.key === 'durationInMillis'">
+                          {{ formatPast2(record.durationInMillis) }}
+                        </template>
+                        <template v-if="column.key === 'action'">
+                          <div class="flex w-full items-center justify-center gap-[12px] whitespace-nowrap">
+                            <a-tooltip
+                              v-if="taskbpmActionAllowed(record, 'design') && isBpmEstablishmentTask(record)"
+                              title="提交">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openbpmDesignWorkspace(record)">
+                                <FormOutlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip v-else-if="taskbpmActionAllowed(record, 'design')" title="审批">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openbpmDesignWorkspace(record)">
+                                <AuditOutlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip v-if="taskbpmActionAllowed(record, 'detail')" title="详情">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openbpmTaskAppDetail(record)">
+                                <ProfileOutlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip v-if="taskbpmActionAllowed(record, 'history')" title="历史">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openbpmTaskHistory(record)">
+                                <HistoryOutlined />
+                              </a>
+                            </a-tooltip>
+                            <a-tooltip v-if="taskbpmActionAllowed(record, 'cancel') && record.status === 1" title="取消">
+                              <a
+                                href="#"
+                                class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
+                                @click.prevent.stop="openBpmCancelModal(record)">
+                                <UndoOutlined />
+                              </a>
+                            </a-tooltip>
+                          </div>
+                        </template>
+                      </template>
+                    </a-table>
                   </div>
                 </a-spin>
               </div>
