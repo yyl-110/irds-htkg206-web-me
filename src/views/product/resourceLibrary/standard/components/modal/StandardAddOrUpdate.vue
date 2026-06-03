@@ -171,10 +171,15 @@ async function handleModalAdd(id: string, pdmType: string, menu_id: string) {
     modelData.para5 = '';
     modelData.para6 = '';
     modelData.para7 = '';
-    modelData.para7Name = '';
-    modelData.para8 = undefined;
+    modelData.para8 = '';
     modelData.para9 = '';
-    modelData.para10 = undefined;
+    modelData.para10 = '';
+    modelData.para11 = '';
+    modelData.para12 = '';
+    modelData.para13 = '';
+    modelData.para14 = '';
+    modelData.para15 = '';
+    modelData.para16 = '';
     modelData.confidentialLevel = Number(userStore.getConfidentialLevel[0]?.value ?? 1);
     filedataSource.value = [];
     uploadFileList.value = [];
@@ -210,6 +215,12 @@ async function handleModalUpdate(id: string, row: any, menu_id: any) {
     modelData.para8 = row.para8;
     modelData.para9 = row.para9;
     modelData.para10 = row.para10;
+    modelData.para11 = row.para11;
+    modelData.para12 = row.para12;
+    modelData.para13 = row.para13;
+    modelData.para14 = row.para14;
+    modelData.para15 = row.para15;
+    modelData.para16 = row.para16;
     modelData.confidentialLevel = Number(row.confidentialLevel ?? userStore.getConfidentialLevel[0]?.value ?? 1);
     modelData.createUser = row.creatorName;
     let params: any = {};
@@ -322,8 +333,7 @@ function parseUploadFileRecordForModule(raw: unknown): { id: string; fileUrl?: s
   if (!raw || typeof raw !== 'object') return { id: '' };
   const body = raw as Record<string, unknown>;
   const code = body.code;
-  const ok =
-    code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200';
+  const ok = code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200';
   if (!ok) return { id: '' };
   let record: Record<string, unknown> = body;
   const nested = body.data;
@@ -333,14 +343,8 @@ function parseUploadFileRecordForModule(raw: unknown): { id: string; fileUrl?: s
     record = nested as Record<string, unknown>;
   }
   const id = String(record.id ?? record.queryId ?? '').trim();
-  const fileUrl =
-    record.fileUrl != null
-      ? String(record.fileUrl)
-      : record.filePath != null
-        ? String(record.filePath)
-        : undefined;
-  const displayName =
-    record.oldFileName != null ? String(record.oldFileName) : record.fileName != null ? String(record.fileName) : undefined;
+  const fileUrl = record.fileUrl != null ? String(record.fileUrl) : record.filePath != null ? String(record.filePath) : undefined;
+  const displayName = record.oldFileName != null ? String(record.oldFileName) : record.fileName != null ? String(record.fileName) : undefined;
   return { id, fileUrl, displayName };
 }
 
@@ -364,20 +368,12 @@ function buildFileTableRow(entry: UploadFile, fileId: string) {
   let inner: Record<string, unknown> = {};
   if (res && typeof res === 'object') {
     const nested = res.data;
-    inner =
-      nested && typeof nested === 'object' && !Array.isArray(nested)
-        ? (nested as Record<string, unknown>)
-        : { ...res };
+    inner = nested && typeof nested === 'object' && !Array.isArray(nested) ? (nested as Record<string, unknown>) : { ...res };
   }
-  const documentName = String(
-    inner.documentName ?? inner.oldFileName ?? inner.fileName ?? inner.newFileName ?? entry.name ?? '',
-  ).trim();
+  const documentName = String(inner.documentName ?? inner.oldFileName ?? inner.fileName ?? inner.newFileName ?? entry.name ?? '').trim();
   const nameForExt = documentName || String(entry.name ?? '');
   const fileTypeRaw = inner.fileType ?? inner.suffix ?? inner.fileExtension;
-  const fileType =
-    fileTypeRaw != null && String(fileTypeRaw).trim() !== ''
-      ? String(fileTypeRaw).trim()
-      : fileExtFromName(nameForExt) || '--';
+  const fileType = fileTypeRaw != null && String(fileTypeRaw).trim() !== '' ? String(fileTypeRaw).trim() : fileExtFromName(nameForExt) || '--';
   const fileUrl =
     inner.fileUrl != null
       ? String(inner.fileUrl)
@@ -400,11 +396,7 @@ function beforeUploadTechDoc() {
   return true;
 }
 
-async function datacustomRequest(options: {
-  file: File | Blob;
-  onSuccess?: (body: unknown, file?: File) => void;
-  onError?: (e: Error) => void;
-}) {
+async function datacustomRequest(options: { file: File | Blob; onSuccess?: (body: unknown, file?: File) => void; onError?: (e: Error) => void }) {
   try {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
@@ -585,7 +577,12 @@ async function handleSave() {
       para8: modelData.para8,
       para9: modelData.para9,
       para10: modelData.para10,
-      para11: '',
+      para11: modelData.para11,
+      para12: modelData.para12,
+      para13: modelData.para13,
+      para14: modelData.para14,
+      para15: modelData.para15,
+      para16: modelData.para16,
       confidentialLevel: modelData.confidentialLevel ?? 1,
     };
     const moduleList = getDynamicComponentVal();
@@ -637,12 +634,60 @@ defineExpose({ handleModalAdd, handleModalUpdate });
             <a-input v-model:value="modelData.para1" placeholder="请输入主编码" allow-clear />
           </a-form-item>
 
-          <a-form-item label="型号：" name="para2" :rules="[{ required: true, message: '请输入型号' }]">
-            <a-input v-model:value="modelData.para2" placeholder="请输入型号" allow-clear />
+          <a-form-item label="物料名称：" name="para2" :rules="[{ required: true, message: '请输入物料名称' }]">
+            <a-input v-model:value="modelData.para2" placeholder="请输入型物料名称" allow-clear />
           </a-form-item>
 
-          <a-form-item label="规格：" name="para3">
-            <a-input v-model:value="modelData.para3" placeholder="请输入规格" allow-clear />
+          <a-form-item label="简称：" name="para3">
+            <a-input v-model:value="modelData.para3" placeholder="请输入简称" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="集团编码：" name="para5">
+            <a-input v-model:value="modelData.para5" placeholder="请输入集团编码" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="规格：" name="para6">
+            <a-input v-model:value="modelData.para6" placeholder="请输入规格码" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="质量保证等级：" name="para7">
+            <a-input v-model:value="modelData.para7" placeholder="请输入质量保证等级" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="材质：" name="para8">
+            <a-input v-model:value="modelData.para8" placeholder="请输入材质" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="精度：" name="para9">
+            <a-input v-model:value="modelData.para9" placeholder="请输入精度" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="温度特性：" name="para10">
+            <a-input v-model:value="modelData.para10" placeholder="请输入温度特性" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="板拧形式：" name="para11">
+            <a-input v-model:value="modelData.para11" placeholder="请输入板拧形式" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="表面处理：" name="para12">
+            <a-input v-model:value="modelData.para12" placeholder="请输入表面处理" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="总装分类：" name="para13">
+            <a-input v-model:value="modelData.para13" placeholder="请输入总装分类" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="来源单位：" name="para14">
+            <a-input v-model:value="modelData.para14" placeholder="请输入来源单位" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="国别/地区：" name="para15">
+            <a-input v-model:value="modelData.para15" placeholder="请输入国别/地区" allow-clear />
+          </a-form-item>
+
+          <a-form-item label="生产厂家代号：" name="para16">
+            <a-input v-model:value="modelData.para16" placeholder="请输入生产厂家代号" allow-clear />
           </a-form-item>
         </a-form>
       </section>

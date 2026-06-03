@@ -134,6 +134,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8099',
         changeOrigin: true,
       },
+      // '/share': {
+      //   target: 'http://10.18.220.48:9000',
+      //   changeOrigin: true,
+      // },
       '/Lang': {
         target: 'http://172.16.7.44',
         ws: false,

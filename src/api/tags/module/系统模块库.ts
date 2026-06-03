@@ -496,6 +496,26 @@ export class AdminApiSystemModule {
   /**
    *
    *
+   * @tags 导入基础库数据
+   * @name importinglibraryInformationNew
+   * @summary 导入基础库数据
+   * @request /business-service/business/library-data/importinglibraryInformationNew
+   * @secure
+   */
+  static importinglibraryInformationNew = (query: any, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/library-data/importinglibraryInformationNew`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+  /**
+   *
+   *
    * @tags 模块库抽屉详情
    * @name getModuleUserUploadDocument
    * @summary 模块库抽屉详情

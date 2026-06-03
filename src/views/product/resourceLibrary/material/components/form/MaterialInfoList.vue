@@ -891,7 +891,7 @@ async function importSuccessfulFun() {
   exceldata.userName = userStore.getUser.userName;
   exceldata.moduleName = fileList.value[0].newFileName;
   exceldata.menuId = menuId.value;
-  const res = await AdminApiSystemModule.importingModelInformationNew(exceldata);
+  const res = await AdminApiSystemModule.importinglibraryInformationNew(exceldata);
   if (res.data.code == 200) {
     message.info({
       top: 80,

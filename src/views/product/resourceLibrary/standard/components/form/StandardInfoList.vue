@@ -901,7 +901,7 @@ async function importSuccessfulFun() {
   exceldata.userName = userStore.getUser.userName;
   exceldata.moduleName = fileList.value[0].newFileName;
   exceldata.menuId = menuId.value;
-  const res = await AdminApiSystemModule.importingModelInformationNew(exceldata);
+  const res = await AdminApiSystemModule.importinglibraryInformationNew(exceldata);
   if (res.data.code == 200) {
     message.info({
       top: 80,
@@ -1151,26 +1151,6 @@ watch(
   },
   { flush: 'post' },
 );
-
-// 详情
-function clickEvent(row: any, key: any) {
-  if (key === 'para2') {
-    const displayName = row?.para3 != null && String(row.para3).trim() !== '' ? String(row.para3) : String(row?.para1 ?? '');
-    const modelNumStr = row?.para1 != null ? String(row.para1) : String(row?.para2 ?? '');
-    insertModelLibraryStatisticsLog('数据查询', displayName, modelNumStr);
-  }
-  fileData1.value = [];
-  fileData2.value = [];
-  parmType.value = 'viz';
-  vizDetailRow.value = row;
-  pdmModuleCode.value = row[key];
-  PDMid.value = row.id;
-  pdmModelType.value = row.para4;
-  moduleDetails(row);
-  if (key === 'para2') {
-    void fetchVizPvzByModuleNum(row);
-  }
-}
 
 function isModuleStatusColumn(column: any) {
   const dataIndex = String(column?.dataIndex ?? '');
