@@ -1,0 +1,371 @@
+<template>
+  <div class="layout-wrapper">
+    <div class="layout-header">
+      <div class="layout-header__title">电机选型：</div>
+
+      <a-form label-align="left" :colon="false" :label-col="formLabelCol" :wrapper-col="formWrapperCol" class="power-form">
+        <a-form-item label="舵机额定功率（旋转）（W）:">
+          <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled allow-clear />
+        </a-form-item>
+        <a-form-item label="舵机额定功率（直线）（W）:" class="power-form__second">
+          <a-input v-model:value="parameterTempList[1].defaultValue" class="field-input" disabled allow-clear />
+        </a-form-item>
+      </a-form>
+
+      <div class="section-toolbar">
+        <a-button type="primary" @click="handleAddRow">添加行</a-button>
+        <a-button danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">删除</a-button>
+        <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">浏览</a-button>
+      </div>
+
+      <div class="selectBox">
+        <a-table
+          :columns="motorTableColumns"
+          :data-source="tableRowData"
+          :pagination="false"
+          bordered
+          size="small"
+          :scroll="{ y: tabHeight, x: 2100 }"
+          :row-key="motorTableRowKey"
+          :row-selection="motorRowSelection">
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="column.dataIndex === 'p0'">
+              <a-select v-model:value="record.p0" class="table-cell-select" @change="onMotorTypeChange(record, index)">
+                <a-select-option v-for="item in motorTypeOptions" :key="item.value" :value="item.value">
+                  {{ item.label }}
+                </a-select-option>
+              </a-select>
+            </template>
+            <template v-else-if="isEditableMotorCell(column, record)">
+              <a-input
+                v-model:value="record[String(column.dataIndex)]"
+                :type="column.inputType === 'text' ? 'text' : 'number'"
+                class="table-cell-input"
+                @input="onMotorCellInput(record, index, String(column.dataIndex))" />
+            </template>
+          </template>
+        </a-table>
+      </div>
+    </div>
+
+    <ModuleLibraryPickerModal
+      v-model:visible="modulePickerVisible"
+      :category-id="modulePickerCategoryId"
+      :menu-id="modulePickerMenuId"
+      :user-id="userStore.getUser.id"
+      :query-prefill="modulePickerQueryPrefill"
+      @confirm="onModulePickerConfirm" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { message } from 'ant-design-vue';
+import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
+import { useUserStore } from '@/store/modules/user';
+import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
+import { loadPage2PageParameters } from './page2/loadPageParameters';
+import { createDefaultPage2ParameterList, type Page2ParameterItem } from './page2/parameterDefaults';
+import {
+  addMotorRow,
+  applyModuleLibraryToRow,
+  deleteMotorRows,
+  extractPage2SaveParamValues,
+  getMotorTableRows,
+} from './page2/rowOperations';
+import { isBrowseModeRow, MOTOR_SELECT_ANT_COLUMNS, MOTOR_TYPE_OPTIONS, type Page2AntColumn } from './page2/tableColumns';
+
+defineOptions({ name: 'rx-customizedProcess-page2' });
+
+const props = withDefaults(
+  defineProps<{
+    width?: number;
+    modalFlag?: boolean;
+    pageid?: string;
+    parameterTempList?: Page2ParameterItem[];
+  }>(),
+  {
+    width: 1000,
+    modalFlag: false,
+    pageid: '',
+    parameterTempList: () => [],
+  },
+);
+
+const emit = defineEmits<{
+  setSaveBtnEnable: [value: boolean];
+}>();
+
+const route = useRoute();
+const userStore = useUserStore();
+const formLabelCol = { style: { width: '175px', flex: '0 0 175px' } };
+const formWrapperCol = { style: { flex: '0 0 auto' } };
+const tabHeight = 530;
+const motorTypeOptions = MOTOR_TYPE_OPTIONS;
+const motorTableColumns = MOTOR_SELECT_ANT_COLUMNS;
+
+function createInitialParameterList(): Page2ParameterItem[] {
+  if (!props.parameterTempList || props.parameterTempList.length <= 0) {
+    return createDefaultPage2ParameterList(props.pageid);
+  }
+  return props.parameterTempList.map(item => ({ ...item }));
+}
+
+const parameterTempList = ref<Page2ParameterItem[]>(createInitialParameterList());
+const selectList = ref<Array<Record<string, string | number | undefined>>>([]);
+const selectedRowKeys = ref<Array<string | number>>([]);
+const rowFlag = ref(false);
+const modulePickerVisible = ref(false);
+const modulePickerCategoryId = ref('');
+const modulePickerMenuId = ref('');
+const modulePickerQueryPrefill = ref<Record<string, string>>({});
+const modulecategoryid = ref('');
+const selectRow = ref(0);
+
+const tableRowData = computed(() => getMotorTableRows(parameterTempList.value));
+
+watch(
+  () => props.parameterTempList,
+  val => {
+    if (val && val.length > 0) {
+      parameterTempList.value = val.map(item => ({ ...item }));
+    }
+  },
+  { deep: true },
+);
+
+watch(
+  selectedRowKeys,
+  keys => {
+    rowFlag.value = keys.length <= 0;
+  },
+  { immediate: true },
+);
+
+const motorRowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys: Array<string | number>, rows: Array<Record<string, string | number | undefined>>) => {
+    selectedRowKeys.value = keys;
+    selectList.value = rows;
+  },
+}));
+
+function motorTableRowKey(record: Record<string, string | number | undefined>, index?: number) {
+  if (record.id != null && record.id !== '') {
+    return String(record.id);
+  }
+  if (record.delIndex != null && record.delIndex !== '') {
+    return String(record.delIndex);
+  }
+  return String(index ?? 0);
+}
+
+function isEditableMotorCell(column: Page2AntColumn, record: Record<string, string | number | undefined>) {
+  if (!column.dataIndex || column.dataIndex === 'p0' || column.dataIndex === 'p1') {
+    return false;
+  }
+  if (column.editable === false) {
+    return false;
+  }
+  return !isBrowseModeRow(record);
+}
+
+function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
+  emit('setSaveBtnEnable', true);
+  if (inputOrOutput === undefined || inputOrOutput === '1') {
+    return;
+  }
+  if (parameterId === undefined || parameterId === null || Number(parameterId) <= 0) {
+    return;
+  }
+  if (parameterValue === undefined || parameterValue === null) {
+    return;
+  }
+  parameterTempList.value.forEach(item => {
+    if (item.ifSingleLine !== 't') {
+      if (item.parameterId === parameterId) {
+        item.defaultValue = parameterValue;
+      }
+    } else if (item.tableMap && Number(item.tableMap.colNums) > 0) {
+      const colNums = Number(item.tableMap.colNums);
+      item.tableMap.rowData?.forEach(row => {
+        for (let i = 0; i < colNums; i++) {
+          if (row[`cellParameterId${i}`] === parameterId) {
+            row[`p${i}`] = parameterValue;
+          }
+        }
+      });
+    }
+  });
+}
+
+function onMotorTypeChange(record: Record<string, string | number | undefined>, index: number) {
+  if (parameterTempList.value[2]?.tableMap?.rowData?.[index]) {
+    parameterTempList.value[2].tableMap.rowData[index].p0 = record.p0;
+  }
+  setSaveBtnEnable();
+}
+
+function onMotorCellInput(record: Record<string, string | number | undefined>, index: number, field: string) {
+  if (parameterTempList.value[2]?.tableMap?.rowData?.[index]) {
+    parameterTempList.value[2].tableMap.rowData[index][field] = record[field];
+  }
+  setSaveBtnEnable();
+}
+
+function handleAddRow() {
+  addMotorRow(parameterTempList.value);
+  setSaveBtnEnable();
+}
+
+function handleDeleteRow() {
+  if (!selectList.value.length) return;
+  deleteMotorRows(parameterTempList.value, selectList.value);
+  selectList.value = [];
+  selectedRowKeys.value = [];
+  setSaveBtnEnable();
+}
+
+async function resolveModuleCategoryId() {
+  if (isValid(modulecategoryid.value)) {
+    return String(modulecategoryid.value);
+  }
+  const response: { code?: string; data?: { data?: string } | string } = await getFlowModuleid({ moduleName: '电机(C)' });
+  if (!response || response.code !== '0') {
+    message.info('获取模型库id失败');
+    return '';
+  }
+  const categoryId = String(
+    typeof response.data === 'object' && response.data !== null ? (response.data.data ?? '') : (response.data ?? ''),
+  ).trim();
+  if (!categoryId) {
+    message.info('获取模型库id失败');
+    return '';
+  }
+  modulecategoryid.value = categoryId;
+  return categoryId;
+}
+
+async function handleBrowseRow() {
+  if (!selectList.value.length) {
+    message.info('请选择浏览行');
+    return;
+  }
+  if (selectList.value.length !== 1) {
+    message.info('请只选择一个浏览行');
+    return;
+  }
+  if (!isBrowseModeRow(selectList.value[0])) {
+    message.info('请选择浏览行.');
+    return;
+  }
+
+  const categoryId = await resolveModuleCategoryId();
+  if (!categoryId) return;
+
+  const rows = getMotorTableRows(parameterTempList.value);
+  const selected = selectList.value[0];
+  selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
+  if (selectRow.value < 0) {
+    message.info('未找到所选行');
+    return;
+  }
+
+  let edgl = parameterTempList.value[0]?.defaultValue ?? '';
+  if (!isValid(edgl)) {
+    edgl = parameterTempList.value[1]?.defaultValue ?? '';
+  }
+
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = categoryId;
+  modulePickerQueryPrefill.value = edgl ? { DJ1_1_EDGL_X: String(edgl) } : {};
+  modulePickerVisible.value = true;
+}
+
+function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns: Array<Record<string, unknown>> }) {
+  applyModuleLibraryToRow(parameterTempList.value, selectRow.value, payload);
+  modulePickerVisible.value = false;
+  setSaveBtnEnable();
+}
+
+async function loadPageParametersIfNeeded() {
+  if (props.parameterTempList && props.parameterTempList.length > 0) return;
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
+  if (!pageId) return;
+  parameterTempList.value = await loadPage2PageParameters(pageId);
+}
+
+function updateEl() {
+  nextTick(() => {});
+}
+
+function getCurrentSaveParamValues() {
+  return extractPage2SaveParamValues(parameterTempList.value);
+}
+
+defineExpose({
+  updateEl,
+  getCurrentSaveParamValues,
+});
+
+onMounted(async () => {
+  await loadPageParametersIfNeeded();
+});
+</script>
+
+<style scoped>
+.layout-wrapper {
+  padding: 0 10px;
+  min-height: 680px;
+  background-color: #ffffff;
+}
+
+.layout-header {
+  background: #ffffff;
+  min-height: 680px;
+  line-height: 40px;
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+.layout-header__title {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  padding-left: 10px;
+}
+
+.power-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 10px 0 0 10px;
+}
+
+.power-form__second {
+  margin-bottom: 0;
+}
+
+.section-toolbar {
+  padding: 10px 0 10px 10px;
+}
+
+.selectBox {
+  width: 100%;
+  padding: 0 10px;
+}
+
+.field-input {
+  width: 234px;
+}
+
+.table-cell-input,
+.table-cell-select {
+  width: 100%;
+}
+
+.selectBox :deep(.ant-table-cell) {
+  padding: 4px 6px;
+}
+</style>

@@ -1,0 +1,416 @@
+<template>
+  <div class="layout-wrapper">
+    <div class="layout-header">
+      <div class="layout-header__title">减速器选型：</div>
+
+      <a-form label-align="left" :colon="false" :label-col="formLabelCol" :wrapper-col="formWrapperCol" class="param-form">
+        <a-form-item label="舵机工作方式:">
+          <a-input v-model:value="parameterTempList[6].defaultValue" class="field-input" disabled allow-clear />
+        </a-form-item>
+
+        <div v-for="(row, rowIndex) in formRows" :key="rowIndex" class="form-row">
+          <div class="form-col">
+            <a-form-item :label="row.left.label">
+              <a-input v-model:value="parameterTempList[row.left.index].defaultValue" class="field-input" disabled allow-clear />
+            </a-form-item>
+          </div>
+          <div v-if="row.right" class="form-col">
+            <a-form-item :label="row.right.label">
+              <a-input v-model:value="parameterTempList[row.right.index].defaultValue" class="field-input" disabled allow-clear />
+            </a-form-item>
+          </div>
+        </div>
+      </a-form>
+
+      <div class="section-toolbar">
+        <a-button type="primary" @click="handleAddRow">添加行</a-button>
+        <a-button danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">删除行</a-button>
+        <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">浏览</a-button>
+      </div>
+
+      <div class="selectBox">
+        <a-table
+          :columns="reducerTableColumns"
+          :data-source="tableRowData"
+          :pagination="false"
+          bordered
+          size="small"
+          :scroll="{ y: tabHeight, x: 1400 }"
+          :row-key="reducerTableRowKey"
+          :row-selection="reducerRowSelection">
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="column.dataIndex === 'p0'">
+              <a-select
+                v-model:value="record.p0"
+                class="table-cell-select"
+                @change="onReducerTypeChange(record, index)">
+                <a-select-option v-for="item in reducerTypeOptions" :key="item.value" :value="item.value">
+                  {{ item.label }}
+                </a-select-option>
+              </a-select>
+            </template>
+            <template v-else-if="isEditableReducerCell(column, record)">
+              <a-input
+                v-model:value="record[String(column.dataIndex)]"
+                :type="column.inputType === 'text' ? 'text' : 'number'"
+                class="table-cell-input"
+                @input="onReducerCellInput(record, index, String(column.dataIndex))" />
+            </template>
+          </template>
+        </a-table>
+      </div>
+    </div>
+
+    <ModuleLibraryPickerModal
+      v-model:visible="modulePickerVisible"
+      :category-id="modulePickerCategoryId"
+      :menu-id="modulePickerMenuId"
+      :user-id="userStore.getUser.id"
+      :query-prefill="modulePickerQueryPrefill"
+      @confirm="onModulePickerConfirm" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { message } from 'ant-design-vue';
+import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
+import { useUserStore } from '@/store/modules/user';
+import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
+import { buildReducerBrowseQueryPrefill } from './page2-1/browseHelpers';
+import { loadPage2_1PageParameters } from './page2-1/loadPageParameters';
+import { createDefaultPage2_1ParameterList, type Page2_1ParameterItem } from './page2-1/parameterDefaults';
+import {
+  addReducerRow,
+  applyModuleLibraryToRow,
+  deleteReducerRows,
+  extractPage2_1SaveParamValues,
+  getReducerTableRows,
+} from './page2-1/rowOperations';
+import {
+  isBrowseModeRow,
+  REDUCER_SELECT_ANT_COLUMNS,
+  REDUCER_TYPE_OPTIONS,
+  type Page2_1AntColumn,
+} from './page2-1/tableColumns';
+
+defineOptions({ name: 'rx-customizedProcess-page2-1' });
+
+const props = withDefaults(
+  defineProps<{
+    width?: number;
+    modalFlag?: boolean;
+    pageid?: string;
+    parameterTempList?: Page2_1ParameterItem[];
+  }>(),
+  {
+    width: 1000,
+    modalFlag: false,
+    pageid: '',
+    parameterTempList: () => [],
+  },
+);
+
+const emit = defineEmits<{
+  setSaveBtnEnable: [value: boolean];
+}>();
+
+const route = useRoute();
+const userStore = useUserStore();
+const formLabelCol = { style: { width: '160px', flex: '0 0 160px' } };
+const formWrapperCol = { style: { flex: '0 0 auto' } };
+const tabHeight = 440;
+const reducerTypeOptions = REDUCER_TYPE_OPTIONS;
+const reducerTableColumns = REDUCER_SELECT_ANT_COLUMNS;
+
+interface FormFieldConfig {
+  index: number;
+  label: string;
+}
+
+interface FormRowConfig {
+  left: FormFieldConfig;
+  right?: FormFieldConfig;
+}
+
+const formRows: FormRowConfig[] = [
+  {
+    left: { index: 0, label: '机械行程（单边转角）:' },
+    right: { index: 1, label: '机械行程（单边直线）:' },
+  },
+  {
+    left: { index: 3, label: '减速器载荷 (旋转) (Nm):' },
+    right: { index: 4, label: '减速器载荷 (直线) (Nm):' },
+  },
+  {
+    left: { index: 7, label: '等效力臂（mm）:' },
+    right: { index: 2, label: '舵机末端减速器形式:' },
+  },
+];
+
+function createInitialParameterList(): Page2_1ParameterItem[] {
+  if (!props.parameterTempList || props.parameterTempList.length <= 0) {
+    return createDefaultPage2_1ParameterList(props.pageid);
+  }
+  return props.parameterTempList.map(item => ({ ...item }));
+}
+
+const parameterTempList = ref<Page2_1ParameterItem[]>(createInitialParameterList());
+const selectList = ref<Array<Record<string, string | number | undefined>>>([]);
+const selectedRowKeys = ref<Array<string | number>>([]);
+const rowFlag = ref(false);
+const modulePickerVisible = ref(false);
+const modulePickerCategoryId = ref('');
+const modulePickerMenuId = ref('');
+const modulePickerQueryPrefill = ref<Record<string, string>>({});
+const modulecategoryid = ref('');
+const selectRow = ref(0);
+
+const tableRowData = computed(() => getReducerTableRows(parameterTempList.value));
+
+watch(
+  () => props.parameterTempList,
+  val => {
+    if (val && val.length > 0) {
+      parameterTempList.value = val.map(item => ({ ...item }));
+    }
+  },
+  { deep: true },
+);
+
+watch(
+  selectedRowKeys,
+  keys => {
+    rowFlag.value = keys.length <= 0;
+  },
+  { immediate: true },
+);
+
+const reducerRowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys: Array<string | number>, rows: Array<Record<string, string | number | undefined>>) => {
+    selectedRowKeys.value = keys;
+    selectList.value = rows;
+  },
+}));
+
+function reducerTableRowKey(record: Record<string, string | number | undefined>, index?: number) {
+  if (record.delIndex != null && record.delIndex !== '') {
+    return String(record.delIndex);
+  }
+  if (record.id != null && record.id !== '') {
+    return String(record.id);
+  }
+  return String(index ?? 0);
+}
+
+function isEditableReducerCell(column: Page2_1AntColumn, record: Record<string, string | number | undefined>) {
+  if (!column.dataIndex || column.dataIndex === 'p0' || column.dataIndex === 'p1') {
+    return false;
+  }
+  if (column.editable === false) {
+    return false;
+  }
+  return !isBrowseModeRow(record);
+}
+
+function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
+  emit('setSaveBtnEnable', true);
+  if (inputOrOutput === undefined || inputOrOutput === '1') {
+    return;
+  }
+  if (parameterId === undefined || parameterId === null || Number(parameterId) <= 0) {
+    return;
+  }
+  if (parameterValue === undefined || parameterValue === null) {
+    return;
+  }
+  parameterTempList.value.forEach(item => {
+    if (item.ifSingleLine !== 't') {
+      if (item.parameterId === parameterId) {
+        item.defaultValue = parameterValue;
+      }
+    } else if (item.tableMap && Number(item.tableMap.colNums) > 0) {
+      const colNums = Number(item.tableMap.colNums);
+      item.tableMap.rowData?.forEach(row => {
+        for (let i = 0; i < colNums; i++) {
+          if (row[`cellParameterId${i}`] === parameterId) {
+            row[`p${i}`] = parameterValue;
+          }
+        }
+      });
+    }
+  });
+}
+
+function onReducerTypeChange(record: Record<string, string | number | undefined>, index: number) {
+  if (parameterTempList.value[5]?.tableMap?.rowData?.[index]) {
+    parameterTempList.value[5].tableMap.rowData[index].p0 = record.p0;
+  }
+  setSaveBtnEnable();
+}
+
+function onReducerCellInput(record: Record<string, string | number | undefined>, index: number, field: string) {
+  if (parameterTempList.value[5]?.tableMap?.rowData?.[index]) {
+    parameterTempList.value[5].tableMap.rowData[index][field] = record[field];
+  }
+  setSaveBtnEnable();
+}
+
+function handleAddRow() {
+  addReducerRow(parameterTempList.value);
+  setSaveBtnEnable();
+}
+
+function handleDeleteRow() {
+  if (!selectList.value.length) return;
+  deleteReducerRows(parameterTempList.value, selectList.value);
+  selectList.value = [];
+  selectedRowKeys.value = [];
+  setSaveBtnEnable();
+}
+
+async function resolveModuleCategoryId() {
+  if (isValid(modulecategoryid.value)) {
+    return String(modulecategoryid.value);
+  }
+  const response: { code?: string; data?: { data?: string } | string } = await getFlowModuleid({ moduleName: '减速器' });
+  if (!response || response.code !== '0') {
+    message.info('获取模型库id失败');
+    return '';
+  }
+  const categoryId = String(
+    typeof response.data === 'object' && response.data !== null ? (response.data.data ?? '') : (response.data ?? ''),
+  ).trim();
+  if (!categoryId) {
+    message.info('获取模型库id失败');
+    return '';
+  }
+  modulecategoryid.value = categoryId;
+  return categoryId;
+}
+
+async function handleBrowseRow() {
+  if (!selectList.value.length) {
+    message.info('请选择浏览行');
+    return;
+  }
+  if (selectList.value.length !== 1) {
+    message.info('请只选择一个浏览行');
+    return;
+  }
+  if (!isBrowseModeRow(selectList.value[0])) {
+    message.info('请选择浏览行.');
+    return;
+  }
+
+  const categoryId = await resolveModuleCategoryId();
+  if (!categoryId) return;
+
+  const rows = getReducerTableRows(parameterTempList.value);
+  const selected = selectList.value[0];
+  selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
+  if (selectRow.value < 0) {
+    message.info('未找到所选行');
+    return;
+  }
+
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = categoryId;
+  modulePickerQueryPrefill.value = buildReducerBrowseQueryPrefill(parameterTempList.value);
+  modulePickerVisible.value = true;
+}
+
+function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns: Array<Record<string, unknown>> }) {
+  applyModuleLibraryToRow(parameterTempList.value, selectRow.value, payload);
+  modulePickerVisible.value = false;
+  setSaveBtnEnable();
+}
+
+async function loadPageParametersIfNeeded() {
+  if (props.parameterTempList && props.parameterTempList.length > 0) return;
+  const pageId = String(
+    props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '',
+  ).trim();
+  if (!pageId) return;
+  parameterTempList.value = await loadPage2_1PageParameters(pageId);
+}
+
+function updateEl() {
+  nextTick(() => {});
+}
+
+function getCurrentSaveParamValues() {
+  return extractPage2_1SaveParamValues(parameterTempList.value);
+}
+
+defineExpose({
+  updateEl,
+  getCurrentSaveParamValues,
+});
+
+onMounted(async () => {
+  await loadPageParametersIfNeeded();
+});
+</script>
+
+<style scoped>
+.layout-wrapper {
+  padding: 0 10px;
+  min-height: 680px;
+  background-color: #ffffff;
+}
+
+.layout-header {
+  background: #ffffff;
+  min-height: 680px;
+  line-height: 40px;
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+.layout-header__title {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  padding-left: 10px;
+}
+
+.param-form {
+  padding: 10px 0 0 10px;
+}
+
+.form-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.form-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.section-toolbar {
+  padding: 10px 0 10px 10px;
+}
+
+.selectBox {
+  width: 100%;
+  padding: 0 10px;
+}
+
+.field-input {
+  width: 234px;
+}
+
+.table-cell-input,
+.table-cell-select {
+  width: 100%;
+}
+
+.selectBox :deep(.ant-table-cell) {
+  padding: 4px 6px;
+}
+</style>

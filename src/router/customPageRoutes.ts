@@ -102,4 +102,34 @@ export const customPageRoutes: RouteRecordRaw[] = [
       noCache: true,
     },
   },
+  {
+    path: 'customized-process-page1-4',
+    name: 'CustomizedProcessPage1_4',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page1-4.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面1-4',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page2',
+    name: 'CustomizedProcessPage2',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page2.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面2',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page2-1',
+    name: 'CustomizedProcessPage2_1',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page2-1.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面2-1',
+      noCache: true,
+    },
+  },
 ];

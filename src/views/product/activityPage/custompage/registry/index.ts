@@ -13,6 +13,9 @@ export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-page1': () => import('@/views/product/activityPage/custompage/customizedProcess-page1.vue'), //定制流程页面1-1
   'customized-process-page1-2': () => import('@/views/product/activityPage/custompage/customizedProcess-page1-2.vue'), //定制流程页面1-2
   'customized-process-page1-3': () => import('@/views/product/activityPage/custompage/customizedProcess-page1-3.vue'), //定制流程页面1-3
+  'customized-process-page1-4': () => import('@/views/product/activityPage/custompage/customizedProcess-page1-4.vue'), //定制流程页面1-4
+  'customized-process-page2': () => import('@/views/product/activityPage/custompage/customizedProcess-page2.vue'), //定制流程页面2
+  'customized-process-page2-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page2-1.vue'), //定制流程页面2-1
 };
 
 /** 自定义页 key → 前端路由 path */
@@ -27,6 +30,9 @@ export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-page1': '/internal/customized-process-page1',
   'customized-process-page1-2': '/internal/customized-process-page1-2',
   'customized-process-page1-3': '/internal/customized-process-page1-3',
+  'customized-process-page1-4': '/internal/customized-process-page1-4',
+  'customized-process-page2': '/internal/customized-process-page2',
+  'customized-process-page2-1': '/internal/customized-process-page2-1',
 };
 
 export type CustomPagePreviewTarget =

@@ -63,3 +63,11 @@ export function readTDDPInputData(data: Record<string, unknown>) {
     data,
   });
 }
+
+export function getFlowModuleid(data: Record<string, unknown>) {
+  return httpRequest({
+    url: '/flow/getFlowModuleid.json',
+    method: 'POST',
+    data,
+  });
+}
