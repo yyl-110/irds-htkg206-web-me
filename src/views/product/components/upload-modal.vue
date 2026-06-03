@@ -123,6 +123,8 @@ function getServerIdForFile(file: UploadFile | undefined): string {
 
 const resolvedModalTitle = computed(() => props.modalTitle?.trim() || '上传附件');
 
+const resolvedZIndex = computed(() => (props.zIndex != null ? props.zIndex : 1000));
+
 const maxCountCoerced = computed(() => {
   const m = props.maxCount;
   if (m == null || Number(m) < 1) return 1;
@@ -159,7 +161,13 @@ function onCancel() {
 </script>
 
 <template>
-  <a-modal v-model:visible="modalVisible" :title="resolvedModalTitle" width="640px" :z-index="zIndex" @ok="onConfirm" @cancel="onCancel">
+  <a-modal
+    v-model:visible="modalVisible"
+    :title="resolvedModalTitle"
+    width="640px"
+    :z-index="resolvedZIndex"
+    @ok="onConfirm"
+    @cancel="onCancel">
     <p v-if="hint" class="upload-modal-hint">{{ hint }}</p>
     <a-form :label-col="{ style: { width: '90px' } }">
       <a-form-item label="附件密级">
