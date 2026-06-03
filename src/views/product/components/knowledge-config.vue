@@ -115,6 +115,7 @@ const handleCurrentChange = (val: number, size: number) => {
 const fetchConfigData = async () => {
   try {
     tableLoading.value = true
+    alert(activeFileId.value)
     const res = await AdminApiSystemParameter.getParameterList({ fileId: activeFileId.value, businessId: businessId.value, type: props.type })
     if (res?.data.code === 200) {
       tableData.value = res?.data.data

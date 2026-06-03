@@ -1,0 +1,75 @@
+/**
+ * 全局文本域：拖拽增高时容器随内容撑开，避免遮盖下方表单项 / 弹窗按钮。
+ * 覆盖 Ant Design Vue、Element Plus 及原生 textarea。
+ */
+
+// --- Ant Design Vue ---
+.ant-input-affix-wrapper-textarea-with-clear-btn {
+  display: block;
+  height: auto !important;
+  min-height: 32px;
+  overflow: visible;
+}
+
+.ant-input-textarea {
+  display: block;
+  height: auto !important;
+  overflow: visible;
+
+  textarea.ant-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    overflow: auto;
+  }
+}
+
+.ant-form-item:has(.ant-input-textarea),
+.ant-form-item:has(textarea.ant-input),
+.ant-form-item:has(.ant-input-affix-wrapper-textarea-with-clear-btn) {
+  align-items: flex-start;
+
+  .ant-form-item-label > label {
+    height: auto;
+    min-height: 32px;
+  }
+
+  .ant-form-item-control-input {
+    align-items: flex-start;
+    height: auto;
+    min-height: 32px;
+  }
+
+  .ant-form-item-control-input-content {
+    overflow: visible;
+  }
+}
+
+// --- Element Plus ---
+.el-form-item:has(.el-textarea) {
+  align-items: flex-start;
+
+  .el-form-item__content {
+    overflow: visible;
+  }
+}
+
+.el-textarea {
+  display: block;
+  height: auto !important;
+
+  .el-textarea__inner {
+    display: block;
+    box-sizing: border-box;
+    resize: vertical;
+    overflow: auto;
+  }
+}
+
+// --- 原生 textarea（非组件库封装）---
+textarea:not(.ant-input):not(.el-textarea__inner) {
+  box-sizing: border-box;
+  resize: vertical;
+  overflow: auto;
+}
