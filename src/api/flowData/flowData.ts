@@ -28,6 +28,10 @@ export function isValid(val) {
   return true;
 }
 
+export function deepCopy<T>(val: T): T {
+  return JSON.parse(JSON.stringify(val)) as T;
+}
+
 export function executeAnsysSimulate(data: Record<string, unknown>) {
   return httpRequest({
     url: '/flow/executeAnsysSimulate.json',

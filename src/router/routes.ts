@@ -318,6 +318,16 @@ export const routes: RouteRecordRaw[] = [
           noCache: true,
         },
       },
+      {
+        path: 'customized-process-page0-1',
+        name: 'CustomizedProcessPage0_1',
+        component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'),
+        meta: {
+          hidden: true,
+          title: '定制流程页面-1',
+          noCache: true,
+        },
+      },
     ],
   },
   {

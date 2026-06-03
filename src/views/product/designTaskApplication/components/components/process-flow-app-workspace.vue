@@ -272,6 +272,12 @@ function getActivePreviewSaveParamValues() {
   return nodePreviewRef.value?.getCurrentSaveParamValues?.() ?? [];
 }
 
+function getActivePreviewTableSavePayload() {
+  const fromCustomPreview = customNodePreviewRef.value?.getCurrentTableSavePayload?.();
+  if (Array.isArray(fromCustomPreview) && fromCustomPreview.length) return fromCustomPreview;
+  return nodePreviewRef.value?.getCurrentTableSavePayload?.() ?? [];
+}
+
 const selectedNodeTitle = computed(() => {
   const detailName = String(nodeDetailData.value?.nodeName ?? '').trim();
   if (detailName) return detailName;
@@ -608,7 +614,7 @@ async function handleToolbarExportReport(): Promise<boolean> {
 
   // 表格参数：先用 task-param-map 快照，再用页面实时表格覆盖同 componentId
   const baseTables = normalizeTableRows(Array.isArray(detail?.savedTables) ? detail.savedTables : []);
-  const liveTablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const liveTablePayload = getActivePreviewTableSavePayload();
   const liveTables = normalizeTableRows(Array.isArray(liveTablePayload) ? liveTablePayload : []);
   const tableMap = new Map<string, any>();
   baseTables.forEach((tb: any, idx: number) => tableMap.set(tb.componentId || `base-${idx}`, tb));
@@ -1099,7 +1105,7 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
     return false;
   }
   const tableUniqueCodeValues = nodePreviewRef.value?.getCurrentTableUniqueCodeSaveValues?.() || [];
-  const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const tablePayload = getActivePreviewTableSavePayload();
   const sourceValues = getActivePreviewSaveParamValues();
   const baseValues = sourceValues
     .map((row: any) => ({
@@ -1267,7 +1273,7 @@ async function goNextNode() {
     return;
   }
   const tableUniqueCodeValues = nodePreviewRef.value?.getCurrentTableUniqueCodeSaveValues?.() || [];
-  const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const tablePayload = getActivePreviewTableSavePayload();
   const sourceValues = getActivePreviewSaveParamValues();
   const baseValues = sourceValues
     .map((row: any) => ({
@@ -1431,7 +1437,7 @@ async function finishFlow() {
     return;
   }
   const tableUniqueCodeValues = nodePreviewRef.value?.getCurrentTableUniqueCodeSaveValues?.() || [];
-  const tablePayload = nodePreviewRef.value?.getCurrentTableSavePayload?.() || [];
+  const tablePayload = getActivePreviewTableSavePayload();
   const sourceValues = getActivePreviewSaveParamValues();
   const baseValues = sourceValues
     .map((row: any) => ({

@@ -3,14 +3,16 @@ import type { Component } from 'vue';
 export type CustomPageLoader = () => Promise<{ default: Component }>;
 
 export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
-  'customized-process-ansys': () => import('@/views/product/activityPage/custompage/customizedProcess-ansys.vue'),
-  'customized-process-jsinvoke': () => import('@/views/product/activityPage/custompage/customizedProcess-jsinvoke.vue'),
+  'customized-process-ansys': () => import('@/views/product/activityPage/custompage/customizedProcess-ansys.vue'), //弯板计算页面
+  'customized-process-jsinvoke': () => import('@/views/product/activityPage/custompage/customizedProcess-jsinvoke.vue'), //JS计算页面
+  'customized-process-page0-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'), //定制流程页面-1
 };
 
 /** 自定义页 key → 前端路由 path */
 export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-ansys': '/internal/customized-process-ansys',
   'customized-process-jsinvoke': '/internal/customized-process-jsinvoke',
+  'customized-process-page0-1': '/internal/customized-process-page0-1',
 };
 
 export type CustomPagePreviewTarget =
@@ -49,6 +51,15 @@ export function resolveCustomPageKey(pageUrl?: string | null, pageName?: string 
     name.includes('js')
   ) {
     return 'customized-process-jsinvoke';
+  }
+  if (
+    url.includes('customized-process-page0-1') ||
+    url.includes('customizedprocess-page0-1') ||
+    url.includes('page0-1') ||
+    url.includes('page0_1') ||
+    name.includes('确认输入')
+  ) {
+    return 'customized-process-page0-1';
   }
   return null;
 }

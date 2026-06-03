@@ -11,6 +11,10 @@ import {
   loadJsinvokePageParameters,
   type JsinvokeParameterItem,
 } from '@/views/product/activityPage/custompage/utils/loadJsinvokePageParameters';
+import {
+  loadPage0_1PageParameters,
+  type Page0_1ParameterItem,
+} from '@/views/product/activityPage/custompage/utils/loadPage0_1PageParameters';
 import { loadCustomPageComponent, resolveCustomPageKey } from '../../../activityPage/custompage/utils/customPageRegistry';
 
 const props = defineProps<{
@@ -27,8 +31,11 @@ const emit = defineEmits<{
 const loading = ref(false);
 const ready = ref(false);
 const resolvedComponent = shallowRef<Component | null>(null);
-const customComponentRef = ref<{ getCurrentSaveParamValues?: () => unknown[] } | null>(null);
-const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem>>([]);
+const customComponentRef = ref<{
+  getCurrentSaveParamValues?: () => unknown[];
+  getCurrentTableSavePayload?: () => unknown[];
+} | null>(null);
+const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem | Page0_1ParameterItem>>([]);
 const pageKey = ref<string | null>(null);
 
 async function loadPageContent() {
@@ -51,6 +58,8 @@ async function loadPageContent() {
       parameterTempList.value = await loadAnsysPageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
     } else if (pageKey.value === 'customized-process-jsinvoke') {
       parameterTempList.value = await loadJsinvokePageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
+    } else if (pageKey.value === 'customized-process-page0-1') {
+      parameterTempList.value = await loadPage0_1PageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
     }
     ready.value = true;
   } catch (error) {
@@ -63,6 +72,10 @@ async function loadPageContent() {
 
 function getCurrentSaveParamValues() {
   return customComponentRef.value?.getCurrentSaveParamValues?.() ?? [];
+}
+
+function getCurrentTableSavePayload() {
+  return customComponentRef.value?.getCurrentTableSavePayload?.() ?? [];
 }
 
 function onContentMutated() {
@@ -79,6 +92,7 @@ watch(
 
 defineExpose({
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 </script>
 
