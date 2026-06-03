@@ -21,10 +21,10 @@ onMounted(() => { });
       <template #tab> 知识中心管理 </template>
       <KnowledgeCenterManage />
     </a-tab-pane>
-    <a-tab-pane key="knowledgeMap">
+    <!-- <a-tab-pane key="knowledgeMap">
       <template #tab> 知识地图管理 </template>
       <KnowledgeMapManage />
-    </a-tab-pane>
+    </a-tab-pane> -->
     <!-- <a-tab-pane key="knowledgeStudy">
       <template #tab> 知识学习管理 </template>
       <KnowledgeLearningManage />

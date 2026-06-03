@@ -50,12 +50,12 @@
               }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="发布状态" name="releaseStatus">
+        <!-- <a-form-item label="发布状态" name="releaseStatus">
           <a-select class="elInput" v-model:value="ruleForm.releaseStatus" placeholder="请选择发布状态">
             <a-select-option value="0">已发布</a-select-option>
             <a-select-option value="1">未发布</a-select-option>
           </a-select>
-        </a-form-item>
+        </a-form-item> -->
         <a-form-item label="关键字" class="position-el-form-item">
           <a-input class="elInput" v-model:value="ruleForm.keywords" placeholder="请输入关键字" />
           <a-tooltip placement="topRight" title="使用英文逗号,分隔">
@@ -151,7 +151,6 @@ const ruleForm = reactive({
 
 const rules = {
   checkTabList: [{ required: true, message: '请选择分类属性', trigger: 'blur' }],
-  releaseStatus: [{ required: true, message: '请选择发布状态', trigger: 'change' }],
   isDown: [{ required: true, message: '请选择分类属性', trigger: 'change' }],
 };
 

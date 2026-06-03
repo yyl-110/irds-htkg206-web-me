@@ -19,7 +19,7 @@ const userStore = useUserStore();
 
 const tabs = [
   { key: 1, name: "知识中心", component: knowledgeCenter },
-  { key: 2, name: "知识地图", component: knowledgeMap },
+  // { key: 2, name: "知识地图", component: knowledgeMap },
   // { key: 3, name: "知识学习", component: flowTaskMap },
   { key: 4, name: "知识问答", component: knowledgeQuestionAnswer },
   // { key: 5, name: "技术标准", component: knowledgeStandard },
