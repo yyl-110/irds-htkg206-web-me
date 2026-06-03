@@ -6,20 +6,20 @@ import { message } from 'ant-design-vue';
 import {
   loadAnsysPageParameters,
   type AnsysParameterItem,
-} from '@/views/product/activityPage/custompage/utils/loadAnsysPageParameters';
+} from '@/views/product/activityPage/custompage/ansys/loadPageParameters';
 import {
   loadJsinvokePageParameters,
   type JsinvokeParameterItem,
-} from '@/views/product/activityPage/custompage/utils/loadJsinvokePageParameters';
+} from '@/views/product/activityPage/custompage/jsinvoke/loadPageParameters';
 import {
   loadPage0PageParameters,
   type Page0ParameterItem,
-} from '@/views/product/activityPage/custompage/utils/loadPage0PageParameters';
+} from '@/views/product/activityPage/custompage/page0/loadPageParameters';
 import {
   loadPage0_1PageParameters,
   type Page0_1ParameterItem,
-} from '@/views/product/activityPage/custompage/utils/loadPage0_1PageParameters';
-import { loadCustomPageComponent, resolveCustomPageKey } from '../../../activityPage/custompage/utils/customPageRegistry';
+} from '@/views/product/activityPage/custompage/page0-1/loadPageParameters';
+import { loadCustomPageComponent, resolveCustomPageKey } from '../../../activityPage/custompage/registry';
 
 const props = defineProps<{
   activityPageId?: string | number | null;

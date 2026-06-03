@@ -75,20 +75,20 @@ import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { isValid, readTDDPInputData } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
-import { createDefaultPage0ParameterList, type Page0ParameterItem } from './config/page0ParameterDefaults';
+import { createDefaultPage0ParameterList, type Page0ParameterItem } from './page0/parameterDefaults';
 import {
   BASE_PARAMS_COLUMNS,
   COMM_PARAMS_COLUMNS,
   FUXIANG_PARAMS_COLUMNS,
   toAntTableColumns,
   WORK_PARAMS_COLUMNS,
-} from './config/page0TableColumns';
-import { loadPage0PageParameters } from './utils/loadPage0PageParameters';
+} from './page0/tableColumns';
+import { loadPage0PageParameters } from './page0/loadPageParameters';
 import {
   applyTddpInputToParameters,
   clearPage0TableData,
   type TddpKeyValue,
-} from './utils/page0TddpData';
+} from './page0/tddpData';
 
 defineOptions({ name: 'rx-customizedProcess-page0' });
 

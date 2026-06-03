@@ -107,7 +107,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { isValid } from '@/api/flowData/flowData';
-import { createDefaultPage0_1ParameterList, type Page0_1ParameterItem } from './config/page0_1ParameterDefaults';
+import { createDefaultPage0_1ParameterList, type Page0_1ParameterItem } from './page0-1/parameterDefaults';
 import {
   BASE_PARAMS_COLUMNS,
   COMM_PARAMS_COLUMNS,
@@ -115,9 +115,9 @@ import {
   isEditableColumn,
   toAntTableColumns,
   WORK_PARAMS_COLUMNS,
-} from './config/page0_1TableColumns';
-import { loadPage0_1PageParameters } from './utils/loadPage0_1PageParameters';
-import { applyFreshData } from './utils/page0_1FreshData';
+} from './page0-1/tableColumns';
+import { loadPage0_1PageParameters } from './page0-1/loadPageParameters';
+import { applyFreshData } from './page0-1/freshData';
 
 defineOptions({ name: 'rx-customizedProcess-page0-1' });
 

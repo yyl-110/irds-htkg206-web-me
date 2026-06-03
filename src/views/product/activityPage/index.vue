@@ -39,7 +39,7 @@ import CustomPageParamModal from './components/custom-page-param-modal.vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { downloadFileFromStream } from '@/utils/file';
 import { normalizeListSnowflakeIds, toSnowflakeIdStr } from '@/utils/snowflakeId';
-import { resolveCustomPagePreviewTarget } from './custompage/utils/customPageRegistry';
+import { resolveCustomPagePreviewTarget } from './custompage/registry';
 import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 import ImportFile from '@/components/ImportFile/index.vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';

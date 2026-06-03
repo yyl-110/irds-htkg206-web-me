@@ -2,7 +2,7 @@ import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理
 import {
   createDefaultPage0_1ParameterList,
   type Page0_1ParameterItem,
-} from '../config/page0_1ParameterDefaults';
+} from './parameterDefaults';
 
 export type { Page0_1ParameterItem };
 

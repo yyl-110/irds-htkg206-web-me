@@ -3,7 +3,7 @@ import {
   createFallbackBaseRowData,
   createFallbackCommRowData,
   type Page0_1ParameterItem,
-} from '../config/page0_1ParameterDefaults';
+} from './parameterDefaults';
 
 interface FlowTableItem {
   tablenum?: string;

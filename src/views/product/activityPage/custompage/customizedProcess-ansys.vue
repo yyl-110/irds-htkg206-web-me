@@ -271,8 +271,8 @@ import type { OrthographicCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import HttpRequestConfig from '@/httpRequest/config';
 import { useUserStore } from '@/store/modules/user';
 import { executeAnsysSimulate, isValid } from '@/api/flowData/flowData';
-import { createDefaultAnsysParameterList } from './config/ansysParameterDefaults';
-import { loadAnsysPageParameters } from './utils/loadAnsysPageParameters';
+import { createDefaultAnsysParameterList } from './ansys/parameterDefaults';
+import { loadAnsysPageParameters } from './ansys/loadPageParameters';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { downloadFileFromStream } from '@/utils/file';
 

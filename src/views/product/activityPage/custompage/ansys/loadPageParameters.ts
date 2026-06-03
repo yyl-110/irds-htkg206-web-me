@@ -1,12 +1,12 @@
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
-import { createDefaultPage0ParameterList, type Page0ParameterItem } from '../config/page0ParameterDefaults';
+import { createDefaultAnsysParameterList, type AnsysParameterItem } from './parameterDefaults';
 
-export type { Page0ParameterItem };
+export type { AnsysParameterItem };
 
 export function mergeSavedParamsIntoList(
-  list: Page0ParameterItem[],
+  list: AnsysParameterItem[],
   saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
-): Page0ParameterItem[] {
+): AnsysParameterItem[] {
   const savedMap = new Map<string, string>();
   (saved || []).forEach(row => {
     const code = String(row?.paramCode ?? row?.paramKey ?? '').trim();
@@ -24,7 +24,7 @@ export function mergeSavedParamsIntoList(
   });
 }
 
-async function applyActivityParameterIds(pageId: string, list: Page0ParameterItem[]): Promise<Page0ParameterItem[]> {
+async function applyActivityParameterIds(pageId: string, list: AnsysParameterItem[]): Promise<AnsysParameterItem[]> {
   if (!pageId) return list;
   try {
     const res = await AdminApiSystemParameter.getParameterActList({ businessId: pageId, type: '2' });
@@ -46,12 +46,12 @@ async function applyActivityParameterIds(pageId: string, list: Page0ParameterIte
   }
 }
 
-export async function loadPage0PageParameters(
+export async function loadAnsysPageParameters(
   pageId: string,
   saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
-): Promise<Page0ParameterItem[]> {
+): Promise<AnsysParameterItem[]> {
   const pageKey = String(pageId ?? '').trim();
-  let list = createDefaultPage0ParameterList(pageKey);
+  let list = createDefaultAnsysParameterList(pageKey);
   list = await applyActivityParameterIds(pageKey, list);
   return mergeSavedParamsIntoList(list, saved);
 }

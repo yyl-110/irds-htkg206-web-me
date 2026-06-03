@@ -1,4 +1,4 @@
-import type { Page0ParameterItem } from '../config/page0ParameterDefaults';
+import type { Page0ParameterItem } from './parameterDefaults';
 
 export interface TddpKeyValue {
   k: string;

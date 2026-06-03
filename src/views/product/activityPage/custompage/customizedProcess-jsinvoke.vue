@@ -47,8 +47,8 @@ import HttpRequestConfig from '@/httpRequest/config';
 import { useUserStore } from '@/store/modules/user';
 import { getJsContent, setJsContent } from '@/api/flowData/flowData';
 import { loadScript } from '@/utils/loadScript';
-import { createDefaultJsinvokeParameterList } from './config/jsinvokeParameterDefaults';
-import { loadJsinvokePageParameters } from './utils/loadJsinvokePageParameters';
+import { createDefaultJsinvokeParameterList } from './jsinvoke/parameterDefaults';
+import { loadJsinvokePageParameters } from './jsinvoke/loadPageParameters';
 
 defineOptions({ name: 'rx-customizedProcess-jsinvoke' });
 
