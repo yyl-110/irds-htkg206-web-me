@@ -9,8 +9,10 @@ export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-page0-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'), //定制流程页面-2
   'customized-process-page0-2': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-2.vue'), //定制流程页面-3
   'customized-process-page0-3': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-3.vue'), //定制流程页面-4
-  'customized-process-page0-5': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-5.vue'), //定制流程页面-5
-  'customized-process-page1': () => import('@/views/product/activityPage/custompage/customizedProcess-page1.vue'), //定制流程页面1-6
+  'customized-process-page0-4': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-4.vue'), //定制流程页面-5
+  'customized-process-page1': () => import('@/views/product/activityPage/custompage/customizedProcess-page1.vue'), //定制流程页面1-1
+  'customized-process-page1-2': () => import('@/views/product/activityPage/custompage/customizedProcess-page1-2.vue'), //定制流程页面1-2
+  'customized-process-page1-3': () => import('@/views/product/activityPage/custompage/customizedProcess-page1-3.vue'), //定制流程页面1-3
 };
 
 /** 自定义页 key → 前端路由 path */
@@ -21,8 +23,10 @@ export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-page0-1': '/internal/customized-process-page0-1',
   'customized-process-page0-2': '/internal/customized-process-page0-2',
   'customized-process-page0-3': '/internal/customized-process-page0-3',
-  'customized-process-page0-5': '/internal/customized-process-page0-5',
+  'customized-process-page0-4': '/internal/customized-process-page0-4',
   'customized-process-page1': '/internal/customized-process-page1',
+  'customized-process-page1-2': '/internal/customized-process-page1-2',
+  'customized-process-page1-3': '/internal/customized-process-page1-3',
 };
 
 export type CustomPagePreviewTarget =
