@@ -1,5 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router';
 import { UserOutlined, DashboardOutlined } from '@ant-design/icons-vue';
+import { customPageRoutes } from './customPageRoutes';
 import { demoRoutes } from './demoRoutes';
 // import Main from '@/views/Main.vue'
 
@@ -298,46 +299,7 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       // -------------------------自定义页面------------------------
-      {
-        path: 'customized-process-ansys',
-        name: 'CustomizedProcessAnsys',
-        component: () => import('@/views/product/activityPage/custompage/customizedProcess-ansys.vue'),
-        meta: {
-          hidden: true,
-          title: '弯板ANSYS计算',
-          noCache: true,
-        },
-      },
-      {
-        path: 'customized-process-jsinvoke',
-        name: 'CustomizedProcessJsinvoke',
-        component: () => import('@/views/product/activityPage/custompage/customizedProcess-jsinvoke.vue'),
-        meta: {
-          hidden: true,
-          title: 'JS计算',
-          noCache: true,
-        },
-      },
-      {
-        path: 'customized-process-page0',
-        name: 'CustomizedProcessPage0',
-        component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0.vue'),
-        meta: {
-          hidden: true,
-          title: '定制流程页面-1',
-          noCache: true,
-        },
-      },
-      {
-        path: 'customized-process-page0-1',
-        name: 'CustomizedProcessPage0_1',
-        component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'),
-        meta: {
-          hidden: true,
-          title: '定制流程页面-2',
-          noCache: true,
-        },
-      },
+      ...customPageRoutes,
     ],
   },
   {

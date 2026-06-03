@@ -7,6 +7,10 @@ export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-jsinvoke': () => import('@/views/product/activityPage/custompage/customizedProcess-jsinvoke.vue'), //JS计算页面
   'customized-process-page0': () => import('@/views/product/activityPage/custompage/customizedProcess-page0.vue'), //定制流程页面-1
   'customized-process-page0-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'), //定制流程页面-2
+  'customized-process-page0-2': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-2.vue'), //定制流程页面-3
+  'customized-process-page0-3': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-3.vue'), //定制流程页面-4
+  'customized-process-page0-5': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-5.vue'), //定制流程页面-5
+  'customized-process-page1': () => import('@/views/product/activityPage/custompage/customizedProcess-page1.vue'), //定制流程页面1-6
 };
 
 /** 自定义页 key → 前端路由 path */
@@ -15,6 +19,10 @@ export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-jsinvoke': '/internal/customized-process-jsinvoke',
   'customized-process-page0': '/internal/customized-process-page0',
   'customized-process-page0-1': '/internal/customized-process-page0-1',
+  'customized-process-page0-2': '/internal/customized-process-page0-2',
+  'customized-process-page0-3': '/internal/customized-process-page0-3',
+  'customized-process-page0-5': '/internal/customized-process-page0-5',
+  'customized-process-page1': '/internal/customized-process-page1',
 };
 
 export type CustomPagePreviewTarget =

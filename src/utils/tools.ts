@@ -426,9 +426,48 @@ export const checkfileExtension = function (name: any) {
   let flag = false;
   if (name != null && name != undefined) {
     let newName = name.toLocaleLowerCase();
-    if (newName == 'doc' || newName == 'docx' || newName == 'wps' || newName == 'wpt' || newName == 'txt' || newName == 'ppt' || newName == 'pptx' || newName == 'pdf') {
+    if (
+      newName == 'doc' ||
+      newName == 'docx' ||
+      newName == 'wps' ||
+      newName == 'wpt' ||
+      newName == 'txt' ||
+      newName == 'ppt' ||
+      newName == 'pptx' ||
+      newName == 'pdf'
+    ) {
       flag = true;
     }
   }
   return flag;
+};
+
+//判断小数点后三位是否为0
+export const handleCutZero = function (num) {
+  //拷贝一份 返回去掉零的新串
+  let newstr = num;
+  //循环变量 小数部分长度
+  //console.log(num.indexOf('.') - 1);
+  let leng = num.length - num.indexOf('.') - 1;
+  //判断是否有效数
+  if (num.indexOf('.') > -1) {
+    //循环小数部分
+    for (let i = leng; i > 0; i--) {
+      //如果newstr末尾有0
+      if (newstr.lastIndexOf('0') > -1 && newstr.substr(newstr.length - 1, 1) == 0) {
+        let k = newstr.lastIndexOf('0');
+        //如果小数点后只有一个0 去掉小数点
+        if (newstr.charAt(k - 1) == '.') {
+          return newstr.substring(0, k - 1);
+        } else {
+          //否则 去掉一个0
+          newstr = newstr.substring(0, k);
+        }
+      } else {
+        //如果末尾没有0
+        return newstr;
+      }
+    }
+  }
+  return num;
 };
