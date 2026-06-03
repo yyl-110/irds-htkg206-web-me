@@ -238,8 +238,9 @@ export function fuzzySearchTable(data: any, keyword: string) {
  * @returns 如果找到对应的节点，则返回该节点；否则返回null
  */
 export function findNodeByIdFromKey(tree: any, id: string, key: string): any | null {
+  const targetId = String(id ?? '');
   for (const node of tree) {
-    if (node[key] === id) {
+    if (String(node[key] ?? '') === targetId) {
       return node;
     }
     if (node.children && node.children.length > 0) {
