@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { Modal, Tooltip, message, type UploadChangeParam } from 'ant-design-vue';
 import type { UploadFile } from 'ant-design-vue/es/upload/interface';
 import UploadModal from '@/views/product/components/upload-modal.vue';
@@ -10,16 +9,13 @@ import dayjs, { type Dayjs } from 'dayjs';
 import Tree from '@/components/tree/tree.vue';
 import { AdminApiDocumentArchive } from '@/api/tags/docarchive/文档归档';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-import { getPdfPreviewPath } from '@/api/knowledge';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { useUserStore } from '@/store/modules/user';
 import { WeiI18n } from '@/utils/WeiI18n';
-import { getAccessToken } from '@/utils/auth';
 import { toSnowflakeIdStr } from '@/utils/snowflakeId';
 import { findNodeByIdFromKey } from '@/utils/tools';
-import { dePreviewFile, handleEpcDownload } from '@/utils/file';
+import { handleEpcDownload } from '@/utils/file';
 
-const router = useRouter();
 const userStore = useUserStore();
 /** 编辑弹窗 / 嵌套上传弹窗层级（后者须高于前者，避免被父级遮罩盖住） */
 const DOC_EDIT_MODAL_Z_INDEX = 1000;
@@ -109,40 +105,6 @@ function resolveRecordFileId(record: any): string {
 }
 
 const confidentialOptions = computed(() => userStore.getConfidentialLevel || []);
-
-async function previewArchiveFile(record: any) {
-  const fileId = resolveRecordFileId(record);
-  if (!fileId) {
-    message.warning('暂无文件');
-    return;
-  }
-  const ext = String(record?.fileFormat || record?.fileName?.split('.').pop() || '').toLowerCase();
-  try {
-    if (ext === 'pdf' || ext === 'mp4') {
-      window.open(dePreviewFile(fileId));
-      return;
-    }
-    const res = await getPdfPreviewPath({ id: fileId });
-    if (res?.status === 200 && res?.data?.fileUrl) {
-      router.push({
-        path: '/knowledge/pdfView',
-        query: { docId: res.data.fileUrl, fileId },
-      });
-      return;
-    }
-    openFileDownloadPreview(fileId);
-  } catch {
-    openFileDownloadPreview(fileId);
-  }
-}
-
-/** 与活动页等模块一致：走 system-service 下载地址预览/打开 */
-function openFileDownloadPreview(fileId: string) {
-  const token = getAccessToken() || '';
-  window.open(
-    `/Api/system-service/fileManagerController/download.json?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`,
-  );
-}
 
 function downloadArchiveFile(record: any) {
   const fileId = resolveRecordFileId(record);
@@ -914,10 +876,6 @@ async function openHistory(record: any) {
   }
 }
 
-function previewFile(record: any) {
-  previewArchiveFile(record);
-}
-
 function downloadFile(record: any) {
   downloadArchiveFile(record);
 }
@@ -931,7 +889,7 @@ const columns = [
   { title: '版本', dataIndex: 'docVersionNo', width: 70 },
   { title: '归档日期', dataIndex: 'archiveDate', width: 110 },
   { title: '创建人', dataIndex: 'creatorName', width: 100 },
-  { title: '操作', key: 'action', width: 280, fixed: 'right' as const },
+  { title: '操作', key: 'action', width: 220, fixed: 'right' as const },
 ];
 
 const currentCategoryLabel = computed(() => {
@@ -1016,7 +974,6 @@ onMounted(() => loadTree());
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.key === 'action'">
                     <a-space wrap class="doc-archive-op-links">
-                      <a @click.stop="previewFile(record)">预览</a>
                       <a @click.stop="downloadFile(record)">下载</a>
                       <a @click.stop="openHistory(record)">历史版本</a>
                       <a v-if="record.editable" @click.stop="openDocModal('edit', record)">编辑</a>
@@ -1088,7 +1045,7 @@ onMounted(() => loadTree());
           { title: '格式', dataIndex: 'fileFormat', width: 80 },
           { title: '归档日期', dataIndex: 'archiveDate', width: 110 },
           { title: '当前', dataIndex: 'isCurrent', width: 70 },
-          { title: '操作', key: 'hact', width: 140 },
+          { title: '操作', key: 'hact', width: 100 },
         ]"
       >
         <template #bodyCell="{ column, record }">
@@ -1096,10 +1053,7 @@ onMounted(() => loadTree());
             {{ record.isCurrent ? '是' : '否' }}
           </template>
           <template v-else-if="column.key === 'hact'">
-            <a-space>
-              <a @click="previewFile(record)">预览</a>
-              <a @click="downloadFile(record)">下载</a>
-            </a-space>
+            <a @click="downloadFile(record)">下载</a>
           </template>
         </template>
       </a-table>
