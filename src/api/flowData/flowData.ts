@@ -55,3 +55,11 @@ export function setJsContent(data: Record<string, unknown>) {
     data,
   });
 }
+
+export function readTDDPInputData(data: Record<string, unknown>) {
+  return httpRequest({
+    url: '/flow/readTDDPInputData.json',
+    method: 'POST',
+    data,
+  });
+}

@@ -12,6 +12,10 @@ import {
   type JsinvokeParameterItem,
 } from '@/views/product/activityPage/custompage/utils/loadJsinvokePageParameters';
 import {
+  loadPage0PageParameters,
+  type Page0ParameterItem,
+} from '@/views/product/activityPage/custompage/utils/loadPage0PageParameters';
+import {
   loadPage0_1PageParameters,
   type Page0_1ParameterItem,
 } from '@/views/product/activityPage/custompage/utils/loadPage0_1PageParameters';
@@ -35,7 +39,7 @@ const customComponentRef = ref<{
   getCurrentSaveParamValues?: () => unknown[];
   getCurrentTableSavePayload?: () => unknown[];
 } | null>(null);
-const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem | Page0_1ParameterItem>>([]);
+const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem | Page0ParameterItem | Page0_1ParameterItem>>([]);
 const pageKey = ref<string | null>(null);
 
 async function loadPageContent() {
@@ -58,6 +62,8 @@ async function loadPageContent() {
       parameterTempList.value = await loadAnsysPageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
     } else if (pageKey.value === 'customized-process-jsinvoke') {
       parameterTempList.value = await loadJsinvokePageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
+    } else if (pageKey.value === 'customized-process-page0') {
+      parameterTempList.value = await loadPage0PageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
     } else if (pageKey.value === 'customized-process-page0-1') {
       parameterTempList.value = await loadPage0_1PageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
     }

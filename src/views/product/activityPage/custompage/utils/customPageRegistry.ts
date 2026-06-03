@@ -5,13 +5,15 @@ export type CustomPageLoader = () => Promise<{ default: Component }>;
 export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-ansys': () => import('@/views/product/activityPage/custompage/customizedProcess-ansys.vue'), //弯板计算页面
   'customized-process-jsinvoke': () => import('@/views/product/activityPage/custompage/customizedProcess-jsinvoke.vue'), //JS计算页面
-  'customized-process-page0-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'), //定制流程页面-1
+  'customized-process-page0': () => import('@/views/product/activityPage/custompage/customizedProcess-page0.vue'), //定制流程页面-1
+  'customized-process-page0-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'), //定制流程页面-2
 };
 
 /** 自定义页 key → 前端路由 path */
 export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-ansys': '/internal/customized-process-ansys',
   'customized-process-jsinvoke': '/internal/customized-process-jsinvoke',
+  'customized-process-page0': '/internal/customized-process-page0',
   'customized-process-page0-1': '/internal/customized-process-page0-1',
 };
 
@@ -56,10 +58,17 @@ export function resolveCustomPageKey(pageUrl?: string | null, pageName?: string 
     url.includes('customized-process-page0-1') ||
     url.includes('customizedprocess-page0-1') ||
     url.includes('page0-1') ||
-    url.includes('page0_1') ||
-    name.includes('确认输入')
+    url.includes('page0_1')
   ) {
     return 'customized-process-page0-1';
+  }
+  if (
+    url.includes('customized-process-page0') ||
+    url.includes('customizedprocess-page0') ||
+    /(?:^|[^0-9_-])page0(?:[^0-9_-]|$)/.test(url) ||
+    url.includes('page0_0')
+  ) {
+    return 'customized-process-page0';
   }
   return null;
 }
