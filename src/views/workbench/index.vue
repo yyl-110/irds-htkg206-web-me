@@ -89,7 +89,7 @@ const todoListLoading = ref(false);
 const auditList = ref<WorkbenchBpmTaskItem[]>([]);
 const auditListLoading = ref(false);
 
-/** 已办 WBS：发起变更（mark-change + reopen-task），与项目页 WBS 逻辑一致 */
+/** 已转办 WBS：发起变更（mark-change + reopen-task），与项目页 WBS 逻辑一致 */
 const wbsChangeModalVisible = ref(false);
 const wbsChangeTargetTask = ref<TaskItem | null>(null);
 const wbsChangeApplyLatest = ref<0 | 1>(0);
@@ -239,8 +239,8 @@ function getBpmRecordTimeSortValue(record: Record<string, unknown>, field: strin
 const todoChartData = ref({
   delay: 0, // 延期
   todo: 0, // 待办
-  audit: 0, // 审核待办
-  done: 0, // 已办
+  audit: 0, // 审批待办
+  done: 0, // 已转办
   total: 0, // 参与项目
 });
 
@@ -271,7 +271,7 @@ function initTodoChart() {
         color: '#313133',
       },
       formatter: (name: string) => {
-        const map: Record<string, number> = { 延期: delay, 待办: todo, 审核待办: audit, 已办: done };
+        const map: Record<string, number> = { 延期: delay, 待办: todo, 审批待办: audit, 已转办: done };
         return `${name}  ${map[name] ?? ''}`;
       },
     },
@@ -314,8 +314,8 @@ function initTodoChart() {
         data: [
           { value: delay, name: '延期', itemStyle: { color: '#FF7C7C' } },
           { value: todo, name: '待办', itemStyle: { color: '#FFBA18' } },
-          { value: audit, name: '审核待办', itemStyle: { color: '#00B96B' } },
-          { value: done, name: '已办', itemStyle: { color: '#2B5FD9' } },
+          { value: audit, name: '审批待办', itemStyle: { color: '#00B96B' } },
+          { value: done, name: '已转办', itemStyle: { color: '#2B5FD9' } },
         ],
       },
     ],
@@ -995,7 +995,7 @@ async function submitWorkbenchReject() {
 }
 
 /**
- * 已办 WBS：标记变更并确认重开 → 进入协同设计（与 ProjectTaskWbsPanel 变更流程一致）
+ * 已转办 WBS：标记变更并确认重开 → 进入协同设计（与 ProjectTaskWbsPanel 变更流程一致）
  */
 async function executeWbsChangeFromWorkbench() {
   const task = wbsChangeTargetTask.value;
@@ -1212,7 +1212,7 @@ const queryParams = reactive<RRQueryParams>({
   params: {},
 });
 /**
- * 流程任务列表：按 auditSecondaryFilter 分别调用待办 / 已办 / 我的流程接口。
+ * 流程任务列表：按 auditSecondaryFilter 分别调用待办 / 已转办 / 我的流程接口。
  */
 function buildProcessQueryParams() {
   const keyword = searchQuery.value.trim();

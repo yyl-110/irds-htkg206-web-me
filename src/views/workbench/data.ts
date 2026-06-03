@@ -1,86 +1,86 @@
 /** 工作台待办任务大类（与后端推送字段对齐时可单独增加枚举值） */
-export type WorkbenchTaskKind = 'wbs' | 'standalone' | 'compute' | 'other'
+export type WorkbenchTaskKind = 'wbs' | 'standalone' | 'compute' | 'other';
 
 export interface TaskItem {
   /** 与后端 Long 主键一致，可能为数字或字符串（防精度丢失） */
-  id: number | string
-  title: string
-  tags: string[]
-  startTime: string
-  endTime: string
-  type: string
-  category: 'assign' | 'product' | 'app' | 'compute'
-  status: 'todo' | 'done'
-  scene: 'product' | 'app' | 'compute' | 'general'
+  id: number | string;
+  title: string;
+  tags: string[];
+  startTime: string;
+  endTime: string;
+  type: string;
+  category: 'assign' | 'product' | 'app' | 'compute';
+  status: 'todo' | 'done';
+  scene: 'product' | 'app' | 'compute' | 'general';
   /** 卡片样式与默认操作按钮集由此字段区分 */
-  taskKind: WorkbenchTaskKind
-  progress: number
-  delayDays?: number
-  remainDays?: number
-  creatorName: string
-  creatorAvatar: string
+  taskKind: WorkbenchTaskKind;
+  progress: number;
+  delayDays?: number;
+  remainDays?: number;
+  creatorName: string;
+  creatorAvatar: string;
   /** 设计任务业务 id（用于应用列表、设计页 query） */
-  taskId?: number | string
+  taskId?: number | string;
   /** 项目 id（WBS 协同设计页 query） */
-  projectId?: number | string
+  projectId?: number | string;
   /** 独立应用 id，优先用于进入设计工作台 */
-  standaloneAppId?: number | string
+  standaloneAppId?: number | string;
   /** WBS 行 id（business_workbench_todo_card.project_wbs_id），已办协同任务发起变更用 */
-  projectWbsId?: number | string
+  projectWbsId?: number | string;
   /** 「我已转办」列表：仅展示，不可操作任务 */
-  viewOnly?: boolean
+  viewOnly?: boolean;
   /** 当前承办人展示名（服务端回填 assigneeDisplayName） */
-  assigneeDisplayName?: string
+  assigneeDisplayName?: string;
   /** WBS：服务端回填 projectName，用于标题后缀「（项目名称）」 */
-  projectDisplayName?: string
+  projectDisplayName?: string;
   /** 独立应用/计算：服务端回填 appName，用于标题后缀「（应用名称）」 */
-  appDisplayName?: string
+  appDisplayName?: string;
   /** 协同任务被驳回后，退回方可见的上一次驳回意见（服务端 lastRejectRemark） */
-  lastRejectRemark?: string
+  lastRejectRemark?: string;
   /** 原始项目截止日期 ISO（用于前端兜底计算延期天数） */
-  projectEndDateRaw?: string
+  projectEndDateRaw?: string;
   /** 对应 WBS 行 publish_status（0/1）；协同任务未发布时应进任务管理而非协同设计 */
-  wbsPublishStatus?: number
+  wbsPublishStatus?: number;
 }
 
 /** BPM 流程待办任务（工作台「流程任务」Tab） */
 export interface WorkbenchBpmTaskItem {
-  id: number | string
-  name: string
-  taskDefinitionKey: string
-  title?: string
-  tags?: string[]
-  startTime?: string
-  endTime?: string
-  type?: string
-  category?: TaskItem['category']
-  status?: TaskItem['status']
-  progress?: number
-  delayDays?: number
-  remainDays?: number
-  creatorName?: string
-  creatorAvatar?: string
-  lastRejectRemark?: string
-  viewOnly?: boolean
-  assigneeDisplayName?: string
-  projectDisplayName?: string
-  appDisplayName?: string
-  createTime?: string
-  endTime?: string
-  reason?: string
-  durationInMillis?: number
+  id: number | string;
+  name: string;
+  taskDefinitionKey: string;
+  title?: string;
+  tags?: string[];
+  startTime?: string;
+  endTime?: string;
+  type?: string;
+  category?: TaskItem['category'];
+  status?: TaskItem['status'];
+  progress?: number;
+  delayDays?: number;
+  remainDays?: number;
+  creatorName?: string;
+  creatorAvatar?: string;
+  lastRejectRemark?: string;
+  viewOnly?: boolean;
+  assigneeDisplayName?: string;
+  projectDisplayName?: string;
+  appDisplayName?: string;
+  createTime?: string;
+  endTime?: string;
+  reason?: string;
+  durationInMillis?: number;
   processInstance: {
-    id: number | string
-    name: string
-    processDefinitionId: number | string
-    processDefinitionKey: string
+    id: number | string;
+    name: string;
+    processDefinitionId: number | string;
+    processDefinitionKey: string;
     processVariables?: {
-      ModelList?: Array<{ para1?: string | number; [key: string]: unknown }>
-    }
-  }
+      ModelList?: Array<{ para1?: string | number; [key: string]: unknown }>;
+    };
+  };
   assigneeUser?: {
-    nickname?: string
-  }
+    nickname?: string;
+  };
 }
 
 /** 类型展示名 */
@@ -89,16 +89,13 @@ export const TASK_KIND_LABEL: Record<WorkbenchTaskKind, string> = {
   standalone: '独立应用任务',
   compute: '计算任务',
   other: '其他任务',
-}
+};
 
 /**
  * 各类型卡片右下角默认可出现的能力键（仍会与权限函数 `canAssign` 等求交集）
  * 后续新增类型时在此扩展即可
  */
-export const TASK_KIND_ACTIONS: Record<
-  WorkbenchTaskKind,
-  Array<'assign' | 'transfer' | 'detail' | 'design' | 'change'>
-> = {
+export const TASK_KIND_ACTIONS: Record<WorkbenchTaskKind, Array<'assign' | 'transfer' | 'detail' | 'design' | 'change'>> = {
   /** WBS：指派、转办、详情、设计；已办另由 taskActionAllowed 开放「变更」 */
   wbs: ['assign', 'transfer', 'detail', 'design', 'change'],
   /** 独立应用：不支持工作台转办（仅 WBS 协同可转办） */
@@ -106,7 +103,7 @@ export const TASK_KIND_ACTIONS: Record<
   /** 计算任务：以查看与进入设计/计算为主 */
   compute: ['detail', 'design'],
   other: ['assign', 'detail', 'design'],
-}
+};
 
 /**
  * 工作台顶栏两大业务域（数据源互不共用）：
@@ -115,8 +112,8 @@ export const TASK_KIND_ACTIONS: Record<
  */
 export const WORKBENCH_TABS = [
   { title: '设计任务', name: 'todo' },
-  { title: '流程任务', name: 'process' },
-]
+  { title: '审批任务', name: 'process' },
+];
 
 /**
  * 设计任务二级筛选（与 `/business/workbench-todo-card/page` 的 timeBucket 对齐，仅 WBS）：
@@ -132,14 +129,14 @@ export const WORKBENCH_SECONDARY_TABS = [
   { title: '近15天', value: 'due15' },
   { title: '延期', value: 'overdue' },
   { title: '全部', value: 'all' },
-] as const
+] as const;
 
 /** 流程任务二级筛选（待办 / 已办 / 已转办） */
 export const WORKBENCH_AUDIT_SECONDARY_TABS = [
   { title: '待办', value: 'todo' },
   { title: '已办', value: 'done' },
   { title: '我的流程', value: 'myProcess' },
-] as const
+] as const;
 
 export const MOCK_TODO_LIST: TaskItem[] = [
   {
@@ -221,4 +218,4 @@ export const MOCK_TODO_LIST: TaskItem[] = [
     creatorName: '李建明',
     creatorAvatar: '',
   },
-]
+];
