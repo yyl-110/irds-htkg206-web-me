@@ -433,4 +433,25 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 迁移历史 Excel 计算页至活动配置
+   * body: { calcPageId: string, treeId: string }
+   *
+   * @request POST /business-service/oldSystem/check-info/migrate-calc-page
+   */
+  static migrateCalcPage = <Req extends { calcPageId: string; treeId: string } = { calcPageId: string; treeId: string }>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/oldSystem/check-info/migrate-calc-page`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
