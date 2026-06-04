@@ -493,7 +493,6 @@ type MemberAuthDept = {
   name: string;
 };
 const transferUser = ref<any[]>([]);
-const userOptions = ref<UserApi.UserVO[]>([]);
 const currentOperationType = ref('');
 const addSignUser = ref<any[]>([]);
 const memberAuthVisible = ref(false);
@@ -539,8 +538,14 @@ const loadMemberAuthData = async () => {
   }
 };
 
+const ensureMemberAuthData = async () => {
+  if (memberAuthUsers.value.length) return;
+  await loadMemberAuthData();
+};
+
 /** 打开转办选人弹窗 */
-const handleSelectUser = () => {
+const handleSelectUser = async () => {
+  await ensureMemberAuthData();
   currentOperationType.value = 'transfer';
   const current = transferUser.value[0];
   const userId = current?.id ?? current?.userId;
@@ -549,7 +554,8 @@ const handleSelectUser = () => {
 };
 
 /** 打开加签选人弹窗 */
-const handleaddSignSelectUser = () => {
+const handleaddSignSelectUser = async () => {
+  await ensureMemberAuthData();
   currentOperationType.value = 'addSign';
   memberAuthUserIds.value = (addSignUser.value || [])
     .map((user: any) => String(user?.id ?? user?.userId ?? ''))
@@ -604,9 +610,6 @@ const handleRemoveUser = (userId: string) => {
   memberAuthUserIds.value = (addSignForm.addSignUserIds || []).map(String);
 };
 
-onMounted(() => {
-  loadMemberAuthData();
-});
 const formLoading = ref(false); // 表单加载中
 const popOverVisible = ref({
   approve: false,

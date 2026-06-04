@@ -2,7 +2,7 @@
   <a-table
     :columns="taskColumns"
     :data-source="tasks"
-    :loading="loading"
+    :loading="listLoading"
     :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
     :pagination="false"
     :row-key="rowKey"
@@ -46,11 +46,15 @@ import DictTag from '@/components/DictTag/src/DictTag.vue'
 defineOptions({ name: 'BpmProcessInstanceTaskList' })
 
 const props = defineProps({
+  /** 兼容管理端抽屉：为 true 时触发拉取 */
   loading: propTypes.bool.def(false),
   id: propTypes.string,
+  /** 父级审批成功后递增，用于刷新流转记录 */
+  refreshKey: propTypes.number.def(0),
 })
 
 const tasks = ref<any[]>([])
+const listLoading = ref(false)
 
 const taskColumns = [
   { title: '审批节点', dataIndex: 'name', key: 'name', width: 120, align: 'center', ellipsis: true },
@@ -69,14 +73,37 @@ function formatCellDate(value: unknown) {
   return dateFormatter({}, {}, value) || '—'
 }
 
+async function fetchTasks() {
+  if (!props.id) return
+  listLoading.value = true
+  try {
+    const res = await TaskApi.getTaskListByProcessInstanceId(props.id)
+    if (res.data.code === 200) {
+      tasks.value = res.data.data
+    }
+  } finally {
+    listLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void fetchTasks()
+})
+
 watch(
   () => props.loading,
-  async value => {
+  value => {
     if (value) {
-      const res = await TaskApi.getTaskListByProcessInstanceId(props.id)
-      if (res.data.code === 200) {
-        tasks.value = res.data.data
-      }
+      void fetchTasks()
+    }
+  },
+)
+
+watch(
+  () => props.refreshKey,
+  (key, prev) => {
+    if (key > 0 && key !== prev) {
+      void fetchTasks()
     }
   },
 )

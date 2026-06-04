@@ -94,11 +94,14 @@
           </div>
         </el-tab-pane>
 
-        <!-- 流转记录 -->
-        <el-tab-pane :label="'流转记录'" name="record">
+        <!-- 流转记录：lazy + 切到该 Tab 再拉任务列表 -->
+        <el-tab-pane :label="'流转记录'" name="record" lazy>
           <div class="form-scroll-area">
             <el-scrollbar>
-              <ProcessInstanceTaskList :loading="processInstanceLoading" :id="id" />
+              <ProcessInstanceTaskList
+                v-if="activeTab === 'record'"
+                :id="id"
+                :refresh-key="taskListRefreshKey" />
             </el-scrollbar>
           </div>
         </el-tab-pane>
@@ -297,6 +300,8 @@ const userOptions = ref<[]>([]);
 const BusinessFormComponent = ref<any>(null);
 const activityNodes = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([]);
 const currentBusinessComponent = ref<any>(null);
+const diagramLoaded = ref(false);
+const taskListRefreshKey = ref(0);
 
 // 流程变量弹窗相关
 const processVariablesDialogVisible = ref(false); // 弹窗显示状态
@@ -465,7 +470,6 @@ const getApprovalDetail = async () => {
     if (res.data.code === 200) {
       data = res.data.data;
     }
-    debugger;
     if (!data) {
       message.error('查询不到审批详情信息！');
       return;
@@ -591,12 +595,17 @@ const setFieldPermission = (field: string, permission: string) => {
 };
 
 const refresh = () => {
-  getApprovalDetail();
-  getProcessModelView();
+  void getApprovalDetail();
+  if (activeTab.value === 'diagram') {
+    void getProcessModelView();
+  }
+  if (activeTab.value === 'record') {
+    taskListRefreshKey.value += 1;
+  }
 };
 
 const refreshProcessDiagram = () => {
-  getProcessModelView();
+  void getProcessModelView();
 };
 
 const handleLoading = (loading: boolean) => {
@@ -642,9 +651,11 @@ async function getprocessUserModel() {
 const orderRedType = ref(true);
 
 watch(activeTab, newVal => {
-  if (newVal === 'diagram') {
+  if (newVal === 'diagram' && !diagramLoaded.value) {
     setTimeout(() => {
-      refreshProcessDiagram();
+      void getProcessModelView().then(() => {
+        diagramLoaded.value = true;
+      });
     }, 50);
   }
 });
@@ -658,6 +669,10 @@ const getDeptuseInfo = async () => {
       name: u.nickname ?? u.psnName ?? u.name ?? u.username ?? '',
       username: u.username ?? '',
       deptId: u.deptId != null ? String(u.deptId) : undefined,
+    }));
+    memberAuthDepts.value = (res.data?.data?.adminDeptResponseDTO || []).map((d: any) => ({
+      id: String(d.id),
+      name: d.name ?? d.deptName ?? '',
     }));
   }
 };
@@ -700,9 +715,12 @@ onMounted(async () => {
     tName.value = taskName || ('' as string);
   }
 
-  loadingFlag.value = false;
-  refresh();
-  getDeptuseInfo();
+  loadingFlag.value = true;
+  try {
+    await Promise.all([getApprovalDetail(), getDeptuseInfo()]);
+  } finally {
+    loadingFlag.value = false;
+  }
 });
 </script>
 

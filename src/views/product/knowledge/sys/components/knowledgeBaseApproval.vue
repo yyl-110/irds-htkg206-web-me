@@ -167,6 +167,7 @@ async function handleSave() {
 }
 
 function cancel() {
+  if (submitting.value) return;
   emit('onClose', false);
 }
 </script>
@@ -180,8 +181,10 @@ function cancel() {
     destroy-on-close
     :title="$t('发起流程审批')"
     :mask-closable="false"
+    :closable="!submitting"
+    :keyboard="!submitting"
     @cancel="cancel">
-    <a-spin :spinning="loading">
+    <a-spin :spinning="loading || submitting">
       <div class="process-modal">
         <div v-if="selectedModel" class="process-modal__model">
           <span class="process-modal__model-label">当前知识名称:</span>
@@ -222,8 +225,10 @@ function cancel() {
     </a-spin>
 
     <template #footer>
-      <a-button @click="cancel">取消</a-button>
-      <a-button type="primary" :loading="submitting" :disabled="!selectedProcessId" @click="handleSave"> 确定发起 </a-button>
+      <a-button :disabled="submitting" @click="cancel">取消</a-button>
+      <a-button type="primary" :loading="submitting" :disabled="!selectedProcessId || submitting" @click="handleSave">
+        确定发起
+      </a-button>
     </template>
   </a-modal>
 </template>
