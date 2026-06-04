@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { nextTick, onMounted, reactive, ref } from 'vue';
 import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
-import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
+import {
+  consumeSkipPlatformPickerDrawerOnTab,
+  createPlatformPickerDrawerStyle,
+  normalizePlatformPickerList,
+  shouldAutoSelectSinglePlatform,
+} from '@/utils/platformPickerDrawerNav';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
@@ -52,18 +57,18 @@ const updateMenu = async (item: any) => {
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
-    titleList.value = res.data.data;
+    titleList.value = normalizePlatformPickerList(res.data.data);
     const skipDrawerOnReturn = sessionStorage.getItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN) === '1';
     if (skipDrawerOnReturn) {
       sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);
-      if (Array.isArray(res.data.data) && res.data.data.length > 0) {
+      if (titleList.value.length > 0) {
         shouldShowDrawer.value = false;
-        menuId.value = res.data.data[0].id;
+        menuId.value = titleList.value[0].id;
         titleVisible.value = false;
         projectListVisible.value = true;
         resetDrawerStyle();
         await nextTick();
-        designTaskComRef.value?.initInfoList(menuId.value, res.data.data[0].categoryName);
+        designTaskComRef.value?.initInfoList(menuId.value, titleList.value[0].categoryName);
       }
       return;
     }
@@ -75,12 +80,17 @@ async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
         projectListVisible.value = true;
         return;
       }
-      if (Array.isArray(res.data.data) && res.data.data.length > 0) {
-        menuId.value = res.data.data[0].id;
+      if (titleList.value.length > 0) {
+        menuId.value = titleList.value[0].id;
         projectListVisible.value = true;
         await nextTick();
-        designTaskComRef.value?.initInfoList(menuId.value, res.data.data[0].categoryName);
+        designTaskComRef.value?.initInfoList(menuId.value, titleList.value[0].categoryName);
       }
+      return;
+    }
+    if (shouldAutoSelectSinglePlatform(titleList.value)) {
+      shouldShowDrawer.value = false;
+      await updateMenu(titleList.value[0]);
       return;
     }
     projectListVisible.value = false;

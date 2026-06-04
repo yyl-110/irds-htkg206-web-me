@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
 import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
-import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
+import {
+  consumeSkipPlatformPickerDrawerOnTab,
+  createPlatformPickerDrawerStyle,
+  normalizePlatformPickerList,
+  shouldAutoSelectSinglePlatform,
+} from '@/utils/platformPickerDrawerNav';
 import { useRouter } from 'vue-router';
 import { TableColumnType } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
@@ -314,7 +319,7 @@ async function handleDelete(id: any) {
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
-    titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    titleList.value = normalizePlatformPickerList(res?.data?.data);
     const skipDrawerOnReturn = sessionStorage.getItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN) === '1';
     if (skipDrawerOnReturn) {
       sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);
@@ -338,6 +343,11 @@ async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
         menuId.value = String(titleList.value[0]?.id ?? '');
         await getResources();
       }
+      return;
+    }
+    if (shouldAutoSelectSinglePlatform(titleList.value)) {
+      shouldShowDrawer.value = false;
+      await updateMenu(titleList.value[0]);
       return;
     }
     drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);

@@ -171,7 +171,10 @@ export default defineComponent({
           <a-input v-model:value="formData.parameterName" placeholder="请输入参数名称" />
         </a-form-item>
         <a-form-item :label="$t('参数代号')" name="parameterNum" :rules="[{ required: true, message: `${$t('请输入参数代号')}` }]">
-          <a-input v-model:value="formData.parameterNum" placeholder="请输入参数代号" />
+          <a-space>
+            <a-input v-model:value="formData.parameterNum" placeholder="请输入参数代号" disabled style="width: 470px" />
+            <a-button type="primary" @click="getUnitParent()">{{ $t('申请编号') }}</a-button>
+          </a-space>
         </a-form-item>
         <a-form-item :label="$t('参数类型')" name="parameterType" :rules="[{ required: true, message: `${$t('请选择参数类型')}` }]">
           <a-select placeholder="请选择参数类型" v-model:value="formData.parameterType" show-search @change="onChangeFun()">

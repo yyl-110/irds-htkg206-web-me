@@ -1,4 +1,5 @@
 import type { RouteLocationNormalizedLoaded, RouteRecordNameGeneric } from 'vue-router'
+import type { ProductPlatformListItem } from '@/utils/productPlatformImage'
 
 /** 顶部 Tab 切回带平台选择抽屉的页面时跳过弹窗 */
 export const PLATFORM_PICKER_SKIP_DRAWER_ON_TAB = 'platform-picker-skip-drawer-on-tab'
@@ -68,3 +69,29 @@ export function createPlatformPickerDrawerStyle(asideWidthStyle: string) {
 
 /** @deprecated 使用 consumeSkipPlatformPickerDrawerOnTab */
 export const consumeSkipModuleLibDrawerOnTab = consumeSkipPlatformPickerDrawerOnTab
+
+/** 将接口返回的平台列表规范为数组 */
+export function normalizePlatformPickerList(data: unknown): ProductPlatformListItem[] {
+  if (data == null)
+    return []
+  return (Array.isArray(data) ? data : [data]) as ProductPlatformListItem[]
+}
+
+/** 列表仅一项时跳过平台选择抽屉，直接走选中逻辑 */
+export function shouldAutoSelectSinglePlatform(list: ProductPlatformListItem[]): boolean {
+  return list.length === 1
+}
+
+/** 模型库抽屉：扁平化所有可点击的平台项（一级无子节点或二级子项） */
+export function flattenModuleDrawerSelectablePlatforms(list: unknown[]): ProductPlatformListItem[] {
+  const items: ProductPlatformListItem[] = []
+  for (const raw of list || []) {
+    const item = raw as ProductPlatformListItem & { children?: unknown[] }
+    const children = Array.isArray(item?.children) ? item.children : []
+    if (children.length === 0)
+      items.push(item)
+    else
+      children.forEach(child => items.push(child as ProductPlatformListItem))
+  }
+  return items
+}

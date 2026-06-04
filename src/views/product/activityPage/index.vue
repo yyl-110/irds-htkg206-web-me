@@ -2,7 +2,12 @@
 import { computed, h, inject, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
-import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
+import {
+  consumeSkipPlatformPickerDrawerOnTab,
+  createPlatformPickerDrawerStyle,
+  normalizePlatformPickerList,
+  shouldAutoSelectSinglePlatform,
+} from '@/utils/platformPickerDrawerNav';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
@@ -448,7 +453,7 @@ async function getListData(type?: string) {
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
     const res = await AdminApiSystemProduct.getProjectTreeList();
-    titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    titleList.value = normalizePlatformPickerList(res?.data?.data);
     if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
       shouldShowDrawer.value = false;
       titleVisible.value = false;
@@ -457,6 +462,11 @@ async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
         menuId.value = String(titleList.value[0]?.id ?? '');
         await getListData();
       }
+      return;
+    }
+    if (shouldAutoSelectSinglePlatform(titleList.value)) {
+      shouldShowDrawer.value = false;
+      await updateMenu(titleList.value[0]);
       return;
     }
     drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);

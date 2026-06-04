@@ -19,7 +19,11 @@ import ModuleInfoList from './components/ModuleInfoList.vue';
 import { decryptValue } from '@/utils';
 import { useLayoutStore } from '@/store/modules/layout/layout';
 import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
-import { consumeSkipPlatformPickerDrawerOnTab } from '@/utils/platformPickerDrawerNav';
+import {
+  consumeSkipPlatformPickerDrawerOnTab,
+  flattenModuleDrawerSelectablePlatforms,
+  shouldAutoSelectSinglePlatform,
+} from '@/utils/platformPickerDrawerNav';
 import SelectBoomTree from '../components/selectBoomTree.vue';
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
 const layoutStore = useLayoutStore();
@@ -662,7 +666,6 @@ async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
     titleVisible.value = false;
     return;
   }
-  titleVisible.value = true;
   treeData.value = [];
   drawerStyle.value = {
     marginLeft: layoutStore.asideWidthStyle,
@@ -679,6 +682,13 @@ async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
     titleList.value = res.data.data;
     titleListA.value = res.data.data;
     titleList.value = filterTitleListForDrawer(res.data.data);
+    const selectable = flattenModuleDrawerSelectablePlatforms(titleList.value);
+    if (shouldAutoSelectSinglePlatform(selectable)) {
+      titleVisible.value = false;
+      changeTitleModule(selectable[0]);
+      return;
+    }
+    titleVisible.value = true;
     // 处理返回的数据格式
   } catch (error) {
     console.error('获取树数据失败:', error);
