@@ -530,6 +530,65 @@ export class AdminApiProjectTemp {
       CommonResultListDeptResponseDTOModel,
     )
 
+  /** 工作台任务消息：未读数量（顶部铃铛角标） */
+  static workbenchTaskMessageUnreadCount = (body: { userId: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-task-message/unread-count`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    )
+
+  /** 工作台任务消息：分页列表 */
+  static workbenchTaskMessagePage = (
+    body: { pageNo: number; pageSize: number; userId: string },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-task-message/page`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    )
+
+  /** 工作台任务消息：单条标记已读 */
+  static workbenchTaskMessageMarkRead = (body: { id: string; userId: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-task-message/mark-read`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    )
+
+  /** 工作台任务消息：一键全部已读 */
+  static workbenchTaskMessageMarkAllRead = (body: { userId: string }, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/workbench-task-message/mark-all-read`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    )
+
   /** 设计任务应用工作台：操作日志列表（按 bizType 区分 WBS 协同 / 独立应用等） */
   static workspaceOperateLogList = (
     body: {

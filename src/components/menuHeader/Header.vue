@@ -61,6 +61,7 @@ interface TaskMessageItem {
   content: string
   publishTime: string
   publisher: string
+  read: boolean
   raw: Record<string, unknown>
 }
 
@@ -310,9 +311,6 @@ onMounted(() => {
 // onBeforeUnmount(() => {
 //   clearInterval(timer.value);
 // });
-function goPage(item: TaskMessageItem) {
-  console.log(item.raw, 'item')
-}
 
 function normalizeTaskKindFromApi(v: unknown): WorkbenchTaskKind {
   const raw = String(v ?? '').trim()
@@ -362,7 +360,7 @@ function formatMessagePublishTime(row: Record<string, unknown>): string {
 }
 
 function formatMessagePublisher(row: Record<string, unknown>): string {
-  const name = row.creatorName ?? row.creator_name ?? row.publisherName ?? row.publisher_name
+  const name = row.publisherName ?? row.publisher_name ?? row.creatorName ?? row.creator_name
   const s = String(name ?? '').trim()
   return s || '—'
 }
@@ -374,38 +372,47 @@ function mapRowToTaskMessage(row: Record<string, unknown>): TaskMessageItem {
     content: formatMessageContent(row),
     publishTime: formatMessagePublishTime(row),
     publisher: formatMessagePublisher(row),
+    read: row.readFlag === true || row.read_flag === true || row.readFlag === 1 || row.read_flag === 1,
     raw: row,
   }
 }
 
+async function refreshUnreadBadge() {
+  const uid = userStore.getUser?.id
+  if (uid == null)
+    return
+  try {
+    const res = await AdminApiProjectTemp.workbenchTaskMessageUnreadCount({ userId: String(uid) })
+    const code = res?.data?.code
+    const payload = res?.data?.data as { unreadCount?: number } | undefined
+    if ((code === 0 || code === 200) && payload && typeof payload === 'object') {
+      const n = Number(payload.unreadCount ?? 0)
+      badgeNum.value = Number.isFinite(n) ? n : 0
+    }
+    else {
+      badgeNum.value = 0
+    }
+  }
+  catch {
+    badgeNum.value = 0
+  }
+}
+
 /**
- * 顶部铃铛：旧版 POST /cirpoint-module-api/ckProjectInfo/getTaskMessage 已不在当前业务服务注册，改为工作台待办汇总 + 列表。
+ * 顶部铃铛：从消息表读取未读数与列表，点击单条标记已读，支持一键全部已读。
  */
 async function getTaskMessageList(type: boolean = false) {
   isTaskMessage.value = type
   const uid = userStore.getUser?.id
   if (uid == null)
     return
-  try {
-    const res = await AdminApiProjectTemp.workbenchTodoCardSummary({
-      assigneeUserId: String(uid),
-    })
-    const code = res?.data?.code
-    const payload = res?.data?.data as Record<string, unknown> | undefined
-    if ((code === 0 || code === 200) && payload && typeof payload === 'object') {
-      const n = Number(payload.totalNum ?? payload.todoNum ?? 0)
-      badgeNum.value = Number.isFinite(n) ? n : 0
-    }
-    else {
-      badgeNum.value = 0
-    }
-    if (type) {
-      const pageRes = await AdminApiProjectTemp.workbenchTodoCardPage({
+  await refreshUnreadBadge()
+  if (type) {
+    try {
+      const pageRes = await AdminApiProjectTemp.workbenchTaskMessagePage({
         pageNo: 1,
         pageSize: 40,
-        assigneeUserId: String(uid),
-        status: 'TODO',
-        cardKind: 'WBS',
+        userId: String(uid),
       })
       const pCode = pageRes?.data?.code
       const pageData = pageRes?.data?.data as { list?: Record<string, unknown>[] } | undefined
@@ -415,11 +422,44 @@ async function getTaskMessageList(type: boolean = false) {
       else
         taskMessage.value = []
     }
+    catch {
+      taskMessage.value = []
+    }
+  }
+}
+
+async function markAllTaskMessagesRead() {
+  const uid = userStore.getUser?.id
+  if (uid == null || (badgeNum.value ?? 0) <= 0)
+    return
+  try {
+    await AdminApiProjectTemp.workbenchTaskMessageMarkAllRead({ userId: String(uid) })
+    taskMessage.value = taskMessage.value.map(item => ({ ...item, read: true }))
+    badgeNum.value = 0
   }
   catch {
-    badgeNum.value = 0
-    if (type)
-      taskMessage.value = []
+    message.error('操作失败，请稍后重试')
+  }
+}
+
+async function goPage(item: TaskMessageItem) {
+  const uid = userStore.getUser?.id
+  if (uid == null || !item.id || item.read)
+    return
+  try {
+    const res = await AdminApiProjectTemp.workbenchTaskMessageMarkRead({
+      id: item.id,
+      userId: String(uid),
+    })
+    const code = res?.data?.code
+    const marked = res?.data?.data === true
+    if ((code === 0 || code === 200) && marked) {
+      item.read = true
+      badgeNum.value = Math.max(0, (badgeNum.value ?? 0) - 1)
+    }
+  }
+  catch {
+    message.error('标记已读失败')
   }
 }
 async function getOnLineNum() {
@@ -513,12 +553,22 @@ function showOnLineUser() {
       :closable="false"
       :visible="isTaskMessage"
       @close="isTaskMessage = false">
+      <template #extra>
+        <a-button
+          type="link"
+          size="small"
+          :disabled="(badgeNum ?? 0) <= 0"
+          @click="markAllTaskMessagesRead">
+          一键已读
+        </a-button>
+      </template>
       <div class="message-wrap">
         <a-empty v-if="taskMessage.length === 0" description="暂无消息" />
         <div
           v-for="(item, index) in taskMessage"
           :key="item.id || index"
           class="message-card"
+          :class="{ 'message-card--unread': !item.read }"
           @click="goPage(item)">
           <div class="message-card__head">
             <a-tag color="processing" class="message-card__type">
@@ -828,6 +878,15 @@ function showOnLineUser() {
   &:hover {
     border-color: #91caff;
     box-shadow: 0 2px 8px rgba(22, 93, 255, 0.08);
+  }
+}
+
+.message-card--unread {
+  border-color: #91caff;
+  background: #f6faff;
+
+  .message-card__content {
+    font-weight: 600;
   }
 }
 
