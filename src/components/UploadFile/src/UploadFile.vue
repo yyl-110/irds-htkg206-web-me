@@ -17,7 +17,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  fileSize: 10,
+  fileSize: 1024,
   accept: '*',
 });
 
