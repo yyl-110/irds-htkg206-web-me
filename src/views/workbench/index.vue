@@ -88,6 +88,7 @@ const todoListLoading = ref(false);
 /** 流程任务列表：OA/BPM 等独立接口接入后填充 */
 const auditList = ref<WorkbenchBpmTaskItem[]>([]);
 const auditListLoading = ref(false);
+const auditProcessTotal = ref(0);
 
 /** 已转办 WBS：发起变更（mark-change + reopen-task），与项目页 WBS 逻辑一致 */
 const wbsChangeModalVisible = ref(false);
@@ -1228,19 +1229,30 @@ function buildProcessQueryParams() {
 }
 
 /** 解析 BPM 分页响应（兼容 data 为数组或 { data, count } 嵌套） */
-function parseBpmTaskPageList(res: { data?: { code?: number; data?: unknown } }): WorkbenchBpmTaskItem[] {
+function parseBpmTaskPageResponse(res: { data?: { code?: number; data?: unknown } }): {
+  list: WorkbenchBpmTaskItem[];
+  total: number;
+} {
   const body = res?.data;
   if (!body || (body.code !== 200 && body.code !== 0)) {
-    return [];
+    return { list: [], total: 0 };
   }
   const inner = body.data;
   if (Array.isArray(inner)) {
-    return inner as WorkbenchBpmTaskItem[];
+    return { list: inner as WorkbenchBpmTaskItem[], total: inner.length };
   }
-  if (inner && typeof inner === 'object' && Array.isArray((inner as { data?: unknown[] }).data)) {
-    return (inner as { data: WorkbenchBpmTaskItem[] }).data;
+  if (inner && typeof inner === 'object') {
+    const pageData = inner as {
+      data?: WorkbenchBpmTaskItem[];
+      count?: number;
+      total?: number;
+      totalCount?: number;
+    };
+    const list = Array.isArray(pageData.data) ? pageData.data : [];
+    const total = Number(pageData.count ?? pageData.total ?? pageData.totalCount ?? list.length);
+    return { list, total: Number.isFinite(total) ? total : list.length };
   }
-  return [];
+  return { list: [], total: 0 };
 }
 
 async function loadAuditListFromApi() {
@@ -1260,12 +1272,16 @@ async function loadAuditListFromApi() {
         break;
       default:
         auditList.value = [];
+        auditProcessTotal.value = 0;
         return;
     }
-    auditList.value = parseBpmTaskPageList(res);
+    const { list, total } = parseBpmTaskPageResponse(res);
+    auditList.value = list;
+    auditProcessTotal.value = total;
   } catch (e) {
     showRequestErrorIfNeeded(e, '加载流程任务列表失败');
     auditList.value = [];
+    auditProcessTotal.value = 0;
   } finally {
     auditListLoading.value = false;
   }
@@ -1276,6 +1292,24 @@ const tableProcessList = computed(() =>
     displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
   })),
 );
+
+function handleProcessTablePageChange(page: number, pageSize: number) {
+  queryParams.pageIndex = page;
+  queryParams.pageRows = pageSize;
+  void loadAuditListFromApi();
+}
+
+const processTablePagination = computed(() => ({
+  current: queryParams.pageIndex,
+  pageSize: queryParams.pageRows,
+  total: auditProcessTotal.value,
+  showSizeChanger: true,
+  showQuickJumper: false,
+  showTotal: (total: number) => `${WeiI18n.$t('共')}${total}${WeiI18n.$t('条')}`,
+  pageSizeOptions: ['10', '20', '30', '50'],
+  onChange: handleProcessTablePageChange,
+  onShowSizeChange: handleProcessTablePageChange,
+}));
 /** 卡片 / 列表展示标题（仅展示服务端 title， */
 function workbenchbpmCardDisplayTitle(task: WorkbenchBpmTaskItem): string {
   return String(task.processInstance.processVariables?.ModelList?.[0]?.para1 ?? '').trim();
@@ -1606,6 +1640,7 @@ watch(searchQuery, () => {
   if (todoSearchDebounce) clearTimeout(todoSearchDebounce);
   todoSearchDebounce = setTimeout(() => {
     if (activeName.value === 'process') {
+      queryParams.pageIndex = 1;
       void loadAuditListFromApi();
     } else {
       void loadTodoListFromApi();
@@ -1618,6 +1653,7 @@ watch(secondaryFilter, () => {
 });
 
 watch(auditSecondaryFilter, () => {
+  queryParams.pageIndex = 1;
   void loadAuditListFromApi();
 });
 
@@ -2126,7 +2162,7 @@ onUnmounted(() => {
                       :data-source="tableProcessList"
                       :locale="{ emptyText: renderTableEmptyText('暂无数据') }"
                       :row-class-name="rowClassName"
-                      :pagination="false"
+                      :pagination="processTablePagination"
                       :row-key="rowKey"
                       bordered
                       class="workbench-main-table bg-white"

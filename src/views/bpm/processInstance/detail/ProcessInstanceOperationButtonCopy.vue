@@ -755,7 +755,8 @@ const handleGoBack = (type: string) => {
   if (type && type !== 'cancel') {
     push({ name: '/home/workbench', query: pickWorkbenchReturnQueryFromRoute(route.query) });
   } else {
-    push(resolveProcessInstanceDetailBackRoute(route));
+    // push(resolveProcessInstanceDetailBackRoute(route));
+    router.back();
   }
 };
 
