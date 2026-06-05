@@ -29,6 +29,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** 产品平台 menuId，设计活动选参时必传 */
+  menuId: {
+    type: [String, Number],
+    default: '',
+  },
 });
 const emit = defineEmits<{
   /** 点击取消按钮 */
@@ -222,6 +227,9 @@ async function selectParamById() {
   try {
     treeLoading.value = true;
     const data: any = {};
+    if (props.menuId !== '' && props.menuId != null) {
+      data.menuId = props.menuId;
+    }
     const res = await AdminApiSystemModule.parameterTreeList(data);
     if (res?.data?.code === 200) {
       const raw: BackendTreeNode[] = Array.isArray(res.data.data) ? res.data.data : [];
@@ -248,6 +256,11 @@ async function getListData() {
   try {
     loading.value = true;
     requestParams.treeId = typeid.value || '';
+    if (props.menuId !== '' && props.menuId != null) {
+      requestParams.menuId = props.menuId;
+    } else {
+      requestParams.menuId = '';
+    }
     requestParams.pageNo = requestParams.pageNo;
     const res = await AdminApiSystemModule.getParameterInfoPage({ ...requestParams });
     console.log(res);

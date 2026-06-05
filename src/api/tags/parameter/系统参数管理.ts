@@ -25,6 +25,72 @@ export class AdminApiSystemParameter {
       {
         path: `/system-service/system/parameter-category-tree/parameter-tree-list`,
         method: 'GET',
+        query: query,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /** 参数字典树 - 新建节点 */
+  static createParameterCategoryTreeNode = <Req extends Record<string, unknown> = Record<string, unknown>>(body: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-category-tree/create`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /** 参数字典树 - 更新节点 */
+  static updateParameterCategoryTreeNode = <Req extends Record<string, unknown> = Record<string, unknown>>(body: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-category-tree/update`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /** 参数字典树 - 删除节点 */
+  static deleteParameterCategoryTreeNode = <Req extends { id: number | string }>(body: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-category-tree/delete`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /** 参数字典树 - 上移 */
+  static moveUpParameterCategoryTreeNode = <Req extends { id: number | string }>(body: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-category-tree/sort/up`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /** 参数字典树 - 下移 */
+  static moveDownParameterCategoryTreeNode = <Req extends { id: number | string }>(body: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-category-tree/sort/down`,
+        method: 'POST',
+        body,
+        secure: true,
         ...params,
       },
       CommonResultListDeptResponseDTOModel,

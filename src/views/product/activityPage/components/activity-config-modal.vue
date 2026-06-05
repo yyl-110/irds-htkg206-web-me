@@ -38,6 +38,7 @@ const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
   saveLoading: { type: Boolean, default: false },
+  menuId: { type: [String, Number], default: '' },
 });
 
 const ParameterGeneralVisible = ref<boolean>(false);
@@ -4230,6 +4231,7 @@ watch(
     :modalVisible="ParameterGeneralVisible"
     :modal-z-index="parameterDictionaryModalZIndex"
     :multi-select="parameterDictionaryMultiSelect"
+    :menu-id="props.menuId"
     @onClose="onParameterGeneralClose"
     @handleSave="handleParameterDictionarySave"></ParameterGeneral>
 </template>

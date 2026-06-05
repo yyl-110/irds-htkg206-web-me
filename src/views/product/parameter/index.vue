@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { inject, nextTick, reactive, ref, h } from 'vue';
+import { inject, nextTick, onMounted, reactive, ref, h } from 'vue';
 import { computed } from 'vue';
+import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
+import { consumeSkipPlatformPickerDrawerOnTab, createPlatformPickerDrawerStyle } from '@/utils/platformPickerDrawerNav';
 import { Pane, Splitpanes } from 'splitpanes';
 import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
@@ -10,7 +12,7 @@ import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
-import { sortermethod, findNodeByIdFromKey } from '@/utils/tools';
+import { sortermethod } from '@/utils/tools';
 import { ParameterPageRequestDTOModel } from '@/api/models/parameter/ParameterPageRequestDTOModel';
 import { ParameterInfoRequestDTOModel } from '@/api/models/parameter/ParameterInfoRequestDTOModel';
 import Empty from '@/components/Empty/index.vue';
@@ -20,9 +22,11 @@ import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import Tree from '@/components/tree/tree.vue';
 import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/ProductModuleTreeInfoRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
+import { useLayoutStore } from '@/store/modules/layout/layout';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import ParameterAdd from './components/parameter-add.vue';
 import ParameterUpdate from './components/parameter-update.vue';
+import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { downloadFileFromStream } from '@/utils/file';
 import ImportFile from '@/components/ImportFile/index.vue';
@@ -48,6 +52,20 @@ const selectTreeId = ref<string>('');
 const treeNodeColmoun = ref<any[]>([]);
 const selectBoomTreeRef = ref<any>(null);
 const userStore = useUserStore();
+const layoutStore = useLayoutStore();
+const titleVisible = ref<boolean>(false);
+const shouldShowDrawer = ref<boolean>(false);
+const titleList = ref<any[]>([]);
+const menuId = ref<string>('');
+const drawerStyle = ref<any>({
+  marginLeft: '201px',
+  marginTop: '0px',
+  width: 'calc(100% - 201px)',
+  height: 'calc(100vh)',
+});
+function resetDrawerStyle() {
+  drawerStyle.value = {};
+}
 const parameterName = ref<string>('');
 const parameterNum = ref<string>('');
 const selectNodeKeys = ref<string>('');
@@ -467,45 +485,112 @@ function formatParameterCellText(record: Record<string, unknown>, column: { data
   return String(v);
 }
 
+/** 切换平台或空树时清除左侧树/右侧列表选中缓存 */
+function resetParameterTreeSelectionState() {
+  currentNode.value = undefined;
+  selectedKeys.value = '';
+  selectNodeKeys.value = '';
+  expandedKeys.value = '';
+  treeData.value = [];
+  rawTreeData.value = [];
+  dataSource.value = undefined;
+  datasource.value = [];
+  selectedRowList.value = [];
+  selectedRowkeys.value = [];
+  currentNodeLevel.value = 2;
+  parameterName.value = '';
+  parameterNum.value = '';
+  pagination.total = 0;
+}
+
+/** 树加载后选中节点并展开路径 */
+function findFirstNodeByLevel(nodes: any[], targetLevel: number): any | null {
+  for (const node of nodes || []) {
+    if (node.level === targetLevel) {
+      return node;
+    }
+    if (Array.isArray(node?.children) && node.children.length > 0) {
+      const found = findFirstNodeByLevel(node.children, targetLevel);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
+/** 固定节点：menuId 为空，全平台共享（系统参数 + 配置参数/产品参数） */
+function isFixedCategoryNode(node: any): boolean {
+  return node?.fixed === true;
+}
+
+/** 是否可在该节点下新建分类（根节点不可，二级及以下可） */
+function canAddCategoryUnderNode(node: any): boolean {
+  if (!node?.key) {
+    return false;
+  }
+  return node.level >= 2;
+}
+
+/** 是否可编辑/删除/排序（仅三级及以下平台节点） */
+function canMutateCategoryNode(node: any): boolean {
+  return node?.level >= 3 && !isFixedCategoryNode(node);
+}
+
+function applyTreeSelectionAfterLoad(treeNodes: any[], type?: string, focusKey?: string) {
+  if (!treeNodes.length) {
+    return;
+  }
+  let targetKey =
+    focusKey != null && focusKey !== ''
+      ? String(focusKey)
+      : type === 'change' && currentNode.value?.key
+        ? String(currentNode.value.key)
+        : '';
+  if (!targetKey) {
+    const defaultNode = findFirstNodeByLevel(treeNodes, 2) ?? treeNodes[0];
+    targetKey = String(defaultNode.key);
+  }
+  const targetNode = findNodeById(treeNodes, targetKey) ?? treeNodes[0];
+  const pathNodes = findNodePathByKey(treeNodes, String(targetNode.key));
+  if (pathNodes?.length) {
+    expandedKeys.value = pathNodes
+      .filter(n => Array.isArray(n?.children) && n.children.length > 0)
+      .map(n => n.key)
+      .join(',');
+  } else {
+    expandedKeys.value = targetNode.key;
+  }
+  selectedKeys.value = targetNode.key;
+  selectNode(targetNode);
+}
+
 /** 获取分类数据 */
-async function getListData(type?: string) {
+async function getListData(type?: string, focusKey?: string) {
+  if (!menuId.value) {
+    return;
+  }
   loadingTree.value = true;
   try {
+    treeParameterParams.menuId = Number(menuId.value);
     const res = await AdminApiSystemParameter.getParameterTree(treeParameterParams);
-    loadingTree.value = false;
     // 处理返回的数据格式
-    if ((res.data.code == 0 || res.data.code == 200) && res.data.data) {
+    if ((res.data.code == 0 || res.data.code == 200) && res.data.data != null) {
       const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
       // 保存原始数据
       dataSource.value = rawData[0];
       rawTreeData.value = rawData;
       const treeNodes = convertToTreeNodes(rawTreeData.value);
       treeData.value = treeNodes;
-      // 默认选中第一个节点
       if (treeNodes.length > 0) {
-        // 侦听器监听选中节点
         selectedKeys.value = '';
-        nextTick(() => {
-          if (type) {
-            if (currentNode.value.key) {
-              let rootNode = findNodeByIdFromKey(treeData.value, currentNode.value.key, 'key');
-              // 刷新后需要重新设置 expandedKeys，避免三级节点被折叠
-              const pathNodes = findNodePathByKey(treeNodes, String(currentNode.value.key));
-              if (pathNodes && pathNodes.length) {
-                expandedKeys.value = pathNodes
-                  .filter(n => Array.isArray(n?.children) && n.children.length > 0)
-                  .map(n => n.key)
-                  .join(',');
-              }
-              selectNode(rootNode);
-            }
-          } else {
-            selectedKeys.value = treeNodes[0].key;
-            expandedKeys.value = treeNodes[0].key;
-            selectNode(treeNodes[0]);
-          }
-        });
+        await nextTick();
+        applyTreeSelectionAfterLoad(treeNodes, type, focusKey);
+      } else {
+        resetParameterTreeSelectionState();
       }
+    } else {
+      resetParameterTreeSelectionState();
     }
   } catch (error) {
     console.error('获取树数据失败:', error);
@@ -515,30 +600,78 @@ async function getListData(type?: string) {
   }
 }
 
+async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
+  try {
+    const res = await AdminApiSystemProduct.getProjectTreeList();
+    titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      resetDrawerStyle();
+      if (!menuId.value && titleList.value.length > 0) {
+        menuId.value = String(titleList.value[0]?.id ?? '');
+        await getListData();
+      }
+      return;
+    }
+    drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+    shouldShowDrawer.value = true;
+    titleVisible.value = true;
+  } catch (error) {
+    console.error('获取平台分类失败:', error);
+  }
+}
+
+async function updateMenu(item: any) {
+  menuId.value = String(item?.id ?? '');
+  onCloseDrawer();
+  resetParameterTreeSelectionState();
+  await getListData();
+}
+
+function onCloseDrawer() {
+  resetDrawerStyle();
+  titleVisible.value = false;
+}
+
+function onPlatformPickerSelect(item: any) {
+  void updateMenu(item);
+}
+
+function onPlatformPickerClose() {
+  onCloseDrawer();
+}
+
 onMounted(() => {
-  getListData();
+  drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
 });
 
-/** 将数据转换为树结构所需格式 */
-function convertToTreeNodes(data: any[]): any[] {
+usePlatformPickerDrawerLifecycle(getMenuListData, {
+  onTabSkip: () => {
+    shouldShowDrawer.value = false;
+    titleVisible.value = false;
+    resetDrawerStyle();
+  },
+});
+
+/** 将 API 树数据转换为组件树节点（固定节点 menuId 为空，由后端 fixed/treeLevel 标识） */
+function convertToTreeNodes(data: any[], depth = 1): any[] {
   if (!data || !Array.isArray(data)) return [];
 
   return data.map(item => {
-    // 判断是否有子节点
     const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
-    // 根据规则设置level值
-    let level = 3; // 默认值为3（没有子节点的情况）
-    if (hasChildren) {
-      level = 2; // 有子节点的非根节点level为2
-    }
+    const level = item.treeLevel ?? depth;
+    const fixed = item.fixed === true || item.menuId == null || item.menuId === '';
     return {
       key: item.id?.toString() || item.tid?.toString() || '',
       partName: item.name || '',
-      type: 'param', // 对于产品平台管理，所有节点都视为分类节点
+      type: 'param',
       categoryType: item.type,
       parentId: item.parentId,
-      level: level, // 设置level值
-      children: hasChildren ? convertToTreeNodes(item.children) : [],
+      menuId: item.menuId,
+      fixed,
+      level,
+      children: hasChildren ? convertToTreeNodes(item.children, level + 1) : [],
     };
   });
 }
@@ -570,19 +703,18 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
     .filter(Boolean); // 过滤掉null值
 }
 
-/** 获取节点添加数据 */
-async function getNodeAddData(selectedKeys: any) {
-  // 这里可以根据需要实现添加节点的逻辑
-  console.log('getNodeAddData', currentNode.value);
-  if (currentNode.value.parentId == 0) {
-    message.warning('根节点不能添加子节点,请选择二级节点添加');
+/** 获取节点添加数据（仅允许在二级固定节点及其下级新建） */
+async function getNodeAddData(selectedKeysParam: any) {
+  const node = selectedKeysParam?.key != null ? selectedKeysParam : currentNode.value;
+  if (!canAddCategoryUnderNode(node)) {
+    message.warning('请先选择「配置参数」或「产品参数」等二级节点后再新建');
     return;
   }
   treeNodeColmoun.value = [
     {
       title: WeiI18n.t('父节点名称').value,
       key: 'parentName',
-      value: currentNode.value.partName,
+      value: node.partName,
       type: 'input',
       hidden: false,
       disabled: true,
@@ -590,7 +722,7 @@ async function getNodeAddData(selectedKeys: any) {
     {
       title: WeiI18n.t('类别').value,
       key: 'categoryType',
-      value: currentNode.value.categoryType,
+      value: node.categoryType,
       type: 'input',
       hidden: true,
       disabled: true,
@@ -611,7 +743,7 @@ async function getNodeAddData(selectedKeys: any) {
     {
       title: WeiI18n.t('父节点ID').value,
       key: 'pid',
-      value: currentNode.value.key,
+      value: node.key,
       type: 'input',
       disabled: true,
       hidden: true,
@@ -629,18 +761,28 @@ async function getNodeAddData(selectedKeys: any) {
 }
 
 async function downNode(selectedKeys: any) {
-  await AdminApiSystemProduct.downTreeKey({ id: selectedKeys.key });
-  await getListData('change');
+  if (!canMutateCategoryNode(selectedKeys)) {
+    message.warning('固定节点不支持排序');
+    return;
+  }
+  await AdminApiSystemParameter.moveDownParameterCategoryTreeNode({ id: Number(selectedKeys.key) });
+  await getListData('change', String(selectedKeys.key));
   Selectafterchanges();
 }
 
 async function upNode(selectedKeys: any) {
-  await AdminApiSystemProduct.upTreeKey({ id: selectedKeys.key });
-  await getListData('change');
+  if (!canMutateCategoryNode(selectedKeys)) {
+    message.warning('固定节点不支持排序');
+    return;
+  }
+  await AdminApiSystemParameter.moveUpParameterCategoryTreeNode({ id: Number(selectedKeys.key) });
+  await getListData('change', String(selectedKeys.key));
   Selectafterchanges();
 }
 function Selectafterchanges() {
-  selectedKeys.value = currentNode.value.key;
+  if (currentNode.value?.key) {
+    selectedKeys.value = currentNode.value.key;
+  }
 }
 const currentNodeLevel = ref<number>(2);
 async function selectNode(node: any) {
@@ -650,21 +792,22 @@ async function selectNode(node: any) {
   filterValueMap.value = { ...filterValueMap.value, parameterName: '', parameterNum: '' };
   sortState.value = { key: '', order: '' };
   selectNodeKeys.value = node.key;
-  if (node.parentId == 0 || node.parentId == 1) {
-    currentNodeLevel.value = 2;
-  } else {
-    currentNodeLevel.value = 3;
-  }
+  // 一级/二级为固定节点，右侧参数列表仅在三级及以下展示操作
+  currentNodeLevel.value = node.level >= 3 ? 3 : 2;
   loadParameterListData();
 }
 
 async function loadParameterListData() {
+  if (!menuId.value) {
+    return;
+  }
   loading.value = true;
   try {
     const data: any = {};
     data.treeId = selectNodeKeys.value || selectedKeys.value;
     data.parameterName = parameterName.value;
     data.parameterNum = parameterNum.value;
+    data.menuId = Number(menuId.value);
     data.userId = userStore.getUser.id;
     data.pageNo = requestParams.pageNo;
     data.pageSize = requestParams.pageSize;
@@ -678,8 +821,8 @@ async function loadParameterListData() {
 
 /** 获取节点编辑数据 */
 async function getNodeUpdateData(selectedKeys: any) {
-  if (selectedKeys.parentId == 0 || selectedKeys.parentId == 1) {
-    message.warning('此节点不支持编辑');
+  if (!canMutateCategoryNode(selectedKeys)) {
+    message.warning('固定节点不支持编辑');
     return;
   }
   // 根据 parentId 从 treeData 递归找父节点名称
@@ -738,12 +881,12 @@ async function getNodeUpdateData(selectedKeys: any) {
 
 /** 删除树节点 */
 async function deleteTreeNode(selectedKeys: any) {
-  if (selectedKeys.parentId == 0 || selectedKeys.parentId == 1) {
-    message.warning('此节点不支持删除');
+  if (!canMutateCategoryNode(selectedKeys)) {
+    message.warning('固定节点不支持删除');
     return;
   }
-  const res = await AdminApiSystemProduct.delTreeNode({ id: selectedKeys.key });
-  await getListData();
+  await AdminApiSystemParameter.deleteParameterCategoryTreeNode({ id: Number(selectedKeys.key) });
+  await getListData('change');
   message.success(WeiI18n.t('删除成功').value);
 }
 
@@ -847,29 +990,61 @@ function findNodePathByKey(nodes: any[], targetKey: string, path: any[] = []): a
   }
   return null;
 }
+/** 解析父节点 ID，根节点默认为 0 */
+function resolveTreeParentId(nodeList: any): number {
+  const raw = nodeList.pid ?? nodeList.parentId;
+  if (raw === '' || raw === null || raw === undefined) {
+    return 0;
+  }
+  return Number(raw);
+}
+
+/** 构建参数字典树新建/更新请求体（与 ParameterCategoryTreeBaseDTO 字段对齐） */
+function buildCategoryTreeMutationPayload(nodeList: any, options?: { id?: string | number }) {
+  const payload: Record<string, number | string> = {
+    name: nodeList.categoryName,
+    parentId: resolveTreeParentId(nodeList),
+    type: Number(nodeList.categoryType) || 1,
+    menuId: Number(menuId.value),
+  };
+  if (options?.id != null && options.id !== '') {
+    payload.id = Number(options.id);
+  }
+  return payload;
+}
+
 /** 提交树节点数据 */
 async function submitTreeData(nodeList: any) {
-  console.log(nodeList);
-  const data: any = {};
-  data.name = nodeList.categoryName;
-  data.parentId = nodeList.pid;
-  data.type = nodeList.categoryType;
-  const res = await AdminApiSystemProduct.addProductModuleTree(data);
-  await getListData('change');
+  if (!menuId.value) {
+    message.warning('请先选择产品平台');
+    void getMenuListData({ forceOpenDrawer: true });
+    return;
+  }
+  const res = await AdminApiSystemParameter.createParameterCategoryTreeNode(buildCategoryTreeMutationPayload(nodeList));
+  if (res?.data?.code !== 0 && res?.data?.code !== 200) {
+    return;
+  }
+  const newId = res?.data?.data;
+  await getListData('change', newId != null && newId !== '' ? String(newId) : undefined);
   Selectafterchanges();
   message.success(WeiI18n.t('保存成功').value);
 }
 
 /** 编辑树节点数据 */
-async function editTreeData(nodeList: any, selectedKeys: any) {
-  console.log(nodeList);
-  const data: any = {};
-  data.name = nodeList.categoryName;
-  data.parentId = nodeList.pid;
-  data.type = nodeList.categoryType;
-  data.id = nodeList.id;
-  const res = await AdminApiSystemProduct.updateCategoryNode(data);
-  await getListData('change');
+async function editTreeData(nodeList: any) {
+  if (!menuId.value) {
+    message.warning('请先选择产品平台');
+    return;
+  }
+  const nodeId = nodeList.id ?? currentNode.value?.key;
+  if (nodeId == null || nodeId === '') {
+    message.warning('节点信息异常，请重新选择后编辑');
+    return;
+  }
+  await AdminApiSystemParameter.updateParameterCategoryTreeNode(
+    buildCategoryTreeMutationPayload(nodeList, { id: nodeId }),
+  );
+  await getListData('change', String(nodeId));
   message.success(WeiI18n.t('修改成功').value);
   Selectafterchanges();
 }
@@ -903,8 +1078,12 @@ const ALLOW_CREATE_TYPES: Array<number> = [1, 2];
  * @param parentId parentId
  */
 function handleAddOrUpdate(data: any) {
+  if (!menuId.value) {
+    message.warning('请先选择产品平台');
+    void getMenuListData({ forceOpenDrawer: true });
+    return;
+  }
   visible.value = true;
-  // 根据menuId获取修改的记录
   nextTick(() => {
     addModel.value?.infoReload(selectNodeKeys.value);
   });
@@ -1541,8 +1720,8 @@ const {
       @confirm-select-tree-node="confirmSelectTreeNode"
       @cancel-select-tree-node="cancelSelectTreeNode"
       @handle-select-tree-node="handleSelectTreeNode" />
-    <ParameterAdd ref="addModel" :modal-visible="visible" @refresh-table-data="loadParameterListData" @close="handleCloseAddModal" />
-    <ParameterUpdate ref="updateModel" :modal-visible="updateVisible" @refresh-table-data="loadParameterListData" @close="handleCloseUpdateModal" />
+    <ParameterAdd ref="addModel" :modal-visible="visible" :menu-id="menuId" @refresh-table-data="loadParameterListData" @close="handleCloseAddModal" />
+    <ParameterUpdate ref="updateModel" :modal-visible="updateVisible" :menu-id="menuId" @refresh-table-data="loadParameterListData" @close="handleCloseUpdateModal" />
     <ImportFile
       :modalVisible="batchflag"
       :fileList="fileList"
@@ -1553,6 +1732,13 @@ const {
       @importSuccessfulFun="importSuccessfulFun"
       @close="batchflag = false" />
   </div>
+  <ProductPlatformPicker
+    v-if="shouldShowDrawer"
+    :visible="titleVisible"
+    :drawer-style="drawerStyle"
+    :list="titleList"
+    @select="onPlatformPickerSelect"
+    @close="onPlatformPickerClose" />
 </template>
 
 <style lang="less" scoped>
@@ -1565,9 +1751,8 @@ const {
   padding-bottom: 5px !important;
 }
 .drawerContent {
-  position: sticky;
-  bottom: 20px !important;
-  display: flex;
+  position: relative;
+  width: 100%;
   background-color: #ffffff !important;
 }
 

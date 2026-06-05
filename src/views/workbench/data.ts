@@ -107,7 +107,7 @@ export const TASK_KIND_ACTIONS: Record<WorkbenchTaskKind, Array<'assign' | 'tran
 
 /**
  * 工作台顶栏两大业务域（数据源互不共用）：
- * - 设计任务：workbench-todo-card（当前列表仅 WBS；截止日在 5/15 天内、截止日超期按 projectEndDate 与当前日对比）
+ * - 设计任务：workbench-todo-card 分页（待办/已办/全部含独立应用；近5/15天/延期仅 WBS）
  * - 待审核：OA 等审批流，由独立接口接入后在此列表展示
  */
 export const WORKBENCH_TABS = [

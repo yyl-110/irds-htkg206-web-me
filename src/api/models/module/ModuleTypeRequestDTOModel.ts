@@ -13,6 +13,7 @@ export class ModuleTypeRequestDTOModel extends BaseModel {
 /** 数据 */
 export class parameterDictionaryRequestDTOModel extends BaseModel {
   treeId?: string = '';
+  menuId?: string | number = '';
   userid?: number = 0;
   categoryid?: string = '';
   pageNo?: number = 1;

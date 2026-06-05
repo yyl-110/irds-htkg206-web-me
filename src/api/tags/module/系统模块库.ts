@@ -108,7 +108,7 @@ export class AdminApiSystemModule {
       {
         path: `system-service/system/parameter-category-tree/parameter-tree-list`,
         method: 'GET',
-        body: query,
+        query: query,
         secure: true,
         ...params,
       },

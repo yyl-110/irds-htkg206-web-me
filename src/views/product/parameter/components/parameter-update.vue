@@ -13,6 +13,10 @@ export default defineComponent({
     modalVisible: {
       type: Boolean,
     },
+    menuId: {
+      type: [String, Number],
+      default: '',
+    },
   },
   setup(props, context) {
     /** 弹窗状态 */
@@ -69,6 +73,9 @@ export default defineComponent({
       data.treeId = categoryid.value;
       data.unitId = unitId.value;
       data.dimenSion = dimenSion.value;
+      if (props.menuId !== '' && props.menuId != null) {
+        data.menuId = props.menuId;
+      }
       // 保存页面信息
       const res = await AdminApiSystemParameter.parameterInfoUpdate(data);
       //刷新父页面列表数据

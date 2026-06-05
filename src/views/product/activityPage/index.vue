@@ -1647,6 +1647,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
       :modal-visible="activityConfigVisible"
       :record="currentConfigRecord"
       :save-loading="activityConfigSaving"
+      :menu-id="menuId"
       @close="closeActivityConfigModal"
       @save="saveActivityConfig" />
     <ActivityPreviewModal :modal-visible="activityPreviewVisible" :record="currentPreviewRecord" :image-list="previewImageList" @close="closeActivityPreviewModal" />
@@ -1654,6 +1655,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
       :modal-visible="activityCheckConfigVisible"
       :record="currentCheckConfigRecord"
       :save-loading="activityCheckConfigSaving"
+      :menu-id="menuId"
       @close="closeActivityCheckConfigModal"
       @save="saveActivityCheckConfig" />
     <ActivityCheckPreviewModal

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { defineComponent, inject, reactive, ref, toRefs } from 'vue';
+import { message } from 'ant-design-vue';
 import { ParameterInfoRequestDTOModel } from '@/api/models/parameter/ParameterInfoRequestDTOModel';
 import { ParameterUnitRequestDTOModel } from '@/api/models/parameter/ParameterUnitRequestDTOModel';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
@@ -13,6 +14,10 @@ export default defineComponent({
   props: {
     modalVisible: {
       type: Boolean,
+    },
+    menuId: {
+      type: [String, Number],
+      default: '',
     },
   },
   setup(props, context) {
@@ -63,6 +68,10 @@ export default defineComponent({
 
     /** handle close */
     async function savePageInfo() {
+      if (props.menuId === '' || props.menuId == null) {
+        message.warning('请先选择产品平台');
+        return;
+      }
       // 调用保存接口
       await formRef.value?.validate();
       // 保存页面信息
@@ -74,6 +83,7 @@ export default defineComponent({
       data.treeId = categoryid.value;
       data.unitId = unitId.value;
       data.dimenSion = dimenSion.value;
+      data.menuId = Number(props.menuId);
       const res = await AdminApiSystemParameter.parameterInfoSaveOrUpdate(data);
       //刷新父页面列表数据
       context.emit('refresh-table-data');

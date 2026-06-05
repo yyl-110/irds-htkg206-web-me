@@ -25,6 +25,8 @@ export class ParameterPageRequestDTOModel extends BaseModel implements Parameter
   parameterName?: string = '';
   parameterNum?: string = '';
 
+  menuId?: string | number = '';
+
   categoryid?: string = '';
   userId?: number = 0;
   id?: number = 0;

@@ -27,4 +27,5 @@ export class ParameterInfoRequestDTOModel extends BaseModel implements Parameter
   unitId?: string = '';
   dimension?: string = '';
   unitName?: string = '';
+  menuId?: number = 0;
 }

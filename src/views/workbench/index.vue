@@ -85,6 +85,15 @@ const auditSecondaryTabs = WORKBENCH_AUDIT_SECONDARY_TABS;
 const todoList = ref<TaskItem[]>([]);
 /** 设计任务列表：数据来自 /business/workbench-todo-card/page */
 const todoListLoading = ref(false);
+/** 设计任务分页（与系统公告等列表页 usePagination 一致） */
+const todoRequestParams = reactive({
+  pageNo: 1,
+  pageSize: 10,
+});
+const { pagination: todoPagination } = usePagination(todoRequestParams, loadTodoListFromApi);
+todoPagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
+todoPagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
+todoPagination.showQuickJumper = false;
 /** 流程任务列表：OA/BPM 等独立接口接入后填充 */
 const auditList = ref<WorkbenchBpmTaskItem[]>([]);
 const auditListLoading = ref(false);
@@ -120,36 +129,6 @@ const transferSelectOptions = computed(() =>
     label: u.displayName,
   })),
 );
-
-const filteredTodoList = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase();
-  const list = todoList.value.filter(item => {
-    if (!keyword) return true;
-    const hay =
-      `${item.title} ${workbenchCardDisplayTitle(item)} ${item.projectDisplayName ?? ''} ${item.appDisplayName ?? ''}`
-        .trim()
-        .toLowerCase();
-    return hay.includes(keyword);
-  });
-
-  switch (secondaryFilter.value) {
-    case 'done':
-      return list.filter(item => item.status === 'done' && !item.viewOnly);
-    case 'transfer':
-      /** 数据来自 transfer-out-page，均为已转办视图 */
-      return list;
-    case 'due5':
-    case 'due15':
-    case 'overdue':
-      /** 列表已由接口按 WBS + timeBucket 限定，仅做关键字与只读过滤 */
-      return list.filter(item => !item.viewOnly);
-    case 'all':
-      return list.filter(item => !item.viewOnly);
-    case 'todo':
-    default:
-      return list.filter(item => item.status === 'todo' && !item.viewOnly);
-  }
-});
 
 // 定义问候语文本
 const greetingText = ref('');
@@ -557,36 +536,46 @@ function mapTransferOutRowToTaskItem(row: Record<string, unknown>): TaskItem {
   };
 }
 
-/** 对接 /business/workbench-todo-card/page，设计任务 Tab 仅拉取 WBS 卡片（近5天/15天/延期由 timeBucket 与结束日对比） */
+function resetTodoListPage() {
+  todoPagination.current = 1;
+  todoRequestParams.pageNo = 1;
+}
+
+/** 对接 /business/workbench-todo-card/page（分页；WBS 且无 timeBucket 时含独立应用） */
 async function loadTodoListFromApi() {
   const uid = userStore.getUser?.id;
   if (uid == null) {
     todoList.value = [];
+    todoPagination.total = 0;
     return;
   }
   todoListLoading.value = true;
   try {
     const kw = searchQuery.value.trim();
+    const pageNo = todoRequestParams.pageNo;
+    const pageSize = todoRequestParams.pageSize;
     if (secondaryFilter.value === 'transfer') {
       const res = await AdminApiProjectTemp.workbenchTodoTransferOutPage({
-        pageNo: 1,
-        pageSize: 500,
+        pageNo,
+        pageSize,
         ...(kw ? { keyword: kw } : {}),
       });
       const code = res?.data?.code;
-      const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined;
+      const payload = res?.data?.data as { list?: Record<string, unknown>[]; total?: number } | undefined;
       const raw = payload?.list;
       if ((code === 0 || code === 200) && Array.isArray(raw)) {
         todoList.value = raw.map(mapTransferOutRowToTaskItem);
+        todoPagination.total = Number(payload?.total ?? 0);
       } else {
         todoList.value = [];
+        todoPagination.total = 0;
       }
       return;
     }
     const f = secondaryFilter.value;
     const pageBody: Parameters<typeof AdminApiProjectTemp.workbenchTodoCardPage>[0] = {
-      pageNo: 1,
-      pageSize: 500,
+      pageNo,
+      pageSize,
       assigneeUserId: String(uid),
       cardKind: 'WBS',
       ...(kw ? { keyword: kw } : {}),
@@ -605,19 +594,21 @@ async function loadTodoListFromApi() {
       pageBody.status = 'TODO';
       pageBody.timeBucket = 'OVERDUE';
     }
-    /** 「全部」不传 status，由后端返回当前承办人下全部 WBS 卡片（待办/已办等） */
     const res = await AdminApiProjectTemp.workbenchTodoCardPage(pageBody);
     const code = res?.data?.code;
-    const payload = res?.data?.data as { list?: Record<string, unknown>[] } | undefined;
+    const payload = res?.data?.data as { list?: Record<string, unknown>[]; total?: number } | undefined;
     const raw = payload?.list;
     if ((code === 0 || code === 200) && Array.isArray(raw)) {
       todoList.value = raw.map(mapWorkbenchApiRowToTaskItem);
+      todoPagination.total = Number(payload?.total ?? 0);
     } else {
       todoList.value = [];
+      todoPagination.total = 0;
     }
   } catch {
     message.error('加载待办列表失败');
     todoList.value = [];
+    todoPagination.total = 0;
   } finally {
     todoListLoading.value = false;
   }
@@ -1090,7 +1081,7 @@ async function openChangeWorkspace(task: TaskItem) {
   }
 }
 const tableTodoList = computed(() =>
-  filteredTodoList.value.map(item => ({
+  todoList.value.map(item => ({
     ...item,
     displayTime: hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/',
   })),
@@ -1643,12 +1634,14 @@ watch(searchQuery, () => {
       queryParams.pageIndex = 1;
       void loadAuditListFromApi();
     } else {
+      resetTodoListPage();
       void loadTodoListFromApi();
     }
   }, 400);
 });
 
 watch(secondaryFilter, () => {
+  resetTodoListPage();
   void loadTodoListFromApi();
 });
 
@@ -1857,10 +1850,11 @@ onUnmounted(() => {
 
                 <a-spin :spinning="todoListLoading" class="task-list-spin flex-1 min-h-0 flex flex-col">
                   <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
-                    <template v-if="viewMode === 'grid'">
+                    <Empty v-if="!todoListLoading && todoList.length === 0" description="暂无数据" />
+                    <template v-else-if="viewMode === 'grid'">
                       <a-row :gutter="[16, 12]" align="top">
                         <a-col
-                          v-for="item in filteredTodoList"
+                          v-for="item in todoList"
                           :key="String(item.id)"
                           flex="0 0 350px"
                           style="width: 350px; max-width: 350px">
@@ -2140,6 +2134,9 @@ onUnmounted(() => {
                     </template>
                   </div>
                 </a-spin>
+                <div v-if="(todoPagination.total ?? 0) > 0" class="workbench-todo-pagination flex-shrink-0 pt-[12px] pb-[4px] flex justify-end">
+                  <a-pagination v-bind="todoPagination" class="ant-table-pagination" />
+                </div>
               </div>
               <div v-else-if="item.name === 'process'" class="task-content flex flex-col flex-1 min-h-0 h-full">
                 <div class="filter-bar flex-shrink-0 flex items-center mb-[16px] mt-[3px]">
@@ -2822,6 +2819,11 @@ onUnmounted(() => {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.workbench-todo-pagination {
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
 }
 
 .capsule {

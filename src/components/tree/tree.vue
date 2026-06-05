@@ -242,8 +242,7 @@ function reloadTableStyle(treeNodeColmoun: any, oldFileName: string) {
   // 初始化formData，确保表单验证能正确识别初始值
   formData.value = {};
   treeNodeColmoun.forEach((item: any) => {
-    debugger;
-    formData.value[item.key] = item.value || '';
+    formData.value[item.key] = item.value ?? '';
   });
   console.log(formData.value);
   modalVisible.value = true;

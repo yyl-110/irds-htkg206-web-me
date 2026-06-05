@@ -14,6 +14,7 @@ const PLATFORM_PICKER_COMPONENT_MARKERS = [
   'product/designTaskApplication',
   'product/module/index',
   'product/activityPage',
+  'product/parameter',
   'product/productTemp',
   'product/designTask',
   'product/project',
