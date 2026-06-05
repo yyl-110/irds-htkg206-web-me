@@ -824,37 +824,80 @@ onBeforeUnmount(() => {
     align-self: flex-start;
   }
 
-  /* 统一标签区高度，保证同行控件从同一基线开始 */
+  :deep(.ant-form-item) {
+    margin-bottom: 0;
+  }
+
+  /* 统一标签区高度，保证同行控件顶部对齐 */
   :deep(.ant-form-item-label) {
+    height: 30px;
     min-height: 30px;
+    max-height: 30px;
     padding: 0 0 8px;
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+
+    > label {
+      display: block;
+      height: 22px;
+      line-height: 22px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  :deep(.ant-form-item-control),
+  :deep(.ant-form-item-control-input),
+  :deep(.ant-form-item-control-input-content) {
+    margin-top: 0;
+    padding-top: 0;
   }
 
   :deep(.ant-form-item-control-input) {
+    display: flex;
     align-items: flex-start;
+    justify-content: flex-start;
+    min-height: 32px;
   }
 
   :deep(.ant-input) {
     margin-top: 0;
   }
+
+  .img-upload-wrap,
+  .dynamic-textarea-wrap {
+    margin-top: 0;
+  }
 }
 
 .dynamic-form-item--textarea {
+  :deep(.ant-form-item-label) {
+    height: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    padding: 0 0 8px;
+    margin: 0;
+  }
+
   :deep(.ant-form-item-control) {
     flex: none;
     height: auto;
   }
 
   :deep(.ant-form-item-control-input) {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
     width: 100%;
     height: auto;
     min-height: 32px;
-    align-items: flex-start;
   }
 
   :deep(.ant-form-item-control-input-content) {
     display: block;
+    width: 100%;
     overflow: visible;
     height: auto;
   }
@@ -876,6 +919,8 @@ onBeforeUnmount(() => {
     min-height: 72px;
     max-height: none;
     margin: 0;
+    padding-top: 4px;
+    padding-bottom: 4px;
     overflow: auto;
     vertical-align: top;
   }
