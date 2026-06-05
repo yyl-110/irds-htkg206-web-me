@@ -1,0 +1,87 @@
+import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
+import { PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
+import { getFlowTableList } from '../shared/flowContext';
+import type { Page6ParameterItem, Page6TableRow } from './parameterDefaults';
+
+export interface Page6InitResult {
+  ok: boolean;
+}
+
+function applyGearLevelCellFlags(row: Page6TableRow) {
+  const level = Number(row.p8);
+  if (level === 2) {
+    row.cellInputOrOutput13 = '1';
+    row.cellInputOrOutput14 = '1';
+  }
+  if (level === 1) {
+    row.cellInputOrOutput11 = '1';
+    row.cellInputOrOutput12 = '1';
+    row.cellInputOrOutput13 = '1';
+    row.cellInputOrOutput14 = '1';
+  }
+}
+
+function buildRowFromDispatch(
+  schemeIndex: number,
+  dispatchRow: Record<string, string | number | undefined>,
+  motorRows: Array<Record<string, string | number | undefined>>,
+): Page6TableRow {
+  const data: Page6TableRow = {};
+  data.p0 = `组合方案${schemeIndex + 1}`;
+  data.p1 = String(dispatchRow.p1 ?? '');
+  data.p2 = String(dispatchRow.p2 ?? '');
+  data.p3 = String(dispatchRow.p3 ?? '');
+  data.p4 = String(dispatchRow.p11 ?? '');
+  data.p5 = String(dispatchRow.p13 ?? '');
+  const gearRatio = Number(dispatchRow.p13);
+  data.p6 = Number.isFinite(gearRatio) ? (gearRatio * 0.9).toFixed(3) : '';
+  data.p7 = Number.isFinite(gearRatio) ? (gearRatio * 1.1).toFixed(3) : '';
+  data.p8 = String(dispatchRow.p14 ?? '');
+
+  motorRows.forEach(motor => {
+    if (dispatchRow.p4 === motor.p2) {
+      data.p9 = String(motor.p18 ?? '');
+    }
+  });
+
+  data.p10 = '';
+  data.p11 = '';
+  data.p12 = '';
+  data.p13 = '';
+  data.p14 = '';
+  data.p15 = '';
+  data.p16 = '';
+
+  applyGearLevelCellFlags(data);
+  return data;
+}
+
+/** 从齿轮减速比分配表、电机选型表刷新（原 initData） */
+export function applyPage6InitData(list: Page6ParameterItem[]): Page6InitResult {
+  const tableList = getFlowTableList();
+
+  let dispatchList: Array<Record<string, string | number | undefined>> = [];
+  let motorList: Array<Record<string, string | number | undefined>> = [];
+
+  tableList.forEach(item => {
+    if (item.tablenum === PAGE5_TABLE_NUM) {
+      dispatchList = item.rowdata ?? [];
+    }
+    if (item.tablenum === MOTOR_SELECT_TABLE_NUM) {
+      motorList = item.rowdata ?? [];
+    }
+  });
+
+  const dataList = dispatchList.map((item, index) => buildRowFromDispatch(index, item, motorList));
+
+  if (!list[0]?.tableMap) {
+    return { ok: false };
+  }
+  if (dataList.length === 0) {
+    return { ok: false };
+  }
+
+  list[0].tableMap.rowData = dataList;
+  list[0].tableMap.rowNums = dataList.length;
+  return { ok: true };
+}

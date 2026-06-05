@@ -1,0 +1,493 @@
+<template>
+  <div class="page9">
+    <div class="page9-header">
+      <div class="page9-title">校核减速机构的齿轮强度</div>
+      <a-space :size="12" class="page9-actions">
+        <a-button type="primary" @click="handleInitData">更新数据</a-button>
+      </a-space>
+    </div>
+
+    <div class="page9-scheme-wrap">
+      <a-table
+        :columns="schemeTableColumns"
+        :data-source="schemeTableRows"
+        :pagination="false"
+        bordered
+        size="small"
+        :scroll="{ y: schemeTabHeight, x: 'max-content' }"
+        :row-key="schemeRowKey"
+        :row-selection="schemeRowSelection"
+        class="page9-table" />
+    </div>
+
+    <div class="page9-toolbar">
+      <span class="page9-toolbar__label">载荷系数：</span>
+      <a-input v-model:value="loadCoefficient" class="page9-toolbar__input" @input="handleCoefficientChange" />
+      <a-button type="primary" class="page9-toolbar__calc" @click="handleCalculation">计算</a-button>
+    </div>
+
+    <div class="page9-body">
+      <div class="page9-gear-wrap">
+        <a-table
+          :columns="gearTableColumns"
+          :data-source="gearTableRows"
+          :pagination="false"
+          bordered
+          size="small"
+          :scroll="{ y: gearTabHeight, x: 'max-content' }"
+          :row-key="gearRowKey"
+          class="page9-table">
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="resolveGearColumn(column)?.cellMode === 'editable'">
+              <a-input
+                v-model:value="record[String(column.dataIndex)]"
+                :disabled="isPage9GearCellDisabled(record, String(column.dataIndex))"
+                class="table-cell-input"
+                @blur="onGearCellBlur(record, index, String(column.dataIndex))"
+                @input="onGearCellInput(record, index, String(column.dataIndex))" />
+            </template>
+          </template>
+        </a-table>
+      </div>
+
+      <div class="page9-diagrams">
+        <div class="page9-diagram">
+          <img :src="diagramTopSrc" alt="推荐模数示意" class="page9-diagram__img" @error="onDiagramTopError" />
+        </div>
+        <div class="page9-diagram">
+          <img :src="diagramBottomSrc" alt="齿轮参数示意" class="page9-diagram__img" @error="onDiagramBottomError" />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { message } from 'ant-design-vue';
+import type { Key } from 'ant-design-vue/es/table/interface';
+import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
+import { calculateAllPage9GearRows, applyRootBendingStressToRow, applyTangentialForceToRow } from './page9/calculations';
+import { createGearRatioTable, lookupGearFactors } from './page9/gearRatio';
+import { applyPage9InitData } from './page9/initData';
+import { loadPage9PageParameters } from './page9/loadPageParameters';
+import {
+  createDefaultPage9ParameterList,
+  type Page9GearRow,
+  type Page9ParameterItem,
+  type Page9SchemeRow,
+} from './page9/parameterDefaults';
+import {
+  applyLoadCoefficientToGearRows,
+  extractPage9SaveParamValues,
+  getGearDisplayRows,
+  getLoadCoefficient,
+  getSchemeTableRows,
+  setGearDisplayRows,
+  setLoadCoefficient,
+  updateGearRowField,
+} from './page9/rowOperations';
+import { applyPage9SchemeSelection, syncCalculatedGearRowsToSource } from './page9/selectionHandler';
+import {
+  isNumericInput,
+  isPage9GearCellDisabled,
+  PAGE9_GEAR_COLUMNS,
+  PAGE9_GEAR_LEAF_COLUMNS,
+  PAGE9_SCHEME_COLUMNS,
+  type Page9AntColumn,
+} from './page9/tableColumns';
+
+defineOptions({ name: 'rx-customizedProcess-page9' });
+
+const props = withDefaults(
+  defineProps<{
+    width?: number;
+    modalFlag?: boolean;
+    pageid?: string;
+    parameterTempList?: Page9ParameterItem[];
+  }>(),
+  {
+    width: 1000,
+    modalFlag: false,
+    pageid: '',
+    parameterTempList: () => [],
+  },
+);
+
+const emit = defineEmits<{
+  setSaveBtnEnable: [value: boolean];
+}>();
+
+const route = useRoute();
+const schemeTabHeight = 280;
+const gearTabHeight = 360;
+const schemeTableColumns = PAGE9_SCHEME_COLUMNS;
+const gearTableColumns = PAGE9_GEAR_COLUMNS;
+const gearLeafMap = new Map(PAGE9_GEAR_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
+const gearRatioTable = createGearRatioTable();
+
+const selectedRowKeys = ref<Key[]>([]);
+const selectedSchemeRows = ref<Page9SchemeRow[]>([]);
+const diagramTopSrc = ref('/images/tjms.png');
+const diagramBottomSrc = ref('/images/cl.png');
+let diagramTopFallback = false;
+let diagramBottomFallback = false;
+
+function createInitialParameterList(): Page9ParameterItem[] {
+  if (!props.parameterTempList || props.parameterTempList.length <= 0) {
+    return createDefaultPage9ParameterList(props.pageid);
+  }
+  return props.parameterTempList.map(item => ({
+    ...item,
+    tableMap: item.tableMap
+      ? {
+          ...item.tableMap,
+          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+        }
+      : item.tableMap,
+  }));
+}
+
+const parameterTempList = ref<Page9ParameterItem[]>(createInitialParameterList());
+const loadCoefficient = ref(getLoadCoefficient(parameterTempList.value));
+
+const schemeTableRows = computed(() => getSchemeTableRows(parameterTempList.value));
+const gearTableRows = computed(() => getGearDisplayRows(parameterTempList.value));
+
+watch(
+  () => props.parameterTempList,
+  val => {
+    if (val && val.length > 0) {
+      parameterTempList.value = val.map(item => ({
+        ...item,
+        tableMap: item.tableMap
+          ? {
+              ...item.tableMap,
+              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+            }
+          : item.tableMap,
+      }));
+      loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
+    }
+  },
+  { deep: true },
+);
+
+function schemeRowKey(record: Page9SchemeRow, index?: number) {
+  return String(record.p0 ?? index ?? '');
+}
+
+function gearRowKey(record: Page9GearRow, index?: number) {
+  return `${record.p0 ?? index ?? ''}-${index ?? ''}`;
+}
+
+function resolveGearColumn(column: { dataIndex?: string | number }): Page9AntColumn | undefined {
+  return gearLeafMap.get(String(column.dataIndex ?? ''));
+}
+
+function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
+  emit('setSaveBtnEnable', true);
+  if (inputOrOutput === undefined || inputOrOutput === '1') return;
+  if (parameterId === undefined || parameterId === null || Number(parameterId) <= 0) return;
+  if (parameterValue === undefined || parameterValue === null) return;
+
+  parameterTempList.value.forEach(item => {
+    if (item.ifSingleLine !== 't') {
+      if (item.parameterId === parameterId) {
+        item.defaultValue = parameterValue;
+      }
+    } else {
+      const colNums = Number(item.tableMap?.colNums ?? 0);
+      if (colNums > 0) {
+        item.tableMap?.rowData?.forEach(row => {
+          for (let i = 0; i < colNums; i++) {
+            if (row[`cellParameterId${i}`] === parameterId) {
+              row[`p${i}`] = parameterValue;
+            }
+          }
+        });
+      }
+    }
+  });
+}
+
+function handleSchemeSelection(_keys: Key[], rows: Page9SchemeRow[]) {
+  if (rows.length > 1) {
+    message.info('请只选一个方案');
+    selectedRowKeys.value = rows.length ? [schemeRowKey(rows[0])] : [];
+    selectedSchemeRows.value = rows.slice(0, 1);
+    setGearDisplayRows(parameterTempList.value, []);
+    return;
+  }
+
+  selectedSchemeRows.value = rows;
+  selectedRowKeys.value = rows.map(row => schemeRowKey(row));
+
+  if (!rows.length) {
+    setGearDisplayRows(parameterTempList.value, []);
+    return;
+  }
+
+  const gearRows = applyPage9SchemeSelection(parameterTempList.value, rows, gearRatioTable);
+  setGearDisplayRows(parameterTempList.value, gearRows);
+  setSaveBtnEnable();
+}
+
+const schemeRowSelection = computed(() => ({
+  type: 'radio' as const,
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: handleSchemeSelection,
+}));
+
+function handleCoefficientChange() {
+  setLoadCoefficient(parameterTempList.value, loadCoefficient.value);
+  applyLoadCoefficientToGearRows(parameterTempList.value, loadCoefficient.value);
+  setSaveBtnEnable();
+}
+
+function onGearCellInput(record: Page9GearRow, index: number, field: string) {
+  const value = String(record[field] ?? '');
+  if (field === 'p2' || field === 'p4' || field === 'p5' || field === 'p6') {
+    if (value && !isNumericInput(value)) {
+      message.error('请输入数字');
+      return;
+    }
+  }
+  const rows = [...getGearDisplayRows(parameterTempList.value)];
+  updateGearRowField(rows, index, field as keyof Page9GearRow, value);
+  setGearDisplayRows(parameterTempList.value, rows);
+  setSaveBtnEnable();
+}
+
+function onGearCellBlur(record: Page9GearRow, index: number, field: string) {
+  const rows = [...getGearDisplayRows(parameterTempList.value)];
+  const value = String(record[field] ?? '');
+  updateGearRowField(rows, index, field as keyof Page9GearRow, value);
+
+  if (field === 'p4') {
+    const factors = lookupGearFactors(String(rows[index]?.p3 ?? ''), gearRatioTable);
+    if (factors.YF) rows[index].p5 = factors.YF;
+    if (factors.YS) rows[index].p6 = factors.YS;
+  }
+
+  if (field === 'p2') {
+    applyTangentialForceToRow(rows[index], index, rows);
+  }
+  if (field === 'p5' || field === 'p6') {
+    applyRootBendingStressToRow(rows[index], index, rows);
+  }
+
+  setGearDisplayRows(parameterTempList.value, rows);
+  setSaveBtnEnable();
+}
+
+function handleInitData() {
+  const result = applyPage9InitData(parameterTempList.value);
+  if (result.cleared) {
+    message.warning('请先在 page8 勾选组合方案并保存方案索引后再试');
+    selectedRowKeys.value = [];
+    selectedSchemeRows.value = [];
+    setSaveBtnEnable();
+    return;
+  }
+  if (!result.ok) {
+    message.warning('未能更新表格：请先在「初步筛选若干组合方案」页面勾选方案并注入流程上下文后再试');
+    return;
+  }
+  selectedRowKeys.value = [];
+  selectedSchemeRows.value = [];
+  setSaveBtnEnable();
+}
+
+function handleCalculation() {
+  const rows = [...getGearDisplayRows(parameterTempList.value)];
+  if (!rows.length) {
+    message.warning('请先选择一个组合方案');
+    return;
+  }
+  calculateAllPage9GearRows(rows);
+  setGearDisplayRows(parameterTempList.value, rows);
+
+  if (selectedSchemeRows.value.length === 1) {
+    syncCalculatedGearRowsToSource(parameterTempList.value, String(selectedSchemeRows.value[0].p0 ?? ''), rows);
+  }
+  setSaveBtnEnable();
+}
+
+function onDiagramTopError() {
+  if (diagramTopFallback) return;
+  diagramTopFallback = true;
+  diagramTopSrc.value = diagramPlaceholder;
+}
+
+function onDiagramBottomError() {
+  if (diagramBottomFallback) return;
+  diagramBottomFallback = true;
+  diagramBottomSrc.value = diagramPlaceholder;
+}
+
+async function loadPageParametersIfNeeded() {
+  if (props.parameterTempList && props.parameterTempList.length > 0) return;
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
+  if (!pageId) return;
+  parameterTempList.value = await loadPage9PageParameters(pageId);
+  loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
+}
+
+function updateEl() {
+  nextTick(() => {
+    setGearDisplayRows(parameterTempList.value, []);
+  });
+}
+
+function getCurrentSaveParamValues() {
+  return extractPage9SaveParamValues(parameterTempList.value);
+}
+
+defineExpose({
+  updateEl,
+  getCurrentSaveParamValues,
+});
+
+onMounted(async () => {
+  await loadPageParametersIfNeeded();
+});
+</script>
+
+<style scoped>
+.page9 {
+  padding: 12px 16px 16px;
+  background: #fff;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.page9-header {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.page9-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.page9-actions {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.page9-scheme-wrap {
+  margin-bottom: 12px;
+}
+
+.page9-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.page9-toolbar__label {
+  font-weight: 600;
+}
+
+.page9-toolbar__input {
+  width: 100px;
+}
+
+.page9-toolbar__calc {
+  margin-left: auto;
+}
+
+.page9-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.page9-gear-wrap {
+  flex: 1;
+  min-width: 640px;
+  overflow: hidden;
+}
+
+.page9-diagrams {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page9-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  padding: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+}
+
+.page9-diagram__img {
+  max-width: 100%;
+  max-height: 210px;
+  object-fit: contain;
+}
+
+.page9-table :deep(.ant-table) {
+  font-size: 12px;
+}
+
+.page9-table :deep(.ant-table-thead > tr > th) {
+  padding: 6px 4px;
+  text-align: center;
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.page9-table :deep(.ant-table-tbody > tr > td) {
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.page9-table :deep(.ant-table-cell-fix-left) {
+  background: #fff;
+  z-index: 2;
+}
+
+.table-cell-input {
+  width: 100%;
+  text-align: center;
+}
+
+.table-cell-input :deep(.ant-input) {
+  text-align: center;
+}
+
+@media (max-width: 1200px) {
+  .page9-gear-wrap {
+    min-width: 100%;
+  }
+
+  .page9-diagrams {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .page9-diagram {
+    flex: 1;
+    min-width: 280px;
+  }
+}
+</style>

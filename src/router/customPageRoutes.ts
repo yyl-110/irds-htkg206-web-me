@@ -132,4 +132,104 @@ export const customPageRoutes: RouteRecordRaw[] = [
       noCache: true,
     },
   },
+  {
+    path: 'customized-process-page3',
+    name: 'CustomizedProcessPage3',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page3.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面3',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page3-1',
+    name: 'CustomizedProcessPage3_1',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page3-1.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面3-1',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page4',
+    name: 'CustomizedProcessPage4',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page4.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面4',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page5',
+    name: 'CustomizedProcessPage5',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page5.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面5',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page6',
+    name: 'CustomizedProcessPage6',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page6.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面6',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page7',
+    name: 'CustomizedProcessPage7',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page7.vue'),
+    meta: {
+      hidden: true,
+      title: '定制流程页面7',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page8',
+    name: 'CustomizedProcessPage8',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page8.vue'),
+    meta: {
+      hidden: true,
+      title: '初步筛选若干组合方案',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page9',
+    name: 'CustomizedProcessPage9',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page9.vue'),
+    meta: {
+      hidden: true,
+      title: '校核减速机构的齿轮强度',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page10',
+    name: 'CustomizedProcessPage10',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page10.vue'),
+    meta: {
+      hidden: true,
+      title: '所有角度性能校核计算',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-page11',
+    name: 'CustomizedProcessPage11',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page11.vue'),
+    meta: {
+      hidden: true,
+      title: '确定最终方案',
+      noCache: true,
+    },
+  },
 ];

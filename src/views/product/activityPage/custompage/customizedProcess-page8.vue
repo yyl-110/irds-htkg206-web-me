@@ -1,0 +1,235 @@
+<template>
+  <div class="page8">
+    <div class="page8-header">
+      <div class="page8-title">初步筛选若干组合方案</div>
+      <a-space :size="12" class="page8-actions">
+        <a-button type="primary" @click="handleInitData">更新数据</a-button>
+      </a-space>
+    </div>
+
+    <div class="page8-table-wrap">
+      <a-table
+        :columns="page8TableColumns"
+        :data-source="tableRowData"
+        :pagination="false"
+        bordered
+        size="small"
+        :scroll="{ y: tabHeight, x: 'max-content' }"
+        :row-key="page8TableRowKey"
+        :row-selection="rowSelection"
+        class="page8-table" />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { message } from 'ant-design-vue';
+import type { Key } from 'ant-design-vue/es/table/interface';
+import { applyPage8InitData } from './page8/initData';
+import { loadPage8PageParameters } from './page8/loadPageParameters';
+import { createDefaultPage8ParameterList, type Page8ParameterItem, type Page8TableRow } from './page8/parameterDefaults';
+import {
+  extractPage8SaveParamValues,
+  getPage8TableRows,
+  setPage8TableRows,
+  syncPage8SelectionIndexes,
+} from './page8/rowOperations';
+import { PAGE8_ANT_COLUMNS } from './page8/tableColumns';
+
+defineOptions({ name: 'rx-customizedProcess-page8' });
+
+const props = withDefaults(
+  defineProps<{
+    width?: number;
+    modalFlag?: boolean;
+    pageid?: string;
+    parameterTempList?: Page8ParameterItem[];
+  }>(),
+  {
+    width: 1000,
+    modalFlag: false,
+    pageid: '',
+    parameterTempList: () => [],
+  },
+);
+
+const emit = defineEmits<{
+  setSaveBtnEnable: [value: boolean];
+}>();
+
+const route = useRoute();
+const tabHeight = 580;
+const page8TableColumns = PAGE8_ANT_COLUMNS;
+const selectedRowKeys = ref<Key[]>([]);
+
+function createInitialParameterList(): Page8ParameterItem[] {
+  if (!props.parameterTempList || props.parameterTempList.length <= 0) {
+    return createDefaultPage8ParameterList(props.pageid);
+  }
+  return props.parameterTempList.map(item => ({
+    ...item,
+    tableMap: item.tableMap
+      ? {
+          ...item.tableMap,
+          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+        }
+      : item.tableMap,
+  }));
+}
+
+const parameterTempList = ref<Page8ParameterItem[]>(createInitialParameterList());
+
+const tableRowData = computed(() => getPage8TableRows(parameterTempList.value));
+
+watch(
+  () => props.parameterTempList,
+  val => {
+    if (val && val.length > 0) {
+      parameterTempList.value = val.map(item => ({
+        ...item,
+        tableMap: item.tableMap
+          ? {
+              ...item.tableMap,
+              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+            }
+          : item.tableMap,
+      }));
+    }
+  },
+  { deep: true },
+);
+
+function page8TableRowKey(record: Page8TableRow, index?: number) {
+  return String(record.p0 ?? index ?? '');
+}
+
+function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
+  emit('setSaveBtnEnable', true);
+  if (inputOrOutput === undefined || inputOrOutput === '1') return;
+  if (parameterId === undefined || parameterId === null || Number(parameterId) <= 0) return;
+  if (parameterValue === undefined || parameterValue === null) return;
+
+  parameterTempList.value.forEach(item => {
+    if (item.ifSingleLine !== 't') {
+      if (item.parameterId === parameterId) {
+        item.defaultValue = parameterValue;
+      }
+    } else {
+      const colNums = Number(item.tableMap?.colNums ?? 0);
+      if (colNums > 0) {
+        item.tableMap?.rowData?.forEach(row => {
+          for (let i = 0; i < colNums; i++) {
+            if (row[`cellParameterId${i}`] === parameterId) {
+              row[`p${i}`] = parameterValue;
+            }
+          }
+        });
+      }
+    }
+  });
+}
+
+function handleSelectionChange(keys: Key[], rows: Page8TableRow[]) {
+  selectedRowKeys.value = keys;
+  syncPage8SelectionIndexes(parameterTempList.value, rows);
+  setSaveBtnEnable();
+}
+
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: handleSelectionChange,
+}));
+
+function handleInitData() {
+  const result = applyPage8InitData(parameterTempList.value);
+  if (!result.ok) {
+    message.warning(
+      '未能更新表格：请先在「齿轮减速比分配」「确定齿数」「性能校核」等前置页面生成数据并注入流程上下文后再试',
+    );
+    return;
+  }
+  selectedRowKeys.value = [];
+  setPage8TableRows(parameterTempList.value, [...getPage8TableRows(parameterTempList.value)]);
+  setSaveBtnEnable();
+}
+
+async function loadPageParametersIfNeeded() {
+  if (props.parameterTempList && props.parameterTempList.length > 0) return;
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
+  if (!pageId) return;
+  parameterTempList.value = await loadPage8PageParameters(pageId);
+}
+
+function updateEl() {
+  nextTick(() => {});
+}
+
+function getCurrentSaveParamValues() {
+  return extractPage8SaveParamValues(parameterTempList.value);
+}
+
+defineExpose({
+  updateEl,
+  getCurrentSaveParamValues,
+});
+
+onMounted(async () => {
+  await loadPageParametersIfNeeded();
+});
+</script>
+
+<style scoped>
+.page8 {
+  padding: 12px 16px 16px;
+  background: #fff;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.page8-header {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.page8-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.page8-actions {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.page8-table-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+
+.page8-table :deep(.ant-table) {
+  font-size: 12px;
+}
+
+.page8-table :deep(.ant-table-thead > tr > th) {
+  padding: 6px 4px;
+  text-align: center;
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.page8-table :deep(.ant-table-tbody > tr > td) {
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.page8-table :deep(.ant-table-cell-fix-left) {
+  background: #fff;
+  z-index: 2;
+}
+</style>

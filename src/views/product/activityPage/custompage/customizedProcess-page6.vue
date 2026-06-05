@@ -1,0 +1,344 @@
+<template>
+  <div class="page6">
+    <div class="page6-header">
+      <div class="page6-title">确定齿数和最终实际总减速比</div>
+      <a-space :size="12" class="page6-actions">
+        <a-button type="primary" @click="handleInitData">更新数据</a-button>
+        <a-button type="primary" @click="handleCalculation">计算</a-button>
+      </a-space>
+    </div>
+
+    <div class="page6-main">
+      <div class="page6-diagram">
+        <img :src="diagramSrc" alt="齿轮传动示意图" class="page6-diagram__img" @error="onDiagramError" />
+      </div>
+
+      <div class="page6-table-wrap">
+        <a-table
+          :columns="page6TableColumns"
+          :data-source="tableRowData"
+          :pagination="false"
+          bordered
+          size="small"
+          :scroll="{ y: tabHeight, x: 'max-content' }"
+          :row-key="page6TableRowKey"
+          class="page6-table">
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="resolveLeafColumn(column)?.cellMode === 'editable'">
+              <a-input
+                v-model:value="record[String(column.dataIndex)]"
+                :disabled="isPage6CellDisabled(record, String(column.dataIndex))"
+                type="number"
+                class="table-cell-input"
+                @input="onCellInput(record, index, String(column.dataIndex))" />
+            </template>
+          </template>
+        </a-table>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { message } from 'ant-design-vue';
+import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
+import { calculateAllPage6Rows } from './page6/calculations';
+import { applyPage6InitData } from './page6/initData';
+import { loadPage6PageParameters } from './page6/loadPageParameters';
+import { createDefaultPage6ParameterList, type Page6ParameterItem, type Page6TableRow } from './page6/parameterDefaults';
+import { extractPage6SaveParamValues, getPage6TableRows, setPage6TableRows } from './page6/rowOperations';
+import { isPage6CellDisabled, PAGE6_ANT_COLUMNS, PAGE6_LEAF_COLUMNS, type Page6AntColumn } from './page6/tableColumns';
+
+defineOptions({ name: 'rx-customizedProcess-page6' });
+
+const props = withDefaults(
+  defineProps<{
+    width?: number;
+    modalFlag?: boolean;
+    pageid?: string;
+    parameterTempList?: Page6ParameterItem[];
+  }>(),
+  {
+    width: 1000,
+    modalFlag: false,
+    pageid: '',
+    parameterTempList: () => [],
+  },
+);
+
+const emit = defineEmits<{
+  setSaveBtnEnable: [value: boolean];
+}>();
+
+const route = useRoute();
+const tabHeight = 480;
+const page6TableColumns = PAGE6_ANT_COLUMNS;
+const leafColumnMap = new Map(PAGE6_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
+
+/** 示意图：默认占位图；若 public/images/clcs.png 存在则替换 */
+const diagramSrc = ref(diagramPlaceholder);
+
+function onDiagramError() {
+  diagramSrc.value = diagramPlaceholder;
+}
+
+function tryLoadPublicDiagram() {
+  const probe = new Image();
+  probe.onload = () => {
+    diagramSrc.value = '/images/clcs.png';
+  };
+  probe.src = '/images/clcs.png';
+}
+
+function createInitialParameterList(): Page6ParameterItem[] {
+  if (!props.parameterTempList || props.parameterTempList.length <= 0) {
+    return createDefaultPage6ParameterList(props.pageid);
+  }
+  return props.parameterTempList.map(item => ({
+    ...item,
+    tableMap: item.tableMap
+      ? {
+          ...item.tableMap,
+          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+        }
+      : item.tableMap,
+  }));
+}
+
+const parameterTempList = ref<Page6ParameterItem[]>(createInitialParameterList());
+
+const tableRowData = computed(() => getPage6TableRows(parameterTempList.value));
+
+watch(
+  () => props.parameterTempList,
+  val => {
+    if (val && val.length > 0) {
+      parameterTempList.value = val.map(item => ({
+        ...item,
+        tableMap: item.tableMap
+          ? {
+              ...item.tableMap,
+              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+            }
+          : item.tableMap,
+      }));
+    }
+  },
+  { deep: true },
+);
+
+function resolveLeafColumn(column: { dataIndex?: string | number }): Page6AntColumn | undefined {
+  return leafColumnMap.get(String(column.dataIndex ?? ''));
+}
+
+function page6TableRowKey(record: Page6TableRow, index?: number) {
+  return String(record.p0 ?? index ?? '');
+}
+
+function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
+  emit('setSaveBtnEnable', true);
+  if (inputOrOutput === undefined || inputOrOutput === '1') {
+    return;
+  }
+  if (parameterId === undefined || parameterId === null || Number(parameterId) <= 0) {
+    return;
+  }
+  if (parameterValue === undefined || parameterValue === null) {
+    return;
+  }
+  parameterTempList.value.forEach(item => {
+    if (item.ifSingleLine !== 't') {
+      if (item.parameterId === parameterId) {
+        item.defaultValue = parameterValue;
+      }
+    } else {
+      const colNums = Number(item.tableMap?.colNums ?? 0);
+      if (colNums > 0) {
+        item.tableMap?.rowData?.forEach(row => {
+          for (let i = 0; i < colNums; i++) {
+            if (row[`cellParameterId${i}`] === parameterId) {
+              row[`p${i}`] = parameterValue;
+            }
+          }
+        });
+      }
+    }
+  });
+}
+
+function onCellInput(record: Page6TableRow, index: number, field: string) {
+  const rows = getPage6TableRows(parameterTempList.value);
+  if (rows[index]) {
+    rows[index][field] = record[field] != null ? String(record[field]) : '';
+  }
+  setSaveBtnEnable();
+}
+
+function handleInitData() {
+  const result = applyPage6InitData(parameterTempList.value);
+  if (!result.ok) {
+    message.warning('未能更新表格：请先在「齿轮减速比分配」页面生成数据并注入流程上下文后再试');
+    return;
+  }
+  setPage6TableRows(parameterTempList.value, [...getPage6TableRows(parameterTempList.value)]);
+  setSaveBtnEnable();
+}
+
+function handleCalculation() {
+  const rows = [...getPage6TableRows(parameterTempList.value)];
+  if (!rows.length) {
+    message.warning('暂无数据可计算');
+    return;
+  }
+  calculateAllPage6Rows(rows);
+  setPage6TableRows(parameterTempList.value, rows);
+  setSaveBtnEnable();
+}
+
+async function loadPageParametersIfNeeded() {
+  if (props.parameterTempList && props.parameterTempList.length > 0) return;
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
+  if (!pageId) return;
+  parameterTempList.value = await loadPage6PageParameters(pageId);
+}
+
+function updateEl() {
+  nextTick(() => {});
+}
+
+function getCurrentSaveParamValues() {
+  return extractPage6SaveParamValues(parameterTempList.value);
+}
+
+defineExpose({
+  updateEl,
+  getCurrentSaveParamValues,
+});
+
+onMounted(async () => {
+  tryLoadPublicDiagram();
+  await loadPageParametersIfNeeded();
+});
+</script>
+
+<style scoped>
+.page6 {
+  padding: 12px 16px 16px;
+  background: #fff;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.page6-header {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.page6-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.page6-actions {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.page6-main {
+  position: relative;
+  width: 100%;
+}
+
+.page6-diagram {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(380px, 42%);
+  min-height: 140px;
+  max-height: 220px;
+  padding: 8px 12px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.page6-diagram__img {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.page6-table-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+
+@media (min-width: 992px) {
+  .page6-table-wrap {
+    padding-right: calc(min(380px, 42%) + 16px);
+  }
+}
+
+@media (max-width: 991px) {
+  .page6-diagram {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .page6-table-wrap {
+    padding-right: 0;
+  }
+}
+
+.page6-table :deep(.ant-table) {
+  font-size: 12px;
+}
+
+.page6-table :deep(.ant-table-thead > tr > th) {
+  padding: 6px 4px;
+  text-align: center;
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.page6-table :deep(.ant-table-tbody > tr > td) {
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.page6-table :deep(.ant-table-cell-fix-left) {
+  background: #fff;
+  z-index: 2;
+}
+
+.table-cell-input {
+  width: 100%;
+}
+
+.table-cell-input :deep(.ant-input) {
+  text-align: center;
+}
+
+@media (max-width: 1200px) {
+  .page6-diagram {
+    max-height: 180px;
+  }
+
+  .page6-diagram__img {
+    max-height: 160px;
+  }
+}
+</style>

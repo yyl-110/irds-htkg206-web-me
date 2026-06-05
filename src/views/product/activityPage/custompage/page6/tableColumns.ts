@@ -1,0 +1,90 @@
+export type Page6CellMode = 'text' | 'editable';
+
+export interface Page6AntColumn {
+  title?: string;
+  dataIndex?: string;
+  key?: string;
+  width?: number;
+  align?: 'left' | 'center' | 'right';
+  fixed?: 'left' | 'right';
+  cellMode?: Page6CellMode;
+  children?: Page6AntColumn[];
+}
+
+function leaf(title: string, dataIndex: string, width = 95, cellMode: Page6CellMode = 'text'): Page6AntColumn {
+  return { title, dataIndex, key: dataIndex, align: 'center', width, cellMode };
+}
+
+function metricGroup(title: string, dataIndex: string, unit: string): Page6AntColumn {
+  return {
+    title,
+    align: 'center',
+    width: 95,
+    children: [leaf(unit, dataIndex, 95)],
+  };
+}
+
+export const PAGE6_EDITABLE_FIELDS = new Set(['p10', 'p11', 'p12', 'p13', 'p14']);
+
+export const PAGE6_ANT_COLUMNS: Page6AntColumn[] = [
+  { ...leaf('组合方案', 'p0', 100), fixed: 'left' as const },
+  {
+    title: '初算指标',
+    align: 'center',
+    children: [
+      metricGroup('舵机最大输出力矩', 'p1', 'Nm'),
+      metricGroup('舵机最大空载速度', 'p2', '°/S'),
+      metricGroup('舵机额定负载速度', 'p3', '°/S'),
+    ],
+  },
+  leaf('理论总减速比', 'p4', 95),
+  leaf('理论齿轮减速比', 'p5', 95),
+  {
+    title: '齿轮减速比允许的范围',
+    align: 'center',
+    children: [leaf('最小值', 'p6', 95), leaf('最大值', 'p7', 95)],
+  },
+  leaf('齿轮减速级数', 'p8', 95),
+  {
+    title: '第一级减速',
+    align: 'center',
+    children: [leaf('电机齿数', 'p9', 95), leaf('第一级从动轮齿数', 'p10', 95, 'editable')],
+  },
+  {
+    title: '第二级减速',
+    align: 'center',
+    children: [
+      leaf('第二级主动轮齿数', 'p11', 95, 'editable'),
+      leaf('第二级从动轮齿数', 'p12', 95, 'editable'),
+    ],
+  },
+  {
+    title: '第三级减速',
+    align: 'center',
+    children: [
+      leaf('第三级主动轮齿数', 'p13', 95, 'editable'),
+      leaf('第三级从动轮齿数', 'p14', 95, 'editable'),
+    ],
+  },
+  leaf('实际齿轮减速比', 'p15', 95),
+  leaf('实际零位总减速比', 'p16', 95),
+];
+
+export function flattenPage6LeafColumns(columns: Page6AntColumn[]): Page6AntColumn[] {
+  const result: Page6AntColumn[] = [];
+  columns.forEach(col => {
+    if (col.children?.length) {
+      result.push(...flattenPage6LeafColumns(col.children));
+    } else if (col.dataIndex) {
+      result.push(col);
+    }
+  });
+  return result;
+}
+
+export const PAGE6_LEAF_COLUMNS = flattenPage6LeafColumns(PAGE6_ANT_COLUMNS);
+
+export function isPage6CellDisabled(record: Record<string, string | number | undefined>, field: string): boolean {
+  const idx = field.replace(/^p/, '');
+  return record[`cellInputOrOutput${idx}`] === '1';
+}

@@ -16,6 +16,16 @@ export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-page1-4': () => import('@/views/product/activityPage/custompage/customizedProcess-page1-4.vue'), //定制流程页面1-4
   'customized-process-page2': () => import('@/views/product/activityPage/custompage/customizedProcess-page2.vue'), //定制流程页面2
   'customized-process-page2-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page2-1.vue'), //定制流程页面2-1
+  'customized-process-page3': () => import('@/views/product/activityPage/custompage/customizedProcess-page3.vue'), //定制流程页面3-初始总减速比计算
+  'customized-process-page3-1': () => import('@/views/product/activityPage/custompage/customizedProcess-page3-1.vue'), //定制流程页面3-1
+  'customized-process-page4': () => import('@/views/product/activityPage/custompage/customizedProcess-page4.vue'), //定制流程页面4-组合方案确定
+  'customized-process-page5': () => import('@/views/product/activityPage/custompage/customizedProcess-page5.vue'), //定制流程页面5-齿轮减速比分配
+  'customized-process-page6': () => import('@/views/product/activityPage/custompage/customizedProcess-page6.vue'), //定制流程页面6-确定齿数和最终实际总减速比
+  'customized-process-page7': () => import('@/views/product/activityPage/custompage/customizedProcess-page7.vue'), //定制流程页面7-性能校核计算
+  'customized-process-page8': () => import('@/views/product/activityPage/custompage/customizedProcess-page8.vue'), //定制流程页面8-初步筛选若干组合方案
+  'customized-process-page9': () => import('@/views/product/activityPage/custompage/customizedProcess-page9.vue'), //定制流程页面9-校核减速机构的齿轮强度
+  'customized-process-page10': () => import('@/views/product/activityPage/custompage/customizedProcess-page10.vue'), //定制流程页面10-所有角度性能校核计算
+  'customized-process-page11': () => import('@/views/product/activityPage/custompage/customizedProcess-page11.vue'), //定制流程页面11-确定最终方案
 };
 
 /** 自定义页 key → 前端路由 path */
@@ -33,6 +43,16 @@ export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-page1-4': '/internal/customized-process-page1-4',
   'customized-process-page2': '/internal/customized-process-page2',
   'customized-process-page2-1': '/internal/customized-process-page2-1',
+  'customized-process-page3': '/internal/customized-process-page3',
+  'customized-process-page3-1': '/internal/customized-process-page3-1',
+  'customized-process-page4': '/internal/customized-process-page4',
+  'customized-process-page5': '/internal/customized-process-page5',
+  'customized-process-page6': '/internal/customized-process-page6',
+  'customized-process-page7': '/internal/customized-process-page7',
+  'customized-process-page8': '/internal/customized-process-page8',
+  'customized-process-page9': '/internal/customized-process-page9',
+  'customized-process-page10': '/internal/customized-process-page10',
+  'customized-process-page11': '/internal/customized-process-page11',
 };
 
 export type CustomPagePreviewTarget =
