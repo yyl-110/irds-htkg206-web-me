@@ -8,7 +8,7 @@
           更新数据
         </a-button>
       </a-space>
-    </div>
+        </div>
 
     <div class="page9-scheme-wrap">
       <a-table
@@ -21,7 +21,7 @@
         :row-key="schemeRowKey"
         :row-selection="schemeRowSelection"
         class="page9-table" />
-    </div>
+            </div>
 
     <div class="page9-toolbar">
       <span class="page9-toolbar__label">载荷系数：</span>
@@ -30,7 +30,7 @@
         <template #icon><CalculatorOutlined /></template>
         计算
       </a-button>
-    </div>
+          </div>
 
     <div class="page9-body">
       <div class="page9-gear-wrap">
@@ -54,17 +54,17 @@
             </template>
           </template>
         </a-table>
-      </div>
+          </div>
 
       <div class="page9-diagrams">
         <div class="page9-diagram">
           <img :src="diagramTopSrc" alt="推荐模数示意" class="page9-diagram__img" @error="onDiagramTopError" />
-        </div>
+            </div>
         <div class="page9-diagram">
           <img :src="diagramBottomSrc" alt="齿轮参数示意" class="page9-diagram__img" @error="onDiagramBottomError" />
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -215,9 +215,9 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
           }
         });
       }
-    }
-  });
-}
+            }
+          });
+        }
 
 function handleSchemeSelection(_keys: Key[], rows: Page9SchemeRow[]) {
   if (rows.length > 1) {
@@ -311,8 +311,8 @@ function handleCalculation() {
   const rows = [...getGearDisplayRows(parameterTempList.value)];
   if (!rows.length) {
     message.warning('请先选择一个组合方案');
-    return;
-  }
+        return;
+      }
   calculateAllPage9GearRows(rows);
   setGearDisplayRows(parameterTempList.value, rows);
 
@@ -487,7 +487,7 @@ onMounted(async () => {
   }
 
   .page9-diagrams {
-    width: 100%;
+  width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
   }

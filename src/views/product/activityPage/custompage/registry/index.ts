@@ -26,9 +26,33 @@ export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-page9': () => import('@/views/product/activityPage/custompage/customizedProcess-page9.vue'), //定制流程页面9-校核减速机构的齿轮强度
   'customized-process-page10': () => import('@/views/product/activityPage/custompage/customizedProcess-page10.vue'), //定制流程页面10-所有角度性能校核计算
   'customized-process-page11': () => import('@/views/product/activityPage/custompage/customizedProcess-page11.vue'), //定制流程页面11-确定最终方案
-  'customized-process-tbdemo1-page1': () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page1.vue'), //TB Demo1 页面1-调压参数
-  'customized-process-tbdemo1-page2': () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page2.vue'), //TB Demo1 页面2-层级调压
+  'customized-process-tbdemo1-page1': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page1.vue'), //TB Demo1 页面1-调压参数
+  'customized-process-tbdemo1-page2': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page2.vue'), //TB Demo1 页面2-层级调压
   'customized-process-zjzcjh1-1': () => import('@/views/product/activityPage/custompage/customizedProcess-zjzcjh1-1.vue'), //车架总成校核
+  'customized-process-zlkwjc1-1': () => import('@/views/product/activityPage/custompage/customizedProcess-zlkwjc1-1.vue'), //纵梁孔位检查
+  'customized-process1-zt1-1-12': () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_1_12.vue'), //元器件原材料选用
+  'customized-process1-zt1-4-10-1': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_4_10_1.vue'), //设备舱设计
+  'customized-process1-zt1-4-10-2': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_4_10_2.vue'), //各设备舱分段设置
+  'customized-process1-zt1-5-3-2-a': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_5_3_2A.vue'), //负载设备用电分析
+  'customized-process1-zt1-5-3-2-b': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_5_3_2B.vue'), //配电设计
+  'customized-process1-zt1-5-3-2-c': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_5_3_2C.vue'), //配电接口表
+  'customized-process1-zt1-4-4': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess1-ZT1-4-4.vue'), //平衡桥轴荷计算
+  'customized-process3-fs-1-5-1-j': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess3-FS-1-5-1J.vue'), //开口设计
+  'customized-process3-fs1-5-1-4': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1_4.vue'), //加强框布局
+  'customized-process3-fs1-5-1-5': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1_5.vue'), //蒙皮加强段
+  'customized-process3-fs1-5-1-6': () =>
+    import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1_6.vue'), //开口参数设计
 };
 
 /** 自定义页 key → 前端路由 path */
@@ -59,6 +83,18 @@ export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-tbdemo1-page1': '/internal/customized-process-tbdemo1-page1',
   'customized-process-tbdemo1-page2': '/internal/customized-process-tbdemo1-page2',
   'customized-process-zjzcjh1-1': '/internal/customized-process-zjzcjh1-1',
+  'customized-process-zlkwjc1-1': '/internal/customized-process-zlkwjc1-1',
+  'customized-process1-zt1-1-12': '/internal/customized-process1-zt1-1-12',
+  'customized-process1-zt1-4-10-1': '/internal/customized-process1-zt1-4-10-1',
+  'customized-process1-zt1-4-10-2': '/internal/customized-process1-zt1-4-10-2',
+  'customized-process1-zt1-5-3-2-a': '/internal/customized-process1-zt1-5-3-2-a',
+  'customized-process1-zt1-5-3-2-b': '/internal/customized-process1-zt1-5-3-2-b',
+  'customized-process1-zt1-5-3-2-c': '/internal/customized-process1-zt1-5-3-2-c',
+  'customized-process1-zt1-4-4': '/internal/customized-process1-zt1-4-4',
+  'customized-process3-fs-1-5-1-j': '/internal/customized-process3-fs-1-5-1-j',
+  'customized-process3-fs1-5-1-4': '/internal/customized-process3-fs1-5-1-4',
+  'customized-process3-fs1-5-1-5': '/internal/customized-process3-fs1-5-1-5',
+  'customized-process3-fs1-5-1-6': '/internal/customized-process3-fs1-5-1-6',
 };
 
 export type CustomPagePreviewTarget =

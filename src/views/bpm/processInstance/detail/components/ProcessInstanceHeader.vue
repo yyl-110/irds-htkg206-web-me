@@ -91,23 +91,23 @@ watch(
 @keyframes process-instance-stamp-press {
   0% {
     opacity: 0;
-    transform: rotate(-58deg) scale(1.82) translate3d(0, -34px, 0);
+    transform: rotate(-40deg) scale(1.82) translate3d(0, -34px, 0);
   }
   16% {
     opacity: 0.35;
-    transform: rotate(-45deg) scale(1.58) translate3d(0, -24px, 0);
+    transform: rotate(-35deg) scale(1.58) translate3d(0, -24px, 0);
   }
   32% {
     opacity: 0.58;
-    transform: rotate(-35deg) scale(1.36) translate3d(0, -14px, 0);
+    transform: rotate(-25deg) scale(1.36) translate3d(0, -14px, 0);
   }
   48% {
     opacity: 0.78;
-    transform: rotate(-25deg) scale(1.16) translate3d(0, -4px, 0);
+    transform: rotate(-18deg) scale(1.16) translate3d(0, -4px, 0);
   }
   62% {
     opacity: 0.9;
-    transform: rotate(-20deg) scale(1.06) translate3d(0, 2px, 0);
+    transform: rotate(-15deg) scale(1.06) translate3d(0, 2px, 0);
   }
   76% {
     opacity: 0.97;
@@ -115,11 +115,11 @@ watch(
   }
   88% {
     opacity: 1;
-    transform: rotate(-10deg) scale(1.01) translate3d(0, 0, 0);
+    transform: rotate(-12deg) scale(1.01) translate3d(0, 0, 0);
   }
   100% {
     opacity: 1;
-    transform: rotate(-10deg) scale(1) translate3d(0, 0, 0);
+    transform: rotate(-12deg) scale(1) translate3d(0, 0, 0);
   }
 }
 

@@ -262,4 +262,124 @@ export const customPageRoutes: RouteRecordRaw[] = [
       noCache: true,
     },
   },
+  {
+    path: 'customized-process-zlkwjc1-1',
+    name: 'CustomizedProcessZlkwjc1_1',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-zlkwjc1-1.vue'),
+    meta: {
+      hidden: true,
+      title: '纵梁孔位检查',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process1-zt1-1-12',
+    name: 'CustomizedProcess1Zt1_1_12',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_1_12.vue'),
+    meta: {
+      hidden: true,
+      title: '元器件原材料选用',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process1-zt1-4-10-1',
+    name: 'CustomizedProcess1Zt1_4_10_1',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_4_10_1.vue'),
+    meta: {
+      hidden: true,
+      title: '设备舱设计',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process1-zt1-4-10-2',
+    name: 'CustomizedProcess1Zt1_4_10_2',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_4_10_2.vue'),
+    meta: {
+      hidden: true,
+      title: '各设备舱分段设置',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process1-zt1-5-3-2-a',
+    name: 'CustomizedProcess1Zt1_5_3_2A',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_5_3_2A.vue'),
+    meta: {
+      hidden: true,
+      title: '负载设备用电分析',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process1-zt1-5-3-2-b',
+    name: 'CustomizedProcess1Zt1_5_3_2B',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_5_3_2B.vue'),
+    meta: {
+      hidden: true,
+      title: '配电设计',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process1-zt1-5-3-2-c',
+    name: 'CustomizedProcess1Zt1_5_3_2C',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_5_3_2C.vue'),
+    meta: {
+      hidden: true,
+      title: '配电接口表',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process1-zt1-4-4',
+    name: 'CustomizedProcess1Zt1_4_4',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1-4-4.vue'),
+    meta: {
+      hidden: true,
+      title: '平衡桥轴荷计算',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process3-fs-1-5-1-j',
+    name: 'CustomizedProcess3Fs_1_5_1J',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS-1-5-1J.vue'),
+    meta: {
+      hidden: true,
+      title: '开口设计',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process3-fs1-5-1-4',
+    name: 'CustomizedProcess3Fs1_5_1_4',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1_4.vue'),
+    meta: {
+      hidden: true,
+      title: '加强框布局',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process3-fs1-5-1-5',
+    name: 'CustomizedProcess3Fs1_5_1_5',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1_5.vue'),
+    meta: {
+      hidden: true,
+      title: '蒙皮加强段',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process3-fs1-5-1-6',
+    name: 'CustomizedProcess3Fs1_5_1_6',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1_6.vue'),
+    meta: {
+      hidden: true,
+      title: '开口参数设计',
+      noCache: true,
+    },
+  },
 ];

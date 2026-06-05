@@ -71,3 +71,11 @@ export function getFlowModuleid(data: Record<string, unknown>) {
     data,
   });
 }
+
+export function delPageInputtempByIds(data: { inputtempids: string }) {
+  return httpRequest({
+    url: '/flow/delPageInputtempByIds.json',
+    method: 'POST',
+    data,
+  });
+}

@@ -368,7 +368,6 @@ export const routes: RouteRecordRaw[] = [
           hidden: true,
           canTo: true,
           title: '流程详情',
-          activeMenu: '/bpm/processInstance',
         },
         props: route => ({
           id: route.query.id,
@@ -386,6 +385,23 @@ export const routes: RouteRecordRaw[] = [
           canTo: true,
           title: '流程详情',
           activeMenu: '/bpm/task',
+        },
+        props: route => ({
+          id: route.query.id,
+          taskId: route.query.taskId,
+          activityId: route.query.activityId,
+        }),
+      },
+      {
+        path: 'process-instance/detail',
+        component: () => import('@/views/bpm/processInstance/detail/index.vue'),
+        name: 'BpmProcessInstanceDetailB',
+        meta: {
+          noCache: true,
+          hidden: true,
+          canTo: true,
+          title: '流程详情',
+          activeMenu: '/bpm/processInstance',
         },
         props: route => ({
           id: route.query.id,

@@ -226,7 +226,7 @@ function resetQuery() {
 /** 查看详情 */
 const handleDetail = (row: ProcessInstanceRow) => {
   router.push({
-    name: 'BpmProcessInstanceDetail',
+    name: 'BpmProcessInstanceDetailB',
     query: {
       id: row.id,
       pageIndex: 0,
