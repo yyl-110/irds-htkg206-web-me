@@ -3,8 +3,14 @@
     <div class="page6-header">
       <div class="page6-title">确定齿数和最终实际总减速比</div>
       <a-space :size="12" class="page6-actions">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
-        <a-button type="primary" @click="handleCalculation">计算</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
+        <a-button type="primary" @click="handleCalculation">
+          <template #icon><CalculatorOutlined /></template>
+          计算
+        </a-button>
       </a-space>
     </div>
 
@@ -43,6 +49,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
 import { calculateAllPage6Rows } from './page6/calculations';
 import { applyPage6InitData } from './page6/initData';

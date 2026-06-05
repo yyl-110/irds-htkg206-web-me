@@ -26,6 +26,9 @@ export const CUSTOM_PAGE_REGISTRY: Record<string, CustomPageLoader> = {
   'customized-process-page9': () => import('@/views/product/activityPage/custompage/customizedProcess-page9.vue'), //定制流程页面9-校核减速机构的齿轮强度
   'customized-process-page10': () => import('@/views/product/activityPage/custompage/customizedProcess-page10.vue'), //定制流程页面10-所有角度性能校核计算
   'customized-process-page11': () => import('@/views/product/activityPage/custompage/customizedProcess-page11.vue'), //定制流程页面11-确定最终方案
+  'customized-process-tbdemo1-page1': () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page1.vue'), //TB Demo1 页面1-调压参数
+  'customized-process-tbdemo1-page2': () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page2.vue'), //TB Demo1 页面2-层级调压
+  'customized-process-zjzcjh1-1': () => import('@/views/product/activityPage/custompage/customizedProcess-zjzcjh1-1.vue'), //车架总成校核
 };
 
 /** 自定义页 key → 前端路由 path */
@@ -53,6 +56,9 @@ export const CUSTOM_PAGE_ROUTE_MAP: Record<string, string> = {
   'customized-process-page9': '/internal/customized-process-page9',
   'customized-process-page10': '/internal/customized-process-page10',
   'customized-process-page11': '/internal/customized-process-page11',
+  'customized-process-tbdemo1-page1': '/internal/customized-process-tbdemo1-page1',
+  'customized-process-tbdemo1-page2': '/internal/customized-process-tbdemo1-page2',
+  'customized-process-zjzcjh1-1': '/internal/customized-process-zjzcjh1-1',
 };
 
 export type CustomPagePreviewTarget =

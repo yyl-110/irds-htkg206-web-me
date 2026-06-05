@@ -3,7 +3,10 @@
     <div class="page8-header">
       <div class="page8-title">初步筛选若干组合方案</div>
       <a-space :size="12" class="page8-actions">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
       </a-space>
     </div>
 
@@ -26,6 +29,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { applyPage8InitData } from './page8/initData';
 import { loadPage8PageParameters } from './page8/loadPageParameters';

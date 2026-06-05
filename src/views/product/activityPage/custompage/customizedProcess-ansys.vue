@@ -132,7 +132,10 @@
                     </a>
                   </a-form-item>
                   <a-form-item>
-                    <a-button type="primary" :loading="loadingtype" @click="solve">计算</a-button>
+                    <a-button type="primary" :loading="loadingtype" @click="solve">
+                      <template #icon><CalculatorOutlined /></template>
+                      计算
+                    </a-button>
                   </a-form-item>
                 </div>
                 <div class="form-column-right">
@@ -264,7 +267,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
-import { UploadOutlined } from '@ant-design/icons-vue';
+import { CalculatorOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import type { UploadFile } from 'ant-design-vue';
 import * as Three from 'three';
 import type { OrthographicCamera, Scene, Vector3, WebGLRenderer } from 'three';

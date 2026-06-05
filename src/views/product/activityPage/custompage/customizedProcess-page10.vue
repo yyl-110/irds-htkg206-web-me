@@ -3,7 +3,10 @@
     <div class="page10-header">
       <div class="page10-title">所有角度性能校核计算</div>
       <a-space :size="12" class="page10-actions">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
       </a-space>
     </div>
 
@@ -28,8 +31,14 @@
           <a-input v-model:value="efficiencyValue" allow-clear class="page10-toolbar__input" @input="handleEfficiencyChange" />
         </div>
         <a-space :size="12">
-          <a-button type="primary" @click="openImportModal">导入</a-button>
-          <a-button type="primary" @click="handleCalculation">计算</a-button>
+          <a-button type="primary" @click="openImportModal">
+            <template #icon><ImportOutlined /></template>
+            导入
+          </a-button>
+          <a-button type="primary" @click="handleCalculation">
+            <template #icon><CalculatorOutlined /></template>
+            计算
+          </a-button>
         </a-space>
       </div>
 
@@ -60,12 +69,18 @@
       <div class="import-panel">
         <div class="import-panel__row">
           <span>请选择模板：</span>
-          <a-button @click="downloadTemplate">模板下载</a-button>
+          <a-button @click="downloadTemplate">
+            <template #icon><DownloadOutlined /></template>
+            模板下载
+          </a-button>
         </div>
         <div class="import-panel__row">
           <span>请选择附件：</span>
           <a-upload :before-upload="handleExcelBeforeUpload" :show-upload-list="true" accept=".xlsx" :max-count="1">
-            <a-button>上传文件</a-button>
+            <a-button>
+              <template #icon><UploadOutlined /></template>
+              上传文件
+            </a-button>
           </a-upload>
         </div>
       </div>
@@ -77,6 +92,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, DownloadOutlined, ImportOutlined, SyncOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import HttpRequestConfig from '@/httpRequest/config';
 import { useUserStore } from '@/store/modules/user';

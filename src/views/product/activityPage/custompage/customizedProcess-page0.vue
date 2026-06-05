@@ -11,8 +11,14 @@
             allow-clear
             placeholder="请输入..."
             @input="setSaveBtnEnable()" />
-          <a-button type="primary" @click="readData">读取</a-button>
-          <a-button @click="clearData">清空</a-button>
+          <a-button type="primary" @click="readData">
+            <template #icon><ReadOutlined /></template>
+            读取
+          </a-button>
+          <a-button @click="clearData">
+            <template #icon><ClearOutlined /></template>
+            清空
+          </a-button>
         </a-form-item>
 
         <div class="table-block">
@@ -73,6 +79,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { ClearOutlined, ReadOutlined } from '@ant-design/icons-vue';
 import { isValid, readTDDPInputData } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import { createDefaultPage0ParameterList, type Page0ParameterItem } from './page0/parameterDefaults';
@@ -84,11 +91,7 @@ import {
   WORK_PARAMS_COLUMNS,
 } from './page0/tableColumns';
 import { loadPage0PageParameters } from './page0/loadPageParameters';
-import {
-  applyTddpInputToParameters,
-  clearPage0TableData,
-  type TddpKeyValue,
-} from './page0/tddpData';
+import { applyTddpInputToParameters, clearPage0TableData, type TddpKeyValue } from './page0/tddpData';
 
 defineOptions({ name: 'rx-customizedProcess-page0' });
 
@@ -183,12 +186,7 @@ async function readData() {
   };
   try {
     const response: any = await readTDDPInputData(data);
-    if (
-      response == null ||
-      response.code != '0' ||
-      response.data == null ||
-      response.data.result != true
-    ) {
+    if (response == null || response.code != '0' || response.data == null || response.data.result != true) {
       message.error('读取任务输入数据失败');
       return;
     }

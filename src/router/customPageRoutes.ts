@@ -232,4 +232,34 @@ export const customPageRoutes: RouteRecordRaw[] = [
       noCache: true,
     },
   },
+  {
+    path: 'customized-process-tbdemo1-page1',
+    name: 'CustomizedProcessTbdemo1Page1',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page1.vue'),
+    meta: {
+      hidden: true,
+      title: '调压参数（TB Demo1）',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-tbdemo1-page2',
+    name: 'CustomizedProcessTbdemo1Page2',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page2.vue'),
+    meta: {
+      hidden: true,
+      title: '层级调压（TB Demo1）',
+      noCache: true,
+    },
+  },
+  {
+    path: 'customized-process-zjzcjh1-1',
+    name: 'CustomizedProcessZjzcjh1_1',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-zjzcjh1-1.vue'),
+    meta: {
+      hidden: true,
+      title: '车架总成校核',
+      noCache: true,
+    },
+  },
 ];

@@ -39,7 +39,10 @@
       <div class="layout-content">
         <div class="section-toolbar">
           零位（初始位置）：
-          <a-button type="primary" size="small" @click="calc">计算</a-button>
+          <a-button type="primary" @click="calc">
+            <template #icon><CalculatorOutlined /></template>
+            计算
+          </a-button>
         </div>
         <div class="table-row">
           <a-table
@@ -72,13 +75,17 @@
 
       <div class="layout-content2">
         <div class="section-toolbar">
-          <a-button type="primary" class="btnSty" style="margin-bottom: 10px" @click="addRowData">添加行</a-button>
+          <a-button type="primary" class="btnSty" style="margin-bottom: 10px" @click="addRowData">
+            <template #icon><PlusOutlined /></template>
+            添加行
+          </a-button>
           <a-button
             danger
             class="btnSty"
             style="margin-bottom: 10px; margin-left: 20px"
             :disabled="rowFlag"
             @click="handleDelRow">
+            <template #icon><DeleteOutlined /></template>
             删除
           </a-button>
         </div>
@@ -113,6 +120,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { createPage1Calculations, extractPage1SaveParamValues } from './page1/calculations';
 import { loadPage1PageParameters } from './page1/loadPageParameters';
 import { createDefaultPage1ParameterList, type Page1ParameterItem } from './page1/parameterDefaults';

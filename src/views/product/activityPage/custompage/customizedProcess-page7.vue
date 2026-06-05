@@ -3,8 +3,14 @@
     <div class="page7-header">
       <div class="page7-title">性能校核计算</div>
       <a-space :size="12" class="page7-actions">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
-        <a-button type="primary" @click="handleCalculation">计算</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
+        <a-button type="primary" @click="handleCalculation">
+          <template #icon><CalculatorOutlined /></template>
+          计算
+        </a-button>
       </a-space>
     </div>
 
@@ -26,6 +32,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage7Rows } from './page7/calculations';
 import { applyPage7InitData } from './page7/initData';
 import { loadPage7PageParameters } from './page7/loadPageParameters';

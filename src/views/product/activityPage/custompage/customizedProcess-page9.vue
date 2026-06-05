@@ -3,7 +3,10 @@
     <div class="page9-header">
       <div class="page9-title">校核减速机构的齿轮强度</div>
       <a-space :size="12" class="page9-actions">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
       </a-space>
     </div>
 
@@ -23,7 +26,10 @@
     <div class="page9-toolbar">
       <span class="page9-toolbar__label">载荷系数：</span>
       <a-input v-model:value="loadCoefficient" class="page9-toolbar__input" @input="handleCoefficientChange" />
-      <a-button type="primary" class="page9-toolbar__calc" @click="handleCalculation">计算</a-button>
+      <a-button type="primary" class="page9-toolbar__calc" @click="handleCalculation">
+        <template #icon><CalculatorOutlined /></template>
+        计算
+      </a-button>
     </div>
 
     <div class="page9-body">
@@ -66,6 +72,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
 import { calculateAllPage9GearRows, applyRootBendingStressToRow, applyTangentialForceToRow } from './page9/calculations';

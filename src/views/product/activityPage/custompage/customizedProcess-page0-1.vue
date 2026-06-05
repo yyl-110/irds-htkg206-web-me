@@ -10,7 +10,10 @@
             class="task-id-input"
             disabled
             placeholder="请输入..." />
-          <a-button type="primary" @click="freshData">刷新</a-button>
+          <a-button type="primary" @click="freshData">
+            <template #icon><ReloadOutlined /></template>
+            刷新
+          </a-button>
         </a-form-item>
 
         <div class="table-block">
@@ -106,6 +109,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { ReloadOutlined } from '@ant-design/icons-vue';
 import { isValid } from '@/api/flowData/flowData';
 import { createDefaultPage0_1ParameterList, type Page0_1ParameterItem } from './page0-1/parameterDefaults';
 import {

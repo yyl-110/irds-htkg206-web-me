@@ -4,8 +4,14 @@
       <div class="layout-header__title">齿轮减速比分配：</div>
 
       <div class="section-toolbar">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
-        <a-button type="primary" style="margin-left: 20px" @click="handleCalculation">计算</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
+        <a-button type="primary" style="margin-left: 20px" @click="handleCalculation">
+          <template #icon><CalculatorOutlined /></template>
+          计算
+        </a-button>
       </div>
 
       <div class="selectBox">
@@ -37,6 +43,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage5Rows } from './page5/calculations';
 import { applyPage5InitData } from './page5/initData';
 import { loadPage5PageParameters } from './page5/loadPageParameters';

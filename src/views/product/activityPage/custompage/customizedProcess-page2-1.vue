@@ -23,9 +23,18 @@
       </a-form>
 
       <div class="section-toolbar">
-        <a-button type="primary" @click="handleAddRow">添加行</a-button>
-        <a-button danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">删除行</a-button>
-        <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">浏览</a-button>
+        <a-button type="primary" @click="handleAddRow">
+          <template #icon><PlusOutlined /></template>
+          添加行
+        </a-button>
+        <a-button danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">
+          <template #icon><DeleteOutlined /></template>
+          删除行
+        </a-button>
+        <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">
+          <template #icon><FolderOpenOutlined /></template>
+          浏览
+        </a-button>
       </div>
 
       <div class="selectBox">
@@ -75,6 +84,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';

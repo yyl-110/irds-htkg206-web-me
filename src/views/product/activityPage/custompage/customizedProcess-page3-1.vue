@@ -4,8 +4,14 @@
       <div class="layout-header__title">初始总减速比计算：</div>
 
       <div class="section-toolbar">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
-        <a-button type="primary" style="margin-left: 20px" @click="handleCalculation">计算</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
+        <a-button type="primary" style="margin-left: 20px" @click="handleCalculation">
+          <template #icon><CalculatorOutlined /></template>
+          计算
+        </a-button>
       </div>
 
       <div class="selectBox">
@@ -45,6 +51,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage3Rows } from './page3/calculations';
 import { applyPage3InitData } from './page3/initData';
 import { loadPage3PageParameters } from './page3/loadPageParameters';

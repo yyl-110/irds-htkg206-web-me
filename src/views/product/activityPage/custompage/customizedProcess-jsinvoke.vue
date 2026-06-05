@@ -16,7 +16,10 @@
             <a-form-item label="结果：">
               <div class="result-field">
                 <a-input v-model:value="parameterTempList[2].defaultValue" class="field-input" disabled />
-                <a-button type="link" class="result-field__action" @click="openJsEditor">js编辑</a-button>
+                <a-button type="primary" class="result-field__action" @click="openJsEditor">
+                  <template #icon><CodeOutlined /></template>
+                  js编辑
+                </a-button>
               </div>
             </a-form-item>
           </div>
@@ -42,6 +45,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { CodeOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import HttpRequestConfig from '@/httpRequest/config';
 import { useUserStore } from '@/store/modules/user';
@@ -321,6 +325,7 @@ onMounted(async () => {
 
 .result-field__action {
   padding-inline: 4px;
+  margin-left: 4px;
 }
 
 .js-editor {

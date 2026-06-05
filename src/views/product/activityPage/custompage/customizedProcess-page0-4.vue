@@ -31,7 +31,10 @@
       <div class="layout-content">
         <div class="section-toolbar">
           零位（初始位置）：
-          <a-button type="primary" size="small" @click="calc">计算</a-button>
+          <a-button type="primary" @click="calc">
+            <template #icon><CalculatorOutlined /></template>
+            计算
+          </a-button>
         </div>
         <div class="table-row">
           <a-table
@@ -64,13 +67,17 @@
 
       <div class="layout-content2">
         <div class="section-toolbar">
-          <a-button type="primary" class="btnSty" style="margin-bottom: 10px" @click="addRowData">添加行</a-button>
+          <a-button type="primary" class="btnSty" style="margin-bottom: 10px" @click="addRowData">
+            <template #icon><PlusOutlined /></template>
+            添加行
+          </a-button>
           <a-button
             danger
             class="btnSty"
             style="margin-bottom: 10px; margin-left: 20px"
             :disabled="rowFlag"
             @click="handleDelRow">
+            <template #icon><DeleteOutlined /></template>
             删除
           </a-button>
         </div>
@@ -105,6 +112,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { createPage0_5Calculations, extractPage0_5SaveParamValues } from './page0-5/calculations';
 import { loadPage0_5PageParameters } from './page0-5/loadPageParameters';
 import { createDefaultPage0_5ParameterList, type Page0_5ParameterItem } from './page0-5/parameterDefaults';
@@ -231,17 +239,8 @@ const calcCtx = {
   onSaveBtnEnable: () => setSaveBtnEnable(),
 };
 
-const {
-  addRowData,
-  delRow,
-  calc,
-  angleInput,
-  angleInput1,
-  changeInput,
-  changeInput1,
-  changeInput2,
-  changeInput3,
-} = createPage0_5Calculations(calcCtx);
+const { addRowData, delRow, calc, angleInput, angleInput1, changeInput, changeInput1, changeInput2, changeInput3 } =
+  createPage0_5Calculations(calcCtx);
 
 const resultRowSelection = computed(() => ({
   selectedRowKeys: selectedResultRowKeys.value,
@@ -267,9 +266,7 @@ function resultTableRowKey(record: Record<string, string>, index?: number) {
 
 async function loadPageParametersIfNeeded() {
   if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(
-    props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '',
-  ).trim();
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
   if (!pageId) return;
   parameterTempList.value = await loadPage0_5PageParameters(pageId);
   data.value = parameterTempList.value[0]?.tableMap?.rowData ?? [];

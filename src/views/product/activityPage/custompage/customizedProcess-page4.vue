@@ -4,7 +4,10 @@
       <div class="layout-header__title">电机、减速器组合（以电机进行电机与末端减速器的排列组合）：</div>
 
       <div class="section-toolbar">
-        <a-button type="primary" @click="handleInitData">更新数据</a-button>
+        <a-button type="primary" @click="handleInitData">
+          <template #icon><SyncOutlined /></template>
+          更新数据
+        </a-button>
       </div>
 
       <div class="selectBox">
@@ -26,6 +29,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { SyncOutlined } from '@ant-design/icons-vue';
 import { applyPage4InitData } from './page4/initData';
 import { loadPage4PageParameters } from './page4/loadPageParameters';
 import { createDefaultPage4ParameterList, type Page4ParameterItem, type Page4TableRow } from './page4/parameterDefaults';
