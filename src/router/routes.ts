@@ -298,6 +298,16 @@ export const routes: RouteRecordRaw[] = [
           noCache: true,
         },
       },
+      {
+        path: 'report-preparation-setting',
+        name: 'ReportPreparationSetting',
+        component: () => import('@/views/product/reportPreparation/report-preparation-setting.vue'),
+        meta: {
+          hidden: true,
+          title: '报告设置',
+          noCache: true,
+        },
+      },
       // -------------------------自定义页面------------------------
       ...customPageRoutes,
     ],

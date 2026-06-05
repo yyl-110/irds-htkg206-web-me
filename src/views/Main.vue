@@ -268,15 +268,17 @@ onBeforeMount(() => {
           :class="[
             !layoutStore.homepage && (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor')
               ? 'px-[8px] pb-[8px] pt-1 layout-container--white layout-container--editor-fill'
-              : !layoutStore.homepage
-                ? 'p-[16px]'
-                : '',
+              : !layoutStore.homepage && route.name === 'ReportPreparationSetting'
+                ? 'p-[10px] layout-container--editor-fill'
+                : !layoutStore.homepage
+                  ? 'p-[16px]'
+                  : '',
           ]">
           <div
             class="layout-router-host min-h-0 flex w-full min-w-0 flex-1 flex-col"
             :class="{
               'layout-router-host--fill':
-                !layoutStore.homepage && (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor'),
+                !layoutStore.homepage && (route.name === 'ProductProjectEditor' || route.name === 'BpmFormEditor' || route.name === 'ReportPreparationSetting'),
             }">
             <pre style="display: none">{{ caches }}</pre>
             <router-view v-slot="{ Component, route }">

@@ -21,6 +21,14 @@ export interface ReportPreparationTemplateDTO {
   fileName?: string;
   fileUrl?: string;
   pdfUrl?: string;
+  creatorName?: string;
+  createUserName?: string;
+  createTime?: string;
+  remark?: string;
+  remarks?: string;
+  fileType?: string;
+  /** 发布状态：0 未发布，1 已发布 */
+  status?: number | string;
 }
 
 /** 分页结果 */
@@ -35,6 +43,38 @@ export interface ReportPreparationExportResultDTO {
   fileName?: string;
   oldFileName?: string;
   fileUrl?: string;
+}
+
+/** 报告模板目录明细项 */
+export interface ReportPreparationClassificationDetailItem {
+  id?: number | string;
+  type?: string;
+  title?: string;
+  formType?: string;
+  parameterNum?: string;
+  completeStr?: string;
+  value?: string;
+  para1?: string;
+  para2?: string;
+  para3?: string;
+  para4?: string;
+}
+
+/** 报告模板目录明细树节点（第一级） */
+export interface ReportPreparationClassificationDetailTreeNode {
+  id?: number | string;
+  contents?: string;
+  preparationId?: number | string;
+  versionNum?: number | string;
+  sort?: number;
+  name?: string;
+  classificationName?: string;
+  catalogName?: string;
+  para1?: string;
+  para2?: string;
+  details?: ReportPreparationClassificationDetailItem[];
+  detailList?: ReportPreparationClassificationDetailItem[];
+  children?: ReportPreparationClassificationDetailTreeNode[];
 }
 
 /**
@@ -119,6 +159,19 @@ export class AdminApiReportPreparation {
       {
         path: '/business-service/business/report-preparation/delete',
         method: 'DELETE',
+        query: { id },
+        secure: true,
+        ...params,
+      },
+      Object,
+    );
+
+  /** 按报告模板 ID 查询目录及目录下明细 */
+  static getClassificationDetailTree = (id: number | string, params: RequestParams = {}) =>
+    httpClient.request<{ data?: ReportPreparationClassificationDetailTreeNode[] }, any>(
+      {
+        path: '/business-service/business/report-preparation/classification-detail-tree',
+        method: 'GET',
         query: { id },
         secure: true,
         ...params,

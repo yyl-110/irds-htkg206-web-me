@@ -1,499 +1,252 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
-import { DownOutlined } from '@ant-design/icons-vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import {
-  AdminApiReportPreparation,
-  type ReportPreparationPlaceholderDTO,
-  type ReportPreparationTemplateDTO,
-} from '@/api/tags/product/报告编制';
-import { ContentType, httpClient } from '@/api/tags/http-client';
-import { parseUploadFileResponse } from '@/utils/file';
-import { useUserStore } from '@/store/modules/user';
+import { SearchOutlined } from '@ant-design/icons-vue';
+import dayjs from 'dayjs';
+import { AdminApiReportPreparation, type ReportPreparationTemplateDTO } from '@/api/tags/product/报告编制';
+import { createEmptyImageNode, EMPTY_IMAGE_STYLE } from '@/utils/emptyState';
 
-const userStore = useUserStore();
+const router = useRouter();
 
-const tempName = ref('');
-const fileId = ref<string | number>('');
-const showTemplateModal = ref(false);
-const templateList = ref<ReportPreparationTemplateDTO[]>([]);
-const templateLoading = ref(false);
-const selectedTemplateKeys = ref<(string | number)[]>([]);
-const selectedTemplate = ref<ReportPreparationTemplateDTO | null>(null);
+const keyword = ref('');
+const loading = ref(false);
+const taskList = ref<ReportPreparationTemplateDTO[]>([]);
 
-const inputHtmlList = ref<ReportPreparationPlaceholderDTO[]>([]);
-const formDynamic = ref<Record<string, string>>({});
-const formDynamicFileName = ref<Record<string, string>>({});
-const parseLoading = ref(false);
-const exportLoading = ref(false);
-const collapsedSections = ref<Record<string, boolean>>({});
-
-type FormSection = {
-  key: string;
-  title?: ReportPreparationPlaceholderDTO;
-  titleText: string;
-  rows: ReportPreparationPlaceholderDTO[][];
-};
-
-const templateColumns = [
-  { title: '模版编号', dataIndex: 'para1', key: 'para1', align: 'center' as const, width: 200 },
-  { title: '模版名称', dataIndex: 'para2', key: 'para2', align: 'center' as const },
+const bgImages = [
+  new URL('@/assets/images/process-bg-1.png', import.meta.url).href,
+  new URL('@/assets/images/process-bg-2.png', import.meta.url).href,
+  new URL('@/assets/images/process-bg-3.png', import.meta.url).href,
+  new URL('@/assets/images/process-bg-6.png', import.meta.url).href,
 ];
 
-const rowSelection = computed(() => ({
-  type: 'radio' as const,
-  selectedRowKeys: selectedTemplateKeys.value,
-  onChange: (keys: (string | number)[], rows: ReportPreparationTemplateDTO[]) => {
-    selectedTemplateKeys.value = keys;
-    selectedTemplate.value = rows.length > 0 ? rows[0] : null;
-  },
-}));
-
-const isTitleType = (para3?: string) => {
-  const t = (para3 ?? '').toString().toLowerCase();
-  return t === 'title' || t.includes('title') || t.includes('标题');
+const CONFIDENTIAL_LEVEL_LABELS: Record<number, string> = {
+  0: '公开',
+  1: '内部',
+  2: '秘密',
+  3: '机密',
 };
 
-const buildParamRows = (list: ReportPreparationPlaceholderDTO[]) => {
-  const isTextarea = (para3?: string) => {
-    const t = (para3 ?? '').toString().toLowerCase();
-    return t.includes('textarea') || t.includes('文本域');
-  };
-  const textareaList: ReportPreparationPlaceholderDTO[] = [];
-  const normalList: ReportPreparationPlaceholderDTO[] = [];
-  list.forEach(item => {
-    if (item && isTextarea(item.para3)) {
-      textareaList.push(item);
-    } else if (item) {
-      normalList.push(item);
+type TaskCard = {
+  id: string | number;
+  title: string;
+  authorText: string;
+  dateText: string;
+  statusTag: string;
+  fileTypeLabel: string;
+  heroBgUrl: string;
+  raw: ReportPreparationTemplateDTO;
+};
+
+function pickFirstText(record: ReportPreparationTemplateDTO, keys: string[]) {
+  const row = record as Record<string, unknown>;
+  for (const key of keys) {
+    const v = row[key];
+    if (v != null && String(v).trim() !== '') {
+      return String(v).trim();
     }
-  });
-  const merged = normalList.concat(textareaList);
-  const size = 4;
-  const rows: ReportPreparationPlaceholderDTO[][] = [];
-  for (let i = 0; i < merged.length; i += size) {
-    rows.push(merged.slice(i, i + size));
   }
-  return rows;
-};
+  return '';
+}
 
-const formSections = computed<FormSection[]>(() => {
-  const list = Array.isArray(inputHtmlList.value) ? inputHtmlList.value : [];
-  const sections: FormSection[] = [];
-  let currentTitle: ReportPreparationPlaceholderDTO | undefined;
-  let currentItems: ReportPreparationPlaceholderDTO[] = [];
+function fileExtFromName(name: string) {
+  const s = String(name ?? '').trim();
+  const i = s.lastIndexOf('.');
+  return i >= 0 ? s.slice(i + 1).toLowerCase() : '';
+}
 
-  const flush = () => {
-    if (currentItems.length === 0 && !currentTitle) {
-      return;
-    }
-    const sectionIndex = sections.length;
-    sections.push({
-      key: `section-${sectionIndex}`,
-      title: currentTitle,
-      titleText: currentTitle?.para1 ?? '',
-      rows: buildParamRows(currentItems),
-    });
-    currentItems = [];
-    currentTitle = undefined;
-  };
+function resolveCreatorName(record: ReportPreparationTemplateDTO) {
+  return pickFirstText(record, ['creatorName', 'createUserName', 'createName', 'createUser']);
+}
 
-  list.forEach(item => {
-    if (!item) {
-      return;
-    }
-    if (isTitleType(item.para3)) {
-      flush();
-      currentTitle = item;
-      return;
-    }
-    currentItems.push(item);
-  });
-  flush();
+function resolveCreateTime(record: ReportPreparationTemplateDTO) {
+  return pickFirstText(record, ['createTime', 'createData', 'gmtCreate']);
+}
 
-  return sections;
-});
-
-const toggleSection = (key: string, event?: MouseEvent) => {
-  event?.stopPropagation();
-  const nextCollapsed = collapsedSections.value[key] !== true;
-  collapsedSections.value = {
-    ...collapsedSections.value,
-    [key]: nextCollapsed,
-  };
-};
-
-const isSectionExpanded = (key: string) => collapsedSections.value[key] !== true;
-
-const unwrapList = <T,>(res: any): T[] => {
-  const data = res?.data?.data ?? res?.data ?? res;
-  return Array.isArray(data) ? data : [];
-};
-
-const unwrapData = <T,>(res: any): T | undefined => res?.data?.data ?? res?.data;
-
-const openTemplateModal = async () => {
-  selectedTemplateKeys.value = [];
-  selectedTemplate.value = null;
-  templateList.value = [];
-  showTemplateModal.value = true;
-  templateLoading.value = true;
-  try {
-    const res = await AdminApiReportPreparation.getTemplateList();
-    templateList.value = unwrapList<ReportPreparationTemplateDTO>(res);
-    if (!res || templateList.value.length === 0) {
-      message.info('暂无报告模板');
-    }
-  } catch (e) {
-    console.error(e);
-    message.error('获取模板列表失败');
-    showTemplateModal.value = true;
-  } finally {
-    templateLoading.value = false;
+function resolvePublishStatus(record: ReportPreparationTemplateDTO) {
+  const row = record as Record<string, unknown>;
+  const raw = row.status ?? row.publishStatus ?? row.publish_status;
+  if (raw == null || String(raw).trim() === '') {
+    return 0;
   }
-};
+  return Number(raw) === 1 ? 1 : 0;
+}
 
-const cancelTemplateModal = () => {
-  showTemplateModal.value = false;
-  selectedTemplateKeys.value = [];
-  selectedTemplate.value = null;
-};
+function isPublished(record: ReportPreparationTemplateDTO) {
+  return resolvePublishStatus(record) === 1;
+}
 
-const confirmTemplate = () => {
-  if (!selectedTemplate.value) {
-    message.warning('请选择一个模板');
-    return;
+function resolveFileType(record: ReportPreparationTemplateDTO) {
+  const row = record as Record<string, unknown>;
+  const direct = row.fileType ?? row.suffix ?? row.fileExtension;
+  if (direct != null && String(direct).trim() !== '') {
+    return String(direct).trim();
   }
-  tempName.value = selectedTemplate.value.para2 ?? '';
-  fileId.value = selectedTemplate.value.fileId ?? '';
-  showTemplateModal.value = false;
-};
+  const name = record.oldFileName || record.fileName || '';
+  return fileExtFromName(name) || 'docx';
+}
 
-function onTemplateRow(record: ReportPreparationTemplateDTO) {
+function formatConfidentialTag(record: ReportPreparationTemplateDTO) {
+  const raw = record.confidentialLevel;
+  const n = Number(raw);
+  if (Number.isFinite(n) && CONFIDENTIAL_LEVEL_LABELS[n]) {
+    return CONFIDENTIAL_LEVEL_LABELS[n];
+  }
+  const text = String(raw ?? '').trim();
+  if (['公开', '内部', '秘密', '机密'].includes(text)) {
+    return text;
+  }
+  return text || '公开';
+}
+
+function normalizeRecord(record?: ReportPreparationTemplateDTO | null): ReportPreparationTemplateDTO | null {
+  if (!record) {
+    return null;
+  }
   return {
-    onClick: () => {
-      if (record.id == null) {
-        return;
-      }
-      selectedTemplateKeys.value = [record.id];
-      selectedTemplate.value = record;
-    },
-    style: { cursor: 'pointer' },
+    ...record,
+    id: record.id,
+    fileId: record.fileId != null ? String(record.fileId) : undefined,
   };
 }
 
-const parseReport = async () => {
-  if (!fileId.value) {
-    message.warning('请选择模板');
-    return;
+function unwrapList(res: any): ReportPreparationTemplateDTO[] {
+  const data = res?.data?.data ?? res?.data ?? res;
+  return Array.isArray(data) ? data : [];
+}
+
+function getCardBackground(index: number) {
+  return bgImages[index % bgImages.length];
+}
+
+function mapItemToCard(item: ReportPreparationTemplateDTO, index: number): TaskCard {
+  const title = pickFirstText(item, ['para2', 'fileName', 'oldFileName', 'para1']) || '--';
+  const createTime = resolveCreateTime(item);
+  const fileType = resolveFileType(item);
+  return {
+    id: item.id ?? `row-${index}`,
+    title,
+    authorText: resolveCreatorName(item) || '--',
+    dateText: createTime ? dayjs(createTime).format('YYYY-MM-DD') : '--',
+    statusTag: formatConfidentialTag(item),
+    fileTypeLabel: fileType.toUpperCase(),
+    heroBgUrl: getCardBackground(index),
+    raw: item,
+  };
+}
+
+const taskCards = computed<TaskCard[]>(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  const published = taskList.value.filter(isPublished);
+  const mapped = published.map((item, index) => mapItemToCard(item, index));
+  if (!kw) {
+    return mapped;
   }
-  parseLoading.value = true;
+  return mapped.filter(
+    card =>
+      card.title.toLowerCase().includes(kw) ||
+      card.authorText.toLowerCase().includes(kw) ||
+      card.dateText.includes(kw) ||
+      card.statusTag.toLowerCase().includes(kw) ||
+      card.fileTypeLabel.toLowerCase().includes(kw) ||
+      pickFirstText(card.raw, ['para1']).toLowerCase().includes(kw),
+  );
+});
+
+async function loadPublishedTasks() {
+  loading.value = true;
   try {
-    const res = await AdminApiReportPreparation.parseTemplateHtml(fileId.value);
-    inputHtmlList.value = unwrapList<ReportPreparationPlaceholderDTO>(res);
-    const next: Record<string, string> = {};
-    const nextFileName: Record<string, string> = {};
-    inputHtmlList.value.forEach(item => {
-      if (item?.para2 && !isTitleType(item.para3)) {
-        next[item.para2] = '';
-        nextFileName[item.para2] = '';
-      }
+    const res = await AdminApiReportPreparation.getTemplateList({
+      keyword: keyword.value.trim() || undefined,
     });
-    formDynamic.value = next;
-    formDynamicFileName.value = nextFileName;
-    collapsedSections.value = {};
-    clearTextareaObservers();
-    if (inputHtmlList.value.length === 0) {
-      message.info('模板中未解析到占位符');
-    }
+    taskList.value = unwrapList(res)
+      .map((item: ReportPreparationTemplateDTO) => normalizeRecord(item))
+      .filter((item): item is ReportPreparationTemplateDTO => !!item);
   } catch (e) {
     console.error(e);
+    taskList.value = [];
+    message.error('获取报告编制任务失败');
   } finally {
-    parseLoading.value = false;
+    loading.value = false;
   }
-};
+}
 
-const exportReport = async () => {
-  if (!inputHtmlList.value.length) {
-    message.warning('请先解析报告');
+function onSearch() {
+  void loadPublishedTasks();
+}
+
+function openTaskCard(card: TaskCard) {
+  const record = card.raw;
+  if (record.id == null) {
+    message.warning('缺少模板ID');
     return;
   }
-  if (!fileId.value) {
-    message.warning('请选择模板');
+  if (!record.fileId) {
+    message.warning('暂无模板文件');
     return;
   }
-  const params: Record<string, string> = {};
-  inputHtmlList.value.forEach(item => {
-    if (!item?.para4 || !item.para2 || isTitleType(item.para3)) {
-      return;
-    }
-    params[item.para4] = formDynamic.value[item.para2] ?? '';
+  router.push({
+    name: 'ReportPreparationSetting',
+    query: {
+      templateId: String(record.id),
+      fileId: String(record.fileId),
+      templateName: record.para2 || record.para1 || '',
+    },
   });
-  exportLoading.value = true;
-  try {
-    const res = await AdminApiReportPreparation.exportReport({
-      fileId: fileId.value,
-      params: JSON.stringify(params),
-      userId: userStore.getUser?.id,
-    });
-    const data = unwrapData<{ fileUrl?: string }>(res);
-    if (data?.fileUrl) {
-      window.open(data.fileUrl);
-      message.success('报告已生成');
-    } else {
-      message.success('报告已生成');
-    }
-  } catch (e) {
-    console.error(e);
-  } finally {
-    exportLoading.value = false;
-  }
-};
+}
 
-const normalizeInputType = (para3?: string) => {
-  const t = (para3 ?? '').toString().toLowerCase();
-  if (t.includes('textarea') || t.includes('文本域')) {
-    return 'textarea';
-  }
-  if (t === 'text' || t.includes('文本')) {
-    return 'text';
-  }
-  if (['number', 'int', 'integer', 'float', 'decimal'].some(k => t.includes(k))) {
-    return 'number';
-  }
-  return 'text';
-};
-
-const isImgType = (para3?: string) => {
-  const t = (para3 ?? '').toString().toLowerCase();
-  return t === 'img' || t.includes('img') || t.includes('图片') || t.includes('image');
-};
-
-const customImgUpload = (item: ReportPreparationPlaceholderDTO) => async (options: any) => {
-  const { file, onSuccess, onError } = options;
-  try {
-    const uploadRes = await httpClient.request(
-      {
-        path: 'system-service/fileManagerController/upload.json',
-        method: 'POST',
-        body: {
-          file,
-          userId: Number(userStore.getUser?.id ?? 0),
-          confidentialLevel: '1',
-        },
-        secure: true,
-        type: ContentType.FormData,
-      },
-      Object,
-    );
-    const { ok, fileUrl, oldFileName, errMsg } = parseUploadFileResponse(uploadRes?.data);
-    if (!ok || !fileUrl) {
-      onError?.(new Error(errMsg || '上传失败'));
-      return;
-    }
-    if (item.para2) {
-      formDynamic.value[item.para2] = fileUrl;
-      formDynamicFileName.value = {
-        ...formDynamicFileName.value,
-        [item.para2]: oldFileName || file?.name || '',
-      };
-    }
-    onSuccess?.(uploadRes);
-  } catch (e) {
-    onError?.(e);
-  }
-};
-
-const getFileNameFromUrl = (url?: string) => {
-  if (!url) {
-    return '';
-  }
-  const u = url.toString();
-  const queryMatch = u.match(/[?&](?:oldfileName|filename|fileName)=([^&]+)/i);
-  if (queryMatch?.[1]) {
-    try {
-      return decodeURIComponent(queryMatch[1]).replace(/\+/g, ' ');
-    } catch {
-      return queryMatch[1];
-    }
-  }
-  const cleanPath = u.split('?')[0].replace(/\/+$/, '');
-  const parts = cleanPath.split('/');
-  return parts[parts.length - 1] || '';
-};
-
-const getImgDisplayName = (para2?: string) => {
-  if (!para2) {
-    return '';
-  }
-  return formDynamicFileName.value[para2] || getFileNameFromUrl(formDynamic.value[para2]);
-};
-
-type TextareaObserverEntry = {
-  wrap: HTMLElement;
-  observer: ResizeObserver;
-};
-
-const textareaObserverEntries: TextareaObserverEntry[] = [];
-
-const clearTextareaObservers = () => {
-  textareaObserverEntries.forEach(({ observer }) => observer.disconnect());
-  textareaObserverEntries.length = 0;
-};
-
-const syncSectionBodyHeight = (wrap: HTMLElement) => {
-  const sectionBody = wrap.closest('.section-card-body') as HTMLElement | null;
-  if (!sectionBody) {
-    return;
-  }
-  sectionBody.style.removeProperty('min-height');
-  sectionBody.style.minHeight = `${sectionBody.scrollHeight}px`;
-};
-
-const bindTextareaWrap = (el: Element | null) => {
-  if (!el || !(el instanceof HTMLElement)) {
-    return;
-  }
-  if (el.dataset.textareaObserved === '1') {
-    return;
-  }
-  nextTick(() => {
-    if (el.dataset.textareaObserved === '1') {
-      return;
-    }
-    const textarea = el.querySelector('textarea');
-    if (!textarea) {
-      return;
-    }
-    el.dataset.textareaObserved = '1';
-    const observer = new ResizeObserver(() => {
-      syncSectionBodyHeight(el);
-    });
-    observer.observe(textarea);
-    textareaObserverEntries.push({ wrap: el, observer });
-    syncSectionBodyHeight(el);
-  });
-};
-
-const onTextareaResizeEnd = (event: MouseEvent) => {
-  const textarea = event.target;
-  if (!(textarea instanceof HTMLTextAreaElement)) {
-    return;
-  }
-  const wrap = textarea.closest('.dynamic-textarea-wrap') as HTMLElement | null;
-  if (wrap) {
-    syncSectionBodyHeight(wrap);
-  }
-};
-
-onBeforeUnmount(() => {
-  clearTextareaObservers();
+onMounted(() => {
+  void loadPublishedTasks();
 });
 </script>
 
 <template>
   <div class="report-preparation-page">
-    <div class="toolbar-card">
-      <a-form :label-col="{ style: { width: '130px' } }" class="toolbar-form">
-        <a-form-item label="报告模版选取">
-          <a-input v-model:value="tempName" style="width: 200px" disabled />
-          <a-button type="primary" class="ml-btn" @click="openTemplateModal">选取模版</a-button>
-          <a-button type="primary" class="ml-btn" :loading="parseLoading" @click="parseReport">解析报告</a-button>
-          <a-button type="primary" class="ml-btn" :loading="exportLoading" @click="exportReport">生成报告</a-button>
-        </a-form-item>
-      </a-form>
-    </div>
-
-    <a-form v-if="formSections.length > 0" layout="vertical" class="dynamic-form">
-      <div
-        v-for="section in formSections"
-        :key="section.key"
-        class="form-section"
-        :class="{
-          'form-section-card': section.title,
-          'is-collapsed': section.title && !isSectionExpanded(section.key),
-        }">
-        <div
-          v-if="section.title"
-          class="section-card-header"
-          @click="toggleSection(section.key, $event)">
-          <span class="section-title-text">{{ section.titleText || '标题' }}</span>
-          <DownOutlined class="section-title-arrow" :class="{ 'is-collapsed': !isSectionExpanded(section.key) }" />
-        </div>
-        <div
-          v-show="!section.title || isSectionExpanded(section.key)"
-          :class="section.title ? 'section-card-body' : 'section-plain-body'">
-          <div v-for="(row, rowIndex) in section.rows" :key="`${section.key}-${rowIndex}`" class="dynamic-row">
-            <a-row :gutter="20">
-              <a-col v-for="item in row" :key="item.para2" :span="6">
-                <a-form-item
-                  :label="item.para1"
-                  :class="{ 'dynamic-form-item--textarea': normalizeInputType(item.para3) === 'textarea' }">
-                  <div v-if="isImgType(item.para3)" class="img-upload-wrap">
-                    <a-upload
-                      :show-upload-list="false"
-                      accept=".jpg,.jpeg,.png"
-                      :custom-request="customImgUpload(item)">
-                      <div class="img-upload-input">
-                        <img
-                          v-if="item.para2 && formDynamic[item.para2]"
-                          :src="formDynamic[item.para2]"
-                          class="img-upload-preview"
-                          alt="" />
-                        <span v-if="!item.para2 || !formDynamic[item.para2]" class="img-upload-placeholder">点击上传</span>
-                        <span v-if="getImgDisplayName(item.para2)" class="img-upload-filename">
-                          {{ getImgDisplayName(item.para2) }}
-                        </span>
-                      </div>
-                    </a-upload>
-                  </div>
-                  <div
-                    v-else-if="normalizeInputType(item.para3) === 'textarea'"
-                    :ref="bindTextareaWrap"
-                    class="dynamic-textarea-wrap">
-                    <a-textarea
-                      v-model:value="formDynamic[item.para2!]"
-                      placeholder="请输入"
-                      :rows="3"
-                      @mouseup="onTextareaResizeEnd" />
-                  </div>
-                  <a-input
-                    v-else
-                    v-model:value="formDynamic[item.para2!]"
-                    :type="normalizeInputType(item.para3) === 'number' ? 'number' : 'text'"
-                    placeholder="请输入"
-                    allow-clear />
-                </a-form-item>
-              </a-col>
-            </a-row>
-          </div>
-        </div>
+    <div class="task-panel">
+      <div class="task-panel__toolbar">
+        <a-input
+          v-model:value="keyword"
+          placeholder="请输入查询条件"
+          allow-clear
+          class="task-panel__search-input"
+          @press-enter="onSearch">
+          <template #prefix>
+            <SearchOutlined class="task-panel__search-icon" />
+          </template>
+        </a-input>
       </div>
-    </a-form>
 
-    <a-modal
-      v-model:visible="showTemplateModal"
-      title="选择报告模板"
-      :width="900"
-      :mask-closable="false"
-      destroy-on-close
-      @cancel="cancelTemplateModal">
-      <a-table
-        row-key="id"
-        :columns="templateColumns"
-        :data-source="templateList"
-        :loading="templateLoading"
-        :pagination="false"
-        :scroll="{ y: 400 }"
-        :row-selection="rowSelection"
-        :custom-row="onTemplateRow"
-        bordered
-        size="small" />
-      <template #footer>
-        <a-button type="primary" @click="confirmTemplate">确定</a-button>
-        <a-button @click="cancelTemplateModal">取消</a-button>
-      </template>
-    </a-modal>
+      <div class="task-panel__content">
+        <a-spin :spinning="loading" tip="加载中...">
+          <div v-if="taskCards.length" class="task-panel__cards">
+            <div
+              v-for="card in taskCards"
+              :key="String(card.id)"
+              class="task-card"
+              @click="openTaskCard(card)">
+              <div class="task-card__hero" :style="{ backgroundImage: `url(${card.heroBgUrl})` }">
+                <span class="task-card__file-type">{{ card.fileTypeLabel }}</span>
+                <div class="task-card__hero-stack">
+                  <span class="task-card__hero-title" :title="card.title">{{ card.title }}</span>
+                </div>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__footer-left" :title="card.authorText">{{ card.authorText }}</span>
+                <span class="task-card__footer-center">{{ card.dateText }}</span>
+                <span class="task-card__footer-right">{{ card.statusTag }}</span>
+              </div>
+            </div>
+          </div>
+          <a-empty
+            v-else-if="!loading"
+            class="task-panel__empty"
+            description="暂无已发布的报告编制任务"
+            :image="createEmptyImageNode('暂无数据')"
+            :image-style="EMPTY_IMAGE_STYLE"
+          />
+        </a-spin>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -504,229 +257,222 @@ onBeforeUnmount(() => {
   padding: 20px;
   box-sizing: border-box;
   overflow-x: hidden;
-}
-
-.toolbar-card {
-  margin-bottom: 16px;
-  padding: 16px 16px 0;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.toolbar-form {
-  margin-bottom: 0;
-}
-
-.ml-btn {
-  margin-left: 16px;
-}
-
-.dynamic-form {
-  padding: 0;
-
-  :deep(.ant-form-item) {
-    margin-bottom: 0;
-  }
-
-  :deep(.ant-form-item-row) {
-    display: block;
-  }
-
-  :deep(.ant-form-item-label) {
-    padding: 0 0 8px;
-    text-align: left;
-    max-width: 100%;
-
-    > label {
-      display: block;
-      height: 22px;
-      line-height: 22px;
-    }
-  }
-
-  :deep(.ant-form-item-control) {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  :deep(.ant-form-item-control-input) {
-    width: 100%;
-    min-height: 32px;
-  }
-
-  :deep(.ant-form-item-control-input-content) {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
-}
-
-.form-section {
-  margin-bottom: 16px;
-}
-
-.form-section-card {
+.task-panel {
+  width: 100%;
+  min-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-  height: auto;
 }
 
-.section-card-header {
+.task-panel__toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 46px;
-  padding: 0 16px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: #f5f5f5;
-  }
-}
-
-.section-title-text {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-}
-
-.section-title-arrow {
-  color: #666;
-  font-size: 12px;
-  transition: transform 0.2s ease;
-}
-
-.section-title-arrow.is-collapsed {
-  transform: rotate(-90deg);
-}
-
-.section-card-body {
-  flex: 0 0 auto;
-  height: auto;
-  min-height: 0;
-  padding: 16px;
-  box-sizing: border-box;
-  overflow: visible;
-}
-
-.section-plain-body {
-  // padding: 0 4px 8px;
-}
-
-.form-section-card.is-collapsed {
-  .section-card-header {
-    border-bottom: none;
-  }
-}
-
-.dynamic-row {
-  margin-bottom: 4px;
-  overflow: visible;
-
-  :deep(> .ant-row) {
-    align-items: flex-start;
-    overflow: visible;
-  }
-
-  :deep(.ant-col) {
-    min-width: 0;
-    overflow: visible;
-  }
-}
-
-.dynamic-form-item--textarea {
-  :deep(.ant-form-item-control) {
-    flex: none;
-    height: auto;
-  }
-
-  :deep(.ant-form-item-control-input) {
-    display: block;
-    width: 100%;
-    height: auto;
-    min-height: 32px;
-  }
-
-  :deep(.ant-form-item-control-input-content) {
-    display: block;
-    overflow: visible;
-    height: auto;
-  }
-}
-
-.dynamic-textarea-wrap {
-  display: block;
-  width: 100%;
-  height: auto;
-  min-height: 72px;
-
-  :deep(textarea.ant-input) {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    resize: vertical;
-    min-height: 72px;
-    max-height: none;
-    overflow: auto;
-    vertical-align: top;
-  }
-}
-
-.img-upload-wrap {
-  width: 100%;
-
-  :deep(.ant-upload) {
-    width: 100%;
-  }
-}
-
-.img-upload-input {
-  width: 100%;
-  min-height: 32px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  background: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 4px 10px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.img-upload-preview {
-  width: 20px;
-  height: 20px;
-  border-radius: 2px;
-  object-fit: cover;
-  margin-right: 8px;
+  gap: 12px;
+  margin-bottom: 18px;
   flex-shrink: 0;
 }
 
-.img-upload-filename {
-  flex: 1;
-  min-width: 0;
-  color: #666;
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.task-panel__search-input {
+  width: 260px;
+  max-width: 260px;
+  flex-shrink: 0;
 }
 
-.img-upload-placeholder {
-  color: #999;
+.task-panel__search-input :deep(.ant-input-affix-wrapper) {
+  width: 260px;
+  max-width: 260px;
+  border-radius: 10px;
+  padding: 6px 14px;
+  min-height: 40px;
   font-size: 14px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.task-panel__search-input :deep(.ant-input-affix-wrapper:hover) {
+  border-color: #69b1ff;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.08);
+}
+
+.task-panel__search-input :deep(.ant-input-affix-wrapper-focused),
+.task-panel__search-input :deep(.ant-input-affix-wrapper:focus-within) {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+.task-panel__search-icon {
+  color: #8c8c8c;
+  font-size: 15px;
+  transition: color 0.2s ease;
+}
+
+.task-panel__search-input :deep(.ant-input-affix-wrapper-focused) .task-panel__search-icon,
+.task-panel__search-input :deep(.ant-input-affix-wrapper:focus-within) .task-panel__search-icon {
+  color: #1677ff;
+}
+
+.task-panel__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.task-panel__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 256px);
+  gap: 18px 20px;
+  align-content: start;
+  justify-content: start;
+  padding-bottom: 8px;
+}
+
+.task-card {
+  box-sizing: border-box;
+  width: 256px;
+  height: 223px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease;
+  will-change: transform;
+}
+
+.task-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.task-card__hero {
+  position: relative;
+  box-sizing: border-box;
+  height: 179px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  background-color: #1a6bb8;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+.task-card__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 40, 90, 0.35) 0%, rgba(0, 0, 0, 0.12) 100%);
+  pointer-events: none;
+  transition:
+    opacity 0.28s ease,
+    background 0.28s ease;
+}
+
+.task-card:hover .task-card__hero::before {
+  opacity: 0.55;
+  background: linear-gradient(135deg, rgba(0, 40, 90, 0.18) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.task-card__file-type {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  min-width: 36px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #389e0d;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.task-card__hero-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-height: 100%;
+}
+
+.task-card__hero-title {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  transition:
+    color 0.28s ease,
+    text-shadow 0.28s ease;
+  width: 100%;
+  padding: 0 8px;
+}
+
+.task-card:hover .task-card__hero-title {
+  color: #0052d9;
+  text-shadow: none;
+}
+
+.task-card__footer {
+  box-sizing: border-box;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 10px;
+  background: #fff;
+  font-size: 12px;
+  color: #262626;
+}
+
+.task-card__footer-left {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-card__footer-center {
+  flex-shrink: 0;
+  color: #595959;
+}
+
+.task-card__footer-right {
+  flex-shrink: 0;
+  color: #262626;
+}
+
+.task-panel__empty {
+  margin-top: 48px;
 }
 </style>
