@@ -575,6 +575,12 @@ onBeforeUnmount(() => {
   width: 100%;
   box-sizing: border-box;
   background: #fff;
+  font-size: 14px;
+
+  :deep(.ant-btn),
+  :deep(.ant-empty-description) {
+    font-size: 14px;
+  }
 }
 
 .page-body {
@@ -640,7 +646,7 @@ onBeforeUnmount(() => {
 .preview-sidebar-empty {
   padding: 16px;
   color: #999;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .preview-sidebar-item {
@@ -684,7 +690,7 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  padding: 16px;
+  padding: 16px 16px 16px 6px;
   overflow-y: auto;
 }
 
@@ -708,6 +714,7 @@ onBeforeUnmount(() => {
       display: block;
       height: 22px;
       line-height: 22px;
+      font-size: 14px;
     }
   }
 
@@ -726,6 +733,13 @@ onBeforeUnmount(() => {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+  }
+
+  :deep(.ant-input),
+  :deep(.ant-input-affix-wrapper),
+  :deep(.ant-input-affix-wrapper input),
+  :deep(textarea.ant-input) {
+    font-size: 14px;
   }
 }
 
@@ -767,14 +781,14 @@ onBeforeUnmount(() => {
 }
 
 .section-title-text {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #333;
 }
 
 .section-title-arrow {
   color: #666;
-  font-size: 12px;
+  font-size: 14px;
   transition: transform 0.2s ease;
 }
 
