@@ -35,6 +35,7 @@ export default defineComponent({
     const unitId = ref<any>();
     const dimensionList = ref([]); //大小量纲
     const unitNameList = ref([]); //参数单位
+    const parameterNumApplyLoading = ref(false);
     const formData = ref({
       parameterName: '',
       parameterNum: '',
@@ -104,22 +105,45 @@ export default defineComponent({
       nextTick(() => {
         formRef.value?.resetFields();
       });
-      //获取量纲
-      getUnitParent();
+      loadUnitOptions();
     };
     function customGetContainer() {
       // 返回自定义挂载节点
       return document.querySelector('.parameter-add');
     }
 
-    // 请求参数单位
-    async function getUnitParent() {
-      //获取量纲
+    /** 加载参数单位下拉 */
+    async function loadUnitOptions() {
       const res = await AdminApiSystemParameter.getUnitParentApi({
         ...requestParams,
       });
       unitNameList.value = res.data.data || [];
       getUnitChildren();
+    }
+
+    /** 申请参数代号：parameter + 日期 + 流水（全局递增，不按日重置） */
+    async function applyParameterNum() {
+      parameterNumApplyLoading.value = true;
+      try {
+        const res = await AdminApiSystemParameter.applyParameterSerialNum();
+        const code = res?.data?.code as number | string | undefined;
+        const ok = code === 0 || code === 200 || code === '0' || code === '200';
+        if (!ok) {
+          message.error(String(res?.data?.msg ?? '申请编号失败'));
+          return;
+        }
+        const nextVal = String(res?.data?.data ?? '').trim();
+        if (!nextVal) {
+          message.warning('未返回参数代号');
+          return;
+        }
+        formData.value.parameterNum = nextVal;
+        message.success('申请编号成功');
+      } catch {
+        message.error('申请编号失败');
+      } finally {
+        parameterNumApplyLoading.value = false;
+      }
     }
 
     // 请求量纲
@@ -146,7 +170,9 @@ export default defineComponent({
       infoReload,
       handleClose,
       savePageInfo,
-      getUnitParent,
+      loadUnitOptions,
+      applyParameterNum,
+      parameterNumApplyLoading,
       getUnitChildren,
       onChangeFun,
       formData,
@@ -183,7 +209,7 @@ export default defineComponent({
         <a-form-item :label="$t('参数代号')" name="parameterNum" :rules="[{ required: true, message: `${$t('请输入参数代号')}` }]">
           <a-space>
             <a-input v-model:value="formData.parameterNum" placeholder="请输入参数代号" disabled style="width: 470px" />
-            <a-button type="primary" @click="getUnitParent()">{{ $t('申请编号') }}</a-button>
+            <a-button type="primary" :loading="parameterNumApplyLoading" @click="applyParameterNum()">{{ $t('申请编号') }}</a-button>
           </a-space>
         </a-form-item>
         <a-form-item :label="$t('参数类型')" name="parameterType" :rules="[{ required: true, message: `${$t('请选择参数类型')}` }]">

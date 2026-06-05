@@ -157,6 +157,24 @@ export class AdminApiSystemParameter {
     );
 
   /**
+   * 申请参数代号（流水规则：parameter + yyyyMMdd + 序号，不按日重置）
+   *
+   * @request GET:/business-service/business/serial-number-rule/next-no?ruleCode=parameter
+   * @secure
+   */
+  static applyParameterSerialNum = (params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/serial-number-rule/next-no`,
+        method: 'GET',
+        query: { ruleCode: 'parameter' },
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 获得参数单位信息
    *
    * @tags 管理后台 - 参数单位
