@@ -261,9 +261,9 @@ defineExpose({
               <a-tooltip title="打开二维图" placement="topLeft">
                 <EpcIcon class="act-btns" type="icon-picture" @click="openEwt(row)" />
               </a-tooltip>
-              <a-tooltip title="参数化设计" placement="topLeft">
+              <!-- <a-tooltip title="参数化设计" placement="topLeft">
                 <EpcIcon class="act-btns" type="icon-a-3Dbeifen" @click="argsMx(row)" />
-              </a-tooltip>
+              </a-tooltip> -->
             </div>
           </template>
         </vxe-table-column>

@@ -1815,9 +1815,9 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
                     alt="打开二维图"
                     @click="openEwt([record])" />
                 </a-tooltip>
-                <a-tooltip title="参数化设计" placement="topLeft">
+                <!-- <a-tooltip title="参数化设计" placement="topLeft">
                   <img class="act-btns" :src="moduleIcon4" alt="参数化设计" @click="argsMx([record])" />
-                </a-tooltip>
+                </a-tooltip> -->
               </div>
             </template>
             <template v-else-if="column.ellipsis">
