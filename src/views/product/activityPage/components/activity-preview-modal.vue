@@ -783,10 +783,10 @@ function getInputValueRangeHint(item: any): string {
   if (opRaw.includes(';')) {
     if (!v1 || !v2) return '';
     const [left = '<', right = '<'] = opRaw.split(';').map(s => normalizeRangeHintOperator(s));
-    return `${v1} ${left} X ${right} ${v2}`;
+    return `${v1} ${left} ； ${right} ${v2}`;
   }
   if (!v1) return '';
-  return `X ${normalizeRangeHintOperator(opRaw)} ${v1}`;
+  return `${normalizeRangeHintOperator(opRaw)} ${v1}`;
 }
 
 function hasValueRangeConfig(item: any): boolean {
@@ -1176,7 +1176,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                         v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
                         :placeholder="'请选择参数'"
                         :disabled="true"
-                        class="data-view-preview-input browse-adjoined-input" />
+                        class="data-view-preview-input preview-field" />
                       <a-button type="primary" class="data-view-assemble-btn" @click="showModuleInfo(item, index, 'dataView')" :disabled="isOutputIoType(item)">{{
                         '浏览'
                       }}</a-button>
@@ -1357,7 +1357,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                             v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
                             placeholder="请选择参数"
                             :disabled="true"
-                            class="template-browse-3d-input template-browse-3d-input--grey" />
+                            class="template-browse-3d-input preview-field" />
                           <a-button type="primary" @click="showModuleInfo(item, index, 'templateBrowse')" size="small" class="template-browse-3d-action-btn">浏览</a-button>
                         </div>
                       </div>
@@ -1395,7 +1395,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                             v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
                             placeholder="请输入"
                             :disabled="true"
-                            class="template-browse-3d-input template-browse-3d-input--grey" />
+                            class="template-browse-3d-input preview-field" />
                         </div>
                       </div>
                       <div class="template-browse-3d-group">
@@ -1430,7 +1430,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
                         v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')]"
                         placeholder="请输入"
                         disabled
-                        class="template-browse-3d-input template-browse-3d-input--grey" />
+                        class="template-browse-3d-input preview-field" />
                       <a-button type="primary" size="small" @click="showModuleInfo(item, index, 'modelSelectBrowse')" class="template-browse-3d-action-btn">浏览</a-button>
                       <a-button
                         v-for="btn in getModelSelectPreviewButtons(item)"
@@ -1787,12 +1787,23 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 }
 .data-view-preview-row {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 .data-view-preview-input {
   width: var(--activity-preview-component-width);
   max-width: 100%;
+}
+.data-view-preview-input :deep(.ant-input-affix-wrapper) {
+  height: 32px;
+  padding-block: 0;
+  align-items: center;
+}
+.data-view-preview-input :deep(.ant-input) {
+  height: 32px;
+  line-height: 30px;
+  padding-block: 0;
 }
 .file-preview-wrap {
   width: var(--activity-preview-file-upload-width);
@@ -1982,9 +1993,6 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   color: rgba(0, 0, 0, 0.25);
   cursor: not-allowed;
   text-decoration-color: rgba(0, 0, 0, 0.25);
-}
-.template-browse-3d-input--grey :deep(.ant-input) {
-  background: #f5f7fa;
 }
 .data-view-assemble-btn {
   flex-shrink: 0;

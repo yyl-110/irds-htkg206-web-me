@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch, type Component } from 'vue';
 import dayjs from 'dayjs';
 import { useRoute, useRouter } from 'vue-router';
 import * as echarts from 'echarts';
@@ -9,6 +9,7 @@ import {
   ApartmentOutlined,
   AppstoreOutlined,
   AuditOutlined,
+  BranchesOutlined,
   CloudServerOutlined,
   EllipsisOutlined,
   FilterOutlined,
@@ -357,10 +358,11 @@ function isWbsDesignTaskEligibleForChange(task: TaskItem): boolean {
   return task.taskKind === 'wbs' && String(task.type ?? '').trim() === WBS_TASK_TYPE_COLLAB;
 }
 
-/** 设计按钮提示：分类协同 → 任务管理；协同未发布 → 重新分配发布；否则协同设计 */
+/** 设计按钮提示：分类协同 → 任务管理；协同未发布 → 重新分配发布；独立应用 → 设计；否则协同设计 */
 function designWorkspaceTooltip(task: TaskItem): string {
   if (isWbsCategoryCollaborationWorkbenchTask(task)) return '任务管理（分配下级）';
   if (isWbsCollabTaskUnpublishedForDesign(task)) return '任务管理（重新分配并发布）';
+  if (task.taskKind === 'standalone') return '设计';
   return '协同设计';
 }
 const canAssign = (task: TaskItem) => task.category === 'assign';
@@ -651,6 +653,30 @@ function workbenchTaskTypeListTooltip(task: TaskItem): string {
   if (rawType) parts.push(`子类型：${rawType}`);
   if (task.lastRejectRemark) parts.push(`驳回：${task.lastRejectRemark}`);
   return parts.join('\n');
+}
+
+/** 任务类型行前图标：独立应用 / WBS / 协同设计等子类型区分 */
+function resolveWorkbenchTaskTypeIcon(task: TaskItem): Component {
+  const type = String(task.type ?? '').trim();
+  if (task.taskKind === 'standalone' || type.includes('独立应用')) {
+    return AppstoreOutlined;
+  }
+  if (type === WBS_TASK_TYPE_COLLAB || type.includes('协同任务') || type.includes('协同设计')) {
+    return HighlightOutlined;
+  }
+  if (type === WBS_TASK_TYPE_ASSIGN || type.includes('人员指派')) {
+    return UserAddOutlined;
+  }
+  if (type.includes('分类协同') || type === WBS_TASK_TYPE_CATEGORY) {
+    return BranchesOutlined;
+  }
+  if (task.taskKind === 'compute' || type.includes('计算')) {
+    return CloudServerOutlined;
+  }
+  if (task.taskKind === 'wbs') {
+    return ApartmentOutlined;
+  }
+  return SettingOutlined;
 }
 
 /**
@@ -1906,7 +1932,10 @@ onUnmounted(() => {
                               </div>
                               <div class="tc-type-row flex items-center gap-[4px] min-w-0 text-[13px] leading-[18px]">
                                 <span class="w-[68px] flex-shrink-0 text-[#6A696E]">任务类型：</span>
-                                <span class="text-[#313133] min-w-0 flex-1 truncate">{{ item.type }}</span>
+                                <span class="text-[#313133] min-w-0 flex-1 flex items-center gap-[4px]">
+                                  <component :is="resolveWorkbenchTaskTypeIcon(item)" class="tc-type-icon flex-shrink-0" />
+                                  <span class="truncate">{{ item.type }}</span>
+                                </span>
                                 <template v-if="item.lastRejectRemark">
                                   <a-tooltip placement="topLeft" :overlay-style="{ maxWidth: '360px' }">
                                     <template #title>
@@ -2049,9 +2078,10 @@ onUnmounted(() => {
                           <template v-if="column.key === 'type'">
                             <div class="wb-cell-type min-w-0 max-w-full">
                               <div
-                                class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133]"
+                                class="wb-task-kind-line text-[13px] leading-[22px] font-medium text-[#313133] flex items-center gap-[4px] min-w-0"
                                 :title="workbenchTaskTypeListTooltip(record) || undefined">
-                                {{ workbenchTaskTypeListLine(record) }}
+                                <component :is="resolveWorkbenchTaskTypeIcon(record)" class="tc-type-icon flex-shrink-0" />
+                                <span class="truncate">{{ workbenchTaskTypeListLine(record) }}</span>
                               </div>
                             </div>
                           </template>
@@ -2899,8 +2929,8 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-.task-card--kind-wbs {
-  border-left: 4px solid #1a58e8;
+.task-card--kind-wbs,
+.task-card--kind-standalone {
   background: linear-gradient(180deg, rgba(26, 88, 232, 0.06) 0%, #fff 44px);
 
   &:hover {
@@ -2913,22 +2943,7 @@ onUnmounted(() => {
   }
 }
 
-.task-card--kind-standalone {
-  border-left: 4px solid #722ed1;
-  background: linear-gradient(180deg, rgba(114, 46, 209, 0.06) 0%, #fff 44px);
-
-  &:hover {
-    border-color: #722ed1;
-  }
-
-  .task-card__type-ribbon-inner {
-    color: #722ed1;
-    background: rgba(114, 46, 209, 0.1);
-  }
-}
-
 .task-card--kind-compute {
-  border-left: 4px solid #fa8c16;
   background: linear-gradient(180deg, rgba(250, 140, 22, 0.07) 0%, #fff 44px);
 
   &:hover {
@@ -2942,7 +2957,6 @@ onUnmounted(() => {
 }
 
 .task-card--kind-other {
-  border-left: 4px solid #8c8c8c;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, #fff 44px);
 
   &:hover {
@@ -3027,6 +3041,12 @@ onUnmounted(() => {
 .tc-type-row {
   width: 100%;
   flex-wrap: nowrap;
+}
+
+.tc-type-icon {
+  font-size: 14px;
+  color: #1a58e8;
+  line-height: 1;
 }
 
 .normal-progress :deep(.ant-progress-bg) {

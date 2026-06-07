@@ -483,7 +483,7 @@ defineExpose({
                   v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
                   placeholder="请选择参数"
                   disabled
-                  class="data-view-preview-input browse-adjoined-input" />
+                  class="data-view-preview-input preview-field" />
               </div>
               <a-button
                 type="primary"
@@ -707,10 +707,21 @@ defineExpose({
 .data-view-preview-row,
 .calc-button-preview-wrap {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 .data-view-preview-input {
   width: var(--activity-preview-component-width);
+}
+.data-view-preview-input :deep(.ant-input-affix-wrapper) {
+  height: 32px;
+  padding-block: 0;
+  align-items: center;
+}
+.data-view-preview-input :deep(.ant-input) {
+  height: 32px;
+  line-height: 30px;
+  padding-block: 0;
 }
 .data-view-assemble-btn {
   min-width: 64px;

@@ -6,6 +6,10 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { useUserStore } from '@/store/modules/user';
 import { WeiI18n } from '@/utils/WeiI18n';
+import { markSkipPlatformPickerDrawerOnTab } from '@/utils/platformPickerDrawerNav';
+
+const PROJECT_LIST_SKIP_DRAWER_ON_RETURN = 'project-info-list-skip-drawer-on-return';
+const DESIGN_TASK_APP_CARD_PATH = '/designTaskApplication';
 
 const route = useRoute();
 const router = useRouter();
@@ -259,14 +263,32 @@ async function designFlow(record: Record<string, any>) {
   }
 }
 
+function isDesignTaskAppCardPath(path: string) {
+  const pathname = path.split('?')[0]?.split('#')[0] ?? '';
+  return pathname === DESIGN_TASK_APP_CARD_PATH || pathname.endsWith(DESIGN_TASK_APP_CARD_PATH);
+}
+
+function markReturnToDesignTaskAppCardPage() {
+  sessionStorage.setItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN, '1');
+  markSkipPlatformPickerDrawerOnTab();
+}
+
 function goBack() {
   const returnPath = String(route.query.returnPath ?? '').trim();
   if (returnPath) {
+    if (isDesignTaskAppCardPath(returnPath)) {
+      markReturnToDesignTaskAppCardPage();
+    }
     router.push(returnPath);
     return;
   }
+  if (isCheckEntry.value) {
+    router.back();
+    return;
+  }
+  markReturnToDesignTaskAppCardPage();
   router.push({
-    path: '/designTaskApplication',
+    path: DESIGN_TASK_APP_CARD_PATH,
     query: { t: String(Date.now()) },
   });
 }

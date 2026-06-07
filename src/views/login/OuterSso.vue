@@ -22,9 +22,7 @@ enum SystemType {
 }
 
 onMounted(() => {
-  alert('1236');
   window.addEventListener('message', async event => {
-    alert('123');
     console.log(event, '父组件传的值');
     let resToken: any = localStorage.getItem('access_token');
     console.log(resToken, 'resToken');

@@ -635,10 +635,10 @@ function getInputValueRangeHint(item: any): string {
   if (opRaw.includes(';')) {
     if (!v1 || !v2) return '';
     const [left = '<', right = '<'] = opRaw.split(';').map(s => normalizeRangeHintOperator(s));
-    return `${v1} ${left} X ${right} ${v2}`;
+    return `${v1} ${left} ； ${right} ${v2}`;
   }
   if (!v1) return '';
-  return `X ${normalizeRangeHintOperator(opRaw)} ${v1}`;
+  return `${normalizeRangeHintOperator(opRaw)} ${v1}`;
 }
 function hasValueRangeConfig(item: any): boolean {
   const vr = item?.validateRule?.valueRange;
@@ -1898,7 +1898,7 @@ defineExpose({
                   v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
                   placeholder="请选择参数"
                   disabled
-                  class="data-view-preview-input browse-adjoined-input" />
+                  class="data-view-preview-input preview-field" />
               </div>
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
             </div>
@@ -2056,7 +2056,7 @@ defineExpose({
                     v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
                     placeholder="请选择参数"
                     disabled
-                    class="template-browse-3d-input template-browse-3d-input--grey" />
+                    class="template-browse-3d-input preview-field" />
                   <a-button type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'templateBrowse')">浏览</a-button>
                 </div>
               </div>
@@ -2067,7 +2067,7 @@ defineExpose({
                     v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
                     placeholder="请输入"
                     :disabled="shouldDisable3dModelInput(item)"
-                    :class="['template-browse-3d-input', { 'template-browse-3d-input--grey': shouldDisable3dModelInput(item) }]" />
+                    :class="['template-browse-3d-input', 'preview-field']" />
                   <div class="three-d-preview-btn-grid">
                     <a-button
                       v-for="btn in get3dPreviewButtons(item)"
@@ -2094,7 +2094,7 @@ defineExpose({
                     v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'templateName')]"
                     placeholder="请输入"
                     disabled
-                    class="template-browse-3d-input template-browse-3d-input--grey" />
+                    class="template-browse-3d-input preview-field" />
                 </div>
               </div>
               <div class="template-browse-3d-group">
@@ -2104,7 +2104,7 @@ defineExpose({
                     v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelName')]"
                     placeholder="请输入"
                     :disabled="shouldDisable3dModelInput(item)"
-                    :class="['template-browse-3d-input', { 'template-browse-3d-input--grey': shouldDisable3dModelInput(item) }]" />
+                    :class="['template-browse-3d-input', 'preview-field']" />
                   <div class="three-d-preview-btn-grid">
                     <a-button
                       v-for="btn in get3dPreviewButtons(item)"
@@ -2129,7 +2129,7 @@ defineExpose({
                 v-model:value="previewFieldValueMap[getPreview3dSubKey(item, index, 'modelSelectName')]"
                 placeholder="请输入"
                 disabled
-                class="template-browse-3d-input template-browse-3d-input--grey" />
+                class="template-browse-3d-input preview-field" />
               <a-button type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'modelSelectBrowse')">浏览</a-button>
               <a-button
                 v-for="btn in getModelSelectPreviewButtons(item)"
@@ -2326,6 +2326,7 @@ defineExpose({
 }
 .data-view-preview-row {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 .data-view-preview {
@@ -2335,6 +2336,16 @@ defineExpose({
 .data-view-preview-input {
   width: var(--activity-preview-component-width);
   max-width: 100%;
+}
+.data-view-preview-input :deep(.ant-input-affix-wrapper) {
+  height: 32px;
+  padding-block: 0;
+  align-items: center;
+}
+.data-view-preview-input :deep(.ant-input) {
+  height: 32px;
+  line-height: 30px;
+  padding-block: 0;
 }
 .value-range-inline-row {
   display: flex;
@@ -2569,9 +2580,6 @@ defineExpose({
 .template-browse-3d-input {
   width: var(--activity-preview-component-width);
   max-width: 100%;
-}
-.template-browse-3d-input--grey :deep(.ant-input) {
-  background: #f5f5f5;
 }
 .template-browse-3d-action-btn {
   flex-shrink: 0;

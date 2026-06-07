@@ -2174,10 +2174,10 @@ function getInputValueRangeHint(item: any): string {
   if (opRaw.includes(';')) {
     if (!v1 || !v2) return '';
     const [left = '<', right = '<'] = opRaw.split(';').map(s => normalizeRangeHintOperator(s));
-    return `${v1} ${left} X ${right} ${v2}`;
+    return `${v1} ${left} ； ${right} ${v2}`;
   }
   if (!v1) return '';
-  return `X ${normalizeRangeHintOperator(opRaw)} ${v1}`;
+  return `${normalizeRangeHintOperator(opRaw)} ${v1}`;
 }
 function ensureTextareaDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
@@ -2787,7 +2787,7 @@ watch(
                     :value="getPreviewValue(item)"
                     :placeholder="item.customProps?.inputPlaceholder || '请输入设计参数1'"
                     disabled
-                    class="data-view-preview-input browse-adjoined-input" />
+                    class="data-view-preview-input preview-field" />
                   <a-button type="primary" class="data-view-assemble-btn" disabled>
                     {{ '浏览' }}
                   </a-button>
@@ -2844,7 +2844,7 @@ watch(
                   <div class="template-browse-3d-group">
                     <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input preview-field" />
                       <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
                     </div>
                   </div>
@@ -2866,7 +2866,7 @@ watch(
                   <div class="template-browse-3d-group">
                     <div class="template-browse-3d-label">{{ item.paramName || '模板名称' }}：</div>
                     <div class="template-browse-3d-controls">
-                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
+                      <a-input :value="item.customProps?.templateValue" placeholder="请输入" disabled class="template-browse-3d-input preview-field" />
                     </div>
                   </div>
                   <div class="template-browse-3d-group">
@@ -2885,7 +2885,7 @@ watch(
               <div v-else-if="isModelSelect3DItem(item)" class="model-select-3d-preview">
                 <div class="model-select-3d-label">{{ item.paramName || '模型名称' }}：</div>
                 <div class="model-select-3d-controls">
-                  <a-input :value="item.customProps?.modelSelectName" placeholder="请输入" disabled class="template-browse-3d-input template-browse-3d-input--grey" />
+                  <a-input :value="item.customProps?.modelSelectName" placeholder="请输入" disabled class="template-browse-3d-input preview-field" />
                   <a-button type="primary" size="small" class="template-browse-3d-action-btn" disabled>浏览</a-button>
                   <a-button
                     v-for="btn in getModelSelectPreviewButtons(item)"
@@ -3069,7 +3069,7 @@ watch(
                       </a-select>
                     </div>
                   </div>
-                  <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
+                  <div class="row-field">
                     <div class="row-label">默认值：</div>
                     <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
                   </div>
@@ -3260,7 +3260,7 @@ watch(
                       </a-select>
                     </div>
                   </div>
-                  <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
+                  <div class="row-field">
                     <div class="row-label">默认值：</div>
                     <div class="row-control"><a-input v-model:value="selectedComponent.paramValue" placeholder="请输入" /></div>
                   </div>
@@ -4586,9 +4586,6 @@ watch(
 .template-browse-3d-input :deep(.ant-input) {
   border-radius: 2px;
 }
-.template-browse-3d-input--grey :deep(.ant-input) {
-  background: #f0f0f0 !important;
-}
 .template-browse-3d-action-btn {
   flex-shrink: 0;
 }
@@ -4946,12 +4943,19 @@ watch(
   gap: 8px;
 }
 .data-view-preview-input {
-  flex: 0 1 280px;
-  max-width: 320px;
-  min-width: 160px;
+  flex: 0 1 270px;
+  max-width: 270px;
+  min-width: 0;
+}
+.data-view-preview-input :deep(.ant-input-affix-wrapper) {
+  height: 32px;
+  padding-block: 0;
+  align-items: center;
 }
 .data-view-preview-input :deep(.ant-input) {
   height: 32px;
+  line-height: 30px;
+  padding-block: 0;
 }
 .data-view-assemble-btn {
   flex-shrink: 0;
@@ -4977,9 +4981,6 @@ watch(
   border-color: #2f74ff !important;
   opacity: 0.92;
   cursor: default;
-}
-.browse-adjoined-input :deep(.ant-input) {
-  background: #f0f0f0 !important;
 }
 .divider-empty-panel {
   min-height: 360px;
