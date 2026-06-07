@@ -45,26 +45,33 @@ const isTitleType = (para3?: string) => {
   return t === 'title' || t.includes('title') || t.includes('标题');
 };
 
+const isTextareaType = (para3?: string) => {
+  const t = (para3 ?? '').toString().toLowerCase();
+  return t.includes('textarea') || t.includes('文本域');
+};
+
 const buildParamRows = (list: ReportPreparationPlaceholderDTO[]) => {
-  const isTextarea = (para3?: string) => {
-    const t = (para3 ?? '').toString().toLowerCase();
-    return t.includes('textarea') || t.includes('文本域');
-  };
-  const textareaList: ReportPreparationPlaceholderDTO[] = [];
-  const normalList: ReportPreparationPlaceholderDTO[] = [];
-  list.forEach(item => {
-    if (item && isTextarea(item.para3)) {
-      textareaList.push(item);
-    } else if (item) {
-      normalList.push(item);
-    }
-  });
-  const merged = normalList.concat(textareaList);
-  const size = 4;
   const rows: ReportPreparationPlaceholderDTO[][] = [];
-  for (let i = 0; i < merged.length; i += size) {
-    rows.push(merged.slice(i, i + size));
-  }
+  let normalBatch: ReportPreparationPlaceholderDTO[] = [];
+  const flushNormalBatch = () => {
+    const size = 4;
+    for (let i = 0; i < normalBatch.length; i += size) {
+      rows.push(normalBatch.slice(i, i + size));
+    }
+    normalBatch = [];
+  };
+  list.forEach(item => {
+    if (!item) {
+      return;
+    }
+    if (isTextareaType(item.para3)) {
+      flushNormalBatch();
+      rows.push([item]);
+      return;
+    }
+    normalBatch.push(item);
+  });
+  flushNormalBatch();
   return rows;
 };
 
@@ -508,7 +515,10 @@ onBeforeUnmount(() => {
                 :class="section.title ? 'section-card-body' : 'section-plain-body'">
                 <div v-for="(row, rowIndex) in section.rows" :key="`${section.key}-${rowIndex}`" class="dynamic-row">
                   <a-row :gutter="20">
-                    <a-col v-for="item in row" :key="item.para2" :span="6">
+                    <a-col
+                      v-for="item in row"
+                      :key="item.para2"
+                      :span="normalizeInputType(item.para3) === 'textarea' ? 24 : 6">
                       <a-form-item
                         :label="item.para1"
                         :class="{ 'dynamic-form-item--textarea': normalizeInputType(item.para3) === 'textarea' }">
@@ -822,10 +832,10 @@ onBeforeUnmount(() => {
 
 .dynamic-form-item--textarea {
   :deep(.ant-form-item-label) {
-    height: 30px;
-    min-height: 30px;
-    max-height: 30px;
-    padding: 0 0 8px;
+    height: auto;
+    min-height: 22px;
+    max-height: none;
+    padding: 0 0 2px;
     margin: 0;
   }
 
@@ -840,7 +850,7 @@ onBeforeUnmount(() => {
     justify-content: flex-start;
     width: 100%;
     height: auto;
-    min-height: 32px;
+    min-height: 0;
   }
 
   :deep(.ant-form-item-control-input-content) {
