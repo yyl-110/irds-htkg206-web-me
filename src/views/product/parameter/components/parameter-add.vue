@@ -208,7 +208,7 @@ export default defineComponent({
         </a-form-item>
         <a-form-item :label="$t('参数代号')" name="parameterNum" :rules="[{ required: true, message: `${$t('请输入参数代号')}` }]">
           <a-space>
-            <a-input v-model:value="formData.parameterNum" placeholder="请输入参数代号" disabled style="width: 470px" />
+            <a-input v-model:value="formData.parameterNum" placeholder="请输入参数代号" style="width: 470px" />
             <a-button type="primary" :loading="parameterNumApplyLoading" @click="applyParameterNum()">{{ $t('申请编号') }}</a-button>
           </a-space>
         </a-form-item>
