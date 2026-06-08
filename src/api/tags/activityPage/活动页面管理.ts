@@ -454,4 +454,30 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 批量分配活动页到指定分类节点
+   *
+   * @request POST /business-service/business/activity-basic-info/assign-category
+   */
+  static assignActivitiesToCategory = <
+    Req extends { activityPageIds: Array<string | number>; treeId: string | number; menuId: string | number } = {
+      activityPageIds: Array<string | number>;
+      treeId: string | number;
+      menuId: string | number;
+    },
+  >(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/activity-basic-info/assign-category`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

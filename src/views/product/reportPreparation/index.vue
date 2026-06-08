@@ -138,6 +138,7 @@ function mapItemToCard(item: ReportPreparationTemplateDTO, index: number): TaskC
 const taskCards = computed<TaskCard[]>(() => {
   const kw = keyword.value.trim().toLowerCase();
   const published = taskList.value.filter(isPublished);
+  console.log(published);
   const mapped = published.map((item, index) => mapItemToCard(item, index));
   if (!kw) {
     return mapped;
@@ -162,6 +163,7 @@ async function loadPublishedTasks() {
     taskList.value = unwrapList(res)
       .map((item: ReportPreparationTemplateDTO) => normalizeRecord(item))
       .filter((item): item is ReportPreparationTemplateDTO => !!item);
+    console.log(taskList.value);
   } catch (e) {
     console.error(e);
     taskList.value = [];
@@ -204,12 +206,7 @@ onMounted(() => {
   <div class="report-preparation-page">
     <div class="task-panel">
       <div class="task-panel__toolbar">
-        <a-input
-          v-model:value="keyword"
-          placeholder="请输入查询条件"
-          allow-clear
-          class="task-panel__search-input"
-          @press-enter="onSearch">
+        <a-input v-model:value="keyword" placeholder="请输入查询条件" allow-clear class="task-panel__search-input" @press-enter="onSearch">
           <template #prefix>
             <SearchOutlined class="task-panel__search-icon" />
           </template>
@@ -219,11 +216,7 @@ onMounted(() => {
       <div class="task-panel__content">
         <a-spin :spinning="loading" tip="加载中...">
           <div v-if="taskCards.length" class="task-panel__cards">
-            <div
-              v-for="card in taskCards"
-              :key="String(card.id)"
-              class="task-card"
-              @click="openTaskCard(card)">
+            <div v-for="card in taskCards" :key="String(card.id)" class="task-card" @click="openTaskCard(card)">
               <div class="task-card__hero" :style="{ backgroundImage: `url(${card.heroBgUrl})` }">
                 <span class="task-card__file-type">{{ card.fileTypeLabel }}</span>
                 <div class="task-card__hero-stack">
@@ -242,8 +235,7 @@ onMounted(() => {
             class="task-panel__empty"
             description="暂无已发布的报告编制任务"
             :image="createEmptyImageNode('暂无数据')"
-            :image-style="EMPTY_IMAGE_STYLE"
-          />
+            :image-style="EMPTY_IMAGE_STYLE" />
         </a-spin>
       </div>
     </div>

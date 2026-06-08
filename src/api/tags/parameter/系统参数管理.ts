@@ -116,9 +116,8 @@ export class AdminApiSystemParameter {
       },
       CommonResultListDeptResponseDTOModel,
     );
-  
-  
-         /**
+
+  /**
    * 获得参数列表信息
    *
    * @tags 管理后台 - 参数
@@ -451,14 +450,14 @@ export class AdminApiSystemParameter {
     );
 
   /**
- * 计算树功能查询
- *
- * @tags 计算应用 - 计算树功能查询
- * @name checkTreeAppList
- * @summary 计算应用功能查询
- * @request POST:/business-service/business/check-tree/check-tree-list
- * @secure
- */
+   * 计算树功能查询
+   *
+   * @tags 计算应用 - 计算树功能查询
+   * @name checkTreeAppList
+   * @summary 计算应用功能查询
+   * @request POST:/business-service/business/check-tree/check-tree-list
+   * @secure
+   */
   static checkTreeAppList = <Req extends ParameterPageRequestDTOModel = ParameterPageRequestDTOModel>(query: Req, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
@@ -609,8 +608,6 @@ export class AdminApiSystemParameter {
       },
       CommonResultListDeptResponseDTOModel,
     );
-  
-  
 
   /**
    * 预览
@@ -660,6 +657,33 @@ export class AdminApiSystemParameter {
         path: `/business-service/business/parameter-act-knowledge/cancel`,
         method: 'POST',
         body: query,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
+   * 批量分配参数到指定分类节点
+   * body: { parameterIds: string[], treeId: string, menuId: string }
+   *
+   * @request POST /system-service/system/parameter-info/assign-category
+   */
+  static assignParametersToCategory = <
+    Req extends { parameterIds: Array<string | number>; treeId: string | number; menuId: string | number } = {
+      parameterIds: Array<string | number>;
+      treeId: string | number;
+      menuId: string | number;
+    },
+  >(
+    body: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/system-service/system/parameter-info/assign-category`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
       },
       CommonResultListDeptResponseDTOModel,
     );

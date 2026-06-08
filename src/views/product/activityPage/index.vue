@@ -1054,6 +1054,138 @@ async function confirmMigrateCalcPage() {
   }
 }
 
+// ---------------------------分配分类------------------------------------
+const assignCategoryModalVisible = ref(false);
+const assignCategoryLoading = ref(false);
+const assignCategorySubmitLoading = ref(false);
+const assignCategoryPlatforms = ref<any[]>([]);
+const assignCategoryActiveMenuId = ref<string>('');
+const assignCategoryTreeData = ref<any[]>([]);
+const assignCategorySelectedKey = ref<string>('');
+
+function canAssignActivityToTargetNode(node: any) {
+  if (!node?.key) {
+    return false;
+  }
+  return (node.level ?? 0) >= 3;
+}
+
+async function loadAssignCategoryTree(menuIdValue: string) {
+  if (!menuIdValue) {
+    assignCategoryTreeData.value = [];
+    return;
+  }
+  assignCategoryLoading.value = true;
+  try {
+    const res = await AdminApiActivityPage.getActivityTree({ menuId: menuIdValue });
+    if ((res.data.code === 0 || res.data.code === 200) && res.data.data != null) {
+      const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+      assignCategoryTreeData.value = convertToTreeNodes(rawData);
+    } else {
+      assignCategoryTreeData.value = [];
+    }
+  } catch (error) {
+    console.error('loadAssignCategoryTree failed:', error);
+    assignCategoryTreeData.value = [];
+    message.error('加载分类树失败');
+  } finally {
+    assignCategoryLoading.value = false;
+  }
+}
+
+async function openAssignCategoryModal() {
+  const rows = getOperableSelectedRows();
+  if (!rows.length) {
+    message.warning('请先勾选要分配的活动页');
+    return;
+  }
+  assignCategoryModalVisible.value = true;
+  assignCategorySelectedKey.value = '';
+  assignCategoryLoading.value = true;
+  try {
+    const res = await AdminApiSystemProduct.getProjectTreeList();
+    assignCategoryPlatforms.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    if (!assignCategoryPlatforms.value.length) {
+      message.warning('暂无可选产品平台');
+      assignCategoryTreeData.value = [];
+      return;
+    }
+    const defaultMenuId = String(menuId.value || assignCategoryPlatforms.value[0]?.id || '');
+    assignCategoryActiveMenuId.value = defaultMenuId;
+    await loadAssignCategoryTree(defaultMenuId);
+  } catch (error) {
+    console.error('openAssignCategoryModal failed:', error);
+    message.error('加载产品平台失败');
+  } finally {
+    assignCategoryLoading.value = false;
+  }
+}
+
+async function onAssignCategoryTabChange(activeKey: string | number) {
+  assignCategoryActiveMenuId.value = String(activeKey);
+  assignCategorySelectedKey.value = '';
+  await loadAssignCategoryTree(assignCategoryActiveMenuId.value);
+}
+
+function onAssignCategoryTreeSelect(selectedKeys: any[]) {
+  assignCategorySelectedKey.value = selectedKeys?.[0] ?? '';
+}
+
+function cancelAssignCategory() {
+  assignCategoryModalVisible.value = false;
+  assignCategorySelectedKey.value = '';
+  assignCategoryTreeData.value = [];
+}
+
+async function confirmAssignCategory() {
+  if (!assignCategorySelectedKey.value) {
+    message.warning('请选择目标分类节点');
+    return;
+  }
+  const targetNode = findNodeById(assignCategoryTreeData.value, assignCategorySelectedKey.value);
+  if (!canAssignActivityToTargetNode(targetNode)) {
+    message.warning('请选择三级及以下具体分类节点');
+    return;
+  }
+  if (!assignCategoryActiveMenuId.value) {
+    message.warning('请选择产品平台');
+    return;
+  }
+  const activityPageIds = getOperableSelectedRows()
+    .map((row: any) => row.id)
+    .filter((id: any) => id != null && id !== '');
+  if (!activityPageIds.length) {
+    message.warning('未找到有效的活动页记录');
+    return;
+  }
+  assignCategorySubmitLoading.value = true;
+  try {
+    const res = await AdminApiActivityPage.assignActivitiesToCategory({
+      activityPageIds,
+      treeId: assignCategorySelectedKey.value,
+      menuId: assignCategoryActiveMenuId.value,
+    });
+    if (res?.data?.code === 0 || res?.data?.code === 200) {
+      const resultMsg = res?.data?.data?.message || '分配成功';
+      message.success(resultMsg);
+      assignCategoryModalVisible.value = false;
+      selectedRowList.value = [];
+      await loadParameterListData();
+      if (menuId.value === assignCategoryActiveMenuId.value) {
+        await getListData('change');
+      }
+    } else {
+      message.error(res?.data?.msg || '分配失败');
+    }
+  } catch (error) {
+    console.error('confirmAssignCategory failed:', error);
+    message.error('分配失败');
+  } finally {
+    assignCategorySubmitLoading.value = false;
+    assignCategorySelectedKey.value = '';
+  }
+}
+
 async function onSaveAsPlatformSelected(item: any) {
   saveAsPlatformVisible.value = false;
   platformPickerMode.value = 'menu';
@@ -1505,6 +1637,10 @@ const {
                     <EpcIcon type="icon-daochu" style="font-size: 12px" />
                     {{ $t('迁移计算页面') }}
                   </a-button>
+                  <a-button type="primary" :disabled="deleteFlag" @click="openAssignCategoryModal()">
+                    <EpcIcon type="icon-fenpei" style="font-size: 12px" />
+                    {{ $t('分配分类') }}
+                  </a-button>
                 </a-form-item>
               </a-form>
             </a-card>
@@ -1768,6 +1904,39 @@ const {
             @pressEnter="confirmMigrateCalcPage" />
         </a-form-item>
       </a-form>
+    </a-modal>
+
+    <!-- 分配分类弹窗 -->
+    <a-modal
+      v-model:visible="assignCategoryModalVisible"
+      :title="$t('分配分类')"
+      width="720px"
+      :confirm-loading="assignCategorySubmitLoading"
+      destroy-on-close
+      @ok="confirmAssignCategory"
+      @cancel="cancelAssignCategory">
+      <a-spin :spinning="assignCategoryLoading">
+        <a-tabs v-if="assignCategoryPlatforms.length" v-model:activeKey="assignCategoryActiveMenuId" @change="onAssignCategoryTabChange">
+          <a-tab-pane
+            v-for="platform in assignCategoryPlatforms"
+            :key="String(platform.id)"
+            :tab="platform.categoryName || platform.name || String(platform.id)" />
+        </a-tabs>
+        <div v-if="assignCategoryTreeData.length" class="assign-category-tree-wrap">
+          <a-directory-tree
+            :show-icon="true"
+            :tree-data="assignCategoryTreeData"
+            :expand-action="false"
+            default-expand-all
+            :selected-keys="assignCategorySelectedKey ? [assignCategorySelectedKey] : []"
+            @select="onAssignCategoryTreeSelect">
+            <template #title="item">
+              {{ item.partName }}
+            </template>
+          </a-directory-tree>
+        </div>
+        <div v-else-if="!assignCategoryLoading" class="assign-category-empty">{{ $t('暂无分类数据') }}</div>
+      </a-spin>
     </a-modal>
   </div>
   <ProductPlatformPicker
@@ -2160,5 +2329,17 @@ const {
   padding-top: 12px;
   border-top: 1px solid #f0f0f0;
   margin-top: 8px;
+}
+
+.assign-category-tree-wrap {
+  margin-top: 12px;
+  max-height: calc(100vh - 360px);
+  overflow-y: auto;
+}
+
+.assign-category-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.45);
 }
 </style>
