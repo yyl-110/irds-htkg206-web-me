@@ -73,3 +73,54 @@ textarea:not(.ant-input):not(.el-textarea__inner) {
   resize: vertical;
   overflow: auto;
 }
+
+/**
+ * 全局：输入类控件清除按钮仅在 hover 或 focus 时显示
+ * （配合 enableInputAllowClear 插件默认可清除）
+ */
+// --- Ant Design Vue：Input / Textarea ---
+.ant-input-affix-wrapper,
+.ant-input-affix-wrapper-textarea-with-clear-btn {
+  .ant-input-clear-icon:not(.ant-input-clear-icon-hidden) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover .ant-input-clear-icon:not(.ant-input-clear-icon-hidden),
+  &.ant-input-affix-wrapper-focused .ant-input-clear-icon:not(.ant-input-clear-icon-hidden),
+  &:focus-within .ant-input-clear-icon:not(.ant-input-clear-icon-hidden) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// --- Ant Design Vue：Select / Cascader / TreeSelect（默认仅 hover，补充 focus）---
+.ant-select-focused .ant-select-clear,
+.ant-select:focus-within .ant-select-clear {
+  opacity: 1;
+}
+
+// --- Ant Design Vue：DatePicker（默认仅 hover，补充 focus）---
+.ant-picker-focused .ant-picker-clear,
+.ant-picker:focus-within .ant-picker-clear {
+  opacity: 1;
+}
+
+// --- Element Plus ---
+.el-input .el-input__clear,
+.el-textarea .el-input__clear {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.el-input:hover .el-input__clear,
+.el-input.is-focus .el-input__clear,
+.el-input:focus-within .el-input__clear,
+.el-textarea:hover .el-input__clear,
+.el-textarea.is-focus .el-input__clear,
+.el-textarea:focus-within .el-input__clear {
+  opacity: 1;
+  pointer-events: auto;
+}

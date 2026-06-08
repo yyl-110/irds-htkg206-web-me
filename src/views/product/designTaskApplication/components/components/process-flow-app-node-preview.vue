@@ -2544,7 +2544,7 @@ defineExpose({
 .template-browse-3d-preview,
 .model-select-3d-preview {
   width: 100%;
-  max-width: var(--activity-preview-wide-component-width);
+  min-width: 0;
 }
 .model-select-3d-preview {
   min-width: 0;
@@ -2558,6 +2558,10 @@ defineExpose({
   align-items: flex-start;
   gap: var(--activity-preview-grid-row-gap);
   width: 100%;
+}
+.template-browse-3d-row--stacked .template-browse-3d-group {
+  width: 100%;
+  min-width: 0;
 }
 .template-browse-3d-group {
   display: flex;
@@ -2577,10 +2581,17 @@ defineExpose({
   gap: 8px;
   flex-wrap: nowrap;
   min-width: 0;
+  width: 100%;
 }
 .template-browse-3d-input {
-  width: var(--activity-preview-component-width);
+  flex: 1;
+  min-width: 0;
+  width: auto;
   max-width: 100%;
+}
+.template-browse-3d-input:deep(.ant-input),
+.template-browse-3d-input:deep(.ant-input-affix-wrapper) {
+  width: 100%;
 }
 .template-browse-3d-action-btn {
   flex-shrink: 0;
