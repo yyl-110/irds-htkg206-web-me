@@ -1,19 +1,19 @@
 <template>
-  <div>
+  <a-form layout="vertical" :colon="false" class="rx-label-form">
     <a-form-item
       v-for="field in fields"
       :key="field.propKey"
       :name="prop"
       :label="label + field.suffix"
-      :label-col="{ style: { width: `${labelWidth}px` } }">
+      class="rx-label-form-item">
       <a-input
         :value="modeTypeValues[field.propKey]"
         placeholder=""
-        :style="{ width: `${inputWidth}px` }"
+        class="rx-label-input"
         allow-clear
         :disabled="redFlag" />
     </a-form-item>
-  </div>
+  </a-form>
 </template>
 
 <script setup lang="ts">
@@ -84,11 +84,21 @@ const modeTypeValues = computed(() => ({
 </script>
 
 <style scoped>
-:deep(.ant-form-item-label) {
-  padding: 10px 0 !important;
-  min-width: 84px !important;
+.rx-label-form :deep(.ant-form-item) {
+  margin-bottom: 8px;
 }
-:deep(.ant-form-item-control) {
-  margin-left: 0;
+
+.rx-label-form-item :deep(.ant-form-item-label) {
+  padding: 0 0 4px;
+  line-height: 1.4;
+}
+
+.rx-label-form-item :deep(.ant-form-item-label > label) {
+  height: auto;
+  white-space: normal;
+}
+
+.rx-label-input {
+  width: 100%;
 }
 </style>

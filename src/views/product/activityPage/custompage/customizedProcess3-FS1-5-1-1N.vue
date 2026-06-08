@@ -57,11 +57,7 @@ import {
   type FrameCheckRow,
   type Fs151_1_1NParameterItem,
 } from './FS1_5_1_1_N/parameterDefaults';
-import {
-  FRAME_CHECK_COLUMN_MAP,
-  FRAME_CHECK_TABLE_COLUMNS,
-  type FrameCheckAntColumn,
-} from './FS1_5_1_1_N/tableColumns';
+import { FRAME_CHECK_COLUMN_MAP, FRAME_CHECK_TABLE_COLUMNS, type FrameCheckAntColumn } from './FS1_5_1_1_N/tableColumns';
 
 defineOptions({ name: 'customizedProcess3-FS1-5-1-1N' });
 
@@ -150,7 +146,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   if (parameterId === undefined || parameterId === null || Number(parameterId) <= 0) return;
   if (parameterValue === undefined || parameterValue === null) return;
 
-  parameterTempList.value.forEach(item => {
+  parameterTempList.value.forEach((item: any) => {
     if (item.ifSingleLine !== 't') {
       if (item.parameterId === parameterId) {
         item.defaultValue = parameterValue;
@@ -158,7 +154,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
     } else {
       const colNums = Number(item.tableMap?.colNums ?? 0);
       if (colNums > 0) {
-        item.tableMap?.rowData?.forEach(row => {
+        item.tableMap?.rowData?.forEach((row: any) => {
           for (let i = 0; i < colNums; i += 1) {
             if (row[`cellParameterId${i}`] === parameterId) {
               row[`p${i}`] = parameterValue;

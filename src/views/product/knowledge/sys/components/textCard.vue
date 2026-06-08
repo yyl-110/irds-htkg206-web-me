@@ -30,6 +30,7 @@ import { downloadFileFromStream } from '@/utils/file';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { Knowledgebase, getKnowledgebaseColor, getKnowledgebaseLabel } from '@/enums/Knowledgebase';
 const router = useRouter();
+import priviewFile from '@/components/PriviewFileInfo/index.vue';
 
 const props = defineProps({
   textData: {
@@ -48,6 +49,9 @@ const emits = defineEmits(['handleFetchList', 'handleEdit', 'handleSubmitAudit']
 
 const commentDialogVisible = ref(false);
 const shareDialogVisible = ref(false);
+const previewVisible = ref(false);
+const filePath = ref('');
+const fileType = ref('');
 const commentDetail = ref({});
 const docId = ref('');
 const confidentialLevel = computed(() => {
@@ -71,15 +75,23 @@ const viewPdfFun = async () => {
 };
 
 // 查看pdf
-const viewPdf = async item => {
+const viewPdf = async (item: any) => {
   try {
     updateKldCounting({ kldFileId: item.id, countingType: 1 });
     const res = await getPdfPreviewPath({ id: item.fileId });
     const filePath = res.data.fileUrl;
     router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
+    // const ext = item.fileType?.startsWith('.') ? item.fileType : `.${item.fileType}`;
+    // fileType.value = ext;
+    // filePath.value = res.data.fileUrl;
+    // previewVisible.value = true;
   } catch (error) {
     console.log('error:', error);
   }
+};
+
+const handleClosePreviewModal = () => {
+  previewVisible.value = false;
 };
 
 const commentFun = (answer: any) => {
@@ -269,6 +281,12 @@ const approveStatus = computed(() => String(props.textData.approveStatus ?? ''))
       :quest-flag="1"
       :tab-flag="1"
       @close-share="closeShare" />
+
+    <priviewFile
+      :modal-visible="previewVisible"
+      :pdf-url="filePath"
+      :file-type="fileType"
+      @onClose="handleClosePreviewModal" />
   </div>
 </template>
 

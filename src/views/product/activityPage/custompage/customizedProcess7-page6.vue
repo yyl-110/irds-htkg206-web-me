@@ -48,75 +48,53 @@
         </div>
 
         <div class="result-title">计算结果：</div>
-        <div style="width: 100%; padding: 0 10px; height: auto">
-          <div style="width: 100%; float: left">
-            <div style="margin-left: 20px; width: 435px" class="paramLabel">
-              总用电量(KWH)：
-              <a-input
-                v-model:value="parameterTempList[1].defaultValue"
-                style="width: 200px; color: #222222; float: right"
-                disabled />
+        <div class="result-summary">
+          <div class="summary-row">
+            <div class="summary-field">
+              <span class="summary-label">总用电量(KWH)：</span>
+              <a-input v-model:value="parameterTempList[1].defaultValue" class="summary-input" disabled />
             </div>
-            <div style="margin-left: 60px; width: 500px" class="paramLabel">
-              总交流用电量(KWH)：
-              <a-input
-                v-model:value="parameterTempList[2].defaultValue"
-                style="width: 200px; color: #222222; margin-left: 30px"
-                disabled />
+            <div class="summary-field">
+              <span class="summary-label">总交流用电量(KWH)：</span>
+              <a-input v-model:value="parameterTempList[2].defaultValue" class="summary-input" disabled />
             </div>
           </div>
-          <div style="width: 100%; float: left">
-            <div style="margin-left: 20px; width: 435px" class="paramLabel">
-              总低压直流用电量(KWH)：
-              <a-input
-                v-model:value="parameterTempList[3].defaultValue"
-                style="width: 200px; color: #222222; float: right"
-                disabled />
+          <div class="summary-row">
+            <div class="summary-field">
+              <span class="summary-label">总低压直流用电量(KWH)：</span>
+              <a-input v-model:value="parameterTempList[3].defaultValue" class="summary-input" disabled />
             </div>
-            <div style="margin-left: 60px; width: 500px" class="paramLabel">
-              总交流输入用电量(KWH)：
-              <a-input
-                v-model:value="parameterTempList[4].defaultValue"
-                style="width: 200px; color: #222222; margin-left: 30px"
-                disabled />
+            <div class="summary-field">
+              <span class="summary-label">总交流输入用电量(KWH)：</span>
+              <a-input v-model:value="parameterTempList[4].defaultValue" class="summary-input" disabled />
             </div>
           </div>
-          <div style="width: 100%; float: left">
-            <div style="margin-left: 20px; width: 435px" class="paramLabel">
-              总低压直流母线用电量(KWH)：
-              <a-input
-                v-model:value="parameterTempList[5].defaultValue"
-                style="width: 200px; color: #222222; float: right"
-                disabled />
+          <div class="summary-row">
+            <div class="summary-field">
+              <span class="summary-label">总低压直流母线用电量(KWH)：</span>
+              <a-input v-model:value="parameterTempList[5].defaultValue" class="summary-input" disabled />
             </div>
           </div>
-          <a-form label-align="left" :colon="false" class="formBox">
-            <div style="width: 100%; float: left">
-              <div
-                v-for="item in processList"
-                :key="item.id"
-                style="height: 400px; width: 230px; margin-left: 20px; margin-right: 22px; float: left">
-                <RxLabel
-                  :label="item.labelName"
-                  :type-key="item.typeKey"
-                  :mode-type-val0="item.modeTypeVal0"
-                  :mode-type-val1="item.modeTypeVal1"
-                  :mode-type-val2="item.modeTypeVal2"
-                  :mode-type-val3="item.modeTypeVal3"
-                  :mode-type-val4="item.modeTypeVal4"
-                  :mode-type-val5="item.modeTypeVal5"
-                  :mode-type-val6="item.modeTypeVal6"
-                  :mode-type-val7="item.modeTypeVal7"
-                  :mode-type-val8="item.modeTypeVal8"
-                  :mode-type-val9="item.modeTypeVal9"
-                  :input-width="80"
-                  :red-flag="true"
-                  component-type="0"
-                  prop="id"
-                  :label-width="95" />
-              </div>
+          <div class="process-result-columns">
+            <div v-for="item in processList" :key="item.id" class="process-result-column">
+              <RxLabel
+                :label="item.labelName"
+                :type-key="item.typeKey"
+                :mode-type-val0="item.modeTypeVal0"
+                :mode-type-val1="item.modeTypeVal1"
+                :mode-type-val2="item.modeTypeVal2"
+                :mode-type-val3="item.modeTypeVal3"
+                :mode-type-val4="item.modeTypeVal4"
+                :mode-type-val5="item.modeTypeVal5"
+                :mode-type-val6="item.modeTypeVal6"
+                :mode-type-val7="item.modeTypeVal7"
+                :mode-type-val8="item.modeTypeVal8"
+                :mode-type-val9="item.modeTypeVal9"
+                :red-flag="true"
+                component-type="0"
+                prop="id" />
             </div>
-          </a-form>
+          </div>
         </div>
       </div>
     </div>
@@ -292,15 +270,43 @@ defineExpose({
   width: 100%;
   font-weight: 600;
   margin-bottom: 10px;
-  padding-bottom: 10px;
-  margin-left: 10px;
+  padding: 0 10px 10px;
   font-size: 15px;
-  float: left;
 }
-.paramLabel {
-  float: left;
+.result-summary {
+  width: 100%;
+  padding: 0 10px;
+}
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 60px;
+  margin-bottom: 8px;
+  padding-left: 10px;
+}
+.summary-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 420px;
+}
+.summary-label {
+  flex: 0 0 200px;
   line-height: 32px;
-  margin-top: 8px;
+  white-space: nowrap;
+}
+.summary-input {
+  width: 200px;
+}
+.process-result-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 22px;
+  padding: 8px 0 0 10px;
+}
+.process-result-column {
+  flex: 0 0 220px;
+  width: 220px;
 }
 .page6-table {
   width: 100%;

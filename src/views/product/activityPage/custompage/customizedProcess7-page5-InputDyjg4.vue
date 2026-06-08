@@ -1,48 +1,34 @@
 <template>
-  <div>
-    <div class="layout-wrapper" style="padding: 0 10px; min-height: 680px; background-color: #ffffff; margin-top: 20px">
-      <div class="layout-content">
-        <a-form label-align="left" :colon="false">
-          <div style="width: 99%; float: left">
-            <section style="width: 100%; background-color: #ffffff; padding-top: 20px; margin-left: 15px">
-              <a-form-item label="供配电体质确定：" :label-col="{ style: { width: '160px' } }">
-                <a-select
-                  v-model:value="parameterTempList[0].defaultValue"
-                  style="width: 190px"
-                  @change="setSaveBtnEnable()">
-                  <a-select-option
-                    v-for="item in parameterTempList[0].selectStrVal ?? []"
-                    :key="item.label"
-                    :value="item.label">
-                    {{ item.label }}
-                  </a-select-option>
-                </a-select>
-              </a-form-item>
+  <div class="input-dyjg-page">
+    <a-form label-align="left" :colon="false" class="input-dyjg-form">
+      <a-form-item label="供配电体质确定：" :label-col="formLabelCol" class="input-dyjg-supply-type">
+        <a-select v-model:value="parameterTempList[0].defaultValue" class="input-dyjg-select" @change="setSaveBtnEnable()">
+          <a-select-option v-for="item in parameterTempList[0].selectStrVal ?? []" :key="item.label" :value="item.label">
+            {{ item.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
 
-              <CabinetSection
-                :section="INPUT_DYJG4_SECTION"
-                :parameter-temp-list="parameterTempList"
-                :supply-type="supplyType"
-                :action-url="actionUrl"
-                :login-user-id="loginUserId"
-                :elect-file-name="fileState.elect.fileName"
-                :elect-file-id="fileState.elect.fileId"
-                :env-file-name="fileState.env.fileName"
-                :env-file-id="fileState.env.fileId"
-                :before-upload="handleBeforeUpload"
-                always-visible
-                :show-divider="false"
-                @set-save-btn-enable="setSaveBtnEnable()"
-                @confirm="onConfirmOutput"
-                @change-number="onChangeOutputRoute"
-                @upload-elect="response => onUploadSuccess('elect', response)"
-                @upload-env="response => onUploadSuccess('env', response)"
-                @download="kind => onDownloadFile(kind)" />
-            </section>
-          </div>
-        </a-form>
-      </div>
-    </div>
+      <CabinetSection
+        :section="INPUT_DYJG4_SECTION"
+        :parameter-temp-list="parameterTempList"
+        :supply-type="supplyType"
+        :action-url="actionUrl"
+        :login-user-id="loginUserId"
+        :elect-file-name="fileState.elect.fileName"
+        :elect-file-id="fileState.elect.fileId"
+        :env-file-name="fileState.env.fileName"
+        :env-file-id="fileState.env.fileId"
+        :before-upload="handleBeforeUpload"
+        always-visible
+        :show-divider="false"
+        @set-save-btn-enable="setSaveBtnEnable()"
+        @confirm="onConfirmOutput"
+        @change-number="onChangeOutputRoute"
+        @upload-elect="response => onUploadSuccess('elect', response)"
+        @upload-env="response => onUploadSuccess('env', response)"
+        @download="kind => onDownloadFile(kind)" />
+    </a-form>
   </div>
 </template>
 
@@ -53,6 +39,8 @@ import { useInputDyjgPage } from './Process7-page5-InputDyjg/useInputDyjgPage';
 import type { Page5_5ParameterItem } from './Process7-page5-InputDyjg/parameterDefaults';
 
 defineOptions({ name: 'customizedProcess7-page5-InputDyjg4' });
+
+const formLabelCol = { style: { width: '200px' } };
 
 const props = withDefaults(
   defineProps<{
@@ -95,7 +83,23 @@ defineExpose({
 </script>
 
 <style scoped>
-.layout-content {
-  background: #ffffff;
+.input-dyjg-page {
+  min-height: 680px;
+  margin-top: 20px;
+  padding: 20px 16px;
+  background-color: #ffffff;
+}
+
+.input-dyjg-form :deep(.ant-form-item-label) {
+  flex: 0 0 200px;
+  max-width: 200px;
+}
+
+.input-dyjg-supply-type {
+  margin-bottom: 8px;
+}
+
+.input-dyjg-select {
+  width: 280px;
 }
 </style>

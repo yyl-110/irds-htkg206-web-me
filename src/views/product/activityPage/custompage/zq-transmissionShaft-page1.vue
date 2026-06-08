@@ -17,20 +17,15 @@
             </a-select>
           </a-form-item>
 
-          <div class="speed-row">
-            传动轴转速(r/min):
+          <a-form-item label="传动轴转速(r/min):" :label-col="formLabelCol">
             <a-input v-model:value="param2" style="display: none" />
-            <a-input
-              v-model:value="parameterTempList[1].defaultValue"
-              style="width: 150px; margin-left: 116px"
-              allow-clear
-              disabled />
-          </div>
+            <a-input v-model:value="parameterTempList[1].defaultValue" style="width: 150px" allow-clear disabled />
+          </a-form-item>
         </a-form>
       </section>
 
       <div class="section-title section-title--toolbar">
-        2、选择传动轴:
+        <span class="section-title-text">2、选择传动轴:</span>
         <a-button type="primary" class="toolbar-btn" :disabled="shaftBrowseDisabled" @click="handleShowModuleData">
           浏览
         </a-button>
@@ -71,7 +66,7 @@
       </a-table>
 
       <div class="section-title section-title--toolbar qdcdz">
-        3、选择支承角板:
+        <span class="section-title-text">3、选择支承角板:</span>
         <a-button type="primary" class="toolbar-btn" :disabled="supportBrowseDisabled" @click="handleShowProductList">
           浏览
         </a-button>
@@ -503,6 +498,10 @@ defineExpose({
   height: 40px;
   margin-top: 20px;
 }
+.section-title-text {
+  display: inline-block;
+  width: 120px;
+}
 
 .toolbar-btn {
   margin-left: 20px;
@@ -512,9 +511,9 @@ defineExpose({
   margin-left: 15px;
 }
 
-.speed-row {
-  width: 100%;
-  height: 40px;
+.count-section :deep(.ant-form-item-label) {
+  flex: 0 0 230px;
+  max-width: 230px;
 }
 
 .page-table {

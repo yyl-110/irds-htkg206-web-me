@@ -708,6 +708,7 @@ async function requestNodeDetailByKey(key: string) {
       detailObj = detail && typeof detail === 'object' ? detail : null;
     }
     nodeDetailData.value = detailObj;
+    console.log(nodeDetailData.value, 'nodeDetailData.value');
     activityImageUrl.value = '';
     activityImageMarginTop.value = 0;
     activityImageWidth.value = 260;

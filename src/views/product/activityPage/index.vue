@@ -1287,7 +1287,6 @@ function previewCustomActivityPage(record: any) {
     target.type === 'external'
       ? target.href
       : `${window.location.origin}${window.location.pathname}${router.resolve({ path: target.path, query: target.query }).href}`;
-  console.log(href, 'href');
   window.open(href, '_blank', 'noopener,noreferrer');
 }
 

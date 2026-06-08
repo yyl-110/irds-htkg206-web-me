@@ -8,7 +8,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-ansys.vue'),
     meta: {
       hidden: true,
-      title: '弯板ANSYS计算',
+      title: '弯板计算',
       noCache: true,
     },
   },
@@ -28,7 +28,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面-1',
+      title: '任务输入数据',
       noCache: true,
     },
   },
@@ -38,7 +38,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0-1.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面-2',
+      title: '确认输入数据',
       noCache: true,
     },
   },
@@ -48,7 +48,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0-2.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面-3',
+      title: '舵机设计输入',
       noCache: true,
     },
   },
@@ -58,7 +58,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0-3.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面-4',
+      title: '舵机设计参数',
       noCache: true,
     },
   },
@@ -68,7 +68,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page0-4.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面-4',
+      title: '零位初始性能计算',
       noCache: true,
     },
   },
@@ -78,7 +78,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page1.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面1-1',
+      title: '初始性能计算',
       noCache: true,
     },
   },
@@ -88,7 +88,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page1-2.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面1-2',
+      title: '末端减速器形式确定',
       noCache: true,
     },
   },
@@ -98,7 +98,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page1-3.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面1-3',
+      title: '通讯形式确定',
       noCache: true,
     },
   },
@@ -108,7 +108,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page1-4.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面1-4',
+      title: '确认设计输入',
       noCache: true,
     },
   },
@@ -118,7 +118,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page2.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面2',
+      title: '电机选型',
       noCache: true,
     },
   },
@@ -128,7 +128,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page2-1.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面2-1',
+      title: '减速器选型',
       noCache: true,
     },
   },
@@ -138,7 +138,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page3.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面3',
+      title: '初始总减速比计算',
       noCache: true,
     },
   },
@@ -148,7 +148,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page3-1.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面3-1',
+      title: '初始总减速比计算',
       noCache: true,
     },
   },
@@ -158,7 +158,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page4.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面4',
+      title: '电机减速器组合',
       noCache: true,
     },
   },
@@ -168,7 +168,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page5.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面5',
+      title: '齿轮减速比分配',
       noCache: true,
     },
   },
@@ -178,7 +178,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page6.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面6',
+      title: '齿数与总减速比确定',
       noCache: true,
     },
   },
@@ -188,7 +188,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page7.vue'),
     meta: {
       hidden: true,
-      title: '定制流程页面7',
+      title: '性能校核计算',
       noCache: true,
     },
   },
@@ -198,7 +198,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page8.vue'),
     meta: {
       hidden: true,
-      title: '初步筛选若干组合方案',
+      title: '组合方案初步筛选',
       noCache: true,
     },
   },
@@ -208,7 +208,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page9.vue'),
     meta: {
       hidden: true,
-      title: '校核减速机构的齿轮强度',
+      title: '齿轮强度校核',
       noCache: true,
     },
   },
@@ -218,7 +218,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page10.vue'),
     meta: {
       hidden: true,
-      title: '所有角度性能校核计算',
+      title: '全角度性能校核',
       noCache: true,
     },
   },
@@ -238,7 +238,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page1.vue'),
     meta: {
       hidden: true,
-      title: '调压参数（TB Demo1）',
+      title: '调压参数',
       noCache: true,
     },
   },
@@ -248,7 +248,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-tbdemo1-page2.vue'),
     meta: {
       hidden: true,
-      title: '层级调压（TB Demo1）',
+      title: '层级调压',
       noCache: true,
     },
   },
@@ -298,7 +298,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess1-ZT1_4_10_2.vue'),
     meta: {
       hidden: true,
-      title: '各设备舱分段设置',
+      title: '设备舱分段设计',
       noCache: true,
     },
   },
@@ -368,7 +368,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1_5.vue'),
     meta: {
       hidden: true,
-      title: '蒙皮加强段',
+      title: '蒙皮加强段设计',
       noCache: true,
     },
   },
@@ -388,7 +388,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/AppAcbusPowerCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'AppAcbusPowerCalculation',
+      title: '交流输入交流母线功率计算',
       noCache: true,
     },
   },
@@ -398,7 +398,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/AppHighVoltageDCbusCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'AppHighVoltageDCbusCalculation',
+      title: '高压直流母线功率计算',
       noCache: true,
     },
   },
@@ -408,7 +408,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/AppLowVoltageDCPowerCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'AppLowVoltageDCPowerCalculation',
+      title: '低压直流功率计算',
       noCache: true,
     },
   },
@@ -418,7 +418,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/AppQsygTlCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'AppQsygTlCalculation',
+      title: '起竖油缸推力计算',
       noCache: true,
     },
   },
@@ -428,7 +428,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/AppQsygXcCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'AppQsygXcCalculation',
+      title: '起竖油缸行程计算',
       noCache: true,
     },
   },
@@ -438,7 +438,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/acbusPowerCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'acbusPowerCalculation',
+      title: '交流输入交流母线功率计算',
       noCache: true,
     },
   },
@@ -448,7 +448,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/highVoltageDCbusCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'highVoltageDCbusCalculation',
+      title: '高压直流母线功率计算',
       noCache: true,
     },
   },
@@ -458,7 +458,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/lowVoltageDCPowerCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'lowVoltageDCPowerCalculation',
+      title: '低压直流功率计算',
       noCache: true,
     },
   },
@@ -468,7 +468,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/qsygTlCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'qsygTlCalculation',
+      title: '起竖油缸推力计算',
       noCache: true,
     },
   },
@@ -478,7 +478,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/calculation/qsygXcCalculation.vue'),
     meta: {
       hidden: true,
-      title: 'qsygXcCalculation',
+      title: '起竖油缸行程计算',
       noCache: true,
     },
   },
@@ -488,7 +488,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-12-1-2B.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-12-1-2B',
+      title: '上适配器设计',
       noCache: true,
     },
   },
@@ -498,7 +498,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-12-1-2C.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-12-1-2C',
+      title: '中适配器设计',
       noCache: true,
     },
   },
@@ -508,7 +508,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-12-1-2D.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-12-1-2D',
+      title: '下适配器设计',
       noCache: true,
     },
   },
@@ -518,7 +518,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1G.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1G',
+      title: '材料设置',
       noCache: true,
     },
   },
@@ -528,7 +528,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1K.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1K',
+      title: '夹层筒壁校核计算',
       noCache: true,
     },
   },
@@ -538,7 +538,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1L.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1L',
+      title: '筒壁层合板性能计算',
       noCache: true,
     },
   },
@@ -548,7 +548,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1M.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1M',
+      title: '加强框内力计算',
       noCache: true,
     },
   },
@@ -558,7 +558,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1N.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1N',
+      title: '复合材料加强框校核',
       noCache: true,
     },
   },
@@ -568,7 +568,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1O.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1O',
+      title: '夹层筒壁校核计算',
       noCache: true,
     },
   },
@@ -578,7 +578,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1_2.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1_2',
+      title: '外蒙皮加强段设计',
       noCache: true,
     },
   },
@@ -588,7 +588,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1_4.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1_4',
+      title: '内蒙皮加强段设计',
       noCache: true,
     },
   },
@@ -598,7 +598,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1_6.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1_6',
+      title: '内外加强框设计',
       noCache: true,
     },
   },
@@ -608,7 +608,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1-1_9.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1-1_9',
+      title: '口框与衬板设计',
       noCache: true,
     },
   },
@@ -618,7 +618,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1K.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1K',
+      title: '连接件选型与校核-1',
       noCache: true,
     },
   },
@@ -628,7 +628,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5-1L.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5-1L',
+      title: '密封件选型与校核',
       noCache: true,
     },
   },
@@ -638,7 +638,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess3-FS1-5G.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess3-FS1-5G',
+      title: '连接件选型与校核-2',
       noCache: true,
     },
   },
@@ -648,7 +648,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page1.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page1',
+      title: '交流输入交流母线功率计算',
       noCache: true,
     },
   },
@@ -658,7 +658,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page2.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page2',
+      title: '低压直流功率计算',
       noCache: true,
     },
   },
@@ -668,7 +668,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page3.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page3',
+      title: '高压直流母线功率计算',
       noCache: true,
     },
   },
@@ -678,7 +678,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page4-1.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page4-1',
+      title: '供配电机制确定',
       noCache: true,
     },
   },
@@ -688,7 +688,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-1.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-1',
+      title: '机柜1组合插箱选型',
       noCache: true,
     },
   },
@@ -698,7 +698,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-1B.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-1B',
+      title: '机柜2组合插箱选型',
       noCache: true,
     },
   },
@@ -708,7 +708,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-1C.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-1C',
+      title: '机柜3组合插箱选型',
       noCache: true,
     },
   },
@@ -718,7 +718,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-1D.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-1D',
+      title: '机柜4组合插箱选型',
       noCache: true,
     },
   },
@@ -728,7 +728,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-2.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-2',
+      title: '机柜1柜体尺寸设计',
       noCache: true,
     },
   },
@@ -738,7 +738,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-2B.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-2B',
+      title: '机柜2柜体尺寸设计',
       noCache: true,
     },
   },
@@ -748,7 +748,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-2C.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-2C',
+      title: '机柜3柜体尺寸设计',
       noCache: true,
     },
   },
@@ -758,7 +758,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-2D.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-2D',
+      title: '机柜4柜体尺寸设计',
       noCache: true,
     },
   },
@@ -768,7 +768,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-3.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-3',
+      title: '机柜1装配组合',
       noCache: true,
     },
   },
@@ -778,7 +778,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-3B.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-3B',
+      title: '机柜2装配组合',
       noCache: true,
     },
   },
@@ -788,7 +788,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-3C.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-3C',
+      title: '机柜3装配组合',
       noCache: true,
     },
   },
@@ -798,7 +798,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-3D.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-3D',
+      title: '机柜4装配组合',
       noCache: true,
     },
   },
@@ -808,7 +808,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-4.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-4',
+      title: '交流输入参数',
       noCache: true,
     },
   },
@@ -818,7 +818,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-5.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-5',
+      title: '电源机柜输入',
       noCache: true,
     },
   },
@@ -828,7 +828,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-6.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-6',
+      title: '电源机柜装配',
       noCache: true,
     },
   },
@@ -838,7 +838,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-Dyjg1.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-Dyjg1',
+      title: '电源机柜1参数',
       noCache: true,
     },
   },
@@ -848,7 +848,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-Dyjg2.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-Dyjg2',
+      title: '电源机柜2参数',
       noCache: true,
     },
   },
@@ -858,7 +858,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-Dyjg3.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-Dyjg3',
+      title: '电源机柜3参数',
       noCache: true,
     },
   },
@@ -868,7 +868,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-Dyjg4.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-Dyjg4',
+      title: '电源机柜4参数',
       noCache: true,
     },
   },
@@ -878,7 +878,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-InputDyjg1.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-InputDyjg1',
+      title: '电源机柜1供配电输入',
       noCache: true,
     },
   },
@@ -888,7 +888,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-InputDyjg2.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-InputDyjg2',
+      title: '电源机柜2供配电输入',
       noCache: true,
     },
   },
@@ -898,7 +898,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-InputDyjg3.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-InputDyjg3',
+      title: '电源机柜3供配电输入',
       noCache: true,
     },
   },
@@ -908,7 +908,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page5-InputDyjg4.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page5-InputDyjg4',
+      title: '电源机柜4供配电输入',
       noCache: true,
     },
   },
@@ -918,7 +918,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page6-1.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page6-1',
+      title: '高压供电时序表',
       noCache: true,
     },
   },
@@ -928,7 +928,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcess7-page6.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcess7-page6',
+      title: '供电时序表',
       noCache: true,
     },
   },
@@ -938,7 +938,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/customizedProcessProgramme.vue'),
     meta: {
       hidden: true,
-      title: 'customizedProcessProgramme',
+      title: '组合方案确定',
       noCache: true,
     },
   },
@@ -948,7 +948,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/zq-frameDesign-page1.vue'),
     meta: {
       hidden: true,
-      title: 'zq-frameDesign-page1',
+      title: '车架参数与选型',
       noCache: true,
     },
   },
@@ -958,7 +958,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/zq-frameDesign-page2.vue'),
     meta: {
       hidden: true,
-      title: 'zq-frameDesign-page2',
+      title: '纵梁长度截面设计',
       noCache: true,
     },
   },
@@ -968,7 +968,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/zq-transmissionShaft-page1.vue'),
     meta: {
       hidden: true,
-      title: 'zq-transmissionShaft-page1',
+      title: '传动轴设计与校核',
       noCache: true,
     },
   },
@@ -978,7 +978,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/product/activityPage/custompage/zq-transmissionShaft-page2.vue'),
     meta: {
       hidden: true,
-      title: 'zq-transmissionShaft-page2',
+      title: '新传动轴设计',
       noCache: true,
     },
   },
