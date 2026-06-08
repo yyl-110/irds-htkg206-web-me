@@ -144,7 +144,7 @@ export class AdminApiSystemParameter {
    *
    * @request POST:/system-service/system/parameter-info/query-parameter-page-usage-detail
    */
-  static getParameterPageUsageDetail = (body: { parameterId: number }, params: RequestParams = {}) =>
+  static getParameterPageUsageDetail = (body: { parameterId: number | string }, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {
         path: `/system-service/system/parameter-info/query-parameter-page-usage-detail`,

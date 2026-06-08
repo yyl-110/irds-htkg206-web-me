@@ -1329,7 +1329,7 @@ async function openPageUsageDetailModal(record: any) {
   pageUsageList.value = [];
   try {
     pageUsageLoading.value = true;
-    const res = await AdminApiSystemParameter.getParameterPageUsageDetail({ parameterId: Number(record.id) });
+    const res = await AdminApiSystemParameter.getParameterPageUsageDetail({ parameterId: String(record.id) });
     const ok = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200';
     if (ok) {
       const raw = res.data?.data;
