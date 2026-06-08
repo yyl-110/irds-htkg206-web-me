@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Modal, message } from 'ant-design-vue';
-import { AuditOutlined, CheckCircleFilled, NodeIndexOutlined } from '@ant-design/icons-vue';
+import { AuditOutlined, CheckCircleFilled, FileDoneOutlined, NodeIndexOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import Empty from '@/components/Empty/index.vue';
 import { useUserStore } from '@/store/modules/user';
@@ -38,6 +38,14 @@ const submitting = ref(false);
 const selectedProcessId = ref<string | number | null>(null);
 const listData = ref<any[]>([]);
 
+const SKIP_APPROVAL_ID = '__SKIP_APPROVAL__';
+
+const SKIP_APPROVAL_ITEM = {
+  id: SKIP_APPROVAL_ID,
+  key: 'SKIP_APPROVAL',
+  name: '模型库无需审批',
+};
+
 const PROCESS_META: Record<string, { desc: string; tag: string; icon: typeof AuditOutlined }> = {
   MODEL_SINGLE_APPROVAL: {
     desc: '仅需一级审批即可完成模型发布',
@@ -49,6 +57,11 @@ const PROCESS_META: Record<string, { desc: string; tag: string; icon: typeof Aud
     tag: '二级',
     icon: NodeIndexOutlined,
   },
+  SKIP_APPROVAL: {
+    desc: '跳过审批流程，直接发布模型',
+    tag: '无需',
+    icon: FileDoneOutlined,
+  },
 };
 
 /** 展示顺序：一级审批在前，二级审批在后 */
@@ -58,6 +71,10 @@ const PROCESS_SORT_ORDER: Record<string, number> = {
 };
 
 const selectedProcess = computed(() => listData.value.find(item => item.id === selectedProcessId.value));
+
+const displayList = computed(() => [...listData.value, SKIP_APPROVAL_ITEM]);
+
+const isSkipApprovalSelected = computed(() => selectedProcessId.value === SKIP_APPROVAL_ID);
 
 const selectedModel = computed(() =>
   Array.isArray(props.selectModelList) && props.selectModelList.length > 0 ? props.selectModelList[0] : null,
@@ -117,12 +134,20 @@ function getProcessMeta(item: any) {
 }
 
 async function handleSave() {
-  if (!selectedProcess.value) {
+  if (!selectedProcessId.value) {
     message.warning('请选择要发起的流程类型');
     return;
   }
   if (!props.selectModelList?.length) {
     message.warning('请先选择要发起审批的模型数据');
+    return;
+  }
+  if (isSkipApprovalSelected.value) {
+    handleSkipApproval();
+    return;
+  }
+  if (!selectedProcess.value) {
+    message.warning('请选择要发起的流程类型');
     return;
   }
   Modal.confirm({
@@ -152,6 +177,7 @@ async function handleSave() {
               id: res.data.data,
             },
           });
+          emit('onSuccess');
           emit('onClose', false);
         }
       } catch (error) {
@@ -168,8 +194,6 @@ function handleSkipApproval() {
     message.warning('请先选择要发布的模型数据');
     return;
   }
-  console.log(props.selectModelList, 'props.selectModelList');
-
   Modal.confirm({
     title: '确认无需审批？',
     content: `确定后将直接发布「${selectedModelLabel.value}」，不再走审批流程。`,
@@ -224,9 +248,9 @@ function cancel() {
 
         <div class="process-modal__hint">请选择要发起的审批流程</div>
 
-        <div v-if="listData.length" class="process-list">
+        <div v-if="displayList.length" class="process-list">
           <div
-            v-for="item in listData"
+            v-for="item in displayList"
             :key="item.id"
             class="process-card"
             :class="{ 'process-card--active': selectedProcessId === item.id }"
@@ -256,21 +280,10 @@ function cancel() {
     </a-spin>
 
     <template #footer>
-      <div class="process-modal__footer">
-        <a-button
-          type="link"
-          class="process-modal__skip"
-          :disabled="submitting || !selectedModel"
-          @click="handleSkipApproval">
-          无需审批
-        </a-button>
-        <div class="process-modal__footer-actions">
-          <a-button :disabled="submitting" @click="cancel">取消</a-button>
-          <a-button type="primary" :loading="submitting" :disabled="!selectedProcessId || submitting" @click="handleSave">
-            确定发起
-          </a-button>
-        </div>
-      </div>
+      <a-button :disabled="submitting" @click="cancel">取消</a-button>
+      <a-button type="primary" :loading="submitting" :disabled="!selectedProcessId || submitting" @click="handleSave">
+        确定发起
+      </a-button>
     </template>
   </a-modal>
 </template>
@@ -452,21 +465,6 @@ function cancel() {
 
 <style lang="less">
 .initiate-process-modal .ant-modal-footer {
-  padding-top: 12px;
-}
-
-.process-modal__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.process-modal__skip {
-  padding-left: 0;
-}
-
-.process-modal__footer-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
