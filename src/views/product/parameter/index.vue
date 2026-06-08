@@ -34,8 +34,8 @@ import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
 import TableCellOverflowTooltip from './components/TableCellOverflowTooltip.vue';
-import knowledgeConfig from '../components/knowledge-config.vue'
-import draggableModal from '@/components/DraggableModal/index.vue'
+import knowledgeConfig from '../components/knowledge-config.vue';
+import draggableModal from '@/components/DraggableModal/index.vue';
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -541,12 +541,7 @@ function applyTreeSelectionAfterLoad(treeNodes: any[], type?: string, focusKey?:
   if (!treeNodes.length) {
     return;
   }
-  let targetKey =
-    focusKey != null && focusKey !== ''
-      ? String(focusKey)
-      : type === 'change' && currentNode.value?.key
-        ? String(currentNode.value.key)
-        : '';
+  let targetKey = focusKey != null && focusKey !== '' ? String(focusKey) : type === 'change' && currentNode.value?.key ? String(currentNode.value.key) : '';
   if (!targetKey) {
     const defaultNode = findFirstNodeByLevel(treeNodes, 2) ?? treeNodes[0];
     targetKey = String(defaultNode.key);
@@ -1041,9 +1036,7 @@ async function editTreeData(nodeList: any) {
     message.warning('节点信息异常，请重新选择后编辑');
     return;
   }
-  await AdminApiSystemParameter.updateParameterCategoryTreeNode(
-    buildCategoryTreeMutationPayload(nodeList, { id: nodeId }),
-  );
+  await AdminApiSystemParameter.updateParameterCategoryTreeNode(buildCategoryTreeMutationPayload(nodeList, { id: nodeId }));
   await getListData('change', String(nodeId));
   message.success(WeiI18n.t('修改成功').value);
   Selectafterchanges();
@@ -1193,6 +1186,7 @@ async function importSuccessfulFun() {
     file: fileList.value[0] as File,
     userid: userStore.getUser.id,
     categoryid: selectNodeKeys.value,
+    menuId: menuId.value,
   });
   batchflag.value = false;
   message.success(res.data.data);
@@ -1242,7 +1236,7 @@ function formatHisLine(item: any) {
 }
 
 // 新增：知识配置相关状态
-const knowledgeConfigRef = ref(null)
+const knowledgeConfigRef = ref(null);
 const knowledgeModalVisible = ref(false);
 const knowledgeLoading = ref(false);
 const knowledgeContent = ref('');
@@ -1251,7 +1245,7 @@ const currentKnowledgeId = ref<number | string>(0);
 
 // 打开知识配置弹窗，带入当前行 id 与 knowledge 字段
 async function showKnowledgeModal(record: any) {
-  knowledgeConfigRef.value.show(record?.id)
+  knowledgeConfigRef.value.show(record?.id);
 }
 
 // 关闭弹窗
@@ -1363,265 +1357,239 @@ const pageUsageColumns: TableColumnType<any>[] = [
   { title: WeiI18n.$t('活动名称'), dataIndex: 'activityName', key: 'activityName', ellipsis: true },
 ];
 
-const {
-  leftTreeCollapsed,
-  leftTreePaneSize,
-  rightTreePaneSize,
-  minExpanded,
-  onSplitpanesResized,
-  toggleLeftTreePanel,
-  splitToggleStyle,
-  splitpanesTreeCollapseWrapClass,
-} = useSplitpanesTreeCollapse();
+const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } =
+  useSplitpanesTreeCollapse();
 </script>
 
 <template>
   <div class="drawerContent h-full">
     <div :class="splitpanesTreeCollapseWrapClass">
-    <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
-      <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
-        <a-spin :spinning="loadingTree" tip="加载中...">
-          <Tree
-            ref="treePage"
-            :operate-flag="true"
-            :tree-data="treeData"
-            bomType="unBom"
-            :selected-keys="selectedKeys"
-            :expanded-keys="expandedKeys"
-            @select-node="selectNode"
-            @up-Node="upNode"
-            @down-Node="downNode"
-            @get-node-update-data="getNodeUpdateData"
-            @get-node-add-data="getNodeAddData"
-            @delete-tree-node="deleteTreeNode"
-            @submit="submitTreeData"
-            @select-Boom-Tree="selectBoomTree"
-            @edit="editTreeData"
-            @reload-tree="reloadTree"
-            @change-select-key="handleChangeSelectKey" />
-        </a-spin>
-      </Pane>
+      <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
+        <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
+          <a-spin :spinning="loadingTree" tip="加载中...">
+            <Tree
+              ref="treePage"
+              :operate-flag="true"
+              :tree-data="treeData"
+              bomType="unBom"
+              :selected-keys="selectedKeys"
+              :expanded-keys="expandedKeys"
+              @select-node="selectNode"
+              @up-Node="upNode"
+              @down-Node="downNode"
+              @get-node-update-data="getNodeUpdateData"
+              @get-node-add-data="getNodeAddData"
+              @delete-tree-node="deleteTreeNode"
+              @submit="submitTreeData"
+              @select-Boom-Tree="selectBoomTree"
+              @edit="editTreeData"
+              @reload-tree="reloadTree"
+              @change-select-key="handleChangeSelectKey" />
+          </a-spin>
+        </Pane>
 
-      <!-- 右侧内容区域（列表卡片布局与 exeConfigTab 一致） -->
-      <Pane class="splitpane-cls parameter-right-pane" :size="rightTreePaneSize">
-        <div class="calc-config-pane">
-          <a-card class="calc-merged-card">
-            <a-form layout="inline" class="form_main calc-toolbar-form" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
-              <a-form-item name="parameterName">
-                <a-input v-model:value="parameterName" style="width: 220px" allow-clear :placeholder="$t('请输入参数名称')" />
-              </a-form-item>
-              <a-form-item name="parameterNum">
-                <a-input v-model:value="parameterNum" style="width: 220px" allow-clear :placeholder="$t('请输入参数代号')" />
-              </a-form-item>
-              <a-form-item class="parameter-toolbar-btns">
-                <a-button type="primary" @click="loadParameterListData">
-                  <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
-                  {{ $t('查询') }}
-                </a-button>
-                <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleAddOrUpdate(undefined)">
-                  <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
-                  {{ $t('新建') }}
-                </a-button>
-                <!--删除按钮（批量删除需二次确认）-->
-                <a-popconfirm
-                  v-if="currentNodeLevel != 2"
-                  placement="topLeft"
-                  :title="`${$t('确定要删除吗')}?`"
-                  ok-text="确定"
-                  cancel-text="取消"
-                  @confirm.stop.prevent="handleParameterDelete(undefined)">
-                  <a-button type="primary" danger :disabled="deleteFlag">
-                    <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
-                    {{ $t('删除') }}
+        <!-- 右侧内容区域（列表卡片布局与 exeConfigTab 一致） -->
+        <Pane class="splitpane-cls parameter-right-pane" :size="rightTreePaneSize">
+          <div class="calc-config-pane">
+            <a-card class="calc-merged-card">
+              <a-form layout="inline" class="form_main calc-toolbar-form" :label-col="{ style: { width: '100px' } }" :model="requestParams" @finish="handleFinish">
+                <a-form-item name="parameterName">
+                  <a-input v-model:value="parameterName" style="width: 220px" allow-clear :placeholder="$t('请输入参数名称')" />
+                </a-form-item>
+                <a-form-item name="parameterNum">
+                  <a-input v-model:value="parameterNum" style="width: 220px" allow-clear :placeholder="$t('请输入参数代号')" />
+                </a-form-item>
+                <a-form-item class="parameter-toolbar-btns">
+                  <a-button type="primary" @click="loadParameterListData">
+                    <EpcIcon type="icon-fangdajing" style="font-size: 12px" />
+                    {{ $t('查询') }}
                   </a-button>
-                </a-popconfirm>
-                <!--导入数据按钮-->
-                <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleUploadFile()">
-                  <EpcIcon type="icon-daoru1" style="font-size: 12px" />
-                  {{ $t('导入') }}
-                </a-button>
-                <!--导出数据按钮-->
-                <a-button type="primary" :loading="exportLoading" @click="exportParameData()">
-                  <EpcIcon type="icon-daochu" style="font-size: 12px" />
-                  {{ $t('导出') }}
-                </a-button>
-              </a-form-item>
-            </a-form>
+                  <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleAddOrUpdate(undefined)">
+                    <EpcIcon type="icon-tianjia1" style="font-size: 12px" />
+                    {{ $t('新建') }}
+                  </a-button>
+                  <!--删除按钮（批量删除需二次确认）-->
+                  <a-popconfirm
+                    v-if="currentNodeLevel != 2"
+                    placement="topLeft"
+                    :title="`${$t('确定要删除吗')}?`"
+                    ok-text="确定"
+                    cancel-text="取消"
+                    @confirm.stop.prevent="handleParameterDelete(undefined)">
+                    <a-button type="primary" danger :disabled="deleteFlag">
+                      <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+                      {{ $t('删除') }}
+                    </a-button>
+                  </a-popconfirm>
+                  <!--导入数据按钮-->
+                  <a-button v-if="currentNodeLevel != 2" type="primary" @click="handleUploadFile()">
+                    <EpcIcon type="icon-daoru1" style="font-size: 12px" />
+                    {{ $t('导入') }}
+                  </a-button>
+                  <!--导出数据按钮-->
+                  <a-button type="primary" :loading="exportLoading" @click="exportParameData()">
+                    <EpcIcon type="icon-daochu" style="font-size: 12px" />
+                    {{ $t('导出') }}
+                  </a-button>
+                </a-form-item>
+              </a-form>
 
-            <a-table
-              class="exe-config-table parameter-table-spaced"
-              :scroll="{ x: parameterTableScrollX, y: 'calc(100vh - 300px)' }"
-              :row-key="getParameterRowKey"
-              :columns="columns"
-              :data-source="parameterTableDisplayList"
-              :pagination="pagination"
-              :row-selection="rowSelection"
-              :customRow="customRow"
-              bordered
-              table-layout="fixed"
-              :locale="locale"
-              :loading="loading"
-              :row-class-name="getParameterTableRowClassName"
-              @resize-column="handleResizeColumn">
-              <template #headerCell="{ column }">
-                <template v-if="isParameterTableSelectionColumn(column)">
-                  <div class="header-cell-main header-cell-main--selection header-cell-main--has-filter">
-                    <a-checkbox
-                      :checked="parameterSelectionHeaderChecked"
-                      :indeterminate="parameterSelectionHeaderIndeterminate"
-                      @change="onParameterSelectionHeaderChange" />
-                    <span class="header-filter-anchor header-filter-anchor--inline">
-                      <a-popover
-                        trigger="click"
-                        placement="bottomRight"
-                        :open="getParameterFilterOpen(SELECTION_FILTER_KEY)"
-                        @openChange="handleSelectionFilterOpenChange">
-                        <template #content>
-                          <div class="header-filter-pop header-filter-pop--selection">
-                            <a-input v-model:value="filterValueMap.parameterName" :placeholder="$t('请输入参数名称')" allow-clear />
-                            <a-input v-model:value="filterValueMap.parameterNum" class="header-filter-pop__second" :placeholder="$t('请输入参数代号')" allow-clear />
-                            <div class="header-filter-actions">
-                              <a-button type="primary" size="small" @click="applySelectionColumnFilter">
-                                <SearchOutlined />
-                                {{ $t('搜索') }}
-                              </a-button>
-                              <a-button size="small" @click="resetSelectionColumnFilter">{{ $t('重置') }}</a-button>
+              <a-table
+                class="exe-config-table parameter-table-spaced"
+                :scroll="{ x: parameterTableScrollX, y: 'calc(100vh - 300px)' }"
+                :row-key="getParameterRowKey"
+                :columns="columns"
+                :data-source="parameterTableDisplayList"
+                :pagination="pagination"
+                :row-selection="rowSelection"
+                :customRow="customRow"
+                bordered
+                table-layout="fixed"
+                :locale="locale"
+                :loading="loading"
+                :row-class-name="getParameterTableRowClassName"
+                @resize-column="handleResizeColumn">
+                <template #headerCell="{ column }">
+                  <template v-if="isParameterTableSelectionColumn(column)">
+                    <div class="header-cell-main header-cell-main--selection header-cell-main--has-filter">
+                      <a-checkbox :checked="parameterSelectionHeaderChecked" :indeterminate="parameterSelectionHeaderIndeterminate" @change="onParameterSelectionHeaderChange" />
+                      <span class="header-filter-anchor header-filter-anchor--inline">
+                        <a-popover trigger="click" placement="bottomRight" :open="getParameterFilterOpen(SELECTION_FILTER_KEY)" @openChange="handleSelectionFilterOpenChange">
+                          <template #content>
+                            <div class="header-filter-pop header-filter-pop--selection">
+                              <a-input v-model:value="filterValueMap.parameterName" :placeholder="$t('请输入参数名称')" allow-clear />
+                              <a-input v-model:value="filterValueMap.parameterNum" class="header-filter-pop__second" :placeholder="$t('请输入参数代号')" allow-clear />
+                              <div class="header-filter-actions">
+                                <a-button type="primary" size="small" @click="applySelectionColumnFilter">
+                                  <SearchOutlined />
+                                  {{ $t('搜索') }}
+                                </a-button>
+                                <a-button size="small" @click="resetSelectionColumnFilter">{{ $t('重置') }}</a-button>
+                              </div>
                             </div>
-                          </div>
-                        </template>
-                        <FilterOutlined class="header-query-icon" />
-                      </a-popover>
-                    </span>
-                  </div>
-                </template>
-                <template v-else-if="isSortableParameterColumn(column) || isFilterableParameterColumn(column)">
-                  <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableParameterColumn(column) }">
-                    <span
-                      class="header-title-sort"
-                      :class="{ 'header-title-sort--disabled': !isSortableParameterColumn(column) }"
-                      @click.stop="toggleParameterColumnSort(column)">
-                      <span>{{ column.title }}</span>
-                      <span v-if="isSortableParameterColumn(column)" class="header-sort-icon">
-                        <CaretUpOutlined v-if="getParameterSortOrder(String(column.dataIndex)) === 'ascend'" />
-                        <CaretDownOutlined v-else-if="getParameterSortOrder(String(column.dataIndex)) === 'descend'" />
-                        <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                          </template>
+                          <FilterOutlined class="header-query-icon" />
+                        </a-popover>
                       </span>
-                    </span>
-                    <span v-if="isFilterableParameterColumn(column)" class="header-filter-anchor">
-                      <a-popover
-                        trigger="click"
-                        placement="bottomRight"
-                        :open="getParameterFilterOpen(String(column.dataIndex))"
-                        @openChange="handleParameterFilterOpenChange(String(column.dataIndex), $event)">
-                        <template #content>
-                          <div class="header-filter-pop">
-                            <a-input
-                              v-model:value="filterValueMap[String(column.dataIndex)]"
-                              :placeholder="`${$t('搜索')} ${column.title}`"
-                              allow-clear />
-                            <div class="header-filter-actions">
-                              <a-button type="primary" size="small" @click="applyParameterColumnFilter(String(column.dataIndex))">
-                                <SearchOutlined />
-                                {{ $t('搜索') }}
-                              </a-button>
-                              <a-button size="small" @click="resetParameterColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                    </div>
+                  </template>
+                  <template v-else-if="isSortableParameterColumn(column) || isFilterableParameterColumn(column)">
+                    <div class="header-cell-main" :class="{ 'header-cell-main--has-filter': isFilterableParameterColumn(column) }">
+                      <span
+                        class="header-title-sort"
+                        :class="{ 'header-title-sort--disabled': !isSortableParameterColumn(column) }"
+                        @click.stop="toggleParameterColumnSort(column)">
+                        <span>{{ column.title }}</span>
+                        <span v-if="isSortableParameterColumn(column)" class="header-sort-icon">
+                          <CaretUpOutlined v-if="getParameterSortOrder(String(column.dataIndex)) === 'ascend'" />
+                          <CaretDownOutlined v-else-if="getParameterSortOrder(String(column.dataIndex)) === 'descend'" />
+                          <CaretUpOutlined v-else class="header-sort-icon--muted" />
+                        </span>
+                      </span>
+                      <span v-if="isFilterableParameterColumn(column)" class="header-filter-anchor">
+                        <a-popover
+                          trigger="click"
+                          placement="bottomRight"
+                          :open="getParameterFilterOpen(String(column.dataIndex))"
+                          @openChange="handleParameterFilterOpenChange(String(column.dataIndex), $event)">
+                          <template #content>
+                            <div class="header-filter-pop">
+                              <a-input v-model:value="filterValueMap[String(column.dataIndex)]" :placeholder="`${$t('搜索')} ${column.title}`" allow-clear />
+                              <div class="header-filter-actions">
+                                <a-button type="primary" size="small" @click="applyParameterColumnFilter(String(column.dataIndex))">
+                                  <SearchOutlined />
+                                  {{ $t('搜索') }}
+                                </a-button>
+                                <a-button size="small" @click="resetParameterColumnFilter(String(column.dataIndex))">{{ $t('重置') }}</a-button>
+                              </div>
                             </div>
-                          </div>
-                        </template>
-                        <FilterOutlined class="header-query-icon" />
-                      </a-popover>
+                          </template>
+                          <FilterOutlined class="header-query-icon" />
+                        </a-popover>
+                      </span>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="header-cell-main header-cell-main--static">
+                      <span class="header-title-sort header-title-sort--disabled">
+                        <span>{{ column.title }}</span>
+                      </span>
+                    </div>
+                  </template>
+                </template>
+                <template #bodyCell="{ column, record, text }">
+                  <!-- 参数名称：仅溢出时悬停提示 -->
+                  <template v-if="column.dataIndex === 'parameterName'">
+                    <TableCellOverflowTooltip :text="String(record.parameterName ?? '')" />
+                  </template>
+
+                  <template v-else-if="column.dataIndex === 'pageComponentUsageCount'">
+                    <span style="display: flex; justify-content: center; align-items: center">
+                      <a v-if="Number(record.pageComponentUsageCount) > 0" @click.stop.prevent="openPageUsageDetailModal(record)" style="cursor: pointer">
+                        {{ record.pageComponentUsageCount }}
+                      </a>
+                      <span v-else style="color: #bfbfbf">{{ record.pageComponentUsageCount ?? 0 }}</span>
                     </span>
-                  </div>
-                </template>
-                <template v-else>
-                  <div class="header-cell-main header-cell-main--static">
-                    <span class="header-title-sort header-title-sort--disabled">
-                      <span>{{ column.title }}</span>
+                  </template>
+
+                  <!-- 参数知识列：用图标代替，不直接渲染内容 -->
+                  <template v-else-if="column.dataIndex === 'knowledge'">
+                    <span style="display: flex; justify-content: center; align-items: center">
+                      <a v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: #1890ff" title="查看知识">
+                        <ShareAltOutlined style="font-size: 16px" />
+                      </a>
+                      <span v-else style="color: #bfbfbf">—</span>
                     </span>
-                  </div>
-                </template>
-              </template>
-              <template #bodyCell="{ column, record, text }">
-                <!-- 参数名称：仅溢出时悬停提示 -->
-                <template v-if="column.dataIndex === 'parameterName'">
-                  <TableCellOverflowTooltip :text="String(record.parameterName ?? '')" />
-                </template>
+                  </template>
 
-                <template v-else-if="column.dataIndex === 'pageComponentUsageCount'">
-                  <span style="display: flex; justify-content: center; align-items: center">
-                    <a
-                      v-if="Number(record.pageComponentUsageCount) > 0"
-                      @click.stop.prevent="openPageUsageDetailModal(record)"
-                      style="cursor: pointer">
-                      {{ record.pageComponentUsageCount }}
-                    </a>
-                    <span v-else style="color: #bfbfbf">{{ record.pageComponentUsageCount ?? 0 }}</span>
-                  </span>
-                </template>
+                  <!-- 版本列：已存在的图标触发历史，版本显示为 V{n}.0 -->
+                  <template v-else-if="column.dataIndex === 'version'">
+                    <span style="display: flex; align-items: center">
+                      <span style="margin-right: 6px">{{ record.version != null ? 'V' + record.version + '.0' : 'V1.0' }}</span>
+                      <a @click.stop.prevent="showVersionHistory(record)" style="cursor: pointer" title="查看版本历史">
+                        <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
+                      </a>
+                    </span>
+                  </template>
 
-                <!-- 参数知识列：用图标代替，不直接渲染内容 -->
-                <template v-else-if="column.dataIndex === 'knowledge'">
-                  <span style="display: flex; justify-content: center; align-items: center">
-                    <a v-if="record.knowledge" @click.stop.prevent="showShareModal(record)" style="cursor: pointer; color: #1890ff" title="查看知识">
-                      <ShareAltOutlined style="font-size: 16px" />
-                    </a>
-                    <span v-else style="color: #bfbfbf">—</span>
-                  </span>
-                </template>
+                  <!-- 状态列示例（如有） -->
+                  <template v-else-if="column.dataIndex === 'status'">
+                    <span>
+                      <a-tag v-if="record.status === '0'" :class="['exe-status-tag', 'exe-status-tag--off']">{{ $t('未发布') }}</a-tag>
+                      <a-tag v-else-if="record.status === '1'" :class="['exe-status-tag', 'exe-status-tag--on']">{{ $t('已发布') }}</a-tag>
+                    </span>
+                  </template>
 
-                <!-- 版本列：已存在的图标触发历史，版本显示为 V{n}.0 -->
-                <template v-else-if="column.dataIndex === 'version'">
-                  <span style="display: flex; align-items: center">
-                    <span style="margin-right: 6px">{{ record.version != null ? 'V' + record.version + '.0' : 'V1.0' }}</span>
-                    <a @click.stop.prevent="showVersionHistory(record)" style="cursor: pointer" title="查看版本历史">
-                      <EpcIcon type="icon-banbenlishi" style="font-size: 14px; color: #1890ff" />
-                    </a>
-                  </span>
-                </template>
+                  <!-- 操作列（与 exeConfigTab 链接区一致） -->
+                  <template v-else-if="column.dataIndex === 'operation'">
+                    <div class="calc-operation-links" @click.stop>
+                      <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
+                      <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
+                      <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
+                        <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                      </a-popconfirm>
+                    </div>
+                  </template>
 
-                <!-- 状态列示例（如有） -->
-                <template v-else-if="column.dataIndex === 'status'">
-                  <span>
-                    <a-tag v-if="record.status === '0'" :class="['exe-status-tag', 'exe-status-tag--off']">{{ $t('未发布') }}</a-tag>
-                    <a-tag v-else-if="record.status === '1'" :class="['exe-status-tag', 'exe-status-tag--on']">{{ $t('已发布') }}</a-tag>
-                  </span>
-                </template>
+                  <template v-else-if="column.ellipsis">
+                    <TableCellOverflowTooltip :text="String(text ?? '')" />
+                  </template>
 
-                <!-- 操作列（与 exeConfigTab 链接区一致） -->
-                <template v-else-if="column.dataIndex === 'operation'">
-                  <div class="calc-operation-links" @click.stop>
-                    <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
-                    <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
-                    <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                      <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
-                    </a-popconfirm>
-                  </div>
+                  <template v-else>
+                    <TableCellOverflowTooltip :text="formatParameterCellText(record, column)" />
+                  </template>
                 </template>
-
-                <template v-else-if="column.ellipsis">
-                  <TableCellOverflowTooltip :text="String(text ?? '')" />
-                </template>
-
-                <template v-else>
-                  <TableCellOverflowTooltip :text="formatParameterCellText(record, column)" />
-                </template>
-              </template>
-            </a-table>
-          </a-card>
-        </div>
-      </Pane>
-    </Splitpanes>
-    <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-      <button
-        type="button"
-        class="splitpanes-tree-collapse-wrap__toggle"
-        :style="splitToggleStyle"
-        @click="toggleLeftTreePanel"
-        @mousedown.stop>
-        <LeftOutlined v-if="!leftTreeCollapsed" />
-        <RightOutlined v-else />
-      </button>
-    </Tooltip>
+              </a-table>
+            </a-card>
+          </div>
+        </Pane>
+      </Splitpanes>
+      <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
+        <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="splitToggleStyle" @click="toggleLeftTreePanel" @mousedown.stop>
+          <LeftOutlined v-if="!leftTreeCollapsed" />
+          <RightOutlined v-else />
+        </button>
+      </Tooltip>
     </div>
 
     <!-- 版本历史弹窗：以 time-line 展示 -->
@@ -1645,16 +1613,10 @@ const {
     </a-modal>
 
     <!-- 知识配置弹窗 -->
-   <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="() => getListData('change')" type="1" />
+    <knowledge-config ref="knowledgeConfigRef" @handleConfirmClose="() => getListData('change')" type="1" />
 
     <!-- 参数活动页使用次数明细 -->
-    <a-modal
-      v-model:visible="pageUsageModalVisible"
-      :title="pageUsageModalTitle"
-      width="720px"
-      :footer="null"
-      destroy-on-close
-      @cancel="closePageUsageDetailModal">
+    <a-modal v-model:visible="pageUsageModalVisible" :title="pageUsageModalTitle" width="720px" :footer="null" destroy-on-close @cancel="closePageUsageDetailModal">
       <a-spin :spinning="pageUsageLoading">
         <a-table
           :columns="pageUsageColumns"
@@ -1670,13 +1632,7 @@ const {
     </a-modal>
 
     <!-- 分享知识弹窗：展示关联知识列表 -->
-    <draggable-modal
-      v-model:visible="shareModalVisible"
-      :title="shareModalTitle"
-      width="860px"
-      :footer="null"
-      centered
-      @cancel="closeShareModal">
+    <draggable-modal v-model:visible="shareModalVisible" :title="shareModalTitle" width="860px" :footer="null" centered @cancel="closeShareModal">
       <a-spin :spinning="shareLoading">
         <div class="share-knowledge-list min-h-[400px]">
           <template v-if="shareList.length > 0">
@@ -1689,17 +1645,10 @@ const {
               </div>
               <!-- 图片 -->
               <div v-if="item.file?.picture" class="share-knowledge-pictures">
-                <a-image
-                  :src="item.file?.picture"
-                  :width="400"
-                  fit="contain"
-                  class="share-knowledge-img" />
+                <a-image :src="item.file?.picture" :width="400" fit="contain" class="share-knowledge-img" />
               </div>
               <!-- 富文本内容 -->
-              <div
-                v-if="item.file?.content"
-                class="share-knowledge-content"
-                v-html="item.file.content" />
+              <div v-if="item.file?.content" class="share-knowledge-content" v-html="item.file.content" />
               <a-divider v-if="idx < shareList.length - 1" style="margin: 12px 0" />
             </div>
           </template>
