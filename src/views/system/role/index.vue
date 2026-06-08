@@ -605,16 +605,17 @@ function customGetContainer() {
     <div v-dragModal class="roleIndex">
       <a-modal
         v-model:visible="grpuVisible"
-        style="width: 60%"
+        width="80%"
         :get-container="customGetContainer"
         :mask-closable="false"
         :title="$t('成员授权')"
         :confirm-loading="$isPending()"
         @ok="handleResetOk"
         @cancel="handleClose">
-        <div style="display: flex; justify-content: center">
+        <div class="member-auth-transfer-wrap">
           <AuthTransfer
             v-model:target-keys="targetKeys2"
+            style="width: 100%"
             :locale="transferlocale.Transfer"
             :data-source="groupData"
             :titles="['未授权用户', '已授用户']"
@@ -626,8 +627,7 @@ function customGetContainer() {
               pageSize: 20,
             }"
             :list-style="{
-              width: '400px',
-              height: '540px',
+              height: 'min(540px, calc(100vh - 200px))',
             }"
             @change="handleChange"
             @select-change="handleSelectChange"
@@ -866,5 +866,56 @@ function customGetContainer() {
 .role-list-table :deep(.ant-table-tbody > tr > td:nth-child(2)),
 .role-list-table :deep(.ant-table-tbody > tr > td:nth-child(4)) {
   text-align: left !important;
+}
+
+.roleIndex {
+  :deep(.ant-modal) {
+    max-width: calc(100vw - 32px);
+    top: 16px;
+    padding-bottom: 16px;
+  }
+
+  :deep(.ant-modal-content) {
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.ant-modal-body) {
+    overflow: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+.member-auth-transfer-wrap {
+  width: 100%;
+  max-height: calc(100vh - 200px);
+  overflow: hidden;
+
+  :deep(.auth-transfer.ant-transfer) {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+  }
+
+  :deep(.ant-transfer-list) {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.ant-transfer-list-body) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  :deep(.ant-transfer-operation) {
+    flex: 0 0 auto;
+    align-self: center;
+  }
 }
 </style>
