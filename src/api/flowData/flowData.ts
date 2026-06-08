@@ -1,6 +1,6 @@
 import httpRequest from '@/httpRequest';
 
-export function isValid(val) {
+export function isValid(val: unknown) {
   if (Object.prototype.toString.call(val) === '[object Object]') {
     if (Reflect.ownKeys(val).length <= 0) {
       return false;
@@ -77,5 +77,21 @@ export function delPageInputtempByIds(data: { inputtempids: string }) {
     url: '/flow/delPageInputtempByIds.json',
     method: 'POST',
     data,
+  });
+}
+
+export function writeToFile(data: Record<string, unknown>) {
+  return httpRequest({
+    url: '/flow/writeToFile.json',
+    method: 'post',
+    data: JSON.stringify(data),
+  });
+}
+
+export function getTabledataByTablenumTaskid(data: Record<string, unknown>) {
+  return httpRequest({
+    url: '/flow/getTabledataByTablenumTaskid.json',
+    method: 'post',
+    data: JSON.stringify(data),
   });
 }

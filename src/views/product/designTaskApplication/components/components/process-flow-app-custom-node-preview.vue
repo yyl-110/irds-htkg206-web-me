@@ -19,7 +19,7 @@ import {
   loadPage0_1PageParameters,
   type Page0_1ParameterItem,
 } from '@/views/product/activityPage/custompage/page0-1/loadPageParameters';
-import { loadCustomPageComponent, resolveCustomPageKey } from '../../../activityPage/custompage/registry';
+import { loadCustomPageComponent, resolveCustomPageKey } from '../../../activityPage/custompage/registry/index';
 
 const props = defineProps<{
   activityPageId?: string | number | null;
@@ -39,7 +39,9 @@ const customComponentRef = ref<{
   getCurrentSaveParamValues?: () => unknown[];
   getCurrentTableSavePayload?: () => unknown[];
 } | null>(null);
-const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem | Page0ParameterItem | Page0_1ParameterItem>>([]);
+const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem | Page0ParameterItem | Page0_1ParameterItem>>(
+  [],
+);
 const pageKey = ref<string | null>(null);
 
 async function loadPageContent() {

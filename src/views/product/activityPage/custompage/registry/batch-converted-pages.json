@@ -1,0 +1,447 @@
+{
+  "convertedAt": "2026-06-05T08:45:52.278Z",
+  "converted": [
+    {
+      "relativePath": "calculation/AppAcbusPowerCalculation.vue",
+      "skipped": false,
+      "registryKey": "app-acbus-power-calculation",
+      "routePath": "/internal/app-acbus-power-calculation",
+      "componentName": "AppAcbusPowerCalculation"
+    },
+    {
+      "relativePath": "calculation/AppHighVoltageDCbusCalculation.vue",
+      "skipped": false,
+      "registryKey": "app-high-voltage-dcbus-calculation",
+      "routePath": "/internal/app-high-voltage-dcbus-calculation",
+      "componentName": "AppHighVoltageDCbusCalculation"
+    },
+    {
+      "relativePath": "calculation/AppLowVoltageDCPowerCalculation.vue",
+      "skipped": false,
+      "registryKey": "app-low-voltage-dcpower-calculation",
+      "routePath": "/internal/app-low-voltage-dcpower-calculation",
+      "componentName": "AppLowVoltageDCPowerCalculation"
+    },
+    {
+      "relativePath": "calculation/AppQsygTlCalculation.vue",
+      "skipped": false,
+      "registryKey": "app-qsyg-tl-calculation",
+      "routePath": "/internal/app-qsyg-tl-calculation",
+      "componentName": "AppQsygTlCalculation"
+    },
+    {
+      "relativePath": "calculation/AppQsygXcCalculation.vue",
+      "skipped": false,
+      "registryKey": "app-qsyg-xc-calculation",
+      "routePath": "/internal/app-qsyg-xc-calculation",
+      "componentName": "AppQsygXcCalculation"
+    },
+    {
+      "relativePath": "calculation/acbusPowerCalculation.vue",
+      "skipped": false,
+      "registryKey": "acbus-power-calculation",
+      "routePath": "/internal/acbus-power-calculation",
+      "componentName": "acbusPowerCalculation"
+    },
+    {
+      "relativePath": "calculation/highVoltageDCbusCalculation.vue",
+      "skipped": false,
+      "registryKey": "high-voltage-dcbus-calculation",
+      "routePath": "/internal/high-voltage-dcbus-calculation",
+      "componentName": "highVoltageDCbusCalculation"
+    },
+    {
+      "relativePath": "calculation/lowVoltageDCPowerCalculation.vue",
+      "skipped": false,
+      "registryKey": "low-voltage-dcpower-calculation",
+      "routePath": "/internal/low-voltage-dcpower-calculation",
+      "componentName": "lowVoltageDCPowerCalculation"
+    },
+    {
+      "relativePath": "calculation/qsygTlCalculation.vue",
+      "skipped": false,
+      "registryKey": "qsyg-tl-calculation",
+      "routePath": "/internal/qsyg-tl-calculation",
+      "componentName": "qsygTlCalculation"
+    },
+    {
+      "relativePath": "calculation/qsygXcCalculation.vue",
+      "skipped": false,
+      "registryKey": "qsyg-xc-calculation",
+      "routePath": "/internal/qsyg-xc-calculation",
+      "componentName": "qsygXcCalculation"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-12-1-2B.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-12-1-2-b",
+      "routePath": "/internal/customized-process3-fs1-12-1-2-b",
+      "componentName": "customizedProcess3-FS1-12-1-2B"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-12-1-2C.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-12-1-2-c",
+      "routePath": "/internal/customized-process3-fs1-12-1-2-c",
+      "componentName": "customizedProcess3-FS1-12-1-2C"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-12-1-2D.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-12-1-2-d",
+      "routePath": "/internal/customized-process3-fs1-12-1-2-d",
+      "componentName": "customizedProcess3-FS1-12-1-2D"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1G.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-g",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-g",
+      "componentName": "customizedProcess3-FS1-5-1-1G"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1K.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-k",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-k",
+      "componentName": "customizedProcess3-FS1-5-1-1K"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1L.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-l",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-l",
+      "componentName": "customizedProcess3-FS1-5-1-1L"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1M.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-m",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-m",
+      "componentName": "customizedProcess3-FS1-5-1-1M"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1N.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-n",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-n",
+      "componentName": "customizedProcess3-FS1-5-1-1N"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1O.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-o",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-o",
+      "componentName": "customizedProcess3-FS1-5-1-1O"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1_2.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-2",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-2",
+      "componentName": "customizedProcess3-FS1-5-1-1_2"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1_4.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-4",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-4",
+      "componentName": "customizedProcess3-FS1-5-1-1_4"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1_6.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-6",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-6",
+      "componentName": "customizedProcess3-FS1-5-1-1_6"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1-1_9.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-1-9",
+      "routePath": "/internal/customized-process3-fs1-5-1-1-9",
+      "componentName": "customizedProcess3-FS1-5-1-1_9"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1K.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-k",
+      "routePath": "/internal/customized-process3-fs1-5-1-k",
+      "componentName": "customizedProcess3-FS1-5-1K"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1L.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-1-l",
+      "routePath": "/internal/customized-process3-fs1-5-1-l",
+      "componentName": "customizedProcess3-FS1-5-1L"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5G.vue",
+      "skipped": false,
+      "registryKey": "customized-process3-fs1-5-g",
+      "routePath": "/internal/customized-process3-fs1-5-g",
+      "componentName": "customizedProcess3-FS1-5G"
+    },
+    {
+      "relativePath": "customizedProcess7-page1.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page1",
+      "routePath": "/internal/customized-process7-page1",
+      "componentName": "customizedProcess7-page1"
+    },
+    {
+      "relativePath": "customizedProcess7-page2.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page2",
+      "routePath": "/internal/customized-process7-page2",
+      "componentName": "customizedProcess7-page2"
+    },
+    {
+      "relativePath": "customizedProcess7-page3.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page3",
+      "routePath": "/internal/customized-process7-page3",
+      "componentName": "customizedProcess7-page3"
+    },
+    {
+      "relativePath": "customizedProcess7-page4-1.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page4-1",
+      "routePath": "/internal/customized-process7-page4-1",
+      "componentName": "customizedProcess7-page4-1"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-1.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-1",
+      "routePath": "/internal/customized-process7-page5-1",
+      "componentName": "customizedProcess7-page5-1"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-1B.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-1-b",
+      "routePath": "/internal/customized-process7-page5-1-b",
+      "componentName": "customizedProcess7-page5-1B"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-1C.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-1-c",
+      "routePath": "/internal/customized-process7-page5-1-c",
+      "componentName": "customizedProcess7-page5-1C"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-1D.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-1-d",
+      "routePath": "/internal/customized-process7-page5-1-d",
+      "componentName": "customizedProcess7-page5-1D"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-2.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-2",
+      "routePath": "/internal/customized-process7-page5-2",
+      "componentName": "customizedProcess7-page5-2"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-2B.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-2-b",
+      "routePath": "/internal/customized-process7-page5-2-b",
+      "componentName": "customizedProcess7-page5-2B"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-2C.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-2-c",
+      "routePath": "/internal/customized-process7-page5-2-c",
+      "componentName": "customizedProcess7-page5-2C"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-2D.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-2-d",
+      "routePath": "/internal/customized-process7-page5-2-d",
+      "componentName": "customizedProcess7-page5-2D"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-3.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-3",
+      "routePath": "/internal/customized-process7-page5-3",
+      "componentName": "customizedProcess7-page5-3"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-3B.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-3-b",
+      "routePath": "/internal/customized-process7-page5-3-b",
+      "componentName": "customizedProcess7-page5-3B"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-3C.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-3-c",
+      "routePath": "/internal/customized-process7-page5-3-c",
+      "componentName": "customizedProcess7-page5-3C"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-3D.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-3-d",
+      "routePath": "/internal/customized-process7-page5-3-d",
+      "componentName": "customizedProcess7-page5-3D"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-4.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-4",
+      "routePath": "/internal/customized-process7-page5-4",
+      "componentName": "customizedProcess7-page5-4"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-5.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-5",
+      "routePath": "/internal/customized-process7-page5-5",
+      "componentName": "customizedProcess7-page5-5"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-6.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-6",
+      "routePath": "/internal/customized-process7-page5-6",
+      "componentName": "customizedProcess7-page5-6"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-Dyjg1.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-dyjg1",
+      "routePath": "/internal/customized-process7-page5-dyjg1",
+      "componentName": "customizedProcess7-page5-Dyjg1"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-Dyjg2.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-dyjg2",
+      "routePath": "/internal/customized-process7-page5-dyjg2",
+      "componentName": "customizedProcess7-page5-Dyjg2"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-Dyjg3.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-dyjg3",
+      "routePath": "/internal/customized-process7-page5-dyjg3",
+      "componentName": "customizedProcess7-page5-Dyjg3"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-Dyjg4.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-dyjg4",
+      "routePath": "/internal/customized-process7-page5-dyjg4",
+      "componentName": "customizedProcess7-page5-Dyjg4"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-InputDyjg1.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-input-dyjg1",
+      "routePath": "/internal/customized-process7-page5-input-dyjg1",
+      "componentName": "customizedProcess7-page5-InputDyjg1"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-InputDyjg2.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-input-dyjg2",
+      "routePath": "/internal/customized-process7-page5-input-dyjg2",
+      "componentName": "customizedProcess7-page5-InputDyjg2"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-InputDyjg3.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-input-dyjg3",
+      "routePath": "/internal/customized-process7-page5-input-dyjg3",
+      "componentName": "customizedProcess7-page5-InputDyjg3"
+    },
+    {
+      "relativePath": "customizedProcess7-page5-InputDyjg4.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page5-input-dyjg4",
+      "routePath": "/internal/customized-process7-page5-input-dyjg4",
+      "componentName": "customizedProcess7-page5-InputDyjg4"
+    },
+    {
+      "relativePath": "customizedProcess7-page6-1.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page6-1",
+      "routePath": "/internal/customized-process7-page6-1",
+      "componentName": "customizedProcess7-page6-1"
+    },
+    {
+      "relativePath": "customizedProcess7-page6.vue",
+      "skipped": false,
+      "registryKey": "customized-process7-page6",
+      "routePath": "/internal/customized-process7-page6",
+      "componentName": "customizedProcess7-page6"
+    },
+    {
+      "relativePath": "customizedProcessProgramme.vue",
+      "skipped": false,
+      "registryKey": "customized-process-programme",
+      "routePath": "/internal/customized-process-programme",
+      "componentName": "customizedProcessProgramme"
+    },
+    {
+      "relativePath": "zq-frameDesign-page1.vue",
+      "skipped": false,
+      "registryKey": "zq-frame-design-page1",
+      "routePath": "/internal/zq-frame-design-page1",
+      "componentName": "zq-frameDesign-page1"
+    },
+    {
+      "relativePath": "zq-frameDesign-page2.vue",
+      "skipped": false,
+      "registryKey": "zq-frame-design-page2",
+      "routePath": "/internal/zq-frame-design-page2",
+      "componentName": "zq-frameDesign-page2"
+    },
+    {
+      "relativePath": "zq-transmissionShaft-page1.vue",
+      "skipped": false,
+      "registryKey": "zq-transmission-shaft-page1",
+      "routePath": "/internal/zq-transmission-shaft-page1",
+      "componentName": "zq-transmissionShaft-page1"
+    },
+    {
+      "relativePath": "zq-transmissionShaft-page2.vue",
+      "skipped": false,
+      "registryKey": "zq-transmission-shaft-page2",
+      "routePath": "/internal/zq-transmission-shaft-page2",
+      "componentName": "zq-transmissionShaft-page2"
+    }
+  ],
+  "skipped": [
+    {
+      "relativePath": "customizedProcess3-FS-1-5-1J.vue",
+      "skipped": true,
+      "reason": "already migrated"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1_4.vue",
+      "skipped": true,
+      "reason": "already migrated"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1_5.vue",
+      "skipped": true,
+      "reason": "already migrated"
+    },
+    {
+      "relativePath": "customizedProcess3-FS1-5-1_6.vue",
+      "skipped": true,
+      "reason": "already migrated"
+    }
+  ]
+}
