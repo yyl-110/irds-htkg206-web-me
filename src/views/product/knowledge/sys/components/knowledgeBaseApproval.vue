@@ -6,7 +6,8 @@ import { AuditOutlined, CheckCircleFilled, NodeIndexOutlined } from '@ant-design
 import { WeiI18n } from '@/utils/WeiI18n';
 import Empty from '@/components/Empty/index.vue';
 import { useUserStore } from '@/store/modules/user';
-import { getBpmSimpleList, instanceCreateProcess } from '@/api/bpm/process/index';
+import { getBpmSimpleList, instanceCreateProcess, updateKnowledgeFileStatusFromBpmCallback } from '@/api/bpm/process/index';
+import { Knowledgebase } from '@/enums/Knowledgebase';
 
 const props = defineProps({
   modalVisible: {
@@ -25,6 +26,7 @@ const props = defineProps({
 const router = useRouter();
 const emit = defineEmits<{
   onClose: [visible: boolean];
+  onSuccess: [];
   handleSave: [resource: any];
   modalInit: any;
 }>();
@@ -166,6 +168,38 @@ async function handleSave() {
   });
 }
 
+function handleSkipApproval() {
+  if (!props.selectModelList?.length) {
+    message.warning('请先选择要发布的知识数据');
+    return;
+  }
+  Modal.confirm({
+    title: '确认无需审批？',
+    content: `确定后将直接发布「${selectedModelLabel.value}」，不再走审批流程。`,
+    okText: '确定',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        submitting.value = true;
+        const res = await updateKnowledgeFileStatusFromBpmCallback({
+          businessKey: props.selectModelList[0].id,
+          callbackScene: 'PROCESS_APPROVED',
+          userId: useUserStore().getUser.id,
+        });
+        if (res.data.code === 200 || res.data.code === '0') {
+          message.success('操作成功');
+          emit('onSuccess');
+          emit('onClose', false);
+        }
+      } catch (error) {
+        console.log(error);
+      } finally {
+        submitting.value = false;
+      }
+    },
+  });
+}
+
 function cancel() {
   if (submitting.value) return;
   emit('onClose', false);
@@ -225,10 +259,21 @@ function cancel() {
     </a-spin>
 
     <template #footer>
-      <a-button :disabled="submitting" @click="cancel">取消</a-button>
-      <a-button type="primary" :loading="submitting" :disabled="!selectedProcessId || submitting" @click="handleSave">
-        确定发起
-      </a-button>
+      <div class="process-modal__footer">
+        <a-button
+          type="link"
+          class="process-modal__skip"
+          :disabled="submitting || !selectedModel"
+          @click="handleSkipApproval">
+          无需审批
+        </a-button>
+        <div class="process-modal__footer-actions">
+          <a-button :disabled="submitting" @click="cancel">取消</a-button>
+          <a-button type="primary" :loading="submitting" :disabled="!selectedProcessId || submitting" @click="handleSave">
+            确定发起
+          </a-button>
+        </div>
+      </div>
     </template>
   </a-modal>
 </template>
@@ -410,6 +455,21 @@ function cancel() {
 
 <style lang="less">
 .initiate-process-modal .ant-modal-footer {
+  padding-top: 12px;
+}
+
+.process-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.process-modal__skip {
+  padding-left: 0;
+}
+
+.process-modal__footer-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;

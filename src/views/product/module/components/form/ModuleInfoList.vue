@@ -2056,6 +2056,7 @@ defineExpose({ initData, selectAllModuleInfo });
     :selectModelList="selectModelList"
     :modulePropertyInfo="modulePropertyInfo"
     @modal-init="modalInit"
+    @on-success="modalInit"
     @on-close="ProcessVisible = false" />
 </template>
 

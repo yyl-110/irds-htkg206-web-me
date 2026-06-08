@@ -102,7 +102,8 @@
       :modal-visible="ProcessVisible"
       :select-model-list="selectModelList"
       :module-property-info="modulePropertyInfo"
-      @on-close="ProcessVisible = false" />
+      @on-close="ProcessVisible = false"
+      @on-success="fetchList" />
   </div>
 </template>
 
