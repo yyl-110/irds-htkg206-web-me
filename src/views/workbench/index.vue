@@ -2164,7 +2164,7 @@ onUnmounted(() => {
                     </template>
                   </div>
                 </a-spin>
-                <div v-if="(todoPagination.total ?? 0) > 0" class="workbench-todo-pagination flex-shrink-0 pt-[12px] pb-[4px] flex justify-end">
+                <div v-if="(todoPagination.total ?? 0) > 0" class="workbench-todo-pagination flex-shrink-0  flex justify-end">
                   <a-pagination v-bind="todoPagination" class="ant-table-pagination" />
                 </div>
               </div>
@@ -2821,6 +2821,11 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
+:deep(.work_nav_top .ant-tabs-tabpane) {
+  display: flex;
+  flex-direction: column;
+}
+
 .task-list-spin {
   flex: 1;
   min-height: 0;
@@ -2853,7 +2858,17 @@ onUnmounted(() => {
 
 .workbench-todo-pagination {
   border-top: 1px solid #f0f0f0;
-  margin-top: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+  padding-bottom: 0;
+
+  :deep(.ant-table-pagination.ant-pagination) {
+    margin-bottom: 0;
+  }
+}
+
+.layout .layout-content .lf-cont .work-wrap {
+  padding-bottom: 10px;
 }
 
 .capsule {
