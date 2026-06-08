@@ -38,7 +38,9 @@
             style="width: 150px"
             allow-clear
             @input="setSaveBtnEnable()" />
-          <a-button type="primary" class="btnSty" @click="handleApplicationNewNum">申请件号</a-button>
+          <a-button type="primary" class="btnSty" style="margin-left: 10px" @click="handleApplicationNewNum"
+            >申请件号</a-button
+          >
           <a-button type="primary" class="btnSty" @click="handleRenameModule">重命名</a-button>
         </a-form-item>
 
@@ -69,12 +71,12 @@
           <a-button type="primary" class="btnSty browse-btn" @click="handleShowPipeModule">浏览</a-button>
           <a-button type="primary" class="btnSty" @click="handleAssemblePipe">装配</a-button>
         </a-form-item>
-
-        <div class="confirm-row">
-          <a-button type="primary" class="btnSty" @click="handleConfirm">确认</a-button>
-        </div>
       </div>
     </a-form>
+
+    <div class="confirm-row">
+      <a-button type="primary" class="btnSty" @click="handleConfirm">确认</a-button>
+    </div>
 
     <ModuleDataSelect
       ref="shaftModuleSelectRef"
@@ -189,11 +191,25 @@ function handleCalculation() {
 
 function handleShowShaftModule() {
   shaftModuleSelectRef.value?.initData(SHAFT_MODULE_CATEGORY_ID, buildShaftBrowseFilters());
+  if (shaftModuleFlag.value) {
+    shaftModuleFlag.value = false;
+    nextTick(() => {
+      shaftModuleFlag.value = true;
+    });
+    return;
+  }
   shaftModuleFlag.value = true;
 }
 
 function handleShowPipeModule() {
   pipeModuleSelectRef.value?.initData(PIPE_MODULE_CATEGORY_ID, buildPipeBrowseFilters(parameterTempList.value));
+  if (pipeModuleFlag.value) {
+    pipeModuleFlag.value = false;
+    nextTick(() => {
+      pipeModuleFlag.value = true;
+    });
+    return;
+  }
   pipeModuleFlag.value = true;
 }
 
@@ -266,7 +282,10 @@ defineExpose({
 .transmissionShaft_page2 {
   padding: 0 10px;
   height: 100%;
+  min-height: 520px;
   background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
 .Shaft_page2_top {
@@ -308,7 +327,8 @@ defineExpose({
 }
 
 .confirm-row {
-  margin-top: 30px;
+  margin-top: auto;
+  padding: 16px 10px 10px;
   text-align: right;
 }
 </style>

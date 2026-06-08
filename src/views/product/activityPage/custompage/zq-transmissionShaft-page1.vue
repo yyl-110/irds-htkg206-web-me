@@ -171,7 +171,7 @@
       @moduleOk="handleSupportModuleOk"
       @moduleCancel="supportModuleFlag = false" />
 
-    <a-modal v-model:open="sdtModalOpen" :mask-closable="false" width="1000px" :footer="null">
+    <a-modal v-model:visible="sdtModalOpen" :mask-closable="false" width="1000px" :footer="null">
       <div class="design-modal-body">
         <ZqTransm ref="zqTransmRef" @initData="handleDesignComplete" />
         <a-button type="text" class="design-modal-cancel" @click="sdtModalOpen = false">取消</a-button>
