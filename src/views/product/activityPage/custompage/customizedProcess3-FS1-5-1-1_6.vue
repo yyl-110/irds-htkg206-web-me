@@ -44,8 +44,8 @@
             <template #icon><ReloadOutlined /></template>
             再生模型
           </a-button>
-          <a-button danger :disabled="outerRowFlag" @click="handleDeleteOuterRows">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="outerRowFlag" @click="handleDeleteOuterRows">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </a-space>
@@ -91,8 +91,8 @@
             <template #icon><ReloadOutlined /></template>
             再生模型
           </a-button>
-          <a-button danger :disabled="innerRowFlag" @click="handleDeleteInnerRows">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="innerRowFlag" @click="handleDeleteInnerRows">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </a-space>
@@ -132,6 +132,7 @@
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { BuildOutlined, DeleteOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { isValid } from '@/api/flowData/flowData';

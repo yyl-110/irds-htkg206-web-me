@@ -8,8 +8,8 @@
             <template #icon><PlusOutlined /></template>
             添加
           </a-button>
-          <a-button danger :disabled="deleteDisabled" @click="handleDeleteRow">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="deleteDisabled" @click="handleDeleteRow">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
           <a-button type="primary" :disabled="singleDisabled" @click="handleBrowse">
@@ -99,13 +99,8 @@
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
-import {
-  BuildOutlined,
-  CalculatorOutlined,
-  DeleteOutlined,
-  FolderOpenOutlined,
-  PlusOutlined,
-} from '@ant-design/icons-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
+import { BuildOutlined, CalculatorOutlined, DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import ModuleDataSelect from '@/views/product/activityPage/components/module-data-select.vue';
 import { assembleSealModule } from './FS1_5_1L/assemblyOperations';
@@ -175,9 +170,7 @@ const selectedCheckRows = ref<SealTableRow[]>([]);
 function cloneParameterList(source: Fs15_1LParameterItem[]): Fs15_1LParameterItem[] {
   return source.map(item => ({
     ...item,
-    tableMap: item.tableMap
-      ? { ...item.tableMap, rowData: item.tableMap.rowData?.map(row => ({ ...row })) }
-      : item.tableMap,
+    tableMap: item.tableMap ? { ...item.tableMap, rowData: item.tableMap.rowData?.map(row => ({ ...row })) } : item.tableMap,
   }));
 }
 

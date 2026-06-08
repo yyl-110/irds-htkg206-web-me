@@ -72,12 +72,13 @@
             添加行
           </a-button>
           <a-button
+            type="primary"
             danger
             class="btnSty"
             style="margin-bottom: 10px; margin-left: 20px"
             :disabled="rowFlag"
             @click="handleDelRow">
-            <template #icon><DeleteOutlined /></template>
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </div>
@@ -112,6 +113,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { createPage0_5Calculations, extractPage0_5SaveParamValues } from './page0-5/calculations';
 import { loadPage0_5PageParameters } from './page0-5/loadPageParameters';

@@ -68,7 +68,7 @@
 
           <div class="table-toolbar">
             <a-button danger :disabled="removeDisabled" @click="handleDeleteRows">
-              <template #icon><DeleteOutlined /></template>
+              <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
               删除
             </a-button>
           </div>
@@ -96,6 +96,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined } from '@ant-design/icons-vue';
 import ProcessRxTable from '@/views/product/activityPage/custompage/_shared/components/ProcessRxTable.vue';
 import type { LegacyColumn } from '@/views/product/activityPage/custompage/_shared/components/ProcessRxTable.types';

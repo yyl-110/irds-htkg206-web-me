@@ -18,8 +18,8 @@
           <template #icon><PlusOutlined /></template>
           添加行
         </a-button>
-        <a-button danger :disabled="rowFlag" @click="handleDeleteRow">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger :disabled="rowFlag" @click="handleDeleteRow">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除行
         </a-button>
       </a-space>
@@ -51,11 +51,7 @@
         <a-table-summary fixed>
           <a-table-summary-row>
             <a-table-summary-cell :index="0" />
-            <a-table-summary-cell
-              v-for="(key, cellIndex) in summaryKeys"
-              :key="key"
-              :index="cellIndex + 1"
-              align="center">
+            <a-table-summary-cell v-for="(key, cellIndex) in summaryKeys" :key="key" :index="cellIndex + 1" align="center">
               {{ summaryValues[key] }}
             </a-table-summary-cell>
           </a-table-summary-row>
@@ -78,6 +74,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { isValid } from '@/api/flowData/flowData';

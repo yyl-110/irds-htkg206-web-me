@@ -7,8 +7,8 @@
           <template #icon><PlusOutlined /></template>
           添加行
         </a-button>
-        <a-button danger :disabled="rowFlag" @click="handleDeleteRows">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger :disabled="rowFlag" @click="handleDeleteRows">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除
         </a-button>
         <a-button type="primary" :disabled="uploadFlag" @click="openUploadModal">
@@ -33,10 +33,7 @@
           <span>{{ record[String(column.dataIndex)] }}</span>
         </template>
         <template v-else-if="resolveColumn(column)?.cellMode === 'editable'">
-          <a-input
-            v-model:value="record[String(column.dataIndex)]"
-            class="table-cell-input"
-            @input="setSaveBtnEnable()" />
+          <a-input v-model:value="record[String(column.dataIndex)]" class="table-cell-input" @input="setSaveBtnEnable()" />
         </template>
         <template v-else-if="resolveColumn(column)?.cellMode === 'required'">
           <a-input
@@ -46,10 +43,7 @@
             @input="setSaveBtnEnable()" />
         </template>
         <template v-else-if="resolveColumn(column)?.cellMode === 'link'">
-          <a
-            v-if="record.p6"
-            class="opening-link"
-            @click.prevent="handlePreviewRowImage(record as OpeningParamRow)">
+          <a v-if="record.p6" class="opening-link" @click.prevent="handlePreviewRowImage(record as OpeningParamRow)">
             {{ record.p6 }}
           </a>
         </template>
@@ -110,6 +104,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { CameraOutlined, DeleteOutlined, EyeOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import type { UploadFile } from 'ant-design-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
@@ -125,16 +120,8 @@ import {
   type Fs151_6ParameterItem,
   type OpeningParamRow,
 } from './FS1_5_1_6/parameterDefaults';
-import {
-  addOpeningParamRow,
-  deleteOpeningParamRows,
-  extractFs151_6SaveParamValues,
-} from './FS1_5_1_6/rowOperations';
-import {
-  OPENING_PARAM_COLUMN_MAP,
-  OPENING_PARAM_TABLE_COLUMNS,
-  type OpeningAntColumn,
-} from './FS1_5_1_6/tableColumns';
+import { addOpeningParamRow, deleteOpeningParamRows, extractFs151_6SaveParamValues } from './FS1_5_1_6/rowOperations';
+import { OPENING_PARAM_COLUMN_MAP, OPENING_PARAM_TABLE_COLUMNS, type OpeningAntColumn } from './FS1_5_1_6/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess3-FS1-5-1_6' });
 
@@ -255,12 +242,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
-function handleRequiredBlur(
-  record: OpeningParamRow,
-  field: string,
-  errorMessage: string | undefined,
-  event: FocusEvent,
-) {
+function handleRequiredBlur(record: OpeningParamRow, field: string, errorMessage: string | undefined, event: FocusEvent) {
   const value = (event.target as HTMLInputElement | null)?.value ?? '';
   if (!value.trim()) {
     message.error(errorMessage ?? '请输入内容');

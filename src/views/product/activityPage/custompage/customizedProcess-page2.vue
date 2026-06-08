@@ -17,8 +17,8 @@
           <template #icon><PlusOutlined /></template>
           添加行
         </a-button>
-        <a-button danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除
         </a-button>
         <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">
@@ -71,6 +71,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';

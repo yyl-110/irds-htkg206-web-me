@@ -42,7 +42,7 @@
             添加
           </a-button>
           <a-button danger :disabled="calcDisabled" @click="handleDelData">
-            <template #icon><DeleteOutlined /></template>
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </a-space>
@@ -79,6 +79,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { useUserStore } from '@/store/modules/user';

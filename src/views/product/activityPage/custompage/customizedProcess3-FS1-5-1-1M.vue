@@ -7,8 +7,8 @@
           <template #icon><PlusOutlined /></template>
           添加行
         </a-button>
-        <a-button danger :disabled="deleteDisabled" @click="handleDeleteRow">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger :disabled="deleteDisabled" @click="handleDeleteRow">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除
         </a-button>
       </a-space>
@@ -28,10 +28,7 @@
           <span>{{ record[String(column.dataIndex)] }}</span>
         </template>
         <template v-else-if="resolveColumn(column)?.cellMode === 'editable'">
-          <a-input
-            v-model:value="record[String(column.dataIndex)]"
-            class="table-cell-input"
-            @input="setSaveBtnEnable()" />
+          <a-input v-model:value="record[String(column.dataIndex)]" class="table-cell-input" @input="setSaveBtnEnable()" />
         </template>
       </template>
     </a-table>
@@ -41,6 +38,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { extractFs151_1_1MSaveParamValues, loadFs151_1_1MPageParameters } from './FS1_5_1_1_M/loadPageParameters';
@@ -51,11 +49,7 @@ import {
   type Fs151_1_1MParameterItem,
 } from './FS1_5_1_1_M/parameterDefaults';
 import { addFrameForceRow, deleteFrameForceRows } from './FS1_5_1_1_M/rowOperations';
-import {
-  FRAME_FORCE_COLUMN_MAP,
-  FRAME_FORCE_TABLE_COLUMNS,
-  type FrameForceAntColumn,
-} from './FS1_5_1_1_M/tableColumns';
+import { FRAME_FORCE_COLUMN_MAP, FRAME_FORCE_TABLE_COLUMNS, type FrameForceAntColumn } from './FS1_5_1_1_M/tableColumns';
 
 defineOptions({ name: 'customizedProcess3-FS1-5-1-1M' });
 

@@ -8,8 +8,8 @@
           <template #icon><PlusOutlined /></template>
           添加行
         </a-button>
-        <a-button danger :disabled="rowFlag" @click="handleDeleteRow">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger :disabled="rowFlag" @click="handleDeleteRow">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除行
         </a-button>
       </a-space>
@@ -38,10 +38,7 @@
             @change="handlePowerTypeChange(record, $event)" />
         </template>
         <template v-else-if="resolveColumn(column)?.cellMode === 'editable'">
-          <a-input
-            v-model:value="record[String(column.dataIndex)]"
-            class="table-cell-input"
-            @input="setSaveBtnEnable()" />
+          <a-input v-model:value="record[String(column.dataIndex)]" class="table-cell-input" @input="setSaveBtnEnable()" />
         </template>
       </template>
     </a-table>
@@ -52,6 +49,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { isValid } from '@/api/flowData/flowData';
@@ -64,16 +62,8 @@ import {
   type PowerBranchRow,
   type Zt1_532BParameterItem,
 } from './ZT1_5_3_2B/parameterDefaults';
-import {
-  addPowerBranchRow,
-  deletePowerBranchRows,
-  extractZt1_532BSaveParamValues,
-} from './ZT1_5_3_2B/rowOperations';
-import {
-  ZT1_5_3_2B_COLUMN_MAP,
-  ZT1_5_3_2B_TABLE_COLUMNS,
-  type PowerBranchAntColumn,
-} from './ZT1_5_3_2B/tableColumns';
+import { addPowerBranchRow, deletePowerBranchRows, extractZt1_532BSaveParamValues } from './ZT1_5_3_2B/rowOperations';
+import { ZT1_5_3_2B_COLUMN_MAP, ZT1_5_3_2B_TABLE_COLUMNS, type PowerBranchAntColumn } from './ZT1_5_3_2B/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess1-ZT1_5_3_2B' });
 

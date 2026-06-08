@@ -11,12 +11,20 @@
         <div v-for="(row, rowIndex) in formRows" :key="rowIndex" class="form-row">
           <div class="form-col">
             <a-form-item :label="row.left.label">
-              <a-input v-model:value="parameterTempList[row.left.index].defaultValue" class="field-input" disabled allow-clear />
+              <a-input
+                v-model:value="parameterTempList[row.left.index].defaultValue"
+                class="field-input"
+                disabled
+                allow-clear />
             </a-form-item>
           </div>
           <div v-if="row.right" class="form-col">
             <a-form-item :label="row.right.label">
-              <a-input v-model:value="parameterTempList[row.right.index].defaultValue" class="field-input" disabled allow-clear />
+              <a-input
+                v-model:value="parameterTempList[row.right.index].defaultValue"
+                class="field-input"
+                disabled
+                allow-clear />
             </a-form-item>
           </div>
         </div>
@@ -27,8 +35,8 @@
           <template #icon><PlusOutlined /></template>
           添加行
         </a-button>
-        <a-button danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除行
         </a-button>
         <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">
@@ -49,10 +57,7 @@
           :row-selection="reducerRowSelection">
           <template #bodyCell="{ column, record, index }">
             <template v-if="column.dataIndex === 'p0'">
-              <a-select
-                v-model:value="record.p0"
-                class="table-cell-select"
-                @change="onReducerTypeChange(record, index)">
+              <a-select v-model:value="record.p0" class="table-cell-select" @change="onReducerTypeChange(record, index)">
                 <a-select-option v-for="item in reducerTypeOptions" :key="item.value" :value="item.value">
                   {{ item.label }}
                 </a-select-option>
@@ -84,6 +89,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
@@ -340,9 +346,7 @@ function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns:
 
 async function loadPageParametersIfNeeded() {
   if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(
-    props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '',
-  ).trim();
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
   if (!pageId) return;
   parameterTempList.value = await loadPage2_1PageParameters(pageId);
 }

@@ -8,8 +8,8 @@
             <template #icon><PlusOutlined /></template>
             添加
           </a-button>
-          <a-button danger :disabled="deleteDisabled" @click="handleDeleteRow">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="deleteDisabled" @click="handleDeleteRow">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
           <a-button type="primary" @click="handleBrowse">
@@ -99,6 +99,7 @@
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { BuildOutlined, CalculatorOutlined, DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import ModuleDataClSelect from './FS1_5_1_1G/moduleDataClSelect.vue';

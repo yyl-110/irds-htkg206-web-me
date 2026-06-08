@@ -8,8 +8,8 @@
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button danger :disabled="outerRowFlag" @click="handleDeleteOuterRows">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="outerRowFlag" @click="handleDeleteOuterRows">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </a-space>
@@ -55,8 +55,8 @@
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button danger :disabled="innerRowFlag" @click="handleDeleteInnerRows">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="innerRowFlag" @click="handleDeleteInnerRows">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </a-space>
@@ -100,6 +100,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { isValid } from '@/api/flowData/flowData';
@@ -248,12 +249,7 @@ function handleNumberBlur(record: SkinSegmentRow, field: string, event: FocusEve
   setSaveBtnEnable();
 }
 
-function handleRequiredBlur(
-  record: SkinSegmentRow,
-  field: string,
-  errorMessage: string | undefined,
-  event: FocusEvent,
-) {
+function handleRequiredBlur(record: SkinSegmentRow, field: string, errorMessage: string | undefined, event: FocusEvent) {
   const value = (event.target as HTMLInputElement | null)?.value ?? '';
   if (!value.trim()) {
     message.error(errorMessage ?? '请输入内容');

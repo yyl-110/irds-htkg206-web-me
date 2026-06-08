@@ -68,8 +68,8 @@
         <div class="section-title section-title--table">起竖杠参数定义：</div>
 
         <div class="table-toolbar">
-          <a-button danger :disabled="removeDisabled" @click="handleDeleteRows">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="removeDisabled" @click="handleDeleteRows">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </div>
@@ -90,15 +90,11 @@
 import { computed, reactive, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import { DeleteOutlined } from '@ant-design/icons-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import ProcessRxTable from '@/views/product/activityPage/custompage/_shared/components/ProcessRxTable.vue';
 import type { LegacyColumn } from '@/views/product/activityPage/custompage/_shared/components/ProcessRxTable.types';
 
-import {
-  DEFAULT_CYLINDER_ROWS,
-  STEP_OPTIONS,
-  createDefaultFormParams,
-  type QsygTlCylinderRow,
-} from './qsygTl/types';
+import { DEFAULT_CYLINDER_ROWS, STEP_OPTIONS, createDefaultFormParams, type QsygTlCylinderRow } from './qsygTl/types';
 import { createQsygTlCylinderColumns } from './qsygTl/tableColumns';
 
 defineOptions({ name: 'AppQsygTlCalculation' });

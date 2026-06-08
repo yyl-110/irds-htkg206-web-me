@@ -8,8 +8,8 @@
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button danger :disabled="outerRowFlag" @click="handleDeleteOuterRows">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="outerRowFlag" @click="handleDeleteOuterRows">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </a-space>
@@ -37,10 +37,7 @@
               @input="setSaveBtnEnable()" />
           </template>
           <template v-else-if="resolveOuterColumn(column)?.cellMode === 'editable'">
-            <a-input
-              v-model:value="record[String(column.dataIndex)]"
-              class="table-cell-input"
-              @input="setSaveBtnEnable()" />
+            <a-input v-model:value="record[String(column.dataIndex)]" class="table-cell-input" @input="setSaveBtnEnable()" />
           </template>
         </template>
       </a-table>
@@ -54,8 +51,8 @@
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button danger :disabled="innerRowFlag" @click="handleDeleteInnerRows">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger :disabled="innerRowFlag" @click="handleDeleteInnerRows">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
         </a-space>
@@ -83,10 +80,7 @@
               @input="setSaveBtnEnable()" />
           </template>
           <template v-else-if="resolveInnerColumn(column)?.cellMode === 'editable'">
-            <a-input
-              v-model:value="record[String(column.dataIndex)]"
-              class="table-cell-input"
-              @input="setSaveBtnEnable()" />
+            <a-input v-model:value="record[String(column.dataIndex)]" class="table-cell-input" @input="setSaveBtnEnable()" />
           </template>
         </template>
       </a-table>
@@ -98,6 +92,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { isValid } from '@/api/flowData/flowData';

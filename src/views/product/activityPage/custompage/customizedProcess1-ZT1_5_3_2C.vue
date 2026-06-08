@@ -28,8 +28,8 @@
           <template #icon><PlusOutlined /></template>
           添加接口表
         </a-button>
-        <a-button danger @click="handleDeleteInterface">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger @click="handleDeleteInterface">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除接口表
         </a-button>
       </a-space>
@@ -56,8 +56,8 @@
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button danger @click="handleDeletePointRow(getPointTableIndex(groupNo))">
-            <template #icon><DeleteOutlined /></template>
+          <a-button type="primary" danger @click="handleDeletePointRow(getPointTableIndex(groupNo))">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除行
           </a-button>
         </a-space>
@@ -112,8 +112,8 @@
           <template #icon><PlusOutlined /></template>
           添加接口表
         </a-button>
-        <a-button danger @click="handleDeleteInterface">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger @click="handleDeleteInterface">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除接口表
         </a-button>
       </a-space>
@@ -125,6 +125,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { delPageInputtempByIds, isValid } from '@/api/flowData/flowData';

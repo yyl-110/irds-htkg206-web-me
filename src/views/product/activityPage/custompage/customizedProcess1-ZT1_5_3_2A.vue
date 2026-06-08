@@ -8,16 +8,16 @@
           <template #icon><PlusOutlined /></template>
           添加行
         </a-button>
-        <a-button danger :disabled="rowFlag" @click="handleDeleteRow">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger :disabled="rowFlag" @click="handleDeleteRow">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除行
         </a-button>
         <a-button type="primary" @click="openAddColumnModal">
           <template #icon><PlusOutlined /></template>
           添加列
         </a-button>
-        <a-button danger @click="openDeleteColumnModal">
-          <template #icon><DeleteOutlined /></template>
+        <a-button type="primary" danger @click="openDeleteColumnModal">
+          <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除列
         </a-button>
       </a-space>
@@ -135,6 +135,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { message } from 'ant-design-vue';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
