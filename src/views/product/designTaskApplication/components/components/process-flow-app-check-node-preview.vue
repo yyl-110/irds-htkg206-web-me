@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, type Directive } from 'vue';
 import { message } from 'ant-design-vue';
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
@@ -31,6 +31,29 @@ const calcCheckPreviewTypes = new Set([
 ]);
 const calcIoParamComponentTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'DATA_VIEW']);
 const userStore = useUserStore();
+
+/** 文本域纵向拖拽时同步 grid 卡片高度，避免遮挡下方组件 */
+const vTextareaGridSync: Directive<HTMLElement> = {
+  mounted(el) {
+    const textarea = el.querySelector('textarea');
+    const card = el.closest('.component-card') as HTMLElement | null;
+    if (!textarea || !card) return;
+
+    const syncCardHeight = () => {
+      const cardTop = card.getBoundingClientRect().top;
+      const textareaBottom = textarea.getBoundingClientRect().bottom;
+      card.style.minHeight = `${Math.ceil(textareaBottom - cardTop + 2)}px`;
+    };
+
+    const observer = new ResizeObserver(syncCardHeight);
+    observer.observe(textarea);
+    syncCardHeight();
+    (el as HTMLElement & { __textareaGridSyncCleanup?: () => void }).__textareaGridSyncCleanup = () => observer.disconnect();
+  },
+  unmounted(el) {
+    (el as HTMLElement & { __textareaGridSyncCleanup?: () => void }).__textareaGridSyncCleanup?.();
+  },
+};
 
 const modulePickerVisible = ref(false);
 const modulePickerCategoryId = ref('');
@@ -426,7 +449,10 @@ defineExpose({
         v-for="(item, index) in previewList"
         :key="item.id || `${item.componentType}-${index}`"
         class="component-card"
-        :class="{ 'full-row-item': isFullRowComponent(item.componentType) }">
+        :class="{
+          'full-row-item': isFullRowComponent(item.componentType),
+          'component-card--textarea': item.componentType === 'TEXTAREA',
+        }">
         <div class="component-preview-wrap">
           <div
             v-if="
@@ -461,6 +487,7 @@ defineExpose({
           </div>
           <div
             v-else-if="item.componentType === 'TEXTAREA'"
+            v-textarea-grid-sync
             class="preview-field-trigger"
             @click.capture="onParamTitleClick(item)">
             <a-textarea
@@ -483,7 +510,7 @@ defineExpose({
                   v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
                   placeholder="请选择参数"
                   disabled
-                  class="data-view-preview-input preview-field" />
+                  class="preview-field" />
               </div>
               <a-button
                 type="primary"
@@ -559,7 +586,7 @@ defineExpose({
   height: auto;
   min-height: min-content;
   overflow: visible;
-  padding: 4px 16px 12px 12px;
+  padding: 4px 16px 20px 12px;
   box-sizing: border-box;
   --activity-preview-component-width: 300px;
   --activity-preview-wide-component-width: 650px;
@@ -659,13 +686,36 @@ defineExpose({
   grid-template-columns: repeat(2, minmax(var(--activity-preview-component-width), 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
+  align-content: start;
+  grid-auto-rows: min-content;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
+.component-card {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  align-self: start;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 0;
+  box-sizing: border-box;
+}
+.component-list > .component-card:first-child {
+  padding-top: 0;
+}
 .component-card.full-row-item {
   grid-column: 1 / -1;
   width: 100%;
+  max-width: 100%;
+}
+.component-card.full-row-item .preview-field,
+.component-card.full-row-item :deep(.ant-input),
+.component-card.full-row-item :deep(.ant-input-affix-wrapper),
+.component-card.full-row-item :deep(.ant-select),
+.component-card.full-row-item :deep(.ant-picker) {
+  width: var(--activity-preview-component-width);
   max-width: 100%;
 }
 .component-preview-wrap {
@@ -677,9 +727,22 @@ defineExpose({
   font-size: 13px;
   color: #444;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 .component-title-text--clickable {
   cursor: pointer;
+}
+.component-knowledge-hint {
+  color: #1677ff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.preview-field {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
 }
 .preview-field-trigger {
   width: var(--activity-preview-component-width);
@@ -687,7 +750,8 @@ defineExpose({
   cursor: pointer;
 }
 .component-card.full-row-item .preview-field-trigger {
-  width: 100%;
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
 }
 .preview-field-trigger :deep(.ant-input[disabled]),
 .preview-field-trigger :deep(.ant-input-affix-wrapper-disabled),
@@ -695,35 +759,66 @@ defineExpose({
 .preview-field-trigger :deep(.ant-select-disabled .ant-select-selector) {
   pointer-events: none;
 }
-.preview-field {
-  width: var(--activity-preview-component-width);
-  max-width: 100%;
+.title-preview-text {
+  font-size: 14px;
+  color: #222;
+  font-weight: 700;
+  margin-bottom: 6px;
+  width: 100%;
 }
 .title-divider-line,
 .divider-preview-line {
   height: 1px;
   background: #d9d9d9;
+  width: 100%;
+  max-width: 100%;
+}
+.component-card--textarea .preview-field-trigger {
+  display: block;
+  height: auto;
+  overflow: visible;
+}
+.component-card--textarea :deep(.ant-input-affix-wrapper),
+.component-card--textarea :deep(.ant-input-affix-wrapper-textarea-with-clear-btn) {
+  display: block;
+  height: auto !important;
+  overflow: visible;
+}
+.component-card--textarea :deep(textarea.ant-input) {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  overflow: auto;
+  max-height: min(400px, 45vh);
 }
 .data-view-preview-row,
 .calc-button-preview-wrap {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 }
-.data-view-preview-input {
+.data-view-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.preview-field-trigger.data-view-preview-input-wrap {
+  flex: 0 0 auto;
   width: var(--activity-preview-component-width);
+  max-width: 100%;
 }
-.data-view-preview-input :deep(.ant-input-affix-wrapper) {
-  height: 32px;
-  padding-block: 0;
-  align-items: center;
-}
-.data-view-preview-input :deep(.ant-input) {
-  height: 32px;
-  line-height: 30px;
-  padding-block: 0;
+.component-card.full-row-item .preview-field-trigger.data-view-preview-input-wrap {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
 }
 .data-view-assemble-btn {
+  flex-shrink: 0;
   min-width: 64px;
 }
 .activity-preview-empty {

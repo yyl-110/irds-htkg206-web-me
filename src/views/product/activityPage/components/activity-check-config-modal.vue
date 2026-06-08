@@ -2401,7 +2401,7 @@ watch(
                 class="preview-field" />
               <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
               <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
-                <div class="data-view-preview-title">
+                <div class="component-title">
                   <span>{{ item.paramName || '数据浏览' }}</span>
                   <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
                     <ExclamationCircleOutlined class="component-knowledge-hint" />
@@ -2412,7 +2412,7 @@ watch(
                     :value="getPreviewValue(item)"
                     :placeholder="item.customProps?.inputPlaceholder || '请输入设计参数1'"
                     disabled
-                    class="data-view-preview-input preview-field" />
+                    class="preview-field" />
                   <a-button type="primary" class="data-view-assemble-btn" disabled>
                     {{ '浏览' }}
                   </a-button>
@@ -3757,37 +3757,13 @@ watch(
   color: #999;
   font-size: 14px;
 }
-.data-view-preview-title {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 10px;
-  font-weight: 400;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
 .data-view-preview-row {
   display: flex;
   align-items: center;
   width: 100%;
   min-width: 0;
   gap: 8px;
-}
-.data-view-preview-input {
-  flex: 0 1 270px;
-  max-width: 270px;
-  min-width: 0;
-}
-.data-view-preview-input :deep(.ant-input-affix-wrapper) {
-  height: 32px;
-  padding-block: 0;
-  align-items: center;
-}
-.data-view-preview-input :deep(.ant-input) {
-  height: 32px;
-  line-height: 30px;
-  padding-block: 0;
+  flex-wrap: wrap;
 }
 .data-view-assemble-btn {
   flex-shrink: 0;

@@ -1286,19 +1286,21 @@ async function onCalcButtonPreviewClick() {
 .activity-preview-canvas {
   flex: 1.8;
   overflow: visible;
-  padding: 28px 28px;
+  padding: 4px 16px 20px 12px;
+  box-sizing: border-box;
   /** 预览区各组件控件统一宽度 */
-  --activity-preview-component-width: 270px;
+  --activity-preview-component-width: 300px;
   /** 单选项、富文本组件宽度 */
   --activity-preview-wide-component-width: 650px;
   /** 上传附件组件宽度 */
   --activity-preview-file-upload-width: 600px;
   /** 固定表格预览区域最大宽度 */
   --activity-preview-table-width: 700px;
+  --activity-preview-table-max-width: 95%;
   /** 双列之间水平间距 */
-  --activity-preview-grid-column-gap: 150px;
+  --activity-preview-grid-column-gap: 120px;
   /** 行与行之间垂直间距 */
-  --activity-preview-grid-row-gap: 32px;
+  --activity-preview-grid-row-gap: 12px;
 }
 .activity-preview-content {
   flex: 1;
@@ -1319,7 +1321,7 @@ async function onCalcButtonPreviewClick() {
   width: 500px;
   min-width: 500px;
   border-right: 1px solid #f0f0f0;
-  padding: 28px 20px;
+  padding: 4px 16px 20px 12px;
   overflow: visible;
   box-sizing: border-box;
 }
@@ -1346,34 +1348,58 @@ async function onCalcButtonPreviewClick() {
 }
 .component-list {
   display: grid;
-  /* 与控件同宽的两列靠左排列，中间仅 column-gap；容器仍占满宽度以便全行组件（如表格）拉满 */
-  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  grid-template-columns: repeat(2, minmax(var(--activity-preview-component-width), 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
-  justify-content: start;
+  align-content: start;
+  grid-auto-rows: min-content;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .component-card {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  align-self: start;
   border: none;
   border-radius: 4px;
-  padding: 14px 0;
-  display: block;
+  padding: 2px 0;
+  box-sizing: border-box;
+}
+.component-list > .component-card:first-child {
+  padding-top: 0;
 }
 .component-card.full-row-item {
   grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
+}
+.component-card.full-row-item .preview-field,
+.component-card.full-row-item :deep(.ant-input),
+.component-card.full-row-item :deep(.ant-input-affix-wrapper),
+.component-card.full-row-item :deep(.ant-select),
+.component-card.full-row-item :deep(.ant-picker) {
+  width: 100%;
+  max-width: 100%;
 }
 .component-preview-wrap {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .calc-button-preview-wrap {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 }
 .component-title {
-  font-size: 12px;
+  font-size: 13px;
   color: #444;
   margin-bottom: 8px;
   display: flex;
@@ -1388,13 +1414,17 @@ async function onCalcButtonPreviewClick() {
 }
 .title-preview-text {
   font-size: 14px;
-  color: #333;
+  color: #222;
+  font-weight: 700;
   margin-bottom: 6px;
+  width: 100%;
 }
-.title-divider-line {
+.title-divider-line,
+.divider-preview-line {
   height: 1px;
   background: #d9d9d9;
   width: 100%;
+  max-width: 100%;
 }
 .activity-preview-footer {
   display: flex;
@@ -1410,7 +1440,7 @@ async function onCalcButtonPreviewClick() {
   padding: 40px 0;
 }
 .preview-field {
-  width: var(--activity-preview-component-width);
+  width: 100%;
   max-width: 100%;
 }
 .value-range-inline-row {
@@ -1453,11 +1483,6 @@ async function onCalcButtonPreviewClick() {
   border-color: #ff4d4f !important;
   box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
 }
-.divider-preview-line {
-  height: 1px;
-  background: #d9d9d9;
-  margin: 10px 0;
-}
 .model-select-3d-preview {
   width: 100%;
   min-width: 0;
@@ -1483,14 +1508,15 @@ async function onCalcButtonPreviewClick() {
 /* 与上方 .component-list 双列 INPUT 对齐：同栅格比例 + 与 DATA_VIEW 相同的「输入 + 按钮」行 */
 .template-browse-3d-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, var(--activity-preview-component-width)));
+  grid-template-columns: repeat(2, minmax(var(--activity-preview-component-width), 1fr));
   column-gap: var(--activity-preview-grid-column-gap);
   row-gap: var(--activity-preview-grid-row-gap);
   align-items: start;
-  justify-content: start;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
-/** 浏览模版创建 / 固定模版创建：模板行与模型行上下排列，文本框宽度同 --activity-preview-component-width（270px） */
+/** 浏览模版创建 / 固定模版创建：模板行与模型行上下排列，文本框宽度同 --activity-preview-component-width（300px） */
 .template-browse-3d-row--stacked {
   display: flex;
   flex-direction: column;
@@ -1501,7 +1527,7 @@ async function onCalcButtonPreviewClick() {
 .template-browse-3d-row--stacked .template-browse-3d-group {
   width: 100%;
   min-width: 0;
-  /* 文本框宽度由 .template-browse-3d-input（270px）控制；整组可横向容纳「输入 + 按钮」 */
+  /* 文本框宽度由 .template-browse-3d-input（300px）控制；整组可横向容纳「输入 + 按钮」 */
 }
 .template-browse-3d-group {
   display: flex;
@@ -1553,10 +1579,20 @@ async function onCalcButtonPreviewClick() {
 .data-view-preview-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+.data-view-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 .data-view-preview-input {
+  flex: 0 0 auto;
   width: var(--activity-preview-component-width);
   max-width: 100%;
 }
@@ -1627,15 +1663,18 @@ async function onCalcButtonPreviewClick() {
 }
 .fixed-table-preview {
   width: 100%;
-  max-width: 100%;
+  max-width: var(--activity-preview-table-max-width);
 }
-/* 表格总宽度限制，列宽仍由配置决定；总宽超出时出现横向滚动条 */
+.component-card.full-row-item .fixed-table-preview,
+.component-card.full-row-item .fixed-table-preview-scroll {
+  width: 100%;
+  max-width: var(--activity-preview-table-max-width);
+}
 .fixed-table-preview-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
-  max-width: min(100%, var(--activity-preview-table-width));
-  /* 避免表格 sticky 列视觉越界到右侧区域 */
+  max-width: var(--activity-preview-table-max-width);
   padding-right: 0;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
@@ -1667,11 +1706,21 @@ async function onCalcButtonPreviewClick() {
 .fixed-table-preview-grid td {
   border: 1px solid #e8e8e8;
   padding: 10px 12px;
-  text-align: left;
 }
 .fixed-table-preview-grid th {
   font-weight: 600;
   background: #fafafa;
+  text-align: center;
+}
+.fixed-table-preview-grid td {
+  text-align: left;
+}
+.fixed-table-preview-grid td.fixed-table-preview-td--index {
+  text-align: center;
+}
+.fixed-table-preview-grid th.fixed-table-preview-th--op,
+.fixed-table-preview-grid td.fixed-table-preview-td--op {
+  text-align: center;
 }
 .fixed-table-preview-cell-text {
   display: inline-block;
@@ -1698,6 +1747,7 @@ async function onCalcButtonPreviewClick() {
 .fixed-table-preview-td--op .fixed-table-cell-op-btns {
   flex-wrap: nowrap;
   gap: 6px;
+  justify-content: center;
 }
 .fixed-table-cell-op-link {
   color: #1677ff;

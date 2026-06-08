@@ -1898,7 +1898,7 @@ defineExpose({
                   v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
                   placeholder="请选择参数"
                   disabled
-                  class="data-view-preview-input preview-field" />
+                  class="preview-field" />
               </div>
               <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
             </div>
@@ -2327,25 +2327,26 @@ defineExpose({
 .data-view-preview-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 }
 .data-view-preview {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 }
-.data-view-preview-input {
+.preview-field-trigger.data-view-preview-input-wrap {
+  flex: 0 0 auto;
   width: var(--activity-preview-component-width);
   max-width: 100%;
 }
-.data-view-preview-input :deep(.ant-input-affix-wrapper) {
-  height: 32px;
-  padding-block: 0;
-  align-items: center;
-}
-.data-view-preview-input :deep(.ant-input) {
-  height: 32px;
-  line-height: 30px;
-  padding-block: 0;
+.component-card.full-row-item .preview-field-trigger.data-view-preview-input-wrap {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
 }
 .value-range-inline-row {
   display: flex;
@@ -2604,6 +2605,7 @@ defineExpose({
   padding: 40px 0;
 }
 .data-view-assemble-btn {
+  flex-shrink: 0;
   min-width: 64px;
 }
 .preview-field-join-row .preview-field {
