@@ -32,6 +32,9 @@ const props = defineProps<{
   /** 父页已请求 getProjectInfoEditFile 时传入，优先用于创建人权限判断，避免进入路径不同导致子组件请求为空 */
   projectCreatorId?: string | number | null;
   projectCreatorName?: string | null;
+  /** 基本信息 Tab 中的项目计划起止，用于约束子任务日期 */
+  projectPlanStart?: string | null;
+  projectPlanEnd?: string | null;
 }>();
 
 /** 路由 / 父组件偶发传入数组或异常类型时统一成单个 projectId */
@@ -154,6 +157,19 @@ const effectiveCreatorName = computed(() => {
 /** 项目计划周期（节点日期须在此时段内；分类启动弹窗默认回填） */
 const projectPlanStart = ref('');
 const projectPlanEnd = ref('');
+
+function syncProjectPlanBoundsFromProps() {
+  const ps = props.projectPlanStart != null ? String(props.projectPlanStart).trim().slice(0, 10) : '';
+  const pe = props.projectPlanEnd != null ? String(props.projectPlanEnd).trim().slice(0, 10) : '';
+  if (ps) projectPlanStart.value = ps;
+  if (pe) projectPlanEnd.value = pe;
+}
+
+watch(
+  () => [props.projectPlanStart, props.projectPlanEnd],
+  () => syncProjectPlanBoundsFromProps(),
+  { immediate: true },
+);
 const userIdToName = ref<Map<string, string>>(new Map());
 /** 分类启动 / 任务发布·撤销·删除·恢复 等行内操作 loading */
 const wbsOpBusyRowId = ref<string | null>(null);
@@ -1400,15 +1416,31 @@ function wbsTableCustomRow(record: WbsTaskNode) {
   };
 }
 
+function isWbsNodeRemoved(node: WbsTaskNode): boolean {
+  return Number(node.wbsRowRemoved) === 1;
+}
+
+/** 任务节点是否具备可参与汇总的有效计划日期 */
+function wbsTaskNodeHasPlanDates(node: WbsTaskNode): boolean {
+  const s = dayjs(node.startDate).startOf('day');
+  const e = dayjs(node.endDate).startOf('day');
+  return s.isValid() && e.isValid();
+}
+
 /** 子树内所有子孙（不含 node 自身）的最小开始、最大完成 */
 function descendantsMinStartMaxEnd(node: WbsTaskNode): { minS: Dayjs | null; maxE: Dayjs | null } {
   let minS: Dayjs | null = null;
   let maxE: Dayjs | null = null;
   function walk(n: WbsTaskNode) {
-    const s = dayjs(n.startDate).startOf('day');
-    const e = dayjs(n.endDate).startOf('day');
-    if (s.isValid() && (!minS || s.isBefore(minS, 'day'))) minS = s;
-    if (e.isValid() && (!maxE || e.isAfter(maxE, 'day'))) maxE = e;
+    if (isWbsNodeRemoved(n)) return;
+    if (Number(n.type) === 2) {
+      if (!wbsTaskNodeHasPlanDates(n)) return;
+      const s = dayjs(n.startDate).startOf('day');
+      const e = dayjs(n.endDate).startOf('day');
+      if (!minS || s.isBefore(minS, 'day')) minS = s;
+      if (!maxE || e.isAfter(maxE, 'day')) maxE = e;
+      return;
+    }
     n.children?.forEach(walk);
   }
   node.children?.forEach(walk);
@@ -1433,29 +1465,29 @@ function findNodeById(nodes: WbsTaskNode[], id: string): WbsTaskNode | null {
 }
 
 /**
- * 分类节点(type=1)的展示用起止时间 = 下一级子树中「任务/子分类」有效区间的并集（最早开始 ~ 最晚完成）
- * 任务节点保留自身 plan 时间
+ * 分类节点(type=1)展示/落库用起止时间 = 下级所有任务有效区间的并集（最早开始 ~ 最晚完成）。
+ * 无下级任务时间时分类为空；任务节点保留自身 plan 时间。
  */
 function rollupCategoryPlanDates(nodes: WbsTaskNode[]) {
   function walk(n: WbsTaskNode): { minS: Dayjs | null; maxE: Dayjs | null } {
+    if (isWbsNodeRemoved(n)) {
+      return { minS: null, maxE: null };
+    }
     const isCategory = Number(n.type) === 1;
     if (!isCategory) {
+      if (!wbsTaskNodeHasPlanDates(n)) {
+        return { minS: null, maxE: null };
+      }
       const s = dayjs(n.startDate).startOf('day');
       const e = dayjs(n.endDate).startOf('day');
-      return { minS: s.isValid() ? s : null, maxE: e.isValid() ? e : null };
-    }
-    if (!n.children?.length) {
-      n.startDate = '';
-      n.endDate = '';
-      syncDurationWorkdays(n);
-      return { minS: null, maxE: null };
+      return { minS: s, maxE: e };
     }
     let minS: Dayjs | null = null;
     let maxE: Dayjs | null = null;
-    for (const c of n.children) {
+    for (const c of n.children ?? []) {
       const eff = walk(c);
-      if (eff.minS && (!minS || eff.minS.isBefore(minS))) minS = eff.minS;
-      if (eff.maxE && (!maxE || eff.maxE.isAfter(maxE))) maxE = eff.maxE;
+      if (eff.minS && (!minS || eff.minS.isBefore(minS, 'day'))) minS = eff.minS;
+      if (eff.maxE && (!maxE || eff.maxE.isAfter(maxE, 'day'))) maxE = eff.maxE;
     }
     n.startDate = minS?.isValid() ? minS.format('YYYY-MM-DD') : '';
     n.endDate = maxE?.isValid() ? maxE.format('YYYY-MM-DD') : '';
@@ -1465,16 +1497,50 @@ function rollupCategoryPlanDates(nodes: WbsTaskNode[]) {
   for (const r of nodes) walk(r);
 }
 
-/** 校验当前行日期与上级、下级区间关系；通过返回 null */
-function validateTaskDates(record: WbsTaskNode): string | null {
-  if (record.type === 1) return null;
-  const s = dayjs(record.startDate).startOf('day');
-  const e = dayjs(record.endDate).startOf('day');
-  const today = dayjs().startOf('day');
-  if (!s.isValid() || !e.isValid()) return '请填写有效日期';
-  if (s.isBefore(today, 'day')) return '开始时间不能早于今天';
-  if (e.isBefore(s, 'day')) return '完成时间不能早于开始时间';
+/** 从 treeData 取真实节点引用，避免表格行与树数据脱离 */
+function resolveTreeNode(record: WbsTaskNode): WbsTaskNode {
+  return findNodeById(treeData.value, String(record.id)) ?? record;
+}
 
+/** 子任务计划时间变更后落库；后端 assign-user 会自下而上回写上级分类节点时间 */
+async function persistWbsPlanDatesCascade(record: WbsTaskNode) {
+  const node = resolveTreeNode(record);
+  if (Number(node.type) !== 2 || !wbsTaskNodeHasPlanDates(node)) return;
+  const assigneeIdStr = String(node.assigneeUserId ?? node.responsibleUserId ?? '').trim();
+  const nodeIdStr = String(node.id).trim();
+  if (!/^\d+$/.test(nodeIdStr) || !/^\d+$/.test(assigneeIdStr)) return;
+  await persistWbsNodePlanDates(node, node.startDate, node.endDate);
+  rollupCategoryPlanDates(treeData.value);
+}
+
+const wbsPlanPersistBusyId = ref<string | null>(null);
+
+async function persistWbsPlanDatesAfterTaskChange(record: WbsTaskNode) {
+  const node = resolveTreeNode(record);
+  wbsPlanPersistBusyId.value = node.id;
+  try {
+    await persistWbsPlanDatesCascade(node);
+  } catch {
+    message.error('计划时间保存失败');
+  } finally {
+    wbsPlanPersistBusyId.value = null;
+  }
+}
+
+/** 校验任务计划日期：仅项目周期 + 起止先后（可选校验不早于今天） */
+function validateTaskPlanDatesWithinProject(
+  startDate: string,
+  endDate: string,
+  options?: { checkToday?: boolean },
+): string | null {
+  const s = dayjs(startDate).startOf('day');
+  const e = dayjs(endDate).startOf('day');
+  if (!s.isValid() || !e.isValid()) return '请填写有效日期';
+  if (options?.checkToday) {
+    const today = dayjs().startOf('day');
+    if (s.isBefore(today, 'day')) return '开始时间不能早于今天';
+  }
+  if (e.isBefore(s, 'day')) return '完成时间不能早于开始时间';
   const proj = getProjectPlanBounds();
   if (proj.start && s.isBefore(proj.start, 'day')) {
     return '开始时间不能早于项目计划开始时间';
@@ -1482,49 +1548,23 @@ function validateTaskDates(record: WbsTaskNode): string | null {
   if (proj.end && e.isAfter(proj.end, 'day')) {
     return '完成时间不能晚于项目计划结束时间';
   }
-
-  const parent = getWbsParentNode(record);
-  if (parent) {
-    const ps = dayjs(parent.startDate).startOf('day');
-    const pe = dayjs(parent.endDate).startOf('day');
-    if (ps.isValid() && pe.isValid() && (s.isBefore(ps, 'day') || e.isAfter(pe, 'day'))) {
-      return '任务日期需在上级任务时间范围内';
-    }
-  }
-
-  if (record.children?.length) {
-    const { minS, maxE } = descendantsMinStartMaxEnd(record);
-    if (minS && s.isAfter(minS, 'day')) {
-      return '有子任务时，开始时间不能晚于任一子任务的开始时间';
-    }
-    if (maxE && e.isBefore(maxE, 'day')) {
-      return '有子任务时，完成时间不能早于任一子任务的完成时间';
-    }
-  }
   return null;
 }
 
-/** 启动/发布前校验：项目周期 +（任务节点）上下级与今日规则 */
+/** 校验当前行日期；通过返回 null */
+function validateTaskDates(record: WbsTaskNode): string | null {
+  if (record.type === 1) return null;
+  return validateTaskPlanDatesWithinProject(record.startDate, record.endDate, { checkToday: true });
+}
+
+/** 启动/发布弹窗：仅校验项目计划周期 */
 function validatePlanDatesForWbsAction(
   startStr: string,
   endStr: string,
   record?: WbsTaskNode | null,
 ): string | null {
-  const s = dayjs(startStr).startOf('day');
-  const e = dayjs(endStr).startOf('day');
-  if (!s.isValid() || !e.isValid()) return '请填写有效日期';
-  if (e.isBefore(s, 'day')) return '完成时间不能早于开始时间';
-  const proj = getProjectPlanBounds();
-  if (proj.start && s.isBefore(proj.start, 'day')) {
-    return '开始时间不能早于项目计划开始时间';
-  }
-  if (proj.end && e.isAfter(proj.end, 'day')) {
-    return '完成时间不能晚于项目计划结束时间';
-  }
-  if (record && Number(record.type) === 2) {
-    return validateTaskDates({ ...record, startDate: startStr, endDate: endStr });
-  }
-  return null;
+  const checkToday = record != null && Number(record.type) === 2;
+  return validateTaskPlanDatesWithinProject(startStr, endStr, { checkToday });
 }
 
 function disabledTaskStartDate(record: WbsTaskNode, current: Dayjs | undefined): boolean {
@@ -1571,23 +1611,24 @@ function disabledTaskEndDate(record: WbsTaskNode, current: Dayjs | undefined): b
 }
 
 function onTaskStartDateChange(record: WbsTaskNode, v: string | null) {
-  if (!canModifyRowFields(record)) return;
+  const node = resolveTreeNode(record);
+  if (!canModifyRowFields(node)) return;
   if (!v) return;
-  const snapS = record.startDate;
-  const snapE = record.endDate;
+  const snapS = node.startDate;
+  const snapE = node.endDate;
   const nextS = dayjs(v).startOf('day');
-  let nextEndStr = record.endDate;
-  const prevE = dayjs(record.endDate).startOf('day');
+  let nextEndStr = node.endDate;
+  const prevE = dayjs(node.endDate).startOf('day');
   if (prevE.isValid() && prevE.isBefore(nextS, 'day')) {
     nextEndStr = v;
   }
-  record.startDate = v;
-  record.endDate = nextEndStr;
+  node.startDate = v;
+  node.endDate = nextEndStr;
   rollupCategoryPlanDates(treeData.value);
-  const err = validateTaskDates(record);
+  const err = validateTaskDates(node);
   if (err) {
-    record.startDate = snapS;
-    record.endDate = snapE;
+    node.startDate = snapS;
+    node.endDate = snapE;
     rollupCategoryPlanDates(treeData.value);
     message.warning(err);
     return;
@@ -1595,25 +1636,28 @@ function onTaskStartDateChange(record: WbsTaskNode, v: string | null) {
   if (nextEndStr !== snapE && nextEndStr === v) {
     message.info('完成时间已随开始时间调整，且不得早于开始时间');
   }
-  syncDurationWorkdays(record);
+  syncDurationWorkdays(node);
+  void persistWbsPlanDatesAfterTaskChange(node);
 }
 
 function onTaskEndDateChange(record: WbsTaskNode, v: string | null) {
-  if (!canModifyRowFields(record)) return;
+  const node = resolveTreeNode(record);
+  if (!canModifyRowFields(node)) return;
   if (!v) return;
-  const snapS = record.startDate;
-  const snapE = record.endDate;
-  record.endDate = v;
+  const snapS = node.startDate;
+  const snapE = node.endDate;
+  node.endDate = v;
   rollupCategoryPlanDates(treeData.value);
-  const err = validateTaskDates(record);
+  const err = validateTaskDates(node);
   if (err) {
-    record.startDate = snapS;
-    record.endDate = snapE;
+    node.startDate = snapS;
+    node.endDate = snapE;
     rollupCategoryPlanDates(treeData.value);
     message.warning(err);
     return;
   }
-  syncDurationWorkdays(record);
+  syncDurationWorkdays(node);
+  void persistWbsPlanDatesAfterTaskChange(node);
 }
 
 function toDateString(v: unknown): string | null {
@@ -2244,34 +2288,16 @@ watch(ganttCollapsed, () => {
           </template>
           <template v-else-if="column.key === 'startDate'">
             <div class="task-wbs-date-cell">
-              <a-date-picker
-                :locale="localeDatePickerZh"
-                :value="record.startDate || undefined"
-                class="task-wbs-date-picker"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                size="small"
-                placeholder="开始时间"
-                :disabled="!canModifyRowFields(record)"
-                :disabled-date="makeDisabledTaskStart(record)"
-                @update:value="(v: unknown) => onPickerValueTouch(record, 'start', v)"
-                @change="makeOnTaskStartChange(record)" />
+              <span class="task-wbs-date-readonly" :title="record.startDate || ''">
+                {{ record.startDate || '' }}
+              </span>
             </div>
           </template>
           <template v-else-if="column.key === 'endDate'">
             <div class="task-wbs-date-cell">
-              <a-date-picker
-                :locale="localeDatePickerZh"
-                :value="record.endDate || undefined"
-                class="task-wbs-date-picker"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                size="small"
-                placeholder="完成时间"
-                :disabled="!canModifyRowFields(record)"
-                :disabled-date="makeDisabledTaskEnd(record)"
-                @update:value="(v: unknown) => onPickerValueTouch(record, 'end', v)"
-                @change="makeOnTaskEndChange(record)" />
+              <span class="task-wbs-date-readonly" :title="record.endDate || ''">
+                {{ record.endDate || '' }}
+              </span>
             </div>
           </template>
           <template v-else-if="column.key === 'tailoringStatus'">
@@ -3453,6 +3479,17 @@ watch(ganttCollapsed, () => {
   justify-content: center;
   width: 100%;
   height: 100%;
+}
+
+.task-wbs-date-readonly {
+  display: inline-block;
+  width: 100%;
+  max-width: 118px;
+  min-height: 24px;
+  line-height: 24px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.88);
+  text-align: center;
 }
 
 .task-wbs-date-picker {

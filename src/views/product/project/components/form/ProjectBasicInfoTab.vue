@@ -298,7 +298,10 @@ defineExpose({
         </a-form-item>
       </a-col>
       <a-col :span="12">
-        <a-form-item :label="$t('产品模板：')">
+        <a-form-item
+          :label="$t('产品模板：')"
+          name="productTempId"
+          :rules="[{ required: true, message: $t('请选择产品模板') }]">
           <div class="project-num-with-browse">
             <a-input v-model:value="projectForm.productTempName" :placeholder="$t('请选择')" disabled />
             <a-button type="primary" @click="selectProductTemplate">{{ $t('浏览') }}</a-button>
@@ -308,7 +311,10 @@ defineExpose({
     </a-row>
     <a-row :gutter="24">
       <a-col :span="12">
-        <a-form-item :label="$t('计划开始时间：')">
+        <a-form-item
+          :label="$t('计划开始时间：')"
+          name="planStartTime"
+          :rules="[{ required: true, message: $t('请选择计划开始时间') }]">
           <a-date-picker
             :locale="localeA"
             v-model:value="projectForm.planStartTime"
@@ -321,7 +327,10 @@ defineExpose({
         </a-form-item>
       </a-col>
       <a-col :span="12">
-        <a-form-item :label="$t('计划结束时间：')">
+        <a-form-item
+          :label="$t('计划结束时间：')"
+          name="planEndTime"
+          :rules="[{ required: true, message: $t('请选择计划结束时间') }]">
           <a-date-picker
             :locale="localeA"
             v-model:value="projectForm.planEndTime"
@@ -336,7 +345,10 @@ defineExpose({
     </a-row>
     <a-row :gutter="24">
       <a-col :span="12">
-        <a-form-item :label="$t('密级：')">
+        <a-form-item
+          :label="$t('密级：')"
+          name="confidentialLevel"
+          :rules="[{ required: true, message: $t('请选择密级') }]">
           <a-select v-model:value="projectForm.confidentialLevel" :options="confidentialOptions"> </a-select>
         </a-form-item>
       </a-col>

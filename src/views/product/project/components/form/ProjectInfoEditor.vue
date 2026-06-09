@@ -288,14 +288,22 @@ async function getProjectInfo() {
               v-if="projectFormTab === '3'"
               :project-id="projectId"
               :project-creator-id="projectCreatorForWbs"
-              :project-creator-name="projectCreatorNameForWbs" />
+              :project-creator-name="projectCreatorNameForWbs"
+              :project-plan-start="projectForm.planStartTime"
+              :project-plan-end="projectForm.planEndTime" />
           </div>
         </a-tab-pane>
       </a-tabs>
     </a-card>
 
     <div class="project-editor-page-footer">
-      <a-button type="primary" :loading="projectFormSubmitting" @click="submitProjectForm">{{ $t('保存') }}</a-button>
+      <a-button
+        v-if="projectFormTab === '1'"
+        type="primary"
+        :loading="projectFormSubmitting"
+        @click="submitProjectForm">
+        {{ $t('保存') }}
+      </a-button>
       <a-button @click="goBack">{{ $t('返回') }}</a-button>
     </div>
   </div>
