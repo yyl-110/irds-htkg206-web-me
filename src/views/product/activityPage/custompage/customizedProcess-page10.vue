@@ -17,7 +17,7 @@
         :pagination="false"
         bordered
         size="small"
-        :scroll="{ y: schemeTabHeight, x: 'max-content' }"
+        :scroll="{ y: schemeTabHeight, x: schemeTableScrollX }"
         :row-key="schemeRowKey"
         :row-selection="schemeRowSelection"
         class="page10-table" />
@@ -53,7 +53,7 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: degreeTabHeight, x: 'max-content' }"
+          :scroll="{ y: degreeTabHeight, x: degreeTableScrollX }"
           :row-key="degreeRowKey"
           class="page10-table">
           <template #bodyCell="{ column, record, index }">
@@ -127,7 +127,14 @@ import {
   type Page10ParameterItem,
   type Page10SchemeRow,
 } from './page10/parameterDefaults';
-import { PAGE10_DEGREE_COLUMNS, PAGE10_SCHEME_COLUMNS, isNumericInput, type Page10AntColumn } from './page10/tableColumns';
+import {
+  PAGE10_DEGREE_COLUMNS,
+  PAGE10_DEGREE_TABLE_MIN_WIDTH,
+  PAGE10_SCHEME_COLUMNS,
+  PAGE10_SCHEME_TABLE_MIN_WIDTH,
+  isNumericInput,
+  type Page10AntColumn,
+} from './page10/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page10' });
 
@@ -154,6 +161,8 @@ const route = useRoute();
 const userStore = useUserStore();
 const schemeTabHeight = 280;
 const degreeTabHeight = 420;
+const schemeTableScrollX = PAGE10_SCHEME_TABLE_MIN_WIDTH;
+const degreeTableScrollX = PAGE10_DEGREE_TABLE_MIN_WIDTH;
 const schemeTableColumns = PAGE10_SCHEME_COLUMNS;
 const degreeTableColumns = PAGE10_DEGREE_COLUMNS;
 
@@ -424,6 +433,7 @@ onMounted(async () => {
 
 .page10-scheme-wrap {
   margin-bottom: 16px;
+  overflow-x: auto;
 }
 
 .page10-detail__title {
@@ -456,22 +466,26 @@ onMounted(async () => {
 }
 
 .page10-degree-wrap {
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .page10-table :deep(.ant-table) {
   font-size: 12px;
 }
 
+.page10-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+}
+
 .page10-table :deep(.ant-table-thead > tr > th) {
-  padding: 6px 4px;
+  padding: 8px 12px;
   text-align: center;
   background: #fafafa;
   white-space: nowrap;
 }
 
 .page10-table :deep(.ant-table-tbody > tr > td) {
-  padding: 4px 6px;
+  padding: 6px 12px;
   text-align: center;
 }
 

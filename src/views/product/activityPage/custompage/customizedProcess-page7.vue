@@ -21,7 +21,7 @@
         :pagination="false"
         bordered
         size="small"
-        :scroll="{ y: tabHeight, x: 'max-content' }"
+        :scroll="{ y: tabHeight, x: tableScrollX }"
         :row-key="page7TableRowKey"
         class="page7-table" />
     </div>
@@ -38,7 +38,7 @@ import { applyPage7InitData } from './page7/initData';
 import { loadPage7PageParameters } from './page7/loadPageParameters';
 import { createDefaultPage7ParameterList, type Page7ParameterItem, type Page7TableRow } from './page7/parameterDefaults';
 import { extractPage7SaveParamValues, getPage7TableRows, setPage7TableRows } from './page7/rowOperations';
-import { PAGE7_ANT_COLUMNS } from './page7/tableColumns';
+import { PAGE7_ANT_COLUMNS, PAGE7_TABLE_MIN_WIDTH } from './page7/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page7' });
 
@@ -63,6 +63,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const tabHeight = 580;
+const tableScrollX = PAGE7_TABLE_MIN_WIDTH;
 const page7TableColumns = PAGE7_ANT_COLUMNS;
 
 function createInitialParameterList(): Page7ParameterItem[] {
@@ -209,22 +210,26 @@ onMounted(async () => {
 
 .page7-table-wrap {
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .page7-table :deep(.ant-table) {
   font-size: 12px;
 }
 
+.page7-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+}
+
 .page7-table :deep(.ant-table-thead > tr > th) {
-  padding: 6px 4px;
+  padding: 8px 12px;
   text-align: center;
   background: #fafafa;
   white-space: nowrap;
 }
 
 .page7-table :deep(.ant-table-tbody > tr > td) {
-  padding: 4px 6px;
+  padding: 6px 12px;
   text-align: center;
 }
 

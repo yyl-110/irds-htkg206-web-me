@@ -10,26 +10,24 @@
         </div>
 
         <section class="main-section">
-          <div v-for="(row, rowIndex) in formRows" :key="rowIndex" class="form-row">
-            <div class="form-col">
-              <a-form-item :label="row.left.label">
-                <a-input
-                  v-model:value="parameterTempList[row.left.index].defaultValue"
-                  class="field-input"
-                  :disabled="row.left.disabled"
-                  :allow-clear="!row.left.disabled"
-                  @input="setSaveBtnEnable()" />
-              </a-form-item>
-            </div>
-            <div class="form-col">
-              <a-form-item v-if="row.right" :label="row.right.label">
-                <a-input
-                  v-model:value="parameterTempList[row.right.index].defaultValue"
-                  class="field-input"
-                  disabled
-                  @input="setSaveBtnEnable()" />
-              </a-form-item>
-            </div>
+          <div class="form-column-left">
+            <a-form-item v-for="field in leftFields" :key="field.index" :label="field.label">
+              <a-input
+                v-model:value="parameterTempList[field.index].defaultValue"
+                class="field-input"
+                :disabled="field.disabled"
+                :allow-clear="!field.disabled"
+                @input="setSaveBtnEnable()" />
+            </a-form-item>
+          </div>
+          <div class="form-column-right">
+            <a-form-item v-for="field in rightFields" :key="field.index" :label="field.label">
+              <a-input
+                v-model:value="parameterTempList[field.index].defaultValue"
+                class="field-input"
+                disabled
+                @input="setSaveBtnEnable()" />
+            </a-form-item>
           </div>
         </section>
       </a-form>
@@ -38,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { loadPage1_4PageParameters } from './page1-4/loadPageParameters';
 import { createDefaultPage1_4ParameterList, type Page1_4ParameterItem } from './page1-4/parameterDefaults';
@@ -65,7 +63,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const labelWidth = 200;
+const labelWidth = 220;
 const formLabelCol = { style: { width: `${labelWidth}px`, flex: `0 0 ${labelWidth}px` } };
 const formWrapperCol = { style: { flex: '0 0 auto' } };
 
@@ -120,6 +118,10 @@ const formRows: FormRowConfig[] = [
   { left: { index: 10, label: '减速器直线载荷(N)：', disabled: true } },
   { left: { index: 11, label: '减速器旋转载荷(Nm)：', disabled: true } },
 ];
+
+const leftFields = computed(() => formRows.map(row => row.left));
+
+const rightFields = computed(() => formRows.filter(row => row.right).map(row => row.right!));
 
 watch(
   () => props.parameterTempList,
@@ -206,7 +208,7 @@ onMounted(async () => {
   border-bottom: 1px solid silver;
   width: 100%;
   font-weight: 600;
-  padding: 10px 0 8px 10px;
+  padding: 10px 0 8px 15px;
   margin-bottom: 8px;
 }
 
@@ -221,30 +223,28 @@ onMounted(async () => {
 }
 
 .main-section {
-  width: 960px;
-  max-width: 100%;
+  width: 100%;
   min-height: calc(100vh - 400px);
   background-color: #ffffff;
   padding-top: 10px;
   margin-left: 15px;
+  overflow: hidden;
 }
 
-.form-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 40px;
+.form-column-left {
+  width: 460px;
+  float: left;
 }
 
-.form-col {
-  flex: 1 1 0;
-  min-width: 0;
+.form-column-right {
+  width: 460px;
+  float: left;
+  padding-left: 40px;
 }
 
-.main-section :deep(.ant-form-item) {
-  margin-bottom: 24px;
-}
-
-.main-section :deep(.ant-form-item-label > label) {
+.form-column-left :deep(.ant-form-item-label > label),
+.form-column-right :deep(.ant-form-item-label > label),
+.work-mode-item :deep(.ant-form-item-label > label) {
   white-space: nowrap;
 }
 

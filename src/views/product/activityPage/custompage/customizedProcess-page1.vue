@@ -11,7 +11,8 @@
               :pagination="false"
               bordered
               size="small"
-              :scroll="{ y: tabHeight0, x: 822 }"
+              class="adaptive-table"
+              :scroll="tableScroll0"
               :row-key="tableRowKey">
               <template #bodyCell="{ column, record, index }">
                 <template v-if="column.dataIndex === 'p1' && column.editable">
@@ -51,8 +52,8 @@
             :pagination="false"
             bordered
             size="small"
-            class="zero-position-table"
-            :scroll="{ y: tabHeight1, x: 822 }"
+            class="zero-position-table adaptive-table"
+            :scroll="tableScroll1"
             :row-key="tableRowKey">
             <template #bodyCell="{ column, record, index }">
               <template v-if="isZeroPositionEditableColumn(column)">
@@ -97,7 +98,8 @@
             :pagination="false"
             bordered
             size="small"
-            :scroll="{ y: tabHeight2, x: 822 }"
+            class="adaptive-table"
+            :scroll="tableScroll2"
             :row-key="resultTableRowKey"
             :row-selection="resultRowSelection">
             <template #bodyCell="{ column, record, index }">
@@ -162,6 +164,10 @@ const route = useRoute();
 const tabHeight0 = 167;
 const tabHeight1 = 140;
 const tabHeight2 = 250;
+
+const tableScroll0 = computed(() => ({ y: tabHeight0, x: '100%' }));
+const tableScroll1 = computed(() => ({ y: tabHeight1, x: '100%' }));
+const tableScroll2 = computed(() => ({ y: tabHeight2, x: '100%' }));
 
 const inputParamColumns = INPUT_PARAM_ANT_COLUMNS;
 const zeroPositionColumns = ZERO_POSITION_ANT_COLUMNS;
@@ -388,7 +394,9 @@ onMounted(async () => {
 .layout-wrapper {
   padding: 0 10px;
   height: 770px;
-  width: 985px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background-color: #ffffff;
 }
 
@@ -469,5 +477,18 @@ onMounted(async () => {
 .table-cell-input {
   width: 100%;
   text-align: center;
+}
+
+.adaptive-table {
+  width: 100%;
+}
+
+.adaptive-table :deep(.ant-table) {
+  width: 100%;
+}
+
+.adaptive-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+  width: 100% !important;
 }
 </style>

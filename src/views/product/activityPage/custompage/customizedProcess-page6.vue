@@ -26,7 +26,7 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: tabHeight, x: 'max-content' }"
+          :scroll="{ y: tabHeight, x: tableScrollX }"
           :row-key="page6TableRowKey"
           class="page6-table">
           <template #bodyCell="{ column, record, index }">
@@ -56,7 +56,7 @@ import { applyPage6InitData } from './page6/initData';
 import { loadPage6PageParameters } from './page6/loadPageParameters';
 import { createDefaultPage6ParameterList, type Page6ParameterItem, type Page6TableRow } from './page6/parameterDefaults';
 import { extractPage6SaveParamValues, getPage6TableRows, setPage6TableRows } from './page6/rowOperations';
-import { isPage6CellDisabled, PAGE6_ANT_COLUMNS, PAGE6_LEAF_COLUMNS, type Page6AntColumn } from './page6/tableColumns';
+import { isPage6CellDisabled, PAGE6_ANT_COLUMNS, PAGE6_LEAF_COLUMNS, PAGE6_TABLE_MIN_WIDTH, type Page6AntColumn } from './page6/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page6' });
 
@@ -81,6 +81,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const tabHeight = 480;
+const tableScrollX = PAGE6_TABLE_MIN_WIDTH;
 const page6TableColumns = PAGE6_ANT_COLUMNS;
 const leafColumnMap = new Map(PAGE6_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
 
@@ -288,7 +289,7 @@ onMounted(async () => {
 
 .page6-table-wrap {
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 @media (min-width: 992px) {
@@ -314,15 +315,19 @@ onMounted(async () => {
   font-size: 12px;
 }
 
+.page6-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+}
+
 .page6-table :deep(.ant-table-thead > tr > th) {
-  padding: 6px 4px;
+  padding: 8px 12px;
   text-align: center;
   background: #fafafa;
   white-space: nowrap;
 }
 
 .page6-table :deep(.ant-table-tbody > tr > td) {
-  padding: 4px 6px;
+  padding: 6px 12px;
   text-align: center;
 }
 

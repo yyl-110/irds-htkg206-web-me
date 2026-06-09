@@ -17,7 +17,7 @@
         :pagination="false"
         bordered
         size="small"
-        :scroll="{ y: tabHeight, x: 'max-content' }"
+        :scroll="{ y: tabHeight, x: tableScrollX }"
         :row-key="schemeRowKey"
         :row-selection="schemeRowSelection"
         class="page11-table" />
@@ -44,7 +44,7 @@ import {
   type Page11ParameterItem,
   type Page11SchemeRow,
 } from './page11/parameterDefaults';
-import { PAGE11_SCHEME_COLUMNS } from './page11/tableColumns';
+import { PAGE11_SCHEME_COLUMNS, PAGE11_TABLE_MIN_WIDTH } from './page11/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page11' });
 
@@ -69,6 +69,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const tabHeight = 500;
+const tableScrollX = PAGE11_TABLE_MIN_WIDTH;
 const schemeTableColumns = PAGE11_SCHEME_COLUMNS;
 
 const selectedRowKeys = ref<Key[]>([]);
@@ -241,22 +242,26 @@ onMounted(async () => {
 }
 
 .page11-table-wrap {
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .page11-table :deep(.ant-table) {
   font-size: 12px;
 }
 
+.page11-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+}
+
 .page11-table :deep(.ant-table-thead > tr > th) {
-  padding: 6px 4px;
+  padding: 8px 12px;
   text-align: center;
   background: #fafafa;
   white-space: nowrap;
 }
 
 .page11-table :deep(.ant-table-tbody > tr > td) {
-  padding: 4px 6px;
+  padding: 6px 12px;
   text-align: center;
 }
 

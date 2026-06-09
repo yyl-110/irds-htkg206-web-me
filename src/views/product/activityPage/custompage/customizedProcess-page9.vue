@@ -17,7 +17,7 @@
         :pagination="false"
         bordered
         size="small"
-        :scroll="{ y: schemeTabHeight, x: 'max-content' }"
+        :scroll="{ y: schemeTabHeight, x: schemeTableScrollX }"
         :row-key="schemeRowKey"
         :row-selection="schemeRowSelection"
         class="page9-table" />
@@ -40,7 +40,7 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: gearTabHeight, x: 'max-content' }"
+          :scroll="{ y: gearTabHeight, x: gearTableScrollX }"
           :row-key="gearRowKey"
           class="page9-table">
           <template #bodyCell="{ column, record, index }">
@@ -101,6 +101,8 @@ import {
   isPage9GearCellDisabled,
   PAGE9_GEAR_COLUMNS,
   PAGE9_GEAR_LEAF_COLUMNS,
+  PAGE9_GEAR_TABLE_MIN_WIDTH,
+  PAGE9_SCHEME_TABLE_MIN_WIDTH,
   PAGE9_SCHEME_COLUMNS,
   type Page9AntColumn,
 } from './page9/tableColumns';
@@ -129,6 +131,8 @@ const emit = defineEmits<{
 const route = useRoute();
 const schemeTabHeight = 280;
 const gearTabHeight = 360;
+const schemeTableScrollX = PAGE9_SCHEME_TABLE_MIN_WIDTH;
+const gearTableScrollX = PAGE9_GEAR_TABLE_MIN_WIDTH;
 const schemeTableColumns = PAGE9_SCHEME_COLUMNS;
 const gearTableColumns = PAGE9_GEAR_COLUMNS;
 const gearLeafMap = new Map(PAGE9_GEAR_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
@@ -391,6 +395,7 @@ onMounted(async () => {
 
 .page9-scheme-wrap {
   margin-bottom: 12px;
+  overflow-x: auto;
 }
 
 .page9-toolbar {
@@ -422,7 +427,7 @@ onMounted(async () => {
 
 .page9-gear-wrap {
   flex: 1;
-  min-width: 640px;
+  min-width: 760px;
   overflow: hidden;
 }
 
@@ -455,15 +460,19 @@ onMounted(async () => {
   font-size: 12px;
 }
 
+.page9-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+}
+
 .page9-table :deep(.ant-table-thead > tr > th) {
-  padding: 6px 4px;
+  padding: 8px 12px;
   text-align: center;
   background: #fafafa;
   white-space: nowrap;
 }
 
 .page9-table :deep(.ant-table-tbody > tr > td) {
-  padding: 4px 6px;
+  padding: 6px 12px;
   text-align: center;
 }
 
@@ -474,11 +483,13 @@ onMounted(async () => {
 
 .table-cell-input {
   width: 100%;
+  min-width: 72px;
   text-align: center;
 }
 
 .table-cell-input :deep(.ant-input) {
   text-align: center;
+  padding: 4px 8px;
 }
 
 @media (max-width: 1200px) {

@@ -17,7 +17,7 @@
         :pagination="false"
         bordered
         size="small"
-        :scroll="{ y: tabHeight, x: 'max-content' }"
+        :scroll="{ y: tabHeight, x: tableScrollX }"
         :row-key="page8TableRowKey"
         :row-selection="rowSelection"
         class="page8-table" />
@@ -40,7 +40,7 @@ import {
   setPage8TableRows,
   syncPage8SelectionIndexes,
 } from './page8/rowOperations';
-import { PAGE8_ANT_COLUMNS } from './page8/tableColumns';
+import { PAGE8_ANT_COLUMNS, PAGE8_TABLE_MIN_WIDTH } from './page8/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page8' });
 
@@ -65,6 +65,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const tabHeight = 580;
+const tableScrollX = PAGE8_TABLE_MIN_WIDTH;
 const page8TableColumns = PAGE8_ANT_COLUMNS;
 const selectedRowKeys = ref<Key[]>([]);
 
@@ -213,22 +214,26 @@ onMounted(async () => {
 
 .page8-table-wrap {
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .page8-table :deep(.ant-table) {
   font-size: 12px;
 }
 
+.page8-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+}
+
 .page8-table :deep(.ant-table-thead > tr > th) {
-  padding: 6px 4px;
+  padding: 8px 12px;
   text-align: center;
   background: #fafafa;
   white-space: nowrap;
 }
 
 .page8-table :deep(.ant-table-tbody > tr > td) {
-  padding: 4px 6px;
+  padding: 6px 12px;
   text-align: center;
 }
 

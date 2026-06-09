@@ -4,10 +4,10 @@
       <div class="layout-header__title">电机选型：</div>
 
       <a-form label-align="left" :colon="false" :label-col="formLabelCol" :wrapper-col="formWrapperCol" class="power-form">
-        <a-form-item label="舵机额定功率（旋转）（W）:">
+        <a-form-item label="舵机额定功率（旋转）（W）：">
           <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
-        <a-form-item label="舵机额定功率（直线）（W）:" class="power-form__second">
+        <a-form-item label="舵机额定功率（直线）（W）：" class="power-form__second">
           <a-input v-model:value="parameterTempList[1].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
       </a-form>
@@ -110,7 +110,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const userStore = useUserStore();
-const formLabelCol = { style: { width: '175px', flex: '0 0 175px' } };
+const formLabelCol = { style: { width: '220px', flex: '0 0 220px' } };
 const formWrapperCol = { style: { flex: '0 0 auto' } };
 const tabHeight = 530;
 const motorTypeOptions = MOTOR_TYPE_OPTIONS;
@@ -354,6 +354,10 @@ onMounted(async () => {
   padding: 10px 0 0 10px;
 }
 
+.power-form :deep(.ant-form-item-label > label) {
+  white-space: nowrap;
+}
+
 .power-form__second {
   margin-bottom: 0;
 }
@@ -368,7 +372,7 @@ onMounted(async () => {
 }
 
 .field-input {
-  width: 234px;
+  width: 200px;
 }
 
 .table-cell-input,
