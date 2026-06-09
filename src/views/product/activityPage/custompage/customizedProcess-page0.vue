@@ -168,9 +168,20 @@ async function loadPageParametersIfNeeded() {
   parameterTempList.value = await loadPage0PageParameters(pageId);
 }
 
-function clearData() {
+function resetTableData() {
   clearPage0TableData(parameterTempList.value);
+  tddpInputData.value = [];
+  authtoken.value = '';
+  parameterTempList.value = cloneParameterList(parameterTempList.value);
+}
+
+function clearData() {
+  if (parameterTempList.value[0]) {
+    parameterTempList.value[0].defaultValue = '';
+  }
+  resetTableData();
   setSaveBtnEnable();
+  message.success('已清空');
 }
 
 async function readData() {
@@ -178,7 +189,7 @@ async function readData() {
     message.error('请填写任务ID');
     return;
   }
-  clearData();
+  resetTableData();
   const data = {
     userid: userStore.getUser.id,
     entityId: parameterTempList.value[0].defaultValue,
@@ -194,6 +205,7 @@ async function readData() {
     authtoken.value = String(response.data.authtoken ?? '');
     tddpInputData.value = Array.isArray(response.data.data) ? response.data.data : [];
     applyTddpInputToParameters(parameterTempList.value, tddpInputData.value);
+    parameterTempList.value = cloneParameterList(parameterTempList.value);
     setSaveBtnEnable();
   } catch {
     message.error('读取任务输入数据失败');
@@ -291,7 +303,7 @@ onMounted(() => {
 }
 
 .task-id-input {
-  width: 300px;
+  width: 200px;
 }
 
 .table-block {

@@ -297,7 +297,7 @@ onMounted(() => {
 }
 
 .task-id-input {
-  width: 300px;
+  width: 200px;
 }
 
 .table-block {

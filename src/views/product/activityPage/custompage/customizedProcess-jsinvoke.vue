@@ -314,7 +314,7 @@ onMounted(async () => {
 }
 
 .field-input {
-  width: 150px;
+  width: 200px;
 }
 
 .result-field {

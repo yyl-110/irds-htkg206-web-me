@@ -151,7 +151,6 @@ export function normalizeCustomPageKey(raw?: string | null): string {
 }
 
 export function resolveCustomPageKey(pageUrl?: string | null, pageName?: string | null): string | null {
-  console.log(pageUrl, 'pageUrl');
   const normalized = normalizeCustomPageKey(pageUrl);
   if (normalized && CUSTOM_PAGE_REGISTRY[normalized]) {
     return normalized;
