@@ -805,6 +805,7 @@ async function openDesignWorkspace(task: TaskItem) {
       }
       const cacheKey = `designTaskCollabWorkspace:${projectId}:${taskId}:${Date.now()}`;
       sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+      const projectNameQ = task.projectDisplayName ? String(task.projectDisplayName).trim() : '';
       await router.push({
         path: '/internal/design-task-app-workspace',
         query: {
@@ -812,6 +813,7 @@ async function openDesignWorkspace(task: TaskItem) {
           taskId,
           projectId,
           workspaceMode: 'wbs',
+          ...(projectNameQ ? { projectName: projectNameQ } : {}),
         },
       });
     } catch (e: unknown) {

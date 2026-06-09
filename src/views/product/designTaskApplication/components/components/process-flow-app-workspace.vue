@@ -49,6 +49,9 @@ interface WorkspaceData {
   taskPublishVersionId?: string;
   currentBpmnElementId?: string;
   pages?: FlowNode[];
+  projectId?: string | number;
+  projectName?: string;
+  projectNum?: string;
 }
 
 interface TreeItem {
@@ -62,6 +65,53 @@ const route = useRoute();
 const router = useRouter();
 /** 协同任务（COLLAB）：左侧树为当前任务发布流程，与独立应用同源交互 */
 const isWbsCollabWorkspace = computed(() => String(route.query.workspaceMode ?? '') === 'wbs');
+const wbsProjectInfoFallback = ref<{ projectName?: string; projectNum?: string }>({});
+
+function pickNonEmptyText(raw: unknown): string {
+  const s = String(raw ?? '').trim();
+  return s === '' || s === 'undefined' || s === 'null' ? '' : s;
+}
+
+const wbsProjectDisplayName = computed(() =>
+  pickNonEmptyText(workspaceData.value?.projectName)
+    || pickNonEmptyText(route.query.projectName)
+    || pickNonEmptyText(wbsProjectInfoFallback.value.projectName),
+);
+
+const wbsProjectDisplayNum = computed(() =>
+  pickNonEmptyText(workspaceData.value?.projectNum)
+    || pickNonEmptyText(route.query.projectNum)
+    || pickNonEmptyText(wbsProjectInfoFallback.value.projectNum),
+);
+
+const showWbsProjectBanner = computed(
+  () => isWbsCollabWorkspace.value && !!(wbsProjectDisplayName.value || wbsProjectDisplayNum.value),
+);
+
+async function loadWbsProjectInfoFallback() {
+  if (!isWbsCollabWorkspace.value) return;
+  const hasName =
+    pickNonEmptyText(workspaceData.value?.projectName) || pickNonEmptyText(route.query.projectName);
+  const hasNum =
+    pickNonEmptyText(workspaceData.value?.projectNum) || pickNonEmptyText(route.query.projectNum);
+  if (hasName && hasNum) {
+    wbsProjectInfoFallback.value = {};
+    return;
+  }
+  const pid = pickNonEmptyText(route.query.projectId ?? workspaceData.value?.projectId);
+  if (!pid) return;
+  try {
+    const res = await AdminApiProjectTemp.getProjectInfoEditFile({ id: pid } as any);
+    const dto = (res as any)?.data?.data ?? (res as any)?.data;
+    if (!dto || typeof dto !== 'object') return;
+    wbsProjectInfoFallback.value = {
+      projectName: pickNonEmptyText(dto.projectName),
+      projectNum: pickNonEmptyText(dto.projectNum),
+    };
+  } catch {
+    /* ignore */
+  }
+}
 const workspaceData = ref<WorkspaceData>({});
 const selectedNodeKey = ref<string>('');
 /** 左侧 / 右侧默认宽度 px → 换算为 Splitpanes 占比 */
@@ -1605,7 +1655,10 @@ watch(
   () =>
     `${String(route.query.taskId ?? '')}|${String(route.query.projectId ?? '')}|${String(route.query.appId ?? '')}|${String(route.query.workspaceMode ?? '')}`,
   () => {
+    loadWorkspaceData();
+    void initDefaultSelectedNode();
     void loadWorkspaceOperateLogs();
+    void loadWbsProjectInfoFallback();
   },
 );
 
@@ -1617,6 +1670,7 @@ watch(
 );
 
 onMounted(() => {
+  void loadWbsProjectInfoFallback();
   nextTick(() => {
     applyDefaultLeftWidthPx();
     leftPaneBeforeCollapse.value = leftPaneSize.value;
@@ -1630,7 +1684,15 @@ onMounted(() => {
   <div
     ref="workspacePageRef"
     class="workspace-page splitpanes-tree-collapse-wrap"
-    :class="[{ 'workspace-page--flow': isRootNodeSelected }]">
+    :class="[{ 'workspace-page--flow': isRootNodeSelected, 'workspace-page--wbs': isWbsCollabWorkspace }]">
+    <div v-if="showWbsProjectBanner" class="workspace-wbs-project-banner">
+      <span v-if="wbsProjectDisplayName" class="workspace-wbs-project-banner__item">
+        项目名称：{{ wbsProjectDisplayName }}
+      </span>
+      <span v-if="wbsProjectDisplayNum" class="workspace-wbs-project-banner__item">
+        项目编号：{{ wbsProjectDisplayNum }}
+      </span>
+    </div>
     <Splitpanes class="default-theme workspace-splitpanes" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
       <Pane
         :size="leftPaneSize"
@@ -1894,6 +1956,26 @@ onMounted(() => {
   height: 100%;
   background: #fff;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-wbs-project-banner {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #313133;
+  background: #f7f8fb;
+  border-bottom: 1px solid #eaeaf1;
+}
+
+.workspace-wbs-project-banner__item {
+  white-space: nowrap;
 }
 :deep(.ant-spin-nested-loading) {
   height: 100%;
@@ -1906,7 +1988,9 @@ onMounted(() => {
 }
 
 .workspace-splitpanes {
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
 }
 
 :deep(.workspace-splitpanes .splitpanes__pane) {
