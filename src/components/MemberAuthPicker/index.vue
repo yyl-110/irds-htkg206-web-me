@@ -253,13 +253,16 @@ function handleConfirm() {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: 16px;
+  align-items: stretch;
 }
 
 .picker-panel {
   border: 1px solid #f0f0f0;
   border-radius: 4px;
   padding: 12px;
-  min-height: 520px;
+  height: min(520px, calc(100vh - 280px));
+  max-height: min(520px, calc(100vh - 280px));
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -282,11 +285,13 @@ function handleConfirm() {
 }
 
 .panel-list {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   border: 1px solid #f0f0f0;
   border-radius: 4px;
   padding: 8px 12px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .check-list {

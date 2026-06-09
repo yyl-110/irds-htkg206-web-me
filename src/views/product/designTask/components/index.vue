@@ -493,7 +493,7 @@ defineExpose({ initInfoList });
 
 <template>
   <div class="drawerContent h-full">
-    <div :class="splitpanesTreeCollapseWrapClass">
+    <div :class="splitpanesTreeCollapseWrapClass" class="h-full">
       <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
           <a-spin :spinning="loadingTree" tip="加载中...">

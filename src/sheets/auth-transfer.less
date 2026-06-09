@@ -25,6 +25,21 @@
 }
 
 .member-auth-picker {
+  align-items: stretch;
+
+  .picker-panel {
+    height: min(520px, calc(100vh - 280px));
+    max-height: min(520px, calc(100vh - 280px));
+    overflow: hidden;
+  }
+
+  .panel-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   .picker-actions {
     gap: 24px;
   }
@@ -40,5 +55,40 @@
   .check-item {
     cursor: pointer;
     user-select: none;
+  }
+}
+
+// 成员授权 Transfer 弹窗：左右列表固定高度，内容区内部滚动
+.member-auth-transfer-wrap {
+  width: 100%;
+  max-height: calc(100vh - 200px);
+  overflow: hidden;
+
+  .auth-transfer.ant-transfer {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .ant-transfer-list {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto !important;
+    display: flex;
+    flex-direction: column;
+    height: min(540px, calc(100vh - 200px)) !important;
+    max-height: min(540px, calc(100vh - 200px));
+    overflow: hidden;
+  }
+
+  .ant-transfer-list-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .ant-transfer-operation {
+    flex: 0 0 auto;
+    align-self: center;
   }
 }

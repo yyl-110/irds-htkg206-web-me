@@ -887,35 +887,4 @@ function customGetContainer() {
     min-height: 0;
   }
 }
-
-.member-auth-transfer-wrap {
-  width: 100%;
-  max-height: calc(100vh - 200px);
-  overflow: hidden;
-
-  :deep(.auth-transfer.ant-transfer) {
-    width: 100%;
-    display: flex;
-    align-items: stretch;
-  }
-
-  :deep(.ant-transfer-list) {
-    flex: 1 1 0;
-    min-width: 0;
-    width: auto !important;
-    display: flex;
-    flex-direction: column;
-  }
-
-  :deep(.ant-transfer-list-body) {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-  }
-
-  :deep(.ant-transfer-operation) {
-    flex: 0 0 auto;
-    align-self: center;
-  }
-}
 </style>

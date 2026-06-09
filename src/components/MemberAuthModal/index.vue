@@ -10,7 +10,7 @@
     @cancel="handleCancel">
     <!--  Transfer 组件 -->
     <a-spin :spinning="leftLoading" tip="加载中...">
-      <div class="transfer-container">
+      <div class="transfer-container member-auth-transfer-wrap">
         <AuthTransfer
           :target-keys="targetKeys"
           :data-source="dataSource"
@@ -24,7 +24,10 @@
           :search-placeholder="'请输入'"
           :filter-option="filterOption"
           :pagination="{ pageSize: 20 }"
-          :list-style="{ width: '50%', height: '500px' }"
+          :list-style="{
+            width: '50%',
+            height: 'min(540px, calc(100vh - 200px))',
+          }"
           @update:target-keys="onTargetKeysUpdate"
           @change="handleChange"
           @select-change="handleSelectChange"

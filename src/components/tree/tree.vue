@@ -650,7 +650,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="container">
+  <div class="container tree-panel-root">
     <div class="controls-wrap">
       <a-input v-model:value="searchValue" style="margin-bottom: 8px" :placeholder="$t('请输入')" allow-clear />
       <div v-if="props.operateFlag" class="action">
@@ -709,16 +709,12 @@ defineExpose({
         </a-tooltip>
       </div>
     </div>
-    <div class="mt-[10px]">
+    <div class="tree-scroll-area wei-scrollbar">
       <!-- {{ selectedKeys }}--选中节点 {{ newExpandedKeys }}--展开节点 -->
       <a-directory-tree
         v-model:selected-keys="selectedKeys"
         v-model:expanded-keys="newExpandedKeys"
-        :style="{
-          width: '100%',
-          overflowY: 'auto',
-          height: operateFlag ? 'calc(100vh - 213px)' : 'calc(100vh - 200px)',
-        }"
+        :style="{ width: '100%' }"
         :show-icon="true"
         :tree-data="treeData"
         show-line
@@ -817,10 +813,16 @@ defineExpose({
 .container {
   height: 100%;
   width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   background-color: #ffffff;
   // padding: 20px;
 }
+
 .controls-wrap {
+  flex-shrink: 0;
+
   .action {
     display: flex;
     align-items: center;
@@ -845,6 +847,22 @@ defineExpose({
   }
 
 }
+
+.tree-scroll-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 12px;
+  box-sizing: border-box;
+  max-height: calc(100vh - 213px);
+
+  :deep(.ant-tree) {
+    padding-bottom: 4px;
+  }
+}
+
 .tree-node-title-row {
   display: flex;
   align-items: center;
@@ -936,14 +954,4 @@ defineExpose({
   display: none !important;
 }
 
-.operate-tree {
-  height: calc(100vh - 213px);
-  width: 100%;
-  overflow-y: auto;
-}
-.operate-tree2 {
-  height: calc(100vh - 190px);
-  width: 100%;
-  overflow-y: auto;
-}
 </style>

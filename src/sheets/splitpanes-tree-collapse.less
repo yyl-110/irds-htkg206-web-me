@@ -14,6 +14,28 @@
   min-height: 0;
 }
 
+// 左侧结构树：高度沿 Splitpanes 传递，列表区内部滚动
+.splitpanes-tree-collapse-wrap > .splitpanes.splitpanes--vertical > .splitpanes__pane:first-child {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+
+  > .ant-spin-nested-loading,
+  > .ant-spin-nested-loading > .ant-spin-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .tree-panel-root {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
 .splitpanes-tree-collapse-wrap .splitpanes__splitter::before,
 .splitpanes-tree-collapse-wrap .splitpanes__splitter::after {
   display: none !important;
