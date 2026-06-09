@@ -1802,20 +1802,10 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
                   <img class="act-btns" :src="moduleIcon1" alt="打开模型" @click="openMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="装配模型" placement="topLeft">
-                  <img
-                    class="act-btns"
-                    style="width: 28px"
-                    :src="moduleIcon2"
-                    alt="装配模型"
-                    @click="fitoutMx([record])" />
+                  <img class="act-btns act-btns--mid-1" :src="moduleIcon2" alt="装配模型" @click="fitoutMx([record])" />
                 </a-tooltip>
                 <a-tooltip title="打开二维图" placement="topLeft">
-                  <img
-                    class="act-btns"
-                    style="width: 28px"
-                    :src="moduleIcon3"
-                    alt="打开二维图"
-                    @click="openEwt([record])" />
+                  <img class="act-btns" :src="moduleIcon3" alt="打开二维图" @click="openEwt([record])" />
                 </a-tooltip>
                 <!-- <a-tooltip title="参数化设计" placement="topLeft">
                   <img class="act-btns" :src="moduleIcon4" alt="参数化设计" @click="argsMx([record])" />
@@ -2853,9 +2843,9 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
     }
   }
 
-  .act-btns--mid-1,
-  .act-btns--mid-2 {
-    width: 24px;
+  .act-btns--mid-1 {
+    width: 28px;
+    height: 28px;
   }
 }
 </style>
