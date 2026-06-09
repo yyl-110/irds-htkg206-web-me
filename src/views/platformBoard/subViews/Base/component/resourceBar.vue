@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { computed } from 'vue';
 
 const props = defineProps({
   chartData: {
@@ -8,155 +8,191 @@ const props = defineProps({
   },
 });
 
-const chartOption = ref({});
+const colorPalette = [
+  '#00E5FF',
+  '#FFD32A',
+  '#9B5DE5',
+  '#38EF7D',
+  '#FF9F43',
+  '#2575FC',
+  '#00F5D4',
+  '#8C7AE6',
+  '#00A8FF',
+  '#1DD1A1',
+];
 
-const processedData = computed(() => {
+const listData = computed(() => {
   if (!props.chartData || props.chartData.length === 0) return [];
 
   const list = props.chartData.map((item: any) => {
     const name = item.fileName || item.userName || item.name || '';
-    const value = Number(
-      item.accessCount || item.knowledgeCount || item.value || 0,
-    );
+    const value = Number(item.accessCount || item.knowledgeCount || item.value || 0);
     return { name, value };
   });
 
-  // Sort by value descending and take top 10
   list.sort((a, b) => b.value - a.value);
   const topList = list.slice(0, 10);
+  const total = topList.reduce((sum, item) => sum + item.value, 0);
 
-  // Make duplicate names unique for ECharts legend/series mapping by appending zero-width spaces (\u200b)
-  const nameCounts = new Map<string, number>();
-  return topList.map((item) => {
-    const count = nameCounts.get(item.name) || 0;
-    nameCounts.set(item.name, count + 1);
-    const uniqueName = count > 0 ? `${item.name}${'\u200b'.repeat(count)}` : item.name;
-    return {
-      name: uniqueName,
-      value: item.value,
-    };
-  });
+  return topList.map((item, index) => ({
+    rank: index + 1,
+    name: item.name || '-',
+    value: item.value,
+    percent: total > 0 ? Number(((item.value / total) * 100).toFixed(2)) : 0,
+    color: colorPalette[index % colorPalette.length],
+  }));
 });
-
-const initChart = () => {
-  const data = processedData.value;
-  if (data.length === 0) return;
-
-  // High-contrast vibrant colors (completely red-free) for distinct adjacent sectors
-  const colorPalette = [
-    '#00E5FF', // Neon Cyan
-    '#FFD32A', // Vibrant Gold/Yellow
-    '#9B5DE5', // Neon Purple
-    '#38EF7D', // Bright Neon Green
-    '#FF9F43', // Vibrant Orange
-    '#2575FC', // Electric Blue
-    '#00F5D4', // Teal/Bright Mint
-    '#8C7AE6', // Deep Violet
-    '#00A8FF', // Sky Blue
-    '#1DD1A1', // Emerald Green
-  ];
-
-  chartOption.value = {
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: 'rgba(7, 29, 53, 0.9)',
-      borderColor: 'rgba(36, 226, 226, 0.5)',
-      textStyle: {
-        color: '#fff',
-        fontSize: 14,
-      },
-      formatter(params: any) {
-        // Beautiful multiline tooltip displaying full name
-        return `<div style="max-width: 250px; white-space: normal; word-break: break-all; line-height: 1.6;">
-          <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${params.color};"></span>
-          <strong>${params.name}</strong><br/>
-          数量: <span style="color:#24E2E2;font-weight:bold;">${params.value}</span> (${params.percent}%)
-        </div>`;
-      },
-    },
-    legend: {
-      type: 'scroll',
-      orient: 'vertical',
-      right: '5%',
-      top: 'middle',
-      itemWidth: 12,
-      itemHeight: 12,
-      itemGap: 10,
-      icon: 'circle',
-      pageIconColor: '#24E2E2',
-      pageIconInactiveColor: '#163a5f',
-      pageTextStyle: {
-        color: '#fff',
-      },
-      textStyle: {
-        color: '#e0e6ed',
-        fontSize: 13,
-      },
-      // Safely truncate name to prevent overflow while showing the full name on hover
-      formatter (name: string) {
-        return name.length > 8 ? name.substring(0, 8) + '...' : name;
-      },
-    },
-    series: [
-      {
-        name: '资源访问占比',
-        type: 'pie',
-        // Nightingale Rose Chart type (makes radii correspond to data values) for high-tech premium aesthetics
-        roseType: 'radius',
-        radius: ['20%', '75%'],
-        center: ['40%', '50%'],
-        // Smooth entry animation
-        animationType: 'scale',
-        animationEasing: 'elasticOut',
-        animationDelay () {
-          return Math.random() * 200;
-        },
-        itemStyle: {
-          borderRadius: 6,
-          borderColor: '#06192e',
-          borderWidth: 2,
-        },
-        label: {
-          show: false, // Hide labels on pie chart to prevent overlapping, since we have the legend and tooltip
-        },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 15,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(36, 226, 226, 0.5)',
-            borderWidth: 0,
-          },
-        },
-        data: data.map((item, index) => ({
-          name: item.name,
-          value: item.value,
-          itemStyle: {
-            color: colorPalette[index % colorPalette.length],
-          },
-        })),
-      },
-    ],
-  };
-};
-
-watch(
-  () => props.chartData,
-  () => {
-    initChart();
-  },
-  { deep: true, immediate: true },
-);
 </script>
 
 <template>
-  <div style="width: 100%; height: 100%">
-    <v-chart :option="chartOption" class="chart" />
+  <div class="resource-list">
+    <div v-if="listData.length === 0" class="resource-list__empty">暂无数据</div>
+    <template v-else>
+      <div class="resource-list__header">
+        <span class="col-rank">排名</span>
+        <span class="col-name">人员</span>
+        <span class="col-value">数量</span>
+        <span class="col-percent">占比</span>
+      </div>
+      <div class="resource-list__body">
+        <div v-for="item in listData" :key="`${item.rank}-${item.name}`" class="resource-list__row">
+          <span class="col-rank">
+            <span class="rank-badge" :style="{ borderColor: item.color, color: item.color }">{{ item.rank }}</span>
+          </span>
+          <span class="col-name" :title="item.name">{{ item.name }}</span>
+          <span class="col-value" :style="{ color: item.color }">{{ item.value }}</span>
+          <span class="col-percent">
+            <span class="percent-bar">
+              <span class="percent-bar__fill" :style="{ width: `${item.percent}%`, backgroundColor: item.color }" />
+            </span>
+            <span class="percent-text">{{ item.percent }}%</span>
+          </span>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <style lang="less" scoped>
-.chart {
+.resource-list {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 4px 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.resource-list__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 14px;
+}
+
+.resource-list__header,
+.resource-list__row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 0.45fr) 48px minmax(320px, 1.55fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.resource-list__header {
+  flex-shrink: 0;
+  padding: 0 8px 8px;
+  color: rgba(224, 230, 237, 0.75);
+  font-size: 12px;
+  border-bottom: 1px solid rgba(36, 226, 226, 0.15);
+}
+
+.resource-list__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 4px;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(36, 226, 226, 0.35);
+    border-radius: 4px;
+  }
+}
+
+.resource-list__row {
+  padding: 7px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: rgba(36, 226, 226, 0.08);
+  }
+}
+
+.col-rank {
+  display: flex;
+  justify-content: center;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.col-name {
+  color: #e0e6ed;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-value {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.col-percent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.percent-bar {
+  flex: 1;
+  height: 10px;
+  background: rgba(11, 34, 51, 0.9);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.percent-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.percent-text {
+  flex-shrink: 0;
+  width: 68px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  text-align: right;
 }
 </style>
