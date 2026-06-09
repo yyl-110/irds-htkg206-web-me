@@ -323,11 +323,14 @@ async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
     const skipDrawerOnReturn = sessionStorage.getItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN) === '1';
     if (skipDrawerOnReturn) {
       sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      resetDrawerStyle();
+      if (menuId.value) {
+        return;
+      }
       if (titleList.value.length > 0) {
-        shouldShowDrawer.value = false;
         menuId.value = String(titleList.value[0]?.id ?? '');
-        titleVisible.value = false;
-        resetDrawerStyle();
         await getResources();
       }
       return;

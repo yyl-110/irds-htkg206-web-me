@@ -154,6 +154,10 @@ import 'codemirror/theme/monokai.css';
 import 'codemirror/mode/javascript/javascript.js';
 import 'codemirror/mode/xml/xml.js';
 import { useUserStore } from '@/store/modules/user';
+import { markSkipPlatformPickerDrawerOnTab } from '@/utils/platformPickerDrawerNav';
+
+const PROJECT_LIST_SKIP_DRAWER_ON_RETURN = 'project-info-list-skip-drawer-on-return';
+
 const userStore = useUserStore();
 const route = useRoute();
 const router = useRouter();
@@ -493,6 +497,7 @@ const saveXML = async () => {
       }
       // 保存后返回上一个页面（设计任务列表页）
       message.success(res.data.msg || '保存成功');
+      markReturnToListPage();
       router.back();
 
       localStorage.removeItem('category');
@@ -540,8 +545,14 @@ const getXMLNode = str => {
   }
 };
 
+const markReturnToListPage = () => {
+  sessionStorage.setItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN, '1');
+  markSkipPlatformPickerDrawerOnTab();
+};
+
 const goBack = () => {
-  // 与保存后的行为保持一致：返回上一个页面（设计任务列表页）
+  // 与保存后的行为保持一致：返回列表页且不弹出平台选择抽屉
+  markReturnToListPage();
   if (window.history.length > 1) {
     router.back();
     return;

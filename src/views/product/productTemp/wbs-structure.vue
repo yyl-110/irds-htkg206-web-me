@@ -10,6 +10,9 @@ import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
 import { showRequestErrorIfNeeded } from '@/httpRequest';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import FlowView from '@/components/flowview/indexManager.vue';
+import { markSkipPlatformPickerDrawerOnTab } from '@/utils/platformPickerDrawerNav';
+
+const PROJECT_LIST_SKIP_DRAWER_ON_RETURN = 'project-info-list-skip-drawer-on-return';
 
 const { t } = useI18n();
 
@@ -711,7 +714,11 @@ async function onMoveDown(record: WbsRow) {
   }
 }
 
-function goBack() { router.back(); }
+function goBack() {
+  sessionStorage.setItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN, '1');
+  markSkipPlatformPickerDrawerOnTab();
+  router.back();
+}
 
 async function onSave() {
   if (!tempId.value) return;
