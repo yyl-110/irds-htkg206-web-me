@@ -23,6 +23,8 @@ interface PlatformRoleRow {
   roleName: string
   attribute: string
   userName: string
+  /** 排序索引 */
+  sortIndex: number | null
   /** 已授权用户 id，用于成员授权弹窗回显 */
   authUserIds: string[]
   status: PlatformStatus
@@ -110,6 +112,15 @@ function getAuthorizedUserIdsFromItem(item: Record<string, unknown>): string[] {
   return []
 }
 
+function parseSortIndex(item: Record<string, unknown>): number | null {
+  for (const key of ['sortIndex', 'sort', 'sortNo'] as const) {
+    const v = item[key]
+    if (v != null && v !== '' && !Number.isNaN(Number(v)))
+      return Number(v)
+  }
+  return null
+}
+
 function parseListItemStatus(item: Record<string, unknown>): PlatformStatus | null {
   const s = item.status
   if (s === 1 || s === '1')
@@ -139,6 +150,7 @@ function mapProjectTreeItemToRow(item: Record<string, unknown>, idx: number): Pl
     id: idRaw != null && idRaw !== '' ? String(idRaw) : `row-${idx}`,
     roleName: String(item.categoryName ?? item.name ?? ''),
     attribute,
+    sortIndex: parseSortIndex(item),
     userName: formatAuthorizedNames(item),
     authUserIds: getAuthorizedUserIdsFromItem(item),
     status,
@@ -186,12 +198,24 @@ const editFileList = ref<UploadFile[]>([])
 
 const addFormState = reactive({
   categoryName: '',
+  sortIndex: null as number | null,
 })
 
 const addFormRules = {
   categoryName: [
     { required: true, message: () => WeiI18n.$t('请输入平台名称'), trigger: 'blur' },
     { max: 100, message: () => WeiI18n.$t('名称过长'), trigger: 'blur' },
+  ],
+  sortIndex: [
+    { required: true, message: () => WeiI18n.$t('请输入排序索引'), trigger: 'blur' },
+    {
+      validator: (_rule: unknown, value: number | null) => {
+        if (value == null || Number(value) <= 0)
+          return Promise.reject(WeiI18n.$t('请输入排序索引'))
+        return Promise.resolve()
+      },
+      trigger: 'blur',
+    },
   ],
 }
 
@@ -329,6 +353,7 @@ async function submitAddForm() {
   try {
     const res = await AdminApiSystemProduct.createProjectTree({
       categoryName: addFormState.categoryName.trim(),
+      sort: Number(addFormState.sortIndex),
       ...getFileFieldsFromList(addFileList.value),
     })
     const payload = res.data
@@ -357,6 +382,7 @@ const editSubmitting = ref(false)
 const editFormState = reactive({
   id: '',
   categoryName: '',
+  sortIndex: null as number | null,
   status: 2 as PlatformStatus,
 })
 
@@ -364,6 +390,17 @@ const editFormRules = {
   categoryName: [
     { required: true, message: () => WeiI18n.$t('请输入平台名称'), trigger: 'blur' },
     { max: 100, message: () => WeiI18n.$t('名称过长'), trigger: 'blur' },
+  ],
+  sortIndex: [
+    { required: true, message: () => WeiI18n.$t('请输入排序索引'), trigger: 'blur' },
+    {
+      validator: (_rule: unknown, value: number | null) => {
+        if (value == null || Number(value) <= 0)
+          return Promise.reject(WeiI18n.$t('请输入排序索引'))
+        return Promise.resolve()
+      },
+      trigger: 'blur',
+    },
   ],
 }
 
@@ -379,6 +416,7 @@ async function submitEditForm() {
     const res = await AdminApiSystemProduct.updateProjectTree({
       id: editFormState.id,
       categoryName: editFormState.categoryName.trim(),
+      sort: Number(editFormState.sortIndex),
       ...getFileFieldsFromList(editFileList.value),
     })
     const payload = res.data
@@ -402,14 +440,7 @@ async function submitEditForm() {
 }
 
 const columns = ref<TableColumnType<PlatformRoleRow>[]>([
-  {
-    title: WeiI18n.$t('序号'),
-    key: 'index',
-    align: 'center',
-    width: 70,
-    fixed: 'left',
-    resizable: true,
-  },
+
   {
     title: WeiI18n.$t('平台名称'),
     dataIndex: 'roleName',
@@ -428,6 +459,14 @@ const columns = ref<TableColumnType<PlatformRoleRow>[]>([
     width: 120,
     resizable: true,
     ellipsis: { showTitle: true },
+  },
+  {
+    title: WeiI18n.$t('排序索引'),
+    dataIndex: 'sortIndex',
+    key: 'sortIndex',
+    align: 'center',
+    width: 100,
+    resizable: true,
   },
   {
     title: WeiI18n.$t('授权人员'),
@@ -514,6 +553,12 @@ const displayList = computed(() => {
   if (!sortState.value.key || !sortState.value.order)
     return list
   const k = sortState.value.key
+  if (k === 'sortIndex') {
+    const sorted = [...list].sort(
+      (a, b) => (Number(a.sortIndex) || 0) - (Number(b.sortIndex) || 0),
+    )
+    return sortState.value.order === 'ascend' ? sorted : sorted.reverse()
+  }
   const sorted = [...list].sort((a, b) => sortermethod((a as any)[k], (b as any)[k]))
   return sortState.value.order === 'ascend' ? sorted : sorted.reverse()
 })
@@ -528,6 +573,7 @@ function rowClassName(_record: PlatformRoleRow, index: number) {
 
 function onCreate() {
   addFormState.categoryName = ''
+  addFormState.sortIndex = dataSource.value.length + 1
   addFileList.value = []
   addModalVisible.value = true
   nextTick(() => {
@@ -662,6 +708,7 @@ function onEdit(record: PlatformRoleRow) {
   }
   editFormState.id = record.id
   editFormState.categoryName = record.roleName
+  editFormState.sortIndex = record.sortIndex
   editFormState.status = record.status
   editFileList.value = buildFileListFromRecord(record)
   editModalVisible.value = true
@@ -760,6 +807,9 @@ function onDelete(record: PlatformRoleRow) {
           <template v-else-if="column.key === 'attribute'">
             {{ record.attribute || '\u00a0' }}
           </template>
+          <template v-else-if="column.key === 'sortIndex'">
+            {{ record.sortIndex ?? '\u00a0' }}
+          </template>
           <template v-else-if="column.key === 'userName'">
             <a-tooltip v-if="record.userName" placement="topLeft" :title="record.userName">
               <span class="platform-role-owner-cell">{{ record.userName }}</span>
@@ -821,6 +871,14 @@ function onDelete(record: PlatformRoleRow) {
             :maxlength="100"
           />
         </a-form-item>
+        <a-form-item :label="WeiI18n.$t('排序索引')" name="sortIndex">
+          <a-input-number
+            v-model:value="addFormState.sortIndex"
+            :min="1"
+            style="width: 100%"
+            :placeholder="WeiI18n.$t('请输入排序索引')"
+          />
+        </a-form-item>
         <a-form-item :label="WeiI18n.$t('示意图')">
           <Uploado_draggerFile
             width="100%"
@@ -863,6 +921,14 @@ function onDelete(record: PlatformRoleRow) {
             :placeholder="WeiI18n.$t('请输入平台名称')"
             allow-clear
             :maxlength="100"
+          />
+        </a-form-item>
+        <a-form-item :label="WeiI18n.$t('排序索引')" name="sortIndex">
+          <a-input-number
+            v-model:value="editFormState.sortIndex"
+            :min="1"
+            style="width: 100%"
+            :placeholder="WeiI18n.$t('请输入排序索引')"
           />
         </a-form-item>
         <a-form-item :label="WeiI18n.$t('示意图')">
