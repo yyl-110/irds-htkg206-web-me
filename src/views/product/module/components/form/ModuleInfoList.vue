@@ -38,6 +38,7 @@ import {
 } from '@/libs/webSocketNew';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
+import { isModuleQueryTextField } from '../../composables/useModuleQueryFields';
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
 import moduleIcon1 from '@/assets/images/module1.png';
 import moduleIcon2 from '@/assets/images/module2.png';
@@ -387,23 +388,26 @@ async function modalInit() {
       // 动态查询条件：searchFlag == 0（默认查询）
       if (resData[i].searchFlag == 0) {
         const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
-        // 查询字段全部以下拉形式展示；下拉值来源于 clumnsRes 返回的 distinctValues
-        const valueKeyCandidates = [
-          String(resData[i].dataProp ?? ''),
-          String(key ?? ''),
-          String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
-        ].filter(Boolean);
-        const rawOptions =
-          valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
-        const options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
+        const isTextField = isModuleQueryTextField(resData[i].propertyName);
+        let options: string[] = [];
+        if (!isTextField) {
+          const valueKeyCandidates = [
+            String(resData[i].dataProp ?? ''),
+            String(key ?? ''),
+            String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
+          ].filter(Boolean);
+          const rawOptions =
+            valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
+          options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
+        }
         queryColumns.value.push({
           id: resData[i].id,
           title: resData[i].propertyName,
           key,
-          inputType: 'select',
+          inputType: isTextField ? 'text' : 'select',
           options,
         });
-        if (!(key in queryForm)) queryForm[key] = undefined;
+        if (!(key in queryForm)) queryForm[key] = isTextField ? '' : undefined;
       }
 
       if (resData[i].showFlag == 0) {
@@ -1569,7 +1573,7 @@ defineExpose({ initData, selectAllModuleInfo });
                       {{ opt }}
                     </a-select-option>
                   </a-select>
-                  <a-input v-else v-model:value="queryForm[item.key]" allowClear size="middle" placeholder="请输入" />
+                  <a-input v-else v-model:value="queryForm[item.key]" allowClear size="middle" :placeholder="'请输入' + item.title" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -1632,6 +1636,7 @@ defineExpose({ initData, selectAllModuleInfo });
               <EpcIcon type="icon-shanchu2" style="font-size: 15px" />
               删除
             </div>
+            <a-button type="link" class="global-query-action" @click="selectAllModuleInfo">全局查询</a-button>
           </div>
         </div>
       </div>
@@ -2332,6 +2337,12 @@ defineExpose({ initData, selectAllModuleInfo });
 
 .btn-box-right {
   display: flex;
+  align-items: center;
+}
+
+.global-query-action {
+  height: 35px;
+  padding: 0 10px;
 }
 .btn-box-middle {
   flex: 1;
