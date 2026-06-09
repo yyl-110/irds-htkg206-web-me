@@ -1,142 +1,119 @@
 <template>
   <div class="page">
-    <div class="layout-wrapper" style="background-color: #ffffff; padding: 0 10px; height: 100%; overflow: auto">
-      <div class="layout-header">
-        <div style="width: auto; font-size: 15px; font-weight: 600; margin-left: 10px">计算输入参数：</div>
-        <div style="width: 100%; font-weight: 600; padding-left: 0px">
-          <a-button type="primary" class="btnSty" style="margin-left: 5px; margin-top: 10px" @click="initData">
-            更新数据
-          </a-button>
+    <div class="page3-wrapper">
+      <section class="page3-section">
+        <div class="page3-section__head">
+          <span class="page3-section__title">计算输入参数：</span>
+          <a-button type="primary" @click="initData">更新数据</a-button>
         </div>
-        <div class="selectBox">
-          <div style="width: 100%; height: 50px; line-height: 50px">
-            <div style="margin-left: 20px" class="paramLabel">
-              低压直流供电支路：
+
+        <a-form label-align="left" :colon="false" class="page3-params-form">
+          <div class="page3-params-grid">
+            <a-form-item label="低压直流供电支路：" :label-col="formLabelCol" class="page3-form-item">
               <a-input
                 v-model:value="parameterTempList[2].defaultValue"
-                placeholder=""
-                style="width: 80px"
                 type="number"
-                disabled />
-            </div>
-            <div style="margin-left: 20px" class="paramLabel">
-              高压直流供电支路：
+                class="page3-input"
+                disabled
+                style="width: 200px" />
+            </a-form-item>
+            <a-form-item label="高压直流供电支路：" :label-col="formLabelCol" class="page3-form-item">
               <a-input-number
                 v-model:value="parameterTempList[3].defaultValue"
-                placeholder=""
-                style="width: 80px"
+                class="page3-input-number"
                 :min="dataMin"
                 :max="dataMax"
-                @blur="changeNumber(2)" />
-            </div>
-            <div style="margin-left: 20px" class="paramLabel">
-              整流电源效率：
+                @blur="changeNumber(2)"
+                style="width: 200px" />
+            </a-form-item>
+            <a-form-item label="整流电源效率：" :label-col="formLabelCol" class="page3-form-item">
               <a-input-number
                 v-model:value="parameterTempList[4].defaultValue"
-                placeholder=""
-                style="width: 80px"
+                class="page3-input-number"
                 :max="1"
                 :min="0"
                 :step="0.1"
-                @blur="changeNumber(3)" />
-            </div>
-            <div style="margin-left: 20px; width: 70px; float: left" class="paramLabel">
+                @blur="changeNumber(3)"
+                style="width: 200px" />
+            </a-form-item>
+            <div class="page3-params-action">
               <a-button type="primary" @click="confirm1">确定</a-button>
             </div>
           </div>
-        </div>
-      </div>
-      <div class="layout-content3" ref="mainDiv">
-        <div style="width: 100%; min-height: 310px">
-          <div style="width: 100%; padding: 0 10px">
-            <div style="width: 100%; float: left">
-              <a-table
-                :columns="table1Columns"
-                :data-source="table1Data"
-                :pagination="false"
-                bordered
-                size="small"
-                :scroll="{ x: 1155 }"
-                :row-key="tableRowKey"
-                class="page3-table"
-                style="z-index: 0">
-                <template #bodyCell="{ column, record, index }">
-                  <template v-if="column.dataIndex === 'p2'">
-                    <a-input
-                      v-if="record.p0 === '高压直流'"
-                      v-model:value="record.p2"
-                      class="table-cell-input"
-                      @blur="onTable1P2Blur(record, index)" />
-                    <span v-else>{{ record.p2 }}</span>
-                  </template>
-                  <template v-else-if="column.dataIndex === 'p3'">
-                    <span v-if="record.p0 === '高压直流'">—— ——</span>
-                    <a-input
-                      v-else
-                      v-model:value="record.p3"
-                      class="table-cell-input"
-                      @blur="onTable1P3Blur(record, index)" />
-                  </template>
-                  <template v-else-if="column.dataIndex === 'p4'">
-                    <a-input
-                      v-if="record.p0 === '高压直流'"
-                      v-model:value="record.p4"
-                      class="table-cell-input"
-                      @blur="onTable1P4Blur(record, index)" />
-                    <span v-else>{{ record.p4 }}</span>
-                  </template>
-                  <template v-else-if="column.dataIndex === 'p5'">
-                    <a-input v-model:value="record.p5" class="table-cell-input" @blur="onTable1P5Blur(record, index)" />
-                  </template>
-                  <template v-else-if="column.dataIndex === 'p6'">
-                    <a-input
-                      v-if="record.p0 === '高压直流'"
-                      v-model:value="record.p6"
-                      class="table-cell-input"
-                      @blur="onTable1P6Blur(record, index)" />
-                    <span v-else>{{ record.p6 }}</span>
-                  </template>
-                </template>
-              </a-table>
-            </div>
-          </div>
-        </div>
+        </a-form>
 
-        <div
-          style="
-            width: auto;
-            font-weight: 600;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            margin-left: 10px;
-            font-size: 15px;
-          ">
-          计算结果：
+        <div class="page3-table-wrap">
+          <a-table
+            :columns="table1Columns"
+            :data-source="table1Data"
+            :pagination="false"
+            bordered
+            size="small"
+            :scroll="{ x: TABLE1_MIN_WIDTH }"
+            :row-key="tableRowKey"
+            class="page3-table">
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'p2'">
+                <a-input
+                  v-if="record.p0 === '高压直流'"
+                  v-model:value="record.p2"
+                  class="table-cell-input"
+                  @blur="onTable1P2Blur(record, index)" />
+                <span v-else>{{ record.p2 }}</span>
+              </template>
+              <template v-else-if="column.dataIndex === 'p3'">
+                <span v-if="record.p0 === '高压直流'">—— ——</span>
+                <a-input v-else v-model:value="record.p3" class="table-cell-input" @blur="onTable1P3Blur(record, index)" />
+              </template>
+              <template v-else-if="column.dataIndex === 'p4'">
+                <a-input
+                  v-if="record.p0 === '高压直流'"
+                  v-model:value="record.p4"
+                  class="table-cell-input"
+                  @blur="onTable1P4Blur(record, index)" />
+                <span v-else>{{ record.p4 }}</span>
+              </template>
+              <template v-else-if="column.dataIndex === 'p5'">
+                <a-input v-model:value="record.p5" class="table-cell-input" @blur="onTable1P5Blur(record, index)" />
+              </template>
+              <template v-else-if="column.dataIndex === 'p6'">
+                <a-input
+                  v-if="record.p0 === '高压直流'"
+                  v-model:value="record.p6"
+                  class="table-cell-input"
+                  @blur="onTable1P6Blur(record, index)" />
+                <span v-else>{{ record.p6 }}</span>
+              </template>
+            </template>
+          </a-table>
+        </div>
+      </section>
+
+      <section class="page3-section">
+        <div class="page3-section__head">
+          <span class="page3-section__title">计算结果：</span>
           <a-button type="primary" @click="calculation">计算</a-button>
         </div>
-        <div style="width: 100%; padding: 0 10px; min-height: 382px">
-          <div style="width: 100%; margin-bottom: 10px; height: 32px">高压直流母线功率计算设计输出（交流总输入功率）</div>
-          <div style="width: 100%; float: left">
-            <a-table
-              :columns="table2Columns"
-              :data-source="table2Data"
-              :pagination="false"
-              bordered
-              size="small"
-              :scroll="{ x: 950 }"
-              :row-key="tableRowKey"
-              class="page3-table"
-              style="z-index: 0">
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.dataIndex === 'p3'">
-                  <span v-if="isTable2P3Dash(record.p0)">—— ——</span>
-                  <span v-else>{{ record.p3 }}</span>
-                </template>
+        <div class="page3-section__subtitle">高压直流母线功率计算设计输出（交流总输入功率）</div>
+        <div class="page3-table-wrap">
+          <a-table
+            :columns="table2Columns"
+            :data-source="table2Data"
+            :pagination="false"
+            bordered
+            size="small"
+            :scroll="{ x: TABLE2_MIN_WIDTH }"
+            :row-key="tableRowKey"
+            class="page3-table">
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'p3'">
+                <span v-if="isTable2P3Dash(record.p0)">—— ——</span>
+                <span v-else>{{ record.p3 }}</span>
               </template>
-            </a-table>
-          </div>
+            </template>
+          </a-table>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
@@ -149,7 +126,9 @@ import { handleCutZero } from '@/utils/tools';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 import {
   TABLE1_COLUMNS,
+  TABLE1_MIN_WIDTH,
   TABLE2_COLUMNS,
+  TABLE2_MIN_WIDTH,
   TABLE2_P3_DASH_P0,
   type Page3ParameterItem,
 } from './Process7-page3/customizedProcess7-page3.columns';
@@ -158,6 +137,8 @@ import { withMerge20Columns, withMerge21Columns } from './Process7-page3/tableMe
 type TableRow = Record<string, string | number | undefined>;
 
 defineOptions({ name: 'customizedProcess7-page3' });
+
+const formLabelCol = { style: { width: '160px' } };
 
 const props = withDefaults(
   defineProps<{
@@ -747,43 +728,92 @@ defineExpose({
 </script>
 
 <style scoped>
-.layout-header {
-  background: #ffffff;
-  min-height: 125px;
-  height: 125px;
-  line-height: 40px;
-  padding: 0px;
-  margin-bottom: 10px;
-}
-
-.paramLabel {
-  height: 38px;
-  float: left;
-  width: 250px;
-}
-
-.layout-content3 {
-  background: #ffffff;
-  min-height: 610px;
-  margin-top: 15px;
-}
-
-.selectBox {
-  width: 100%;
-  height: 80%;
-  float: left;
-  padding-top: 10px;
-  background-color: #ffffff;
-  overflow: auto;
-  overflow-y: hidden;
-}
-
 .page {
   font-size: 15px;
 }
 
+.page3-wrapper {
+  background: #ffffff;
+  padding: 0 10px 16px;
+  min-height: 100%;
+  overflow: auto;
+}
+
+.page3-section {
+  margin-bottom: 24px;
+}
+
+.page3-section__title {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.page3-section__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  margin-bottom: 12px;
+}
+
+.page3-section__subtitle {
+  padding: 0 10px;
+  margin-bottom: 10px;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.page3-params-form {
+  margin-bottom: 12px;
+}
+
+.page3-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px 48px;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.page3-params-action {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.page3-form-item {
+  margin-bottom: 0;
+}
+
+.page3-form-item :deep(.ant-form-item-label > label) {
+  height: auto;
+  line-height: 32px;
+}
+
+.page3-input {
+  width: 120px;
+}
+
+.page3-input-number {
+  width: 120px;
+}
+
+.page3-input-number :deep(.ant-input-number) {
+  width: 100%;
+}
+
+.page3-table-wrap {
+  width: 100%;
+  padding: 0 10px;
+  overflow-x: auto;
+}
+
 .page3-table {
   width: 100%;
+  min-width: 100%;
 }
 
 .page3-table :deep(.ant-table-cell) {

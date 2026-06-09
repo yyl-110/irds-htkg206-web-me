@@ -2,101 +2,82 @@
   <div>
     <div class="layout-wrapper" style="padding: 0 10px; height: 680px; background-color: #ffffff">
       <div class="layout-header">
-        <div style="width: 100%; padding-left: 10px">
+        <div class="page41-header-row">
           供配电机制确定：
           <a-input v-model:value="param1" style="width: 100px; display: none" allow-clear disabled />
           <a-input
             v-model:value="parameterTempList[0].defaultValue"
             placeholder="请输入..."
-            style="width: 200px"
+            class="page41-header-input"
             allow-clear
             disabled />
-          <a-button type="primary" class="btnSty" style="margin-left: 10px" @click="initData">更新数据</a-button>
+          <a-button type="primary" class="btnSty" @click="initData">更新数据</a-button>
         </div>
 
-        <div
-          v-show="pageType === 0"
-          style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
+        <div v-show="pageType === 0" class="page41-config-section">
           <a-form label-align="left" :colon="false">
-            <div style="width: 100%; float: left; height: 47px">
-              <a-form-item
-                label="柴油发电机组:"
-                :label-col="{ style: { width: '115px' } }"
-                style="float: left; margin-bottom: 10px">
-                <a-input v-model:value="param2" style="width: 100px; display: none" allow-clear disabled />
+            <div class="page41-config-row">
+              <a-form-item label="柴油发电机组：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param2" style="display: none; width: 200px" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[1].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
-                  disabled />
+                  disabled
+                  style="width: 200px" />
               </a-form-item>
-              <a-form-item
-                label="低压电池:"
-                :label-col="{ style: { width: '70px' } }"
-                style="float: left; margin-bottom: 10px; margin-left: 30px">
-                <a-input v-model:value="param3" style="width: 100px; display: none" allow-clear disabled />
+              <a-form-item label="低压电池：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param3" style="display: none; width: 200px" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[2].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
-                  disabled />
+                  disabled
+                  style="width: 200px" />
               </a-form-item>
-              <a-form-item
-                label="取力发电机组:"
-                :label-col="{ style: { width: '90px' } }"
-                style="float: left; margin-left: 30px; margin-bottom: 10px">
-                <a-input v-model:value="param4" style="width: 100px; display: none" allow-clear disabled />
+              <a-form-item label="取力发电机组：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param4" style="display: none; width: 200px" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[3].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
-                  disabled />
+                  disabled
+                  style="width: 200px" />
               </a-form-item>
             </div>
           </a-form>
         </div>
 
-        <div
-          v-show="pageType === 1"
-          style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
+        <div v-show="pageType === 1" class="page41-config-section">
           <a-form label-align="left" :colon="false">
-            <div style="width: 100%; float: left; height: 47px">
-              <a-form-item
-                label="柴油发电机组:"
-                :label-col="{ style: { width: '115px' } }"
-                style="float: left; margin-bottom: 10px">
-                <a-input v-model:value="param5" style="width: 100px; display: none" allow-clear disabled />
+            <div class="page41-config-row">
+              <a-form-item label="柴油发电机组：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param5" style="display: none" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[4].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
                   disabled />
               </a-form-item>
-              <a-form-item
-                label="取力发电机组:"
-                :label-col="{ style: { width: '90px' } }"
-                style="float: left; margin-bottom: 10px; margin-left: 30px">
-                <a-input v-model:value="param6" style="width: 100px; display: none" allow-clear disabled />
+              <a-form-item label="取力发电机组：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param6" style="display: none" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[5].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
                   disabled />
               </a-form-item>
-              <a-form-item
-                label="高压电池:"
-                :label-col="{ style: { width: '70px' } }"
-                style="float: left; margin-bottom: 10px; margin-left: 30px">
-                <a-input v-model:value="param7" style="width: 100px; display: none" allow-clear disabled />
+              <a-form-item label="高压电池：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param7" style="display: none" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[6].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
                   disabled />
               </a-form-item>
@@ -104,44 +85,33 @@
           </a-form>
         </div>
 
-        <div
-          v-show="pageType === 2"
-          style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
+        <div v-show="pageType === 2" class="page41-config-section">
           <a-form label-align="left" :colon="false">
-            <div style="width: 100%; float: left; height: 47px">
-              <a-form-item
-                label="柴油发电机组:"
-                :label-col="{ style: { width: '115px' } }"
-                style="float: left; margin-bottom: 10px">
-                <a-input v-model:value="param8" style="width: 100px; display: none" allow-clear disabled />
+            <div class="page41-config-row">
+              <a-form-item label="柴油发电机组：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param8" style="display: none" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[7].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
                   disabled />
               </a-form-item>
-              <a-form-item
-                label="外接市电:"
-                :label-col="{ style: { width: '70px' } }"
-                style="float: left; margin-bottom: 10px; margin-left: 30px">
-                <a-input v-model:value="param9" style="width: 100px; display: none" allow-clear disabled />
+              <a-form-item label="外接市电：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param9" style="display: none" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[8].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
                   disabled />
               </a-form-item>
-              <a-form-item
-                label="整流电源:"
-                :label-col="{ style: { width: '70px' } }"
-                style="float: left; margin-bottom: 10px; margin-left: 30px">
-                <a-input v-model:value="param10" style="width: 100px; display: none" allow-clear disabled />
+              <a-form-item label="整流电源：" :label-col="configLabelCol" class="page41-form-item">
+                <a-input v-model:value="param10" style="display: none" allow-clear disabled />
                 <a-input
                   v-model:value="parameterTempList[9].defaultValue"
                   placeholder="请输入..."
-                  style="width: 80px"
+                  class="page41-input"
                   allow-clear
                   disabled />
               </a-form-item>
@@ -149,17 +119,17 @@
           </a-form>
         </div>
 
-        <div style="width: 650px; height: 300px; float: left; margin-top: 10px">
-          <img :src="imgurl" style="width: 100%; height: 100%" alt="原理图" />
+        <div class="page41-diagram">
+          <img :src="imgurl" class="page41-diagram__img" alt="原理图" />
         </div>
 
         <div class="selectBox">
-          <div style="width: auto; font-size: 15px; font-weight: 600; padding-left: 10px">产品组成：</div>
-          <div>
+          <div class="page41-section-title">产品组成：</div>
+          <div class="page41-table-actions">
             <a-button type="primary" @click="addColumns">
               <template #icon><PlusOutlined /></template>添加行</a-button
             >
-            <a-button danger style="margin-left: 10px" @click="delColumns">
+            <a-button type="primary" danger :disabled="deleteDisabled" @click="delColumns">
               <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
               删除行</a-button
             >
@@ -215,6 +185,8 @@ type TableRow = Record<string, string | number | undefined>;
 
 defineOptions({ name: 'customizedProcess7-page4-1' });
 
+const configLabelCol = { style: { width: '130px' } };
+
 const props = withDefaults(
   defineProps<{
     width?: number;
@@ -260,6 +232,8 @@ const selectedRowKeys = ref<(string | number)[]>([]);
 const imgIndex = ref('1');
 const imgurl = ref(defaultDiagram);
 const pageType = ref<PageType>(0);
+
+const deleteDisabled = computed(() => selectList.value.length <= 0);
 
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
@@ -394,22 +368,92 @@ defineExpose({
 .layout-header {
   background: #ffffff;
   min-height: 680px;
-  height: 680px;
-  line-height: 40px;
-  padding: 0px;
-  margin-bottom: 10px;
+  padding: 0 10px 10px;
 }
+
+.page41-header-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 0 0 10px;
+  line-height: 32px;
+  font-weight: 600;
+}
+
+.page41-header-input {
+  width: 200px;
+}
+
+.page41-config-section {
+  padding: 10px 10px 0;
+  font-weight: 600;
+}
+
+.page41-config-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, max-content));
+  gap: 12px 48px;
+  align-items: center;
+}
+
+.page41-form-item {
+  margin-bottom: 0;
+}
+
+.page41-form-item :deep(.ant-form-item-label) {
+  flex: 0 0 122px;
+  max-width: 130px;
+}
+
+.page41-form-item :deep(.ant-form-item-label > label) {
+  height: auto;
+  line-height: 32px;
+}
+
+.page41-input {
+  width: 80px;
+}
+
+.page41-diagram {
+  width: 650px;
+  height: 300px;
+  margin: 10px 0 0 10px;
+}
+
+.page41-diagram__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.page41-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0 10px;
+  margin-bottom: 8px;
+}
+
+.page41-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 8px;
+}
+
 .selectBox {
   width: 100%;
-  height: auto;
-  float: left;
+  clear: both;
 }
+
 .page4-table {
   width: 100%;
 }
+
 .page4-table :deep(.ant-table-cell) {
   padding: 4px 8px !important;
 }
+
 .table-cell-input {
   width: 100%;
 }

@@ -13,9 +13,14 @@
 
       <div class="material-page__actions">
         <a-space :size="12">
-          <a-button type="primary" @click="handleBrowseMaterial">浏览</a-button>
-
-          <a-button danger :disabled="deleteDisabled" @click="handleDelete">删除</a-button>
+          <a-button type="primary" @click="handleBrowseMaterial">
+            <template #icon><FolderOpenOutlined /></template>
+            浏览
+          </a-button>
+          <a-button type="primary" danger :disabled="deleteDisabled" @click="handleDelete">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+            删除
+          </a-button>
         </a-space>
       </div>
     </section>
@@ -59,9 +64,11 @@ import { useRoute } from 'vue-router';
 
 import { message } from 'ant-design-vue';
 
-import { SyncOutlined } from '@ant-design/icons-vue';
+import { FolderOpenOutlined, SyncOutlined } from '@ant-design/icons-vue';
 
 import type { Key } from 'ant-design-vue/es/table/interface';
+
+import { EpcIcon } from '@/components/icon/EpcIcon';
 
 import ModuleDataClSelect from './FS1_5_1_1G/moduleDataClSelect.vue';
 

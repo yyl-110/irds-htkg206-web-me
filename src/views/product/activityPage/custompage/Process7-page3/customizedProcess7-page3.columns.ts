@@ -42,3 +42,13 @@ export const TABLE2_P3_DASH_P0 = new Set([
   '电源机柜总输入功率（高压DC/DC模块总输入功率）',
   '总交流输入功率',
 ]);
+
+export const TABLE1_MIN_WIDTH = TABLE1_COLUMNS.reduce(
+  (sum, col) => sum + (typeof col.width === 'number' ? col.width : 100),
+  0,
+);
+
+export const TABLE2_MIN_WIDTH = TABLE2_COLUMNS.reduce(
+  (sum, col) => sum + (typeof col.width === 'number' ? col.width : 100),
+  0,
+);

@@ -11,25 +11,28 @@
                 class="axle-form__input"
                 :options="axleCountOptions"
                 allow-clear
-                @change="setSaveBtnEnable()" />
+                @change="setSaveBtnEnable()"
+                style="width: 200px" />
             </a-form-item>
             <a-form-item v-for="field in inputFieldsLeft" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="axle-form__input"
                 allow-clear
-                @input="setSaveBtnEnable()" />
+                @input="setSaveBtnEnable()"
+                style="width: 200px" />
             </a-form-item>
           </div>
           <div class="axle-form__column">
             <a-form-item v-for="field in inputFieldsRight" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="axle-form__input"
                 allow-clear
-                @input="setSaveBtnEnable()" />
+                @input="setSaveBtnEnable()"
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>
@@ -48,22 +51,24 @@
         <div class="axle-form__columns">
           <div class="axle-form__column">
             <a-form-item v-for="field in middleFieldsLeft" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="axle-form__input"
                 allow-clear
-                @input="setSaveBtnEnable()" />
+                @input="setSaveBtnEnable()"
+                style="width: 200px" />
             </a-form-item>
           </div>
           <div class="axle-form__column">
             <a-form-item v-for="field in middleFieldsRight" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="axle-form__input"
                 allow-clear
-                @input="setSaveBtnEnable()" />
+                @input="setSaveBtnEnable()"
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>
@@ -76,20 +81,22 @@
         <div class="axle-form__columns">
           <div class="axle-form__column">
             <a-form-item v-for="field in resultFieldsLeft" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="axle-form__input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
           <div class="axle-form__column">
             <a-form-item v-for="field in resultFieldsRight" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="axle-form__input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>

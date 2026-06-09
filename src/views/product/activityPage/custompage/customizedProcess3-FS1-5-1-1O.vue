@@ -1,32 +1,32 @@
 <template>
   <div class="laminate-page">
     <section class="laminate-page__form">
-      <a-form label-align="left" :colon="false" :label-col="formLabelCol">
-        <div class="laminate-page__material-row">
-          <span class="laminate-page__subtitle">材料1：</span>
-          <div class="laminate-page__material-fields">
-            <a-form-item v-for="field in material1Fields" :key="field.index" :label="field.label">
-              <a-input
+      <div class="laminate-page__material-grid">
+        <div class="laminate-page__material-block">
+          <div class="laminate-page__subtitle">材料1：</div>
+          <a-form label-align="left" :colon="false" :label-col="formLabelCol">
+            <a-form-item v-for="field in material1Fields" :key="field.index" :label="field.label" class="laminate-form-item">
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
                 @input="setSaveBtnEnable()" />
             </a-form-item>
-          </div>
+          </a-form>
         </div>
-        <div class="laminate-page__material-row">
-          <span class="laminate-page__subtitle">材料2：</span>
-          <div class="laminate-page__material-fields">
-            <a-form-item v-for="field in material2Fields" :key="field.index" :label="field.label">
-              <a-input
+        <div class="laminate-page__material-block">
+          <div class="laminate-page__subtitle">材料2：</div>
+          <a-form label-align="left" :colon="false" :label-col="formLabelCol">
+            <a-form-item v-for="field in material2Fields" :key="field.index" :label="field.label" class="laminate-form-item">
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
                 @input="setSaveBtnEnable()" />
             </a-form-item>
-          </div>
+          </a-form>
         </div>
-      </a-form>
+      </div>
     </section>
 
     <section class="laminate-page__table">
@@ -41,7 +41,7 @@
             <template #icon><PlusOutlined /></template>
             添加
           </a-button>
-          <a-button danger :disabled="calcDisabled" @click="handleDelData">
+          <a-button type="primary" danger :disabled="deleteDisabled" @click="handleDelData">
             <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
@@ -80,7 +80,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
-import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { CalculatorOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { useUserStore } from '@/store/modules/user';
 import { runLaminateCalculation } from './FS1_5_1_1_K/calculation';
@@ -157,6 +157,7 @@ function createInitialParameterList(): Fs151_1_1OParameterItem[] {
 const parameterTempList = ref<Fs151_1_1OParameterItem[]>(createInitialParameterList());
 const tableRows = computed(() => getLaminateTableRows(parameterTempList.value));
 const calcDisabled = computed(() => selectedRows.value.length !== 1);
+const deleteDisabled = computed(() => selectedRows.value.length <= 0);
 
 watch(
   () => props.parameterTempList,
@@ -286,49 +287,62 @@ onMounted(async () => {
 
 <style scoped>
 .laminate-page {
-  padding: 20px 10px 24px;
+  padding: 16px 10px 24px;
   min-height: 650px;
   background: #fff;
   box-sizing: border-box;
-  text-align: left;
 }
 
 .laminate-page__title,
 .laminate-page__subtitle {
   font-size: 15px;
   font-weight: 600;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.88);
+  margin-bottom: 12px;
 }
 
-.laminate-page__material-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 10px 0;
+.laminate-page__material-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 48px;
+  padding: 0 10px;
 }
 
-.laminate-page__material-fields {
-  flex: 1;
-  min-width: 280px;
+.laminate-page__material-block {
+  min-width: 0;
+}
+
+.laminate-form-item {
+  margin-bottom: 12px;
+}
+
+.laminate-form-item :deep(.ant-form-item-label > label) {
+  height: auto;
+  line-height: 1.5;
+  white-space: normal;
 }
 
 .laminate-page__table {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .laminate-page__table-header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 12px;
-  padding-left: 10px;
+  padding: 0 10px;
 }
 
 .field-input {
-  width: 100px;
+  width: 160px;
 }
 
 .laminate-table {
   width: 100%;
+  padding: 0 10px;
 }
 
 .laminate-table :deep(.ant-table) {

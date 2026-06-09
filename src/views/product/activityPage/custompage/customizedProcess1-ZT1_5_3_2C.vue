@@ -28,7 +28,7 @@
           <template #icon><PlusOutlined /></template>
           添加接口表
         </a-button>
-        <a-button type="primary" danger @click="handleDeleteInterface">
+        <a-button type="primary" danger :disabled="interfaceDeleteDisabled" @click="handleDeleteInterface">
           <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除接口表
         </a-button>
@@ -56,7 +56,11 @@
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button type="primary" danger @click="handleDeletePointRow(getPointTableIndex(groupNo))">
+          <a-button
+            type="primary"
+            danger
+            :disabled="isPointDeleteDisabled(getPointTableIndex(groupNo))"
+            @click="handleDeletePointRow(getPointTableIndex(groupNo))">
             <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除行
           </a-button>
@@ -112,7 +116,7 @@
           <template #icon><PlusOutlined /></template>
           添加接口表
         </a-button>
-        <a-button type="primary" danger @click="handleDeleteInterface">
+        <a-button type="primary" danger :disabled="interfaceDeleteDisabled" @click="handleDeleteInterface">
           <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除接口表
         </a-button>
@@ -214,6 +218,7 @@ function createInitialParameterList(): Zt1_532CParameterItem[] {
 const parameterTempList = ref<Zt1_532CParameterItem[]>(createInitialParameterList());
 const interfaceGroupCount = computed(() => getInterfaceGroupCount(parameterTempList.value));
 const summaryRows = computed(() => getSummaryRows(parameterTempList.value));
+const interfaceDeleteDisabled = computed(() => !checkArr.value.some(Boolean));
 
 watch(
   () => props.parameterTempList,
@@ -271,6 +276,10 @@ function createPointRowSelection(tableIndex: number) {
       selectedPointRows.value = [...others, ...rows];
     },
   };
+}
+
+function isPointDeleteDisabled(tableIndex: number) {
+  return selectedPointRows.value.filter(row => Number(row.p4) === tableIndex).length <= 0;
 }
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
@@ -433,7 +442,7 @@ onBeforeUnmount(() => {
   margin-top: 20px;
   padding-bottom: 8px;
   width: 200px;
-  border-bottom: 1px solid silver;
+  /* border-bottom: 1px solid silver; */
   font-size: 15px;
   font-weight: 600;
   text-align: left;

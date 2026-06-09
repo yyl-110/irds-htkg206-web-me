@@ -16,7 +16,8 @@
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
           <div class="reinforced-frame-page__form-col">
@@ -25,7 +26,8 @@
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>

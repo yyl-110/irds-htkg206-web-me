@@ -13,7 +13,6 @@
         :data-source="displayRows"
         :pagination="false"
         bordered
-        size="small"
         :scroll="{ y: 230, x: 'max-content' }"
         :row-key="displayRowKey"
         class="wall-check-table" />
@@ -30,10 +29,20 @@
       <a-form label-align="left" :colon="false" :label-col="formLabelCol" class="wall-check-page__form">
         <div class="wall-check-page__form-grid">
           <a-form-item v-for="field in formFields.slice(0, 2)" :key="field.index" :label="field.label">
-            <a-input v-model:value="parameterTempList[field.index].defaultValue" type="number" class="field-input" disabled />
+            <a-input
+              v-model:value="parameterTempList[field.index].defaultValue"
+              type="number"
+              class="field-input"
+              disabled
+              style="width: 200px" />
           </a-form-item>
           <a-form-item v-for="field in formFields.slice(2)" :key="field.index" :label="field.label">
-            <a-input v-model:value="parameterTempList[field.index].defaultValue" type="number" class="field-input" disabled />
+            <a-input
+              v-model:value="parameterTempList[field.index].defaultValue"
+              type="number"
+              class="field-input"
+              disabled
+              style="width: 200px" />
           </a-form-item>
         </div>
       </a-form>
@@ -42,7 +51,6 @@
         :data-source="checkRows"
         :pagination="false"
         bordered
-        size="small"
         :scroll="{ y: 230, x: 'max-content' }"
         :row-key="checkRowKey"
         :row-selection="rowSelection"

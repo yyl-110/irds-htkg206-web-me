@@ -44,3 +44,18 @@ export const TABLE3_COLUMNS: TableColumnType[] = [
   { title: '功率（W）', dataIndex: 'p2', key: 'p2', align: 'center', width: 180 },
   { title: '额定输出电压（V）', dataIndex: 'p3', key: 'p3', align: 'center', width: 120 },
 ];
+
+export const TABLE1_MIN_WIDTH = TABLE1_COLUMNS.reduce(
+  (sum, col) => sum + (typeof col.width === 'number' ? col.width : 100),
+  0,
+);
+
+export const TABLE2_MIN_WIDTH = TABLE2_COLUMNS.reduce(
+  (sum, col) => sum + (typeof col.width === 'number' ? col.width : 100),
+  0,
+);
+
+export const TABLE3_MIN_WIDTH = TABLE3_COLUMNS.reduce(
+  (sum, col) => sum + (typeof col.width === 'number' ? col.width : 100),
+  0,
+);

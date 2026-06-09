@@ -16,7 +16,8 @@
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
           <div class="inner-skin-page__form-col">
@@ -25,7 +26,8 @@
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>
@@ -73,10 +75,7 @@
               @input="setSaveBtnEnable()" />
           </template>
           <template v-else-if="resolveColumn(column)?.cellMode === 'editable'">
-            <a-input
-              v-model:value="record[String(column.dataIndex)]"
-              class="table-cell-input"
-              @input="setSaveBtnEnable()" />
+            <a-input v-model:value="record[String(column.dataIndex)]" class="table-cell-input" @input="setSaveBtnEnable()" />
           </template>
         </template>
       </a-table>

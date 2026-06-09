@@ -414,7 +414,7 @@ onMounted(async () => {
   margin-top: 20px;
   padding-bottom: 8px;
   width: 200px;
-  border-bottom: 1px solid silver;
+  /* border-bottom: 1px solid silver; */
   font-size: 15px;
   font-weight: 600;
 }

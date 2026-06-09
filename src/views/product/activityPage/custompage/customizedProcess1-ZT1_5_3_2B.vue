@@ -235,17 +235,13 @@ onMounted(async () => {
   margin-top: 20px;
   padding-bottom: 8px;
   width: 100px;
-  border-bottom: 1px solid silver;
+  /* border-bottom: 1px solid silver; */
   font-size: 15px;
   font-weight: 600;
 }
 
 .power-page__toolbar {
-  margin: 20px 0 12px 40px;
-}
-
-.power-table {
-  margin-left: 30px;
+  margin: 20px 0 12px 0;
 }
 
 .power-table :deep(.ant-table) {

@@ -6,11 +6,12 @@
           <span class="laminate-page__subtitle">材料1：</span>
           <div class="laminate-page__material-fields">
             <a-form-item v-for="field in material1Fields" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                @input="setSaveBtnEnable()" />
+                @input="setSaveBtnEnable()"
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>
@@ -18,11 +19,12 @@
           <span class="laminate-page__subtitle">材料2：</span>
           <div class="laminate-page__material-fields">
             <a-form-item v-for="field in material2Fields" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                @input="setSaveBtnEnable()" />
+                @input="setSaveBtnEnable()"
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>

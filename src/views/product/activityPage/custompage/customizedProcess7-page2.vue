@@ -1,119 +1,95 @@
 <template>
   <div class="page">
-    <div class="layout-wrapper" style="background-color: #ffffff; padding: 0 10px; height: 100%; overflow: auto">
-      <div class="layout-header">
-        <div style="width: auto; font-weight: 600; margin-left: 10px">计算输入参数：</div>
-        <div class="selectBox">
-          <div style="width: 990px; line-height: 50px">
-            <div style="width: 990px; height: 52px">
-              <div style="margin-left: 20px" class="paramLabel">
-                供电支路：
-                <a-input
-                  type="number"
-                  v-model:value="parameterTempList[2].defaultValue"
-                  placeholder=""
-                  style="margin-left: 30px; width: 80px"
-                  :min="1"
-                  :max="12"
-                  @blur="changeNumber(1)" />
-              </div>
-            </div>
-            <div>
-              <a-form label-align="left" :colon="false" class="formBox">
-                <div
-                  v-for="item in compactData"
-                  :key="item.id"
-                  style="width: 200px; margin-left: 20px; margin-right: 22px; float: left">
-                  <a-form-item :label="item.labelName" :label-col="{ style: { width: '110px' } }">
-                    <a-input
-                      v-model:value="item.newModeTypeVal"
-                      placeholder=""
-                      allow-clear
-                      style="width: 80px" />
-                  </a-form-item>
-                </div>
-              </a-form>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="layout-content2">
-        <div style="width: 100%">
-          <div style="width: 100%; padding: 0 10px; min-height: 258px">
-            <div style="width: 70px" class="paramLabel">
-              <a-button type="primary" @click="confirm">确定</a-button>
-            </div>
-            <div style="width: 100%; float: left">
-              <a-table
-                :columns="table1Columns"
-                :data-source="table1Data"
-                :pagination="false"
-                bordered
-                size="small"
-                :scroll="{ x: 1072 }"
-                :row-key="tableRowKey"
-                class="page2-table"
-                style="z-index: 0">
-                <template #bodyCell="{ column, record, index }">
-                  <template v-if="column.dataIndex === 'p3'">
-                    <span v-if="record.p0 === '总低压直流输出功率'">—— ——</span>
-                    <a-input
-                      v-else
-                      v-model:value="record.p3"
-                      class="table-cell-input"
-                      @blur="onTable1P3Blur(record, index)" />
-                  </template>
-                  <template v-else-if="column.dataIndex === 'p4'">
-                    <a-input v-model:value="record.p4" class="table-cell-input" @blur="onTable1P4Blur(record, index)" />
-                  </template>
-                  <template v-else-if="column.dataIndex === 'p5'">
-                    <a-input v-model:value="record.p5" class="table-cell-input" @blur="onTable1P5Blur(record, index)" />
-                  </template>
-                  <template v-else-if="column.dataIndex === 'p6'">
-                    <a-input v-model:value="record.p6" class="table-cell-input" @blur="onTable1P6Blur(record, index)" />
-                  </template>
-                </template>
-              </a-table>
-            </div>
-          </div>
+    <div class="page2-wrapper">
+      <section class="page2-section">
+        <div class="page2-section__title">计算输入参数：</div>
+
+        <div class="page2-params-row">
+          <a-form label-align="left" :colon="false">
+            <a-form-item label="供电支路：" :label-col="formLabelCol" class="page2-form-item">
+              <a-input
+                v-model:value="parameterTempList[2].defaultValue"
+                type="number"
+                class="page2-input page2-input--sm"
+                :min="1"
+                :max="12"
+                @blur="changeNumber(1)"
+                style="width: 200px" />
+            </a-form-item>
+          </a-form>
         </div>
 
-        <div
-          style="
-            width: auto;
-            font-size: 15px;
-            font-weight: 600;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            margin-left: 10px;
-          ">
-          计算结果：
-          <a-button type="primary" @click="calculation">计算</a-button>
+        <div v-if="compactData.length" class="page2-branch-grid">
+          <a-form label-align="left" :colon="false">
+            <a-form-item
+              v-for="item in compactData"
+              :key="item.id"
+              :label="item.labelName"
+              :label-col="branchLabelCol"
+              class="page2-form-item">
+              <a-input v-model:value="item.newModeTypeVal" class="page2-input page2-input--sm" allow-clear />
+            </a-form-item>
+          </a-form>
         </div>
-        <div style="width: 100%; padding: 0 10px; min-height: 358px">
-          <div style="width: 100%; margin-bottom: 10px; height: 25px">低压直流设计输出（低压直流功率）</div>
-          <div style="width: 100%; float: left">
-            <a-table
-              :columns="table2Columns"
-              :data-source="table2Data"
-              :pagination="false"
-              bordered
-              size="small"
-              :scroll="{ x: 950 }"
-              :row-key="tableRowKey"
-              class="page2-table"
-              style="z-index: 0">
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.dataIndex === 'p2'">
-                  <span v-if="record.p0 === '总低压直流输出功率'">—— ——</span>
-                  <span v-else>{{ record.p2 }}</span>
-                </template>
+
+        <div class="page2-actions">
+          <a-button type="primary" @click="confirm">确定</a-button>
+        </div>
+
+        <div class="page2-table-wrap">
+          <a-table
+            :columns="table1Columns"
+            :data-source="table1Data"
+            :pagination="false"
+            bordered
+            size="small"
+            :scroll="{ x: TABLE1_MIN_WIDTH }"
+            :row-key="tableRowKey"
+            class="page2-table">
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'p3'">
+                <span v-if="record.p0 === '总低压直流输出功率'">—— ——</span>
+                <a-input v-else v-model:value="record.p3" class="table-cell-input" @blur="onTable1P3Blur(record, index)" />
               </template>
-            </a-table>
-          </div>
+              <template v-else-if="column.dataIndex === 'p4'">
+                <a-input v-model:value="record.p4" class="table-cell-input" @blur="onTable1P4Blur(record, index)" />
+              </template>
+              <template v-else-if="column.dataIndex === 'p5'">
+                <a-input v-model:value="record.p5" class="table-cell-input" @blur="onTable1P5Blur(record, index)" />
+              </template>
+              <template v-else-if="column.dataIndex === 'p6'">
+                <a-input v-model:value="record.p6" class="table-cell-input" @blur="onTable1P6Blur(record, index)" />
+              </template>
+            </template>
+          </a-table>
         </div>
-      </div>
+      </section>
+
+      <section class="page2-section">
+        <div class="page2-section__head">
+          <span class="page2-section__title">计算结果：</span>
+          <a-button type="primary" @click="calculation" style="margin-top: -10px">计算</a-button>
+        </div>
+        <div class="page2-section__subtitle">低压直流设计输出（低压直流功率）</div>
+        <div class="page2-table-wrap">
+          <a-table
+            :columns="table2Columns"
+            :data-source="table2Data"
+            :pagination="false"
+            bordered
+            size="small"
+            :scroll="{ x: TABLE2_MIN_WIDTH }"
+            :row-key="tableRowKey"
+            class="page2-table">
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'p2'">
+                <span v-if="record.p0 === '总低压直流输出功率'">—— ——</span>
+                <span v-else>{{ record.p2 }}</span>
+              </template>
+            </template>
+          </a-table>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -123,12 +99,21 @@ import { message } from 'ant-design-vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { handleCutZero } from '@/utils/tools';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
-import { TABLE1_COLUMNS, TABLE2_COLUMNS, type Page2ParameterItem } from './Process7-page2/customizedProcess7-page2.columns';
+import {
+  TABLE1_COLUMNS,
+  TABLE1_MIN_WIDTH,
+  TABLE2_COLUMNS,
+  TABLE2_MIN_WIDTH,
+  type Page2ParameterItem,
+} from './Process7-page2/customizedProcess7-page2.columns';
 import { withMerge10Columns, withMerge11Columns } from './Process7-page2/tableMerge';
 
 type TableRow = Record<string, string | number | undefined>;
 
 defineOptions({ name: 'customizedProcess7-page2' });
+
+const formLabelCol = { style: { width: '100px' } };
+const branchLabelCol = { style: { width: '130px' } };
 
 const props = withDefaults(
   defineProps<{
@@ -518,43 +503,97 @@ defineExpose({
 </script>
 
 <style scoped>
-.layout-header {
-  background: #ffffff;
-  height: auto;
-  line-height: 40px;
-  padding: 0px;
-  margin-bottom: 10px;
-}
-
-.paramLabel {
-  height: 45px;
-  float: left;
-  width: 350px;
-}
-.layout-content2 {
-  background: #ffffff;
-  min-height: 555px;
-}
-.selectBox {
-  float: left;
-  padding-top: 10px;
-  background-color: #ffffff;
-  overflow: auto;
-  overflow-y: hidden;
-}
-.formBox {
-  width: 985px;
-  height: auto;
-}
 .page {
   font-size: 15px;
 }
+
+.page2-wrapper {
+  background: #ffffff;
+  padding: 0 10px 16px;
+  min-height: 100%;
+  overflow: auto;
+}
+
+.page2-section {
+  margin-bottom: 24px;
+}
+
+.page2-section__title {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.88);
+  padding: 0 10px;
+  margin-bottom: 12px;
+}
+
+.page2-section__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  margin-bottom: 8px;
+}
+
+.page2-section__subtitle {
+  padding: 0 10px;
+  margin-bottom: 10px;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.page2-params-row {
+  padding: 0 10px;
+}
+
+.page2-branch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px 32px;
+  padding: 0 10px;
+}
+
+.page2-branch-grid :deep(.ant-form) {
+  display: contents;
+}
+
+.page2-actions {
+  padding: 8px 10px 12px;
+}
+
+.page2-form-item {
+  margin-bottom: 0;
+}
+
+.page2-form-item :deep(.ant-form-item-label > label) {
+  height: auto;
+  line-height: 32px;
+}
+
+.page2-input {
+  width: 160px;
+}
+
+.page2-input--sm {
+  width: 120px;
+}
+
+.page2-table-wrap {
+  width: 100%;
+  padding: 0 10px;
+  overflow-x: auto;
+}
+
 .page2-table {
   width: 100%;
+  min-width: 100%;
 }
+
 .page2-table :deep(.ant-table-cell) {
   padding: 4px 8px !important;
 }
+
 .table-cell-input {
   width: 100%;
   text-align: center;

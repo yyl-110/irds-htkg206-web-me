@@ -19,7 +19,8 @@
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
 
@@ -29,7 +30,8 @@
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
-                disabled />
+                disabled
+                style="width: 200px" />
             </a-form-item>
           </div>
         </div>
@@ -53,7 +55,9 @@
             再生模型
           </a-button>
 
-          <a-button danger :disabled="frameDeleteDisabled" @click="handleFrameDelete">删除</a-button>
+          <a-button type="primary" danger :disabled="frameDeleteDisabled" @click="handleFrameDelete">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" /> 删除</a-button
+          >
         </a-space>
       </div>
 
@@ -103,7 +107,10 @@
             添加
           </a-button>
 
-          <a-button danger :disabled="liningDeleteDisabled" @click="handleLiningDelete">删除</a-button>
+          <a-button type="primary" danger :disabled="liningDeleteDisabled" @click="handleLiningDelete">
+            <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+            删除
+          </a-button>
 
           <a-button type="primary" :disabled="liningAssemblingFlag" @click="handleLiningAssemble">
             <template #icon><BuildOutlined /></template>
@@ -166,6 +173,8 @@ import { message } from 'ant-design-vue';
 import { BuildOutlined, PlusOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons-vue';
 
 import type { Key } from 'ant-design-vue/es/table/interface';
+
+import { EpcIcon } from '@/components/icon/EpcIcon';
 
 import {
   assembleFrameModule,

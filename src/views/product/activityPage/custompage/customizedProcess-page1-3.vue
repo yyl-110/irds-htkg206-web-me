@@ -6,10 +6,7 @@
 
         <section class="main-section">
           <a-form-item label="通讯形式：">
-            <a-select
-              v-model:value="parameterTempList[0].defaultValue"
-              class="field-input"
-              @change="outputChange">
+            <a-select v-model:value="parameterTempList[0].defaultValue" class="field-input" @change="outputChange">
               <a-select-option v-for="item in commTypeOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
               </a-select-option>
