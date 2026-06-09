@@ -12,7 +12,10 @@
                 </a-form-item>
                 <a-form-item label="电源机柜数量：" :label-col="{ style: { width: '160px' } }">
                   <a-select v-model:value="parameterTempList[1].defaultValue" style="width: 100px" @change="onDyjgNumChange">
-                    <a-select-option v-for="item in parameterTempList[1].selectStrVal ?? []" :key="item.label" :value="item.label">
+                    <a-select-option
+                      v-for="item in parameterTempList[1].selectStrVal ?? []"
+                      :key="item.label"
+                      :value="item.label">
                       {{ item.label }}
                     </a-select-option>
                   </a-select>
@@ -32,28 +35,27 @@
                   <a-input v-model:value="parameterTempList[5].defaultValue" style="width: 100px" allow-clear disabled />
                 </a-form-item>
               </div>
-
-              <CabinetSection
-                v-for="section in CABINET_SECTIONS"
-                :key="section.id"
-                :section="section"
-                :parameter-temp-list="parameterTempList"
-                :supply-type="supplyType"
-                :action-url="actionUrl"
-                :login-user-id="loginUserId"
-                :elect-file-name="fileStates[section.id].elect.fileName"
-                :elect-file-id="fileStates[section.id].elect.fileId"
-                :env-file-name="fileStates[section.id].env.fileName"
-                :env-file-id="fileStates[section.id].env.fileId"
-                :before-upload="handleBeforeUpload"
-                @set-save-btn-enable="setSaveBtnEnable()"
-                @confirm="onConfirmOutput"
-                @change-number="onChangeOutputRoute"
-                @upload-elect="response => onUploadSuccess(section, 'elect', response)"
-                @upload-env="response => onUploadSuccess(section, 'env', response)"
-                @download="onDownloadFile" />
             </section>
           </div>
+          <CabinetSection
+            v-for="section in CABINET_SECTIONS"
+            :key="section.id"
+            :section="section"
+            :parameter-temp-list="parameterTempList"
+            :supply-type="supplyType"
+            :action-url="actionUrl"
+            :login-user-id="loginUserId"
+            :elect-file-name="fileStates[section.id].elect.fileName"
+            :elect-file-id="fileStates[section.id].elect.fileId"
+            :env-file-name="fileStates[section.id].env.fileName"
+            :env-file-id="fileStates[section.id].env.fileId"
+            :before-upload="handleBeforeUpload"
+            @set-save-btn-enable="setSaveBtnEnable()"
+            @confirm="onConfirmOutput"
+            @change-number="onChangeOutputRoute"
+            @upload-elect="response => onUploadSuccess(section, 'elect', response)"
+            @upload-env="response => onUploadSuccess(section, 'env', response)"
+            @download="onDownloadFile" />
         </a-form>
       </div>
     </div>
@@ -168,12 +170,7 @@ function onUploadSuccess(
   if (!response.data?.id) return;
   message.info('上传成功');
   const paramIndex = kind === 'elect' ? section.electFileParamIndex : section.envFileParamIndex;
-  const parsed = applyUploadResult(
-    parameterTempList.value,
-    paramIndex,
-    response.data.oldFileName ?? '',
-    response.data.id,
-  );
+  const parsed = applyUploadResult(parameterTempList.value, paramIndex, response.data.oldFileName ?? '', response.data.id);
   if (kind === 'elect') {
     fileStates[section.id].elect = parsed;
   } else {

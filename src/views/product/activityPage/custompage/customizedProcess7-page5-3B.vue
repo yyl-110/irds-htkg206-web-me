@@ -3,11 +3,7 @@
     <div class="layout-wrapper" style="padding: 0 10px; background-color: #ffffff">
       <div style="width: auto; font-size: 15px; font-weight: 600; padding-left: 10px">装配组合：</div>
       <div class="selectBox">
-        <a-button
-          type="primary"
-          class="btnSty"
-          style="margin-left: 5px; margin-top: 10px; margin-right: 30px"
-          @click="initData">
+        <a-button type="primary" class="btnSty" style="margin-left: 5px; margin-top: 10px" @click="initData">
           更新数据
         </a-button>
         <a-button
@@ -27,14 +23,14 @@
           @click="assembleModuleByTemplateA">
           装配
         </a-button>
-        <div style="width: 1143px">
+        <div class="page53-table-wrap">
           <a-table
             :columns="ASSEMBLY_TABLE_COLUMNS"
             :data-source="tableData"
             :pagination="false"
             bordered
             size="small"
-            :scroll="{ x: 1461 }"
+            :scroll="{ x: ASSEMBLY_TABLE_MIN_WIDTH }"
             :row-key="tableRowKey"
             :row-selection="rowSelection"
             class="page53-table">
@@ -114,7 +110,7 @@ import {
   type Page5_3ParameterItem,
 } from './Process7-page5-3B/parameterDefaults';
 
-import { ASSEMBLY_TABLE_COLUMNS, formatCategoryLabel, isInputEditableField } from './Process7-page5-3/tableColumns';
+import { ASSEMBLY_TABLE_COLUMNS, ASSEMBLY_TABLE_MIN_WIDTH, formatCategoryLabel, isInputEditableField } from './Process7-page5-3/tableColumns';
 
 defineOptions({ name: 'customizedProcess7-page5-3B' });
 
@@ -392,12 +388,16 @@ defineExpose({
   margin-bottom: 20px;
 }
 
+.page53-table-wrap {
+  width: 100%;
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
 .page53-table {
   width: 100%;
-
+  min-width: 100%;
   border: 1px solid #eee;
-
-  margin-top: 10px;
 }
 
 .page53-table :deep(.ant-table-cell) {

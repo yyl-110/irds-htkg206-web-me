@@ -3,39 +3,33 @@
     <div class="layout-wrapper" style="padding: 0 10px; min-height: 680px; background-color: #ffffff; margin-top: 20px">
       <div class="layout-content">
         <a-form label-align="left" :colon="false">
-          <div style="width: auto; font-weight: 600; padding-left: 10px">设计输入：</div>
-          <div style="width: 99%; float: left">
-            <section style="width: 100%; background-color: #ffffff; padding-top: 20px; margin-left: 15px">
-              <div style="width: 30%; height: 100%; float: left">
-                <a-form-item label="柜体最大高尺寸：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramx1" style="display: none" />
-                  <a-input v-model:value="parameterTempList[0].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="柜体最大宽：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramx2" style="display: none" />
-                  <a-input v-model:value="parameterTempList[1].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="输出路数：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramx4" style="display: none" />
-                  <a-input v-model:value="parameterTempList[3].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-              </div>
-              <div style="width: 50%; height: 100%; float: left; padding-left: 60px">
-                <a-form-item label="柜体最大深：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramx5" style="display: none" />
-                  <a-input v-model:value="parameterTempList[4].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="额定输入电压(V)：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramx6" style="display: none" />
-                  <a-input v-model:value="parameterTempList[5].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="输入电压范围(V)：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramx8" style="display: none" />
-                  <a-input v-model:value="parameterTempList[7].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-              </div>
-            </section>
-          </div>
+          <div class="page51-section-title">设计输入：</div>
+          <section class="page51-design-grid">
+            <a-form-item label="柜体最大高尺寸：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramx1" style="display: none" />
+              <a-input v-model:value="parameterTempList[0].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="柜体最大深：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramx5" style="display: none" />
+              <a-input v-model:value="parameterTempList[4].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="柜体最大宽：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramx2" style="display: none" />
+              <a-input v-model:value="parameterTempList[1].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="额定输入电压(V)：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramx6" style="display: none" />
+              <a-input v-model:value="parameterTempList[5].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="输出路数：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramx4" style="display: none" />
+              <a-input v-model:value="parameterTempList[3].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="输入电压范围(V)：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramx8" style="display: none" />
+              <a-input v-model:value="parameterTempList[7].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+          </section>
         </a-form>
       </div>
 
@@ -62,7 +56,7 @@
             :pagination="false"
             bordered
             size="small"
-            :scroll="{ x: 1270 }"
+            :scroll="{ x: TABLE_MIN_WIDTH }"
             :row-key="tableRowKey"
             :row-selection="rowSelection"
             class="page5-table">
@@ -89,32 +83,28 @@
 
       <div class="layout-content">
         <a-form label-align="left" :colon="false">
-          <div style="width: 99%">
-            <section style="width: 100%; min-height: calc(100vh - 700px); background-color: #ffffff; padding-top: 20px; margin-left: 15px">
-              <div style="width: 44%; height: 100%; float: left">
-                <a-form-item label="插箱高度（U）和：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramz1" style="display: none" />
-                  <a-input v-model:value="parameterTempList[9].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="插箱高度和：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramz2" style="display: none" />
-                  <a-input v-model:value="parameterTempList[10].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="插箱最大深度：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramz3" style="display: none" />
-                  <a-input v-model:value="parameterTempList[11].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="插箱最大宽：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramz4" style="display: none" />
-                  <a-input v-model:value="parameterTempList[12].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-                <a-form-item label="输出电流A(求和)：" :label-col="{ style: { width: '115px' } }">
-                  <a-input v-model:value="paramz5" style="display: none" />
-                  <a-input v-model:value="parameterTempList[13].defaultValue" style="width: 100px" allow-clear disabled />
-                </a-form-item>
-              </div>
-            </section>
-          </div>
+          <section class="page51-summary">
+            <a-form-item label="插箱高度（U）和：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramz1" style="display: none" />
+              <a-input v-model:value="parameterTempList[9].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="插箱高度和：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramz2" style="display: none" />
+              <a-input v-model:value="parameterTempList[10].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="插箱最大深度：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramz3" style="display: none" />
+              <a-input v-model:value="parameterTempList[11].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="插箱最大宽：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramz4" style="display: none" />
+              <a-input v-model:value="parameterTempList[12].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+            <a-form-item label="输出电流A(求和)：" :label-col="formLabelCol" class="page51-form-item">
+              <a-input v-model:value="paramz5" style="display: none" />
+              <a-input v-model:value="parameterTempList[13].defaultValue" class="page51-input" allow-clear disabled />
+            </a-form-item>
+          </section>
         </a-form>
       </div>
     </div>
@@ -150,9 +140,11 @@ import {
   runCalculation,
   type ModuleOkPayload,
 } from './Process7-page5-1/rowOperations';
-import { TABLE_COLUMNS, TYPE_OPTIONS } from './Process7-page5-1/tableColumns';
+import { TABLE_COLUMNS, TABLE_MIN_WIDTH, TYPE_OPTIONS } from './Process7-page5-1/tableColumns';
 
 defineOptions({ name: 'customizedProcess7-page5-1' });
+
+const formLabelCol = { style: { width: '180px' } };
 
 const props = withDefaults(
   defineProps<{
@@ -368,21 +360,76 @@ defineExpose({
 <style scoped>
 .selectBox {
   width: 100%;
-  height: 100%;
-  float: left;
-  padding-top: 10px;
+  padding: 10px 10px 0;
 }
+
 .layout-content {
   background: #ffffff;
 }
+
+.page51-section-title {
+  font-weight: 600;
+  font-size: 15px;
+  padding: 0 10px;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.page51-design-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 48px;
+  padding: 12px 10px 0 25px;
+}
+
+.page51-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 48px;
+  padding: 16px 10px 0 25px;
+}
+
+.page51-summary .page51-form-item:last-child {
+  grid-column: 1 / -1;
+}
+
+.page51-summary .page51-input {
+  width: 280px;
+}
+
+.page51-summary .page51-form-item {
+  margin-bottom: 0;
+}
+
+.page51-form-item {
+  margin-bottom: 0;
+}
+
+.page51-form-item :deep(.ant-form-item-label) {
+  flex: 0 0 180px;
+  max-width: 180px;
+}
+
+.page51-form-item :deep(.ant-form-item-label > label) {
+  height: auto;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.page51-input {
+  width: 200px;
+}
+
 .page5-table {
   width: 100%;
 }
+
 .page5-table :deep(.ant-table-cell) {
   padding: 4px 8px !important;
 }
+
 .table-cell-input {
   width: 100%;
+  min-width: 100px;
   text-align: center;
 }
 </style>

@@ -19,6 +19,8 @@ export const ASSEMBLY_TABLE_COLUMNS: TableColumnType[] = [
   { title: '备注', dataIndex: 'p14', key: 'p14', align: 'center', width: 80 },
 ];
 
+export const ASSEMBLY_TABLE_MIN_WIDTH = ASSEMBLY_TABLE_COLUMNS.reduce((sum, column) => sum + Number(column.width ?? 0), 0);
+
 export const INPUT_EDITABLE_FIELDS = ['p9', 'p10', 'p7'] as const;
 
 export function formatCategoryLabel(p1: unknown) {

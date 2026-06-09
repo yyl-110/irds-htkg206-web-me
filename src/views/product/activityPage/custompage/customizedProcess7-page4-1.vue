@@ -11,61 +11,139 @@
             style="width: 200px"
             allow-clear
             disabled />
-          <a-button type="primary" class="btnSty" style="margin-left: 5px" @click="initData">更新数据</a-button>
+          <a-button type="primary" class="btnSty" style="margin-left: 10px" @click="initData">更新数据</a-button>
         </div>
 
-        <div v-show="pageType === 0" style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
+        <div
+          v-show="pageType === 0"
+          style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
           <a-form label-align="left" :colon="false">
             <div style="width: 100%; float: left; height: 47px">
-              <a-form-item label="柴油发电机组:" :label-col="{ style: { width: '115px' } }" style="float: left; margin-bottom: 10px">
+              <a-form-item
+                label="柴油发电机组:"
+                :label-col="{ style: { width: '115px' } }"
+                style="float: left; margin-bottom: 10px">
                 <a-input v-model:value="param2" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[1].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[1].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
-              <a-form-item label="低压电池:" :label-col="{ style: { width: '70px' } }" style="float: left; margin-bottom: 10px; margin-left: 30px">
+              <a-form-item
+                label="低压电池:"
+                :label-col="{ style: { width: '70px' } }"
+                style="float: left; margin-bottom: 10px; margin-left: 30px">
                 <a-input v-model:value="param3" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[2].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[2].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
-              <a-form-item label="取力发电机组:" :label-col="{ style: { width: '90px' } }" style="float: left; margin-left: 30px; margin-bottom: 10px">
+              <a-form-item
+                label="取力发电机组:"
+                :label-col="{ style: { width: '90px' } }"
+                style="float: left; margin-left: 30px; margin-bottom: 10px">
                 <a-input v-model:value="param4" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[3].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[3].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
             </div>
           </a-form>
         </div>
 
-        <div v-show="pageType === 1" style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
+        <div
+          v-show="pageType === 1"
+          style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
           <a-form label-align="left" :colon="false">
             <div style="width: 100%; float: left; height: 47px">
-              <a-form-item label="柴油发电机组:" :label-col="{ style: { width: '115px' } }" style="float: left; margin-bottom: 10px">
+              <a-form-item
+                label="柴油发电机组:"
+                :label-col="{ style: { width: '115px' } }"
+                style="float: left; margin-bottom: 10px">
                 <a-input v-model:value="param5" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[4].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[4].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
-              <a-form-item label="取力发电机组:" :label-col="{ style: { width: '90px' } }" style="float: left; margin-bottom: 10px; margin-left: 30px">
+              <a-form-item
+                label="取力发电机组:"
+                :label-col="{ style: { width: '90px' } }"
+                style="float: left; margin-bottom: 10px; margin-left: 30px">
                 <a-input v-model:value="param6" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[5].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[5].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
-              <a-form-item label="高压电池:" :label-col="{ style: { width: '70px' } }" style="float: left; margin-bottom: 10px; margin-left: 30px">
+              <a-form-item
+                label="高压电池:"
+                :label-col="{ style: { width: '70px' } }"
+                style="float: left; margin-bottom: 10px; margin-left: 30px">
                 <a-input v-model:value="param7" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[6].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[6].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
             </div>
           </a-form>
         </div>
 
-        <div v-show="pageType === 2" style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
+        <div
+          v-show="pageType === 2"
+          style="width: 100%; font-weight: 600; padding-left: 10px; padding-top: 10px; float: left">
           <a-form label-align="left" :colon="false">
             <div style="width: 100%; float: left; height: 47px">
-              <a-form-item label="柴油发电机组:" :label-col="{ style: { width: '115px' } }" style="float: left; margin-bottom: 10px">
+              <a-form-item
+                label="柴油发电机组:"
+                :label-col="{ style: { width: '115px' } }"
+                style="float: left; margin-bottom: 10px">
                 <a-input v-model:value="param8" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[7].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[7].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
-              <a-form-item label="外接市电:" :label-col="{ style: { width: '70px' } }" style="float: left; margin-bottom: 10px; margin-left: 30px">
+              <a-form-item
+                label="外接市电:"
+                :label-col="{ style: { width: '70px' } }"
+                style="float: left; margin-bottom: 10px; margin-left: 30px">
                 <a-input v-model:value="param9" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[8].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[8].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
-              <a-form-item label="整流电源:" :label-col="{ style: { width: '70px' } }" style="float: left; margin-bottom: 10px; margin-left: 30px">
+              <a-form-item
+                label="整流电源:"
+                :label-col="{ style: { width: '70px' } }"
+                style="float: left; margin-bottom: 10px; margin-left: 30px">
                 <a-input v-model:value="param10" style="width: 100px; display: none" allow-clear disabled />
-                <a-input v-model:value="parameterTempList[9].defaultValue" placeholder="请输入..." style="width: 80px" allow-clear disabled />
+                <a-input
+                  v-model:value="parameterTempList[9].defaultValue"
+                  placeholder="请输入..."
+                  style="width: 80px"
+                  allow-clear
+                  disabled />
               </a-form-item>
             </div>
           </a-form>
@@ -79,9 +157,12 @@
           <div style="width: auto; font-size: 15px; font-weight: 600; padding-left: 10px">产品组成：</div>
           <div>
             <a-button type="primary" @click="addColumns">
-              <span class="legacy-icon" type="md-add" />添加行</a-button>
-            <a-button danger style="margin-left: 30px" @click="delColumns">
-              <span class="legacy-icon" type="md-close" />删除行</a-button>
+              <template #icon><PlusOutlined /></template>添加行</a-button
+            >
+            <a-button danger style="margin-left: 10px" @click="delColumns">
+              <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
+              删除行</a-button
+            >
           </div>
           <div style="width: 100%; min-height: 330px">
             <a-table
@@ -104,10 +185,7 @@
                   <span v-else>{{ record.p1 }}</span>
                 </template>
                 <template v-else-if="column.dataIndex === 'p2'">
-                  <a-input
-                    v-model:value="record.p2"
-                    class="table-cell-input"
-                    @blur="onRemarkBlur(record, index)" />
+                  <a-input v-model:value="record.p2" class="table-cell-input" @blur="onRemarkBlur(record, index)" />
                 </template>
               </template>
             </a-table>
@@ -120,6 +198,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { PlusOutlined } from '@ant-design/icons-vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import defaultDiagram from '@/assets/images/viz-schematic-placeholder.png';
 import { getFlowParameterList } from './shared/flowContext';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';

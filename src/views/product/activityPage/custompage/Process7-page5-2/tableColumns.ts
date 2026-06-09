@@ -24,3 +24,13 @@ export const COMPOSITE_SIZE_COLUMNS: TableColumnType[] = [
 ];
 
 export const COMPOSITE_COMPARE_FIELDS = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+
+export const STANDARD_CABINET_MIN_WIDTH = STANDARD_CABINET_COLUMNS.reduce(
+  (sum, column) => sum + Number(column.width ?? 0),
+  0,
+);
+
+export const COMPOSITE_SIZE_MIN_WIDTH = COMPOSITE_SIZE_COLUMNS.reduce(
+  (sum, column) => sum + Number(column.width ?? 0),
+  0,
+);
