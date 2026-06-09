@@ -26,7 +26,7 @@
           class="page5-table">
           <template #bodyCell="{ column, record, index }">
             <template v-if="resolveLeafColumn(column)?.cellMode === 'editable'">
-              <a-input
+              <a-input-number
                 v-model:value="record[String(column.dataIndex)]"
                 type="number"
                 class="table-cell-input table-cell-input--highlight"

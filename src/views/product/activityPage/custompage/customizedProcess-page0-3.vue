@@ -16,7 +16,7 @@
         <section class="main-section">
           <div class="form-column-left">
             <a-form-item label="舵机最大输出力矩(Nm)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[1].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -27,7 +27,7 @@
             </a-form-item>
 
             <a-form-item label="额定输出力矩(Nm)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[2].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -39,7 +39,7 @@
             </a-form-item>
 
             <a-form-item label="舵机负载转速(旋转)(°/S)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[3].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -51,7 +51,7 @@
             </a-form-item>
 
             <a-form-item label="机械行程(单边转角)(°)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[4].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -62,7 +62,7 @@
             </a-form-item>
 
             <a-form-item label="最大空载转速(旋转)(°/S)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[5].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -73,7 +73,7 @@
             </a-form-item>
 
             <a-form-item label="舵机额定功率(W)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[6].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -86,7 +86,7 @@
 
           <div class="form-column-right">
             <a-form-item label="舵机最大输出力矩(等效, Nm)：" :label-col="formLabelColWide">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[8].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -97,7 +97,7 @@
             </a-form-item>
 
             <a-form-item label="额定输出力矩(等效, Nm)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[9].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -109,7 +109,7 @@
             </a-form-item>
 
             <a-form-item label="舵机负载速度(等效, °/S)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[10].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -121,7 +121,7 @@
             </a-form-item>
 
             <a-form-item label="机械行程(单边直线)(°)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[11].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -132,7 +132,7 @@
             </a-form-item>
 
             <a-form-item label="最大空载速度(等效, °/S)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[12].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -143,7 +143,7 @@
             </a-form-item>
 
             <a-form-item label="舵机额定功率(W)：">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[13].defaultValue"
                 type="number"
                 placeholder="请输入..."
@@ -219,9 +219,7 @@ watch(
 
 async function loadPageParametersIfNeeded() {
   if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(
-    props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '',
-  ).trim();
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
   if (!pageId) return;
   parameterTempList.value = await loadPage0_3PageParameters(pageId);
 }
@@ -338,7 +336,7 @@ onMounted(async () => {
 
 <style scoped>
 .layout-wrapper {
-  padding: 0 10px;
+  padding: 10px 10px;
   min-height: 500px;
   background-color: #ffffff;
 }

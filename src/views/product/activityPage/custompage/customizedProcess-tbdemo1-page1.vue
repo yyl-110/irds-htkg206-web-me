@@ -19,14 +19,14 @@
             @change="setSaveBtnEnable" />
         </a-form-item>
         <a-form-item label="最正调压级数：">
-          <a-input
+          <a-input-number
             v-model:value="parameterTempList[2].defaultValue"
             type="number"
             class="field-control"
             @input="setSaveBtnEnable" />
         </a-form-item>
         <a-form-item label="最负调压级数：">
-          <a-input
+          <a-input-number
             v-model:value="parameterTempList[3].defaultValue"
             type="number"
             class="field-control"

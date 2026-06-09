@@ -15,7 +15,7 @@
         <div class="frame-lining-page__form-grid">
           <div class="frame-lining-page__form-col">
             <a-form-item v-for="field in formLeftFields" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
@@ -26,7 +26,7 @@
 
           <div class="frame-lining-page__form-col">
             <a-form-item v-for="field in formRightFields" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
@@ -77,7 +77,7 @@
           </template>
 
           <template v-else-if="resolveFrameColumn(column)?.cellMode === 'number'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               type="number"
               class="table-cell-input"
@@ -86,7 +86,7 @@
           </template>
 
           <template v-else-if="resolveFrameColumn(column)?.cellMode === 'editable'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               class="table-cell-input"
               @blur="setSaveBtnEnable()"
@@ -142,7 +142,7 @@
           </template>
 
           <template v-else-if="resolveLiningColumn(column)?.cellMode === 'number'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               type="number"
               class="table-cell-input"

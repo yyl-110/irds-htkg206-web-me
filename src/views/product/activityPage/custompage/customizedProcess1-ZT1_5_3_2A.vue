@@ -46,7 +46,7 @@
             @change="setSaveBtnEnable()" />
         </template>
         <template v-else-if="resolveLoadColumn(column)?.cellMode === 'number'">
-          <a-input
+          <a-input-number
             v-model:value="record[String(column.dataIndex)]"
             type="number"
             class="table-cell-input"

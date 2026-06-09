@@ -62,7 +62,7 @@
               @change="(value: string) => handleTypeChange(record, value)" />
           </template>
           <template v-else-if="resolveColumn(column)?.cellMode === 'number'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               type="number"
               class="table-cell-input"
@@ -70,10 +70,7 @@
               @input="setSaveBtnEnable()" />
           </template>
           <template v-else-if="resolveColumn(column)?.cellMode === 'editable'">
-            <a-input
-              v-model:value="record[String(column.dataIndex)]"
-              class="table-cell-input"
-              @input="setSaveBtnEnable()" />
+            <a-input v-model:value="record[String(column.dataIndex)]" class="table-cell-input" @input="setSaveBtnEnable()" />
           </template>
         </template>
       </a-table>

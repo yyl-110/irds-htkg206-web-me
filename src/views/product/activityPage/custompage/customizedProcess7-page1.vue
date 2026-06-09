@@ -50,7 +50,7 @@
             class="page1-table">
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'p2'">
-                <a-input
+                <a-input-number
                   v-if="record.p0 === '交流'"
                   v-model:value="record.p2"
                   type="number"

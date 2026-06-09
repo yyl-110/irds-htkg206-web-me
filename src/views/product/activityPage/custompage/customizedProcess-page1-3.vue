@@ -50,7 +50,7 @@
           </a-form-item>
 
           <a-form-item label="信号电压(V)(下限)：">
-            <a-input
+            <a-input-number
               v-model:value="parameterTempList[4].defaultValue"
               type="number"
               placeholder="请输入..."
@@ -61,7 +61,7 @@
           </a-form-item>
 
           <a-form-item label="信号电压(V)(上限)：">
-            <a-input
+            <a-input-number
               v-model:value="parameterTempList[5].defaultValue"
               type="number"
               placeholder="请输入..."
@@ -72,7 +72,7 @@
           </a-form-item>
 
           <a-form-item label="反馈电压(V)(下限)：">
-            <a-input
+            <a-input-number
               v-model:value="parameterTempList[6].defaultValue"
               type="number"
               placeholder="请输入..."
@@ -83,7 +83,7 @@
           </a-form-item>
 
           <a-form-item label="反馈电压(V)(上限)：">
-            <a-input
+            <a-input-number
               v-model:value="parameterTempList[7].defaultValue"
               type="number"
               placeholder="请输入..."

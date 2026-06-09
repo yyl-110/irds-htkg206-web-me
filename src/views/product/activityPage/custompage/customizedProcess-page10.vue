@@ -28,7 +28,11 @@
       <div class="page10-toolbar">
         <div class="page10-toolbar__field">
           <span class="page10-toolbar__label">传动效率:</span>
-          <a-input v-model:value="efficiencyValue" allow-clear class="page10-toolbar__input" @input="handleEfficiencyChange" />
+          <a-input
+            v-model:value="efficiencyValue"
+            allow-clear
+            class="page10-toolbar__input"
+            @input="handleEfficiencyChange" />
         </div>
         <a-space :size="12">
           <a-button type="primary" @click="openImportModal">
@@ -54,7 +58,7 @@
           class="page10-table">
           <template #bodyCell="{ column, record, index }">
             <template v-if="column.cellMode === 'editable' || resolveDegreeColumn(column)?.cellMode === 'editable'">
-              <a-input
+              <a-input-number
                 v-model:value="record[String(column.dataIndex)]"
                 type="number"
                 class="table-cell-input"
@@ -65,7 +69,13 @@
       </div>
     </div>
 
-    <a-modal v-model:open="importModalVisible" title="批量上传" :mask-closable="false" width="600px" @ok="closeImportModal" @cancel="closeImportModal">
+    <a-modal
+      v-model:open="importModalVisible"
+      title="批量上传"
+      :mask-closable="false"
+      width="600px"
+      @ok="closeImportModal"
+      @cancel="closeImportModal">
       <div class="import-panel">
         <div class="import-panel__row">
           <span>请选择模板：</span>
@@ -117,12 +127,7 @@ import {
   type Page10ParameterItem,
   type Page10SchemeRow,
 } from './page10/parameterDefaults';
-import {
-  PAGE10_DEGREE_COLUMNS,
-  PAGE10_SCHEME_COLUMNS,
-  isNumericInput,
-  type Page10AntColumn,
-} from './page10/tableColumns';
+import { PAGE10_DEGREE_COLUMNS, PAGE10_SCHEME_COLUMNS, isNumericInput, type Page10AntColumn } from './page10/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page10' });
 

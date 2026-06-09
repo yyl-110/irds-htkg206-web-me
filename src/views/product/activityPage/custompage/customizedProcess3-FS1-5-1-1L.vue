@@ -29,7 +29,7 @@
       <a-form label-align="left" :colon="false" :label-col="formLabelCol" class="wall-check-page__form">
         <div class="wall-check-page__form-grid">
           <a-form-item v-for="field in formFields.slice(0, 2)" :key="field.index" :label="field.label">
-            <a-input
+            <a-input-number
               v-model:value="parameterTempList[field.index].defaultValue"
               type="number"
               class="field-input"
@@ -37,7 +37,7 @@
               style="width: 200px" />
           </a-form-item>
           <a-form-item v-for="field in formFields.slice(2)" :key="field.index" :label="field.label">
-            <a-input
+            <a-input-number
               v-model:value="parameterTempList[field.index].defaultValue"
               type="number"
               class="field-input"
@@ -60,7 +60,7 @@
             <span>{{ record[String(column.dataIndex)] }}</span>
           </template>
           <template v-else-if="resolveCheckColumn(column)?.cellMode === 'number'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               type="number"
               class="table-cell-input"

@@ -7,7 +7,7 @@
         <div class="page2-params-row">
           <a-form label-align="left" :colon="false">
             <a-form-item label="供电支路：" :label-col="formLabelCol" class="page2-form-item">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[2].defaultValue"
                 type="number"
                 class="page2-input page2-input--sm"

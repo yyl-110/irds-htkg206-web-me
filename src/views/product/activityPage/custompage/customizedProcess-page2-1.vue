@@ -371,7 +371,7 @@ onMounted(async () => {
 
 <style scoped>
 .layout-wrapper {
-  padding: 0 10px;
+  padding: 10px 10px;
   min-height: 680px;
   background-color: #ffffff;
 }

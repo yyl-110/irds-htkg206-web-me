@@ -37,7 +37,11 @@
 
             <div class="segment-form__row">
               <span class="segment-form__label">舱段长度(mm):</span>
-              <a-input v-model:value="row.p2" type="number" class="segment-form__control" @blur="setSaveBtnEnable()" />
+              <a-input-number
+                v-model:value="row.p2"
+                type="number"
+                class="segment-form__control"
+                @blur="setSaveBtnEnable()" />
 
               <span class="segment-form__label">照明设备位置:</span>
               <PicAttachmentField
@@ -108,7 +112,12 @@
       </template>
     </a-modal>
 
-    <a-modal v-model:visible="previewModalVisible" :title="previewFileName" :mask-closable="true" :width="1000" :footer="null">
+    <a-modal
+      v-model:visible="previewModalVisible"
+      :title="previewFileName"
+      :mask-closable="true"
+      :width="1000"
+      :footer="null">
       <div class="preview-wrap">
         <img v-if="previewPicUrl" :src="previewPicUrl" alt="预览" class="preview-img" />
       </div>

@@ -10,7 +10,7 @@
         <a-form label-align="left" :colon="false" class="page3-params-form">
           <div class="page3-params-grid">
             <a-form-item label="低压直流供电支路：" :label-col="formLabelCol" class="page3-form-item">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[2].defaultValue"
                 type="number"
                 class="page3-input"

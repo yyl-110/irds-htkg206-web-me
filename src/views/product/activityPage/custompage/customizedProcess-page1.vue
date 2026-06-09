@@ -15,7 +15,7 @@
               :row-key="tableRowKey">
               <template #bodyCell="{ column, record, index }">
                 <template v-if="column.dataIndex === 'p1' && column.editable">
-                  <a-input
+                  <a-input-number
                     v-model:value="record.p1"
                     type="number"
                     class="table-cell-input"
@@ -23,7 +23,7 @@
                     @blur="onInputParamBlur(record, index, 'p1', $event)" />
                 </template>
                 <template v-else-if="column.dataIndex === 'p2' && column.editable">
-                  <a-input
+                  <a-input-number
                     v-model:value="record.p2"
                     type="number"
                     class="table-cell-input"
@@ -56,7 +56,7 @@
             :row-key="tableRowKey">
             <template #bodyCell="{ column, record, index }">
               <template v-if="isZeroPositionEditableColumn(column)">
-                <a-input
+                <a-input-number
                   v-model:value="record.p0"
                   type="number"
                   class="table-cell-input"
@@ -102,7 +102,7 @@
             :row-selection="resultRowSelection">
             <template #bodyCell="{ column, record, index }">
               <template v-if="isResultTableEditableColumn(column)">
-                <a-input
+                <a-input-number
                   v-model:value="record.p0"
                   type="number"
                   class="table-cell-input"

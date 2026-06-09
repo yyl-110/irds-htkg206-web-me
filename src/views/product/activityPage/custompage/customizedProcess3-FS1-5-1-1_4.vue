@@ -12,7 +12,7 @@
         <div class="inner-skin-page__form-grid">
           <div class="inner-skin-page__form-col">
             <a-form-item v-for="field in formLeftFields" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
@@ -22,7 +22,7 @@
           </div>
           <div class="inner-skin-page__form-col">
             <a-form-item v-for="field in formRightFields" :key="field.index" :label="field.label">
-              <a-input
+              <a-input-number
                 v-model:value="parameterTempList[field.index].defaultValue"
                 type="number"
                 class="field-input"
@@ -67,7 +67,7 @@
             <span>{{ record[String(column.dataIndex)] }}</span>
           </template>
           <template v-else-if="resolveColumn(column)?.cellMode === 'number'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               type="number"
               class="table-cell-input"

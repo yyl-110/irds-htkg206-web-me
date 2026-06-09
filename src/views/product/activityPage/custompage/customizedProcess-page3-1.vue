@@ -33,7 +33,7 @@
                 disabled />
             </template>
             <template v-else-if="resolveLeafColumn(column)?.cellMode === 'editable'">
-              <a-input
+              <a-input-number
                 v-model:value="record[String(column.dataIndex)]"
                 type="number"
                 class="table-cell-input"

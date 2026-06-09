@@ -29,7 +29,7 @@
             <span>{{ record[String(column.dataIndex)] }}</span>
           </template>
           <template v-else-if="resolveOuterColumn(column)?.cellMode === 'number'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               type="number"
               class="table-cell-input"
@@ -72,7 +72,7 @@
             <span>{{ record[String(column.dataIndex)] }}</span>
           </template>
           <template v-else-if="resolveInnerColumn(column)?.cellMode === 'number'">
-            <a-input
+            <a-input-number
               v-model:value="record[String(column.dataIndex)]"
               type="number"
               class="table-cell-input"

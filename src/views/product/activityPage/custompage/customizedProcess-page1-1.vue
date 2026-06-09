@@ -15,7 +15,7 @@
               :row-key="tableRowKey">
               <template #bodyCell="{ column, record, index }">
                 <template v-if="isInputParamEditableColumn(column)">
-                  <a-input
+                  <a-input-number
                     v-model:value="record.p2"
                     type="number"
                     class="table-cell-input"
@@ -45,7 +45,7 @@
             :row-key="tableRowKey">
             <template #bodyCell="{ column, record, index }">
               <template v-if="isZeroPositionEditableColumn(column)">
-                <a-input
+                <a-input-number
                   v-model:value="record.p0"
                   type="number"
                   class="table-cell-input"
@@ -86,7 +86,7 @@
             :row-selection="resultRowSelection">
             <template #bodyCell="{ column, record, index }">
               <template v-if="isResultTableEditableColumn(column)">
-                <a-input
+                <a-input-number
                   v-model:value="record.p0"
                   type="number"
                   class="table-cell-input"
@@ -231,17 +231,8 @@ const calcCtx = {
   onSaveBtnEnable: () => setSaveBtnEnable(),
 };
 
-const {
-  addRowData,
-  delRow,
-  calc,
-  angleInput,
-  angleInput1,
-  changeInput,
-  changeInput1,
-  changeInput2,
-  changeInput3,
-} = createPage0_5Calculations(calcCtx);
+const { addRowData, delRow, calc, angleInput, angleInput1, changeInput, changeInput1, changeInput2, changeInput3 } =
+  createPage0_5Calculations(calcCtx);
 
 const resultRowSelection = computed(() => ({
   selectedRowKeys: selectedResultRowKeys.value,
@@ -267,9 +258,7 @@ function resultTableRowKey(record: Record<string, string>, index?: number) {
 
 async function loadPageParametersIfNeeded() {
   if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(
-    props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '',
-  ).trim();
+  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
   if (!pageId) return;
   parameterTempList.value = await loadPage0_5PageParameters(pageId);
   data.value = parameterTempList.value[0]?.tableMap?.rowData ?? [];

@@ -15,7 +15,7 @@
           </a-form-item>
 
           <a-form-item label="等效力臂(mm)：">
-            <a-input
+            <a-input-number
               v-model:value="parameterTempList[2].defaultValue"
               type="number"
               placeholder="请输入..."
@@ -186,7 +186,7 @@ onMounted(async () => {
 
 <style scoped>
 .layout-wrapper {
-  padding: 0 10px;
+  padding: 10px 10px;
   min-height: 680px;
   background-color: #ffffff;
 }
