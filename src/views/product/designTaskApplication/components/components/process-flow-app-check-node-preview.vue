@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch, type Directive } from 'vue';
 import { message } from 'ant-design-vue';
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+import { ExclamationCircleOutlined, ClockCircleOutlined } from '@ant-design/icons-vue';
+import {
+  lookupWbsParamInMap,
+  normalizeWbsParamValue,
+  parseSavedParamValueList,
+  parseWbsParamRecord,
+  resolvePreviewParamBaseValue,
+  shouldShowWbsProjectParamSyncHint,
+} from '@/composables/designWorkspace/useWbsProjectParamSync';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
@@ -13,9 +21,12 @@ const props = defineProps<{
   nodeDetailData?: Record<string, any> | null;
   taskId?: string | number | null;
   activityId?: string | number | null;
+  wbsCollabMode?: boolean;
+  projectParamMap?: Record<string, string> | null;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
+  (e: 'content-mutated'): void;
 }>();
 
 const calcCheckPreviewTypes = new Set([
@@ -78,17 +89,52 @@ const showReportOutputButton = computed(() =>
 const canClickReportOutput = computed(() => showReportOutputButton.value && calculatedReportValue.value.length > 0);
 
 function parseSavedValueMap(list: any[] | null | undefined) {
-  const map = new Map<string, string>();
-  if (!Array.isArray(list)) return map;
-  list.forEach((row: any) => {
-    const code = String(row?.paramCode ?? row?.code ?? '').trim();
-    if (!code) return;
-    map.set(code, String(row?.paramValue ?? row?.value ?? '').trim());
-  });
-  return map;
+  return parseSavedParamValueList(list);
 }
 
 const savedValueMap = computed(() => parseSavedValueMap(props.savedParamValues));
+const projectParamValueMap = computed(() => parseWbsParamRecord(props.projectParamMap ?? undefined));
+
+function getProjectParamValueByCode(paramCodeRaw: string): string {
+  return lookupWbsParamInMap(projectParamValueMap.value, paramCodeRaw);
+}
+
+function getCalcPreviewParamValue(item: any, index: number): string {
+  const key = getPreviewItemKey(item, index);
+  return normalizeWbsParamValue(previewFieldValueMap.value[key] ?? item?.paramValue ?? '');
+}
+
+function canWbsProjectParamSyncItem(item: any): boolean {
+  if (!props.wbsCollabMode) return false;
+  if (isOutputIoType(item)) return false;
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  return !!code;
+}
+
+function showWbsProjectParamSyncHint(item: any, index: number): boolean {
+  if (!canWbsProjectParamSyncItem(item)) return false;
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  const projectVal = getProjectParamValueByCode(code);
+  const taskVal = getCalcPreviewParamValue(item, index);
+  return shouldShowWbsProjectParamSyncHint(taskVal, projectVal);
+}
+
+function wbsProjectParamSyncHint(item: any, index: number): string {
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  const projectVal = getProjectParamValueByCode(code);
+  const taskVal = getCalcPreviewParamValue(item, index);
+  return `本任务值「${taskVal}」与项目值「${projectVal || '空'}」不一致，点击接收项目参数值`;
+}
+
+function acceptWbsProjectParamValue(item: any, index: number) {
+  if (!canWbsProjectParamSyncItem(item)) return;
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  const projectVal = getProjectParamValueByCode(code);
+  const key = getPreviewItemKey(item, index);
+  previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: projectVal };
+  message.success(`已接收项目参数值：${projectVal || '空'}`);
+  emit('content-mutated');
+}
 
 const previewList = computed(() => {
   console.log(props.componentsJson, 'props.componentsJson');
@@ -380,9 +426,14 @@ watch(
     const nextMap: Record<string, string> = {};
     list.forEach((item: any, index: number) => {
       const key = getPreviewItemKey(item, index);
-      const code = String(item?.paramCode ?? '').trim();
-      const saved = code ? String(savedValueMap.value.get(code) ?? '') : '';
-      nextMap[key] = saved || String(item?.paramValue ?? '');
+      const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+      nextMap[key] = resolvePreviewParamBaseValue({
+        wbsCollabMode: props.wbsCollabMode,
+        savedMap: savedValueMap.value,
+        projectMap: projectParamValueMap.value,
+        paramCode: code,
+        componentDefault: item?.paramValue,
+      });
     });
     previewFieldValueMap.value = nextMap;
   },
@@ -468,6 +519,9 @@ defineExpose({
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
+            <a-tooltip v-if="showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
+              <ClockCircleOutlined class="component-project-param-sync" @click.stop="acceptWbsProjectParamValue(item, index)" />
+            </a-tooltip>
           </div>
 
           <template v-if="item.componentType === 'TITLE'">
@@ -503,6 +557,9 @@ defineExpose({
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{
                 item.paramName || '数据浏览'
               }}</span>
+              <a-tooltip v-if="showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
+                <ClockCircleOutlined class="component-project-param-sync" @click.stop="acceptWbsProjectParamValue(item, index)" />
+              </a-tooltip>
             </div>
             <div class="data-view-preview-row">
               <div class="preview-field-trigger data-view-preview-input-wrap" @click.capture="onParamTitleClick(item)">
@@ -739,6 +796,14 @@ defineExpose({
   color: #1677ff;
   font-size: 14px;
   cursor: pointer;
+}
+.component-project-param-sync {
+  color: #fa8c16;
+  font-size: 14px;
+  cursor: pointer;
+}
+.component-project-param-sync:hover {
+  color: #d46b08;
 }
 .preview-field {
   width: var(--activity-preview-component-width);

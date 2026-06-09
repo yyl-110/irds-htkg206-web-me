@@ -133,6 +133,8 @@ const nodeDetailLoading = ref(false);
 const flowViewLoading = ref(false);
 const flowViewData = ref<{ xmlData?: string; nodeStatusMap?: Record<string, string> }>({});
 const nodeDetailData = ref<Record<string, any> | null>(null);
+/** WBS 协同：项目级参数聚合 Map（paramKey -> value），与本任务 savedParamValues 分离 */
+const wbsProjectParamMap = ref<Record<string, string>>({});
 const activityImageUrl = ref('');
 const activityImageMarginTop = ref(0);
 const activityImageWidth = ref(260);
@@ -804,28 +806,31 @@ async function requestNodeDetailByKey(key: string) {
   const appId = route.query.appId ?? workspaceData.value?.appId ?? '';
   const appCode = String(workspaceData.value?.appCode ?? '').trim();
   if (!taskId || !detailObj) return;
-  if (!isWbsCollabWorkspace.value && !appId && !appCode) return;
+  if (isWbsCollabWorkspace.value) {
+    try {
+      const projectId = route.query.projectId;
+      if (projectId) {
+        const mapRes = await AdminApiProjectTemp.wbsTaskParamMap({ projectId, taskId });
+        const payload = mapRes?.data?.data as { params?: Record<string, string> } | undefined;
+        wbsProjectParamMap.value =
+          payload?.params && typeof payload.params === 'object' ? { ...payload.params } : {};
+      } else {
+        wbsProjectParamMap.value = {};
+      }
+    } catch {
+      wbsProjectParamMap.value = {};
+    }
+    hasUnsavedChanges.value = false;
+    return;
+  }
+  if (!appId && !appCode) return;
   const paramQuery: Record<string, any> = { taskId };
   if (appId) paramQuery.appId = appId;
   else paramQuery.appCode = appCode;
   try {
     let raw: unknown;
-    if (isWbsCollabWorkspace.value) {
-      const projectId = route.query.projectId;
-      if (!projectId) return;
-      const mapRes = await AdminApiProjectTemp.wbsTaskParamMap({
-        projectId,
-        taskId,
-      });
-      const payload = mapRes?.data?.data as { params?: Record<string, string> } | undefined;
-      raw = {
-        params: payload?.params && typeof payload.params === 'object' ? payload.params : {},
-        tables: [],
-      };
-    } else {
-      const mapRes = await AdminApiSystemProcessTask.taskParamMap(paramQuery);
-      raw = mapRes?.data?.data;
-    }
+    const mapRes = await AdminApiSystemProcessTask.taskParamMap(paramQuery);
+    raw = mapRes?.data?.data;
     if (!raw || typeof raw !== 'object') return;
     const dataObj = raw as Record<string, any>;
     const paramsObj = dataObj?.params && typeof dataObj.params === 'object' ? dataObj.params : null;
@@ -1736,7 +1741,10 @@ onMounted(() => {
                     :node-detail-data="nodeDetailData"
                     :task-id="String(route.query.taskId ?? workspaceData?.taskId ?? '')"
                     :activity-id="String(nodeDetailData?.activityPageId ?? '')"
-                    @param-title-click="onParamTitleClick" />
+                    :wbs-collab-mode="isWbsCollabWorkspace"
+                    :project-param-map="wbsProjectParamMap"
+                    @param-title-click="onParamTitleClick"
+                    @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppCustomNodePreview
                     v-else-if="isCustomPagePreview"
                     ref="customNodePreviewRef"
@@ -1753,7 +1761,10 @@ onMounted(() => {
                     :saved-tables="nodeDetailData?.savedTables"
                     :task-id="String(route.query.taskId ?? workspaceData?.taskId ?? '')"
                     :activity-id="String(nodeDetailData?.activityPageId ?? '')"
-                    @param-title-click="onParamTitleClick" />
+                    :wbs-collab-mode="isWbsCollabWorkspace"
+                    :project-param-map="wbsProjectParamMap"
+                    @param-title-click="onParamTitleClick"
+                    @content-mutated="onPreviewContentMutated" />
                 </div>
                 <div v-if="hasActivityImage" class="workspace-preview-image-pane">
                   <div class="workspace-preview-image-pane__body" :style="activityImageContentStyle">

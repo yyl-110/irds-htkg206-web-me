@@ -3,7 +3,15 @@ import { computed, nextTick, ref, watch, type Directive } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { message } from 'ant-design-vue';
-import { ExclamationCircleOutlined, EyeOutlined, InboxOutlined } from '@ant-design/icons-vue';
+import { ExclamationCircleOutlined, EyeOutlined, InboxOutlined, ClockCircleOutlined } from '@ant-design/icons-vue';
+import {
+  lookupWbsParamInMap,
+  normalizeWbsParamValue,
+  parseSavedParamValueList,
+  parseWbsParamRecord,
+  resolvePreviewParamBaseValue,
+  shouldShowWbsProjectParamSyncHint,
+} from '@/composables/designWorkspace/useWbsProjectParamSync';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { useUserStore } from '@/store/modules/user';
@@ -22,9 +30,14 @@ const props = defineProps<{
   savedTables?: any[] | null;
   taskId?: string | number | null;
   activityId?: string | number | null;
+  /** WBS 协同：启用本任务 vs 项目参数差异提示 */
+  wbsCollabMode?: boolean;
+  /** WBS 协同：项目级参数 Map */
+  projectParamMap?: Record<string, string> | null;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
+  (e: 'content-mutated'): void;
 }>();
 
 const userStore = useUserStore();
@@ -98,18 +111,60 @@ function normalizeValidateRule(raw: unknown): any {
 }
 
 function parseSavedValueMap(list: any[] | null | undefined) {
-  const map = new Map<string, string>();
-  if (!Array.isArray(list)) return map;
-  list.forEach((row: any) => {
-    const code = String(row?.paramCode ?? row?.code ?? '').trim();
-    if (!code) return;
-    const val = String(row?.paramValue ?? row?.value ?? row?.savedValue ?? '').trim();
-    map.set(code, val);
-  });
-  return map;
+  return parseSavedParamValueList(list);
 }
 
 const savedValueMap = computed(() => parseSavedValueMap(props.savedParamValues));
+const projectParamValueMap = computed(() => parseWbsParamRecord(props.projectParamMap ?? undefined));
+
+function getProjectParamValueByCode(paramCodeRaw: string): string {
+  return lookupWbsParamInMap(projectParamValueMap.value, paramCodeRaw);
+}
+
+function canWbsProjectParamSyncItem(item: any): boolean {
+  if (!props.wbsCollabMode) return false;
+  if (isOutputIoType(item)) return false;
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  return !!code;
+}
+
+function showWbsProjectParamSyncHint(item: any, index: number): boolean {
+  if (!canWbsProjectParamSyncItem(item)) return false;
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  const projectVal = getProjectParamValueByCode(code);
+  const taskVal = getCurrentComponentValue(item, index);
+  return shouldShowWbsProjectParamSyncHint(taskVal, projectVal);
+}
+
+function wbsProjectParamSyncHint(item: any, index: number): string {
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  const projectVal = getProjectParamValueByCode(code);
+  const taskVal = normalizeWbsParamValue(getCurrentComponentValue(item, index));
+  return `本任务值「${taskVal}」与项目值「${projectVal || '空'}」不一致，点击接收项目参数值`;
+}
+
+function acceptWbsProjectParamValue(item: any, index: number) {
+  if (!canWbsProjectParamSyncItem(item)) return;
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  const projectVal = getProjectParamValueByCode(code);
+  const key = getPreviewItemKey(item, index);
+  const type = String(item?.componentType ?? '');
+  if (type === 'RADIO') {
+    radioPreviewValueMap.value = { ...radioPreviewValueMap.value, [key]: projectVal };
+  } else if (type === 'RICH_TEXT') {
+    richTextValueMap.value = { ...richTextValueMap.value, [key]: projectVal };
+    richTextEditorRefMap.value[key]?.setData?.(projectVal);
+  } else if (['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'DATE', 'DATA_VIEW'].includes(type)) {
+    previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: projectVal };
+    if (type === 'INPUT') {
+      inputLastValidValueMap.value = { ...inputLastValidValueMap.value, [key]: projectVal };
+    }
+  } else {
+    return;
+  }
+  message.success(`已接收项目参数值：${projectVal || '空'}`);
+  emit('content-mutated');
+}
 
 function knowledgeHintText(item: any): string {
   return String(item?.knowledgeContent ?? '').trim();
@@ -978,20 +1033,28 @@ function getTableCellUniqueCode(item: any, bodyRow: number, col: number): string
   if (!entry || typeof entry !== 'object') return '';
   return String(entry?.uniqueCode ?? '').trim();
 }
-/** 单元格继承值来源：task-param-map -> savedParamValues */
+/** 单元格继承值来源：task-param-map -> savedParamValues；WBS 本任务为空时 fallback 项目值 */
 function getInheritedParamValueByCode(paramCodeRaw: string): string {
   const target = String(paramCodeRaw ?? '').trim();
   if (!target) return '';
   // 1) 优先精确命中 task-param-map
   if (savedValueMap.value.has(target)) {
-    return String(savedValueMap.value.get(target) ?? '');
-  }
-  // 2) 兼容大小写差异
-  const targetLower = target.toLowerCase();
-  for (const [k, v] of savedValueMap.value.entries()) {
-    if (String(k).trim().toLowerCase() === targetLower) {
-      return String(v ?? '');
+    const taskVal = String(savedValueMap.value.get(target) ?? '');
+    if (taskVal) return taskVal;
+  } else {
+    // 2) 兼容大小写差异
+    const targetLower = target.toLowerCase();
+    for (const [k, v] of savedValueMap.value.entries()) {
+      if (String(k).trim().toLowerCase() === targetLower) {
+        const taskVal = String(v ?? '');
+        if (taskVal) return taskVal;
+        break;
+      }
     }
+  }
+  if (props.wbsCollabMode) {
+    const projectVal = getProjectParamValueByCode(target);
+    if (projectVal) return projectVal;
   }
   return '';
 }
@@ -1712,9 +1775,14 @@ watch(
     const nextLastValid: Record<string, string> = {};
     list.forEach((item: any, index: number) => {
       const key = getPreviewItemKey(item, index);
-      const code = String(item?.paramCode ?? '').trim();
-      const saved = code && savedValueMap.value.has(code) ? String(savedValueMap.value.get(code) ?? '') : '';
-      const base = saved || String(item?.paramValue ?? '');
+      const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+      const base = resolvePreviewParamBaseValue({
+        wbsCollabMode: props.wbsCollabMode,
+        savedMap: savedValueMap.value,
+        projectMap: projectParamValueMap.value,
+        paramCode: code,
+        componentDefault: item?.paramValue,
+      });
       if (['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'DATE', 'DATA_VIEW'].includes(String(item?.componentType ?? ''))) {
         nextFieldValueMap[key] = base;
       }
@@ -1841,6 +1909,9 @@ defineExpose({
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
+            <a-tooltip v-if="showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
+              <ClockCircleOutlined class="component-project-param-sync" @click.stop="acceptWbsProjectParamValue(item, index)" />
+            </a-tooltip>
           </div>
 
           <template v-if="item.componentType === 'TITLE'">
@@ -1890,6 +1961,12 @@ defineExpose({
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{ item.paramName || '数据浏览' }}</span>
               <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
                 <ExclamationCircleOutlined class="component-knowledge-hint" />
+              </a-tooltip>
+              <a-tooltip
+                v-if="showWbsProjectParamSyncHint(item, index)"
+                :title="wbsProjectParamSyncHint(item, index)"
+                placement="top">
+                <ClockCircleOutlined class="component-project-param-sync" @click.stop="acceptWbsProjectParamValue(item, index)" />
               </a-tooltip>
             </div>
             <div class="data-view-preview-row">
@@ -2280,6 +2357,14 @@ defineExpose({
   color: #1677ff;
   font-size: 14px;
   cursor: pointer;
+}
+.component-project-param-sync {
+  color: #fa8c16;
+  font-size: 14px;
+  cursor: pointer;
+}
+.component-project-param-sync:hover {
+  color: #d46b08;
 }
 .preview-field {
   width: 100%;

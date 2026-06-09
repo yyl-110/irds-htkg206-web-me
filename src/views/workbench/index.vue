@@ -1880,12 +1880,8 @@ onUnmounted(() => {
                   <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
                     <Empty v-if="!todoListLoading && todoList.length === 0" description="暂无数据" />
                     <template v-else-if="viewMode === 'grid'">
-                      <a-row :gutter="[16, 12]" align="top">
-                        <a-col
-                          v-for="item in todoList"
-                          :key="String(item.id)"
-                          flex="0 0 350px"
-                          style="width: 350px; max-width: 350px">
+                      <a-row :gutter="[16, 12]" align="top" class="task-card-grid">
+                        <a-col v-for="item in todoList" :key="String(item.id)" :span="8">
                           <div class="task-card" :class="taskCardKindClass(item)">
                             <div v-if="workbenchShowOverdueUi(item)" class="task-card__overdue-corner">延期</div>
                             <div class="task-card__type-ribbon">
@@ -2893,17 +2889,22 @@ onUnmounted(() => {
   }
 }
 
+.task-card-grid {
+  width: 100%;
+}
+
 .task-card {
   position: relative;
   background: #ffffff;
   border: 1px solid #eaeaf1;
   border-radius: 8px;
   padding: 10px 12px 8px;
-  margin-right: 10px;
   margin-bottom: 10px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s;
+  height: 100%;
+  box-sizing: border-box;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
