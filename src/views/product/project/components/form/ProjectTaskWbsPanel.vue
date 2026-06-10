@@ -171,8 +171,24 @@ watch(
   { immediate: true },
 );
 const userIdToName = ref<Map<string, string>>(new Map());
-/** 分类启动 / 任务发布·撤销·删除·恢复 等行内操作 loading */
-const wbsOpBusyRowId = ref<string | null>(null);
+/** 分类启动 / 任务发布·撤销·删除·恢复 等行内操作 loading（按操作类型区分，避免刷新后按钮切换导致文案错乱） */
+type WbsRowBusyOp = 'start' | 'publish' | 'revoke' | 'suspend' | 'restore';
+const wbsOpBusy = ref<{ rowId: string; op: WbsRowBusyOp } | null>(null);
+
+function setWbsOpBusy(record: WbsTaskNode, op: WbsRowBusyOp) {
+  wbsOpBusy.value = { rowId: record.id, op };
+}
+
+function clearWbsOpBusy() {
+  wbsOpBusy.value = null;
+}
+
+function isWbsRowBusy(record: WbsTaskNode, op?: WbsRowBusyOp): boolean {
+  if (!wbsOpBusy.value || wbsOpBusy.value.rowId !== record.id) {
+    return false;
+  }
+  return op ? wbsOpBusy.value.op === op : true;
+}
 
 /** 分类「启动」/ 任务「发布」前填写计划起止时间并落库 */
 type WbsPlanModalMode = 'start' | 'publish';
@@ -451,6 +467,14 @@ function mapTaskStatus(status?: string): TaskWbsStatus {
   return 'pending';
 }
 
+/** 任务行是否尚未发布到工作台（撤销发布后应为 true） */
+function isApiWbsTaskNodeUnpublished(node: any): boolean {
+  if (Number(node?.type ?? 2) !== 2) return false;
+  const pub = node?.publishStatus !== undefined ? Number(node.publishStatus) : undefined;
+  const assignSt = node?.assignStatus != null ? String(node.assignStatus) : '';
+  return pub !== 1 && assignSt !== 'PUBLISHED';
+}
+
 function toDateOnly(v?: string): string {
   if (!v) return '';
   return String(v).slice(0, 10);
@@ -489,6 +513,10 @@ function mapApiNodeToWbs(
   const bindRaw = node?.bindTaskId;
   const bindTaskId = bindRaw !== undefined && bindRaw !== null ? String(bindRaw) : undefined;
   const selfId = apiRawIdToDisplayString(node?.id, serialNo);
+  const unpublished = isApiWbsTaskNodeUnpublished(node);
+  const rawTaskStatus = node?.taskStatus != null ? String(node.taskStatus) : undefined;
+  const effectiveTaskStatus = unpublished ? 'NOT_STARTED' : rawTaskStatus;
+  const effectiveProgress = unpublished ? 0 : Number.isFinite(progressNum) ? progressNum : 0;
 
   const mapped: WbsTaskNode = {
     id: selfId,
@@ -498,7 +526,7 @@ function mapApiNodeToWbs(
     bindTaskId,
     publishStatus: node?.publishStatus !== undefined ? Number(node.publishStatus) : undefined,
     assignStatus: node?.assignStatus ? String(node.assignStatus) : undefined,
-    taskStatusRaw: node?.taskStatus != null ? String(node.taskStatus) : undefined,
+    taskStatusRaw: effectiveTaskStatus,
     serialNo,
     wbsCode: String(node?.wbsCode ?? ''),
     taskName: String(node?.nodeName ?? ''),
@@ -506,9 +534,9 @@ function mapApiNodeToWbs(
     startDate: toDateOnly(node?.planStartTime),
     endDate: toDateOnly(node?.planEndTime),
     durationWorkdays: Number(node?.taskTime ?? 0),
-    progress: Number.isFinite(progressNum) ? progressNum : 0,
+    progress: effectiveProgress,
     predecessor: '',
-    status: mapTaskStatus(node?.taskStatus),
+    status: mapTaskStatus(effectiveTaskStatus),
     resource: '',
     responsibleUserId: undefined,
     manager: node?.adminUserid ? String(node.adminUserid) : '',
@@ -659,17 +687,6 @@ function handleResizeColumn(w: number, col: { width?: number | string }) {
   col.width = w;
 }
 
-function onTaskEdit(record: WbsTaskNode) {
-  if (isWbsTaskCompletedReadonly(record)) {
-    return;
-  }
-  if (!canEditAsAssignee(record)) {
-    message.warning('仅负责人可操作');
-    return;
-  }
-  message.info(`编辑：${record.taskName}`);
-}
-
 function getProjectPlanBounds(): { start: Dayjs | null; end: Dayjs | null } {
   const ps = projectPlanStart.value ? dayjs(projectPlanStart.value).startOf('day') : null;
   const pe = projectPlanEnd.value ? dayjs(projectPlanEnd.value).startOf('day') : null;
@@ -774,7 +791,7 @@ async function confirmWbsPlanModal() {
   }
   const isPublish = wbsPlanModalMode.value === 'publish';
   wbsStartPlanSubmitting.value = true;
-  wbsOpBusyRowId.value = record.id;
+  setWbsOpBusy(record, wbsPlanModalMode.value === 'publish' ? 'publish' : 'start');
   try {
     await persistWbsNodePlanDates(record, sd, ed);
     await AdminApiProjectTemp.projectWbsPublishTask({ id: String(record.id) });
@@ -792,7 +809,7 @@ async function confirmWbsPlanModal() {
     showRequestErrorIfNeeded(e, isPublish ? '发布失败' : '启动失败');
   } finally {
     wbsStartPlanSubmitting.value = false;
-    wbsOpBusyRowId.value = null;
+    clearWbsOpBusy();
   }
 }
 
@@ -827,7 +844,7 @@ async function onTaskUnpublish(record: WbsTaskNode) {
     message.warning('仅上级分类负责人可撤销发布');
     return;
   }
-  wbsOpBusyRowId.value = record.id;
+  setWbsOpBusy(record, 'revoke');
   try {
     await AdminApiProjectTemp.projectWbsRevokePublish({ id: String(record.id) });
     message.success('已撤销发布');
@@ -836,7 +853,7 @@ async function onTaskUnpublish(record: WbsTaskNode) {
   } catch (e: unknown) {
     showRequestErrorIfNeeded(e, '撤销失败');
   } finally {
-    wbsOpBusyRowId.value = null;
+    clearWbsOpBusy();
   }
 }
 
@@ -848,7 +865,7 @@ async function onTaskSuspendConfirm(record: WbsTaskNode) {
     message.warning('仅上级分类负责人可裁剪');
     return;
   }
-  wbsOpBusyRowId.value = record.id;
+  setWbsOpBusy(record, 'suspend');
   try {
     const res = await AdminApiProjectTemp.projectWbsSuspendRow({ id: String(record.id) });
     message.success('已裁剪');
@@ -857,7 +874,7 @@ async function onTaskSuspendConfirm(record: WbsTaskNode) {
   } catch (e: unknown) {
     showRequestErrorIfNeeded(e, '操作失败');
   } finally {
-    wbsOpBusyRowId.value = null;
+    clearWbsOpBusy();
   }
 }
 
@@ -866,7 +883,7 @@ async function onTaskRestore(record: WbsTaskNode) {
     message.warning('仅上级分类负责人可恢复');
     return;
   }
-  wbsOpBusyRowId.value = record.id;
+  setWbsOpBusy(record, 'restore');
   try {
     await AdminApiProjectTemp.projectWbsRestoreRow({ id: String(record.id) });
     message.success(Number(record.type) === 1 ? '已恢复分类节点' : '已恢复任务行');
@@ -874,7 +891,7 @@ async function onTaskRestore(record: WbsTaskNode) {
   } catch (e: unknown) {
     showRequestErrorIfNeeded(e, '恢复失败');
   } finally {
-    wbsOpBusyRowId.value = null;
+    clearWbsOpBusy();
   }
 }
 
@@ -1134,13 +1151,13 @@ function isWbsTaskCompletedReadonly(record: WbsTaskNode): boolean {
 }
 
 function wbsTaskRowOpsLocked(record: WbsTaskNode): boolean {
-  return isWbsTaskCompletedReadonly(record) || wbsOpBusyRowId.value === record.id;
+  return isWbsTaskCompletedReadonly(record) || isWbsRowBusy(record);
 }
 
 /** 仅已完成任务可发起变更（与其它行内操作相反：完成后锁定改期/编辑，变更除外） */
 function canWbsTaskChangeRequest(record: WbsTaskNode): boolean {
   if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
-  if (wbsOpBusyRowId.value === record.id) return false;
+  if (isWbsRowBusy(record)) return false;
   return isWbsTaskCompletedReadonly(record);
 }
 
@@ -1221,7 +1238,9 @@ function isWbsTaskUnpublished(record: WbsTaskNode): boolean {
 
 function browseAssignEnabled(record: WbsTaskNode): boolean {
   if (isRowRemoved(record)) return false;
-  return isWbsTaskNotStarted(record) && isWbsTaskUnpublished(record);
+  if (isWbsTaskCompletedReadonly(record)) return false;
+  /** 未发布即可重新浏览选人（含撤销发布后 taskStatus 尚未回落的兼容） */
+  return isWbsTaskUnpublished(record);
 }
 
 function canShowBrowseResponsible(record: WbsTaskNode): boolean {
@@ -1306,7 +1325,7 @@ function canShowTailoringAction(record: WbsTaskNode): boolean {
 }
 
 function isTailoringCropDisabled(record: WbsTaskNode): boolean {
-  if (wbsOpBusyRowId.value === record.id) return true;
+  if (isWbsRowBusy(record)) return true;
   if (isWbsTaskCompletedReadonly(record)) return true;
   return !canShowRowSuspend(record);
 }
@@ -2312,25 +2331,25 @@ watch(ganttCollapsed, () => {
                   class="task-wbs-tailoring-emoji task-wbs-tailoring-emoji--crop"
                   :class="{
                     'is-disabled': isTailoringCropDisabled(record),
-                    'is-loading': wbsOpBusyRowId === record.id,
+                    'is-loading': isWbsRowBusy(record, 'suspend'),
                   }"
                   role="button"
                   tabindex="0"
                   aria-label="裁剪"
-                  @click.stop="!isTailoringCropDisabled(record) && wbsOpBusyRowId !== record.id && onTailoringCropClick(record)"
-                  @keydown.enter.prevent="!isTailoringCropDisabled(record) && wbsOpBusyRowId !== record.id && onTailoringCropClick(record)">
+                  @click.stop="!isTailoringCropDisabled(record) && !isWbsRowBusy(record) && onTailoringCropClick(record)"
+                  @keydown.enter.prevent="!isTailoringCropDisabled(record) && !isWbsRowBusy(record) && onTailoringCropClick(record)">
                   ✂️
                 </span>
               </a-tooltip>
               <a-tooltip v-else-if="canShowRowRestore(record)" title="恢复裁剪">
                 <span
                   class="task-wbs-tailoring-emoji task-wbs-tailoring-emoji--restore"
-                  :class="{ 'is-loading': wbsOpBusyRowId === record.id }"
+                  :class="{ 'is-loading': isWbsRowBusy(record, 'restore') }"
                   role="button"
                   tabindex="0"
                   aria-label="恢复裁剪"
-                  @click.stop="wbsOpBusyRowId !== record.id && onTaskRestore(record)"
-                  @keydown.enter.prevent="wbsOpBusyRowId !== record.id && onTaskRestore(record)">
+                  @click.stop="!isWbsRowBusy(record) && onTaskRestore(record)"
+                  @keydown.enter.prevent="!isWbsRowBusy(record) && onTaskRestore(record)">
                   ↩️
                 </span>
               </a-tooltip>
@@ -2363,12 +2382,12 @@ watch(ganttCollapsed, () => {
                   <a
                     class="task-wbs-ops__link"
                     :class="{
-                      'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                      'is-disabled': wbsTaskRowOpsLocked(record) || isWbsRowBusy(record),
                     }"
                     @click.stop="
-                      !wbsTaskRowOpsLocked(record) && wbsOpBusyRowId !== record.id && onTaskStart(record)
+                      !wbsTaskRowOpsLocked(record) && !isWbsRowBusy(record) && onTaskStart(record)
                     ">
-                    {{ wbsOpBusyRowId === record.id ? '启动中…' : '启动' }}
+                    {{ isWbsRowBusy(record, 'start') ? '启动中…' : '启动' }}
                   </a>
                 </div>
               </template>
@@ -2379,28 +2398,28 @@ watch(ganttCollapsed, () => {
                       <a
                         class="task-wbs-ops__link"
                         :class="{
-                          'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                          'is-disabled': wbsTaskRowOpsLocked(record) || isWbsRowBusy(record),
                         }"
                         @click.stop="
                           !wbsTaskRowOpsLocked(record) &&
-                            wbsOpBusyRowId !== record.id &&
+                            !isWbsRowBusy(record) &&
                             onTaskPublish(record)
                         ">
-                        {{ wbsOpBusyRowId === record.id ? '发布中…' : '发布' }}
+                        {{ isWbsRowBusy(record, 'publish') ? '发布中…' : '发布' }}
                       </a>
                     </a-tooltip>
                     <a-tooltip v-if="canShowTaskRevokePublish(record)" title="撤销发布">
                       <a
                         class="task-wbs-ops__link"
                         :class="{
-                          'is-disabled': wbsTaskRowOpsLocked(record) || wbsOpBusyRowId === record.id,
+                          'is-disabled': wbsTaskRowOpsLocked(record) || isWbsRowBusy(record),
                         }"
                         @click.stop="
                           !wbsTaskRowOpsLocked(record) &&
-                            wbsOpBusyRowId !== record.id &&
+                            !isWbsRowBusy(record) &&
                             onTaskUnpublish(record)
                         ">
-                        {{ wbsOpBusyRowId === record.id ? '撤销中…' : '撤销' }}
+                        {{ isWbsRowBusy(record, 'revoke') ? '撤销中…' : '撤销' }}
                       </a>
                     </a-tooltip>
                   </template>
@@ -2445,14 +2464,6 @@ watch(ganttCollapsed, () => {
                           :class="{ 'is-disabled': !canWbsTaskChangeRequest(record) }"
                           @click.stop="canWbsTaskChangeRequest(record) && onTaskChangeRequest(record)">
                           变更
-                        </a>
-                      </a-tooltip>
-                      <a-tooltip title="编辑">
-                        <a
-                          class="task-wbs-ops__link"
-                          :class="{ 'is-disabled': wbsTaskRowOpsLocked(record) }"
-                          @click.stop="!wbsTaskRowOpsLocked(record) && onTaskEdit(record)">
-                          编辑
                         </a>
                       </a-tooltip>
                   </template>
