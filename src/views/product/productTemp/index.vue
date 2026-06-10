@@ -271,6 +271,10 @@ function getVersionText(versionNum: string | number) {
   return `V${versionNum}.0`;
 }
 
+function isProductTempPublished(record: { status?: string | number | null }) {
+  return String(record?.status ?? '') === '1';
+}
+
 /**
  * 发布公告
  */
@@ -529,11 +533,11 @@ function openWbsStructure(record: any) {
             </template>
             <template v-else-if="column.dataIndex === 'operation'">
               <div class="calc-operation-links" @click.stop>
-                <a href="#" :class="{ 'calc-operation-links__disabled': record.status == '1' }" @click.prevent="record.status != '1' && noticeAdd(record)">
+                <a href="#" :class="{ 'calc-operation-links__disabled': isProductTempPublished(record) }" @click.prevent="!isProductTempPublished(record) && noticeAdd(record)">
                   {{ $t('编辑') }}
                 </a>
-                <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="record.status == '1'" @confirm.stop.prevent="handleDelete(record.id)">
-                  <a href="#" :class="{ 'calc-operation-links__disabled': record.status == '1' }" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="isProductTempPublished(record)" @confirm.stop.prevent="handleDelete(record.id)">
+                  <a href="#" :class="{ 'calc-operation-links__disabled': isProductTempPublished(record) }" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
                 </a-popconfirm>
                 <a-popconfirm v-if="record.status == '0'" :title="`${$t('确定要发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="pushFun(record.id)">
                   <a href="#" @click.prevent>{{ $t('发布') }}</a>
@@ -541,11 +545,12 @@ function openWbsStructure(record: any) {
                 <a-popconfirm v-else :title="`${$t('确定要撤销发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="goBackPushFun(record.id)">
                   <a href="#" @click.prevent>{{ $t('撤销') }}</a>
                 </a-popconfirm>
+                <span v-if="isProductTempPublished(record)" class="calc-operation-links__wbs-disabled">{{ $t('浏览WBS结构') }}</span>
                 <a
+                  v-else
                   href="#"
                   class="calc-operation-links__wbs-link"
-                  :class="{ 'calc-operation-links__disabled': record.status == '1' }"
-                  @click.prevent.stop="record.status != '1' && openWbsStructure(record)">
+                  @click.prevent.stop="openWbsStructure(record)">
                   {{ $t('浏览WBS结构') }}
                 </a>
               </div>
@@ -769,6 +774,17 @@ function openWbsStructure(record: any) {
   border: none;
   box-shadow: none;
 
+  :deep(.calc-operation-links__wbs-link) {
+    color: var(--ant-primary-color, #1890ff) !important;
+  }
+
+  :deep(.calc-operation-links__wbs-disabled),
+  :deep(.calc-operation-links__disabled) {
+    color: rgba(0, 0, 0, 0.25) !important;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   :deep(.ant-card-body) {
     height: 100%;
     padding: 0;
@@ -810,6 +826,17 @@ function openWbsStructure(record: any) {
 }
 
 .exe-config-table {
+  :deep(.calc-operation-links__wbs-disabled),
+  :deep(.calc-operation-links a.calc-operation-links__disabled) {
+    color: rgba(0, 0, 0, 0.25) !important;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  :deep(.calc-operation-links a.calc-operation-links__wbs-link) {
+    color: var(--ant-primary-color, #1890ff) !important;
+  }
+
   :deep(.ant-table-cell-ellipsis .ant-typography) {
     margin-bottom: 0;
   }
@@ -903,13 +930,14 @@ function openWbsStructure(record: any) {
   color: rgba(0, 0, 0, 0.65);
 }
 
-/* 「浏览WBS结构」与「发布」链接同色：主题主色 */
 .calc-operation-links__wbs-link {
   color: var(--ant-primary-color, #1890ff) !important;
 }
 
-.calc-operation-links__wbs-link.calc-operation-links__disabled {
-  color: rgba(0, 0, 0, 0.25) !important;
+.calc-operation-links__wbs-disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .exe-status-tag {
