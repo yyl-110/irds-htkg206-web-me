@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import type { FormInstance, TableColumnType, UploadChangeParam, UploadFile, UploadProps } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
-import { InboxOutlined } from '@ant-design/icons-vue';
+import { InboxOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { ProductTempPageRequestDTOModel } from '@/api/models/productTemp/ProductTempPageRequestDTOModel';
+import { usePagination } from '@/hooks/usePagination';
 import { useUserStore } from '@/store/modules/user';
 
 type ProductTemplateRow = {
@@ -14,6 +16,7 @@ type ProductTemplateRow = {
   tempName?: string;
   tempNum?: string;
   remarks?: string;
+  versionNum?: number | string;
 };
 
 const props = defineProps<{
@@ -39,18 +42,55 @@ const projectFormRef = ref<FormInstance>();
 const materialFileList = ref<UploadFile[]>([]);
 const materialFileListPrevLen = ref(0);
 
-const PRODUCT_TEMPLATE_TABLE_SCROLL_Y = 390;
+const PRODUCT_TEMPLATE_TABLE_SCROLL_Y = 360;
 const productTemplateModalVisible = ref(false);
 const productTemplateLoading = ref(false);
 const productTemplateList = ref<ProductTemplateRow[]>([]);
+const productTemplateKeyword = ref('');
+const productTemplateRequestParams = reactive(new ProductTempPageRequestDTOModel());
+productTemplateRequestParams.pageSize = 10;
+productTemplateRequestParams.status = 1;
 const selectedProductTemplateKeys = ref<string[]>([]);
 const selectedProductTemplateRow = ref<ProductTemplateRow | null>(null);
 
+const { pagination: productTemplatePagination, resetPagination: resetProductTemplatePagination } = usePagination(
+  productTemplateRequestParams,
+  fetchProductTemplatePage,
+);
+productTemplatePagination.showQuickJumper = true;
+productTemplatePagination.showSizeChanger = true;
+productTemplatePagination.showTotal = total => `${WeiI18n.$t('共')}${total}${WeiI18n.$t('条')}`;
+
+function productTemplateRowIndex(index?: number): string {
+  const page = productTemplateRequestParams.pageNo || 1;
+  const size = productTemplateRequestParams.pageSize || 10;
+  return String((page - 1) * size + (index ?? 0) + 1);
+}
+
+function formatProductTemplateVersion(version?: number | string): string {
+  if (version == null || version === '') return '—';
+  return `V${version}`;
+}
+
 const productTemplateColumns: TableColumnType<ProductTemplateRow>[] = [
-  { title: WeiI18n.$t('序号'), key: 'index', align: 'center', width: 72, customRender: ({ index }) => String((index ?? 0) + 1) },
-  { title: WeiI18n.$t('模板名称'), dataIndex: 'tempName', key: 'tempName', ellipsis: true },
-  { title: WeiI18n.$t('模板编号'), dataIndex: 'tempNum', key: 'tempNum', width: 160, ellipsis: true },
-  { title: WeiI18n.$t('备注'), dataIndex: 'remarks', key: 'remarks', ellipsis: true },
+  {
+    title: WeiI18n.$t('序号'),
+    key: 'index',
+    align: 'center',
+    width: 64,
+    customRender: ({ index }) => productTemplateRowIndex(index),
+  },
+  { title: WeiI18n.$t('模板名称'), dataIndex: 'tempName', key: 'tempName', width: 180, ellipsis: true },
+  { title: WeiI18n.$t('模板编号'), dataIndex: 'tempNum', key: 'tempNum', width: 200, ellipsis: true },
+  {
+    title: WeiI18n.$t('版本'),
+    dataIndex: 'versionNum',
+    key: 'versionNum',
+    align: 'center',
+    width: 80,
+    customRender: ({ text }) => formatProductTemplateVersion(text),
+  },
+  { title: WeiI18n.$t('备注'), dataIndex: 'remarks', key: 'remarks', width: 140, ellipsis: true },
 ];
 
 const productTemplateRowSelection = computed(() => ({
@@ -78,6 +118,53 @@ function resetProductTemplateModalSelection() {
   selectedProductTemplateRow.value = null;
 }
 
+function normalizeProductTemplateRow(raw: Record<string, unknown>): ProductTemplateRow {
+  return {
+    id: raw.id != null ? String(raw.id) : undefined,
+    tempName: raw.tempName != null ? String(raw.tempName) : undefined,
+    tempNum: raw.tempNum != null ? String(raw.tempNum) : undefined,
+    remarks: raw.remarks != null ? String(raw.remarks) : undefined,
+    versionNum: raw.versionNum as number | string | undefined,
+  };
+}
+
+async function fetchProductTemplatePage() {
+  const platformMenuId = resolveProjectPlatformMenuId();
+  if (!platformMenuId) return;
+  productTemplateLoading.value = true;
+  try {
+    productTemplateRequestParams.currentPage = productTemplateRequestParams.pageNo;
+    productTemplateRequestParams.numberPage = productTemplateRequestParams.pageSize;
+    const keyword = productTemplateKeyword.value.trim();
+    const res = await AdminApiProductTemp.getProductTempPageList({
+      ...productTemplateRequestParams,
+      menuId: platformMenuId,
+      keyword: keyword || undefined,
+      tempName: undefined,
+      tempNum: undefined,
+      status: 1,
+    });
+    const pageData = res?.data?.data;
+    const list = Array.isArray(pageData?.list) ? pageData.list : [];
+    const rows = list.map((item: Record<string, unknown>) => normalizeProductTemplateRow(item));
+    productTemplateList.value = rows;
+    productTemplatePagination.total = Number(pageData?.total ?? 0);
+  } finally {
+    productTemplateLoading.value = false;
+  }
+}
+
+function onProductTemplateSearch() {
+  productTemplateRequestParams.pageNo = 1;
+  productTemplatePagination.current = 1;
+  void fetchProductTemplatePage();
+}
+
+function resetProductTemplateSearch() {
+  productTemplateKeyword.value = '';
+  onProductTemplateSearch();
+}
+
 function resolveProjectPlatformMenuId(): string | null {
   const mid = String(props.projectForm.productPlatformId ?? '').trim();
   if (!mid) {
@@ -92,15 +179,11 @@ async function selectProductTemplate() {
   if (!platformMenuId) return;
 
   resetProductTemplateModalSelection();
+  productTemplateKeyword.value = '';
+  resetProductTemplatePagination(productTemplateRequestParams);
+  productTemplatePagination.current = 1;
   productTemplateModalVisible.value = true;
-  productTemplateLoading.value = true;
-  try {
-    const res = await AdminApiProductTemp.getProductTempList({ menuId: platformMenuId });
-    const list = res?.data?.data;
-    productTemplateList.value = Array.isArray(list) ? list : [];
-  } finally {
-    productTemplateLoading.value = false;
-  }
+  await fetchProductTemplatePage();
 }
 
 function closeProductTemplateModal() {
@@ -396,20 +479,41 @@ defineExpose({
     v-model:visible="productTemplateModalVisible"
     wrap-class-name="product-template-select-modal"
     :title="$t('选择产品模板')"
-    width="960px"
+    width="980px"
     destroy-on-close
     @cancel="closeProductTemplateModal"
     @after-close="onProductTemplateModalAfterClose">
-    <a-table
-      :columns="productTemplateColumns"
-      :data-source="productTemplateList"
-      :loading="productTemplateLoading"
-      :pagination="false"
-      :scroll="{ y: PRODUCT_TEMPLATE_TABLE_SCROLL_Y }"
-      :row-selection="productTemplateRowSelection"
-      :custom-row="productTemplateCustomRow"
-      row-key="id"
-      size="small" />
+    <div class="product-template-select-modal__body">
+      <div class="product-template-select-toolbar">
+        <a-input-search
+          v-model:value="productTemplateKeyword"
+          allow-clear
+          :placeholder="$t('搜索模板名称或编号')"
+          class="product-template-select-toolbar__search"
+          @search="onProductTemplateSearch">
+          <template #enterButton>
+            <a-button type="primary">
+              <SearchOutlined />
+              {{ $t('搜索') }}
+            </a-button>
+          </template>
+        </a-input-search>
+        <a-button @click="resetProductTemplateSearch">{{ $t('重置') }}</a-button>
+        <span class="product-template-select-toolbar__hint">{{ $t('仅展示已发布模板') }}</span>
+      </div>
+      <a-table
+        class="product-template-select-table"
+        :columns="productTemplateColumns"
+        :data-source="productTemplateList"
+        :loading="productTemplateLoading"
+        :pagination="productTemplatePagination"
+        :scroll="{ y: PRODUCT_TEMPLATE_TABLE_SCROLL_Y, x: 720 }"
+        :row-selection="productTemplateRowSelection"
+        :custom-row="productTemplateCustomRow"
+        row-key="id"
+        size="middle"
+        bordered />
+    </div>
     <template #footer>
       <a-space>
         <a-button type="primary" @click="handleProductTemplateModalOk">{{ $t('确定') }}</a-button>
@@ -509,7 +613,53 @@ defineExpose({
 </style>
 
 <style lang="less">
-.product-template-select-modal .ant-table-tbody > tr {
-  cursor: pointer;
+.product-template-select-modal {
+  .ant-modal-body {
+    padding-top: 16px;
+  }
+}
+
+.product-template-select-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.product-template-select-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.product-template-select-toolbar__search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.product-template-select-toolbar__hint {
+  margin-left: auto;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+}
+
+.product-template-select-table {
+  .ant-table-thead > tr > th {
+    background: #fafafa;
+    font-weight: 600;
+  }
+
+  .ant-table-tbody > tr {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .ant-table-tbody > tr:hover > td {
+    background: #f5f9ff;
+  }
+
+  .ant-table-tbody > tr.ant-table-row-selected > td {
+    background: #e6f4ff;
+  }
 }
 </style>

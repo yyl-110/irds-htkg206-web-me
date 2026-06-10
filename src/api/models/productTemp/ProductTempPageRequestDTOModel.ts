@@ -38,5 +38,11 @@ export class ProductTempPageRequestDTOModel extends BaseModel implements Product
   /** 平台库菜单 ID（与产品模板库 /page 一致） */
   menuId?: string | number = '';
 
+  /** 发布状态：0 未发布，1 已发布 */
+  status?: number;
+
+  /** 模板名称或编号关键字 */
+  keyword?: string = '';
+
   userid?: number = 0;
 }
