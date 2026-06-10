@@ -491,6 +491,27 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 修改独立应用名称
+   *
+   * @tags 管理后台 - 修改独立应用名称
+   * @name updateApp
+   * @summary 修改独立应用名称
+   * @request POST:/business-service/business/standalone-app/update
+   * @secure
+   */
+  static updateApp = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/update`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 查询流程节点树+节点状态（不含 componentsJson，数据量大请分步加载）
    *
    * @tags 管理后台 - 查询流程节点树+节点状态（不含 componentsJson，数据量大请分步加载）

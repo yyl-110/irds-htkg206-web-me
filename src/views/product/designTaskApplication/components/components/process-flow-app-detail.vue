@@ -18,6 +18,8 @@ const detailData = ref<Record<string, any>>({});
 const listLoading = ref(false);
 const createFlowLoading = ref(false);
 const createFlowModalVisible = ref(false);
+const editFlowLoading = ref(false);
+const editFlowModalVisible = ref(false);
 const queryAppCode = ref('');
 const queryAppName = ref('');
 const appList = ref<any[]>([]);
@@ -26,6 +28,11 @@ const createForm = ref({
   appName: '',
   confidentialLevel: undefined as number | undefined,
 });
+const editForm = ref({
+  appId: '',
+  appCode: '',
+  appName: '',
+});
 
 const pageTitle = computed(() => String(detailData.value?.processName ?? detailData.value?.categoryName ?? '设计任务应用'));
 const isCheckEntry = computed(() => String(route.query.entry ?? '').trim() === 'check');
@@ -33,11 +40,11 @@ const appCodeLabel = computed(() => (isCheckEntry.value ? '计算应用编号' :
 const appNameLabel = computed(() => (isCheckEntry.value ? '计算应用名称' : '独立应用名称'));
 const createActionLabel = computed(() => (isCheckEntry.value ? '新建计算' : '新建'));
 
-/** 操作列宽度（与 parameter/index.vue 一致，2 个操作用 --main-operation2-width） */
+/** 操作列宽度（与 parameter/index.vue 一致，3 个操作用 --main-operation3-width） */
 const operationWidth = computed(() => {
   const root = document.querySelector(':root');
-  const width = getComputedStyle(root).getPropertyValue('--main-operation2-width');
-  return Number(width) || 120;
+  const width = getComputedStyle(root).getPropertyValue('--main-operation3-width');
+  return Number(width) || 160;
 });
 
 const tableColumns = computed(() => [
@@ -94,7 +101,7 @@ function resolveRecordCreatorId(record: Record<string, any>) {
   return record?.creator ?? record?.creatorId ?? record?.createUserId ?? record?.userId;
 }
 
-function canDeleteApp(record: Record<string, any>) {
+function canManageApp(record: Record<string, any>) {
   const creatorId = resolveRecordCreatorId(record);
   if (creatorId != null && creatorId !== '' && sameUserId(creatorId, userStore.getUser.id)) {
     return true;
@@ -105,6 +112,10 @@ function canDeleteApp(record: Record<string, any>) {
     .map((name) => String(name ?? '').trim())
     .filter(Boolean);
   return currentNames.some((name) => name === creatorName);
+}
+
+function canDeleteApp(record: Record<string, any>) {
+  return canManageApp(record);
 }
 
 function resolveAppStatusText(record: Record<string, any>) {
@@ -208,7 +219,7 @@ async function confirmCreateFlow() {
 }
 
 async function deleteApp(record: Record<string, any>) {
-  if (!canDeleteApp(record)) {
+  if (!canManageApp(record)) {
     message.warning('仅创建人可删除');
     return;
   }
@@ -230,6 +241,50 @@ async function deleteApp(record: Record<string, any>) {
     const err = e as { response?: { data?: { msg?: string; message?: string } } };
     const serverMsg = err?.response?.data?.msg ?? err?.response?.data?.message;
     message.error(typeof serverMsg === 'string' && serverMsg.trim() ? serverMsg : '删除失败');
+  }
+}
+
+function openEditModal(record: Record<string, any>) {
+  if (!canManageApp(record)) {
+    message.warning('仅创建人可编辑');
+    return;
+  }
+  editForm.value = {
+    appId: String(record?.appId ?? '').trim(),
+    appCode: String(record?.appCode ?? '').trim(),
+    appName: String(record?.appName ?? '').trim(),
+  };
+  editFlowModalVisible.value = true;
+}
+
+async function confirmEditFlow() {
+  const appId = String(editForm.value.appId ?? '').trim();
+  const appName = String(editForm.value.appName ?? '').trim();
+  if (!appId) {
+    message.warning('缺少应用标识，无法编辑');
+    return;
+  }
+  if (!appName) {
+    message.warning(`请输入${appNameLabel.value}`);
+    return;
+  }
+  editFlowLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.updateApp({ appId, appName });
+    const code = res?.data?.code;
+    if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
+      message.error(String(res?.data?.msg ?? '编辑失败'));
+      return;
+    }
+    message.success('编辑成功');
+    editFlowModalVisible.value = false;
+    await loadAppList();
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { msg?: string; message?: string } } };
+    const serverMsg = err?.response?.data?.msg ?? err?.response?.data?.message;
+    message.error(typeof serverMsg === 'string' && serverMsg.trim() ? serverMsg : '编辑失败');
+  } finally {
+    editFlowLoading.value = false;
   }
 }
 
@@ -330,6 +385,7 @@ void loadAppList();
           <template v-else-if="column.dataIndex === 'operation'">
             <div class="calc-operation-links" @click.stop>
               <a href="#" @click.stop.prevent="designFlow(record)">设计</a>
+              <a v-if="canManageApp(record)" href="#" @click.stop.prevent="openEditModal(record)">编辑</a>
               <a-popconfirm
                 v-if="canDeleteApp(record)"
                 placement="topLeft"
@@ -369,6 +425,27 @@ void loadAppList();
       <template #footer>
         <a-button type="primary" :loading="createFlowLoading" @click="confirmCreateFlow">{{ $t('确定') }}</a-button>
         <a-button @click="createFlowModalVisible = false">{{ $t('取消') }}</a-button>
+      </template>
+    </a-modal>
+    <a-modal
+      v-model:visible="editFlowModalVisible"
+      title="编辑"
+      :confirm-loading="editFlowLoading"
+      @ok="confirmEditFlow"
+      @cancel="editFlowModalVisible = false">
+      <div class="create-flow-form">
+        <div class="create-flow-form__row">
+          <span class="create-flow-form__label">{{ appCodeLabel }}:</span>
+          <a-input v-model:value="editForm.appCode" disabled />
+        </div>
+        <div class="create-flow-form__row">
+          <span class="create-flow-form__label">{{ appNameLabel }}:</span>
+          <a-input v-model:value="editForm.appName" :placeholder="`请输入${appNameLabel}`" />
+        </div>
+      </div>
+      <template #footer>
+        <a-button type="primary" :loading="editFlowLoading" @click="confirmEditFlow">{{ $t('确定') }}</a-button>
+        <a-button @click="editFlowModalVisible = false">{{ $t('取消') }}</a-button>
       </template>
     </a-modal>
   </div>
