@@ -3,8 +3,7 @@
     <div class="layout-wrapper">
       <div class="layout-header">
         <div class="layout-header__title">计算输入参数：</div>
-        <div class="selectBox">
-          <div class="selectBox__inner">
+        <div class="input-param-table">
             <a-table
               :columns="inputParamColumns"
               :data-source="parameterTempList[0]?.tableMap?.rowData ?? []"
@@ -12,7 +11,6 @@
               bordered
               size="small"
               class="adaptive-table"
-              :scroll="tableScroll0"
               :row-key="tableRowKey">
               <template #bodyCell="{ column, record, index }">
                 <template v-if="column.dataIndex === 'p1' && column.editable">
@@ -33,7 +31,6 @@
                 </template>
               </template>
             </a-table>
-          </div>
         </div>
       </div>
 
@@ -68,25 +65,19 @@
           </a-table>
         </div>
         <div class="trip-row">
-          总行程：
+          <span class="trip-row__label">总行程：</span>
           <a-input v-model:value="trip" disabled style="width: 200px; display: none" />
           <a-input :value="parameterTempList[2]?.defaultValue" disabled style="width: 200px" />
         </div>
       </div>
 
       <div class="layout-content2">
-        <div class="section-toolbar">
-          <a-button type="primary" class="btnSty" style="margin-bottom: 10px" @click="addRowData">
+        <div class="section-toolbar section-toolbar--actions">
+          <a-button type="primary" @click="addRowData">
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button
-            type="primary"
-            danger
-            class="btnSty"
-            style="margin-bottom: 10px; margin-left: 20px"
-            :disabled="rowFlag"
-            @click="handleDelRow">
+          <a-button type="primary" danger :disabled="rowFlag" @click="handleDelRow">
             <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
@@ -161,11 +152,9 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const tabHeight0 = 167;
 const tabHeight1 = 140;
 const tabHeight2 = 250;
 
-const tableScroll0 = computed(() => ({ y: tabHeight0, x: '100%' }));
 const tableScroll1 = computed(() => ({ y: tabHeight1, x: '100%' }));
 const tableScroll2 = computed(() => ({ y: tabHeight2, x: '100%' }));
 
@@ -392,7 +381,10 @@ onMounted(async () => {
 
 <style scoped>
 .layout-wrapper {
-  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 10px 10px 0;
   height: 770px;
   width: 100%;
   max-width: 100%;
@@ -401,60 +393,57 @@ onMounted(async () => {
 }
 
 .layout-header {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
   background: #ffffff;
-  min-height: 230px;
-  height: 230px;
-  line-height: 40px;
-  padding: 0;
-  margin-bottom: 10px;
+}
+
+.layout-header__title,
+.input-param-table,
+.section-toolbar,
+.table-row,
+.trip-row {
+  width: 100%;
+  margin-left: 0;
+  padding-left: 0;
+  box-sizing: border-box;
 }
 
 .layout-header__title {
-  width: 100%;
   font-size: 15px;
   font-weight: 600;
-  padding-left: 10px;
+  line-height: 1.5;
 }
 
-.selectBox {
-  width: 100%;
-  height: 100%;
-  float: left;
-  padding-top: 10px;
+.input-param-table {
+  width: 600px;
+  max-width: 100%;
 }
 
-.selectBox__inner {
-  width: 100%;
-  height: 167px;
-}
-
-.layout-content {
-  background: #ffffff;
-}
-
+.layout-content,
 .layout-content2 {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
   background: #ffffff;
 }
 
 .section-toolbar {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 25px;
   font-weight: 600;
-  padding-left: 10px;
-  margin-bottom: 20px;
 }
 
-.layout-content .section-toolbar {
-  margin-bottom: 15px;
-  padding-bottom: 20px;
-}
-
-.layout-content2 .section-toolbar {
-  margin-bottom: 10px;
+.section-toolbar--actions {
+  font-weight: normal;
 }
 
 .table-row {
   width: 100%;
-  float: left;
 }
 
 .zero-position-table {
@@ -462,16 +451,13 @@ onMounted(async () => {
 }
 
 .trip-row {
-  width: 100%;
-  font-weight: 600;
-  margin-left: 10px;
-  padding-top: 10px;
-  float: left;
-  height: 55px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
 }
 
-.btnSty {
-  margin-bottom: 10px;
+.trip-row__label {
+  font-weight: 600;
 }
 
 .table-cell-input {
@@ -483,6 +469,11 @@ onMounted(async () => {
   width: 100%;
 }
 
+.adaptive-table :deep(.ant-table-wrapper) {
+  margin-left: 0;
+  padding-left: 0;
+}
+
 .adaptive-table :deep(.ant-table) {
   width: 100%;
 }
@@ -490,5 +481,19 @@ onMounted(async () => {
 .adaptive-table :deep(.ant-table-content table) {
   table-layout: fixed;
   width: 100% !important;
+}
+
+.adaptive-table :deep(.ant-table-thead > tr > th) {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.35;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.adaptive-table :deep(.ant-table-tbody > tr > td) {
+  padding: 4px 2px;
+  font-size: 12px;
 }
 </style>

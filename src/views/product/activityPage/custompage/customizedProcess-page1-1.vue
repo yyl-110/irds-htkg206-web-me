@@ -50,25 +50,19 @@
           </a-table>
         </div>
         <div class="trip-row">
-          总行程：
+          <span class="trip-row__label">总行程：</span>
           <a-input v-model:value="trip" disabled style="width: 200px; display: none" />
           <a-input :value="parameterTempList[2]?.defaultValue" disabled style="width: 200px" />
         </div>
       </div>
 
       <div class="layout-content2">
-        <div class="section-toolbar">
-          <a-button type="primary" class="btnSty" style="margin-bottom: 10px" @click="addRowData">
+        <div class="section-toolbar section-toolbar--actions">
+          <a-button type="primary" @click="addRowData">
             <template #icon><PlusOutlined /></template>
             添加行
           </a-button>
-          <a-button
-            type="primary"
-            danger
-            class="btnSty"
-            style="margin-bottom: 10px; margin-left: 20px"
-            :disabled="rowFlag"
-            @click="handleDelRow">
+          <a-button type="primary" danger :disabled="rowFlag" @click="handleDelRow">
             <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
             删除
           </a-button>
@@ -367,89 +361,100 @@ onMounted(async () => {
 
 <style scoped>
 .layout-wrapper {
-  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 10px 10px 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   height: 770px;
   background-color: #ffffff;
 }
 
 .layout-header {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
   background: #ffffff;
-  padding: 0 10px 10px;
-  margin-bottom: 10px;
+}
+
+.layout-header__title,
+.input-param-fields,
+.section-toolbar,
+.table-row,
+.trip-row {
+  width: 100%;
+  margin-left: 0;
+  padding-left: 0;
+  box-sizing: border-box;
 }
 
 .layout-header__title {
-  width: 100%;
   font-size: 15px;
   font-weight: 600;
-  line-height: 40px;
+  line-height: 1.5;
 }
 
 .input-param-fields {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 24px;
-  padding-top: 4px;
+  gap: 25px 24px;
+  align-items: flex-start;
+  align-content: flex-start;
 }
 
 .input-param-field {
   display: flex;
   flex-direction: column;
+  gap: 8px;
   min-width: 300px;
+  margin-left: 0;
+  padding-left: 0;
 }
 
 .input-param-field__label {
   font-size: 14px;
-  line-height: 32px;
-  margin-bottom: 4px;
+  line-height: 1.5;
 }
 
 .input-param-field__input {
   width: 300px;
 }
 
-.layout-content {
-  background: #ffffff;
-}
-
+.layout-content,
 .layout-content2 {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
   background: #ffffff;
 }
 
 .section-toolbar {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 25px;
   font-weight: 600;
-  padding-left: 10px;
-  margin-bottom: 20px;
 }
 
-.layout-content .section-toolbar {
-  margin-bottom: 20px;
+.section-toolbar--actions {
+  font-weight: normal;
 }
 
-.layout-content2 .section-toolbar {
-  margin-bottom: 10px;
+.trip-row {
+  display: flex;
+  align-items: center;
+  gap: 25px;
 }
 
-.table-row {
-  width: 100%;
-  float: left;
+.trip-row__label {
+  font-weight: 600;
 }
 
 .zero-position-table {
   z-index: 0;
-}
-
-.trip-row {
-  width: 100%;
-  margin-left: 10px;
-  padding-top: 10px;
-  float: left;
-  height: 55px;
-}
-
-.btnSty {
-  margin-bottom: 10px;
 }
 
 .table-cell-input {
@@ -459,6 +464,11 @@ onMounted(async () => {
 
 .adaptive-table {
   width: 100%;
+}
+
+.adaptive-table :deep(.ant-table-wrapper) {
+  margin-left: 0;
+  padding-left: 0;
 }
 
 .adaptive-table :deep(.ant-table) {
