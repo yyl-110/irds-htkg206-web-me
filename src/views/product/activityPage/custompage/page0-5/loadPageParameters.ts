@@ -3,6 +3,23 @@ import { createDefaultPage0_5ParameterList, type Page0_5ParameterItem } from './
 
 export type { Page0_5ParameterItem };
 
+function mergeTableRowSavedValues(
+  row: Record<string, string>,
+  colNums: number,
+  savedMap: Map<string, string>,
+): Record<string, string> {
+  const nextRow = { ...row };
+  for (let i = 0; i < colNums; i++) {
+    const paramKey = String(row[`cellParentNum${i}`] ?? '').trim();
+    if (!paramKey || !savedMap.has(paramKey)) continue;
+    const savedVal = savedMap.get(paramKey);
+    if (savedVal !== undefined && savedVal !== '') {
+      nextRow[`p${i}`] = savedVal;
+    }
+  }
+  return nextRow;
+}
+
 export function mergeSavedParamsIntoList(
   list: Page0_5ParameterItem[],
   saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
@@ -13,21 +30,33 @@ export function mergeSavedParamsIntoList(
     if (code) savedMap.set(code, String(row?.paramValue ?? ''));
   });
   return list.map(item => {
+    let nextItem: Page0_5ParameterItem = { ...item };
+
     const num = String(item.parameterNum ?? '').trim();
     if (num && savedMap.has(num)) {
       const savedVal = savedMap.get(num);
       if (savedVal !== undefined && savedVal !== '') {
-        return { ...item, defaultValue: savedVal };
+        nextItem = { ...nextItem, defaultValue: savedVal };
       }
     }
-    return { ...item };
+
+    if (item.ifSingleLine === 't' && item.tableMap?.rowData?.length) {
+      const colNums = Number(item.tableMap.colNums ?? 0);
+      const rowData = item.tableMap.rowData.map(row => mergeTableRowSavedValues(row, colNums, savedMap));
+      nextItem = {
+        ...nextItem,
+        tableMap: {
+          ...item.tableMap,
+          rowData,
+        },
+      };
+    }
+
+    return nextItem;
   });
 }
 
-async function applyActivityParameterIds(
-  pageId: string,
-  list: Page0_5ParameterItem[],
-): Promise<Page0_5ParameterItem[]> {
+async function applyActivityParameterIds(pageId: string, list: Page0_5ParameterItem[]): Promise<Page0_5ParameterItem[]> {
   if (!pageId) return list;
   try {
     const res = await AdminApiSystemParameter.getParameterActList({ businessId: pageId, type: '2' });
