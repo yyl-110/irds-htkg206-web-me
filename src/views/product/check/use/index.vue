@@ -115,14 +115,26 @@ function buildInfoLine(item: any): string {
 
 /** 去掉标题末尾的 (exe)/(matlab)/(excel) 括号后缀，供展示与统计入库 */
 function stripCheckTypeParenSuffix(s: string): string {
-  const t = String(s ?? '').trim().replace(/\s*\((exe|matlab|excel)\)\s*$/i, '').trim();
+  const t = String(s ?? '')
+    .trim()
+    .replace(/\s*\((exe|matlab|excel)\)\s*$/i, '')
+    .trim();
   return t;
 }
 
 function mapItemToCard(item: any, index: number): ChecklistCard {
   const rawTitle =
-    String(item?.checkName ?? item?.checkTitle ?? item?.summarName ?? item?.applicationName ?? item?.parameterName ?? item?.calcName ?? item?.name ?? item?.title ?? '--').trim() ||
-    '--';
+    String(
+      item?.checkName ??
+        item?.checkTitle ??
+        item?.summarName ??
+        item?.applicationName ??
+        item?.parameterName ??
+        item?.calcName ??
+        item?.name ??
+        item?.title ??
+        '--',
+    ).trim() || '--';
   const stripped = stripCheckTypeParenSuffix(rawTitle);
   const title = stripped !== '' ? stripped : rawTitle.trim() || '--';
   const authorText = pickFirstText(item, [
@@ -438,7 +450,10 @@ async function checkContentStart(card: ChecklistCard) {
     const detail = res?.data?.data ?? null;
     lastCheckExeDetail.value = detail;
     const fileList = detail?.fileList as unknown[] | undefined;
-    const first = Array.isArray(fileList) && fileList[0] != null && typeof fileList[0] === 'object' ? (fileList[0] as Record<string, unknown>) : null;
+    const first =
+      Array.isArray(fileList) && fileList[0] != null && typeof fileList[0] === 'object'
+        ? (fileList[0] as Record<string, unknown>)
+        : null;
     const filePath = String(first?.filePath ?? (detail as Record<string, unknown> | null)?.filePath ?? '').trim();
     if (filePath) {
       const downloadDir = (import.meta.env.VITE_BASE_FILE_DOWNLOAD_URL ?? '').trim();
@@ -459,13 +474,21 @@ async function checkContentStart(card: ChecklistCard) {
   }
 }
 
-const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onSplitpanesResized, toggleLeftTreePanel, splitToggleStyle, splitpanesTreeCollapseWrapClass } =
-  useSplitpanesTreeCollapse();
+const {
+  leftTreeCollapsed,
+  leftTreePaneSize,
+  rightTreePaneSize,
+  minExpanded,
+  onSplitpanesResized,
+  toggleLeftTreePanel,
+  splitToggleStyle,
+  splitpanesTreeCollapseWrapClass,
+} = useSplitpanesTreeCollapse();
 </script>
 
 <template>
   <div class="drawerContent h-full">
-    <div :class="splitpanesTreeCollapseWrapClass">
+    <div :class="splitpanesTreeCollapseWrapClass" class="h-full">
       <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
           <a-spin :spinning="loadingTree" tip="加载中...">
@@ -486,37 +509,55 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
         <Pane class="splitpane-cls splitpane-cls--right" :size="rightTreePaneSize">
           <div class="checklist-pane">
             <div class="checklist-toolbar">
-              <a-input v-model:value="checklistKeyword" placeholder="请输入查询条件" allow-clear class="checklist-toolbar__input" @pressEnter="onChecklistSearch">
+              <a-input
+                v-model:value="checklistKeyword"
+                placeholder="请输入查询条件"
+                allow-clear
+                class="checklist-toolbar__input"
+                @pressEnter="onChecklistSearch">
                 <template #prefix>
                   <SearchOutlined class="checklist-toolbar__search-icon" />
                 </template>
               </a-input>
             </div>
-            <a-spin :spinning="checklistLoading" class="checklist-spin">
-              <div v-if="checklistCards.length" class="checklist-grid">
-                <div v-for="card in checklistCards" :key="String(card.id)" class="checklist-card" @click="checkContentStart(card)">
-                  <div class="checklist-card__hero" :style="{ backgroundImage: `url(${card.heroBgUrl})` }">
-                    <div class="checklist-card__hero-stack">
-                      <span class="checklist-card__hero-title" :title="card.title">{{ card.title }}</span>
-                      <div class="checklist-card__hero-meta" :title="`类型：${card.typeLabel}${card.infoLine ? ' · ' + card.infoLine : ''}`">
-                        <span v-if="card.infoLine" class="checklist-card__hero-meta-info">{{ card.infoLine }}</span>
+            <div class="checklist-body">
+              <a-spin :spinning="checklistLoading" class="checklist-spin">
+                <div v-if="checklistCards.length" class="checklist-grid">
+                  <div
+                    v-for="card in checklistCards"
+                    :key="String(card.id)"
+                    class="checklist-card"
+                    @click="checkContentStart(card)">
+                    <div class="checklist-card__hero" :style="{ backgroundImage: `url(${card.heroBgUrl})` }">
+                      <div class="checklist-card__hero-stack">
+                        <span class="checklist-card__hero-title" :title="card.title">{{ card.title }}</span>
+                        <div
+                          class="checklist-card__hero-meta"
+                          :title="`类型：${card.typeLabel}${card.infoLine ? ' · ' + card.infoLine : ''}`">
+                          <span v-if="card.infoLine" class="checklist-card__hero-meta-info">{{ card.infoLine }}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div class="checklist-card__footer">
-                    <span class="checklist-card__footer-left" :title="card.authorText">{{ card.authorText }}</span>
-                    <span class="checklist-card__footer-center">{{ card.dateText }}</span>
-                    <span class="checklist-card__footer-right">{{ card.statusTag }}</span>
+                    <div class="checklist-card__footer">
+                      <span class="checklist-card__footer-left" :title="card.authorText">{{ card.authorText }}</span>
+                      <span class="checklist-card__footer-center">{{ card.dateText }}</span>
+                      <span class="checklist-card__footer-right">{{ card.statusTag }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <a-empty v-else class="checklist-empty" description="暂无计算工具" />
-            </a-spin>
+                <a-empty v-else class="checklist-empty" description="暂无计算工具" />
+              </a-spin>
+            </div>
           </div>
         </Pane>
       </Splitpanes>
       <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">
-        <button type="button" class="splitpanes-tree-collapse-wrap__toggle" :style="splitToggleStyle" @click="toggleLeftTreePanel" @mousedown.stop>
+        <button
+          type="button"
+          class="splitpanes-tree-collapse-wrap__toggle"
+          :style="splitToggleStyle"
+          @click="toggleLeftTreePanel"
+          @mousedown.stop>
           <LeftOutlined v-if="!leftTreeCollapsed" />
           <RightOutlined v-else />
         </button>
@@ -599,15 +640,20 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
   color: #1677ff;
 }
 
-.checklist-spin {
+.checklist-body {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
+.checklist-spin {
+  width: 100%;
+}
+
+.checklist-spin :deep(.ant-spin-nested-loading),
 .checklist-spin :deep(.ant-spin-container) {
-  min-height: 200px;
-  height: 100%;
-  overflow: auto;
+  min-height: 100%;
 }
 
 .checklist-grid {
@@ -786,9 +832,11 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
   padding-bottom: 5px !important;
 }
 .drawerContent {
-  position: sticky;
-  bottom: 20px !important;
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
+  flex-direction: column;
   background-color: #ffffff !important;
 }
 </style>

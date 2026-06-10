@@ -1,4 +1,3 @@
-// 左侧分类树 + Splitpanes：折叠按钮容器、分隔条样式（与 useSplitpanesTreeCollapse 配套）
 .splitpanes-tree-collapse-wrap {
   position: relative;
   flex: 1;
@@ -8,35 +7,28 @@
   display: flex;
   flex-direction: column;
 }
-
 .splitpanes-tree-collapse-wrap > .splitpanes {
   flex: 1;
   min-height: 0;
 }
-
-// 左侧结构树：高度沿 Splitpanes 传递，列表区内部滚动
 .splitpanes-tree-collapse-wrap > .splitpanes.splitpanes--vertical > .splitpanes__pane:first-child {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-
-  > .ant-spin-nested-loading,
-  > .ant-spin-nested-loading > .ant-spin-container {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .tree-panel-root {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
 }
-
-// 右侧内容区：高度沿 Splitpanes 传递，内部自行滚动
+.splitpanes-tree-collapse-wrap > .splitpanes.splitpanes--vertical > .splitpanes__pane:first-child > .ant-spin-nested-loading,
+.splitpanes-tree-collapse-wrap > .splitpanes.splitpanes--vertical > .splitpanes__pane:first-child > .ant-spin-nested-loading > .ant-spin-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.splitpanes-tree-collapse-wrap > .splitpanes.splitpanes--vertical > .splitpanes__pane:first-child .tree-panel-root {
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .splitpanes-tree-collapse-wrap > .splitpanes.splitpanes--vertical > .splitpanes__pane:last-child {
   display: flex;
   flex-direction: column;
@@ -44,7 +36,6 @@
   min-width: 0;
   overflow: hidden;
 }
-
 .splitpanes-tree-collapse-wrap .splitpanes__splitter::before,
 .splitpanes-tree-collapse-wrap .splitpanes__splitter::after {
   display: none !important;
@@ -52,15 +43,12 @@
   box-shadow: none !important;
   background: transparent !important;
 }
-
 .splitpanes-tree-collapse-wrap .splitpanes__splitter {
   border-left: 1px solid #e6e7e9 !important;
 }
-
 .splitpanes-tree-collapse-wrap > .splitpanes.default-theme .splitpanes__pane {
   background-color: #fff;
 }
-
 /* 左侧折叠：左栏不占可视内容（避免树/内边距从缝露出），折叠钮叠在竖向分隔条中线上 */
 .splitpanes-tree-collapse-wrap--left-collapsed > .splitpanes.splitpanes--vertical > .splitpanes__pane:first-child {
   flex: 0 1 0% !important;
@@ -73,7 +61,6 @@
   visibility: hidden;
   pointer-events: none;
 }
-
 .splitpanes-tree-collapse-wrap__toggle {
   position: absolute;
   z-index: 10;
@@ -92,20 +79,14 @@
   font-size: 9px;
   line-height: 1;
   box-shadow: 0 1px 2px rgba(26, 54, 120, 0.1);
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
-
 .splitpanes-tree-collapse-wrap__toggle:hover {
   color: #0d47a1;
   background: #dbe4f5;
   border-color: #7ea3e8;
   box-shadow: 0 1px 4px rgba(26, 54, 120, 0.14);
 }
-
 /* 外圈 15×15：箭头 9×9（Ant Design Icon 为 svg） */
 .splitpanes-tree-collapse-wrap__toggle svg {
   width: 9px;
