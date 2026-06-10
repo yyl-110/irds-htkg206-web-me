@@ -480,4 +480,25 @@ export class AdminApiActivityPage {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 迁移历史设计配置页至活动配置
+   * body: { templatePageId: string, treeId: string }
+   *
+   * @request POST /business-service/oldSystem/template-page-info/migrate-template-page
+   */
+  static migrateTemplatePage = <Req extends { templatePageId: string; treeId: string } = { templatePageId: string; treeId: string }>(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/oldSystem/template-page-info/migrate-template-page`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }

@@ -1003,6 +1003,10 @@ const migrateCalcPageModalVisible = ref(false);
 const migrateCalcPageId = ref('');
 const migrateCalcPageLoading = ref(false);
 
+const migrateTemplatePageModalVisible = ref(false);
+const migrateTemplatePageId = ref('');
+const migrateTemplatePageLoading = ref(false);
+
 function getSelectedCategoryTreeId() {
   return String(selectNodeKeys.value || selectedKeys.value || currentNode.value?.key || '');
 }
@@ -1051,6 +1055,53 @@ async function confirmMigrateCalcPage() {
   } finally {
     migrateCalcPageLoading.value = false;
     migrateCalcPageId.value = '';
+  }
+}
+
+function openMigrateTemplatePageModal() {
+  if (!getSelectedCategoryTreeId()) {
+    message.warning('请先选择分类树节点');
+    return;
+  }
+  migrateTemplatePageId.value = '';
+  migrateTemplatePageModalVisible.value = true;
+}
+
+function cancelMigrateTemplatePage() {
+  migrateTemplatePageModalVisible.value = false;
+  migrateTemplatePageId.value = '';
+}
+
+async function confirmMigrateTemplatePage() {
+  const templatePageId = migrateTemplatePageId.value?.trim();
+  if (!templatePageId) {
+    message.warning('请输入设计配置页面id');
+    return;
+  }
+  const treeId = getSelectedCategoryTreeId();
+  if (!treeId) {
+    message.warning('请先选择分类树节点');
+    return;
+  }
+  migrateTemplatePageModalVisible.value = false;
+  migrateTemplatePageLoading.value = true;
+  try {
+    const res = await AdminApiActivityPage.migrateTemplatePage({
+      templatePageId,
+      treeId,
+    });
+    if (res?.data?.code === 0 || res?.data?.code === 200) {
+      message.success(res?.data?.data?.message || '迁移成功');
+      await loadParameterListData();
+    } else {
+      message.error(res?.data?.msg || '迁移失败');
+    }
+  } catch (error) {
+    console.error('migrateTemplatePage failed:', error);
+    message.error('迁移失败');
+  } finally {
+    migrateTemplatePageLoading.value = false;
+    migrateTemplatePageId.value = '';
   }
 }
 
@@ -1637,6 +1688,10 @@ const {
                     <EpcIcon type="icon-daochu" style="font-size: 12px" />
                     {{ $t('迁移计算页面') }}
                   </a-button>
+                  <a-button type="primary" :loading="migrateTemplatePageLoading" @click="openMigrateTemplatePageModal()">
+                    <EpcIcon type="icon-daochu" style="font-size: 12px" />
+                    {{ $t('迁移设计配置页') }}
+                  </a-button>
                   <a-button type="primary" :disabled="deleteFlag" @click="openAssignCategoryModal()">
                     <EpcIcon type="icon-fenpei" style="font-size: 12px" />
                     {{ $t('分配分类') }}
@@ -1902,6 +1957,25 @@ const {
             allow-clear
             :placeholder="$t('请输入计算页面id')"
             @pressEnter="confirmMigrateCalcPage" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="migrateTemplatePageModalVisible"
+      :title="$t('迁移设计配置页')"
+      width="480px"
+      :confirm-loading="migrateTemplatePageLoading"
+      destroy-on-close
+      @ok="confirmMigrateTemplatePage"
+      @cancel="cancelMigrateTemplatePage">
+      <a-form layout="horizontal" :label-col="{ style: { width: '120px' } }">
+        <a-form-item :label="$t('设计配置页id')">
+          <a-input
+            v-model:value="migrateTemplatePageId"
+            allow-clear
+            :placeholder="$t('请输入 T_TEMPLATE_PAGE_INFO.ID')"
+            @pressEnter="confirmMigrateTemplatePage" />
         </a-form-item>
       </a-form>
     </a-modal>
