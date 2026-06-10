@@ -4320,6 +4320,8 @@ watch(
 </style>
 
 <style scoped lang="less">
+@import './activity-theme-buttons.less';
+
 .config-layout {
   height: calc(100vh - 120px);
   display: grid;
@@ -4496,7 +4498,7 @@ watch(
   flex-wrap: wrap;
 }
 .component-knowledge-hint {
-  color: #1677ff;
+  color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
   font-size: 14px;
   cursor: help;
   flex-shrink: 0;
@@ -4646,15 +4648,6 @@ watch(
 .template-browse-3d-action-btn {
   flex-shrink: 0;
 }
-/* 与右侧「浏览」主按钮同色，禁用态仍保持主色（仅预览） */
-.template-browse-3d-action-btn.ant-btn-primary:disabled,
-.template-browse-3d-action-btn.ant-btn-primary.ant-btn-disabled {
-  color: #fff !important;
-  background: #1677ff !important;
-  border-color: #1677ff !important;
-  opacity: 0.92;
-  cursor: default;
-}
 .fixed-table-preview {
   width: 100%;
   max-width: 900px;
@@ -4766,7 +4759,7 @@ watch(
   gap: 6px;
 }
 .fixed-table-cell-op-link {
-  color: #1677ff;
+  color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
   text-decoration: underline;
   cursor: default;
   line-height: 22px;
@@ -4795,7 +4788,7 @@ watch(
   cursor: pointer;
 }
 .fixed-table-preview-td--selected {
-  box-shadow: inset 0 0 0 2px #1677ff;
+  box-shadow: inset 0 0 0 2px var(--project-system-primary, var(--ant-primary-color, #124dd6));
 }
 .table-cell-inherit-hint {
   margin: 0 0 12px;
@@ -4999,21 +4992,6 @@ watch(
   font-weight: 500;
   line-height: 30px !important;
   border-radius: 4px !important;
-  background: #2f74ff !important;
-  border-color: #2f74ff !important;
-}
-.data-view-assemble-btn:hover:not(:disabled),
-.data-view-assemble-btn:focus:not(:disabled) {
-  background: #2563eb !important;
-  border-color: #2563eb !important;
-}
-.data-view-assemble-btn:disabled,
-.data-view-assemble-btn.ant-btn-disabled {
-  color: #fff !important;
-  background: #2f74ff !important;
-  border-color: #2f74ff !important;
-  opacity: 0.92;
-  cursor: default;
 }
 .divider-empty-panel {
   min-height: 360px;
@@ -5196,7 +5174,7 @@ watch(
   line-height: 1;
 }
 .add-icon-btn {
-  color: #1677ff !important;
+  color: var(--project-system-primary, var(--ant-primary-color, #124dd6)) !important;
 }
 .delete-icon-btn {
   color: #ff4d4f !important;

@@ -1477,6 +1477,8 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 </template>
 
 <style lang="less">
+@import './activity-theme-buttons.less';
+
 .activity-preview-fullscreen-wrap {
   padding: 0 !important;
 }
@@ -1632,7 +1634,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   flex-wrap: wrap;
 }
 .component-knowledge-hint {
-  color: #1677ff;
+  color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
   font-size: 14px;
   cursor: pointer;
 }
@@ -2039,7 +2041,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
   justify-content: center;
 }
 .fixed-table-cell-op-link {
-  color: #1677ff;
+  color: var(--project-system-primary, var(--ant-primary-color, #124dd6));
   text-decoration: underline;
   cursor: pointer;
   line-height: 22px;

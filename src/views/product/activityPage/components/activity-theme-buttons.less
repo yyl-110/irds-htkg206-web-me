@@ -1,0 +1,28 @@
+/** 活动配置/预览画布内主色按钮：跟随「样式配置 → 系统主题」（projectUi → --project-system-primary） */
+@activity-theme-primary: var(--project-system-primary, var(--ant-primary-color, #124dd6));
+@activity-theme-primary-hover: var(--ant-primary-color-hover, @activity-theme-primary);
+
+.data-view-assemble-btn.ant-btn-primary,
+.template-browse-3d-action-btn.ant-btn-primary,
+.fixed-table-preview-add-btn.ant-btn-primary,
+.fixed-table-def-browse-btn.ant-btn-primary {
+  &:not(:disabled):not(.ant-btn-disabled) {
+    background: @activity-theme-primary;
+    border-color: @activity-theme-primary;
+
+    &:hover,
+    &:focus {
+      background: @activity-theme-primary-hover;
+      border-color: @activity-theme-primary-hover;
+    }
+  }
+
+  &:disabled,
+  &.ant-btn-disabled {
+    color: #fff !important;
+    background: @activity-theme-primary !important;
+    border-color: @activity-theme-primary !important;
+    opacity: 0.92;
+    cursor: default;
+  }
+}
