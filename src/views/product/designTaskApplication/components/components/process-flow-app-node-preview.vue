@@ -19,6 +19,7 @@ import ModuleLibraryPickerModal from '../../../activityPage/components/module-li
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
+import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
 import { openModuleInfoNew, assembleModuleInfoNew, openDrawingInfoNew } from '@/libs/webSocketNew';
 import { downloadFileFromStream } from '@/utils/file';
 import * as XLSX from 'xlsx';
@@ -32,6 +33,7 @@ const props = defineProps<{
   savedTables?: any[] | null;
   taskId?: string | number | null;
   activityId?: string | number | null;
+  projectId?: string | number | null;
   /** WBS 协同：启用本任务 vs 项目参数差异提示 */
   wbsCollabMode?: boolean;
   /** WBS 协同：全项目参数 Map（含本任务其它活动） */
@@ -63,6 +65,7 @@ const importParamsSelectedFile = ref<File | null>(null);
 const importParamsFileInputKey = ref(0);
 const impactEvalModalVisible = ref(false);
 const impactSelectedParamCode = ref('');
+const impactParamSearchText = ref('');
 const impactAnalyzing = ref(false);
 const impactResultRows = ref<Array<{ key: string; activityName: string; taskCreatorName: string; taskName: string; taskStatus: string }>>([]);
 const fileCollabUploadTarget = ref<{ item: any; componentIndex: number; bodyRow: number } | null>(null);
@@ -202,6 +205,8 @@ function onParamTitleClick(item: any) {
 function onImpactEvalEntryClick() {
   impactEvalModalVisible.value = true;
   impactResultRows.value = [];
+  impactSelectedParamCode.value = '';
+  impactParamSearchText.value = '';
 }
 function onImpactEvalModalClose() {
   impactEvalModalVisible.value = false;
@@ -218,15 +223,82 @@ const impactParamOptions = computed(() =>
 );
 const impactColumns = [
   { title: '活动名称', dataIndex: 'activityName', key: 'activityName', ellipsis: true },
-  { title: '负责人', dataIndex: 'taskCreatorName', key: 'taskCreatorName', width: 180, ellipsis: true },
-  { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 200, ellipsis: true },
+  { title: '负责人', dataIndex: 'taskCreatorName', key: 'taskCreatorName', width: 120, ellipsis: true },
+  { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 180, ellipsis: true },
+  { title: '任务状态', dataIndex: 'taskStatus', key: 'taskStatus', width: 100, ellipsis: true },
 ];
+
+function formatWbsTaskStatus(raw?: string): string {
+  const map: Record<string, string> = {
+    NOT_STARTED: '未开始',
+    DESIGNING: '设计中',
+    COMPLETED: '已完成',
+    CHANGING: '变更中',
+  };
+  const key = String(raw ?? '').trim().toUpperCase();
+  return map[key] || String(raw ?? '').trim() || '-';
+}
+
+function filterImpactParamOption(input: string, option: { label?: string; value?: string }) {
+  const q = String(input ?? '').trim().toLowerCase();
+  if (!q) return true;
+  const label = String(option?.label ?? '').toLowerCase();
+  const value = String(option?.value ?? '').toLowerCase();
+  return label.includes(q) || value.includes(q);
+}
+
+function resolveImpactParamCode(rawInput?: string): string {
+  const input = String(rawInput ?? '').trim();
+  if (!input) return '';
+  const options = impactParamOptions.value;
+  const exact = options.find(o => o.value === input);
+  if (exact) return exact.value;
+  const lower = input.toLowerCase();
+  const byCode = options.find(o => o.value.toLowerCase().includes(lower));
+  if (byCode) return byCode.value;
+  const byLabel = options.find(o => o.label.toLowerCase().includes(lower));
+  return byLabel?.value ?? input;
+}
+
+function onImpactParamSearch(value: string) {
+  impactParamSearchText.value = value;
+}
+
+function mapStandaloneImpactRows(raw: any, paramCode: string) {
+  const taskList = Array.isArray(raw?.impactedActivities)
+    ? raw.impactedActivities
+    : Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.list)
+        ? raw.list
+        : [];
+  return taskList.map((row: any, idx: number) => ({
+    key: String(row?.bpmnElementId ?? row?.activityId ?? `${paramCode}-${idx}`),
+    activityName: String(row?.activityName ?? row?.nodeName ?? '-'),
+    taskCreatorName: String(raw?.taskCreatorName ?? '-'),
+    taskName: String(raw?.taskName ?? '-'),
+    taskStatus: String(row?.nodeStatus ?? '-'),
+  }));
+}
+
+function mapWbsImpactRows(raw: any, paramCode: string) {
+  const taskList = Array.isArray(raw?.impactedItems) ? raw.impactedItems : [];
+  return taskList.map((row: any, idx: number) => ({
+    key: String(row?.bindTaskId ?? row?.activityId ?? `${paramCode}-${idx}`),
+    activityName: String(row?.activityName ?? row?.nodeName ?? '-'),
+    taskCreatorName: String(row?.taskCreatorName ?? '-'),
+    taskName: String(row?.taskName ?? '-'),
+    taskStatus: formatWbsTaskStatus(row?.taskStatus),
+  }));
+}
+
 async function onImpactAnalyzeClick() {
-  const selected = String(impactSelectedParamCode.value || '').trim();
+  const selected = resolveImpactParamCode(impactSelectedParamCode.value || impactParamSearchText.value);
   if (!selected) {
-    message.warning('请先选择参数');
+    message.warning('请先选择或输入参数');
     return;
   }
+  impactSelectedParamCode.value = selected;
   const taskId = String(props.taskId ?? '').trim();
   const activityId = String(props.activityId ?? '').trim();
   if (!taskId) {
@@ -239,20 +311,27 @@ async function onImpactAnalyzeClick() {
   }
   impactAnalyzing.value = true;
   try {
-    const res = await AdminApiSystemProcessTask.evaluateImpact({
-      activityId,
-      taskId,
-      paramCode: selected,
-    });
-    const raw = res?.data?.data;
-    const taskList = Array.isArray(raw?.impactedActivities) ? raw.impactedActivities : Array.isArray(raw) ? raw : Array.isArray(raw?.list) ? raw.list : [];
-    impactResultRows.value = taskList.map((row: any, idx: number) => ({
-      key: String(row?.taskId ?? row?.id ?? `${selected}-${idx}`),
-      activityName: String(row?.activityName ?? '-'),
-      taskCreatorName: raw.taskCreatorName,
-      taskName: raw.taskName,
-      taskStatus: raw.taskName,
-    }));
+    if (props.wbsCollabMode) {
+      const projectId = String(props.projectId ?? '').trim();
+      if (!projectId) {
+        message.warning('未获取到项目ID');
+        return;
+      }
+      const res = await AdminApiProjectTemp.wbsTaskParamEvaluateImpact({
+        projectId,
+        sourceTaskId: taskId,
+        paramCode: selected,
+        currentActivityId: activityId,
+      });
+      impactResultRows.value = mapWbsImpactRows(res?.data?.data, selected);
+    } else {
+      const res = await AdminApiSystemProcessTask.evaluateImpact({
+        activityId,
+        taskId,
+        paramCode: selected,
+      });
+      impactResultRows.value = mapStandaloneImpactRows(res?.data?.data, selected);
+    }
   } finally {
     impactAnalyzing.value = false;
   }
@@ -1872,7 +1951,7 @@ defineExpose({
     <a-modal v-model:visible="impactEvalModalVisible" title="影响评估" width="920px" :footer="null" @cancel="onImpactEvalModalClose">
       <div class="impact-eval-modal-content">
         <div class="impact-eval-toolbar">
-          <a-select v-model:value="impactSelectedParamCode" :options="impactParamOptions" placeholder="请选择参数" class="impact-eval-param-select" allow-clear />
+          <a-select v-model:value="impactSelectedParamCode" :options="impactParamOptions" placeholder="请输入或选择参数" class="impact-eval-param-select" show-search allow-clear :filter-option="filterImpactParamOption" @search="onImpactParamSearch" />
           <a-button type="primary" :loading="impactAnalyzing" @click="onImpactAnalyzeClick">分析</a-button>
         </div>
         <a-table :columns="impactColumns" :data-source="impactResultRows" :pagination="false" :loading="impactAnalyzing" size="small" bordered row-key="key" :scroll="{ y: 300 }" />
