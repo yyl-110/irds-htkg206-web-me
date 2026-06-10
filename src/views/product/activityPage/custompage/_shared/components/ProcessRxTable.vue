@@ -128,4 +128,9 @@ const rowSelection = computed(() => {
 :deep(.ant-table-cell) {
   padding: 4px 8px !important;
 }
+
+:deep(.ant-table-thead > tr > th),
+:deep(.ant-table-thead .ant-table-column-title) {
+  font-weight: normal !important;
+}
 </style>

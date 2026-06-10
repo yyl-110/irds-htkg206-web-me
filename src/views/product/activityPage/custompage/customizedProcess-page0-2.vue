@@ -152,15 +152,11 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { handleCutZero } from '@/utils/tools';
+import { getFlowTableList } from './shared/flowContext';
 import { createDefaultPage1_1_1_1ParameterList, type Page1_1_1_1ParameterItem } from './page0-2/parameterDefaults';
 import { loadPage1_1_1_1PageParameters } from './page0-2/loadPageParameters';
 
 defineOptions({ name: 'rx-customizedProcess-page1-1-1-1' });
-
-interface FlowTableItem {
-  tablenum?: string;
-  rowdata?: Array<Record<string, string>>;
-}
 
 const props = withDefaults(
   defineProps<{
@@ -209,10 +205,6 @@ watch(
   { deep: true },
 );
 
-function getFlowTableList(): FlowTableItem[] {
-  return [];
-}
-
 async function loadPageParametersIfNeeded() {
   if (props.parameterTempList && props.parameterTempList.length > 0) return;
   const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
@@ -243,11 +235,11 @@ function outputChange(type: string) {
     }
     if (obj?.rowdata?.[0]) {
       const row = obj.rowdata[0];
-      parameterTempList.value[1].defaultValue = row.p1 ?? '';
-      parameterTempList.value[2].defaultValue = row.p2 ?? '';
-      parameterTempList.value[3].defaultValue = row.p3 ?? '';
-      parameterTempList.value[4].defaultValue = row.p4 ?? '';
-      parameterTempList.value[5].defaultValue = row.p9 ?? '';
+      parameterTempList.value[1].defaultValue = String(row.p1 ?? '');
+      parameterTempList.value[2].defaultValue = String(row.p2 ?? '');
+      parameterTempList.value[3].defaultValue = String(row.p3 ?? '');
+      parameterTempList.value[4].defaultValue = String(row.p4 ?? '');
+      parameterTempList.value[5].defaultValue = String(row.p9 ?? '');
       calculateEDGLX();
     }
   } else {
@@ -259,11 +251,11 @@ function outputChange(type: string) {
     }
     if (obj?.rowdata?.[1]) {
       const row = obj.rowdata[1];
-      parameterTempList.value[8].defaultValue = row.p5 ?? '';
-      parameterTempList.value[9].defaultValue = row.p6 ?? '';
-      parameterTempList.value[10].defaultValue = row.p7 ?? '';
-      parameterTempList.value[12].defaultValue = row.p8 ?? '';
-      parameterTempList.value[11].defaultValue = row.p10 ?? '';
+      parameterTempList.value[8].defaultValue = String(row.p5 ?? '');
+      parameterTempList.value[9].defaultValue = String(row.p6 ?? '');
+      parameterTempList.value[10].defaultValue = String(row.p7 ?? '');
+      parameterTempList.value[12].defaultValue = String(row.p8 ?? '');
+      parameterTempList.value[11].defaultValue = String(row.p10 ?? '');
       calculateEDGLZ();
     }
   }

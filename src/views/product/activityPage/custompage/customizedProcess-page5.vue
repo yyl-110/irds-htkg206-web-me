@@ -21,7 +21,7 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: tabHeight, x: 1400 }"
+          :scroll="{ y: tabHeight }"
           :row-key="page5TableRowKey"
           class="page5-table">
           <template #bodyCell="{ column, record, index }">
@@ -249,8 +249,31 @@ onMounted(async () => {
   color: #f00;
 }
 
+.page5-table {
+  width: 100%;
+}
+
+.page5-table :deep(.ant-table-wrapper) {
+  width: 100%;
+}
+
+.page5-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+.page5-table :deep(.ant-table-thead > tr > th) {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.35;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
 .selectBox :deep(.ant-table-cell) {
   padding: 4px 6px;
   text-align: center;
+  font-size: 12px;
 }
 </style>

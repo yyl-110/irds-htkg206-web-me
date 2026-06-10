@@ -1,7 +1,7 @@
 <template>
   <div class="layout-wrapper">
     <div class="layout-content">
-      <a-form label-align="left" :colon="false" :label-col="formLabelCol" :wrapper-col="formWrapperCol">
+      <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
         <div class="section-header">
           <div class="section-header__title">确认设计输入：</div>
           <a-form-item label="舵机工作方式：" class="work-mode-item">
@@ -63,9 +63,6 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const labelWidth = 220;
-const formLabelCol = { style: { width: `${labelWidth}px`, flex: `0 0 ${labelWidth}px` } };
-const formWrapperCol = { style: { flex: '0 0 auto' } };
 
 function createInitialParameterList(): Page1_4ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
@@ -205,11 +202,10 @@ onMounted(async () => {
 }
 
 .section-header {
-  border-bottom: 1px solid silver;
   width: 100%;
   font-weight: 600;
   padding: 10px 0 8px 15px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
 
 .section-header__title {
@@ -226,9 +222,23 @@ onMounted(async () => {
   width: 100%;
   min-height: calc(100vh - 400px);
   background-color: #ffffff;
-  padding-top: 10px;
+  padding-top: 0px;
   margin-left: 15px;
   overflow: hidden;
+}
+
+.design-form :deep(.ant-form-item) {
+  margin-bottom: 16px;
+}
+
+.design-form :deep(.ant-form-item-label) {
+  padding-bottom: 4px;
+}
+
+.design-form :deep(.ant-form-item-label > label) {
+  white-space: normal;
+  line-height: 1.4;
+  height: auto;
 }
 
 .form-column-left {
@@ -242,13 +252,8 @@ onMounted(async () => {
   padding-left: 40px;
 }
 
-.form-column-left :deep(.ant-form-item-label > label),
-.form-column-right :deep(.ant-form-item-label > label),
-.work-mode-item :deep(.ant-form-item-label > label) {
-  white-space: nowrap;
-}
-
 .field-input {
-  width: 234px;
+  width: 100%;
+  max-width: 280px;
 }
 </style>

@@ -1,0 +1,9 @@
+/* custompage 目录下表格表头统一取消加粗 */
+.custom-page-scope .ant-table-thead > tr > th,
+.custom-page-scope .ant-table-thead > tr > td {
+  font-weight: normal !important;
+}
+
+.custom-page-scope .ant-table-thead .ant-table-column-title {
+  font-weight: normal !important;
+}

@@ -1,4 +1,12 @@
 import type { Component } from 'vue';
+import {
+  syncFlowContextFromTaskParamMap,
+  type CustomPageSavedParamRow,
+  type CustomPageSavedTableRow,
+} from '../_shared/utils/taskParamMapMerge';
+import { CUSTOM_PAGE_PARAMETER_LOADERS } from './parameterLoaders';
+
+export type { CustomPageSavedParamRow };
 
 export type CustomPageLoader = () => Promise<{ default: Component }>;
 
@@ -179,125 +187,16 @@ export async function loadCustomPageComponent(key: string): Promise<Component | 
   return mod.default ?? null;
 }
 
-export type CustomPageSavedParamRow = {
-  paramCode?: string;
-  paramKey?: string;
-  paramValue?: string;
-};
-
-type CustomPageParameterLoader = (
-  pageId: string,
-  saved?: CustomPageSavedParamRow[] | null,
-) => Promise<unknown[]>;
-
-/** 自定义页 key → 参数加载（合并 task-param-map 已保存值） */
-const CUSTOM_PAGE_PARAMETER_LOADERS: Partial<Record<string, CustomPageParameterLoader>> = {
-  'customized-process-ansys': async (pageId, saved) => {
-    const { loadAnsysPageParameters } = await import('../ansys/loadPageParameters');
-    return loadAnsysPageParameters(pageId, saved);
-  },
-  'customized-process-jsinvoke': async (pageId, saved) => {
-    const { loadJsinvokePageParameters } = await import('../jsinvoke/loadPageParameters');
-    return loadJsinvokePageParameters(pageId, saved);
-  },
-  'customized-process-page0': async (pageId, saved) => {
-    const { loadPage0PageParameters } = await import('../page0/loadPageParameters');
-    return loadPage0PageParameters(pageId, saved);
-  },
-  'customized-process-page0-1': async (pageId, saved) => {
-    const { loadPage0_1PageParameters } = await import('../page0-1/loadPageParameters');
-    return loadPage0_1PageParameters(pageId, saved);
-  },
-  'customized-process-page0-2': async (pageId, saved) => {
-    const { loadPage1_1_1_1PageParameters } = await import('../page0-2/loadPageParameters');
-    return loadPage1_1_1_1PageParameters(pageId, saved);
-  },
-  'customized-process-page0-3': async (pageId, saved) => {
-    const { loadPage0_3PageParameters } = await import('../page0-3/loadPageParameters');
-    return loadPage0_3PageParameters(pageId, saved);
-  },
-  'customized-process-page0-4': async (pageId, saved) => {
-    const { loadPage0_5PageParameters } = await import('../page0-5/loadPageParameters');
-    return loadPage0_5PageParameters(pageId, saved);
-  },
-  'customized-process-page1': async (pageId, saved) => {
-    const { loadPage1PageParameters } = await import('../page1/loadPageParameters');
-    return loadPage1PageParameters(pageId, saved);
-  },
-  'customized-process-page1-1': async (pageId, saved) => {
-    const { loadPage0_5PageParameters } = await import('../page0-5/loadPageParameters');
-    return loadPage0_5PageParameters(pageId, saved);
-  },
-  'customized-process-page1-2': async (pageId, saved) => {
-    const { loadPage1_2PageParameters } = await import('../page1-2/loadPageParameters');
-    return loadPage1_2PageParameters(pageId, saved);
-  },
-  'customized-process-page1-3': async (pageId, saved) => {
-    const { loadPage1_3PageParameters } = await import('../page1-3/loadPageParameters');
-    return loadPage1_3PageParameters(pageId, saved);
-  },
-  'customized-process-page1-4': async (pageId, saved) => {
-    const { loadPage1_4PageParameters } = await import('../page1-4/loadPageParameters');
-    return loadPage1_4PageParameters(pageId, saved);
-  },
-  'customized-process-page2': async (pageId, saved) => {
-    const { loadPage2PageParameters } = await import('../page2/loadPageParameters');
-    return loadPage2PageParameters(pageId, saved);
-  },
-  'customized-process-page2-1': async (pageId, saved) => {
-    const { loadPage2_1PageParameters } = await import('../page2-1/loadPageParameters');
-    return loadPage2_1PageParameters(pageId, saved);
-  },
-  'customized-process-page3': async (pageId, saved) => {
-    const { loadPage3PageParameters } = await import('../page3/loadPageParameters');
-    return loadPage3PageParameters(pageId, saved);
-  },
-  'customized-process-page3-1': async (pageId, saved) => {
-    const { loadPage3PageParameters } = await import('../page3/loadPageParameters');
-    return loadPage3PageParameters(pageId, saved);
-  },
-  'customized-process-page4': async (pageId, saved) => {
-    const { loadPage4PageParameters } = await import('../page4/loadPageParameters');
-    return loadPage4PageParameters(pageId, saved);
-  },
-  'customized-process-page5': async (pageId, saved) => {
-    const { loadPage5PageParameters } = await import('../page5/loadPageParameters');
-    return loadPage5PageParameters(pageId, saved);
-  },
-  'customized-process-page6': async (pageId, saved) => {
-    const { loadPage6PageParameters } = await import('../page6/loadPageParameters');
-    return loadPage6PageParameters(pageId, saved);
-  },
-  'customized-process-page7': async (pageId, saved) => {
-    const { loadPage7PageParameters } = await import('../page7/loadPageParameters');
-    return loadPage7PageParameters(pageId, saved);
-  },
-  'customized-process-page8': async (pageId, saved) => {
-    const { loadPage8PageParameters } = await import('../page8/loadPageParameters');
-    return loadPage8PageParameters(pageId, saved);
-  },
-  'customized-process-page9': async (pageId, saved) => {
-    const { loadPage9PageParameters } = await import('../page9/loadPageParameters');
-    return loadPage9PageParameters(pageId, saved);
-  },
-  'customized-process-page10': async (pageId, saved) => {
-    const { loadPage10PageParameters } = await import('../page10/loadPageParameters');
-    return loadPage10PageParameters(pageId, saved);
-  },
-  'customized-process-page11': async (pageId, saved) => {
-    const { loadPage11PageParameters } = await import('../page11/loadPageParameters');
-    return loadPage11PageParameters(pageId, saved);
-  },
-};
-
 export async function loadCustomPageParameters(
   key: string,
   pageId: string,
   saved?: CustomPageSavedParamRow[] | null,
+  savedTables?: CustomPageSavedTableRow[] | null,
 ): Promise<unknown[]> {
+  syncFlowContextFromTaskParamMap(saved, savedTables);
   const loader = CUSTOM_PAGE_PARAMETER_LOADERS[key];
   if (!loader) return [];
-  return loader(String(pageId ?? '').trim(), saved);
+  return loader(String(pageId ?? '').trim(), saved, savedTables);
 }
 
 function buildPageIdQuery(record: { id?: string | number | null; pageId?: string | number | null }) {

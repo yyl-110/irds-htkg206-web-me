@@ -1,15 +1,23 @@
 <script setup lang="ts">
 // 自定义页面
-import { ref, shallowRef, watch } from 'vue';
+import { nextTick, ref, shallowRef, watch } from 'vue';
 import type { Component } from 'vue';
 import { message } from 'ant-design-vue';
-import { loadCustomPageComponent, loadCustomPageParameters, resolveCustomPageKey } from '../../../activityPage/custompage/registry/index';
+import CustomPageScope from '../../../activityPage/custompage/_shared/components/CustomPageScope.vue';
+import {
+  loadCustomPageComponent,
+  loadCustomPageParameters,
+  resolveCustomPageKey,
+  type CustomPageSavedParamRow,
+} from '../../../activityPage/custompage/registry/index';
+import type { CustomPageSavedTableRow } from '../../../activityPage/custompage/_shared/utils/taskParamMapMerge';
 
 const props = defineProps<{
   activityPageId?: string | number | null;
   pageUrl?: string | null;
   pageName?: string | null;
-  savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+  savedParamValues?: CustomPageSavedParamRow[] | null;
+  savedTables?: CustomPageSavedTableRow[] | null;
 }>();
 
 const emit = defineEmits<{
@@ -22,9 +30,15 @@ const resolvedComponent = shallowRef<Component | null>(null);
 const customComponentRef = ref<{
   getCurrentSaveParamValues?: () => unknown[];
   getCurrentTableSavePayload?: () => unknown[];
+  updateEl?: () => void;
 } | null>(null);
 const parameterTempList = ref<unknown[]>([]);
 const pageKey = ref<string | null>(null);
+
+async function syncChildFromParameterList() {
+  await nextTick();
+  customComponentRef.value?.updateEl?.();
+}
 
 async function loadPageContent() {
   ready.value = false;
@@ -46,8 +60,10 @@ async function loadPageContent() {
       pageKey.value,
       String(props.activityPageId ?? ''),
       props.savedParamValues,
+      props.savedTables,
     );
     ready.value = true;
+    await syncChildFromParameterList();
   } catch (error) {
     console.error('load custom page failed:', error);
     message.error('自定义页面加载失败');
@@ -69,7 +85,7 @@ function onContentMutated() {
 }
 
 watch(
-  () => [props.activityPageId, props.pageUrl, props.pageName, props.savedParamValues] as const,
+  () => [props.activityPageId, props.pageUrl, props.pageName, props.savedParamValues, props.savedTables] as const,
   () => {
     void loadPageContent();
   },
@@ -84,13 +100,14 @@ defineExpose({
 
 <template>
   <a-spin :spinning="loading">
-    <component
-      :is="resolvedComponent"
-      v-if="ready && resolvedComponent"
-      ref="customComponentRef"
-      :pageid="String(activityPageId ?? '')"
-      :parameter-temp-list="parameterTempList"
-      @set-save-btn-enable="onContentMutated" />
+    <CustomPageScope v-if="ready && resolvedComponent">
+      <component
+        :is="resolvedComponent"
+        ref="customComponentRef"
+        :pageid="String(activityPageId ?? '')"
+        :parameter-temp-list="parameterTempList"
+        @set-save-btn-enable="onContentMutated" />
+    </CustomPageScope>
     <div v-else-if="ready && !resolvedComponent" class="custom-page-empty">未找到匹配的自定义页面组件</div>
   </a-spin>
 </template>

@@ -17,7 +17,7 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: tabHeight, x: 1638 }"
+          :scroll="{ y: tabHeight }"
           :row-key="page4TableRowKey"
           class="page4-table" />
       </div>
@@ -201,8 +201,31 @@ onMounted(async () => {
   padding: 0 10px;
 }
 
+.page4-table {
+  width: 100%;
+}
+
+.page4-table :deep(.ant-table-wrapper) {
+  width: 100%;
+}
+
+.page4-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+.page4-table :deep(.ant-table-thead > tr > th) {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.35;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
 .selectBox :deep(.ant-table-cell) {
   padding: 4px 6px;
   text-align: center;
+  font-size: 12px;
 }
 </style>

@@ -1,10 +1,10 @@
 <template>
   <div class="layout-wrapper">
     <div class="layout-content">
-      <a-form label-align="left" :colon="false" :label-col="formLabelCol" :wrapper-col="formWrapperCol">
+      <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
         <div class="section-title">确定通讯形式：</div>
 
-        <section class="main-section">
+        <section class="main-section form-grid">
           <a-form-item label="通讯形式：">
             <a-select v-model:value="parameterTempList[0].defaultValue" class="field-input" @change="outputChange">
               <a-select-option v-for="item in commTypeOptions" :key="item.label" :value="item.label">
@@ -17,7 +17,7 @@
             <a-select
               v-model:value="parameterTempList[1].defaultValue"
               class="field-input"
-              :disabled="flag"
+              :disabled="!isDigitalCommType"
               @change="communicationChange">
               <a-select-option v-for="item in digitalCommOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
@@ -29,7 +29,7 @@
             <a-select
               v-model:value="parameterTempList[2].defaultValue"
               class="field-input"
-              :disabled="!flag"
+              :disabled="isDigitalCommType"
               @change="communicationChange">
               <a-select-option v-for="item in quarantineOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
@@ -41,7 +41,7 @@
             <a-select
               v-model:value="parameterTempList[3].defaultValue"
               class="field-input"
-              :disabled="!flag"
+              :disabled="isDigitalCommType"
               @change="communicationChange">
               <a-select-option v-for="item in telemeteringOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
@@ -56,7 +56,7 @@
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="!flag"
+              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
 
@@ -67,7 +67,7 @@
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="!flag"
+              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
 
@@ -78,7 +78,7 @@
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="!flag"
+              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
 
@@ -89,7 +89,7 @@
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="!flag"
+              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
         </section>
@@ -130,8 +130,6 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const formLabelCol = { style: { width: '160px', flex: '0 0 160px' } };
-const formWrapperCol = { style: { flex: '0 0 auto' } };
 
 function createInitialParameterList(): Page1_3ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
@@ -141,7 +139,8 @@ function createInitialParameterList(): Page1_3ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_3ParameterItem[]>(createInitialParameterList());
-const flag = ref(true);
+
+const isDigitalCommType = computed(() => parameterTempList.value[0]?.defaultValue === '数字');
 
 function getSelectOptions(index: number): SelectOption[] {
   const item = parameterTempList.value[index];
@@ -194,14 +193,12 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 
 function outputChange(type: string) {
   if (type === '数字') {
-    flag.value = false;
     for (let i = 2; i < 8; i++) {
       if (parameterTempList.value[i]) {
         parameterTempList.value[i].defaultValue = '';
       }
     }
   } else {
-    flag.value = true;
     if (parameterTempList.value[1]) {
       parameterTempList.value[1].defaultValue = '';
     }
@@ -258,31 +255,44 @@ onMounted(async () => {
 }
 
 .section-title {
-  border-bottom: 1px solid silver;
   width: 100%;
   font-weight: 600;
-  padding: 0 0 8px 10px;
-  margin-bottom: 8px;
+  padding: 10px 0 0px 10px;
+  margin-bottom: 0px;
+}
+
+.design-form :deep(.ant-form-item) {
+  margin-bottom: 20px;
+}
+
+.design-form :deep(.ant-form-item-label) {
+  padding-bottom: 4px;
+}
+
+.design-form :deep(.ant-form-item-label > label) {
+  white-space: normal;
+  line-height: 1.4;
+  height: auto;
 }
 
 .main-section {
-  width: 420px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 960px;
   min-height: calc(100vh - 400px);
   background-color: #ffffff;
   padding-top: 20px;
   margin-left: 15px;
 }
 
-.main-section :deep(.ant-form-item) {
-  margin-bottom: 24px;
-}
-
-.main-section :deep(.ant-form-item-label > label) {
-  white-space: nowrap;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  column-gap: 48px;
+  align-content: start;
 }
 
 .field-input {
-  width: 234px;
+  width: 100%;
+  max-width: 280px;
 }
 </style>

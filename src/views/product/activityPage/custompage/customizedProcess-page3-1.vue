@@ -21,14 +21,20 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: tabHeight, x: 1823 }"
+          :scroll="{ y: tabHeight }"
           :row-key="page3TableRowKey"
           class="page3-table">
           <template #bodyCell="{ column, record, index }">
             <template v-if="resolveLeafColumn(column)?.cellMode === 'readonly-input'">
               <a-input
+                v-if="resolveLeafColumn(column)?.inputType !== 'number'"
                 v-model:value="record[String(column.dataIndex)]"
-                :type="resolveLeafColumn(column)?.inputType === 'number' ? 'number' : 'text'"
+                type="text"
+                class="table-cell-input"
+                disabled />
+              <a-input-number
+                v-else
+                v-model:value="record[String(column.dataIndex)]"
                 class="table-cell-input"
                 disabled />
             </template>
@@ -242,7 +248,6 @@ onMounted(async () => {
 .layout-header__title {
   width: 100%;
   font-size: 15px;
-  font-weight: 600;
   padding-left: 10px;
 }
 
@@ -257,12 +262,43 @@ onMounted(async () => {
 
 .table-cell-input {
   width: 100%;
+}
+
+.table-cell-input :deep(.ant-input),
+.table-cell-input :deep(.ant-input-number-input) {
   text-align: center;
+}
+
+.table-cell-input :deep(.ant-input-number) {
+  width: 100%;
+}
+
+.page3-table {
+  width: 100%;
+}
+
+.page3-table :deep(.ant-table-wrapper) {
+  width: 100%;
+}
+
+.page3-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+.page3-table :deep(.ant-table-thead > tr > th) {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.35;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: normal;
 }
 
 .selectBox :deep(.ant-table-cell) {
   padding: 4px 6px;
   text-align: center;
+  font-size: 12px;
 }
 
 .selectBox :deep(.ant-input[disabled]) {

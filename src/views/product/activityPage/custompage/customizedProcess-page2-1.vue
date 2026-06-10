@@ -3,25 +3,12 @@
     <div class="layout-header">
       <div class="layout-header__title">减速器选型：</div>
 
-      <a-form label-align="left" :colon="false" :label-col="formLabelCol" :wrapper-col="formWrapperCol" class="param-form">
-        <a-form-item label="舵机工作方式:">
-          <a-input v-model:value="parameterTempList[6].defaultValue" class="field-input" disabled allow-clear />
-        </a-form-item>
-
-        <div v-for="(row, rowIndex) in formRows" :key="rowIndex" class="form-row">
-          <div class="form-col">
-            <a-form-item :label="row.left.label">
+      <a-form layout="vertical" label-align="left" :colon="false" class="param-form">
+        <div v-for="(row, rowIndex) in formFieldRows" :key="rowIndex" class="form-row">
+          <div v-for="field in row" :key="field.index" class="form-col">
+            <a-form-item :label="field.label">
               <a-input
-                v-model:value="parameterTempList[row.left.index].defaultValue"
-                class="field-input"
-                disabled
-                allow-clear />
-            </a-form-item>
-          </div>
-          <div v-if="row.right" class="form-col">
-            <a-form-item :label="row.right.label">
-              <a-input
-                v-model:value="parameterTempList[row.right.index].defaultValue"
+                v-model:value="parameterTempList[field.index].defaultValue"
                 class="field-input"
                 disabled
                 allow-clear />
@@ -52,7 +39,8 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: tabHeight, x: 1400 }"
+          class="reducer-table"
+          :scroll="{ y: tabHeight }"
           :row-key="reducerTableRowKey"
           :row-selection="reducerRowSelection">
           <template #bodyCell="{ column, record, index }">
@@ -65,8 +53,14 @@
             </template>
             <template v-else-if="isEditableReducerCell(column, record)">
               <a-input
+                v-if="column.inputType === 'text'"
                 v-model:value="record[String(column.dataIndex)]"
-                :type="column.inputType === 'text' ? 'text' : 'number'"
+                type="text"
+                class="table-cell-input"
+                @input="onReducerCellInput(record, index, String(column.dataIndex))" />
+              <a-input-number
+                v-else
+                v-model:value="record[String(column.dataIndex)]"
                 class="table-cell-input"
                 @input="onReducerCellInput(record, index, String(column.dataIndex))" />
             </template>
@@ -134,8 +128,6 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const userStore = useUserStore();
-const formLabelCol = { style: { width: '160px', flex: '0 0 160px' } };
-const formWrapperCol = { style: { flex: '0 0 auto' } };
 const tabHeight = 440;
 const reducerTypeOptions = REDUCER_TYPE_OPTIONS;
 const reducerTableColumns = REDUCER_SELECT_ANT_COLUMNS;
@@ -145,25 +137,23 @@ interface FormFieldConfig {
   label: string;
 }
 
-interface FormRowConfig {
-  left: FormFieldConfig;
-  right?: FormFieldConfig;
-}
-
-const formRows: FormRowConfig[] = [
-  {
-    left: { index: 0, label: '机械行程（单边转角）:' },
-    right: { index: 1, label: '机械行程（单边直线）:' },
-  },
-  {
-    left: { index: 3, label: '减速器载荷 (旋转) (Nm):' },
-    right: { index: 4, label: '减速器载荷 (直线) (Nm):' },
-  },
-  {
-    left: { index: 7, label: '等效力臂（mm）:' },
-    right: { index: 2, label: '舵机末端减速器形式:' },
-  },
+const formFields: FormFieldConfig[] = [
+  { index: 6, label: '舵机工作方式:' },
+  { index: 0, label: '机械行程（单边转角）:' },
+  { index: 1, label: '机械行程（单边直线）:' },
+  { index: 3, label: '减速器载荷 (旋转) (Nm):' },
+  { index: 4, label: '减速器载荷 (直线) (Nm):' },
+  { index: 7, label: '等效力臂（mm）:' },
+  { index: 2, label: '舵机末端减速器形式:' },
 ];
+
+const formFieldRows = computed(() => {
+  const rows: FormFieldConfig[][] = [];
+  for (let i = 0; i < formFields.length; i += 3) {
+    rows.push(formFields.slice(i, i + 3));
+  }
+  return rows;
+});
 
 function createInitialParameterList(): Page2_1ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
@@ -392,18 +382,44 @@ onMounted(async () => {
 }
 
 .param-form {
-  padding: 10px 0 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 10px 0;
+}
+
+.param-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+}
+
+.param-form :deep(.ant-form-item-label) {
+  padding-bottom: 4px;
+}
+
+.param-form :deep(.ant-form-item-label > label) {
+  white-space: normal;
+  line-height: 1.4;
+  height: auto;
+  font-weight: 400;
 }
 
 .form-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 20px;
+  width: 100%;
 }
 
 .form-col {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 300px;
+  width: 300px;
+}
+
+.form-col :deep(.ant-form-item) {
+  width: 100%;
 }
 
 .section-toolbar {
@@ -416,7 +432,7 @@ onMounted(async () => {
 }
 
 .field-input {
-  width: 234px;
+  width: 300px;
 }
 
 .table-cell-input,
@@ -424,7 +440,30 @@ onMounted(async () => {
   width: 100%;
 }
 
+.reducer-table {
+  width: 100%;
+}
+
+.reducer-table :deep(.ant-table-wrapper) {
+  width: 100%;
+}
+
+.reducer-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+.reducer-table :deep(.ant-table-thead > tr > th) {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.35;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
 .selectBox :deep(.ant-table-cell) {
   padding: 4px 6px;
+  font-size: 12px;
 }
 </style>

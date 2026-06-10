@@ -1,26 +1,9 @@
 import type { Page1_2ParameterItem } from './parameterDefaults';
-
-interface FlowParameterItem {
-  paramnum?: string;
-  paramvalue?: string;
-}
-
-interface FlowTableItem {
-  tablenum?: string;
-  rowdata?: Array<Record<string, string>>;
-}
+import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
 
 export interface Page1_2InitState {
   flag: boolean;
   djzdlj: string;
-}
-
-function getFlowParameterList(): FlowParameterItem[] {
-  return [];
-}
-
-function getFlowTableList(): FlowTableItem[] {
-  return [];
 }
 
 /** 从流程上下文初始化页面数据（原 initData + updateEl） */

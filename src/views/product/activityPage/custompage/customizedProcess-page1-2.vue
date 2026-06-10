@@ -1,15 +1,13 @@
 <template>
   <div class="layout-wrapper">
     <div class="layout-content">
-      <a-form label-align="left" :colon="false" :label-col="formLabelCol">
-        <a-form-item label="舵机工作方式：" class="form-item--indent">
-          <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled />
-        </a-form-item>
-
-        <div class="section-title">确定末端减速器形式：</div>
-        <div class="section-tip">此处的直线和旋转是针对减速器的，不是舵机的</div>
-
+      <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
+        <a-form-item label="舵机工作方式：" class="form-item--indent work-mode-item">
+            <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled />
+          </a-form-item>
+          <div class="section-header__title">确定末端减速器形式：</div>
         <section class="main-section">
+          <div class="section-tip">此处的直线和旋转是针对减速器的，不是舵机的</div>
           <a-form-item label="舵机末端减速器形式：">
             <a-input v-model:value="parameterTempList[1].defaultValue" class="field-input" disabled />
           </a-form-item>
@@ -83,7 +81,6 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const formLabelCol = { style: { width: '145px' } };
 
 function createInitialParameterList(): Page1_2ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
@@ -101,6 +98,7 @@ watch(
   val => {
     if (val && val.length > 0) {
       parameterTempList.value = val.map(item => ({ ...item }));
+      nextTick(() => updateEl());
     }
   },
   { deep: true },
@@ -195,30 +193,56 @@ onMounted(async () => {
   background: #ffffff;
 }
 
-.form-item--indent {
-  margin-left: 20px;
-}
-
-.section-title {
+.section-header {
   border-bottom: 1px solid silver;
   width: 100%;
   font-weight: 600;
-  padding: 0 0 8px 10px;
+  padding: 0 10px 8px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.section-header__title {
+  display: block;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 
 .section-tip {
-  font-size: 16px;
-  font-weight: bold;
+  display: block;
+  font-size: 14px;
   color: red;
-  margin: 0 0 12px 20px;
+  margin: 0 0 12px;
+}
+
+.work-mode-item {
+  margin-bottom: 0;
+  font-weight: 400;
+}
+
+.form-item--indent {
+  margin-left: 20px;
+}
+
+.design-form :deep(.ant-form-item) {
+  margin-bottom: 16px;
+}
+
+.design-form :deep(.ant-form-item-label) {
+  padding-bottom: 4px;
+}
+
+.design-form :deep(.ant-form-item-label > label) {
+  white-space: normal;
+  line-height: 1.4;
+  height: auto;
 }
 
 .main-section {
   width: 100%;
   min-height: calc(100vh - 400px);
   background-color: #ffffff;
-  padding-top: 20px;
+  padding-top: 5px;
   margin-left: 15px;
 }
 

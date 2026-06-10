@@ -3,11 +3,11 @@
     <div class="layout-header">
       <div class="layout-header__title">电机选型：</div>
 
-      <a-form label-align="left" :colon="false" :label-col="formLabelCol" :wrapper-col="formWrapperCol" class="power-form">
+      <a-form layout="vertical" label-align="left" :colon="false" class="power-form">
         <a-form-item label="舵机额定功率（旋转）（W）：">
           <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
-        <a-form-item label="舵机额定功率（直线）（W）：" class="power-form__second">
+        <a-form-item label="舵机额定功率（直线）（W）：">
           <a-input v-model:value="parameterTempList[1].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
       </a-form>
@@ -34,7 +34,8 @@
           :pagination="false"
           bordered
           size="small"
-          :scroll="{ y: tabHeight, x: 2100 }"
+          class="motor-table"
+          :scroll="{ y: tabHeight }"
           :row-key="motorTableRowKey"
           :row-selection="motorRowSelection">
           <template #bodyCell="{ column, record, index }">
@@ -117,8 +118,6 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const userStore = useUserStore();
-const formLabelCol = { style: { width: '220px', flex: '0 0 220px' } };
-const formWrapperCol = { style: { flex: '0 0 auto' } };
 const tabHeight = 530;
 const motorTypeOptions = MOTOR_TYPE_OPTIONS;
 const motorTableColumns = MOTOR_SELECT_ANT_COLUMNS;
@@ -361,12 +360,19 @@ onMounted(async () => {
   padding: 10px 0 0 10px;
 }
 
-.power-form :deep(.ant-form-item-label > label) {
-  white-space: nowrap;
+.power-form :deep(.ant-form-item) {
+  margin-bottom: 0;
 }
 
-.power-form__second {
-  margin-bottom: 0;
+.power-form :deep(.ant-form-item-label) {
+  padding-bottom: 4px;
+}
+
+.power-form :deep(.ant-form-item-label > label) {
+  white-space: normal;
+  line-height: 1.4;
+  height: auto;
+  font-weight: 400;
 }
 
 .section-toolbar {
@@ -379,7 +385,7 @@ onMounted(async () => {
 }
 
 .field-input {
-  width: 200px;
+  width: 300px;
 }
 
 .table-cell-input,
@@ -387,7 +393,30 @@ onMounted(async () => {
   width: 100%;
 }
 
+.motor-table {
+  width: 100%;
+}
+
+.motor-table :deep(.ant-table-wrapper) {
+  width: 100%;
+}
+
+.motor-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+.motor-table :deep(.ant-table-thead > tr > th) {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.35;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
 .selectBox :deep(.ant-table-cell) {
   padding: 4px 6px;
+  font-size: 12px;
 }
 </style>

@@ -1914,6 +1914,7 @@ onMounted(() => {
                     :page-url="String(nodeDetailData?.url ?? nodeDetailData?.pageUrl ?? '')"
                     :page-name="String(nodeDetailData?.nodeName ?? nodeDetailData?.pageName ?? '')"
                     :saved-param-values="nodeDetailData?.savedParamValues"
+                    :saved-tables="nodeDetailData?.savedTables"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppNodePreview
                     v-else
