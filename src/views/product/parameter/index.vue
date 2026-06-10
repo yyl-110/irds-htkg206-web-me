@@ -839,7 +839,11 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
 
 /** 获取节点添加数据（仅允许在二级固定节点及其下级新建） */
 async function getNodeAddData(selectedKeysParam: any) {
-  const node = selectedKeysParam?.key != null ? selectedKeysParam : currentNode.value;
+  const activeKey = String(selectedKeys.value || currentNode.value?.key || '');
+  let node = selectedKeysParam?.key != null ? selectedKeysParam : currentNode.value;
+  if (activeKey && String(node?.key ?? '') !== activeKey) {
+    node = findNodeById(treeData.value, activeKey) ?? currentNode.value ?? node;
+  }
   if (!canAddCategoryUnderNode(node)) {
     message.warning('请先选择「配置参数」或「产品参数」等二级节点后再新建');
     return;
