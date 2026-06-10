@@ -116,10 +116,10 @@ export const WORKBENCH_TABS = [
 ];
 
 /**
- * 设计任务二级筛选（与 `/business/workbench-todo-card/page` 的 timeBucket 对齐，仅 WBS）：
- * - 截止日在 5 天内：projectEndDate ∈ [今天, 今天+5] 且未标延期
- * - 截止日在 15 天内：projectEndDate ∈ [今天, 今天+15] 且未标延期
- * - 截止日超期：projectEndDate 早于今天，或 overdueDays 大于 0
+ * 设计任务二级筛选（与 `/business/workbench-todo-card/page` 的 timeBucket 对齐，按 WBS 任务 plan_end_time，仅 WBS）：
+ * - 截止日在 5 天内：WBS 任务 planEndTime ∈ [今天, 今天+5] 且未标延期
+ * - 截止日在 15 天内：WBS 任务 planEndTime ∈ [今天, 今天+15] 且未标延期
+ * - 截止日超期：WBS 任务 planEndTime 早于今天，或 overdueDays 大于 0
  */
 export const WORKBENCH_SECONDARY_TABS = [
   { title: '待办', value: 'todo' },

@@ -25,6 +25,7 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { flowSynchronizeChildrenModelsToWeb, setModelParameterInFirstCsysNew } from '@/libs/webSocketNew';
+import { findChangedWbsInputParamKeys } from '@/composables/designWorkspace/useWbsProjectParamSync';
 
 interface FlowNode {
   id?: string | number;
@@ -133,8 +134,10 @@ const nodeDetailLoading = ref(false);
 const flowViewLoading = ref(false);
 const flowViewData = ref<{ xmlData?: string; nodeStatusMap?: Record<string, string> }>({});
 const nodeDetailData = ref<Record<string, any> | null>(null);
-/** WBS 协同：项目级参数聚合 Map（paramKey -> value），与本任务 savedParamValues 分离 */
+/** WBS 协同：项目级参数 Map（含本任务，同任务跨活动） */
 const wbsProjectParamMap = ref<Record<string, string>>({});
+/** WBS 协同：仅其它任务的参数 Map（跨任务比对） */
+const wbsOtherTasksParamMap = ref<Record<string, string>>({});
 const activityImageUrl = ref('');
 const activityImageMarginTop = ref(0);
 const activityImageWidth = ref(260);
@@ -728,6 +731,92 @@ async function onNodeDetailToolbarAction(label: string, index: number) {
   }
 }
 
+async function refreshWbsProjectParamMap() {
+  if (!isWbsCollabWorkspace.value) return;
+  const projectId = route.query.projectId;
+  const taskId = route.query.taskId;
+  if (!projectId || !taskId) return;
+  try {
+    const mapRes = await AdminApiProjectTemp.wbsTaskParamMap({ projectId, taskId });
+    const payload = mapRes?.data?.data as
+      | { params?: Record<string, string>; paramsFromOtherTasks?: Record<string, string> }
+      | undefined;
+    wbsProjectParamMap.value =
+      payload?.params && typeof payload.params === 'object' ? { ...payload.params } : {};
+    wbsOtherTasksParamMap.value =
+      payload?.paramsFromOtherTasks && typeof payload.paramsFromOtherTasks === 'object'
+        ? { ...payload.paramsFromOtherTasks }
+        : {};
+  } catch {
+    wbsProjectParamMap.value = {};
+    wbsOtherTasksParamMap.value = {};
+  }
+}
+
+function mergeWbsSavedParamValuesIntoNodeDetail(
+  items: Array<{ paramKey?: string; paramName?: string; paramValue?: string }>,
+) {
+  if (!nodeDetailData.value || !items.length) return;
+  const merged = new Map<string, { paramCode: string; paramName: string; paramValue: string }>();
+  const prev = Array.isArray(nodeDetailData.value.savedParamValues) ? nodeDetailData.value.savedParamValues : [];
+  prev.forEach((row: any) => {
+    const code = String(row?.paramCode ?? row?.paramKey ?? '').trim();
+    if (!code) return;
+    merged.set(code, {
+      paramCode: code,
+      paramName: String(row?.paramName ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    });
+  });
+  items.forEach(row => {
+    const code = String(row?.paramKey ?? '').trim();
+    if (!code) return;
+    merged.set(code, {
+      paramCode: code,
+      paramName: String(row?.paramName ?? '').trim(),
+      paramValue: String(row?.paramValue ?? ''),
+    });
+  });
+  nodeDetailData.value = {
+    ...nodeDetailData.value,
+    savedParamValues: Array.from(merged.values()),
+  };
+}
+
+/** 设计输入变更保存后：评估跨任务影响并提示 */
+async function notifyWbsInputPushImpact(options: {
+  projectId: string | number;
+  taskId: string | number;
+  activityPageId: string | number;
+  paramCodes: string[];
+}) {
+  const { projectId, taskId, activityPageId, paramCodes } = options;
+  if (!paramCodes.length) return;
+  const impactedLabels = new Set<string>();
+  for (const paramCode of paramCodes) {
+    try {
+      const res = await AdminApiProjectTemp.wbsTaskParamEvaluateImpact({
+        projectId,
+        sourceTaskId: taskId,
+        paramCode,
+        currentActivityId: activityPageId,
+      });
+      const list = (res?.data?.data as { impactedItems?: any[] } | undefined)?.impactedItems;
+      if (!Array.isArray(list)) continue;
+      list.forEach((row: any) => {
+        if (row?.currentActivity) return;
+        const label = [row?.taskName, row?.activityName || row?.nodeName].filter(Boolean).join(' / ');
+        if (label) impactedLabels.add(label);
+      });
+    } catch {
+      // 影响评估失败不阻断保存
+    }
+  }
+  if (impactedLabels.size > 0) {
+    message.info(`设计输入已推送项目，以下协同任务可能需同步：${Array.from(impactedLabels).join('、')}`);
+  }
+}
+
 async function requestNodeDetailByKey(key: string) {
   if (!key) return;
   rightPanelManualOverride.value = false;
@@ -810,15 +899,14 @@ async function requestNodeDetailByKey(key: string) {
     try {
       const projectId = route.query.projectId;
       if (projectId) {
-        const mapRes = await AdminApiProjectTemp.wbsTaskParamMap({ projectId, taskId });
-        const payload = mapRes?.data?.data as { params?: Record<string, string> } | undefined;
-        wbsProjectParamMap.value =
-          payload?.params && typeof payload.params === 'object' ? { ...payload.params } : {};
+        await refreshWbsProjectParamMap();
       } else {
         wbsProjectParamMap.value = {};
+        wbsOtherTasksParamMap.value = {};
       }
     } catch {
       wbsProjectParamMap.value = {};
+      wbsOtherTasksParamMap.value = {};
     }
     hasUnsavedChanges.value = false;
     return;
@@ -1125,12 +1213,25 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
     };
     const wbsId = route.query.wbsId;
     if (wbsId) body.wbsId = wbsId;
+    const changedInputKeys = findChangedWbsInputParamKeys({
+      items,
+      savedParamValues: nodeDetailData.value?.savedParamValues,
+      componentsJson: nodeDetailData.value?.componentsJson,
+    });
     setLoading(true);
     try {
       const res = await AdminApiProjectTemp.wbsTaskParamSave(body);
       const code = res?.data?.code;
       if (code === 0 || code === 200 || code === '0' || code === '200') {
         hasUnsavedChanges.value = false;
+        mergeWbsSavedParamValuesIntoNodeDetail(items);
+        await refreshWbsProjectParamMap();
+        await notifyWbsInputPushImpact({
+          projectId,
+          taskId,
+          activityPageId,
+          paramCodes: changedInputKeys,
+        });
         message.success(options?.successMessage || '保存成功');
         return true;
       }
@@ -1277,6 +1378,11 @@ async function goNextNode() {
     };
     const wbsId = route.query.wbsId;
     if (wbsId) body.wbsId = wbsId;
+    const changedInputKeys = findChangedWbsInputParamKeys({
+      items,
+      savedParamValues: nodeDetailData.value?.savedParamValues,
+      componentsJson: nodeDetailData.value?.componentsJson,
+    });
     submitFlowLoading.value = true;
     try {
       const res = await AdminApiProjectTemp.wbsCollabNextStep(body);
@@ -1292,6 +1398,14 @@ async function goNextNode() {
       }
       message.success('提交成功');
       hasUnsavedChanges.value = false;
+      mergeWbsSavedParamValuesIntoNodeDetail(items);
+      await refreshWbsProjectParamMap();
+      await notifyWbsInputPushImpact({
+        projectId,
+        taskId,
+        activityPageId,
+        paramCodes: changedInputKeys,
+      });
       void loadWorkspaceOperateLogs();
       if (nextKey && !allNodeMap.value.has(nextKey)) {
         nextKey = '';
@@ -1466,6 +1580,8 @@ async function finishFlow() {
       }
       message.success('提交成功');
       hasUnsavedChanges.value = false;
+      mergeWbsSavedParamValuesIntoNodeDetail(items);
+      await refreshWbsProjectParamMap();
       void loadWorkspaceOperateLogs();
       router.back();
     } catch {
@@ -1743,6 +1859,7 @@ onMounted(() => {
                     :activity-id="String(nodeDetailData?.activityPageId ?? '')"
                     :wbs-collab-mode="isWbsCollabWorkspace"
                     :project-param-map="wbsProjectParamMap"
+                    :other-tasks-param-map="wbsOtherTasksParamMap"
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppCustomNodePreview
@@ -1763,6 +1880,7 @@ onMounted(() => {
                     :activity-id="String(nodeDetailData?.activityPageId ?? '')"
                     :wbs-collab-mode="isWbsCollabWorkspace"
                     :project-param-map="wbsProjectParamMap"
+                    :other-tasks-param-map="wbsOtherTasksParamMap"
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                 </div>

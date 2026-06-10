@@ -10,7 +10,9 @@ import {
   parseSavedParamValueList,
   parseWbsParamRecord,
   resolvePreviewParamBaseValue,
-  shouldShowWbsProjectParamSyncHint,
+  shouldShowWbsCrossTaskParamSyncHint,
+  isWbsInputIoType,
+  isWbsOutputIoType,
 } from '@/composables/designWorkspace/useWbsProjectParamSync';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
@@ -32,8 +34,10 @@ const props = defineProps<{
   activityId?: string | number | null;
   /** WBS 协同：启用本任务 vs 项目参数差异提示 */
   wbsCollabMode?: boolean;
-  /** WBS 协同：项目级参数 Map */
+  /** WBS 协同：全项目参数 Map（含本任务其它活动） */
   projectParamMap?: Record<string, string> | null;
+  /** WBS 协同：仅其它 WBS 任务参数（跨任务比对） */
+  otherTasksParamMap?: Record<string, string> | null;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
@@ -116,37 +120,52 @@ function parseSavedValueMap(list: any[] | null | undefined) {
 
 const savedValueMap = computed(() => parseSavedValueMap(props.savedParamValues));
 const projectParamValueMap = computed(() => parseWbsParamRecord(props.projectParamMap ?? undefined));
+const otherTasksParamValueMap = computed(() => parseWbsParamRecord(props.otherTasksParamMap ?? undefined));
 
 function getProjectParamValueByCode(paramCodeRaw: string): string {
   return lookupWbsParamInMap(projectParamValueMap.value, paramCodeRaw);
 }
 
+function getOtherTasksParamValueByCode(paramCodeRaw: string): string {
+  return lookupWbsParamInMap(otherTasksParamValueMap.value, paramCodeRaw);
+}
+
 function canWbsProjectParamSyncItem(item: any): boolean {
   if (!props.wbsCollabMode) return false;
-  if (isOutputIoType(item)) return false;
+  if (!isWbsInputIoType(item?.ioType) && !isWbsOutputIoType(item?.ioType)) return false;
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
   return !!code;
+}
+
+function getTaskSavedParamValueByCode(paramCodeRaw: string): string {
+  return lookupWbsParamInMap(savedValueMap.value, paramCodeRaw);
 }
 
 function showWbsProjectParamSyncHint(item: any, index: number): boolean {
   if (!canWbsProjectParamSyncItem(item)) return false;
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
-  const projectVal = getProjectParamValueByCode(code);
-  const taskVal = getCurrentComponentValue(item, index);
-  return shouldShowWbsProjectParamSyncHint(taskVal, projectVal);
+  const projectVal = getOtherTasksParamValueByCode(code);
+  const taskVal = getTaskSavedParamValueByCode(code);
+  const currentVal = getCurrentComponentValue(item, index);
+  return shouldShowWbsCrossTaskParamSyncHint({
+    taskSavedValue: taskVal,
+    projectValueFromOtherTasks: projectVal,
+    currentEditValue: currentVal,
+  });
 }
 
 function wbsProjectParamSyncHint(item: any, index: number): string {
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
-  const projectVal = getProjectParamValueByCode(code);
-  const taskVal = normalizeWbsParamValue(getCurrentComponentValue(item, index));
-  return `本任务值「${taskVal}」与项目值「${projectVal || '空'}」不一致，点击接收项目参数值`;
+  const projectVal = getOtherTasksParamValueByCode(code);
+  const taskVal = getTaskSavedParamValueByCode(code);
+  const kind = isWbsOutputIoType(item?.ioType) ? '设计输出' : '设计输入';
+  return `其它协同任务已更新项目参数为「${projectVal}」，本任务${kind}已保存值为「${taskVal}」，点击接收最新项目值`;
 }
 
 function acceptWbsProjectParamValue(item: any, index: number) {
   if (!canWbsProjectParamSyncItem(item)) return;
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
-  const projectVal = getProjectParamValueByCode(code);
+  const projectVal = getOtherTasksParamValueByCode(code);
   const key = getPreviewItemKey(item, index);
   const type = String(item?.componentType ?? '');
   if (type === 'RADIO') {
@@ -162,7 +181,7 @@ function acceptWbsProjectParamValue(item: any, index: number) {
   } else {
     return;
   }
-  message.success(`已接收项目参数值：${projectVal || '空'}`);
+  message.success(`已接收其它任务更新的项目参数值：${projectVal || '空'}`);
   emit('content-mutated');
 }
 
@@ -1764,7 +1783,7 @@ function getCurrentTableUniqueCodeSaveValues() {
 }
 
 watch(
-  () => [props.componentsJson, props.savedParamValues, props.savedTables],
+  () => [props.componentsJson, props.savedParamValues, props.savedTables, props.projectParamMap, props.otherTasksParamMap, props.wbsCollabMode],
   () => {
     const list = previewList.value;
     const nextFieldValueMap: Record<string, string> = {};
@@ -1782,6 +1801,7 @@ watch(
         projectMap: projectParamValueMap.value,
         paramCode: code,
         componentDefault: item?.paramValue,
+        ioType: item?.ioType,
       });
       if (['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'DATE', 'DATA_VIEW'].includes(String(item?.componentType ?? ''))) {
         nextFieldValueMap[key] = base;

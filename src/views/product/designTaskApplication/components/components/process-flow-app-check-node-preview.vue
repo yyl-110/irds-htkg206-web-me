@@ -8,7 +8,9 @@ import {
   parseSavedParamValueList,
   parseWbsParamRecord,
   resolvePreviewParamBaseValue,
-  shouldShowWbsProjectParamSyncHint,
+  shouldShowWbsCrossTaskParamSyncHint,
+  isWbsInputIoType,
+  isWbsOutputIoType,
 } from '@/composables/designWorkspace/useWbsProjectParamSync';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
@@ -23,6 +25,7 @@ const props = defineProps<{
   activityId?: string | number | null;
   wbsCollabMode?: boolean;
   projectParamMap?: Record<string, string> | null;
+  otherTasksParamMap?: Record<string, string> | null;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
@@ -94,9 +97,14 @@ function parseSavedValueMap(list: any[] | null | undefined) {
 
 const savedValueMap = computed(() => parseSavedValueMap(props.savedParamValues));
 const projectParamValueMap = computed(() => parseWbsParamRecord(props.projectParamMap ?? undefined));
+const otherTasksParamValueMap = computed(() => parseWbsParamRecord(props.otherTasksParamMap ?? undefined));
 
 function getProjectParamValueByCode(paramCodeRaw: string): string {
   return lookupWbsParamInMap(projectParamValueMap.value, paramCodeRaw);
+}
+
+function getOtherTasksParamValueByCode(paramCodeRaw: string): string {
+  return lookupWbsParamInMap(otherTasksParamValueMap.value, paramCodeRaw);
 }
 
 function getCalcPreviewParamValue(item: any, index: number): string {
@@ -106,33 +114,43 @@ function getCalcPreviewParamValue(item: any, index: number): string {
 
 function canWbsProjectParamSyncItem(item: any): boolean {
   if (!props.wbsCollabMode) return false;
-  if (isOutputIoType(item)) return false;
+  if (!isWbsInputIoType(item?.ioType) && !isWbsOutputIoType(item?.ioType)) return false;
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
   return !!code;
+}
+
+function getTaskSavedParamValueByCode(paramCodeRaw: string): string {
+  return lookupWbsParamInMap(savedValueMap.value, paramCodeRaw);
 }
 
 function showWbsProjectParamSyncHint(item: any, index: number): boolean {
   if (!canWbsProjectParamSyncItem(item)) return false;
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
-  const projectVal = getProjectParamValueByCode(code);
-  const taskVal = getCalcPreviewParamValue(item, index);
-  return shouldShowWbsProjectParamSyncHint(taskVal, projectVal);
+  const projectVal = getOtherTasksParamValueByCode(code);
+  const taskVal = getTaskSavedParamValueByCode(code);
+  const currentVal = getCalcPreviewParamValue(item, index);
+  return shouldShowWbsCrossTaskParamSyncHint({
+    taskSavedValue: taskVal,
+    projectValueFromOtherTasks: projectVal,
+    currentEditValue: currentVal,
+  });
 }
 
 function wbsProjectParamSyncHint(item: any, index: number): string {
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
-  const projectVal = getProjectParamValueByCode(code);
-  const taskVal = getCalcPreviewParamValue(item, index);
-  return `本任务值「${taskVal}」与项目值「${projectVal || '空'}」不一致，点击接收项目参数值`;
+  const projectVal = getOtherTasksParamValueByCode(code);
+  const taskVal = getTaskSavedParamValueByCode(code);
+  const kind = isWbsOutputIoType(item?.ioType) ? '设计输出' : '设计输入';
+  return `其它协同任务已更新项目参数为「${projectVal}」，本任务${kind}已保存值为「${taskVal}」，点击接收最新项目值`;
 }
 
 function acceptWbsProjectParamValue(item: any, index: number) {
   if (!canWbsProjectParamSyncItem(item)) return;
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
-  const projectVal = getProjectParamValueByCode(code);
+  const projectVal = getOtherTasksParamValueByCode(code);
   const key = getPreviewItemKey(item, index);
   previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: projectVal };
-  message.success(`已接收项目参数值：${projectVal || '空'}`);
+  message.success(`已接收其它任务更新的项目参数值：${projectVal || '空'}`);
   emit('content-mutated');
 }
 
@@ -420,7 +438,7 @@ async function onCalcButtonPreviewClick() {
 }
 
 watch(
-  () => [props.componentsJson, props.savedParamValues],
+  () => [props.componentsJson, props.savedParamValues, props.projectParamMap, props.otherTasksParamMap, props.wbsCollabMode],
   () => {
     const list = previewList.value;
     const nextMap: Record<string, string> = {};
@@ -433,6 +451,7 @@ watch(
         projectMap: projectParamValueMap.value,
         paramCode: code,
         componentDefault: item?.paramValue,
+        ioType: item?.ioType,
       });
     });
     previewFieldValueMap.value = nextMap;

@@ -160,7 +160,7 @@ const todoColumns = ref([
     sorter: (a: TaskItem, b: TaskItem) => a.taskKind.localeCompare(b.taskKind) || a.type.localeCompare(b.type),
   },
   {
-    title: '项目时间',
+    title: '任务时间',
     key: 'time',
     width: 240,
     resizable: true,
@@ -366,7 +366,8 @@ function designWorkspaceTooltip(task: TaskItem): string {
   return '协同设计';
 }
 const canAssign = (task: TaskItem) => task.category === 'assign';
-const hasTimelineInfo = (task: { category?: TaskItem['category'] }) => task.category === 'product';
+const hasTimelineInfo = (task: TaskItem) =>
+  task.taskKind === 'wbs' ? Boolean(task.startTime?.trim() && task.endTime?.trim()) : task.category === 'product';
 
 function formatProjectDateCn(v: unknown): string {
   if (v == null || v === '') return '';
@@ -1923,7 +1924,7 @@ onUnmounted(() => {
 
                             <div class="tc-body mt-[8px] space-y-[6px] text-[13px] leading-[18px] text-[#6A696E]">
                               <div class="flex">
-                                <span class="w-[68px] flex-shrink-0">项目时间：</span>
+                                <span class="w-[68px] flex-shrink-0">任务时间：</span>
                                 <span class="min-w-0 truncate">{{
                                   hasTimelineInfo(item) ? `${item.startTime} ~ ${item.endTime}` : '/'
                                 }}</span>

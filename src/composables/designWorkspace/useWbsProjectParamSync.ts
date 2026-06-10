@@ -1,4 +1,4 @@
-/** WBS 协同：本任务参数值 vs 项目聚合参数值比对与接收 */
+/** WBS 协同：跨任务同名参数 — 其它任务写入项目后的聚合值 vs 本任务已保存值 */
 
 export function normalizeWbsParamValue(v: unknown): string {
   return String(v ?? '').trim();
@@ -56,31 +56,104 @@ export function isWbsParamValueDifferent(taskValue: unknown, projectValue: unkno
   return normalizeWbsParamValue(taskValue) !== normalizeWbsParamValue(projectValue);
 }
 
-/** WBS：本任务有值且与项目值不同时才显示闹钟（任务为空已自动用项目值，无需提示） */
-export function shouldShowWbsProjectParamSyncHint(taskValue: unknown, projectValue: unknown): boolean {
-  const task = normalizeWbsParamValue(taskValue);
+/**
+ * 跨任务同步闹钟：本任务已有保存值，且与其它任务写入项目的最新值不一致时提示。
+ * - 本任务未保存过：自动沿用其它任务的项目值，不提示
+ * - 其它任务尚未写入该参数：无跨任务更新，不提示
+ * - 编辑中未保存的改动不参与比对（由调用方传入 saved 值）
+ */
+export function shouldShowWbsProjectParamSyncHint(taskSavedValue: unknown, projectValueFromOtherTasks: unknown): boolean {
+  const task = normalizeWbsParamValue(taskSavedValue);
+  const project = normalizeWbsParamValue(projectValueFromOtherTasks);
   if (!task) return false;
-  return isWbsParamValueDifferent(task, projectValue);
+  if (!project) return false;
+  return isWbsParamValueDifferent(task, project);
 }
 
-/** 表单初始值：WBS 本任务有值用本任务，否则用项目值；独立应用保持原有 fallback 逻辑 */
+export function isWbsOutputIoType(ioType: unknown): boolean {
+  return String(ioType ?? 'INPUT').toUpperCase() === 'OUTPUT';
+}
+
+export function isWbsInputIoType(ioType: unknown): boolean {
+  return String(ioType ?? 'INPUT').toUpperCase() === 'INPUT';
+}
+
+/** 表单初始值：WBS 输出项 当前任务→项目→默认；输入项 当前任务→项目→默认 */
 export function resolvePreviewParamBaseValue(options: {
   wbsCollabMode?: boolean;
   savedMap: Map<string, string>;
   projectMap?: Map<string, string>;
   paramCode: string;
   componentDefault?: unknown;
+  ioType?: string;
 }): string {
-  const { wbsCollabMode, savedMap, projectMap, paramCode, componentDefault } = options;
+  const { wbsCollabMode, savedMap, projectMap, paramCode, componentDefault, ioType } = options;
   if (wbsCollabMode) {
     const code = String(paramCode ?? '').trim();
-    const taskSaved = resolveTaskSavedParamValue(savedMap, code, '');
-    if (taskSaved) return taskSaved;
     const projectVal = projectMap ? lookupWbsParamInMap(projectMap, code) : '';
+    const taskSaved = resolveTaskSavedParamValue(savedMap, code, '');
+    if (isWbsOutputIoType(ioType)) {
+      if (taskSaved) return taskSaved;
+      if (projectVal) return projectVal;
+      return normalizeWbsParamValue(componentDefault);
+    }
+    if (taskSaved) return taskSaved;
     if (projectVal) return projectVal;
     return normalizeWbsParamValue(componentDefault);
   }
   const code = String(paramCode ?? '').trim();
   const saved = code && savedMap.has(code) ? String(savedMap.get(code) ?? '') : '';
   return saved || normalizeWbsParamValue(componentDefault);
+}
+
+/** 从活动页 componentsJson 收集设计输入（INPUT）参数编码 */
+export function collectWbsInputParamCodesFromComponents(componentsJson?: Record<string, any> | null): Set<string> {
+  const codes = new Set<string>();
+  const cfg = componentsJson || {};
+  const lists = [
+    ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
+    ...(Array.isArray(cfg.threeDComponentList) ? cfg.threeDComponentList : []),
+    ...(Array.isArray(cfg.uploadComponentList) ? cfg.uploadComponentList : []),
+    ...(Array.isArray(cfg.tableComponentList) ? cfg.tableComponentList : []),
+  ];
+  lists.forEach((item: any) => {
+    if (!isWbsInputIoType(item?.ioType)) return;
+    const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+    if (code) codes.add(code);
+  });
+  return codes;
+}
+
+/** 设计输入保存项中与已保存值不同的 paramKey（用户修改并推送项目） */
+export function findChangedWbsInputParamKeys(options: {
+  items: Array<{ paramKey?: string; paramValue?: string }>;
+  savedParamValues?: any[] | null;
+  componentsJson?: Record<string, any> | null;
+}): string[] {
+  const inputCodes = collectWbsInputParamCodesFromComponents(options.componentsJson);
+  if (!inputCodes.size) return [];
+  const savedMap = parseSavedParamValueList(options.savedParamValues);
+  const changed: string[] = [];
+  options.items.forEach(row => {
+    const key = String(row?.paramKey ?? '').trim();
+    if (!key || !inputCodes.has(key)) return;
+    const prev = savedMap.has(key) ? savedMap.get(key)! : '';
+    const next = normalizeWbsParamValue(row?.paramValue);
+    if (isWbsParamValueDifferent(prev, next)) changed.push(key);
+  });
+  return changed;
+}
+
+/** 跨任务同步闹钟：设计输入/输出均可；编辑中（当前值≠已保存）不提示 */
+export function shouldShowWbsCrossTaskParamSyncHint(options: {
+  taskSavedValue: unknown;
+  projectValueFromOtherTasks: unknown;
+  currentEditValue?: unknown;
+}): boolean {
+  const { taskSavedValue, projectValueFromOtherTasks, currentEditValue } = options;
+  if (!shouldShowWbsProjectParamSyncHint(taskSavedValue, projectValueFromOtherTasks)) return false;
+  const saved = normalizeWbsParamValue(taskSavedValue);
+  const editing = normalizeWbsParamValue(currentEditValue);
+  if (editing !== saved) return false;
+  return true;
 }
