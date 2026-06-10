@@ -36,6 +36,7 @@ import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined, Sha
 import TableCellOverflowTooltip from './components/TableCellOverflowTooltip.vue';
 import knowledgeConfig from '../components/knowledge-config.vue';
 import draggableModal from '@/components/DraggableModal/index.vue';
+import { toSnowflakeIdStr } from '@/utils/snowflakeId';
 /** 菜单树类型 */
 type Menus = MenuResponseDTOModel & {
   children: Array<MenuResponseDTOModel>;
@@ -796,11 +797,11 @@ function convertToTreeNodes(data: any[], depth = 1): any[] {
     const level = item.treeLevel ?? depth;
     const fixed = item.fixed === true || item.menuId == null || item.menuId === '';
     return {
-      key: item.id?.toString() || item.tid?.toString() || '',
+      key: toSnowflakeIdStr(item.id) || toSnowflakeIdStr(item.tid) || '',
       partName: item.name || '',
       type: 'param',
       categoryType: item.type,
-      parentId: item.parentId,
+      parentId: item.parentId != null && item.parentId !== '' ? toSnowflakeIdStr(item.parentId) : item.parentId,
       menuId: item.menuId,
       fixed,
       level,
@@ -898,7 +899,7 @@ async function downNode(selectedKeys: any) {
     message.warning('固定节点不支持排序');
     return;
   }
-  await AdminApiSystemParameter.moveDownParameterCategoryTreeNode({ id: Number(selectedKeys.key) });
+  await AdminApiSystemParameter.moveDownParameterCategoryTreeNode({ id: toSnowflakeIdStr(selectedKeys.key) });
   await getListData('change', String(selectedKeys.key));
   Selectafterchanges();
 }
@@ -908,7 +909,7 @@ async function upNode(selectedKeys: any) {
     message.warning('固定节点不支持排序');
     return;
   }
-  await AdminApiSystemParameter.moveUpParameterCategoryTreeNode({ id: Number(selectedKeys.key) });
+  await AdminApiSystemParameter.moveUpParameterCategoryTreeNode({ id: toSnowflakeIdStr(selectedKeys.key) });
   await getListData('change', String(selectedKeys.key));
   Selectafterchanges();
 }
@@ -1018,7 +1019,7 @@ async function deleteTreeNode(selectedKeys: any) {
     message.warning('固定节点不支持删除');
     return;
   }
-  await AdminApiSystemParameter.deleteParameterCategoryTreeNode({ id: Number(selectedKeys.key) });
+  await AdminApiSystemParameter.deleteParameterCategoryTreeNode({ id: toSnowflakeIdStr(selectedKeys.key) });
   await getListData('change');
   message.success(WeiI18n.t('删除成功').value);
 }
@@ -1123,13 +1124,13 @@ function findNodePathByKey(nodes: any[], targetKey: string, path: any[] = []): a
   }
   return null;
 }
-/** 解析父节点 ID，根节点默认为 0 */
-function resolveTreeParentId(nodeList: any): number {
+/** 解析父节点 ID，根节点默认为 0（雪花 ID 须保持字符串，避免 Number 精度丢失） */
+function resolveTreeParentId(nodeList: any): number | string {
   const raw = nodeList.pid ?? nodeList.parentId;
   if (raw === '' || raw === null || raw === undefined) {
     return 0;
   }
-  return Number(raw);
+  return toSnowflakeIdStr(raw);
 }
 
 /** 构建参数字典树新建/更新请求体（与 ParameterCategoryTreeBaseDTO 字段对齐） */
@@ -1141,7 +1142,7 @@ function buildCategoryTreeMutationPayload(nodeList: any, options?: { id?: string
     menuId: Number(menuId.value),
   };
   if (options?.id != null && options.id !== '') {
-    payload.id = Number(options.id);
+    payload.id = toSnowflakeIdStr(options.id);
   }
   return payload;
 }
