@@ -44,6 +44,7 @@ import { sortermethod } from '@/utils/tools';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { NoticePageRequestDTOModel } from '@/api/models/notice/NoticePageRequestDTOModel';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
 import { showRequestErrorIfNeeded } from '@/httpRequest';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { AdminApiSystemNotice } from '@/api/tags/notice/管理后台公告';
@@ -106,13 +107,44 @@ const wbsChangeTargetTask = ref<TaskItem | null>(null);
 const wbsChangeApplyLatest = ref<0 | 1>(0);
 const wbsChangeSubmitLoading = ref(false);
 
-/** 转办弹窗 */
+/** 转办弹窗（选人样式对齐 WBS「浏览」：项目团队成员单选列表） */
 const transferModalVisible = ref(false);
 const transferTargetTask = ref<TaskItem | null>(null);
 const transferSelectedUserId = ref<string | undefined>(undefined);
 const transferSubmitLoading = ref(false);
-const transferCandidateOptions = ref<Array<{ userId: string; displayName: string }>>([]);
 const transferCandidatesLoading = ref(false);
+const transferPickerKeyword = ref('');
+type TransferPickerUser = { id: string; name: string; username: string; deptId?: string };
+type TransferPickerDept = { id: string; name: string };
+const transferPickerUsers = ref<TransferPickerUser[]>([]);
+const transferPickerDepts = ref<TransferPickerDept[]>([]);
+
+const transferPickerDeptNameMap = computed(() => {
+  const map = new Map<string, string>();
+  for (const d of transferPickerDepts.value) map.set(d.id, d.name);
+  return map;
+});
+
+const transferPickerFilteredUsers = computed(() => {
+  const kw = transferPickerKeyword.value.trim().toLowerCase();
+  const list = transferPickerUsers.value;
+  if (!kw) return list;
+  return list.filter(u => {
+    const dept = u.deptId ? transferPickerDeptNameMap.value.get(u.deptId) ?? '' : '';
+    return `${u.name}${u.username}${dept}`.toLowerCase().includes(kw);
+  });
+});
+
+function formatTransferPickerUserRow(u: TransferPickerUser) {
+  const dept = u.deptId ? transferPickerDeptNameMap.value.get(u.deptId) ?? '-' : '-';
+  return `${u.name} / ${u.username} / ${dept}`;
+}
+
+function normalizeWorkbenchUserId(v: unknown): string {
+  if (v === undefined || v === null) return '';
+  const s = String(v).trim();
+  return s === '' || s === 'undefined' || s === 'null' ? '' : s;
+}
 
 /** 驳回弹窗 */
 const rejectModalVisible = ref(false);
@@ -123,13 +155,6 @@ const rejectSubmitLoading = ref(false);
 /** 我的流程 — 取消流程弹窗 */
 const bpmCancelModalVisible = ref(false);
 const bpmCancelTargetTask = ref<WorkbenchBpmTaskItem | null>(null);
-
-const transferSelectOptions = computed(() =>
-  transferCandidateOptions.value.map(u => ({
-    value: u.userId,
-    label: u.displayName,
-  })),
-);
 
 // 定义问候语文本
 const greetingText = ref('');
@@ -631,6 +656,14 @@ function taskKindBadgeLabel(task: TaskItem): string {
   return TASK_KIND_LABEL[task.taskKind] ?? TASK_KIND_LABEL.other;
 }
 
+/** 卡片顶部类型标签：WBS 协同任务附加项目名称 */
+function taskKindRibbonLabel(task: TaskItem): string {
+  const base = taskKindBadgeLabel(task);
+  if (task.taskKind !== 'wbs') return base;
+  const projectName = String(task.projectDisplayName ?? '').trim();
+  return projectName ? `${base} · ${projectName}` : base;
+}
+
 /** 列表「任务大类」子类型：去掉前导「类型」等冗余，避免与表头/大类重复啰嗦 */
 function workbenchListTaskSubtypeClean(raw: unknown): string {
   return String(raw ?? '')
@@ -915,38 +948,81 @@ async function openTransferModal(task: TaskItem) {
   }
   transferTargetTask.value = task;
   transferSelectedUserId.value = undefined;
-  transferCandidateOptions.value = [];
+  transferPickerKeyword.value = '';
+  transferPickerUsers.value = [];
+  transferPickerDepts.value = [];
   transferModalVisible.value = true;
-  await loadTransferCandidates(pid);
+  const loaded = await loadTransferCandidates(pid);
+  if (!loaded) {
+    closeTransferModal();
+  }
 }
 
 function closeTransferModal() {
   transferModalVisible.value = false;
   transferTargetTask.value = null;
+  transferPickerKeyword.value = '';
+  transferPickerUsers.value = [];
+  transferPickerDepts.value = [];
 }
 
-async function loadTransferCandidates(projectId: string) {
+async function loadTransferCandidates(projectId: string): Promise<boolean> {
   transferCandidatesLoading.value = true;
-  transferCandidateOptions.value = [];
+  transferPickerUsers.value = [];
+  transferPickerDepts.value = [];
   try {
-    const res = await AdminApiProjectTemp.workbenchTodoTransferCandidates({ projectId });
-    const code = res?.data?.code;
-    const raw = res?.data?.data as unknown;
+    const [candRes, deptRes] = await Promise.all([
+      AdminApiProjectTemp.workbenchTodoCardTransferCandidates({ projectId }),
+      AdminApiSystemDept.getDeptInfo({} as any).catch(() => null),
+    ]);
+    const code = candRes?.data?.code;
+    const raw = candRes?.data?.data as unknown;
     const list = Array.isArray(raw) ? raw : (raw as { list?: unknown[] })?.list;
+    const candidates: Array<{ userId: string; displayName: string }> = [];
     if ((code === 0 || code === 200) && Array.isArray(list)) {
-      transferCandidateOptions.value = list
-        .map((row: Record<string, unknown>) => ({
-          userId: String(row.userId ?? row.user_id ?? ''),
-          displayName: String(row.displayName ?? row.display_name ?? ''),
-        }))
-        .filter(u => u.userId.trim() !== '')
-        .map(u => ({
-          ...u,
-          displayName: u.displayName.trim() !== '' ? u.displayName : u.userId,
-        }));
+      for (const row of list) {
+        const r = row as Record<string, unknown>;
+        const userId = normalizeWorkbenchUserId(r.userId ?? r.user_id);
+        if (!userId) continue;
+        const displayName = String(r.displayName ?? r.display_name ?? '').trim();
+        candidates.push({ userId, displayName: displayName || userId });
+      }
     }
-  } catch {
-    message.error('加载项目团队成员失败');
+    if (candidates.length === 0) {
+      message.warning('请先在「项目团队」中为各角色分配人员');
+      return false;
+    }
+
+    let allUsers: TransferPickerUser[] = [];
+    let depts: TransferPickerDept[] = [];
+    if (deptRes?.data?.code === 200) {
+      const payload = deptRes.data.data as
+        | { adminDeptResponseDTO?: TransferPickerDept[]; adminUserResponseDTO?: TransferPickerUser[] }
+        | undefined;
+      depts = payload?.adminDeptResponseDTO ?? [];
+      allUsers = (payload?.adminUserResponseDTO ?? []).map(u => ({
+        id: normalizeWorkbenchUserId(u.id),
+        name: String(u.name ?? '').trim(),
+        username: String(u.username ?? '').trim(),
+        deptId: u.deptId != null ? String(u.deptId) : undefined,
+      }));
+    }
+    transferPickerDepts.value = depts;
+    const userById = new Map(allUsers.map(u => [u.id, u]));
+    transferPickerUsers.value = candidates.map(c => {
+      const matched = userById.get(c.userId);
+      if (matched) return matched;
+      return {
+        id: c.userId,
+        name: c.displayName,
+        username: c.displayName,
+        deptId: undefined,
+      };
+    });
+    return true;
+  } catch (e: unknown) {
+    showRequestErrorIfNeeded(e, '加载项目团队成员失败');
+    return false;
   } finally {
     transferCandidatesLoading.value = false;
   }
@@ -1885,12 +1961,12 @@ onUnmounted(() => {
                         <div v-for="item in todoList" :key="String(item.id)" class="task-card" :class="taskCardKindClass(item)">
                             <div v-if="workbenchShowOverdueUi(item)" class="task-card__overdue-corner">延期</div>
                             <div class="task-card__type-ribbon">
-                              <span class="task-card__type-ribbon-inner">
+                              <span class="task-card__type-ribbon-inner" :title="taskKindRibbonLabel(item)">
                                 <ApartmentOutlined v-if="item.taskKind === 'wbs'" />
                                 <MobileOutlined v-else-if="item.taskKind === 'standalone'" />
                                 <CloudServerOutlined v-else-if="item.taskKind === 'compute'" />
                                 <SettingOutlined v-else />
-                                {{ taskKindBadgeLabel(item) }}
+                                <span class="task-card__type-ribbon-text">{{ taskKindRibbonLabel(item) }}</span>
                               </span>
                             </div>
                             <div class="tc-header flex justify-between items-start">
@@ -1950,28 +2026,32 @@ onUnmounted(() => {
                                 <span class="w-[68px] flex-shrink-0">当前承办：</span>
                                 <span class="text-[#313133] font-medium truncate">{{ item.assigneeDisplayName }}</span>
                               </div>
-                              <div class="flex justify-between items-center pr-[6px]">
-                                <div class="flex min-w-0">
-                                  <span class="w-[68px] flex-shrink-0">当前进度：</span>
-                                  <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
+                              <div class="tc-progress-block">
+                                <div class="flex justify-between items-center pr-[6px]">
+                                  <div class="flex min-w-0">
+                                    <span class="w-[68px] flex-shrink-0">当前进度：</span>
+                                    <span class="text-[#313133] font-bold">{{ item.progress }}%</span>
+                                  </div>
+                                  <span v-if="item.status === 'todo' && item.delayDays" class="text-[#FF4D4F] flex-shrink-0"
+                                    >已延期 {{ item.delayDays }} 天</span
+                                  >
+                                  <span
+                                    v-else-if="hasTimelineInfo(item) && item.remainDays"
+                                    class="text-[#6A696E] flex-shrink-0 whitespace-nowrap"
+                                    >距截止还剩 {{ item.remainDays }} 天</span
+                                  >
                                 </div>
-                                <span v-if="item.status === 'todo' && item.delayDays" class="text-[#FF4D4F]"
-                                  >已延期 {{ item.delayDays }} 天</span
-                                >
-                                <span v-else-if="hasTimelineInfo(item) && item.remainDays" class="text-[#6A696E]"
-                                  >距截止还剩 {{ item.remainDays }} 天</span
-                                >
+                                <a-progress
+                                  :percent="item.progress"
+                                  :show-info="false"
+                                  :stroke-width="6"
+                                  trail-color="#F0F0F0"
+                                  class="tc-progress-bar"
+                                  :class="workbenchShowOverdueUi(item) ? 'delay-progress' : 'normal-progress'" />
                               </div>
-                              <a-progress
-                                :percent="item.progress"
-                                :show-info="false"
-                                :stroke-width="6"
-                                trail-color="#F0F0F0"
-                                class="mt-[4px] !mb-0"
-                                :class="workbenchShowOverdueUi(item) ? 'delay-progress' : 'normal-progress'" />
                             </div>
 
-                            <div class="tc-footer mt-[8px] flex items-center text-[13px] leading-[18px] text-[#6A696E]">
+                            <div class="tc-footer flex items-center text-[13px] leading-[18px] text-[#6A696E]">
                               <span class="w-[52px] flex-shrink-0">创建人：</span>
                               <div class="creator-badge flex items-center bg-[#F4F4F5] rounded-[12px] px-[6px] py-[1px]">
                                 <img
@@ -2390,27 +2470,37 @@ onUnmounted(() => {
   <a-modal
     v-model:visible="transferModalVisible"
     title="转办任务"
-    width="520px"
-    :confirm-loading="transferSubmitLoading"
+    width="560px"
     :mask-closable="false"
     destroy-on-close
-    ok-text="确认转办"
-    cancel-text="取消"
-    @ok="submitWorkbenchTransfer"
     @cancel="closeTransferModal">
-    <p v-if="transferTargetTask" style="margin-bottom: 12px; color: #666">
-      将「{{ workbenchCardDisplayTitle(transferTargetTask) }}」转给他人承办，转办后您将不再可操作该任务。
-    </p>
-    <div style="margin-bottom: 8px; color: #313133">接收人</div>
-    <a-select
-      v-model:value="transferSelectedUserId"
-      show-search
-      allow-clear
-      :loading="transferCandidatesLoading"
-      :options="transferSelectOptions"
-      option-filter-prop="label"
-      placeholder="请选择本项目团队成员"
-      style="width: 100%" />
+    <a-spin :spinning="transferCandidatesLoading">
+      <p v-if="transferTargetTask" class="workbench-transfer-modal__tip">
+        将「{{ workbenchCardDisplayTitle(transferTargetTask) }}」转给他人承办，转办后您将不再可操作该任务。
+      </p>
+      <div class="workbench-transfer-modal">
+        <a-input
+          v-model:value="transferPickerKeyword"
+          allow-clear
+          placeholder="搜索姓名、账号、部门"
+          size="small" />
+        <div class="workbench-transfer-modal__hint">仅可从「项目团队」已授权成员中选择接收人。</div>
+        <div class="workbench-transfer-modal__list">
+          <a-radio-group v-model:value="transferSelectedUserId" class="workbench-transfer-modal__radios">
+            <div v-for="u in transferPickerFilteredUsers" :key="u.id" class="workbench-transfer-modal__row">
+              <a-radio :value="u.id">{{ formatTransferPickerUserRow(u) }}</a-radio>
+            </div>
+          </a-radio-group>
+          <div v-if="!transferCandidatesLoading && !transferPickerFilteredUsers.length" class="workbench-transfer-modal__empty">
+            无匹配的项目团队成员
+          </div>
+        </div>
+      </div>
+    </a-spin>
+    <template #footer>
+      <a-button type="primary" :loading="transferSubmitLoading" @click="submitWorkbenchTransfer">确认转办</a-button>
+      <a-button @click="closeTransferModal">取消</a-button>
+    </template>
   </a-modal>
 
   <a-modal
@@ -2898,7 +2988,8 @@ onUnmounted(() => {
 .task-card {
   position: relative;
   width: 274px;
-  height: 196px;
+  min-height: 196px;
+  height: auto;
   flex-shrink: 0;
   background: #ffffff;
   border: 1px solid #eaeaf1;
@@ -2943,11 +3034,19 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: 100%;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
   padding: 3px 8px;
   border-radius: 4px;
+}
+
+.task-card__type-ribbon-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-card--kind-wbs,
@@ -2995,9 +3094,19 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+.tc-progress-block {
+  margin-top: 2px;
+}
+
+.tc-progress-bar {
+  margin-top: 4px;
+  margin-bottom: 0 !important;
+}
+
 .tc-footer {
   margin-top: auto;
   flex-shrink: 0;
+  padding-top: 10px;
 }
 
 .tc-tag {
@@ -3078,6 +3187,54 @@ onUnmounted(() => {
 
 .normal-progress :deep(.ant-progress-bg) {
   background: linear-gradient(270deg, #6f86fa 2.51%, #1a58e8 72.46%) !important;
+}
+
+.workbench-transfer-modal__tip {
+  margin-bottom: 12px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.workbench-transfer-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workbench-transfer-modal__hint {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  line-height: 1.4;
+}
+
+.workbench-transfer-modal__list {
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.workbench-transfer-modal__radios {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.workbench-transfer-modal__row {
+  padding: 6px 0;
+  border-bottom: 1px dashed #f5f5f5;
+}
+
+.workbench-transfer-modal__row:last-child {
+  border-bottom: 0;
+}
+
+.workbench-transfer-modal__empty {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.35);
+  text-align: center;
+  padding: 16px 0;
 }
 
 .workbench-reject-modal__tip {
