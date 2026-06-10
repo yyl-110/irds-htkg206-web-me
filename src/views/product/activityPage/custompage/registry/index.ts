@@ -19,6 +19,7 @@ const CUSTOM_PAGE_ENTRIES: CustomPageEntry[] = [
   ['customized-process-page0-3', () => import('../customizedProcess-page0-3.vue')],
   ['customized-process-page0-4', () => import('../customizedProcess-page0-4.vue')],
   ['customized-process-page1', () => import('../customizedProcess-page1.vue')],
+  ['customized-process-page1-1', () => import('../customizedProcess-page1-1.vue')],
   ['customized-process-page1-2', () => import('../customizedProcess-page1-2.vue')],
   ['customized-process-page1-3', () => import('../customizedProcess-page1-3.vue')],
   ['customized-process-page1-4', () => import('../customizedProcess-page1-4.vue')],

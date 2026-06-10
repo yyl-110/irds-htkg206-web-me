@@ -47,8 +47,15 @@
             </template>
             <template v-else-if="isEditableMotorCell(column, record)">
               <a-input
+                v-if="column.inputType === 'text'"
                 v-model:value="record[String(column.dataIndex)]"
-                :type="column.inputType === 'text' ? 'text' : 'number'"
+                type="text"
+                class="table-cell-input"
+                @input="onMotorCellInput(record, index, String(column.dataIndex))" />
+              <a-input-number
+                v-else
+                v-model:value="record[String(column.dataIndex)]"
+                type="number"
                 class="table-cell-input"
                 @input="onMotorCellInput(record, index, String(column.dataIndex))" />
             </template>

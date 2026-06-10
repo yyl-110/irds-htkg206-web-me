@@ -83,6 +83,16 @@ export const customPageRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    path: 'customized-process-page1-1',
+    name: 'CustomizedProcessPage1_1',
+    component: () => import('@/views/product/activityPage/custompage/customizedProcess-page1-1.vue'),
+    meta: {
+      hidden: true,
+      title: '校核咸速机构的齿轮强度',
+      noCache: true,
+    },
+  },
+  {
     path: 'customized-process-page1-2',
     name: 'CustomizedProcessPage1_2',
     component: () => import('@/views/product/activityPage/custompage/customizedProcess-page1-2.vue'),
