@@ -6,6 +6,7 @@ import { useUserStore } from '@/store/modules/user';
 import type { FormInstance } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
+import { handleEpcDownload } from '@/utils/file';
 import UploadModal from '@/views/product/components/upload-modal.vue';
 import ActivityTemplatePageFields from './activity-template-page-fields.vue';
 import { useActivityPageTypeDict } from './useActivityPageTypeDict';
@@ -323,6 +324,31 @@ export default defineComponent({
       formData.value.jsId = '';
     }
 
+    function getJsFileId(file?: any) {
+      return String(file?.id || file?.response?.id || formData.value.jsId || '').trim();
+    }
+
+    function downloadJsFile() {
+      const file = jsFileList.value?.[0];
+      const fileId = getJsFileId(file);
+      if (!fileId) {
+        message.warning('无法下载：缺少文件ID');
+        return;
+      }
+      const fileName = String(file?.name || 'script.js').trim() || 'script.js';
+      handleEpcDownload({ fileId }, fileName);
+    }
+
+    function handleJsUploadPreview(file: any) {
+      const fileId = getJsFileId(file);
+      if (!fileId) {
+        message.warning('无法下载：缺少文件ID');
+        return;
+      }
+      const fileName = String(file?.name || 'script.js').trim() || 'script.js';
+      handleEpcDownload({ fileId }, fileName);
+    }
+
     function clearTemplatePageFields() {
       formData.value.auditProcess = '';
       formData.value.isSynergy = '0';
@@ -379,6 +405,8 @@ export default defineComponent({
       beforeUploadJs,
       handleJsUploadConfirm,
       clearJsFile,
+      downloadJsFile,
+      handleJsUploadPreview,
       showTemplatePageFields,
     };
   },
@@ -436,8 +464,14 @@ export default defineComponent({
           <span style="margin-left: 8px">{{ wordFileList[0]?.name || '未上传文件' }}</span>
         </a-form-item>
         <a-form-item label="上传JS文件" name="jsId" v-if="formData.pageType === '1' || formData.pageType === '2'">
-          <a-button type="primary" @click="openJsUploadModal = true">上传JS文件</a-button>
-          <span style="margin-left: 8px">{{ jsFileList[0]?.name || '未上传文件' }}</span>
+          <div class="activity-file-upload">
+            <a-button type="primary" @click="openJsUploadModal = true">上传JS文件</a-button>
+            <template v-if="jsFileList[0]">
+              <a class="activity-file-upload__link" @click.prevent="downloadJsFile">{{ jsFileList[0]?.name }}</a>
+              <a class="activity-file-upload__remove" @click.prevent="clearJsFile">删除</a>
+            </template>
+            <span v-else class="activity-file-upload__empty">未上传文件</span>
+          </div>
         </a-form-item>
       </a-form>
       <UploadModal
@@ -471,6 +505,7 @@ export default defineComponent({
         :before-upload="beforeUploadJs"
         :custom-request="customRequestJs"
         @upload-change="jsFileChange"
+        @upload-preview="handleJsUploadPreview"
         @remove-file="clearJsFile"
         @confirm="handleJsUploadConfirm" />
       <template #footer>
@@ -485,4 +520,27 @@ export default defineComponent({
   </div>
 </template>
 
-<style scoped lang="less"></style>
+<style scoped lang="less">
+.activity-file-upload {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.activity-file-upload__link {
+  color: #1677ff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.activity-file-upload__remove {
+  color: #ff4d4f;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.activity-file-upload__empty {
+  color: rgba(0, 0, 0, 0.45);
+}
+</style>
