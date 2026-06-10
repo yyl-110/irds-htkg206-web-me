@@ -28,6 +28,7 @@ import shareCell from '@/views/knowledge/components/share.vue';
 import HttpRequestConfig from '@/httpRequest/config';
 import { downloadFileFromStream } from '@/utils/file';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 import { Knowledgebase, getKnowledgebaseColor, getKnowledgebaseLabel } from '@/enums/Knowledgebase';
 const router = useRouter();
 import priviewFile from '@/components/PriviewFileInfo/index.vue';
@@ -176,15 +177,25 @@ const canSubmitAudit = computed(() => {
 });
 
 const approveStatus = computed(() => String(props.textData.approveStatus ?? ''));
+
+function DynamicIcon(item: { fileType?: string }) {
+  const fileType = String(item?.fileType ?? '').toLowerCase();
+  if (fileType === 'pdf') return 'icon-pdf';
+  if (fileType === 'docx' || fileType === 'doc') return 'icon-docx';
+  if (fileType === 'xlsx' || fileType === 'xls') return 'icon-xlsx';
+  if (fileType === 'pptx' || fileType === 'ppt') return 'icon-pptx';
+  if (['mp4', 'wmv', 'avi', 'flv', 'mkv'].includes(fileType)) return 'icon-shipin2';
+  return 'icon-wushuju';
+}
 </script>
 
 <template>
   <div class="doc-list">
-    <div style="display: flex; margin-top: 16px">
+    <div class="doc-list-top">
       <div class="header">
-        <span>{{ textData.fileType[0] }}</span>
+        <EpcIcon :type="DynamicIcon(textData)" class="header__icon" />
       </div>
-      <div style="width: 85%">
+      <div class="doc-list-content">
         <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0" class="box-item">
           <div
             v-html="textData.highlightFields?.fileName[0] + '.' + textData.fileType"
@@ -314,24 +325,36 @@ const approveStatus = computed(() => String(props.textData.approveStatus ?? ''))
     cursor: not-allowed;
   }
 
+  .doc-list-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .doc-list-content {
+    flex: 1;
+    min-width: 0;
+  }
+
   .header {
-    min-width: 44px;
-    height: 44px;
-    background: #fbd5d5;
-    border-radius: 4px;
-    margin-right: 10px;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    background: #f5f7fa;
+    border: 1px solid #ebeef2;
+    border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
+  }
 
-    span {
-      text-align: center;
-      font-weight: bold;
-      font-size: 24px;
-      color: #d71515;
-      line-height: 24px;
-      font-style: normal;
-      text-transform: none;
+  .header__icon {
+    font-size: 28px;
+    line-height: 1;
+
+    :deep(svg) {
+      fill: unset;
     }
   }
 

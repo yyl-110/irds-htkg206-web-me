@@ -3,10 +3,20 @@ import { doCollectFile, getPdfPreviewPath, modifyInit, saveLookFileLog, updateKl
 import comment from '@/components/Comment/index.vue';
 import { useUserStore } from '@/store/modules/user';
 import { getTimes } from '@/utils/dateUtils';
-import { EyeOutlined, MessageOutlined, StarOutlined, StarFilled, ShareAltOutlined, DownloadOutlined, InfoCircleFilled, UserOutlined } from '@ant-design/icons-vue';
+import {
+  EyeOutlined,
+  MessageOutlined,
+  StarOutlined,
+  StarFilled,
+  ShareAltOutlined,
+  DownloadOutlined,
+  InfoCircleFilled,
+  UserOutlined,
+} from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import shareCell from './share.vue';
 import draggableModal from '@/components/DraggableModal/index.vue';
+import { EpcIcon } from '@/components/icon/EpcIcon';
 
 const router = useRouter();
 
@@ -29,16 +39,12 @@ const showDetail = ref(false);
 const formInline = ref({});
 
 const confidentialLevel = computed(() => {
-  if (props.textData.content.confidential_level === '0')
-    return '公开';
-  if (props.textData.content.confidential_level === '1')
-    return '内部';
-  if (props.textData.content.confidential_level === '2')
-    return '秘密';
-  if (props.textData.content.confidential_level === '3')
-    return '机密';
+  if (props.textData.content.confidential_level === '0') return '公开';
+  if (props.textData.content.confidential_level === '1') return '内部';
+  if (props.textData.content.confidential_level === '2') return '秘密';
+  if (props.textData.content.confidential_level === '3') return '机密';
   return '公开';
-})
+});
 
 const viewPdfFun = async () => {
   const params = {
@@ -53,7 +59,7 @@ const viewPdfFun = async () => {
 };
 
 // 查看pdf
-const viewPdf = async (item) => {
+const viewPdf = async item => {
   try {
     updateKldCounting({ kldFileId: item.id, countingType: 1 });
     const res = await getPdfPreviewPath({ id: item.fileId });
@@ -115,7 +121,7 @@ const closeShare = () => {
   }, 1000);
 };
 
-const downFun = () => { };
+const downFun = () => {};
 
 const getDes = () => {
   showDetail.value = true;
@@ -132,22 +138,34 @@ const getDes = () => {
     }
   });
 };
+
+function DynamicIcon(item: { fileType?: string }) {
+  const fileType = String(item?.fileType ?? '').toLowerCase();
+  if (fileType === 'pdf') return 'icon-pdf';
+  if (fileType === 'docx' || fileType === 'doc') return 'icon-docx';
+  if (fileType === 'xlsx' || fileType === 'xls') return 'icon-xlsx';
+  if (fileType === 'pptx' || fileType === 'ppt') return 'icon-pptx';
+  if (['mp4', 'wmv', 'avi', 'flv', 'mkv'].includes(fileType)) return 'icon-shipin2';
+  return 'icon-wushuju';
+}
 </script>
 
 <template>
   <div class="doc-list">
-    <div style="display: flex; margin-top: 16px">
+    <div class="doc-list-top">
       <div class="header">
-        <span>{{ textData.content.fileType[0] }}</span>
+        <EpcIcon :type="DynamicIcon(textData.content)" class="header__icon" />
       </div>
-      <div style="width: 85%">
-        <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0"
-          class="box-item">
-          <div v-html="textData.highlightFields?.fileName[0] + '.' + textData.content.fileType" class="highlightName"
+      <div class="doc-list-content">
+        <div v-if="textData.highlightFields?.fileName && textData.highlightFields?.fileName.length > 0" class="box-item">
+          <div
+            v-html="textData.highlightFields?.fileName[0] + '.' + textData.content.fileType"
+            class="highlightName"
             @click="viewPdfFun"></div>
         </div>
         <div v-else class="box-item">
-          <div class="highlightName" @click="viewPdfFun">{{ textData.content.fileName }}.{{ textData.content.fileType }}
+          <div class="highlightName" @click="viewPdfFun">
+            {{ textData.content.fileName }}.{{ textData.content.fileType }}
           </div>
         </div>
         <div style="height: 26px; margin-top: 4px">
@@ -159,8 +177,10 @@ const getDes = () => {
         </div>
       </div>
     </div>
-    <div v-if="textData.highlightFields?.summary && textData.highlightFields?.summary.length > 0"
-      v-html="textData.highlightFields?.summary[0]" class="desc descColor"></div>
+    <div
+      v-if="textData.highlightFields?.summary && textData.highlightFields?.summary.length > 0"
+      v-html="textData.highlightFields?.summary[0]"
+      class="desc descColor"></div>
     <div v-else class="desc">{{ textData.content.summary }}</div>
     <div class="doc-list-bottom">
       <div class="author">
@@ -213,10 +233,17 @@ const getDes = () => {
         </a-tooltip>
       </div>
     </div>
-    <comment :comment-dialog-visible="commentDialogVisible" :common-deail="commentDetail"
-      @close-comment-dialog-notification="closeCommentDialogNotification" @get-flag-list="getList" />
+    <comment
+      :comment-dialog-visible="commentDialogVisible"
+      :common-deail="commentDetail"
+      @close-comment-dialog-notification="closeCommentDialogNotification"
+      @get-flag-list="getList" />
 
-    <shareCell :share-dialog-visible="shareDialogVisible" :doc-id="docId" :quest-flag="1" :tab-flag="1"
+    <shareCell
+      :share-dialog-visible="shareDialogVisible"
+      :doc-id="docId"
+      :quest-flag="1"
+      :tab-flag="1"
       @close-share="closeShare" />
 
     <draggable-modal :closable="false" v-model:visible="showDetail" title="查看详情" width="40%" centered>
@@ -249,24 +276,36 @@ const getDes = () => {
   width: 100%;
   max-height: 180px;
 
+  .doc-list-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .doc-list-content {
+    flex: 1;
+    min-width: 0;
+  }
+
   .header {
-    min-width: 44px;
-    height: 44px;
-    background: #fbd5d5;
-    border-radius: 4px;
-    margin-right: 10px;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    background: #f5f7fa;
+    border: 1px solid #ebeef2;
+    border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
+  }
 
-    span {
-      text-align: center;
-      font-weight: bold;
-      font-size: 24px;
-      color: #d71515;
-      line-height: 24px;
-      font-style: normal;
-      text-transform: none;
+  .header__icon {
+    font-size: 28px;
+    line-height: 1;
+
+    :deep(svg) {
+      fill: unset;
     }
   }
 
@@ -312,7 +351,7 @@ const getDes = () => {
         margin-right: 5px;
         flex-shrink: 0;
       }
-      
+
       span {
         flex-shrink: 0;
         height: 22px;
