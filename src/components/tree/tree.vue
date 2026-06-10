@@ -134,11 +134,37 @@ const selectedNode = ref<any>();
 const newExpandedKeys = ref<any>([]);
 const btnReadOnly = ref<string>('0');
 const formRef = ref<any>(null);
+function findNodeInTree(nodes: any[] | undefined, key: string): any | null {
+  if (!nodes?.length || key === '') return null;
+  for (const node of nodes) {
+    const nodeKey = String(node.key ?? node.id ?? '');
+    if (nodeKey === key) {
+      return node;
+    }
+    if (node.children?.length) {
+      const found = findNodeInTree(node.children, key);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
 /** 仅从父级同步选中；勿清空展开，否则点击节点会把用户已展开的枝折叠掉 */
 function applySelectedKeysFromProps() {
   if (props.selectedKeys != null && props.selectedKeys !== '') {
-    selectedKeys.value = [props.selectedKeys];
-    selectedKey.value = props.selectedKeys;
+    const key = String(props.selectedKeys);
+    selectedKeys.value = [key];
+    selectedKey.value = key;
+    const node = findNodeInTree(props.treeData as any[], key);
+    if (node) {
+      selectedNode.value = node;
+    }
+  } else {
+    selectedKeys.value = [];
+    selectedKey.value = undefined;
+    selectedNode.value = undefined;
   }
 }
 
@@ -180,6 +206,16 @@ watch(
     });
   },
   { immediate: true, deep: true },
+);
+
+watch(
+  () => props.treeData,
+  () => {
+    nextTick(() => {
+      applySelectedKeysFromProps();
+    });
+  },
+  { deep: true },
 );
 
 watch(searchValue, value => {

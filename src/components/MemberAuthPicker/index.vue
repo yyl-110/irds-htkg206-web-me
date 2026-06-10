@@ -55,20 +55,48 @@
       <div class="picker-panel">
         <div class="panel-title">
           <span>{{ rightTitleText }}</span>
-          <span class="panel-title-count">{{ rightTitleCount }}</span>
+          <span class="panel-title-actions">
+            <a-button
+              type="link"
+              size="small"
+              class="panel-clear-btn"
+              :disabled="!rightUsers.length"
+              @click="removeAllAuthorized">
+              一键删除
+            </a-button>
+            <span class="panel-title-count">{{ rightTitleCount }}</span>
+          </span>
         </div>
         <a-input v-model:value="rightKeyword" :placeholder="$t('请输入搜索内容')" allow-clear />
+        <a-tabs v-model:activeKey="rightType" size="small">
+          <a-tab-pane key="user" :tab="$t('用户')" />
+          <a-tab-pane key="dept" :tab="$t('部门')" />
+        </a-tabs>
         <div class="panel-list">
-          <a-checkbox-group v-model:value="rightSelectedUserIds" class="check-list">
-            <div
-              v-for="u in rightFilteredUsers"
-              :key="u.id"
-              class="check-item"
-              @dblclick="onRightUserDblClick(u)"
-            >
-              <a-checkbox :value="u.id">{{ formatUserDisplay(u) }}</a-checkbox>
-            </div>
-          </a-checkbox-group>
+          <template v-if="rightType === 'user'">
+            <a-checkbox-group v-model:value="rightSelectedUserIds" class="check-list">
+              <div
+                v-for="u in rightFilteredUsers"
+                :key="u.id"
+                class="check-item"
+                @dblclick="onRightUserDblClick(u)"
+              >
+                <a-checkbox :value="u.id">{{ formatUserDisplay(u) }}</a-checkbox>
+              </div>
+            </a-checkbox-group>
+          </template>
+          <template v-else>
+            <a-checkbox-group v-model:value="rightSelectedDeptIds" class="check-list">
+              <div
+                v-for="d in rightFilteredDepts"
+                :key="d.id"
+                class="check-item"
+                @dblclick="onRightDeptDblClick(d)"
+              >
+                <a-checkbox :value="d.id">{{ d.name }}</a-checkbox>
+              </div>
+            </a-checkbox-group>
+          </template>
         </div>
       </div>
     </div>
@@ -82,6 +110,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { Modal } from 'ant-design-vue'
 
 type MemberUser = {
   id: string
@@ -116,11 +145,13 @@ const emit = defineEmits<{
 }>()
 
 const leftType = ref<'user' | 'dept'>('user')
+const rightType = ref<'user' | 'dept'>('user')
 const leftKeyword = ref('')
 const rightKeyword = ref('')
 const leftSelectedUserIds = ref<string[]>([])
 const leftSelectedDeptIds = ref<string[]>([])
 const rightSelectedUserIds = ref<string[]>([])
+const rightSelectedDeptIds = ref<string[]>([])
 const currentAuthorized = ref<string[]>([])
 
 watch(
@@ -129,14 +160,26 @@ watch(
     if (!visible) return
     currentAuthorized.value = [...props.authorizedUserIds]
     leftType.value = 'user'
+    rightType.value = 'user'
     leftKeyword.value = ''
     rightKeyword.value = ''
     leftSelectedUserIds.value = []
     leftSelectedDeptIds.value = []
     rightSelectedUserIds.value = []
+    rightSelectedDeptIds.value = []
   },
   { immediate: true },
 )
+
+watch(leftType, () => {
+  leftSelectedUserIds.value = []
+  leftSelectedDeptIds.value = []
+})
+
+watch(rightType, () => {
+  rightSelectedUserIds.value = []
+  rightSelectedDeptIds.value = []
+})
 
 const authorizedSet = computed(() => new Set(currentAuthorized.value))
 
@@ -175,6 +218,16 @@ const rightFilteredUsers = computed(() => {
   })
 })
 
+/** 右侧部门 Tab：至少有一名成员已在授权列表中 */
+const rightDepts = computed(() => {
+  return props.depts.filter(d => props.users.some(u => u.deptId === d.id && authorizedSet.value.has(u.id)))
+})
+const rightFilteredDepts = computed(() => {
+  const keyword = rightKeyword.value.trim()
+  if (!keyword) return rightDepts.value
+  return rightDepts.value.filter(d => d.name.includes(keyword))
+})
+
 const leftTitleText = computed(() => `未授权${leftType.value === 'user' ? '用户' : '部门'}`)
 const leftTitleCount = computed(() => {
   if (leftType.value === 'user') {
@@ -182,8 +235,13 @@ const leftTitleCount = computed(() => {
   }
   return `${leftSelectedDeptIds.value.length}/${leftDepts.value.length}`
 })
-const rightTitleText = computed(() => '已授权用户')
-const rightTitleCount = computed(() => `${rightSelectedUserIds.value.length}/${rightUsers.value.length}`)
+const rightTitleText = computed(() => `已授权${rightType.value === 'user' ? '用户' : '部门'}`)
+const rightTitleCount = computed(() => {
+  if (rightType.value === 'user') {
+    return `${rightSelectedUserIds.value.length}/${rightUsers.value.length}`
+  }
+  return `${rightSelectedDeptIds.value.length}/${rightDepts.value.length}`
+})
 
 function formatUserDisplay(user: MemberUser): string {
   const deptName = user.deptId ? (deptNameMap.value.get(user.deptId) ?? '-') : '-'
@@ -205,8 +263,23 @@ function authorizeSelected() {
 
 function removeSelected() {
   const toRemove = new Set(rightSelectedUserIds.value)
+  for (const deptId of rightSelectedDeptIds.value) {
+    props.users.filter(u => u.deptId === deptId).forEach(u => toRemove.add(u.id))
+  }
   currentAuthorized.value = currentAuthorized.value.filter(id => !toRemove.has(id))
   rightSelectedUserIds.value = []
+  rightSelectedDeptIds.value = []
+}
+
+function removeUserIds(userIds: string[]) {
+  if (!userIds.length) return
+  const toRemove = new Set(userIds)
+  currentAuthorized.value = currentAuthorized.value.filter(id => !toRemove.has(id))
+  rightSelectedUserIds.value = rightSelectedUserIds.value.filter(id => !toRemove.has(id))
+  const stillAuthorized = new Set(currentAuthorized.value)
+  rightSelectedDeptIds.value = rightSelectedDeptIds.value.filter(deptId =>
+    props.users.some(u => u.deptId === deptId && stillAuthorized.has(u.id)),
+  )
 }
 
 function authorizeUserIds(userIds: string[]) {
@@ -234,8 +307,29 @@ function onLeftDeptDblClick(dept: MemberDept) {
 function onRightUserDblClick(user: MemberUser) {
   if (!authorizedSet.value.has(user.id))
     return
-  currentAuthorized.value = currentAuthorized.value.filter(id => id !== user.id)
-  rightSelectedUserIds.value = rightSelectedUserIds.value.filter(id => id !== user.id)
+  removeUserIds([user.id])
+}
+
+function onRightDeptDblClick(dept: MemberDept) {
+  const userIds = props.users
+    .filter(u => u.deptId === dept.id && authorizedSet.value.has(u.id))
+    .map(u => u.id)
+  removeUserIds(userIds)
+}
+
+function removeAllAuthorized() {
+  if (!currentAuthorized.value.length) return
+  Modal.confirm({
+    title: '确认清空已授权成员？',
+    content: `将移除全部 ${currentAuthorized.value.length} 名已授权成员。`,
+    okText: '确定',
+    cancelText: '取消',
+    onOk: () => {
+      currentAuthorized.value = []
+      rightSelectedUserIds.value = []
+      rightSelectedDeptIds.value = []
+    },
+  })
 }
 
 function handleCancel() {
@@ -282,6 +376,18 @@ function handleConfirm() {
   font-size: 16px;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.65);
+}
+
+.panel-title-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel-clear-btn {
+  height: auto;
+  padding: 0 4px;
+  font-size: 13px;
 }
 
 .panel-list {
