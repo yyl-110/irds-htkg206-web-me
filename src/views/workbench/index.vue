@@ -2987,7 +2987,7 @@ onUnmounted(() => {
 
 .task-card {
   position: relative;
-  width: 274px;
+  width: 320px;
   min-height: 196px;
   height: auto;
   flex-shrink: 0;
