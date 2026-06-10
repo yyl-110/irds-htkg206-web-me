@@ -26,7 +26,6 @@ import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import UploadModal from '@/views/product/components/upload-modal.vue';
 import ParameterGeneral from '../../module/components/modal/ParameterGeneral.vue';
 import FormulaEditorModal from './formula-editor-modal.vue';
-import ActivityJsMethodSelect from './activity-js-method-select.vue';
 import { businessApiLibrary } from '@/api/tags/library/基础资源库';
 import { LibraryPageRequestDTOModel } from '@/api/models/library/LibraryPageRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
@@ -3143,9 +3142,8 @@ watch(
                     </div>
                   </div>
                 </a-collapse-panel>
-
-                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'OUTPUT'" key="formula" header="公式定义">
-                  <div class="row-field">
+                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT'" key="formula" header="公式定义">
+                  <div class="row-field" v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'OUTPUT'">
                     <div class="row-label">公式编辑器：</div>
                     <div class="row-control">
                       <a-input v-model:value="selectedComponent.validateRule.formula.expression" disabled placeholder="请定义" /><a-button
@@ -3156,7 +3154,7 @@ watch(
                       >
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div class="row-field" v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'OUTPUT'">
                     <div class="row-label">是否允许修改：</div>
                     <div class="row-control">
                       <a-select v-model:value="selectedComponent.validateRule.formula.allowModify" style="width: 120px" placeholder="请选择">
@@ -3165,13 +3163,10 @@ watch(
                       </a-select>
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div class="row-field" v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'INPUT'">
                     <div class="row-label">调用JS：</div>
                     <div class="row-control">
-                      <ActivityJsMethodSelect
-                        v-model="selectedComponent.validateRule.formula.jsMethodName"
-                        :record="props.record || {}"
-                        placeholder="请选择JS方法" />
+                      <a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" />
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -3344,6 +3339,15 @@ watch(
                         <a-button type="link" class="icon-btn" @click="addSequenceValue">+</a-button>
                         <a-button type="link" danger class="icon-btn" @click="removeSequenceValue(optionIdx)">x</a-button>
                       </div>
+                    </div>
+                  </div>
+                </a-collapse-panel>
+                <a-collapse-panel key="formula" header="公式定义">
+                
+                  <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
+                    <div class="row-label">调用JS：</div>
+                    <div class="row-control">
+                      <a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" />
                     </div>
                   </div>
                 </a-collapse-panel>

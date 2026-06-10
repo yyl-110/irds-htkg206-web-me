@@ -1881,9 +1881,8 @@ onUnmounted(() => {
                   <div class="task-list-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden wei-scrollbar h-full">
                     <Empty v-if="!todoListLoading && todoList.length === 0" description="暂无数据" />
                     <template v-else-if="viewMode === 'grid'">
-                      <a-row :gutter="[16, 12]" align="top" class="task-card-grid">
-                        <a-col v-for="item in todoList" :key="String(item.id)" :span="8">
-                          <div class="task-card" :class="taskCardKindClass(item)">
+                      <div class="task-card-grid">
+                        <div v-for="item in todoList" :key="String(item.id)" class="task-card" :class="taskCardKindClass(item)">
                             <div v-if="workbenchShowOverdueUi(item)" class="task-card__overdue-corner">延期</div>
                             <div class="task-card__type-ribbon">
                               <span class="task-card__type-ribbon-inner">
@@ -2028,9 +2027,8 @@ onUnmounted(() => {
                                 </a-tooltip>
                               </div>
                             </div>
-                          </div>
-                        </a-col>
-                      </a-row>
+                        </div>
+                      </div>
                     </template>
 
                     <template v-else>
@@ -2891,20 +2889,24 @@ onUnmounted(() => {
 }
 
 .task-card-grid {
-  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-content: flex-start;
 }
 
 .task-card {
   position: relative;
+  width: 274px;
+  height: 196px;
+  flex-shrink: 0;
   background: #ffffff;
   border: 1px solid #eaeaf1;
   border-radius: 8px;
   padding: 10px 12px 8px;
-  margin-bottom: 10px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s;
-  height: 100%;
   box-sizing: border-box;
 
   &:hover {
@@ -2989,7 +2991,13 @@ onUnmounted(() => {
 }
 
 .tc-body {
+  flex: 1;
   min-height: 0;
+}
+
+.tc-footer {
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .tc-tag {

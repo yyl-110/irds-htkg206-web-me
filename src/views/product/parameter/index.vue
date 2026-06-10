@@ -1501,7 +1501,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
 
 <template>
   <div class="drawerContent h-full">
-    <div :class="splitpanesTreeCollapseWrapClass">
+    <div :class="splitpanesTreeCollapseWrapClass" class="h-full">
       <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
           <a-spin :spinning="loadingTree" tip="加载中...">
@@ -1875,9 +1875,13 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
   padding-bottom: 5px !important;
 }
 .drawerContent {
-  position: relative;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   background-color: #ffffff !important;
+  box-sizing: border-box;
 }
 
 /* ---------- 以下与 src/views/product/check/sys/components/exeConfigTab.vue 列表区一致 ---------- */

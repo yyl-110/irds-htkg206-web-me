@@ -22,7 +22,6 @@ import { AdminApiSystemModule } from '@/api/tags/module/系统模块库';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { handleEpcDownload } from '@/utils/file';
-import ActivityJsMethodSelect from './activity-js-method-select.vue';
 const props = defineProps({
   modalVisible: { type: Boolean, default: false },
   record: { type: Object, default: () => ({}) },
@@ -2556,9 +2555,9 @@ watch(
                     </div>
                   </div>
                 </a-collapse-panel>
-
-                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'OUTPUT'" key="formula" header="公式定义">
-                  <div class="row-field">
+{{ selectedComponent.componentType }}
+                <a-collapse-panel v-if="selectedComponent.componentType === 'INPUT'" key="formula" header="公式定义">
+                  <div class="row-field" v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'OUTPUT'" >
                     <div class="row-label">公式编辑器：</div>
                     <div class="row-control">
                       <a-input v-model:value="selectedComponent.validateRule.formula.expression" disabled placeholder="请定义" /><a-button
@@ -2569,7 +2568,7 @@ watch(
                       >
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div class="row-field" v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'OUTPUT'">
                     <div class="row-label">是否允许修改：</div>
                     <div class="row-control">
                       <a-select v-model:value="selectedComponent.validateRule.formula.allowModify" style="width: 120px" placeholder="请选择">
@@ -2578,13 +2577,10 @@ watch(
                       </a-select>
                     </div>
                   </div>
-                  <div class="row-field">
+                  <div class="row-field" v-if="selectedComponent.componentType === 'INPUT' && selectedComponent.ioType === 'INPUT'">
                     <div class="row-label">调用JS：</div>
                     <div class="row-control">
-                      <ActivityJsMethodSelect
-                        v-model="selectedComponent.validateRule.formula.jsMethodName"
-                        :record="props.record || {}"
-                        placeholder="请选择JS方法" />
+                      <a-input v-model:value="selectedComponent.validateRule.formula.jsMethodName" placeholder="请输入JS方法名" />
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -2776,7 +2772,7 @@ watch(
               <div class="row-field">
                 <div class="row-label">调用JS方法：</div>
                 <div class="row-control">
-                  <ActivityJsMethodSelect v-model="selectedComponent.customProps.jsMethodName" :record="props.record || {}" placeholder="请选择计算调用的JS方法" />
+                  <a-input v-model:value="selectedComponent.customProps.jsMethodName" placeholder="请输入计算调用的JS方法" />
                 </div>
               </div>
             </template>
