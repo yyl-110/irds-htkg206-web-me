@@ -3,27 +3,18 @@
     <div class="layout-wrapper">
       <div class="layout-header">
         <div class="layout-header__title">计算输入参数：</div>
-        <div class="selectBox">
-          <div class="selectBox__inner">
-            <a-table
-              :columns="inputParamColumns"
-              :data-source="parameterTempList[0]?.tableMap?.rowData ?? []"
-              :pagination="false"
-              bordered
-              size="small"
-              :scroll="{ y: tabHeight0, x: 970 }"
-              :row-key="tableRowKey">
-              <template #bodyCell="{ column, record, index }">
-                <template v-if="isInputParamEditableColumn(column)">
-                  <a-input-number
-                    v-model:value="record.p2"
-                    type="number"
-                    class="table-cell-input"
-                    @input="onInputParamInput(record, index)"
-                    @blur="onInputParamBlur(record, index, $event)" />
-                </template>
-              </template>
-            </a-table>
+        <div class="input-param-fields">
+          <div
+            v-for="(record, index) in parameterTempList[0]?.tableMap?.rowData ?? []"
+            :key="index"
+            class="input-param-field">
+            <div class="input-param-field__label">{{ getInputParamLabel(record) }}</div>
+            <a-input-number
+              v-model:value="record.p2"
+              type="number"
+              class="input-param-field__input"
+              @input="onInputParamInput(record, index)"
+              @blur="onInputParamBlur(record, index, $event)" />
           </div>
         </div>
       </div>
@@ -43,8 +34,8 @@
             :pagination="false"
             bordered
             size="small"
-            class="zero-position-table"
-            :scroll="{ y: tabHeight1, x: 970 }"
+            class="zero-position-table adaptive-table"
+            :scroll="{ y: tabHeight1, x: '100%' }"
             :row-key="tableRowKey">
             <template #bodyCell="{ column, record, index }">
               <template v-if="isZeroPositionEditableColumn(column)">
@@ -89,7 +80,8 @@
             :pagination="false"
             bordered
             size="small"
-            :scroll="{ y: tabHeight2, x: 1100 }"
+            class="adaptive-table"
+            :scroll="{ y: tabHeight2, x: '100%' }"
             :row-key="resultTableRowKey"
             :row-selection="resultRowSelection">
             <template #bodyCell="{ column, record, index }">
@@ -119,9 +111,7 @@ import { createPage0_5Calculations, extractPage0_5SaveParamValues } from './page
 import { loadPage0_5PageParameters } from './page0-5/loadPageParameters';
 import { createDefaultPage0_5ParameterList, type Page0_5ParameterItem } from './page0-5/parameterDefaults';
 import {
-  INPUT_PARAM_ANT_COLUMNS,
   INPUT_PARAM_NUMBER_REG,
-  isInputParamEditableColumn,
   isResultTableEditableColumn,
   isZeroPositionEditableColumn,
   RESULT_ANGLE_NUMBER_REG,
@@ -152,11 +142,9 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const tabHeight0 = 167;
 const tabHeight1 = 180;
 const tabHeight2 = 230;
 
-const inputParamColumns = INPUT_PARAM_ANT_COLUMNS;
 const zeroPositionColumns = ZERO_POSITION_ANT_COLUMNS;
 const resultTableColumns = RESULT_TABLE_ANT_COLUMNS;
 
@@ -254,6 +242,10 @@ const resultRowSelection = computed(() => ({
 
 function tableRowKey(record: Record<string, string>, index?: number) {
   return String(record?.p0 ?? index ?? 0);
+}
+
+function getInputParamLabel(record: Record<string, string>) {
+  return `${record.p0 ?? ''}${record.p1 ?? ''}(${record.p3 ?? ''})`;
 }
 
 function resultTableRowKey(record: Record<string, string>, index?: number) {
@@ -382,10 +374,7 @@ onMounted(async () => {
 
 .layout-header {
   background: #ffffff;
-  min-height: 230px;
-  height: 230px;
-  line-height: 40px;
-  padding: 0;
+  padding: 0 10px 10px;
   margin-bottom: 10px;
 }
 
@@ -393,19 +382,30 @@ onMounted(async () => {
   width: 100%;
   font-size: 15px;
   font-weight: 600;
-  padding-left: 10px;
+  line-height: 40px;
 }
 
-.selectBox {
-  width: 100%;
-  height: 100%;
-  float: left;
-  padding-top: 10px;
+.input-param-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding-top: 4px;
 }
 
-.selectBox__inner {
-  width: 100%;
-  height: 190px;
+.input-param-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 300px;
+}
+
+.input-param-field__label {
+  font-size: 14px;
+  line-height: 32px;
+  margin-bottom: 4px;
+}
+
+.input-param-field__input {
+  width: 300px;
 }
 
 .layout-content {
@@ -442,7 +442,6 @@ onMounted(async () => {
 
 .trip-row {
   width: 100%;
-  font-weight: 600;
   margin-left: 10px;
   padding-top: 10px;
   float: left;
@@ -456,5 +455,32 @@ onMounted(async () => {
 .table-cell-input {
   width: 100%;
   text-align: center;
+}
+
+.adaptive-table {
+  width: 100%;
+}
+
+.adaptive-table :deep(.ant-table) {
+  width: 100%;
+}
+
+.adaptive-table :deep(.ant-table-content table) {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+.adaptive-table :deep(.ant-table-thead > tr > th) {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.35;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.adaptive-table :deep(.ant-table-tbody > tr > td) {
+  padding: 4px 2px;
+  font-size: 12px;
 }
 </style>
