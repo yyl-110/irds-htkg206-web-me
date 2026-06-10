@@ -631,6 +631,14 @@ function taskKindBadgeLabel(task: TaskItem): string {
   return TASK_KIND_LABEL[task.taskKind] ?? TASK_KIND_LABEL.other;
 }
 
+/** 卡片顶部类型标签：WBS 协同任务附加项目名称 */
+function taskKindRibbonLabel(task: TaskItem): string {
+  const base = taskKindBadgeLabel(task);
+  if (task.taskKind !== 'wbs') return base;
+  const projectName = String(task.projectDisplayName ?? '').trim();
+  return projectName ? `${base} · ${projectName}` : base;
+}
+
 /** 列表「任务大类」子类型：去掉前导「类型」等冗余，避免与表头/大类重复啰嗦 */
 function workbenchListTaskSubtypeClean(raw: unknown): string {
   return String(raw ?? '')
@@ -1885,12 +1893,12 @@ onUnmounted(() => {
                         <div v-for="item in todoList" :key="String(item.id)" class="task-card" :class="taskCardKindClass(item)">
                             <div v-if="workbenchShowOverdueUi(item)" class="task-card__overdue-corner">延期</div>
                             <div class="task-card__type-ribbon">
-                              <span class="task-card__type-ribbon-inner">
+                              <span class="task-card__type-ribbon-inner" :title="taskKindRibbonLabel(item)">
                                 <ApartmentOutlined v-if="item.taskKind === 'wbs'" />
                                 <MobileOutlined v-else-if="item.taskKind === 'standalone'" />
                                 <CloudServerOutlined v-else-if="item.taskKind === 'compute'" />
                                 <SettingOutlined v-else />
-                                {{ taskKindBadgeLabel(item) }}
+                                <span class="task-card__type-ribbon-text">{{ taskKindRibbonLabel(item) }}</span>
                               </span>
                             </div>
                             <div class="tc-header flex justify-between items-start">
@@ -2943,11 +2951,19 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: 100%;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
   padding: 3px 8px;
   border-radius: 4px;
+}
+
+.task-card__type-ribbon-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-card--kind-wbs,
