@@ -1551,7 +1551,7 @@ defineExpose({ initData, selectAllModuleInfo });
 
           <div class="btn-box-right">
             <div class="btn-item" @click="handleAddOrUpdate">
-              <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
+              <EpcIcon type="icon-md-add" style="font-size: 17px" />
               新建数据
             </div>
             <div :class="{ 'btn-item-select': btnType, 'btn-item': !btnType }" @click="updModule">
@@ -1701,7 +1701,7 @@ defineExpose({ initData, selectAllModuleInfo });
           <a-select v-model:value="group.field" style="width: 140px" :options="globalQueryFieldOptions" />
           <a-select v-model:value="group.queryType" style="width: 140px" :options="globalQueryTypeOptions" />
           <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 180px" />
-          <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
+          <EpcIcon type="icon-md-add" style="color: var(--ant-primary-color); font-size: 18px; cursor: pointer" @click="addGlobalQueryGroup" />
           <EpcIcon v-if="globalQueryGroups.length > 1" type="icon-shanchu2" style="color: #ff4d4f; font-size: 16px; cursor: pointer" @click="removeGlobalQueryGroup(idx)" />
           <span v-if="idx === 0" style="color: #999; font-size: 12px">最多3组条件</span>
         </div>
@@ -2285,7 +2285,7 @@ defineExpose({ initData, selectAllModuleInfo });
   margin: 0 10px;
   text-align: center;
   line-height: 35px;
-  color: #1a71ff;
+  color: var(--ant-primary-color);
   cursor: pointer;
 }
 

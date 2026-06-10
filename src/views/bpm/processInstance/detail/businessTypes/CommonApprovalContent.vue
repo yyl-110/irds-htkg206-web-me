@@ -168,7 +168,7 @@ function getStatusTagColor(status: string) {
 }
 
 .wb-cell-link {
-  color: #1a71ff;
+  color: var(--ant-primary-color);
   cursor: pointer;
   text-decoration: underline;
 }

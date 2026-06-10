@@ -35,7 +35,7 @@
 /* 展开时图标旋转 */
 :deep(.ant-collapse-item-active .ant-collapse-arrow) {
   transform: rotate(90deg);
-  color: #1890ff;
+  color: var(--ant-primary-color);
   /* 展开时图标高亮色 */
 }
 /* 4. 面板内容区样式 */

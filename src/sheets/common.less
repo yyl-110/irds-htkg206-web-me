@@ -345,3 +345,87 @@ body {
 .ant-select-selector {
   height: 32px !important;
 }
+
+/** 全局超链接：统一使用系统主题色（覆盖各页硬编码蓝色） */
+a:not(.danger-link):not(.del-text):not(.menuLi):not(.menuLi2):not([style*='color: #ff']):not([style*='color: red']):not([style*='color: green']):not([style*='color: #fff']):not([style*='color: white']) {
+  color: var(--ant-primary-color) !important;
+  text-decoration-color: var(--ant-primary-color);
+
+  &:link,
+  &:visited,
+  &:hover,
+  &:active {
+    color: var(--ant-primary-color) !important;
+    text-decoration-color: var(--ant-primary-color);
+  }
+}
+
+/** 模型库/资源库等左侧分类抽屉：保留原样式（默认深色字，悬停蓝色） */
+a.menuLi,
+a.menuLi2 {
+  text-decoration: none !important;
+  text-decoration-color: transparent !important;
+}
+
+a.menuLi {
+  color: rgba(0, 0, 0, 0.85) !important;
+
+  &:link,
+  &:visited,
+  &:active {
+    color: rgba(0, 0, 0, 0.85) !important;
+  }
+
+  &:hover {
+    color: #165dff !important;
+    text-decoration-color: transparent !important;
+  }
+}
+
+a.menuLi2 {
+  color: rgba(0, 0, 0, 0.993) !important;
+
+  &:link,
+  &:visited,
+  &:active {
+    color: rgba(0, 0, 0, 0.993) !important;
+  }
+
+  &:hover {
+    color: #165dff !important;
+    text-decoration-color: transparent !important;
+  }
+}
+
+/** 侧栏菜单内链接保持菜单字色，不套用正文超链接样式 */
+.sider-wrapper a,
+.sider-wrapper .ant-menu a {
+  color: inherit !important;
+  text-decoration: none !important;
+  text-decoration-color: inherit !important;
+}
+
+/** 表格/业务区常用链接类 */
+.fixed-table-cell-op-link:not(.fixed-table-cell-op-link--disabled),
+.wb-cell-link,
+.theme-link,
+.calc-operation-links__wbs-link:not(.calc-operation-links__disabled) {
+  color: var(--ant-primary-color) !important;
+  text-decoration-color: var(--ant-primary-color);
+}
+
+.theme-link {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/** Ant Design 文字链接按钮（非危险） */
+.ant-btn-link:not(.ant-btn-dangerous):not([disabled]) {
+  color: var(--ant-primary-color) !important;
+
+  &:hover,
+  &:focus,
+  &:active {
+    color: var(--ant-primary-color-hover, var(--ant-primary-color)) !important;
+  }
+}

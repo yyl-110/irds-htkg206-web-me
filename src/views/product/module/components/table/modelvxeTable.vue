@@ -237,7 +237,7 @@ defineExpose({
             <div v-if="item.key != 'para2' && item.key != 'status'">
               <span class="table-text">{{ scope.row[item.key] }}</span>
             </div>
-            <span v-if="item.key === 'para2'" style="text-decoration: underline; cursor: pointer; color: #1979e0" @click.stop="editEvent(scope.row, item.key)">
+            <span v-if="item.key === 'para2'" class="theme-link" @click.stop="editEvent(scope.row, item.key)">
               {{ scope.row[item.key] }}</span
             >
           </template>

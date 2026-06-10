@@ -2446,7 +2446,7 @@ defineExpose({
   line-height: 1;
 }
 .param-impact-scope-entry {
-  color: #1677ff;
+  color: var(--ant-primary-color);
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
@@ -2529,7 +2529,7 @@ defineExpose({
   cursor: pointer;
 }
 .component-knowledge-hint {
-  color: #1677ff;
+  color: var(--ant-primary-color);
   font-size: 14px;
   cursor: pointer;
 }
@@ -2776,7 +2776,7 @@ defineExpose({
   justify-content: center;
 }
 .fixed-table-cell-op-link {
-  color: #1677ff;
+  color: var(--ant-primary-color);
   text-decoration: underline;
   cursor: pointer;
   line-height: 22px;
@@ -2798,7 +2798,7 @@ defineExpose({
 }
 .fixed-table-cell-op-glyph {
   font-size: 16px;
-  color: #1677ff;
+  color: var(--ant-primary-color);
   cursor: pointer;
   line-height: 1;
 }
@@ -2817,6 +2817,18 @@ defineExpose({
   flex-direction: column;
   gap: 8px;
 }
+.model-select-3d-label {
+  font-size: 12px;
+  color: #444;
+}
+.model-select-3d-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+/** 浏览模版创建 / 固定模版创建：模板行与模型行上下排列，文本框宽度同 --activity-preview-component-width（300px） */
 .template-browse-3d-row--stacked {
   display: flex;
   flex-direction: column;
@@ -2827,6 +2839,7 @@ defineExpose({
 .template-browse-3d-row--stacked .template-browse-3d-group {
   width: 100%;
   min-width: 0;
+  /* 文本框宽度由 .template-browse-3d-input（300px）控制；整组可横向容纳「输入 + 按钮」 */
 }
 .template-browse-3d-group {
   display: flex;
@@ -2834,29 +2847,26 @@ defineExpose({
   gap: 8px;
   min-width: 0;
 }
-.template-browse-3d-label,
-.model-select-3d-label {
-  color: #444;
+.template-browse-3d-label {
   font-size: 12px;
+  color: #444;
 }
-.template-browse-3d-controls,
-.model-select-3d-controls {
+.template-browse-3d-controls {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
   min-width: 0;
-  width: 100%;
 }
 .template-browse-3d-input {
-  flex: 1;
-  min-width: 0;
-  width: auto;
+  width: var(--activity-preview-component-width);
   max-width: 100%;
 }
-.template-browse-3d-input:deep(.ant-input),
-.template-browse-3d-input:deep(.ant-input-affix-wrapper) {
-  width: 100%;
+.component-card.full-row-item .template-browse-3d-input,
+.component-card.full-row-item .template-browse-3d-input:deep(.ant-input),
+.component-card.full-row-item .template-browse-3d-input:deep(.ant-input-affix-wrapper) {
+  width: var(--activity-preview-component-width);
+  max-width: 100%;
 }
 .template-browse-3d-action-btn {
   flex-shrink: 0;

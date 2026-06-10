@@ -1655,7 +1655,7 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload, buildPick
 
           <div class="btn-box-right">
             <div class="btn-item" @click="handleAddOrUpdate">
-              <EpcIcon type="icon-md-add" style="color: #1a71ff; font-size: 17px" />
+              <EpcIcon type="icon-md-add" style="font-size: 17px" />
               新建数据
             </div>
             <div :class="{ 'btn-item-select': btnType, 'btn-item': !btnType }" @click="updModule">
@@ -1823,7 +1823,7 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload, buildPick
           <a-input v-model:value="group.keyword" allowClear placeholder="请输入内容" style="width: 180px" />
           <EpcIcon
             type="icon-md-add"
-            style="color: #1a71ff; font-size: 18px; cursor: pointer"
+            style="color: var(--ant-primary-color); font-size: 18px; cursor: pointer"
             @click="addGlobalQueryGroup" />
           <EpcIcon
             v-if="globalQueryGroups.length > 1"
@@ -2442,7 +2442,7 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload, buildPick
   margin: 0 10px;
   text-align: center;
   line-height: 35px;
-  color: #1a71ff;
+  color: var(--ant-primary-color);
   cursor: pointer;
 }
 

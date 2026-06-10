@@ -1909,7 +1909,7 @@ onUnmounted(() => {
                 <div
                   class="flex items-center gap-1 text-[16px]"
                   :class="{ 'font-bold': activeName === item.name }"
-                  :style="{ color: activeName === item.name ? '#124dd6' : '' }">
+                  :style="{ color: activeName === item.name ? 'var(--ant-primary-color)' : '' }">
                   <span>{{ item.title }}</span>
                   <!-- 角标仅挂在「设计任务」上；勿用固定 left 像素，否则会叠到「待审核」标签上 -->
                   <a-badge
@@ -2139,7 +2139,7 @@ onUnmounted(() => {
                         <template #customFilterIcon="{ filtered, column }">
                           <FilterOutlined
                             v-if="column.key === 'title'"
-                            :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
+                            :style="{ color: filtered ? 'var(--ant-primary-color)' : '#B1B5C3', fontSize: '14px' }" />
                         </template>
                         <template #bodyCell="{ column, record }">
                           <template v-if="column.key === 'title'">
@@ -2289,7 +2289,7 @@ onUnmounted(() => {
                       <template #customFilterIcon="{ filtered, column }">
                         <FilterOutlined
                           v-if="column.key === 'title'"
-                          :style="{ color: filtered ? '#124dd6' : '#B1B5C3', fontSize: '14px' }" />
+                          :style="{ color: filtered ? 'var(--ant-primary-color)' : '#B1B5C3', fontSize: '14px' }" />
                       </template>
                       <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'PROCESS_BUSINESS_TYPE_NAME'">
@@ -2972,7 +2972,7 @@ onUnmounted(() => {
   }
 
   &.active {
-    background: #e6eaff;
+    background: color-mix(in srgb, var(--ant-primary-color) 10%, #fff);
     color: var(--ant-primary-color, #124dd6);
     font-weight: 500;
   }
@@ -3051,15 +3051,15 @@ onUnmounted(() => {
 
 .task-card--kind-wbs,
 .task-card--kind-standalone {
-  background: linear-gradient(180deg, rgba(26, 88, 232, 0.06) 0%, #fff 44px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ant-primary-color) 6%, #fff) 0%, #fff 44px);
 
   &:hover {
-    border-color: #1a58e8;
+    border-color: var(--ant-primary-color);
   }
 
   .task-card__type-ribbon-inner {
-    color: #1a58e8;
-    background: rgba(26, 88, 232, 0.1);
+    color: var(--ant-primary-color);
+    background: color-mix(in srgb, var(--ant-primary-color) 10%, transparent);
   }
 }
 
@@ -3126,7 +3126,7 @@ onUnmounted(() => {
   }
 
   &.tag-blue {
-    background: #2b5fd9;
+    background: var(--ant-primary-color);
     color: #fff;
   }
 
@@ -3145,7 +3145,7 @@ onUnmounted(() => {
   transition: all 0.2s;
 
   &:hover {
-    color: #1a58e8;
+    color: var(--ant-primary-color);
     transform: translateY(-1px);
   }
 }
@@ -3181,12 +3181,16 @@ onUnmounted(() => {
 
 .tc-type-icon {
   font-size: 14px;
-  color: #1a58e8;
+  color: var(--ant-primary-color);
   line-height: 1;
 }
 
 .normal-progress :deep(.ant-progress-bg) {
-  background: linear-gradient(270deg, #6f86fa 2.51%, #1a58e8 72.46%) !important;
+  background: linear-gradient(
+    270deg,
+    color-mix(in srgb, var(--ant-primary-color) 65%, #fff) 2.51%,
+    var(--ant-primary-color) 72.46%
+  ) !important;
 }
 
 .workbench-transfer-modal__tip {
