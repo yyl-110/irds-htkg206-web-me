@@ -692,10 +692,7 @@ const {
   position: relative;
   box-sizing: border-box;
   height: 179px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 8px;
+  padding: 0 8px 10px;
   background-color: #1a6bb8;
   background-repeat: no-repeat;
   background-size: cover;
@@ -703,15 +700,18 @@ const {
 }
 
 .checklist-card__hero-stack {
-  position: relative;
+  position: absolute;
   z-index: 1;
+  top: calc(50% - 20px);
+  left: 8px;
+  right: 8px;
+  bottom: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
-  width: 100%;
-  max-height: 100%;
+  overflow: hidden;
 }
 
 .checklist-card__hero::before {

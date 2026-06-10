@@ -1873,7 +1873,7 @@ function onPreviewFileChange(item: any, index: number, info: any) {
 }
 .radio-preview-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
   max-width: 100%;

@@ -424,7 +424,15 @@ function getColumnDefModalDraftIndex(physicalCol: number, tableBizType: string |
 }
 
 function createDefaultComponent(componentType: string) {
-  const customProps = componentType === 'DATA_VIEW' ? { inputPlaceholder: '请输入设计参数', assembleButtonText: '浏览', libraryCategory: '', libraryCategoryId: '' } : {};
+  const customProps: Record<string, any> = {};
+  if (componentType === 'RADIO') {
+    customProps.radioOptions = ['选项1', '选项2', '选项3'];
+  } else if (componentType === 'DATA_VIEW') {
+    customProps.inputPlaceholder = '请输入设计参数';
+    customProps.assembleButtonText = '浏览';
+    customProps.libraryCategory = '';
+    customProps.libraryCategoryId = '';
+  }
   return {
     id: null,
     parentId: 0,
@@ -2221,7 +2229,7 @@ function ensureSelectDefaults(component: any) {
 function ensureRadioDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (!Array.isArray(component.customProps.radioOptions)) {
-    component.customProps.radioOptions = ['选项1', '选项2', '选项3', '选项4'];
+    component.customProps.radioOptions = ['选项1', '选项2', '选项3'];
   }
   if (!Array.isArray(component.constraintRules)) component.constraintRules = [];
   if (!component.validateRule || typeof component.validateRule !== 'object') component.validateRule = {};
@@ -3076,19 +3084,28 @@ watch(
                     <div class="row-label">限制关系：</div>
                     <div class="row-control row-control-full">
                       <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                        <div class="constraint-row-fields">
+                          <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" class="constraint-param-input" />
+                          <a-select v-model:value="rule.operator" class="constraint-operator-select">
+                            <a-select-option value="=">=</a-select-option>
+                            <a-select-option value=">">></a-select-option>
+                            <a-select-option value=">=">>=</a-select-option>
+                            <a-select-option value="<"><</a-select-option>
+                            <a-select-option value="<="><=</a-select-option>
+                            <a-select-option value="!=">!=</a-select-option>
+                          </a-select>
+                          <a-input v-model:value="rule.compareValue" placeholder="请输入" class="constraint-value-input" />
+                        </div>
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                          <a-button type="link" danger class="icon-btn" @click="removeConstraintRule(idx)">x</a-button>
+                        </div>
                       </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                      <div v-if="!selectedComponent.constraintRules?.length" class="constraint-row constraint-row--empty">
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -3208,19 +3225,28 @@ watch(
                     <div class="row-label">限制关系：</div>
                     <div class="row-control row-control-full">
                       <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                        <div class="constraint-row-fields">
+                          <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" class="constraint-param-input" />
+                          <a-select v-model:value="rule.operator" class="constraint-operator-select">
+                            <a-select-option value="=">=</a-select-option>
+                            <a-select-option value=">">></a-select-option>
+                            <a-select-option value=">=">>=</a-select-option>
+                            <a-select-option value="<"><</a-select-option>
+                            <a-select-option value="<="><=</a-select-option>
+                            <a-select-option value="!=">!=</a-select-option>
+                          </a-select>
+                          <a-input v-model:value="rule.compareValue" placeholder="请输入" class="constraint-value-input" />
+                        </div>
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                          <a-button type="link" danger class="icon-btn" @click="removeConstraintRule(idx)">x</a-button>
+                        </div>
                       </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                      <div v-if="!selectedComponent.constraintRules?.length" class="constraint-row constraint-row--empty">
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -3263,19 +3289,28 @@ watch(
                     <div class="row-label">限制关系：</div>
                     <div class="row-control row-control-full">
                       <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                        <div class="constraint-row-fields">
+                          <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" class="constraint-param-input" />
+                          <a-select v-model:value="rule.operator" class="constraint-operator-select">
+                            <a-select-option value="=">=</a-select-option>
+                            <a-select-option value=">">></a-select-option>
+                            <a-select-option value=">=">>=</a-select-option>
+                            <a-select-option value="<"><</a-select-option>
+                            <a-select-option value="<="><=</a-select-option>
+                            <a-select-option value="!=">!=</a-select-option>
+                          </a-select>
+                          <a-input v-model:value="rule.compareValue" placeholder="请输入" class="constraint-value-input" />
+                        </div>
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                          <a-button type="link" danger class="icon-btn" @click="removeConstraintRule(idx)">x</a-button>
+                        </div>
                       </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                      <div v-if="!selectedComponent.constraintRules?.length" class="constraint-row constraint-row--empty">
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -3384,19 +3419,28 @@ watch(
                     <div class="row-label">限制关系：</div>
                     <div class="row-control row-control-full">
                       <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                        <div class="constraint-row-fields">
+                          <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" class="constraint-param-input" />
+                          <a-select v-model:value="rule.operator" class="constraint-operator-select">
+                            <a-select-option value="=">=</a-select-option>
+                            <a-select-option value=">">></a-select-option>
+                            <a-select-option value=">=">>=</a-select-option>
+                            <a-select-option value="<"><</a-select-option>
+                            <a-select-option value="<="><=</a-select-option>
+                            <a-select-option value="!=">!=</a-select-option>
+                          </a-select>
+                          <a-input v-model:value="rule.compareValue" placeholder="请输入" class="constraint-value-input" />
+                        </div>
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                          <a-button type="link" danger class="icon-btn" @click="removeConstraintRule(idx)">x</a-button>
+                        </div>
                       </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                      <div v-if="!selectedComponent.constraintRules?.length" class="constraint-row constraint-row--empty">
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -3449,19 +3493,28 @@ watch(
                     <div class="row-label">限制关系：</div>
                     <div class="row-control row-control-full">
                       <div class="constraint-row" v-for="(rule, idx) in selectedComponent.constraintRules" :key="idx">
-                        <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" style="width: 110px" />
-                        <a-select v-model:value="rule.operator" style="width: 70px">
-                          <a-select-option value="=">=</a-select-option>
-                          <a-select-option value=">">></a-select-option>
-                          <a-select-option value=">=">>=</a-select-option>
-                          <a-select-option value="<"><</a-select-option>
-                          <a-select-option value="<="><=</a-select-option>
-                          <a-select-option value="!=">!=</a-select-option>
-                        </a-select>
-                        <a-input v-model:value="rule.compareValue" placeholder="请输入" style="width: 110px" />
-                        <a-button type="link" danger class="icon-only-btn delete-icon-btn" @click="removeConstraintRule(idx)">🗑</a-button>
+                        <div class="constraint-row-fields">
+                          <a-input v-model:value="rule.refParamCode" placeholder="请输入参数" class="constraint-param-input" />
+                          <a-select v-model:value="rule.operator" class="constraint-operator-select">
+                            <a-select-option value="=">=</a-select-option>
+                            <a-select-option value=">">></a-select-option>
+                            <a-select-option value=">=">>=</a-select-option>
+                            <a-select-option value="<"><</a-select-option>
+                            <a-select-option value="<="><=</a-select-option>
+                            <a-select-option value="!=">!=</a-select-option>
+                          </a-select>
+                          <a-input v-model:value="rule.compareValue" placeholder="请输入" class="constraint-value-input" />
+                        </div>
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                          <a-button type="link" danger class="icon-btn" @click="removeConstraintRule(idx)">x</a-button>
+                        </div>
                       </div>
-                      <a-button type="link" class="icon-only-btn add-icon-btn" @click="addConstraintRule">+</a-button>
+                      <div v-if="!selectedComponent.constraintRules?.length" class="constraint-row constraint-row--empty">
+                        <div class="constraint-row-actions">
+                          <a-button type="link" class="icon-btn" @click="addConstraintRule">+</a-button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </a-collapse-panel>
@@ -4976,7 +5029,7 @@ watch(
 }
 .radio-preview-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px 18px;
 }
 .radio-preview-item {
@@ -5079,9 +5132,52 @@ watch(
 .constraint-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  width: 100%;
+  gap: 4px;
   margin-bottom: 6px;
+}
+.constraint-row-fields {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+.constraint-row-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.constraint-param-input {
+  width: 130px;
+  flex-shrink: 0;
+}
+.constraint-operator-select {
+  width: 50px;
+  flex-shrink: 0;
+}
+.constraint-value-input {
+  flex: 1;
+  min-width: 0;
+}
+.constraint-row :deep(.constraint-param-input.ant-input) {
+  flex: none;
+  width: 130px;
+}
+.constraint-row :deep(.constraint-value-input.ant-input) {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+.constraint-row :deep(.constraint-operator-select.ant-select) {
+  flex: none;
+  width: 50px;
+}
+.constraint-row--empty {
+  justify-content: flex-end;
+}
+.constraint-row--empty .constraint-row-actions {
+  margin-left: auto;
 }
 .sequence-row {
   display: flex;

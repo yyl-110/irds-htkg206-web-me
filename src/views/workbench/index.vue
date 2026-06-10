@@ -14,7 +14,6 @@ import {
   EllipsisOutlined,
   FilterOutlined,
   FormOutlined,
-  HighlightOutlined,
   HistoryOutlined,
   MobileOutlined,
   ProfileOutlined,
@@ -22,6 +21,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SwapOutlined,
+  SyncOutlined,
   UndoOutlined,
   UnorderedListOutlined,
   UserAddOutlined,
@@ -663,7 +663,7 @@ function resolveWorkbenchTaskTypeIcon(task: TaskItem): Component {
     return AppstoreOutlined;
   }
   if (type === WBS_TASK_TYPE_COLLAB || type.includes('协同任务') || type.includes('协同设计')) {
-    return HighlightOutlined;
+    return FormOutlined;
   }
   if (type === WBS_TASK_TYPE_ASSIGN || type.includes('人员指派')) {
     return UserAddOutlined;
@@ -1990,7 +1990,7 @@ onUnmounted(() => {
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
                                     @click.prevent.stop="openDesignWorkspace(item)">
-                                    <HighlightOutlined />
+                                    <FormOutlined />
                                   </a>
                                 </a-tooltip>
                                 <a-tooltip v-if="taskActionAllowed(item, 'assign')" title="指派">
@@ -2022,7 +2022,7 @@ onUnmounted(() => {
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
                                     @click.prevent.stop="openChangeWorkspace(item)">
-                                    <FormOutlined />
+                                    <SyncOutlined />
                                   </a>
                                 </a-tooltip>
                               </div>
@@ -2111,7 +2111,7 @@ onUnmounted(() => {
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
                                   @click.prevent.stop="openDesignWorkspace(record)">
-                                  <HighlightOutlined />
+                                  <FormOutlined />
                                 </a>
                               </a-tooltip>
                               <a-tooltip v-if="taskActionAllowed(record, 'assign')" title="指派">
@@ -2151,7 +2151,7 @@ onUnmounted(() => {
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"
                                   @click.prevent.stop="openChangeWorkspace(record)">
-                                  <FormOutlined />
+                                  <SyncOutlined />
                                 </a>
                               </a-tooltip>
                             </div>
