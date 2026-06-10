@@ -17,6 +17,7 @@ import { message } from 'ant-design-vue';
 import shareCell from './share.vue';
 import draggableModal from '@/components/DraggableModal/index.vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
+import priviewFile from '@/components/PriviewFileInfo/index.vue';
 
 const router = useRouter();
 
@@ -33,6 +34,9 @@ const emits = defineEmits(['handleFetchList']);
 
 const commentDialogVisible = ref(false);
 const shareDialogVisible = ref(false);
+const previewVisible = ref(false);
+const filePath = ref('');
+const fileType = ref('');
 const commentDetail = ref({});
 const docId = ref('');
 const showDetail = ref(false);
@@ -58,24 +62,33 @@ const viewPdfFun = async () => {
   viewPdf(props.textData.content);
 };
 
+function isExcelFileType(fileType?: string) {
+  const type = String(fileType ?? '')
+    .toLowerCase()
+    .replace(/^\./, '');
+  return type === 'xlsx' || type === 'xls' || type === 'excel';
+}
+
 // 查看pdf
-const viewPdf = async item => {
+const viewPdf = async (item: any) => {
   try {
     updateKldCounting({ kldFileId: item.id, countingType: 1 });
+    if (isExcelFileType(item.fileType)) {
+      const ext = item.fileType?.startsWith('.') ? item.fileType : `.${item.fileType}`;
+      fileType.value = ext;
+      filePath.value = item.fileUrl;
+      previewVisible.value = true;
+      return;
+    }
     const res = await getPdfPreviewPath({ id: item.fileId });
-    console.log('res:', res);
-    const filePath = res.data.fileUrl;
-    router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
-    // if (res.data.fileUrl) {
-    //   const filePath = res.data.fileUrl;
-    //   router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
-    // } else {
-    //   message.error('文件不存在');
-    //   getList();
-    // }
+    router.push({ path: '/knowledge/pdfView', query: { docId: res.data.fileUrl } });
   } catch (error) {
     console.log('error:', error);
   }
+};
+
+const handleClosePreviewModal = () => {
+  previewVisible.value = false;
 };
 
 const commentFun = (answer: any) => {
@@ -245,6 +258,12 @@ function DynamicIcon(item: { fileType?: string }) {
       :quest-flag="1"
       :tab-flag="1"
       @close-share="closeShare" />
+
+    <priviewFile
+      :modal-visible="previewVisible"
+      :pdf-url="filePath"
+      :file-type="fileType"
+      @onClose="handleClosePreviewModal" />
 
     <draggable-modal :closable="false" v-model:visible="showDetail" title="查看详情" width="40%" centered>
       <a-form-item label="附件名称：" :label-col="{ style: { width: '80px' } }">

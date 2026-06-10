@@ -75,17 +75,26 @@ const viewPdfFun = async () => {
   viewPdf(props.textData);
 };
 
+function isExcelFileType(fileType?: string) {
+  const type = String(fileType ?? '')
+    .toLowerCase()
+    .replace(/^\./, '');
+  return type === 'xlsx' || type === 'xls' || type === 'excel';
+}
+
 // 查看pdf
 const viewPdf = async (item: any) => {
   try {
     updateKldCounting({ kldFileId: item.id, countingType: 1 });
+    if (isExcelFileType(item.fileType)) {
+      const ext = item.fileType?.startsWith('.') ? item.fileType : `.${item.fileType}`;
+      fileType.value = ext;
+      filePath.value = item.fileUrl;
+      previewVisible.value = true;
+      return;
+    }
     const res = await getPdfPreviewPath({ id: item.fileId });
-    const filePath = res.data.fileUrl;
-    router.push({ path: '/knowledge/pdfView', query: { docId: filePath } });
-    // const ext = item.fileType?.startsWith('.') ? item.fileType : `.${item.fileType}`;
-    // fileType.value = ext;
-    // filePath.value = res.data.fileUrl;
-    // previewVisible.value = true;
+    router.push({ path: '/knowledge/pdfView', query: { docId: res.data.fileUrl } });
   } catch (error) {
     console.log('error:', error);
   }
