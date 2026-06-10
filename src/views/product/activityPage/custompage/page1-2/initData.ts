@@ -11,6 +11,7 @@ export function applyPage1_2InitData(parameterTempList: Page1_2ParameterItem[]):
   const state: Page1_2InitState = { flag: false, djzdlj: '' };
   const paramsList = getFlowParameterList();
 
+  const preservedWorkMode = parameterTempList[0]?.defaultValue ?? '';
   paramsList.forEach(item => {
     if (item.paramnum === 'DJ1_1_GZFS' && item.paramvalue !== '') {
       if (parameterTempList[0]) {
@@ -18,6 +19,9 @@ export function applyPage1_2InitData(parameterTempList: Page1_2ParameterItem[]):
       }
     }
   });
+  if (parameterTempList[0] && !parameterTempList[0].defaultValue && preservedWorkMode) {
+    parameterTempList[0].defaultValue = preservedWorkMode;
+  }
 
   const djOutputStyle = parameterTempList[0]?.defaultValue ?? '';
   let endpointJSQStyle = '直线';

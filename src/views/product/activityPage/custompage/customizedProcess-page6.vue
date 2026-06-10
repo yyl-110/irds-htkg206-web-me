@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
@@ -80,6 +81,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 480;
 const tableScrollX = PAGE6_TABLE_MIN_WIDTH;
 const page6TableColumns = PAGE6_ANT_COLUMNS;
@@ -116,26 +118,15 @@ function createInitialParameterList(): Page6ParameterItem[] {
 }
 
 const parameterTempList = ref<Page6ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage6PageParameters,
+  });
+
 
 const tableRowData = computed(() => getPage6TableRows(parameterTempList.value));
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({
-        ...item,
-        tableMap: item.tableMap
-          ? {
-              ...item.tableMap,
-              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-            }
-          : item.tableMap,
-      }));
-    }
-  },
-  { deep: true },
-);
 
 function resolveLeafColumn(column: { dataIndex?: string | number }): Page6AntColumn | undefined {
   return leafColumnMap.get(String(column.dataIndex ?? ''));
@@ -205,16 +196,14 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage6PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage6SaveParamValues(parameterTempList.value);

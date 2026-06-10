@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { ClearOutlined, ReadOutlined } from '@ant-design/icons-vue';
 import { isValid, readTDDPInputData } from '@/api/flowData/flowData';
@@ -115,6 +116,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const userStore = useUserStore();
 const formLabelCol = { style: { width: '120px' } };
 
@@ -146,27 +148,18 @@ function createInitialParameterList(): Page0ParameterItem[] {
 }
 
 const parameterTempList = ref<Page0ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage0PageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-    }
-  },
-  { deep: true },
-);
 
 function tableRowKey(record: Record<string, string>, index?: number) {
   return String(record?.p0 ?? index ?? 0);
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage0PageParameters(pageId);
-}
 
 function resetTableData() {
   clearPage0TableData(parameterTempList.value);

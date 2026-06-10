@@ -1,4 +1,5 @@
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { useCustomPageTaskParamMap } from '../_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { baseUrl, ifGateway } from '@/views/product/activityPage/custompage/_shared/utils/legacyEnv';
 import { globaluserId } from '@/views/product/activityPage/custompage/_shared/utils/legacyUser';
@@ -30,6 +31,11 @@ export function useInputDyjgPage(
   }
 
   const parameterTempList = ref<Page5_5ParameterItem[]>(createInitialParameterList());
+  const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    cloneItem: cloneParameterList,
+  });
   const supplyType = computed(() => String(parameterTempList.value[0]?.defaultValue ?? ''));
   const actionUrl = ref('');
   const loginUserId = { userId: globaluserId() };
@@ -98,16 +104,18 @@ export function useInputDyjgPage(
   function updateEl() {
     nextTick(() => {
       syncFileStates();
+      applyTaskParamMapToList();
     });
   }
+
+  setupParameterWatch(updateEl);
+  mountWithTaskParamMap(updateEl);
 
   onMounted(() => {
     actionUrl.value = ifGateway
       ? `${baseUrl}/base-server/fileManagerController/upload.json`
       : `${baseUrl}/fileManagerController/upload.json`;
-    if (props.parameterTempList?.length) {
-      updateEl();
-    } else {
+    if (!props.parameterTempList?.length) {
       syncFileStates();
     }
   });

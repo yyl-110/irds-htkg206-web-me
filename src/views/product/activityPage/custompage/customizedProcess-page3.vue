@@ -56,6 +56,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage3Rows } from './page3/calculations';
@@ -87,6 +88,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 610;
 const page3TableColumns = PAGE3_ANT_COLUMNS;
 const leafColumnMap = new Map(PAGE3_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
@@ -109,26 +111,15 @@ function createInitialParameterList(): Page3ParameterItem[] {
 }
 
 const parameterTempList = ref<Page3ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage3PageParameters,
+  });
+
 
 const tableRowData = computed(() => getPage3TableRows(parameterTempList.value));
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({
-        ...item,
-        tableMap: item.tableMap
-          ? {
-              ...item.tableMap,
-              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-            }
-          : item.tableMap,
-      }));
-    }
-  },
-  { deep: true },
-);
 
 function resolveLeafColumn(column: { dataIndex?: string | number }): Page3AntColumn | undefined {
   return leafColumnMap.get(String(column.dataIndex ?? ''));
@@ -205,16 +196,14 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage3PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage3SaveParamValues(parameterTempList.value);
@@ -225,9 +214,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

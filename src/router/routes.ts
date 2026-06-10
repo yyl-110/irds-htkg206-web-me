@@ -254,7 +254,7 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/product/project/components/form/ProjectInfoEditor.vue'),
         meta: {
           hidden: true,
-          title: '项目信息创建',
+          title: '项目管理',
           noCache: true,
         },
       },

@@ -151,6 +151,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { handleCutZero } from '@/utils/tools';
 import { getFlowTableList } from './shared/flowContext';
 import { createDefaultPage1_1_1_1ParameterList, type Page1_1_1_1ParameterItem } from './page0-2/parameterDefaults';
@@ -187,6 +188,14 @@ function createInitialParameterList(): Page1_1_1_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_1_1_1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage1_1_1_1PageParameters,
+  });
+
+
 const isLinearMode = ref(true);
 
 const workModeOptions = computed(() => {
@@ -194,29 +203,16 @@ const workModeOptions = computed(() => {
   return item?.selectStrVal?.length ? item.selectStrVal : (item?.selectStr ?? []);
 });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({ ...item }));
-      nextTick(() => updateEl());
-    }
-  },
-  { deep: true },
-);
-
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage1_1_1_1PageParameters(pageId);
-}
 
 function updateEl() {
   nextTick(() => {
+
     outputChange(parameterTempList.value[0]?.defaultValue ?? '');
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function outputChange(type: string) {
   if (parameterTempList.value[0]) {
@@ -337,10 +333,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-  updateEl();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

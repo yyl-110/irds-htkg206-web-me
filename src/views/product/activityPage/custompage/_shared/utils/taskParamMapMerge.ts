@@ -200,3 +200,45 @@ export function applyTaskParamMapToParameterList<T extends CustomPageParameterIt
   next = mergeSavedTablesIntoList(next, savedTables);
   return next;
 }
+
+/** 解析 task-param-map 接口返回的文本参数与表格快照 */
+export function parseTaskParamMapResponse(raw: unknown): {
+  saved: CustomPageSavedParamRow[];
+  savedTables: CustomPageSavedTableRow[];
+} {
+  if (!raw || typeof raw !== 'object') {
+    return { saved: [], savedTables: [] };
+  }
+  const dataObj = raw as Record<string, unknown>;
+  const paramsObj = dataObj?.params && typeof dataObj.params === 'object' ? dataObj.params : null;
+  const savedTables = Array.isArray(dataObj?.tables) ? (dataObj.tables as CustomPageSavedTableRow[]) : [];
+  const source = paramsObj ?? dataObj;
+  const saved: CustomPageSavedParamRow[] = [];
+
+  if (Array.isArray(source)) {
+    source.forEach((row: Record<string, unknown>) => {
+      const code = String(row?.paramCode ?? row?.paramKey ?? row?.code ?? '').trim();
+      if (!code) return;
+      saved.push({
+        paramCode: code,
+        paramValue: String(row?.paramValue ?? row?.value ?? row?.savedValue ?? ''),
+      });
+    });
+  } else if (source && typeof source === 'object') {
+    Object.entries(source as Record<string, unknown>).forEach(([k, v]) => {
+      const code = String(k ?? '').trim();
+      if (!code || code === 'params' || code === 'tables') return;
+      if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+        const obj = v as Record<string, unknown>;
+        saved.push({
+          paramCode: code,
+          paramValue: String(obj?.paramValue ?? obj?.value ?? obj?.savedValue ?? ''),
+        });
+        return;
+      }
+      saved.push({ paramCode: code, paramValue: String(v ?? '') });
+    });
+  }
+
+  return { saved, savedTables };
+}

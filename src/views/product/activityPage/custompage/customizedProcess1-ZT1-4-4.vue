@@ -108,6 +108,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined } from '@ant-design/icons-vue';
 import { useUserStore } from '@/store/modules/user';
@@ -152,6 +153,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const userStore = useUserStore();
 const calculating = ref(false);
 
@@ -175,16 +177,13 @@ function createInitialParameterList(): Zt1_44ParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1_44ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadZt1_44PageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-    }
-  },
-  { deep: true },
-);
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -226,19 +225,14 @@ async function handleCalculation() {
   }
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) {
-    applyZt1_44InitData(parameterTempList.value);
-    return;
-  }
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadZt1_44PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractZt1_44SaveParamValues(parameterTempList.value);
@@ -250,9 +244,7 @@ defineExpose({
   setSaveBtnEnable,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

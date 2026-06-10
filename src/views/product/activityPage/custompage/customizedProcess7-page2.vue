@@ -95,8 +95,10 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { handleCutZero } from '@/utils/tools';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 import {
@@ -133,7 +135,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 interface CompactDataItem {
   id: number;
   labelName: string;
@@ -242,6 +244,14 @@ function createInitialParameterList(): Page2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page2ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 
 const table1Data = computed(() => parameterTempList.value[0]?.tableMap?.rowData ?? []);
 const table2Data = computed(() => parameterTempList.value[1]?.tableMap?.rowData ?? []);
@@ -293,9 +303,13 @@ function onTable1P6Blur(record: TableRow, index: number) {
 
 function updateEl() {
   nextTick(() => {
+
     changeNumber(1);
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function setLocalData() {
   data1.value = (parameterTempList.value[0].tableMap?.rowData ?? []) as TableRow[];

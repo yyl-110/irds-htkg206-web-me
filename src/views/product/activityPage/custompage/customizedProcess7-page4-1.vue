@@ -167,11 +167,12 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { PlusOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import defaultDiagram from '@/assets/images/viz-schematic-placeholder.png';
-import { getFlowParameterList } from './shared/flowContext';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 import { PRODUCT_TABLE_COLUMNS } from './Process7-page4-1/customizedProcess7-page4-1.columns';
 import {
@@ -205,7 +206,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page4_1ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data4_1(props.pageid);
@@ -214,6 +215,14 @@ function createInitialParameterList(): Page4_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page4_1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 
 const tableData = computed(() => parameterTempList.value[10]?.tableMap?.rowData ?? []);
 
@@ -301,9 +310,13 @@ function initData() {
 
 function updateEl() {
   nextTick(() => {
+
     queryImg();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function addColumns() {
   const rows = [...(parameterTempList.value[10].tableMap?.rowData ?? [])] as TableRow[];

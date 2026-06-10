@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
@@ -117,6 +118,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const userStore = useUserStore();
 const tabHeight = 530;
 const motorTypeOptions = MOTOR_TYPE_OPTIONS;
@@ -130,6 +132,13 @@ function createInitialParameterList(): Page2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page2ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage2PageParameters,
+  });
+
 const selectList = ref<Array<Record<string, string | number | undefined>>>([]);
 const selectedRowKeys = ref<Array<string | number>>([]);
 const rowFlag = ref(false);
@@ -141,16 +150,6 @@ const modulecategoryid = ref('');
 const selectRow = ref(0);
 
 const tableRowData = computed(() => getMotorTableRows(parameterTempList.value));
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({ ...item }));
-    }
-  },
-  { deep: true },
-);
 
 watch(
   selectedRowKeys,
@@ -306,16 +305,14 @@ function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns:
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage2PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage2SaveParamValues(parameterTempList.value);
@@ -326,9 +323,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

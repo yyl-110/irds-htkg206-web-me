@@ -162,6 +162,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { handleCutZero } from '@/utils/tools';
 import { createDefaultPage0_3ParameterList, type Page0_3ParameterItem } from './page0-3/parameterDefaults';
 import { loadPage0_3PageParameters } from './page0-3/loadPageParameters';
@@ -188,6 +189,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const labelWidth = 200;
 const formLabelCol = { style: { width: `${labelWidth}px` } };
 const formLabelColWide = { style: { width: '205px' } };
@@ -200,6 +202,13 @@ function createInitialParameterList(): Page0_3ParameterItem[] {
 }
 
 const parameterTempList = ref<Page0_3ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage0_3PageParameters,
+  });
+
 const flag = ref(true);
 
 const workModeOptions = computed(() => {
@@ -207,28 +216,16 @@ const workModeOptions = computed(() => {
   return item?.selectStrVal?.length ? item.selectStrVal : (item?.selectStr ?? []);
 });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({ ...item }));
-    }
-  },
-  { deep: true },
-);
-
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage0_3PageParameters(pageId);
-}
 
 function updateEl() {
   nextTick(() => {
+
     outputChange(parameterTempList.value[0]?.defaultValue ?? '');
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function outputChange(type: string) {
   if (parameterTempList.value[0]) {
@@ -329,9 +326,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

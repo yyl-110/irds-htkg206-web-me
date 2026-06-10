@@ -167,6 +167,7 @@
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 
 import { message } from 'ant-design-vue';
 
@@ -284,6 +285,14 @@ function createInitialParameterList(): Fs151_1_9ParameterItem[] {
 }
 
 const parameterTempList = ref<Fs151_1_9ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadFs151_1_9PageParameters,
+  });
+
+
 
 const frameTableRows = computed(() => getFrameTableRows(parameterTempList.value));
 
@@ -296,20 +305,6 @@ const liningAssemblingFlag = computed(() => liningSelectedRows.value.length !== 
 const frameDeleteDisabled = computed(() => frameSelectedRows.value.length <= 0);
 
 const liningDeleteDisabled = computed(() => liningSelectedRows.value.length <= 0);
-
-watch(
-  () => props.parameterTempList,
-
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-
-      applyFs151_1_9InitData(parameterTempList.value);
-    }
-  },
-
-  { deep: true },
-);
 
 const frameRowSelection = computed(() => ({
   selectedRowKeys: frameSelectedRowKeys.value,
@@ -525,23 +520,14 @@ function handleLiningDelete() {
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) {
-    applyFs151_1_9InitData(parameterTempList.value);
-
-    return;
-  }
-
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-
-  if (!pageId) return;
-
-  parameterTempList.value = await loadFs151_1_9PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractFs151_1_9SaveParamValues(parameterTempList.value);
@@ -555,9 +541,7 @@ defineExpose({
   setSaveBtnEnable,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

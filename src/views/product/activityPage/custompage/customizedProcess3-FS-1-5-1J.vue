@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
@@ -76,6 +77,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 520;
 const tableColumns = FS_1_5_1J_TABLE_COLUMNS;
 const reviewOptions = REVIEW_OPTIONS;
@@ -103,17 +105,14 @@ function createInitialParameterList(): Fs151JParameterItem[] {
 }
 
 const parameterTempList = ref<Fs151JParameterItem[]>(createInitialParameterList());
-const tableRows = computed(() => getOpeningRows(parameterTempList.value));
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadFs151JPageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-    }
-  },
-  { deep: true },
-);
+const tableRows = computed(() => getOpeningRows(parameterTempList.value));
 
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
@@ -174,16 +173,14 @@ function handleInitData() {
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadFs151JPageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractFs151JSaveParamValues(parameterTempList.value);
@@ -195,9 +192,7 @@ defineExpose({
   setSaveBtnEnable,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

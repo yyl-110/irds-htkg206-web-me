@@ -113,6 +113,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
@@ -152,6 +153,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight1 = 140;
 const tabHeight2 = 250;
 
@@ -182,6 +184,13 @@ function createInitialParameterList(): Page1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage1PageParameters,
+  });
+
 const data = ref<Array<Record<string, string>>>(parameterTempList.value[0]?.tableMap?.rowData ?? []);
 const data1 = ref<Array<Record<string, string>>>(parameterTempList.value[1]?.tableMap?.rowData ?? []);
 const data2 = ref<Array<Record<string, string>>>(parameterTempList.value[3]?.tableMap?.rowData ?? []);
@@ -190,20 +199,6 @@ const selectList = ref<Array<Record<string, string>>>([]);
 const selectedResultRowKeys = ref<Array<string | number>>([]);
 
 const rowFlag = computed(() => selectList.value.length === 0);
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-      data.value = parameterTempList.value[0]?.tableMap?.rowData ?? [];
-      data1.value = parameterTempList.value[1]?.tableMap?.rowData ?? [];
-      data2.value = parameterTempList.value[3]?.tableMap?.rowData ?? [];
-      trip.value = parameterTempList.value[2]?.defaultValue ?? '';
-    }
-  },
-  { deep: true },
-);
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -268,22 +263,16 @@ function resultTableRowKey(record: Record<string, string>, index?: number) {
   return String(index ?? 0);
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage1PageParameters(pageId);
-  data.value = parameterTempList.value[0]?.tableMap?.rowData ?? [];
-  data1.value = parameterTempList.value[1]?.tableMap?.rowData ?? [];
-  data2.value = parameterTempList.value[3]?.tableMap?.rowData ?? [];
-  trip.value = parameterTempList.value[2]?.defaultValue ?? '';
-}
 
 function updateEl() {
   nextTick(() => {
+
     // no-op, preserved for parent compatibility
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function onInputParamInput(record: Record<string, string>, index: number, field: 'p1' | 'p2') {
   if (parameterTempList.value[0]?.tableMap?.rowData?.[index]) {
@@ -374,9 +363,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

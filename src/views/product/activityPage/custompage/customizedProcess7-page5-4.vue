@@ -110,8 +110,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { nextTick, ref } from 'vue';
-import { getFlowParameterList } from './shared/flowContext';
+import { useRoute } from 'vue-router';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 import {
   cloneParameterList,
@@ -139,7 +140,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page5_4ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data5_4(props.pageid);
@@ -148,6 +149,14 @@ function createInitialParameterList(): Page5_4ParameterItem[] {
 }
 
 const parameterTempList = ref<Page5_4ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const labelWidth = 200;
 const param1 = ref('');
 const param2 = ref('');
@@ -165,6 +174,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string | number,
 
 function updateEl() {
   nextTick(() => {
+
     const list = getFlowParameterList();
     const supplyType = list.find(item => item.paramnum === 'DY1_1_GPDTZ');
     if (supplyType?.paramvalue === '高压直流输入、高压直流母线') {
@@ -174,8 +184,11 @@ function updateEl() {
       if (parameterTempList.value[5]) parameterTempList.value[5].defaultValue = '';
       if (parameterTempList.value[6]) parameterTempList.value[6].defaultValue = '';
     }
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 defineExpose({
   updateEl,

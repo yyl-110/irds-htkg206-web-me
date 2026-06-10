@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { HotTable } from '@handsontable/vue3';
 import { CloseOutlined, SaveOutlined } from '@ant-design/icons-vue';
@@ -111,6 +112,7 @@ const emit = defineEmits<{
 
 const userStore = useUserStore();
 const route = useRoute();
+
 const formLabelCol = { style: { width: '120px' } };
 const tyWzOptions = TY_WZ_OPTIONS;
 const tyFsOptions = TY_FS_OPTIONS;
@@ -141,19 +143,15 @@ function createInitialParameterList(): Tbdemo1ParameterItem[] {
 }
 
 const parameterTempList = ref<Tbdemo1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadTbdemo1PageParameters,
+  });
+
 
 const hotSettings = ref(createTbdemo1HotSettings(getTerminalTableRows(parameterTempList.value), () => setSaveBtnEnable()));
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-      reloadHotTable();
-    }
-  },
-  { deep: true },
-);
 
 function myIsNaN(value: unknown) {
   if (value === undefined || value === null || value === '') return false;
@@ -282,19 +280,16 @@ async function saveJsScript() {
   }
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadTbdemo1PageParameters(pageId);
-  hotSettings.value = createTbdemo1HotSettings(getTerminalTableRows(parameterTempList.value), () => setSaveBtnEnable());
-}
 
 function updateEl() {
   nextTick(() => {
+
     reloadHotTable();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractTbdemo1SaveParamValues(parameterTempList.value);

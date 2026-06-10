@@ -12,7 +12,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import DyjgCabinetPanel from './Process7-page5-Dyjg/DyjgCabinetPanel.vue';
 import { ELECT_FILE_INDEX, ENV_FILE_INDEX, TABLE_INDEX } from './Process7-page5-Dyjg/types';
@@ -51,7 +53,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): DyjgParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data5_Dyjg3(props.pageid);
@@ -60,6 +62,14 @@ function createInitialParameterList(): DyjgParameterItem[] {
 }
 
 const parameterTempList = ref<DyjgParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const tableData = computed(() => parameterTempList.value[TABLE_INDEX]?.tableMap?.rowData ?? []);
 
 const electFile = reactive({ fileName: '', fileId: '' });
@@ -96,9 +106,13 @@ function downFile(type: '1' | '2') {
 
 function updateEl() {
   nextTick(() => {
+
     syncFiles();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 onMounted(() => {
   if (props.parameterTempList?.length) {
@@ -110,4 +124,5 @@ defineExpose({
   updateEl,
   setSaveBtnEnable,
 });
+mountWithTaskParamMap(updateEl);
 </script>

@@ -266,6 +266,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import type { UploadFile } from 'ant-design-vue';
@@ -318,6 +319,7 @@ const emit = defineEmits<{
 
 const userStore = useUserStore();
 const route = useRoute();
+
 const minioPreviewUrl = String(import.meta.env.VITE_MINIO_PREVIEW_URL ?? '').trim();
 const resultPicIndexes = [18, 19, 20];
 const resultPicLoadFailed = ref<boolean[]>([false, false, false]);
@@ -368,6 +370,13 @@ function createInitialParameterList(): ParameterItem[] {
 }
 
 const parameterTempList = ref<ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadAnsysPageParameters,
+  });
+
 
 function resolvePicUrl(url?: string | null) {
   const raw = String(url ?? '').trim();
@@ -419,24 +428,6 @@ function onResultPicError(idx: number) {
   resultPicLoadFailed.value[idx] = true;
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadAnsysPageParameters(pageId);
-  resetResultPicLoadState();
-}
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({ ...item }));
-      resetResultPicLoadState();
-    }
-  },
-  { deep: true },
-);
 
 function makeShape() {
   const L = Number(parameterTempList.value[4].defaultValue);

@@ -106,6 +106,8 @@ defineExpose({
         ref="customComponentRef"
         :pageid="String(activityPageId ?? '')"
         :parameter-temp-list="parameterTempList"
+        :saved-param-values="savedParamValues"
+        :saved-tables="savedTables"
         @set-save-btn-enable="onContentMutated" />
     </CustomPageScope>
     <div v-else-if="ready && !resolvedComponent" class="custom-page-empty">未找到匹配的自定义页面组件</div>

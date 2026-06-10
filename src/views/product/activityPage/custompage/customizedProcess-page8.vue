@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
@@ -64,6 +65,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 580;
 const tableScrollX = PAGE8_TABLE_MIN_WIDTH;
 const page8TableColumns = PAGE8_ANT_COLUMNS;
@@ -85,26 +87,15 @@ function createInitialParameterList(): Page8ParameterItem[] {
 }
 
 const parameterTempList = ref<Page8ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage8PageParameters,
+  });
+
 
 const tableRowData = computed(() => getPage8TableRows(parameterTempList.value));
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({
-        ...item,
-        tableMap: item.tableMap
-          ? {
-              ...item.tableMap,
-              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-            }
-          : item.tableMap,
-      }));
-    }
-  },
-  { deep: true },
-);
 
 function page8TableRowKey(record: Page8TableRow, index?: number) {
   return String(record.p0 ?? index ?? '');
@@ -160,16 +151,14 @@ function handleInitData() {
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage8PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage8SaveParamValues(parameterTempList.value);
@@ -180,9 +169,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

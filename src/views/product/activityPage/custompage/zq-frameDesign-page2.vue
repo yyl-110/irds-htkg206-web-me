@@ -153,7 +153,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 import { applyFlowParameters } from './zq-frameDesign-page2/operations';
 import {
@@ -186,7 +188,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 const formLabelCol = { style: { width: '150px' } };
 
 function createInitialParameterList(): ZqFrameDesignPage2ParameterItem[] {
@@ -197,6 +199,14 @@ function createInitialParameterList(): ZqFrameDesignPage2ParameterItem[] {
 }
 
 const parameterTempList = ref<ZqFrameDesignPage2ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const flag = ref(false);
 
 const param0 = ref('');
@@ -261,16 +271,22 @@ function initData() {
 
 function updateEl() {
   nextTick(() => {
+
     void 0;
+    applyTaskParamMapToList();
   });
 }
 
-onMounted(() => {
+setupParameterWatch(updateEl);
+
+onMounted(async () => {
+  await loadPageParametersIfNeeded();
   if (props.parameterTempList?.length) {
     initData();
   } else {
     setLocalData();
   }
+  updateEl();
 });
 
 defineExpose({

@@ -128,6 +128,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { UploadOutlined } from '@ant-design/icons-vue';
 import type { UploadFile } from 'ant-design-vue';
@@ -178,6 +179,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const userStore = useUserStore();
 
 const segmentCountOptions = SEGMENT_COUNT_OPTIONS.map(value => ({ label: value, value }));
@@ -213,17 +215,14 @@ function createInitialParameterList(): Zt1_4102ParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1_4102ParameterItem[]>(createInitialParameterList());
-const segmentCountRow = computed(() => getSegmentCountRow(parameterTempList.value));
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadZt1_4102PageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-    }
-  },
-  { deep: true },
-);
+const segmentCountRow = computed(() => getSegmentCountRow(parameterTempList.value));
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -363,18 +362,16 @@ function previewPicFile(value: string) {
   previewModalVisible.value = true;
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadZt1_4102PageParameters(pageId);
-}
 
 function updateEl() {
   nextTick(() => {
+
     syncFlowContextData();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractZt1_4102SaveParamValues(parameterTempList.value);

@@ -1,28 +1,14 @@
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
+import {
+  mergeSavedParamsIntoList,
+  type CustomPageSavedParamRow,
+} from '../_shared/utils/taskParamMapMerge';
+export { fetchTaskParamMapFromRoute } from '../_shared/utils/fetchTaskParamMap';
 import { createDefaultPage1_2ParameterList, type Page1_2ParameterItem } from './parameterDefaults';
 
 export type { Page1_2ParameterItem };
 
-export function mergeSavedParamsIntoList(
-  list: Page1_2ParameterItem[],
-  saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
-): Page1_2ParameterItem[] {
-  const savedMap = new Map<string, string>();
-  (saved || []).forEach(row => {
-    const code = String(row?.paramCode ?? row?.paramKey ?? '').trim();
-    if (code) savedMap.set(code, String(row?.paramValue ?? ''));
-  });
-  return list.map(item => {
-    const num = String(item.parameterNum ?? '').trim();
-    if (num && savedMap.has(num)) {
-      const savedVal = savedMap.get(num);
-      if (savedVal !== undefined && savedVal !== '') {
-        return { ...item, defaultValue: savedVal };
-      }
-    }
-    return { ...item };
-  });
-}
+export { mergeSavedParamsIntoList };
 
 async function applyActivityParameterIds(
   pageId: string,
@@ -51,7 +37,7 @@ async function applyActivityParameterIds(
 
 export async function loadPage1_2PageParameters(
   pageId: string,
-  saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
+  saved?: CustomPageSavedParamRow[] | null,
 ): Promise<Page1_2ParameterItem[]> {
   const pageKey = String(pageId ?? '').trim();
   let list = createDefaultPage1_2ParameterList(pageKey);

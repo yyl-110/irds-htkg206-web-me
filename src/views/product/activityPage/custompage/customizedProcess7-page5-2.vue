@@ -245,7 +245,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, getCurrentInstance, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import ModuleDataSelect from '@/views/product/activityPage/components/module-data-select.vue';
@@ -303,7 +305,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page5_2ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data5_2(props.pageid);
@@ -312,6 +314,14 @@ function createInitialParameterList(): Page5_2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page5_2ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const standardTableData = computed(() => parameterTempList.value[7]?.tableMap?.rowData ?? []);
 const compositeTableData = computed(() => parameterTempList.value[8]?.tableMap?.rowData ?? []);
 
@@ -368,9 +378,13 @@ function onFrameBlur() {
 
 function updateEl() {
   nextTick(() => {
+
     applyUpdateElDefaults(parameterTempList.value);
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 async function browserRowData() {
   if (!selectList.value.length) {

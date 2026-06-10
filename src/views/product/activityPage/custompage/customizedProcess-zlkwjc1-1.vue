@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { apiExtHoleCheck, apiExtHoleCheckShow } from '@/libs/webSocket';
 import { buildPdfViewerUrl, CHECK_METHOD_URLS, matchFileType } from './zlkwjc1-1/mediaAssets';
 import { applyHoleCheckResults, getFailedRowExpandItems, type HoleCheckResponse } from './zlkwjc1-1/holeCheck';
@@ -97,6 +98,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 420;
 const modelHeight = Math.max(document.body.clientHeight - 240, 480);
 const tableColumns = ZLKWJC_TABLE_COLUMNS;
@@ -128,17 +130,14 @@ function createInitialParameterList(): ZlkwjcParameterItem[] {
 }
 
 const parameterTempList = ref<ZlkwjcParameterItem[]>(createInitialParameterList());
-const tableRows = computed(() => getCheckTableRows(parameterTempList.value));
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadZlkwjcPageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-    }
-  },
-  { deep: true },
-);
+const tableRows = computed(() => getCheckTableRows(parameterTempList.value));
 
 function rowKey(record: ZlkwjcCheckRow, index?: number) {
   return String(record.p0 ?? index ?? '');
@@ -195,25 +194,21 @@ function highlightHole(rowIndex: number, itemIndex: number) {
   apiExtHoleCheckShow(instance, item.model, item.path, item.id1, item.id2);
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadZlkwjcPageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 defineExpose({
   initUdfCheckData,
   updateEl,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

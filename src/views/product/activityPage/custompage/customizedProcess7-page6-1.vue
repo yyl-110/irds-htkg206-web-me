@@ -110,7 +110,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import RxLabel from './Process7-page6-1/label6.vue';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
@@ -158,7 +160,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page6_1ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data6_1(props.pageid);
@@ -167,6 +169,14 @@ function createInitialParameterList(): Page6_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page6_1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const processList = ref<ProcessListItem[]>([]);
 const deletableList = ref<DeletableProcessColumn[]>([]);
 const transitNum = ref(1);
@@ -245,13 +255,17 @@ function cancelDelete() {
 
 function updateEl() {
   nextTick(() => {
+
     if (parameterTempList.value.length > 0) {
       const restored = restoreProcessColumnsFromTable(parameterTempList.value, processList.value, deletableList.value);
       transitNum.value = restored.transitNum;
       columnsNum.value = restored.columnsNum;
     }
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 onMounted(() => {
   if (props.parameterTempList?.length) {

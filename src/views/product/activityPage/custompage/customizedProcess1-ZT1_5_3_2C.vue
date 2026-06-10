@@ -128,6 +128,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
@@ -186,6 +187,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const summaryTableColumns = SUMMARY_TABLE_COLUMNS;
 const pointTableColumns = POINT_TABLE_COLUMNS;
 
@@ -216,20 +218,16 @@ function createInitialParameterList(): Zt1_532CParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1_532CParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadZt1_532CPageParameters,
+  });
+
 const interfaceGroupCount = computed(() => getInterfaceGroupCount(parameterTempList.value));
 const summaryRows = computed(() => getSummaryRows(parameterTempList.value));
 const interfaceDeleteDisabled = computed(() => !checkArr.value.some(Boolean));
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-      syncCheckArr();
-    }
-  },
-  { deep: true },
-);
 
 watch(interfaceGroupCount, () => syncCheckArr(), { immediate: true });
 
@@ -395,19 +393,16 @@ function unbindScrollContainer() {
   }
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadZt1_532CPageParameters(pageId);
-  syncCheckArr();
-}
 
 function updateEl() {
   nextTick(() => {
+
     syncCheckArr();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractZt1_532CSaveParamValues(parameterTempList.value);

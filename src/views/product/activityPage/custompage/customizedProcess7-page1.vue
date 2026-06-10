@@ -139,9 +139,11 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { getFlowTableList } from './shared/flowContext';
 import { nextTick, onMounted, ref, watch, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { handleCutZero } from '@/utils/tools';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 import {
@@ -179,7 +181,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 const dataListA = ref<TableRow[]>([]);
 const dataListB = ref<TableRow[]>([]);
 const data1 = ref<TableRow[]>([]);
@@ -351,6 +353,14 @@ function createInitialParameterList(): Page1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 
 const table1Data = computed(() => parameterTempList.value[2]?.tableMap?.rowData ?? []);
 const table2Data = computed(() => parameterTempList.value[3]?.tableMap?.rowData ?? []);
@@ -549,9 +559,13 @@ function initData() {
 
 function updateEl() {
   nextTick(() => {
+
     void 0;
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function setLocalData() {
   param1.value = parameterTempList.value[0].defaultValue ?? null;

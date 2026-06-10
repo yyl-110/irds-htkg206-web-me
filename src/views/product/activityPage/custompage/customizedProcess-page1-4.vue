@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { loadPage1_4PageParameters } from './page1-4/loadPageParameters';
 import { createDefaultPage1_4ParameterList, type Page1_4ParameterItem } from './page1-4/parameterDefaults';
 
@@ -72,6 +73,14 @@ function createInitialParameterList(): Page1_4ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_4ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage1_4PageParameters,
+  });
+
+
 
 interface FormFieldConfig {
   index: number;
@@ -120,16 +129,6 @@ const leftFields = computed(() => formRows.map(row => row.left));
 
 const rightFields = computed(() => formRows.filter(row => row.right).map(row => row.right!));
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({ ...item }));
-    }
-  },
-  { deep: true },
-);
-
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
   if (inputOrOutput === undefined || inputOrOutput === '1') {
@@ -159,16 +158,14 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage1_4PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return parameterTempList.value
@@ -185,9 +182,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

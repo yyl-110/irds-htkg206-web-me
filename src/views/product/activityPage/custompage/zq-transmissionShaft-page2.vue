@@ -95,7 +95,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { nextTick, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import ModuleDataSelect from '@/views/product/activityPage/components/module-data-select.vue';
 import type { ModuleOkPayload } from '@/views/product/activityPage/components/module-data-select.vue';
@@ -147,7 +149,7 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
   initData: [pipePartNo: string, shaftPartNo: string, innerDiameter: string, outerDiameter: string];
 }>();
-
+const route = useRoute();
 const formLabelCol = { style: { width: '140px' } };
 
 function createInitialParameterList() {
@@ -158,6 +160,14 @@ function createInitialParameterList() {
 }
 
 const parameterTempList = ref<TransmissionShaftPage2ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const paramRefs = Array.from({ length: FORM_PARAM_COUNT }, () => ref(''));
 
 const shaftModuleFlag = ref(false);
@@ -265,9 +275,15 @@ function initData() {
 
 function updateEl() {
   nextTick(() => {
+
     void 0;
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
+
+mountWithTaskParamMap(updateEl);
 
 defineExpose({
   initData,

@@ -63,7 +63,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { baseUrl, ifGateway } from '@/views/product/activityPage/custompage/_shared/utils/legacyEnv';
 import { globaluserId } from '@/views/product/activityPage/custompage/_shared/utils/legacyUser';
@@ -105,7 +107,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page5_5ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data5_5(props.pageid);
@@ -114,6 +116,14 @@ function createInitialParameterList(): Page5_5ParameterItem[] {
 }
 
 const parameterTempList = ref<Page5_5ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const supplyType = computed(() => String(parameterTempList.value[0]?.defaultValue ?? ''));
 const actionUrl = ref('');
 const loginUserId = { userId: globaluserId() };
@@ -187,9 +197,13 @@ function onDownloadFile(kind: 'elect' | 'env', section: CabinetSectionConfig) {
 
 function updateEl() {
   nextTick(() => {
+
     syncFileStates();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 onMounted(() => {
   actionUrl.value = ifGateway

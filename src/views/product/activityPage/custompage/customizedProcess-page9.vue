@@ -71,6 +71,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
@@ -129,6 +130,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const schemeTabHeight = 280;
 const gearTabHeight = 360;
 const schemeTableScrollX = PAGE9_SCHEME_TABLE_MIN_WIDTH;
@@ -161,29 +163,17 @@ function createInitialParameterList(): Page9ParameterItem[] {
 }
 
 const parameterTempList = ref<Page9ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage9PageParameters,
+  });
+
 const loadCoefficient = ref(getLoadCoefficient(parameterTempList.value));
 
 const schemeTableRows = computed(() => getSchemeTableRows(parameterTempList.value));
 const gearTableRows = computed(() => getGearDisplayRows(parameterTempList.value));
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({
-        ...item,
-        tableMap: item.tableMap
-          ? {
-              ...item.tableMap,
-              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-            }
-          : item.tableMap,
-      }));
-      loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
-    }
-  },
-  { deep: true },
-);
 
 function schemeRowKey(record: Page9SchemeRow, index?: number) {
   return String(record.p0 ?? index ?? '');
@@ -338,19 +328,16 @@ function onDiagramBottomError() {
   diagramBottomSrc.value = diagramPlaceholder;
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage9PageParameters(pageId);
-  loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
-}
 
 function updateEl() {
   nextTick(() => {
+
     setGearDisplayRows(parameterTempList.value, []);
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage9SaveParamValues(parameterTempList.value);
@@ -361,9 +348,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

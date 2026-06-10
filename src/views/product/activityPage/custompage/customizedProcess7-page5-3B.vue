@@ -81,7 +81,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, getCurrentInstance, nextTick, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 import { message } from 'ant-design-vue';
 
@@ -141,7 +143,7 @@ const variantConfig = VARIANT_CONFIG;
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page5_3ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data5_3B(props.pageid);
@@ -151,6 +153,14 @@ function createInitialParameterList(): Page5_3ParameterItem[] {
 }
 
 const parameterTempList = ref<Page5_3ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 
 const tableData = computed(() => parameterTempList.value[0]?.tableMap?.rowData ?? []);
 
@@ -188,9 +198,13 @@ function initData() {
 
 function updateEl() {
   nextTick(() => {
+
     void 0;
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 async function exportDataToFile() {
   downloadUrl.value = '';

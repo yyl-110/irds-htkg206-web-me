@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import {
   buildPdfViewerUrl,
   CHECK_METHOD_URLS,
@@ -101,6 +102,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 300;
 const modelHeight = Math.max(document.body.clientHeight - 240, 480);
 const tableColumns = ZJZCJH_TABLE_COLUMNS;
@@ -133,17 +135,14 @@ function createInitialParameterList(): ZjzcjhParameterItem[] {
 }
 
 const parameterTempList = ref<ZjzcjhParameterItem[]>(createInitialParameterList());
-const tableRows = computed(() => getCheckTableRows(parameterTempList.value));
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadZjzcjhPageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-    }
-  },
-  { deep: true },
-);
+const tableRows = computed(() => getCheckTableRows(parameterTempList.value));
 
 function rowKey(record: ZjzcjhCheckRow, index?: number) {
   return String(record.p0 ?? index ?? '');
@@ -203,16 +202,8 @@ function handleDetailClose() {
   }
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadZjzcjhPageParameters(pageId);
-}
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

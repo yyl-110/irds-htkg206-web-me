@@ -44,6 +44,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import {
   CalculatorOutlined,
@@ -105,6 +106,7 @@ const emit = defineEmits<{
 
 const userStore = useUserStore();
 const route = useRoute();
+
 const licenseKey = HOT_LICENSE_KEY;
 const jsname = 'tb_demo1.js';
 const jsloaded = ref(false);
@@ -134,6 +136,13 @@ function createInitialParameterList(): Tbdemo1Page2ParameterItem[] {
 }
 
 const parameterTempList = ref<Tbdemo1Page2ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadTbdemo1Page2Parameters,
+  });
+
 
 const hotSettings = ref(
   createLayerVoltageHotSettings({
@@ -144,17 +153,6 @@ const hotSettings = ref(
     onDirty: () => setSaveBtnEnable(),
     onAfterRender: hot => applyLayerVoltageCellColors(hot),
   }),
-);
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-      reloadHotTable();
-    }
-  },
-  { deep: true },
 );
 
 function getWindowJsFns() {
@@ -321,27 +319,17 @@ function handleExportExcel() {
   exportLayerVoltageRowsToExcel(getLayerVoltageRows(parameterTempList.value));
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadTbdemo1Page2Parameters(pageId);
-  hotSettings.value = createLayerVoltageHotSettings({
-    rowData: getLayerVoltageRows(parameterTempList.value),
-    onCalculate: () => {
-      if (!calculating.value) void handleCalculate();
-    },
-    onDirty: () => setSaveBtnEnable(),
-    onAfterRender: (hot: Handsontable) => applyLayerVoltageCellColors(hot),
-  });
-}
 
 function updateEl() {
   nextTick(() => {
+
     calcContext.value.rowData = getLayerVoltageRows(parameterTempList.value);
     reloadHotTable();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 defineExpose({
   updateEl,

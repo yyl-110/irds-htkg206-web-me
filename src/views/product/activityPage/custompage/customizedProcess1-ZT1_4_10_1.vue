@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { BuildOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
@@ -117,6 +118,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tableColumns = ZT1_4_10_1_TABLE_COLUMNS;
 const cabinetCountOptions = CABINET_COUNT_OPTIONS.map(value => ({ label: value, value }));
 const positionOptions = POSITION_OPTIONS;
@@ -144,17 +146,14 @@ function createInitialParameterList(): Zt1_4101ParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1_4101ParameterItem[]>(createInitialParameterList());
-const tableRows = computed(() => getCabinetTableRows(parameterTempList.value));
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadZt1_4101PageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-    }
-  },
-  { deep: true },
-);
+const tableRows = computed(() => getCabinetTableRows(parameterTempList.value));
 
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
@@ -291,16 +290,14 @@ async function handleRegenModel() {
   }
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadZt1_4101PageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractZt1_4101SaveParamValues(parameterTempList.value);
@@ -312,9 +309,7 @@ defineExpose({
   setSaveBtnEnable,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

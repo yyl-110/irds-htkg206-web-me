@@ -202,7 +202,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, nextTick, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 import { message } from 'ant-design-vue';
 
@@ -250,7 +252,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page5_6ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data5_6(props.pageid);
@@ -260,6 +262,14 @@ function createInitialParameterList(): Page5_6ParameterItem[] {
 }
 
 const parameterTempList = ref<Page5_6ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 
 const tableData1 = computed(() => parameterTempList.value[0]?.tableMap?.rowData ?? []);
 
@@ -303,6 +313,7 @@ async function initData(type: string) {
 
 function updateEl() {
   nextTick(() => {
+
     paramz2_2.value = String(parameterTempList.value[1]?.defaultValue ?? '');
 
     paramz_1.value = String(parameterTempList.value[5]?.defaultValue ?? '');
@@ -312,8 +323,11 @@ function updateEl() {
     paramz_3.value = String(parameterTempList.value[7]?.defaultValue ?? '');
 
     paramz_4.value = String(parameterTempList.value[8]?.defaultValue ?? '');
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 defineExpose({
   updateEl,

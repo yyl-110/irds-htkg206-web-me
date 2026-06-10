@@ -135,6 +135,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { message } from 'ant-design-vue';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
@@ -194,6 +195,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const powerTypeOptions = POWER_TYPE_OPTIONS;
 const gradeTableColumns = GRADE_TABLE_COLUMNS;
 
@@ -225,6 +227,13 @@ function createInitialParameterList(): Zt1_532AParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1_532AParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadZt1_532APageParameters,
+  });
+
 const remarkField = computed(() => getRemarkField(conditionColumns.value.length));
 const loadTableColumns = computed(() => buildLoadTableColumns(conditionColumns.value, remarkField.value));
 const loadLeafColumns = computed(() => flattenLoadLeafColumns(loadTableColumns.value));
@@ -238,17 +247,6 @@ const summaryValues = computed(() =>
     conditionColumns.value.map(col => col.field),
     remarkField.value,
   ),
-);
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-      conditionColumns.value = resolveConditionColumns(parameterTempList.value);
-    }
-  },
-  { deep: true },
 );
 
 const loadRowSelection = computed(() => ({
@@ -373,18 +371,16 @@ function rebuildColumnsFromHeader() {
   syncTableHeaderMetadata(parameterTempList.value, conditionColumns.value);
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadZt1_532APageParameters(pageId);
-}
 
 function updateEl() {
   nextTick(() => {
+
     rebuildColumnsFromHeader();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractZt1_532ASaveParamValues(parameterTempList.value);

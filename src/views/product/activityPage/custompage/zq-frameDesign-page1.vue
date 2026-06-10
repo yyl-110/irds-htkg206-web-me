@@ -143,7 +143,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import ModuleDataSelect from '@/views/product/activityPage/components/module-data-select.vue';
@@ -194,7 +196,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 const formLabelCol = { style: { width: '150px' } };
 
 function createInitialParameterList(): ZqFrameDesignPage1ParameterItem[] {
@@ -205,6 +207,14 @@ function createInitialParameterList(): ZqFrameDesignPage1ParameterItem[] {
 }
 
 const parameterTempList = ref<ZqFrameDesignPage1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const tableRows = computed(() => getFrameModelRows(parameterTempList.value));
 
 const param0 = ref('');
@@ -274,9 +284,13 @@ function initData() {
 
 function updateEl() {
   nextTick(() => {
+
     void 0;
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function showProductList() {
   productDataSelectRef.value?.initData(PRODUCT_CATEGORY_ID, PRODUCT_ROOT_NODE_ID);
@@ -325,10 +339,12 @@ async function handleAssembleModuleByTemplate() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadPageParametersIfNeeded();
   if (props.parameterTempList?.length) {
     setLocalData();
   }
+  updateEl();
 });
 
 defineExpose({

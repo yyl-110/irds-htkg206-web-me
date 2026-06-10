@@ -2,8 +2,8 @@
   <div class="layout-wrapper">
     <div class="layout-content">
       <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
-        <a-form-item label="舵机工作方式：" class="form-item--indent work-mode-item">
-            <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled />
+        <a-form-item label="舵机工作方式：" class="form-item--indent work-mode-item"> 
+          <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled />
           </a-form-item>
           <div class="section-header__title">确定末端减速器形式：</div>
         <section class="main-section">
@@ -53,8 +53,8 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { nextTick, ref } from 'vue';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { applyPage1_2InitData, extractPage1_2SaveParamValues } from './page1-2/initData';
 import { loadPage1_2PageParameters } from './page1-2/loadPageParameters';
 import { createDefaultPage1_2ParameterList, type Page1_2ParameterItem } from './page1-2/parameterDefaults';
@@ -67,6 +67,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page1_2ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -80,8 +82,6 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
-
 function createInitialParameterList(): Page1_2ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
     return createDefaultPage1_2ParameterList(props.pageid);
@@ -90,19 +90,18 @@ function createInitialParameterList(): Page1_2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_2ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage1_2PageParameters,
+  });
+
+
 const flag = ref(false);
 const djzdlj = ref('');
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({ ...item }));
-      nextTick(() => updateEl());
-    }
-  },
-  { deep: true },
-);
+
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -155,18 +154,15 @@ function onInputParm(event: FocusEvent) {
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage1_2PageParameters(pageId);
-}
 
 function updateEl() {
   nextTick(() => {
+    applyTaskParamMapToList();
     runInitData();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage1_2SaveParamValues(parameterTempList.value);
@@ -177,9 +173,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

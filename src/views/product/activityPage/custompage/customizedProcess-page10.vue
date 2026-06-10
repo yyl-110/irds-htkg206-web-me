@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, DownloadOutlined, ImportOutlined, SyncOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
@@ -158,6 +159,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const userStore = useUserStore();
 const schemeTabHeight = 280;
 const degreeTabHeight = 420;
@@ -187,6 +189,13 @@ function createInitialParameterList(): Page10ParameterItem[] {
 }
 
 const parameterTempList = ref<Page10ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage10PageParameters,
+  });
+
 efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
 
 const schemeTableRows = computed(() => getSchemeTableRows(parameterTempList.value));
@@ -195,26 +204,6 @@ const programmeTitle = computed(() => {
   const selected = selectedSchemeRows.value[0];
   return selected?.p0 ? `当前方案：${selected.p0}` : '请选择组合方案';
 });
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({
-        ...item,
-        tableMap: item.tableMap
-          ? {
-              ...item.tableMap,
-              rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-            }
-          : item.tableMap,
-      }));
-      efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
-      restoreSelectionFromParam();
-    }
-  },
-  { deep: true },
-);
 
 function schemeRowKey(record: Page10SchemeRow, index?: number) {
   return String(record.p0 ?? index ?? '');
@@ -377,19 +366,16 @@ async function handleExcelBeforeUpload(file: File) {
   return false;
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage10PageParameters(pageId);
-  efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
-}
 
 function updateEl() {
   nextTick(() => {
+
     restoreSelectionFromParam();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage10SaveParamValues(parameterTempList.value);

@@ -98,6 +98,7 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { BuildOutlined, CalculatorOutlined, DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
@@ -151,6 +152,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 260;
 const selectTableColumns = SELECT_TABLE_COLUMNS;
 const checkTableColumns = CHECK_TABLE_COLUMNS;
@@ -180,23 +182,19 @@ function createInitialParameterList(): Fs15_1LParameterItem[] {
 }
 
 const parameterTempList = ref<Fs15_1LParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadFs15_1LPageParameters,
+  });
+
 
 const selectTableRows = computed(() => parameterTempList.value[0]?.tableMap?.rowData ?? []);
 const checkTableRows = computed(() => parameterTempList.value[1]?.tableMap?.rowData ?? []);
 const deleteDisabled = computed(() => selectedSelectRows.value.length <= 0);
 const singleDisabled = computed(() => selectedSelectRows.value.length !== 1);
 const calcDisabled = computed(() => selectedCheckRows.value.length !== 1);
-
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val?.length) {
-      parameterTempList.value = cloneParameterList(val);
-      applyFs15_1LInitData(parameterTempList.value);
-    }
-  },
-  { deep: true },
-);
 
 const selectRowSelection = computed(() => ({
   selectedRowKeys: selectedSelectKeys.value,
@@ -349,19 +347,14 @@ async function handleCalculation() {
   }
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList?.length) {
-    parameterTempList.value = cloneParameterList(props.parameterTempList);
-    applyFs15_1LInitData(parameterTempList.value);
-    return;
-  }
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  parameterTempList.value = await loadFs15_1LPageParameters(pageId);
-}
 
 function updateEl() {
-  nextTick(() => {});
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractFs15_1LSaveParamValues(parameterTempList.value);
@@ -373,9 +366,7 @@ defineExpose({
   setSaveBtnEnable,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

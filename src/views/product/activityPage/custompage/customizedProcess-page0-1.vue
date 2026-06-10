@@ -109,6 +109,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { ReloadOutlined } from '@ant-design/icons-vue';
 import { isValid } from '@/api/flowData/flowData';
 import { createDefaultPage0_1ParameterList, type Page0_1ParameterItem } from './page0-1/parameterDefaults';
@@ -145,6 +146,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const formLabelCol = { style: { width: '120px' } };
 
 const baseParamColumns = computed(() => toAntTableColumns(BASE_PARAMS_COLUMNS));
@@ -168,35 +170,18 @@ function createInitialParameterList(): Page0_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page0_1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage0_1PageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({
-        ...item,
-        tableMap: item.tableMap
-          ? {
-              ...item.tableMap,
-              rowData: Array.isArray(item.tableMap.rowData) ? item.tableMap.rowData.map(row => ({ ...row })) : [],
-            }
-          : item.tableMap,
-      }));
-    }
-  },
-  { deep: true },
-);
 
 function tableRowKey(record: Record<string, string>, index?: number) {
   return String(record?.p0 ?? index ?? 0);
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage0_1PageParameters(pageId);
-}
 
 function freshData() {
   applyFreshData(parameterTempList.value);

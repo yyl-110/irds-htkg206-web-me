@@ -45,6 +45,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { CodeOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import HttpRequestConfig from '@/httpRequest/config';
@@ -95,6 +96,7 @@ const emit = defineEmits<{
 
 const userStore = useUserStore();
 const route = useRoute();
+
 const formLabelCol = { style: { width: '120px' } };
 const jsname = ref('test_add.js');
 const jsloaded = ref(false);
@@ -109,17 +111,13 @@ function createInitialParameterList(): ParameterItem[] {
 }
 
 const parameterTempList = ref<ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadJsinvokePageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = val.map(item => ({ ...item }));
-      jsloaded.value = false;
-    }
-  },
-  { deep: true },
-);
 
 function myIsNaN(value: unknown) {
   if (value === undefined || value === null || value === '') {
@@ -138,13 +136,6 @@ function getJsCalcFn(): JsCalcFn | null {
   return typeof fn === 'function' ? fn : null;
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadJsinvokePageParameters(pageId);
-  jsloaded.value = false;
-}
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -282,9 +273,7 @@ defineExpose({
   getCurrentSaveParamValues,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

@@ -1,5 +1,5 @@
-import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, getCurrentInstance, nextTick, ref } from 'vue';
+import { useCustomPageTaskParamMap } from '../../_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { assembleAdapterModule, regenerateAdapterModel } from './assemblyOperations';
@@ -30,7 +30,6 @@ export function useAdapterPage(
   },
   emit: (event: 'setSaveBtnEnable', value: boolean) => void,
 ) {
-  const route = useRoute();
   const tabHeight = 400;
   const formLabelCol = { style: { width: '170px' } };
   const formLabelColWide = { style: { width: '200px' } };
@@ -62,22 +61,22 @@ export function useAdapterPage(
   }
 
   const parameterTempList = ref<AdapterParameterItem[]>(createInitialParameterList());
+  const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+    useCustomPageTaskParamMap({
+      props,
+      parameterTempList,
+      cloneItem: cloneParameterList,
+      loadPageParameters: async (pageId, saved) => {
+        let list = await loadAdapterPageParameters(pageConfig, pageId);
+        if (pageConfig.hasInitData) {
+          applyAdapterInitData(list);
+        }
+        return list;
+      },
+    });
   const tableRows = computed(() => getAdapterTableRows(parameterTempList.value));
   const assemblingFlag = computed(() => selectedRows.value.length !== 1);
   const deleteDisabled = computed(() => selectedRows.value.length <= 0);
-
-  watch(
-    () => props.parameterTempList,
-    val => {
-      if (val && val.length > 0) {
-        parameterTempList.value = cloneParameterList(val);
-        if (pageConfig.hasInitData) {
-          applyAdapterInitData(parameterTempList.value);
-        }
-      }
-    },
-    { deep: true },
-  );
 
   const rowSelection = computed(() => ({
     selectedRowKeys: selectedRowKeys.value,
@@ -206,31 +205,21 @@ export function useAdapterPage(
     setSaveBtnEnable();
   }
 
-  async function loadPageParametersIfNeeded() {
-    if (props.parameterTempList && props.parameterTempList.length > 0) {
+  function updateEl() {
+    nextTick(() => {
       if (pageConfig.hasInitData) {
         applyAdapterInitData(parameterTempList.value);
       }
-      return;
-    }
-    const pageId = String(
-      props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '',
-    ).trim();
-    if (!pageId) return;
-    parameterTempList.value = await loadAdapterPageParameters(pageConfig, pageId);
+      applyTaskParamMapToList();
+    });
   }
 
-  function updateEl() {
-    nextTick(() => {});
-  }
+  setupParameterWatch(updateEl);
+  mountWithTaskParamMap(updateEl);
 
   function getCurrentSaveParamValues() {
     return extractAdapterSaveParamValues(parameterTempList.value);
   }
-
-  onMounted(async () => {
-    await loadPageParametersIfNeeded();
-  });
 
   return {
     pageConfig,

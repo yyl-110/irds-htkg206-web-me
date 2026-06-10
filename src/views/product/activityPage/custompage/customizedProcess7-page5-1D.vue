@@ -124,7 +124,9 @@
 </template>
 
 <script setup lang="ts">
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import ModuleDataSelect from '@/views/product/activityPage/components/module-data-select.vue';
@@ -170,7 +172,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
+const route = useRoute();
 function createInitialParameterList(): Page5_1ParameterItem[] {
   if (!props.parameterTempList?.length) {
     return initCustomizedProcessPage7Data5_1D(props.pageid);
@@ -179,6 +181,14 @@ function createInitialParameterList(): Page5_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page5_1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+  });
+
+
+
 const tableData = computed(() => parameterTempList.value[8]?.tableMap?.rowData ?? []);
 
 const paramx1 = ref('');
@@ -316,9 +326,13 @@ function calculation() {
 
 function updateEl() {
   nextTick(() => {
+
     void 0;
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 async function browserRowData() {
   if (!selectList.value.length) {

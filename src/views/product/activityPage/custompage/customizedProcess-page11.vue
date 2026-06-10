@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
@@ -68,6 +69,7 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+
 const tabHeight = 500;
 const tableScrollX = PAGE11_TABLE_MIN_WIDTH;
 const schemeTableColumns = PAGE11_SCHEME_COLUMNS;
@@ -95,18 +97,14 @@ function createInitialParameterList(): Page11ParameterItem[] {
 }
 
 const parameterTempList = ref<Page11ParameterItem[]>(createInitialParameterList());
-const schemeTableRows = computed(() => getSchemeTableRows(parameterTempList.value));
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage11PageParameters,
+  });
 
-watch(
-  () => props.parameterTempList,
-  val => {
-    if (val && val.length > 0) {
-      parameterTempList.value = cloneParameterList(val);
-      restoreSelectionFromParam();
-    }
-  },
-  { deep: true },
-);
+const schemeTableRows = computed(() => getSchemeTableRows(parameterTempList.value));
 
 function schemeRowKey(record: Page11SchemeRow, index?: number) {
   return String(record.p0 ?? index ?? '');
@@ -184,22 +182,20 @@ function handleInitData() {
   setSaveBtnEnable();
 }
 
-async function loadPageParametersIfNeeded() {
-  if (props.parameterTempList && props.parameterTempList.length > 0) return;
-  const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
-  if (!pageId) return;
-  parameterTempList.value = await loadPage11PageParameters(pageId);
-}
 
 function updateEl() {
   nextTick(() => {
+
     const selIndex = getSelectedRowIndex(parameterTempList.value);
     if (selIndex === undefined || selIndex === null || String(selIndex) === '') {
       normalizeSelectedRowIndex(parameterTempList.value);
     }
     restoreSelectionFromParam();
+    applyTaskParamMapToList();
   });
 }
+
+setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
   return extractPage11SaveParamValues(parameterTempList.value);

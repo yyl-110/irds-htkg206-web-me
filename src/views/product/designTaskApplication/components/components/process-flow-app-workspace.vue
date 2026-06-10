@@ -1000,7 +1000,20 @@ async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefre
           .filter((row: any) => row.paramCode);
       }
     }
-    if (!effectivePageParamRows.length) return;
+    if (!effectivePageParamRows.length) {
+      if (sourceMap.size > 0) {
+        nodeDetailData.value = {
+          ...detailObj,
+          savedParamValues: Array.from(sourceMap.entries()).map(([paramCode, paramValue]) => ({
+            paramCode,
+            paramName: paramCode,
+            paramValue: String(paramValue ?? ''),
+          })),
+          savedTables: tablesObj,
+        };
+      }
+      return;
+    }
     const normalizedValues = effectivePageParamRows.map((row: any) => ({
       paramCode: row.paramCode,
       paramName: row.paramName,
