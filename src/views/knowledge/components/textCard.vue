@@ -159,6 +159,7 @@ function DynamicIcon(item: { fileType?: string }) {
   if (fileType === 'xlsx' || fileType === 'xls') return 'icon-xlsx';
   if (fileType === 'pptx' || fileType === 'ppt') return 'icon-pptx';
   if (['mp4', 'wmv', 'avi', 'flv', 'mkv'].includes(fileType)) return 'icon-shipin2';
+  if (['rar', 'zip', '7z', 'tar', 'gz'].includes(fileType)) return 'icon-zip-1';
   return 'icon-wushuju';
 }
 </script>
