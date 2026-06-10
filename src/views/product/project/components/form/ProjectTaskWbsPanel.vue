@@ -986,6 +986,49 @@ function formatResponsibleUserRow(u: ResponsiblePickerUser) {
   return `${u.name} / ${u.username} / ${dept}`;
 }
 
+/** 汇总「项目团队」各角色已授权成员 id（与 ProjectTeamTab 解析 userIds 一致） */
+async function loadProjectTeamMemberIds(): Promise<Set<string>> {
+  const pid = normalizedProjectId();
+  if (!pid) return new Set();
+  try {
+    const res = await AdminApiProjectTemp.projectTeamList({ projectId: pid });
+    const list = res?.data?.data;
+    const ids = new Set<string>();
+    if (!Array.isArray(list)) return ids;
+    for (const row of list) {
+      const raw = (row as { userIds?: string[] | string | number[] }).userIds;
+      if (Array.isArray(raw)) {
+        for (const id of raw) {
+          const s = normalizeUserIdString(id);
+          if (s) ids.add(s);
+        }
+      } else if (typeof raw === 'string' && raw.trim()) {
+        for (const part of raw.split(',')) {
+          const s = normalizeUserIdString(part);
+          if (s) ids.add(s);
+        }
+      }
+    }
+    return ids;
+  } catch {
+    return new Set();
+  }
+}
+
+function filterUsersByProjectTeam(
+  users: ResponsiblePickerUser[],
+  teamMemberIds: Set<string>,
+  keepUserId?: string,
+): ResponsiblePickerUser[] {
+  const keep = normalizeUserIdString(keepUserId);
+  return users.filter(u => {
+    const id = normalizeUserIdString(u.id);
+    if (!id) return false;
+    if (teamMemberIds.has(id)) return true;
+    return keep !== '' && id === keep;
+  });
+}
+
 async function openResponsiblePicker(record: WbsTaskNode, field: 'responsible' | 'manager' = 'responsible') {
   if (isWbsTaskCompletedReadonly(record)) {
     message.warning('已完成任务不可再分配人员');
@@ -1013,6 +1056,11 @@ async function openResponsiblePicker(record: WbsTaskNode, field: 'responsible' |
   responsiblePickerKeyword.value = '';
   responsiblePickerSelectedUserId.value =
     (field === 'responsible' ? record.responsibleUserId : record.managerUserId) ?? RESPONSIBLE_PICKER_NONE;
+  const teamMemberIds = await loadProjectTeamMemberIds();
+  if (field === 'responsible' && teamMemberIds.size === 0) {
+    message.warning('请先在「项目团队」中为各角色分配人员');
+    return;
+  }
   try {
     const res = await AdminApiSystemDept.getDeptInfo({} as any);
     if (res.data?.code === 200) {
@@ -1020,7 +1068,12 @@ async function openResponsiblePicker(record: WbsTaskNode, field: 'responsible' |
         | { adminDeptResponseDTO?: ResponsiblePickerDept[]; adminUserResponseDTO?: ResponsiblePickerUser[] }
         | undefined;
       responsiblePickerDepts.value = payload?.adminDeptResponseDTO ?? [];
-      responsiblePickerUsers.value = payload?.adminUserResponseDTO ?? [];
+      const allUsers = payload?.adminUserResponseDTO ?? [];
+      responsiblePickerUsers.value = filterUsersByProjectTeam(
+        allUsers,
+        teamMemberIds,
+        responsiblePickerSelectedUserId.value,
+      );
     } else {
       responsiblePickerDepts.value = [];
       responsiblePickerUsers.value = [];
@@ -2490,7 +2543,11 @@ watch(ganttCollapsed, () => {
             allow-clear
             placeholder="搜索姓名、账号、部门"
             size="small" />
-          <div class="task-wbs-responsible-modal__hint">每行任务仅可选一名负责人。</div>
+          <div class="task-wbs-responsible-modal__hint">
+            仅可从「项目团队」已授权成员中选择{{
+              responsiblePickerField === 'responsible' ? '，每行任务仅可选一名负责人' : ''
+            }}。
+          </div>
           <div class="task-wbs-responsible-modal__list">
             <a-radio-group v-model:value="responsiblePickerSelectedUserId" class="task-wbs-responsible-modal__radios">
               <div class="task-wbs-responsible-modal__row">
@@ -2500,7 +2557,9 @@ watch(ganttCollapsed, () => {
                 <a-radio :value="u.id">{{ formatResponsibleUserRow(u) }}</a-radio>
               </div>
             </a-radio-group>
-            <div v-if="!responsiblePickerFilteredUsers.length" class="task-wbs-responsible-modal__empty">无匹配用户</div>
+            <div v-if="!responsiblePickerFilteredUsers.length" class="task-wbs-responsible-modal__empty">
+              无匹配的项目团队成员
+            </div>
           </div>
         </div>
         <template #footer>
