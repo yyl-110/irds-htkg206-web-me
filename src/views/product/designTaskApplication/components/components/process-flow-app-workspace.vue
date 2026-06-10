@@ -790,7 +790,7 @@ function mergeWbsSavedParamValuesIntoNodeDetail(
   };
 }
 
-/** 设计输入变更保存后：评估跨任务影响并提示 */
+/** 设计输入变更保存后：评估跨任务影响并提示（批量一次请求） */
 async function notifyWbsInputPushImpact(options: {
   projectId: string | number;
   taskId: string | number;
@@ -798,33 +798,53 @@ async function notifyWbsInputPushImpact(options: {
   paramCodes: string[];
 }) {
   const { projectId, taskId, activityPageId, paramCodes } = options;
-  if (!paramCodes.length) return;
+  const codes = paramCodes.map(c => String(c ?? '').trim()).filter(Boolean);
+  if (!codes.length) return;
   const impactedLabels = new Set<string>();
-  for (const paramCode of paramCodes) {
-    try {
-      const res = await AdminApiProjectTemp.wbsTaskParamEvaluateImpact({
-        projectId,
-        sourceTaskId: taskId,
-        paramCode,
-        currentActivityId: activityPageId,
-      });
-      const list = (res?.data?.data as { impactedItems?: any[] } | undefined)?.impactedItems;
-      if (!Array.isArray(list)) continue;
+  try {
+    const res = await AdminApiProjectTemp.wbsTaskParamEvaluateImpact({
+      projectId,
+      sourceTaskId: taskId,
+      paramCodes: codes,
+      currentActivityId: activityPageId,
+    });
+    const list = (res?.data?.data as { impactedItems?: any[] } | undefined)?.impactedItems;
+    if (Array.isArray(list)) {
       list.forEach((row: any) => {
         if (row?.currentActivity) return;
         const label = [row?.taskName, row?.activityName || row?.nodeName].filter(Boolean).join(' / ');
         if (label) impactedLabels.add(label);
       });
-    } catch {
-      // 影响评估失败不阻断保存
     }
+  } catch {
+    // 影响评估失败不阻断保存
   }
   if (impactedLabels.size > 0) {
     message.info(`设计输入已推送项目，以下协同任务可能需同步：${Array.from(impactedLabels).join('、')}`);
   }
 }
 
-async function requestNodeDetailByKey(key: string) {
+/** 用 next-step 返回的 nodeStatusMap 局部更新左侧树，避免 collab-project-pages 全量刷新 */
+function patchWorkspaceNodeStatuses(statusMap: Record<string, string> | null | undefined) {
+  if (!statusMap || typeof statusMap !== 'object') return;
+  const pages = workspaceData.value?.pages;
+  if (!Array.isArray(pages) || !pages.length) return;
+  const walk = (nodes: FlowNode[]) => {
+    nodes.forEach(node => {
+      const key = String(node?.bpmnElementId ?? '').trim();
+      if (key && statusMap[key]) {
+        node.nodeStatus = statusMap[key];
+      }
+      if (Array.isArray(node.children) && node.children.length) {
+        walk(node.children);
+      }
+    });
+  };
+  walk(pages);
+  workspaceData.value = { ...workspaceData.value, pages: [...pages] };
+}
+
+async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefresh?: boolean }) {
   if (!key) return;
   rightPanelManualOverride.value = false;
   const targetNode = allNodeMap.value.get(key);
@@ -856,15 +876,17 @@ async function requestNodeDetailByKey(key: string) {
       detailObj = detail && typeof detail === 'object' ? detail : null;
     }
     nodeDetailData.value = detailObj;
-    console.log(nodeDetailData.value, 'nodeDetailData.value');
     activityImageUrl.value = '';
     activityImageMarginTop.value = 0;
     activityImageWidth.value = 260;
     const activityPageId = detailObj?.activityPageId;
     if (activityPageId) {
-      try {
-        const imgRes = await AdminApiActivityPage.activityImageList({ activityPageId });
-        const list = imgRes?.data?.data;
+      const [imgRes, paramRes] = await Promise.allSettled([
+        AdminApiActivityPage.activityImageList({ activityPageId }),
+        AdminApiSystemParameter.getParameterActList({ businessId: activityPageId, type: '2' }),
+      ]);
+      if (imgRes.status === 'fulfilled') {
+        const list = imgRes.value?.data?.data;
         const first = Array.isArray(list) ? list[0] : null;
         const imageUrl = String(first?.fileInfo?.filePath ?? first?.filePath ?? '').trim();
         const marginTop = Number(first?.marginTop ?? 0);
@@ -872,30 +894,24 @@ async function requestNodeDetailByKey(key: string) {
         activityImageUrl.value = imageUrl;
         activityImageMarginTop.value = Number.isFinite(marginTop) && marginTop >= 0 ? marginTop : 0;
         activityImageWidth.value = Number.isFinite(width) && width > 0 ? width : 260;
-      } catch {
-        activityImageUrl.value = '';
-        activityImageMarginTop.value = 0;
-        activityImageWidth.value = 260;
       }
+      if (paramRes.status === 'fulfilled') {
+        const list = paramRes.value?.data?.data;
+        const normalizedList = Array.isArray(list) ? list : [];
+        activityKnowledgeList.value = normalizedList;
+        currentActivityParamList.value = normalizedList;
+      } else {
+        activityKnowledgeList.value = [];
+        currentActivityParamList.value = [];
+      }
+      syncRightPanelByKnowledgeContent();
+    } else {
+      activityKnowledgeList.value = [];
+      currentActivityParamList.value = [];
     }
   } finally {
     nodeDetailLoading.value = false;
-  }
-
-  knowledgeLoading.value = true;
-  try {
-    const paramRes = await AdminApiSystemParameter.getParameterActList({ businessId: detailObj?.activityPageId, type: '2' });
-    const list = paramRes?.data?.data;
-    const normalizedList = Array.isArray(list) ? list : [];
-    activityKnowledgeList.value = normalizedList;
-    currentActivityParamList.value = normalizedList;
-  } catch {
-    // 左侧树切换时参数接口失败不阻断节点展示
-    activityKnowledgeList.value = [];
-    currentActivityParamList.value = [];
-  } finally {
     knowledgeLoading.value = false;
-    syncRightPanelByKnowledgeContent();
   }
 
   const taskId = route.query.taskId ?? workspaceData.value?.taskId ?? '';
@@ -903,19 +919,21 @@ async function requestNodeDetailByKey(key: string) {
   const appCode = String(workspaceData.value?.appCode ?? '').trim();
   if (!taskId || !detailObj) return;
   if (isWbsCollabWorkspace.value) {
-    try {
-      const projectId = route.query.projectId;
-      if (projectId) {
-        await refreshWbsProjectParamMap();
-      } else {
+    if (!options?.skipParamMapRefresh) {
+      try {
+        const projectId = route.query.projectId;
+        if (projectId) {
+          await refreshWbsProjectParamMap();
+        } else {
+          wbsProjectParamMap.value = {};
+          wbsOtherTasksParamMap.value = {};
+          wbsTaskSavedParamMap.value = {};
+        }
+      } catch {
         wbsProjectParamMap.value = {};
         wbsOtherTasksParamMap.value = {};
         wbsTaskSavedParamMap.value = {};
       }
-    } catch {
-      wbsProjectParamMap.value = {};
-      wbsOtherTasksParamMap.value = {};
-      wbsTaskSavedParamMap.value = {};
     }
     hasUnsavedChanges.value = false;
     return;
@@ -1407,15 +1425,18 @@ async function goNextNode() {
         return;
       }
       let nextKey = '';
-      const payload = res?.data?.data;
+      const payload = res?.data?.data as Record<string, unknown> | undefined;
       if (payload && typeof payload === 'object') {
-        nextKey = String((payload as Record<string, unknown>).nextBpmnElementId ?? '').trim();
+        nextKey = String(payload.nextBpmnElementId ?? '').trim();
+        const statusMap = payload.nodeStatusMap;
+        if (statusMap && typeof statusMap === 'object') {
+          patchWorkspaceNodeStatuses(statusMap as Record<string, string>);
+        }
       }
       message.success('提交成功');
       hasUnsavedChanges.value = false;
       mergeWbsSavedParamValuesIntoNodeDetail(items);
-      await refreshWbsProjectParamMap();
-      await notifyWbsInputPushImpact({
+      void notifyWbsInputPushImpact({
         projectId,
         taskId,
         activityPageId,
@@ -1430,7 +1451,11 @@ async function goNextNode() {
         const idx = orderedActivityNodeKeys.value.findIndex(k => k === submittedKey);
         nextKey = (idx >= 0 ? orderedActivityNodeKeys.value[idx + 1] : '') || '';
       }
-      await Promise.all([refreshWorkspaceTreeData(), nextKey ? requestNodeDetailByKey(nextKey) : Promise.resolve()]);
+      await Promise.all([
+        refreshWbsProjectParamMap(),
+        payload?.nodeStatusMap ? Promise.resolve() : refreshWorkspaceTreeData(),
+        nextKey ? requestNodeDetailByKey(nextKey, { skipParamMapRefresh: true }) : Promise.resolve(),
+      ]);
       if (nextKey) selectedNodeKey.value = nextKey;
     } catch {
       message.error('提交失败');
@@ -1599,7 +1624,7 @@ async function finishFlow() {
       message.success('提交成功');
       hasUnsavedChanges.value = false;
       mergeWbsSavedParamValuesIntoNodeDetail(items);
-      await refreshWbsProjectParamMap();
+      void refreshWbsProjectParamMap();
       void loadWorkspaceOperateLogs();
       router.back();
     } catch {
