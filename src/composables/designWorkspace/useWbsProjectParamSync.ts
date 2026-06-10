@@ -36,6 +36,18 @@ export function parseSavedParamValueList(list: any[] | null | undefined): Map<st
   return map;
 }
 
+/** WBS 协同：本任务已落库值（优先 taskSavedParamMap，避免按 activityPageId 过滤导致已完成节点读不到） */
+export function resolveWbsTaskSavedValueMap(options: {
+  wbsCollabMode?: boolean;
+  taskSavedParamMap?: Record<string, string> | null;
+  savedParamValues?: any[] | null;
+}): Map<string, string> {
+  if (options.wbsCollabMode && options.taskSavedParamMap && typeof options.taskSavedParamMap === 'object') {
+    return parseWbsParamRecord(options.taskSavedParamMap);
+  }
+  return parseSavedParamValueList(options.savedParamValues);
+}
+
 /** 读取本任务已保存值；存在 key 时即使值为空也返回 ''，避免误用组件默认值 */
 export function resolveTaskSavedParamValue(
   map: Map<string, string>,
@@ -78,27 +90,30 @@ export function isWbsInputIoType(ioType: unknown): boolean {
   return String(ioType ?? 'INPUT').toUpperCase() === 'INPUT';
 }
 
-/** 表单初始值：WBS 输出项 当前任务→项目→默认；输入项 当前任务→项目→默认 */
+    /** 表单初始值：WBS 输出项 本任务已保存→项目→其它任务 INPUT→默认 */
 export function resolvePreviewParamBaseValue(options: {
   wbsCollabMode?: boolean;
   savedMap: Map<string, string>;
   projectMap?: Map<string, string>;
+  otherTasksMap?: Map<string, string>;
   paramCode: string;
   componentDefault?: unknown;
   ioType?: string;
 }): string {
-  const { wbsCollabMode, savedMap, projectMap, paramCode, componentDefault, ioType } = options;
+  const { wbsCollabMode, savedMap, projectMap, otherTasksMap, paramCode, componentDefault, ioType } = options;
   if (wbsCollabMode) {
     const code = String(paramCode ?? '').trim();
     const projectVal = projectMap ? lookupWbsParamInMap(projectMap, code) : '';
+    const otherInputVal = otherTasksMap ? lookupWbsParamInMap(otherTasksMap, code) : '';
     const taskSaved = resolveTaskSavedParamValue(savedMap, code, '');
     if (isWbsOutputIoType(ioType)) {
-      if (taskSaved) return taskSaved;
+      if (normalizeWbsParamValue(taskSaved)) return taskSaved;
       if (projectVal) return projectVal;
+      if (otherInputVal) return otherInputVal;
       return normalizeWbsParamValue(componentDefault);
     }
+    /** 设计输入：仅读本任务已保存值与组件默认，不继承其它任务写入的项目值 */
     if (taskSaved) return taskSaved;
-    if (projectVal) return projectVal;
     return normalizeWbsParamValue(componentDefault);
   }
   const code = String(paramCode ?? '').trim();
@@ -144,12 +159,51 @@ export function findChangedWbsInputParamKeys(options: {
   return changed;
 }
 
-/** 跨任务同步闹钟：设计输入/输出均可；编辑中（当前值≠已保存）不提示 */
+/** 跨任务同步闹钟：仅设计输出（OUTPUT）作为接收方；设计输入（INPUT）为修改方不提示 */
+export function canWbsCrossTaskParamSyncItem(ioType: unknown): boolean {
+  return isWbsOutputIoType(ioType);
+}
+
+/** 从活动页 componentsJson 构建 paramKey -> ioType */
+export function buildWbsParamIoTypeMapFromComponents(componentsJson?: Record<string, any> | null): Map<string, string> {
+  const map = new Map<string, string>();
+  const cfg = componentsJson || {};
+  const lists = [
+    ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
+    ...(Array.isArray(cfg.threeDComponentList) ? cfg.threeDComponentList : []),
+    ...(Array.isArray(cfg.uploadComponentList) ? cfg.uploadComponentList : []),
+    ...(Array.isArray(cfg.tableComponentList) ? cfg.tableComponentList : []),
+  ];
+  lists.forEach((item: any) => {
+    const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+    if (!code) return;
+    const io = String(item?.ioType ?? 'INPUT').toUpperCase();
+    map.set(code, io === 'OUTPUT' ? 'OUTPUT' : 'INPUT');
+  });
+  return map;
+}
+
+/** 保存时为参数条目补充 paramIoType */
+export function enrichWbsSaveItemsWithIoType<T extends { paramKey?: string; paramIoType?: string }>(
+  items: T[],
+  componentsJson?: Record<string, any> | null,
+): Array<T & { paramIoType: string }> {
+  const ioMap = buildWbsParamIoTypeMapFromComponents(componentsJson);
+  return items.map(item => {
+    const key = String(item?.paramKey ?? '').trim();
+    const ioType = ioMap.get(key) || item.paramIoType || 'INPUT';
+    return { ...item, paramIoType: String(ioType).toUpperCase() === 'OUTPUT' ? 'OUTPUT' : 'INPUT' };
+  });
+}
+
+/** 跨任务同步闹钟：设计输出 OUTPUT；编辑中（当前值≠已保存）不提示 */
 export function shouldShowWbsCrossTaskParamSyncHint(options: {
+  ioType?: unknown;
   taskSavedValue: unknown;
   projectValueFromOtherTasks: unknown;
   currentEditValue?: unknown;
 }): boolean {
+  if (!canWbsCrossTaskParamSyncItem(options.ioType)) return false;
   const { taskSavedValue, projectValueFromOtherTasks, currentEditValue } = options;
   if (!shouldShowWbsProjectParamSyncHint(taskSavedValue, projectValueFromOtherTasks)) return false;
   const saved = normalizeWbsParamValue(taskSavedValue);

@@ -408,6 +408,21 @@ export class AdminApiProjectTemp {
       CommonResultListDeptResponseDTOModel,
     )
 
+  static wbsTaskParamChangeLogList = (
+    query: { projectId: string | number; paramKey: string; limit?: number },
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/change-log/list`,
+        method: 'GET',
+        query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    )
+
   static wbsCollabNextStep = (body: Record<string, unknown>, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {

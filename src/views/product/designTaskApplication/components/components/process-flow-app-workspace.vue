@@ -25,7 +25,7 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { flowSynchronizeChildrenModelsToWeb, setModelParameterInFirstCsysNew } from '@/libs/webSocketNew';
-import { findChangedWbsInputParamKeys } from '@/composables/designWorkspace/useWbsProjectParamSync';
+import { enrichWbsSaveItemsWithIoType, findChangedWbsInputParamKeys } from '@/composables/designWorkspace/useWbsProjectParamSync';
 
 interface FlowNode {
   id?: string | number;
@@ -138,6 +138,8 @@ const nodeDetailData = ref<Record<string, any> | null>(null);
 const wbsProjectParamMap = ref<Record<string, string>>({});
 /** WBS 协同：仅其它任务的参数 Map（跨任务比对） */
 const wbsOtherTasksParamMap = ref<Record<string, string>>({});
+/** WBS 协同：本任务已落库值（task+paramKey，不按活动页隔离） */
+const wbsTaskSavedParamMap = ref<Record<string, string>>({});
 const activityImageUrl = ref('');
 const activityImageMarginTop = ref(0);
 const activityImageWidth = ref(260);
@@ -739,7 +741,7 @@ async function refreshWbsProjectParamMap() {
   try {
     const mapRes = await AdminApiProjectTemp.wbsTaskParamMap({ projectId, taskId });
     const payload = mapRes?.data?.data as
-      | { params?: Record<string, string>; paramsFromOtherTasks?: Record<string, string> }
+      | { params?: Record<string, string>; paramsFromOtherTasks?: Record<string, string>; taskSavedParams?: Record<string, string> }
       | undefined;
     wbsProjectParamMap.value =
       payload?.params && typeof payload.params === 'object' ? { ...payload.params } : {};
@@ -747,9 +749,14 @@ async function refreshWbsProjectParamMap() {
       payload?.paramsFromOtherTasks && typeof payload.paramsFromOtherTasks === 'object'
         ? { ...payload.paramsFromOtherTasks }
         : {};
+    wbsTaskSavedParamMap.value =
+      payload?.taskSavedParams && typeof payload.taskSavedParams === 'object'
+        ? { ...payload.taskSavedParams }
+        : {};
   } catch {
     wbsProjectParamMap.value = {};
     wbsOtherTasksParamMap.value = {};
+    wbsTaskSavedParamMap.value = {};
   }
 }
 
@@ -903,10 +910,12 @@ async function requestNodeDetailByKey(key: string) {
       } else {
         wbsProjectParamMap.value = {};
         wbsOtherTasksParamMap.value = {};
+        wbsTaskSavedParamMap.value = {};
       }
     } catch {
       wbsProjectParamMap.value = {};
       wbsOtherTasksParamMap.value = {};
+      wbsTaskSavedParamMap.value = {};
     }
     hasUnsavedChanges.value = false;
     return;
@@ -1193,7 +1202,10 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
       .filter((row: any) => row.paramKey);
     const dedup = new Map<string, any>();
     [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
-    const items = Array.from(dedup.values());
+    const items = enrichWbsSaveItemsWithIoType(
+      Array.from(dedup.values()),
+      nodeDetailData.value?.componentsJson,
+    );
     if (!items.length) {
       message.warning('当前节点暂无可保存参数');
       return false;
@@ -1368,7 +1380,10 @@ async function goNextNode() {
       .filter((row: any) => row.paramKey);
     const dedup = new Map<string, any>();
     [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
-    const items = Array.from(dedup.values());
+    const items = enrichWbsSaveItemsWithIoType(
+      Array.from(dedup.values()),
+      nodeDetailData.value?.componentsJson,
+    );
     const body: Record<string, unknown> = {
       projectId,
       taskId,
@@ -1560,7 +1575,10 @@ async function finishFlow() {
       .filter((row: any) => row.paramKey);
     const dedup = new Map<string, any>();
     [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
-    const items = Array.from(dedup.values());
+    const items = enrichWbsSaveItemsWithIoType(
+      Array.from(dedup.values()),
+      nodeDetailData.value?.componentsJson,
+    );
     const body: Record<string, unknown> = {
       projectId,
       taskId,
@@ -1861,6 +1879,7 @@ onMounted(() => {
                     :wbs-collab-mode="isWbsCollabWorkspace"
                     :project-param-map="wbsProjectParamMap"
                     :other-tasks-param-map="wbsOtherTasksParamMap"
+                    :task-saved-param-map="wbsTaskSavedParamMap"
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppCustomNodePreview
@@ -1883,6 +1902,7 @@ onMounted(() => {
                     :wbs-collab-mode="isWbsCollabWorkspace"
                     :project-param-map="wbsProjectParamMap"
                     :other-tasks-param-map="wbsOtherTasksParamMap"
+                    :task-saved-param-map="wbsTaskSavedParamMap"
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                 </div>

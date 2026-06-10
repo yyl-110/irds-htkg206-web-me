@@ -10,7 +10,9 @@ import {
   parseSavedParamValueList,
   parseWbsParamRecord,
   resolvePreviewParamBaseValue,
+  resolveWbsTaskSavedValueMap,
   shouldShowWbsCrossTaskParamSyncHint,
+  canWbsCrossTaskParamSyncItem,
   isWbsInputIoType,
   isWbsOutputIoType,
 } from '@/composables/designWorkspace/useWbsProjectParamSync';
@@ -40,6 +42,8 @@ const props = defineProps<{
   projectParamMap?: Record<string, string> | null;
   /** WBS 协同：仅其它 WBS 任务参数（跨任务比对） */
   otherTasksParamMap?: Record<string, string> | null;
+  /** WBS 协同：本任务已落库值（不按活动页隔离） */
+  taskSavedParamMap?: Record<string, string> | null;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
@@ -121,7 +125,13 @@ function parseSavedValueMap(list: any[] | null | undefined) {
   return parseSavedParamValueList(list);
 }
 
-const savedValueMap = computed(() => parseSavedValueMap(props.savedParamValues));
+const savedValueMap = computed(() =>
+  resolveWbsTaskSavedValueMap({
+    wbsCollabMode: props.wbsCollabMode,
+    taskSavedParamMap: props.taskSavedParamMap,
+    savedParamValues: props.savedParamValues,
+  }),
+);
 const projectParamValueMap = computed(() => parseWbsParamRecord(props.projectParamMap ?? undefined));
 const otherTasksParamValueMap = computed(() => parseWbsParamRecord(props.otherTasksParamMap ?? undefined));
 
@@ -135,7 +145,7 @@ function getOtherTasksParamValueByCode(paramCodeRaw: string): string {
 
 function canWbsProjectParamSyncItem(item: any): boolean {
   if (!props.wbsCollabMode) return false;
-  if (!isWbsInputIoType(item?.ioType) && !isWbsOutputIoType(item?.ioType)) return false;
+  if (!canWbsCrossTaskParamSyncItem(item?.ioType)) return false;
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
   return !!code;
 }
@@ -151,18 +161,59 @@ function showWbsProjectParamSyncHint(item: any, index: number): boolean {
   const taskVal = getTaskSavedParamValueByCode(code);
   const currentVal = getCurrentComponentValue(item, index);
   return shouldShowWbsCrossTaskParamSyncHint({
+    ioType: item?.ioType,
     taskSavedValue: taskVal,
     projectValueFromOtherTasks: projectVal,
     currentEditValue: currentVal,
   });
 }
 
+const wbsParamChangeModalVisible = ref(false);
+const wbsParamChangeModalLoading = ref(false);
+const wbsParamChangeModalTarget = ref<{ item: any; index: number } | null>(null);
+const wbsParamChangeLogRows = ref<any[]>([]);
+const wbsParamChangeLogColumns = [
+  { title: '时间', dataIndex: 'createTime', key: 'createTime', width: 168, ellipsis: true },
+  { title: '修改人', dataIndex: 'operatorDisplayName', key: 'operatorDisplayName', width: 96, ellipsis: true },
+  { title: '来源任务', dataIndex: 'sourceTaskName', key: 'sourceTaskName', width: 120, ellipsis: true },
+  { title: '旧值', dataIndex: 'oldValue', key: 'oldValue', ellipsis: true },
+  { title: '新值', dataIndex: 'newValue', key: 'newValue', ellipsis: true },
+];
+
+async function openWbsParamChangeLogModal(item: any, index: number) {
+  const projectId = String(props.projectId ?? '').trim();
+  const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
+  if (!projectId || !code) return;
+  wbsParamChangeModalTarget.value = { item, index };
+  wbsParamChangeModalVisible.value = true;
+  wbsParamChangeModalLoading.value = true;
+  wbsParamChangeLogRows.value = [];
+  try {
+    const res = await AdminApiProjectTemp.wbsTaskParamChangeLogList({ projectId, paramKey: code, limit: 20 });
+    const list = (res?.data as { data?: unknown } | undefined)?.data;
+    wbsParamChangeLogRows.value = Array.isArray(list) ? list : [];
+  } finally {
+    wbsParamChangeModalLoading.value = false;
+  }
+}
+
+function closeWbsParamChangeModal() {
+  wbsParamChangeModalVisible.value = false;
+  wbsParamChangeModalTarget.value = null;
+}
+
+function confirmAcceptFromWbsParamChangeModal() {
+  const target = wbsParamChangeModalTarget.value;
+  if (!target) return;
+  acceptWbsProjectParamValue(target.item, target.index);
+  closeWbsParamChangeModal();
+}
+
 function wbsProjectParamSyncHint(item: any, index: number): string {
   const code = String(item?.paramCode ?? item?.paramKey ?? '').trim();
   const projectVal = getOtherTasksParamValueByCode(code);
   const taskVal = getTaskSavedParamValueByCode(code);
-  const kind = isWbsOutputIoType(item?.ioType) ? '设计输出' : '设计输入';
-  return `其它协同任务已更新项目参数为「${projectVal}」，本任务${kind}已保存值为「${taskVal}」，点击接收最新项目值`;
+  return `设计输入已更新为「${projectVal}」，本任务设计输出已保存「${taskVal}」，点击查看修改记录并接收最新值`;
 }
 
 function acceptWbsProjectParamValue(item: any, index: number) {
@@ -1533,6 +1584,7 @@ function getCurrentSaveParamValues() {
         paramKey,
         paramName: String(item?.paramName ?? ''),
         paramValue: getCurrentComponentValue(item, index),
+        paramIoType: String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT' ? 'OUTPUT' : 'INPUT',
       };
     })
     .filter(Boolean);
@@ -1862,7 +1914,7 @@ function getCurrentTableUniqueCodeSaveValues() {
 }
 
 watch(
-  () => [props.componentsJson, props.savedParamValues, props.savedTables, props.projectParamMap, props.otherTasksParamMap, props.wbsCollabMode],
+  () => [props.componentsJson, props.savedParamValues, props.savedTables, props.projectParamMap, props.otherTasksParamMap, props.taskSavedParamMap, props.wbsCollabMode],
   () => {
     const list = previewList.value;
     const nextFieldValueMap: Record<string, string> = {};
@@ -1878,6 +1930,7 @@ watch(
         wbsCollabMode: props.wbsCollabMode,
         savedMap: savedValueMap.value,
         projectMap: projectParamValueMap.value,
+        otherTasksMap: otherTasksParamValueMap.value,
         paramCode: code,
         componentDefault: item?.paramValue,
         ioType: item?.ioType,
@@ -2009,7 +2062,7 @@ defineExpose({
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
             <a-tooltip v-if="showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
-              <ClockCircleOutlined class="component-project-param-sync" @click.stop="acceptWbsProjectParamValue(item, index)" />
+              <ClockCircleOutlined class="component-project-param-sync" @click.stop="openWbsParamChangeLogModal(item, index)" />
             </a-tooltip>
           </div>
 
@@ -2065,7 +2118,7 @@ defineExpose({
                 v-if="showWbsProjectParamSyncHint(item, index)"
                 :title="wbsProjectParamSyncHint(item, index)"
                 placement="top">
-                <ClockCircleOutlined class="component-project-param-sync" @click.stop="acceptWbsProjectParamValue(item, index)" />
+                <ClockCircleOutlined class="component-project-param-sync" @click.stop="openWbsParamChangeLogModal(item, index)" />
               </a-tooltip>
             </div>
             <div class="data-view-preview-row">
@@ -2334,6 +2387,29 @@ defineExpose({
     :user-id="userStore.getUser.id"
     :query-prefill="modulePickerQueryPrefill"
     @confirm="onModulePickerConfirm" />
+  <a-modal
+    v-model:visible="wbsParamChangeModalVisible"
+    title="参数变更记录"
+    width="720px"
+    :footer="null"
+    destroy-on-close
+    @cancel="closeWbsParamChangeModal">
+    <a-spin :spinning="wbsParamChangeModalLoading">
+      <a-table
+        :columns="wbsParamChangeLogColumns"
+        :data-source="wbsParamChangeLogRows"
+        :pagination="false"
+        size="small"
+        row-key="id"
+        :scroll="{ y: 280 }" />
+      <div class="wbs-param-change-modal-actions">
+        <a-space>
+          <a-button type="primary" @click="confirmAcceptFromWbsParamChangeModal">接收最新项目值</a-button>
+          <a-button @click="closeWbsParamChangeModal">关闭</a-button>
+        </a-space>
+      </div>
+    </a-spin>
+  </a-modal>
 </template>
 
 <style scoped lang="less">
@@ -2464,6 +2540,11 @@ defineExpose({
 }
 .component-project-param-sync:hover {
   color: #d46b08;
+}
+.wbs-param-change-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 .preview-field {
   width: 100%;
