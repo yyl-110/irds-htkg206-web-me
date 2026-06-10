@@ -3,23 +3,7 @@
 import { ref, shallowRef, watch } from 'vue';
 import type { Component } from 'vue';
 import { message } from 'ant-design-vue';
-import {
-  loadAnsysPageParameters,
-  type AnsysParameterItem,
-} from '@/views/product/activityPage/custompage/ansys/loadPageParameters';
-import {
-  loadJsinvokePageParameters,
-  type JsinvokeParameterItem,
-} from '@/views/product/activityPage/custompage/jsinvoke/loadPageParameters';
-import {
-  loadPage0PageParameters,
-  type Page0ParameterItem,
-} from '@/views/product/activityPage/custompage/page0/loadPageParameters';
-import {
-  loadPage0_1PageParameters,
-  type Page0_1ParameterItem,
-} from '@/views/product/activityPage/custompage/page0-1/loadPageParameters';
-import { loadCustomPageComponent, resolveCustomPageKey } from '../../../activityPage/custompage/registry/index';
+import { loadCustomPageComponent, loadCustomPageParameters, resolveCustomPageKey } from '../../../activityPage/custompage/registry/index';
 
 const props = defineProps<{
   activityPageId?: string | number | null;
@@ -39,9 +23,7 @@ const customComponentRef = ref<{
   getCurrentSaveParamValues?: () => unknown[];
   getCurrentTableSavePayload?: () => unknown[];
 } | null>(null);
-const parameterTempList = ref<Array<AnsysParameterItem | JsinvokeParameterItem | Page0ParameterItem | Page0_1ParameterItem>>(
-  [],
-);
+const parameterTempList = ref<unknown[]>([]);
 const pageKey = ref<string | null>(null);
 
 async function loadPageContent() {
@@ -60,15 +42,11 @@ async function loadPageContent() {
       return;
     }
     resolvedComponent.value = component;
-    if (pageKey.value === 'customized-process-ansys') {
-      parameterTempList.value = await loadAnsysPageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
-    } else if (pageKey.value === 'customized-process-jsinvoke') {
-      parameterTempList.value = await loadJsinvokePageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
-    } else if (pageKey.value === 'customized-process-page0') {
-      parameterTempList.value = await loadPage0PageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
-    } else if (pageKey.value === 'customized-process-page0-1') {
-      parameterTempList.value = await loadPage0_1PageParameters(String(props.activityPageId ?? ''), props.savedParamValues);
-    }
+    parameterTempList.value = await loadCustomPageParameters(
+      pageKey.value,
+      String(props.activityPageId ?? ''),
+      props.savedParamValues,
+    );
     ready.value = true;
   } catch (error) {
     console.error('load custom page failed:', error);

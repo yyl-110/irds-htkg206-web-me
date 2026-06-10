@@ -216,6 +216,7 @@ watch(
   val => {
     if (val && val.length > 0) {
       parameterTempList.value = val.map(item => ({ ...item }));
+      nextTick(() => updateEl());
     }
   },
   { deep: true },
@@ -359,6 +360,7 @@ defineExpose({
 
 onMounted(async () => {
   await loadPageParametersIfNeeded();
+  updateEl();
 });
 </script>
 
@@ -377,44 +379,130 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 16px;
   border-bottom: 1px solid silver;
   width: 100%;
   font-weight: 600;
-  padding: 0 0 8px 10px;
+  padding: 0 10px 8px;
   margin-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .section-header__title {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  line-height: 32px;
   font-weight: 600;
 }
 
 .work-mode-item {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
   margin-bottom: 0;
   font-weight: 400;
 }
 
+.work-mode-item :deep(.ant-form-item-row) {
+  flex-wrap: nowrap;
+  align-items: center;
+  width: auto;
+}
+
+.work-mode-item :deep(.ant-form-item-label) {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: none;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 8px 0 0 !important;
+  white-space: nowrap;
+}
+
+.work-mode-item :deep(.ant-form-item-label > label) {
+  height: 32px;
+  line-height: 32px;
+  white-space: nowrap;
+}
+
+.work-mode-item :deep(.ant-form-item-control) {
+  flex: 0 0 auto;
+  width: auto;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.work-mode-item :deep(.ant-form-item-control-input) {
+  min-height: 32px;
+}
+
 .main-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
   width: 100%;
   min-height: calc(100vh - 400px);
   background-color: #ffffff;
-  padding-top: 20px;
-  margin-left: 15px;
-  overflow: hidden;
+  padding: 20px 10px 0;
+  box-sizing: border-box;
 }
 
-.form-column-left {
-  width: 44%;
-  float: left;
-}
-
+.form-column-left,
 .form-column-right {
-  width: 50%;
-  float: left;
-  padding-left: 60px;
+  flex: 1 1 320px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.main-section :deep(.ant-form-item) {
+  margin-bottom: 16px;
+}
+
+.main-section :deep(.ant-form-item-row) {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.main-section :deep(.ant-form-item-label) {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+  height: auto;
+}
+
+.main-section :deep(.ant-form-item-label > label) {
+  white-space: normal;
+  height: auto;
+}
+
+.main-section :deep(.ant-form-item-control) {
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 .field-input {
-  width: 234px;
+  width: 200px;
+}
+
+@media (max-width: 900px) {
+  .main-section :deep(.ant-form-item-row) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .main-section :deep(.ant-form-item-label),
+  .main-section :deep(.ant-form-item-control) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .field-input {
+    max-width: 100%;
+  }
 }
 </style>
