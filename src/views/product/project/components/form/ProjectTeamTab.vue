@@ -36,6 +36,8 @@ type MemberAuthDept = {
 
 const props = defineProps<{
   projectId: string | number;
+  /** 仅项目经理可分配人员 */
+  canManageTeam?: boolean;
 }>();
 
 const projectTeamLoading = ref(false);
@@ -159,6 +161,10 @@ async function loadProjectTeam() {
 }
 
 async function openMemberAuth(record: ProjectTeamRow) {
+  if (props.canManageTeam === false) {
+    message.warning(WeiI18n.$t('仅项目经理可分配人员'));
+    return;
+  }
   currentTeamId.value = record.id;
   const res = await AdminApiSystemDept.getDeptInfo({});
   if (res.data.code === 200) {
@@ -233,7 +239,12 @@ defineExpose({
           <span>{{ record[String(column.dataIndex || column.key || '')] }}</span>
         </template>
         <template v-else-if="column.key === 'operation'">
-          <a-button type="primary" size="small" @click="openMemberAuth(record)">{{ $t('分配人员') }}</a-button>
+          <a-button
+            v-if="canManageTeam !== false"
+            type="primary"
+            size="small"
+            @click="openMemberAuth(record)">{{ $t('分配人员') }}</a-button>
+          <span v-else class="project-team-op-disabled">—</span>
         </template>
       </template>
     </a-table>
@@ -351,5 +362,9 @@ defineExpose({
 
 .header-sort-icon--muted {
   color: #bfbfbf;
+}
+
+.project-team-op-disabled {
+  color: rgba(0, 0, 0, 0.25);
 }
 </style>

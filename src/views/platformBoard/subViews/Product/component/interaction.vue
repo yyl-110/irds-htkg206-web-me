@@ -1,13 +1,18 @@
 <template>
-  <div style="width: 86%; height: 100%">
-    <v-chart :option="chartOption" class="chart" />
+  <div class="interaction-chart">
+    <v-chart v-if="hasChartOption" :option="chartOption" class="chart" autoresize />
+    <div v-else class="chart-empty">暂无交付数据</div>
   </div>
 </template>
 
 <script setup>
-import * as echarts from "echarts";
+import * as echarts from 'echarts';
 
 const chartOption = ref({});
+const hasChartOption = computed(() => {
+  const opt = chartOption.value;
+  return opt && typeof opt === 'object' && Object.keys(opt).length > 0;
+});
 
 const props = defineProps({
   chartData: {
@@ -16,162 +21,145 @@ const props = defineProps({
   },
 });
 
+const SERIES_META = [
+  { name: '总任务数', colors: ['#15728C', '#92D1DE'] },
+  { name: '协同任务数', colors: ['#6A5FDC', '#8B7FE8'] },
+  { name: '独立应用数', colors: ['#FF8D1A', '#FFB366'] },
+];
+
 const pickRow = (row) => {
-  if (!row || typeof row !== "object") {
+  if (!row || typeof row !== 'object') {
     return { total: 0, collab: 0, standalone: 0 };
   }
-  if ("totalCount" in row || "collabTaskCount" in row) {
-    return {
-      total: Number(row.totalCount) || 0,
-      collab: Number(row.collabTaskCount) || 0,
-      standalone: Number(row.standaloneAppCount) || 0,
-    };
-  }
   return {
-    total: Number(row.total_docs) || 0,
-    collab: 0,
-    standalone: 0,
+    total: Number(row.totalCount ?? row.totalPublishedCount ?? row.total_docs) || 0,
+    collab: Number(row.collabTaskCount ?? row.collabPublished) || 0,
+    standalone: Number(row.standaloneAppCount) || 0,
   };
 };
 
+const calcYAxisMax = (values) => {
+  const maxVal = Math.max(...values, 0);
+  if (maxVal <= 0) return 100;
+  if (maxVal <= 20) return 20;
+  if (maxVal <= 50) return 50;
+  return Math.ceil(maxVal / 10) * 10;
+};
+
 const initChart = () => {
-  if (!props.chartData || !Object.keys(props.chartData).length) return;
+  if (!props.chartData || !Object.keys(props.chartData).length) {
+    chartOption.value = {};
+    return;
+  }
+
   const keys = Object.keys(props.chartData);
-  const seriesData = [
-    {
-      name: "总任务数",
-      value: keys.map((item) => pickRow(props.chartData[item]).total),
-    },
-    {
-      name: "协同任务数",
-      value: keys.map((item) => pickRow(props.chartData[item]).collab),
-    },
-    {
-      name: "独立应用数",
-      value: keys.map((item) => pickRow(props.chartData[item]).standalone),
-    },
+  const seriesValues = [
+    keys.map((item) => pickRow(props.chartData[item]).total),
+    keys.map((item) => pickRow(props.chartData[item]).collab),
+    keys.map((item) => pickRow(props.chartData[item]).standalone),
   ];
-  const colorList = [
-    ["#15728C", "#92D1DE"],
-    ["#6A5FDC", "#6A5FDC"],
-    ["#FF8D1A", "#FF8D1A"],
-  ];
+  const yMax = calcYAxisMax(seriesValues.flat());
 
   chartOption.value = {
     title: {
-      text: "总任务数、协同任务数、独立应用数",
-      left: "center",
-      top: 6,
+      text: '总任务数、协同任务数、独立应用数',
+      left: 'center',
+      top: 0,
       textStyle: {
-        color: "rgba(255,255,255,0.92)",
+        color: 'rgba(255,255,255,0.92)',
         fontSize: 13,
         fontWeight: 500,
       },
     },
     grid: {
-      left: "0",
-      right: "0",
-      bottom: "20%",
-      top: "16%",
+      left: '2%',
+      right: '2%',
+      bottom: '18%',
+      top: '14%',
       containLabel: true,
     },
     tooltip: {
-      trigger: "axis",
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
     },
     legend: {
-      data: seriesData.map((item) => item.name),
-      x: "right",
-      bottom: "5%",
-      align: "left",
-      itemHeight: 13,
-      icon: "rect",
-      itemWidth: 22,
-      itemGap: 20,
+      data: SERIES_META.map((item) => item.name),
+      right: '2%',
+      bottom: '2%',
+      align: 'left',
+      itemHeight: 10,
+      icon: 'rect',
+      itemWidth: 18,
+      itemGap: 16,
       textStyle: {
         fontSize: 12,
-        color: "#CCCCCC",
+        color: '#CCCCCC',
       },
     },
     xAxis: {
-      showBackground: true,
+      name: '部门',
+      nameLocation: 'end',
+      nameGap: 8,
       nameTextStyle: {
-        color: "#c0c3cd",
-        padding: [0, 0, -10, 0],
-        fontSize: 14,
+        color: '#FF5757',
+        fontSize: 13,
+        padding: [8, 0, 0, 0],
       },
-      axisLine: {
-        show: false,
-        lineStyle: {
-          color: "#555f58",
-        },
-      },
+      axisLine: { show: false },
       axisLabel: {
         interval: 0,
-        textStyle: {
-          color: "#fff",
-        },
-        margin: 15,
+        color: '#fff',
+        fontSize: 12,
+        margin: 12,
         formatter: (value) =>
-          value && value.length > 6 ? value.substring(0, 6) + "…" : value,
+          value && value.length > 6 ? `${value.substring(0, 6)}…` : value,
       },
-      axisTick: {
-        show: false,
-      },
-      splitLine: {
-        show: false,
-      },
+      axisTick: { show: false },
+      splitLine: { show: false },
       data: keys,
-      type: "category",
+      type: 'category',
     },
     yAxis: {
-      axisLine: {
-        show: false,
-        lineStyle: {
-          color: "rgba(220,220,220,0.3)",
-        },
-      },
-      axisTick: {
-        show: false,
-      },
+      type: 'value',
+      min: 0,
+      max: yMax,
+      splitNumber: 5,
+      axisLine: { show: false },
+      axisTick: { show: false },
       axisLabel: {
-        textStyle: {
-          fontSize: 12,
-          color: "#CCCCCC",
-        },
+        color: '#CCCCCC',
+        fontSize: 12,
       },
       splitLine: {
-        show: false,
+        show: true,
         lineStyle: {
-          color: "rgba(220,220,220,0.3)",
+          color: 'rgba(220,220,220,0.18)',
+          type: 'dashed',
         },
       },
     },
-    series: (function () {
-      const series = [];
-      for (let i = 0; i < seriesData.length; i++) {
-        series.push({
-          name: seriesData[i].name,
-          type: "bar",
-          barWidth: "16",
-          data: seriesData[i].value,
-          label: {
-            show: true,
-            color: "#fff",
-            fontSize: 12,
-            position: "top",
-          },
-          itemStyle: {
-            normal: {
-              color: new echarts.graphic.LinearGradient(0, 1, 0, 0, [
-                { offset: 0, color: colorList[i][0] },
-                { offset: 1, color: colorList[i][1] },
-              ]),
-            },
-          },
-        });
-      }
-      return series;
-    })(),
+    series: SERIES_META.map((meta, index) => ({
+      name: meta.name,
+      type: 'bar',
+      barWidth: 14,
+      barGap: '20%',
+      barCategoryGap: '38%',
+      data: seriesValues[index],
+      label: {
+        show: true,
+        color: '#fff',
+        fontSize: 11,
+        position: 'top',
+        distance: 4,
+      },
+      itemStyle: {
+        borderRadius: [3, 3, 0, 0],
+        color: new echarts.graphic.LinearGradient(0, 1, 0, 0, [
+          { offset: 0, color: meta.colors[0] },
+          { offset: 1, color: meta.colors[1] },
+        ]),
+      },
+    })),
   };
 };
 
@@ -182,4 +170,24 @@ watch(
 );
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.interaction-chart {
+  width: 96%;
+  height: 100%;
+
+  .chart {
+    width: 100%;
+    height: 100%;
+  }
+
+  .chart-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 14px;
+  }
+}
+</style>

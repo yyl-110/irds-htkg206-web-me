@@ -437,6 +437,10 @@ async function loadUserIdToNameMap() {
 function decorateWbsTree(nodes: WbsTaskNode[]) {
   for (const n of nodes) {
     if (isWbsRoot(n)) {
+      /** 顶级节点起止时间 = 项目计划起止（只读展示） */
+      if (projectPlanStart.value) n.startDate = projectPlanStart.value;
+      if (projectPlanEnd.value) n.endDate = projectPlanEnd.value;
+      syncDurationWorkdays(n);
       /** 保留后端写入的根 assigneeUserId，供下级「谁能分配」判断；仅在与创建人不一致时再补创建人 */
       const cid = effectiveCreatorId.value;
       if (!n.assigneeUserId && cid) {
@@ -1264,17 +1268,12 @@ function canEditAsAssignee(record: WbsTaskNode): boolean {
   return !!record.assigneeUserId && sameUserId(userStore.getUser.id, record.assigneeUserId);
 }
 
-/** 分类节点不维护自身计划时间（展示为下级合集）；任务节点：根仅创建人；已分配仅负责人；未分配由上一级填 */
+/** 分类节点不维护自身计划时间（展示为下级合集）；任务节点：根节点固定为项目计划时间且不可改 */
 function canModifyRowFields(record: WbsTaskNode): boolean {
   if (isRowRemoved(record)) return false;
   if (Number(record.type) === 2 && isWbsTaskCompletedReadonly(record)) return false;
   if (record.type === 1) return false;
-  if (isWbsRoot(record)) {
-    return (
-      sameUserId(userStore.getUser.id, effectiveCreatorId.value) ||
-      (!!record.assigneeUserId && sameUserId(userStore.getUser.id, record.assigneeUserId))
-    );
-  }
+  if (isWbsRoot(record)) return false;
   if (record.assigneeUserId) return canEditAsAssignee(record);
   return canAssignResponsible(record);
 }
@@ -1297,7 +1296,9 @@ function browseAssignEnabled(record: WbsTaskNode): boolean {
 }
 
 function canShowBrowseResponsible(record: WbsTaskNode): boolean {
-  return !isWbsRoot(record) && !isRowRemoved(record) && canAssignResponsible(record);
+  if (isWbsRoot(record)) return false;
+  if (isRowRemoved(record)) return false;
+  return canAssignResponsible(record);
 }
 
 function canShowStartButton(record: WbsTaskNode): boolean {
@@ -1544,6 +1545,17 @@ function rollupCategoryPlanDates(nodes: WbsTaskNode[]) {
   function walk(n: WbsTaskNode): { minS: Dayjs | null; maxE: Dayjs | null } {
     if (isWbsNodeRemoved(n)) {
       return { minS: null, maxE: null };
+    }
+    /** 顶级节点：固定为项目计划起止，不参与下级汇总 */
+    if (isWbsRoot(n)) {
+      const ps = projectPlanStart.value;
+      const pe = projectPlanEnd.value;
+      if (ps) n.startDate = ps;
+      if (pe) n.endDate = pe;
+      syncDurationWorkdays(n);
+      const minS = ps ? dayjs(ps).startOf('day') : null;
+      const maxE = pe ? dayjs(pe).startOf('day') : null;
+      return { minS: minS?.isValid() ? minS : null, maxE: maxE?.isValid() ? maxE : null };
     }
     const isCategory = Number(n.type) === 1;
     if (!isCategory) {

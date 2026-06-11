@@ -1,11 +1,12 @@
 <template>
   <div class="overviewChart" :style="{ width: chartWidth, height: '100%' }">
-    <v-chart :option="chartOption" class="chart" />
+    <v-chart v-if="hasChartOption" :option="chartOption" class="chart" autoresize />
+    <div v-else class="chart-empty">暂无进度数据</div>
   </div>
 </template>
 
 <script setup>
-import * as echarts from "echarts";
+import * as echarts from 'echarts';
 
 const props = defineProps({
   data: {
@@ -14,115 +15,98 @@ const props = defineProps({
   },
   chartWidth: {
     type: String,
-    default: "86%",
+    default: '100%',
   },
 });
 
 const chartOption = ref({});
+const hasChartOption = computed(() => {
+  const opt = chartOption.value;
+  return opt && typeof opt === 'object' && Object.keys(opt).length > 0;
+});
+
 const initChart = () => {
-  if (!props.data || !props.data.length) return;
-  let chartData = {
-    color: "0,205,151",
-    yAxisData: props.data.map((item) => item.nodeName),
-    data: props.data.map((item) => item.countNums),
-    totalData: props.data.map((item) => item.sumNum),
-  };
+  if (!props.data || !props.data.length) {
+    chartOption.value = {};
+    return;
+  }
+
+  const yAxisData = props.data.map((item) => item.nodeName);
+  const completeData = props.data.map((item) => Number(item.countNums) || 0);
+  const totalData = props.data.map((item) => Number(item.sumNum) || 0);
+  const xMax = Math.max(...totalData, 1);
 
   chartOption.value = {
     grid: {
-      top: 0,
+      top: 8,
       left: 0,
-      right: "5%",
+      right: 72,
       bottom: 0,
       containLabel: true,
     },
-    xAxis: [
-      {
-        show: false,
-        type: "value",
-        splitLine: {
-          show: false,
-          lineStyle: {
-            color: "#11456F",
-          },
-        },
-        axisTick: {
-          show: false,
-        },
-        axisLine: {
-          lineStyle: {
-            color: "#0B5EA0",
-          },
-        },
-        axisLabel: {
-          margin: 0,
-          textStyle: {
-            color: "rgb(183,227,252)",
-          },
-        },
-      },
-    ],
-    yAxis: [
-      {
-        type: "category",
-        splitLine: {
-          show: false,
-        },
-        axisLine: {
-          show: false,
-        },
-        axisTick: {
-          show: false,
-        },
-        axisLabel: {
-          margin: 20,
-          textStyle: {
-            color: "#fff",
-          },
-        },
-        inverse: true,
-        data: chartData.yAxisData,
-      },
-    ],
-    tooltip: {
+    xAxis: {
       show: false,
+      type: 'value',
+      max: xMax,
+    },
+    yAxis: {
+      type: 'category',
+      inverse: true,
+      splitLine: { show: false },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        margin: 12,
+        color: '#fff',
+        fontSize: 14,
+      },
+      data: yAxisData,
+    },
+    tooltip: {
+      show: true,
+      trigger: 'axis',
+      axisPointer: { type: 'none' },
+      formatter: (params) => {
+        const index = params[1]?.dataIndex ?? params[0]?.dataIndex ?? 0;
+        return `${yAxisData[index]}<br/>${completeData[index]}/${totalData[index]}`;
+      },
     },
     series: [
       {
-        name: "",
-        type: "bar",
-        zlevel: 2,
-        barWidth: 20,
+        type: 'bar',
+        barGap: '-100%',
+        barWidth: 16,
+        silent: true,
+        z: 0,
+        data: totalData,
+        itemStyle: {
+          borderRadius: 8,
+          color: 'rgba(38, 99, 218, 0.22)',
+        },
+      },
+      {
+        type: 'bar',
+        barWidth: 16,
+        z: 1,
+        data: completeData,
         label: {
           show: true,
-          color: "#fff",
-          fontSize: 16,
+          position: 'right',
+          distance: 8,
+          color: '#fff',
+          fontSize: 14,
           formatter: (params) => {
-            // 展示 count/total 格式
             const index = params.dataIndex;
-            return `${chartData.data[index]}/${chartData.totalData[index]}`;
+            return `${completeData[index]}/${totalData[index]}`;
           },
         },
         itemStyle: {
-          color: {
-            type: "linear",
-            x: 0,
-            y: 0,
-            x2: 1,
-            y2: 0,
-            colorStops: [
-              {
-                offset: 0,
-                color: "#2663DA",
-              },
-              {
-                offset: 1,
-                color: "#69CCF6",
-              },
-            ],
-          },
+          borderRadius: 8,
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#2663DA' },
+            { offset: 1, color: '#69CCF6' },
+          ]),
         },
-        data: chartData.data,
       },
     ],
   };
@@ -140,5 +124,20 @@ watch(
 <style lang="less" scoped>
 .overviewChart {
   min-width: 0;
+
+  .chart {
+    width: 100%;
+    height: 100%;
+  }
+
+  .chart-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
+  }
 }
 </style>

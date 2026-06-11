@@ -112,6 +112,17 @@ export function collabStandaloneBoard(data: {
     data,
   });
 }
+/** 产品设计看板-项目交付：按任务创建人部门汇总 */
+export function deliveryByDeptBoard(data: {
+  projectId: string | number;
+  phaseId?: string | number;
+}) {
+  return httpRequest({
+    url: "/business-service/business/project-wbs/product-board-delivery-by-dept",
+    method: "POST",
+    data,
+  });
+}
 /**
  * 知识看板
  * @return {*}

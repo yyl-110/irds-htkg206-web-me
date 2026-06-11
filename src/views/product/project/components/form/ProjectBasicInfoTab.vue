@@ -23,6 +23,8 @@ const props = defineProps<{
   projectForm: Record<string, any>;
   /** 路由或保存后已有项目主键：仅展示编号，不提供请码 */
   persistedProjectId?: string;
+  /** 非项目经理时为只读 */
+  readonly?: boolean;
   projectFormLabelCol: Record<string, any>;
   projectFormWrapperCol: Record<string, any>;
   confidentialOptions: Array<{ label: string; value: number }>;
@@ -32,7 +34,7 @@ const props = defineProps<{
 }>();
 
 const canRequestProjectNum = computed(
-  () => !props.persistedProjectId || String(props.persistedProjectId).trim() === '',
+  () => !props.readonly && (!props.persistedProjectId || String(props.persistedProjectId).trim() === ''),
 );
 
 const projectNumApplyLoading = ref(false);
@@ -175,6 +177,7 @@ function resolveProjectPlatformMenuId(): string | null {
 }
 
 async function selectProductTemplate() {
+  if (props.readonly) return;
   const platformMenuId = resolveProjectPlatformMenuId();
   if (!platformMenuId) return;
 
@@ -377,7 +380,7 @@ defineExpose({
     <a-row :gutter="24">
       <a-col :span="12">
         <a-form-item :label="$t('项目名称：')" name="projectName" :rules="[{ required: true, message: $t('请输入项目名称') }]">
-          <a-input v-model:value="projectForm.projectName" :placeholder="$t('请输入项目名称')" allow-clear />
+          <a-input v-model:value="projectForm.projectName" :placeholder="$t('请输入项目名称')" :disabled="readonly" allow-clear />
         </a-form-item>
       </a-col>
       <a-col :span="12">
@@ -387,7 +390,7 @@ defineExpose({
           :rules="[{ required: true, message: $t('请选择产品模板') }]">
           <div class="project-num-with-browse">
             <a-input v-model:value="projectForm.productTempName" :placeholder="$t('请选择')" disabled />
-            <a-button type="primary" @click="selectProductTemplate">{{ $t('浏览') }}</a-button>
+            <a-button v-if="!readonly" type="primary" @click="selectProductTemplate">{{ $t('浏览') }}</a-button>
           </div>
         </a-form-item>
       </a-col>
@@ -406,6 +409,7 @@ defineExpose({
             placeholder="计划开始时间"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
+            :disabled="readonly"
             :disabled-date="disabledPlanStartDate" />
         </a-form-item>
       </a-col>
@@ -422,6 +426,7 @@ defineExpose({
             placeholder="计划结束时间"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
+            :disabled="readonly"
             :disabled-date="disabledPlanEndDate" />
         </a-form-item>
       </a-col>
@@ -432,7 +437,7 @@ defineExpose({
           :label="$t('密级：')"
           name="confidentialLevel"
           :rules="[{ required: true, message: $t('请选择密级') }]">
-          <a-select v-model:value="projectForm.confidentialLevel" :options="confidentialOptions"> </a-select>
+          <a-select v-model:value="projectForm.confidentialLevel" :options="confidentialOptions" :disabled="readonly"> </a-select>
         </a-form-item>
       </a-col>
       <a-col :span="12" />
@@ -440,7 +445,7 @@ defineExpose({
     <a-row :gutter="24">
       <a-col :span="20">
         <a-form-item class="project-form-item--textarea" :label="$t('备注：')">
-          <a-textarea v-model:value="projectForm.remarks" :placeholder="$t('请输入备注')" :rows="4" allow-clear />
+          <a-textarea v-model:value="projectForm.remarks" :placeholder="$t('请输入备注')" :rows="4" :disabled="readonly" allow-clear />
         </a-form-item>
       </a-col>
       <a-col :span="4" />
@@ -448,7 +453,7 @@ defineExpose({
     <a-row :gutter="24">
       <a-col :span="12">
         <a-form-item :label="$t('资料密级：')">
-          <a-select v-model:value="projectForm.dataConfidentialLevel" :options="confidentialOptions" />
+          <a-select v-model:value="projectForm.dataConfidentialLevel" :options="confidentialOptions" :disabled="readonly" />
         </a-form-item>
       </a-col>
       <a-col :span="12" />
@@ -460,6 +465,7 @@ defineExpose({
             v-model:file-list="materialFileList"
             name="file"
             :multiple="false"
+            :disabled="readonly"
             :before-upload="beforeMaterialUpload"
             :custom-request="materialCustomRequest"
             @change="onMaterialFileChange">
