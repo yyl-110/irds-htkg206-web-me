@@ -133,7 +133,8 @@ defineExpose({
 </script>
 
 <template>
-  <a-spin :spinning="loading">
+  <a-spin :spinning="loading" class="custom-page-spin">
+    <div v-if="loading" class="custom-page-loading-shell" aria-hidden="true" />
     <CustomPageScope v-if="ready && resolvedComponent" :class="{ 'custom-page-scope--readonly': readOnly }">
       <component
         :is="resolvedComponent"
@@ -149,6 +150,40 @@ defineExpose({
 </template>
 
 <style scoped>
+.custom-page-loading-shell {
+  width: 100%;
+  min-height: calc(100vh - 220px);
+  pointer-events: none;
+}
+
+.custom-page-spin,
+.custom-page-spin :deep(.ant-spin-nested-loading),
+.custom-page-spin :deep(.ant-spin-container) {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 220px);
+  position: relative;
+}
+
+.custom-page-spin :deep(> .ant-spin) {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.custom-page-spin :deep(> .ant-spin .ant-spin-dot) {
+  position: absolute;
+  top: calc(50% + 48px) !important;
+  left: 50% !important;
+  margin: -10px 0 0 -10px !important;
+}
+
 .custom-page-scope--readonly {
   pointer-events: none;
   user-select: text;

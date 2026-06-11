@@ -2018,6 +2018,7 @@ onMounted(() => {
                   class="workspace-preview-main wei-scrollbar"
                   @input.capture="onPreviewContentMutated"
                   @change.capture="onPreviewContentMutated">
+                  <div v-if="nodeDetailLoading" class="workspace-loading-shell" aria-hidden="true" />
                   <ProcessFlowAppCheckNodePreview
                     v-if="isCalcNodePreview"
                     ref="checkNodePreviewRef"
@@ -2520,7 +2521,7 @@ onMounted(() => {
   flex: 1;
   height: 100%;
   width: 100%;
-  min-height: 0;
+  min-height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -2601,16 +2602,43 @@ onMounted(() => {
   object-fit: contain;
 }
 
+.workspace-loading-shell {
+  flex: 1;
+  width: 100%;
+  min-height: calc(100vh - 220px);
+  pointer-events: none;
+}
+
 .workspace-center-spin,
 .workspace-center-spin :deep(.ant-spin-nested-loading),
 .workspace-center-spin :deep(.ant-spin-container) {
   flex: 1;
   width: 100%;
-  min-height: 0;
+  height: 100%;
+  min-height: calc(100vh - 220px);
   display: flex !important;
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  position: relative;
+}
+
+.workspace-center-spin :deep(> .ant-spin) {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.workspace-center-spin :deep(> .ant-spin .ant-spin-dot) {
+  position: absolute;
+  top: calc(50% + 48px) !important;
+  left: 50% !important;
+  margin: -10px 0 0 -10px !important;
 }
 
 .workspace-flowview-wrap {
