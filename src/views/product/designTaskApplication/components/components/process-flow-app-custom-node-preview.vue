@@ -37,18 +37,32 @@ const customComponentRef = ref<{
 } | null>(null);
 const parameterTempList = ref<unknown[]>([]);
 const pageKey = ref<string | null>(null);
+let loadSeq = 0;
 
 async function loadPageContent() {
+  const seq = ++loadSeq;
   ready.value = false;
   resolvedComponent.value = null;
   parameterTempList.value = [];
+  pageKey.value = null;
+
+  const pageUrl = String(props.pageUrl ?? '').trim();
+  if (!pageUrl) {
+    loading.value = false;
+    return;
+  }
+
   pageKey.value = resolveCustomPageKey(props.pageUrl, props.pageName);
   if (!pageKey.value) {
-    pageKey.value = 'customized-process-ansys';
+    message.warning('未找到匹配的自定义页面组件');
+    loading.value = false;
+    return;
   }
+
   loading.value = true;
   try {
     const component = await loadCustomPageComponent(pageKey.value);
+    if (seq !== loadSeq) return;
     if (!component) {
       message.warning('未找到匹配的自定义页面组件');
       return;
@@ -60,12 +74,16 @@ async function loadPageContent() {
       props.savedParamValues,
       props.savedTables,
     );
+    if (seq !== loadSeq) return;
     ready.value = true;
   } catch (error) {
+    if (seq !== loadSeq) return;
     console.error('load custom page failed:', error);
     message.error('自定义页面加载失败');
   } finally {
-    loading.value = false;
+    if (seq === loadSeq) {
+      loading.value = false;
+    }
   }
 }
 

@@ -2035,7 +2035,7 @@ onMounted(() => {
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppCustomNodePreview
-                    v-if="isCustomPagePreview"
+                    v-else-if="isCustomPagePreview && !nodeDetailLoading"
                     ref="customNodePreviewRef"
                     :activity-page-id="String(nodeDetailData?.activityPageId ?? '')"
                     :page-url="String(nodeDetailData?.url ?? nodeDetailData?.pageUrl ?? '')"
@@ -2045,7 +2045,7 @@ onMounted(() => {
                     :read-only="isReadOnlyWorkspace"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppNodePreview
-                    v-else
+                    v-else-if="!isCustomPagePreview"
                     ref="nodePreviewRef"
                     :components-json="nodeDetailData?.componentsJson"
                     :saved-param-values="nodeDetailData?.savedParamValues"
