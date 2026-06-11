@@ -17,7 +17,7 @@ const CUSTOM_PAGE_ROUTE_PREFIX = '/internal';
 /** 自定义页注册表（key → 组件懒加载） */
 const CUSTOM_PAGE_ENTRIES: CustomPageEntry[] = [
   // 通用计算
-  ['customized-process-ansys', () => import('../customizedProcess-ansys.vue')],
+  // ['customized-process-ansys', () => import('../customizedProcess-ansys.vue')],
   ['customized-process-jsinvoke', () => import('../customizedProcess-jsinvoke.vue')],
 
   // 定制流程 page0 ~ page11

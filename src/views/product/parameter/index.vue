@@ -926,6 +926,8 @@ async function selectNode(node: any) {
   filterValueMap.value = { ...filterValueMap.value, parameterName: '', parameterNum: '' };
   sortState.value = { key: '', order: '' };
   selectNodeKeys.value = node.key;
+  requestParams.pageNo = 1;
+  pagination.current = 1;
   // 一级/二级为固定节点，右侧参数列表仅在三级及以下展示操作
   currentNodeLevel.value = node.level >= 3 ? 3 : 2;
   loadParameterListData();
