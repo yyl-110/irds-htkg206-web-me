@@ -32,6 +32,7 @@ const resolvedComponent = shallowRef<Component | null>(null);
 const customComponentRef = ref<{
   getCurrentSaveParamValues?: () => unknown[];
   getCurrentTableSavePayload?: () => unknown[];
+  getInternalParameterList?: () => unknown[];
   updateEl?: () => void;
 } | null>(null);
 const parameterTempList = ref<unknown[]>([]);
@@ -73,7 +74,16 @@ function getCurrentSaveParamValues() {
 }
 
 function getCurrentTableSavePayload() {
-  return customComponentRef.value?.getCurrentTableSavePayload?.() ?? [];
+  const child = customComponentRef.value;
+  if (!child) return [];
+  const fromChild = child.getCurrentTableSavePayload?.();
+  if (Array.isArray(fromChild) && fromChild.length) return fromChild;
+  if (child.getInternalParameterList) {
+    child.getInternalParameterList();
+    const retry = child.getCurrentTableSavePayload?.();
+    if (Array.isArray(retry)) return retry;
+  }
+  return [];
 }
 
 function onContentMutated() {
@@ -82,11 +92,20 @@ function onContentMutated() {
 }
 
 watch(
-  () => [props.activityPageId, props.pageUrl, props.pageName, props.savedParamValues, props.savedTables] as const,
+  () => [props.activityPageId, props.pageUrl, props.pageName] as const,
   () => {
     void loadPageContent();
   },
-  { immediate: true, deep: true },
+  { immediate: true },
+);
+
+watch(
+  () => [props.savedParamValues, props.savedTables] as const,
+  () => {
+    if (!ready.value) return;
+    customComponentRef.value?.updateEl?.();
+  },
+  { deep: true },
 );
 
 defineExpose({

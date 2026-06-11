@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
@@ -107,7 +107,11 @@ import { CalculatorOutlined, DownloadOutlined, ImportOutlined, SyncOutlined, Upl
 import type { Key } from 'ant-design-vue/es/table/interface';
 import HttpRequestConfig from '@/httpRequest/config';
 import { useUserStore } from '@/store/modules/user';
-import { calculateAllPage10DegreeRows } from './page10/calculations';
+import {
+  calculateAllPage10DegreeRows,
+  extractPage10SaveParamValues,
+  extractPage10TableSavePayload,
+} from './page10/calculations';
 import { buildDegreeRowsFromImport, readDegreeExcelFile } from './page10/excelImport';
 import {
   applyEfficiencyToDegreeRows,
@@ -119,11 +123,13 @@ import {
   getSelectedRowIndex,
   setDegreeDisplayRows,
   setEfficiencyValue,
+  setSelectedRowIndex,
   syncCalculatedDegreeRowsToSource,
 } from './page10/initData';
-import { extractPage10SaveParamValues, loadPage10PageParameters } from './page10/loadPageParameters';
+import { loadPage10PageParameters } from './page10/loadPageParameters';
 import {
   createDefaultPage10ParameterList,
+  ensurePage10TableComponentIds,
   type Page10DegreeRow,
   type Page10ParameterItem,
   type Page10SchemeRow,
@@ -145,6 +151,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page10ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -173,28 +181,34 @@ const selectedSchemeRows = ref<Page10SchemeRow[]>([]);
 const importModalVisible = ref(false);
 const efficiencyValue = ref('0.73');
 
+function clonePage10ParameterList(list: Page10ParameterItem[]): Page10ParameterItem[] {
+  return ensurePage10TableComponentIds(
+    list.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })) ?? [],
+          }
+        : item.tableMap,
+    })),
+  );
+}
+
 function createInitialParameterList(): Page10ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage10ParameterList(props.pageid);
+    return clonePage10ParameterList(createDefaultPage10ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return clonePage10ParameterList(props.parameterTempList);
 }
 
 const parameterTempList = ref<Page10ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage10PageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage10PageParameters,
+  cloneItem: clonePage10ParameterList,
+});
 
 efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
 
@@ -377,19 +391,58 @@ function updateEl() {
 
 setupParameterWatch(updateEl);
 
+function syncStateBeforeSave() {
+  setEfficiencyValue(parameterTempList.value, efficiencyValue.value);
+
+  const degreeRows = degreeTableRows.value.map(row => ({ ...row }));
+  setDegreeDisplayRows(parameterTempList.value, degreeRows);
+
+  const schemeRows = getSchemeTableRows(parameterTempList.value);
+  let schemeKey = '';
+  if (selectedSchemeRows.value.length === 1) {
+    schemeKey = String(selectedSchemeRows.value[0].p0 ?? '');
+    schemeRows.forEach((row, index) => {
+      if (row.p0 === selectedSchemeRows.value[0].p0) {
+        setSelectedRowIndex(parameterTempList.value, index);
+      }
+    });
+  } else {
+    const selIndex = getSelectedRowIndex(parameterTempList.value);
+    if (selIndex >= 0 && selIndex < schemeRows.length) {
+      schemeKey = String(schemeRows[selIndex]?.p0 ?? '');
+    }
+  }
+
+  if (schemeKey && degreeRows.length) {
+    syncCalculatedDegreeRowsToSource(parameterTempList.value, schemeKey, degreeRows);
+  }
+
+  parameterTempList.value = ensurePage10TableComponentIds(parameterTempList.value);
+}
+
+function getInternalParameterList() {
+  syncStateBeforeSave();
+  return parameterTempList.value;
+}
+
 function getCurrentSaveParamValues() {
+  syncStateBeforeSave();
   return extractPage10SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncStateBeforeSave();
+  return extractPage10TableSavePayload(parameterTempList.value);
 }
 
 defineExpose({
   updateEl,
+  getInternalParameterList,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-  restoreSelectionFromParam();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

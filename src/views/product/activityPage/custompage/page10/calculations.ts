@@ -1,5 +1,89 @@
 import { handleCutZero } from '@/utils/tools';
-import type { Page10DegreeRow } from './parameterDefaults';
+import {
+  PAGE10_ALL_DEGREE_PREFIX,
+  PAGE10_ALL_DEGREE_TABLE_COMPONENT_ID_BASE,
+  PAGE10_DEGREE_DISPLAY_TABLE_COMPONENT_ID,
+  PAGE10_DEGREE_TABLE_NUM,
+  PAGE10_INPUT_TABLE_COMPONENT_ID,
+  PAGE10_INPUT_TABLE_NUM,
+  type Page10DegreeRow,
+  type Page10ParameterItem,
+} from './parameterDefaults';
+
+export type Page10TableSaveRow = {
+  componentId: string | number;
+  tableName: string;
+  values: Array<Record<string, string>>;
+};
+
+function getPage10TableColNums(tableMap?: Page10ParameterItem['tableMap']): number {
+  const colStrLen = tableMap?.colStr?.length ?? 0;
+  const fromColNums = Number(tableMap?.colNums ?? 0);
+  return colStrLen > 0 ? colStrLen : fromColNums;
+}
+
+function mapPage10RowToCValueFormat(
+  row: Record<string, string | number | undefined>,
+  colNums: number,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (let i = 0; i < colNums; i++) {
+    const val = String(row[`p${i}`] ?? '');
+    if (val !== '') result[`c${i + 1}`] = val;
+  }
+  return result;
+}
+
+function resolvePage10TableComponentId(item: Page10ParameterItem): string | number | undefined {
+  const rawId = String(item.componentId ?? '').trim();
+  if (rawId) return item.componentId!;
+
+  const tableNum = String(item.tableNum ?? '').trim();
+  if (tableNum === PAGE10_INPUT_TABLE_NUM) return PAGE10_INPUT_TABLE_COMPONENT_ID;
+  if (tableNum === PAGE10_DEGREE_TABLE_NUM) return PAGE10_DEGREE_DISPLAY_TABLE_COMPONENT_ID;
+
+  const schemeMatch = tableNum.match(new RegExp(`^${PAGE10_ALL_DEGREE_PREFIX}(\\d+)$`));
+  if (schemeMatch) {
+    const idx = Number(schemeMatch[1]);
+    if (!Number.isNaN(idx)) return PAGE10_ALL_DEGREE_TABLE_COMPONENT_ID_BASE + idx;
+  }
+  return undefined;
+}
+
+/** values：传动效率、选择行索引等单行参数 */
+export function extractPage10SaveParamValues(list: Page10ParameterItem[]) {
+  return list
+    .filter(item => item.ifSingleLine !== 't' && String(item.parameterNum ?? '').trim())
+    .map(item => ({
+      paramKey: String(item.parameterNum),
+      paramName: String(item.inputName ?? item.parameterNum),
+      paramValue: String(item.defaultValue ?? ''),
+    }));
+}
+
+/** tables：输入参数表、角度修正表及按方案全角度校核表 */
+export function extractPage10TableSavePayload(list: Page10ParameterItem[]): Page10TableSaveRow[] {
+  return list
+    .filter(item => item.ifSingleLine === 't' && item.tableMap)
+    .map(item => {
+      const resolvedId = resolvePage10TableComponentId(item);
+      if (resolvedId == null || resolvedId === '') return null;
+      const colNums = getPage10TableColNums(item.tableMap);
+      const rowData = item.tableMap?.rowData ?? [];
+      const values = rowData.map(row => mapPage10RowToCValueFormat(row, colNums));
+      if (!rowData.length) return null;
+      const rawId = String(resolvedId).trim();
+      const numericId = Number(rawId);
+      const componentId =
+        rawId && !Number.isNaN(numericId) && String(numericId) === rawId ? numericId : resolvedId;
+      return {
+        componentId,
+        tableName: String(item.tableName ?? item.inputName ?? ''),
+        values,
+      };
+    })
+    .filter((row): row is Page10TableSaveRow => row != null);
+}
 
 function toNumber(value: string | number | undefined): number {
   if (value === '' || value === undefined) return 0;

@@ -34,6 +34,7 @@ export interface Page11ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   propertyType?: string;
   tableMap?: {
     tableType?: string;
@@ -46,6 +47,22 @@ export interface Page11ParameterItem {
 
 export const PAGE11_INPUT_TABLE_NUM = 'DJ11_T_INPUTPARAMS';
 export const PAGE11_SEL_ROW_PARAM = 'DJ11_0_SELROWINDEX';
+
+/** 确定最终方案表 componentId（customizedProcess-page11 专用） */
+export const PAGE11_INPUT_TABLE_COMPONENT_ID = 33;
+
+export function ensurePage11TableComponentIds(list: Page11ParameterItem[]): Page11ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === PAGE11_INPUT_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: PAGE11_INPUT_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
 
 const SCHEME_COL_STR = [
   'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
@@ -180,6 +197,7 @@ export function createDefaultPage11ParameterList(pageId = ''): Page11ParameterIt
       inputName: '计算输入参数',
       tableType: '1',
       tableNum: PAGE11_INPUT_TABLE_NUM,
+      componentId: PAGE11_INPUT_TABLE_COMPONENT_ID,
     },
     {
       inputOrOutput: '1',

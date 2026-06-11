@@ -3,21 +3,6 @@ import { createDefaultPage11ParameterList, type Page11ParameterItem } from './pa
 
 export type { Page11ParameterItem };
 
-export function extractPage11SaveParamValues(list: Page11ParameterItem[]) {
-  const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
-  list.forEach(item => {
-    if (item.ifSingleLine === 't') return;
-    const key = String(item.parameterNum ?? '').trim();
-    if (!key) return;
-    result.push({
-      paramKey: key,
-      paramName: String(item.inputName ?? key),
-      paramValue: String(item.defaultValue ?? ''),
-    });
-  });
-  return result;
-}
-
 async function applyActivityParameterIds(pageId: string, list: Page11ParameterItem[]): Promise<Page11ParameterItem[]> {
   if (!pageId) return list;
   try {

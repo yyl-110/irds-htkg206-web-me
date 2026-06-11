@@ -34,6 +34,7 @@ export interface Page10ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   userid?: string;
   userId?: string;
@@ -54,6 +55,13 @@ export const PAGE10_DEGREE_TABLE_NUM = 'DJ10_T_DEGREERESET';
 export const PAGE10_ALL_DEGREE_PREFIX = 'DJ10_T_ALLDEGREEXNCHECKCAL';
 export const PAGE10_EFFICIENCY_PARAM = 'DJ2_0_CDXL';
 export const PAGE10_SEL_ROW_PARAM = 'DJ2_0_SELROWINDEX';
+
+/** 计算输入参数表 componentId（customizedProcess-page10 专用） */
+export const PAGE10_INPUT_TABLE_COMPONENT_ID = 30;
+/** 角度修正展示表 componentId（customizedProcess-page10 专用） */
+export const PAGE10_DEGREE_DISPLAY_TABLE_COMPONENT_ID = 31;
+/** 全角度性能校核表 componentId 起始值（+ 方案索引） */
+export const PAGE10_ALL_DEGREE_TABLE_COMPONENT_ID_BASE = 32;
 
 const SCHEME_COL_STR = [
   'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
@@ -148,6 +156,30 @@ export function createDefaultDegreeRow(overrides?: Partial<Page10DegreeRow>): Pa
   };
 }
 
+export function ensurePage10TableComponentIds(list: Page10ParameterItem[]): Page10ParameterItem[] {
+  return list.map(item => {
+    if (item.ifSingleLine !== 't') return item;
+    const rawId = String(item.componentId ?? '').trim();
+    if (rawId) return item;
+
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (tableNum === PAGE10_INPUT_TABLE_NUM) {
+      return { ...item, componentId: PAGE10_INPUT_TABLE_COMPONENT_ID };
+    }
+    if (tableNum === PAGE10_DEGREE_TABLE_NUM) {
+      return { ...item, componentId: PAGE10_DEGREE_DISPLAY_TABLE_COMPONENT_ID };
+    }
+    const schemeMatch = tableNum.match(new RegExp(`^${PAGE10_ALL_DEGREE_PREFIX}(\\d+)$`));
+    if (schemeMatch) {
+      const idx = Number(schemeMatch[1]);
+      if (!Number.isNaN(idx)) {
+        return { ...item, componentId: PAGE10_ALL_DEGREE_TABLE_COMPONENT_ID_BASE + idx };
+      }
+    }
+    return item;
+  });
+}
+
 export function createDefaultPage10ParameterList(pageId = ''): Page10ParameterItem[] {
   const efficiency = '0.73';
   return [
@@ -166,6 +198,7 @@ export function createDefaultPage10ParameterList(pageId = ''): Page10ParameterIt
       inputName: '计算输入参数',
       tableType: '1',
       tableNum: PAGE10_INPUT_TABLE_NUM,
+      componentId: PAGE10_INPUT_TABLE_COMPONENT_ID,
     },
     {
       inputOrOutput: '1',
@@ -192,6 +225,7 @@ export function createDefaultPage10ParameterList(pageId = ''): Page10ParameterIt
       inputName: '角度修正',
       tableType: '1',
       tableNum: PAGE10_DEGREE_TABLE_NUM,
+      componentId: PAGE10_DEGREE_DISPLAY_TABLE_COMPONENT_ID,
     },
     {
       inputOrOutput: '1',

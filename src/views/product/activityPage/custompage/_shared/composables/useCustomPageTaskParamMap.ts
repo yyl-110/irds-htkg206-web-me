@@ -124,14 +124,22 @@ export function useCustomPageTaskParamMap<T extends CustomPageParameterItem>(opt
 
   function setupParameterWatch(updateEl: () => void) {
     watch(
-      () => [options.props.parameterTempList, options.props.savedParamValues, options.props.savedTables] as const,
-      ([val]) => {
+      () => options.props.parameterTempList,
+      val => {
         if (val && val.length > 0) {
           options.parameterTempList.value = cloneList(val as T[]);
           taskParamLoaded = false;
           syncTaskParamCacheFromProps();
           nextTick(() => updateEl());
         }
+      },
+      { deep: true },
+    );
+    watch(
+      () => [options.props.savedParamValues, options.props.savedTables] as const,
+      () => {
+        syncTaskParamCacheFromProps();
+        nextTick(() => updateEl());
       },
       { deep: true },
     );

@@ -26,12 +26,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
+import { extractPage11SaveParamValues, extractPage11TableSavePayload } from './page11/calculations';
 import {
   applyPage11InitData,
   applySchemeSelection,
@@ -39,9 +39,10 @@ import {
   getSelectedRowIndex,
   normalizeSelectedRowIndex,
 } from './page11/initData';
-import { extractPage11SaveParamValues, loadPage11PageParameters } from './page11/loadPageParameters';
+import { loadPage11PageParameters } from './page11/loadPageParameters';
 import {
   createDefaultPage11ParameterList,
+  ensurePage11TableComponentIds,
   type Page11ParameterItem,
   type Page11SchemeRow,
 } from './page11/parameterDefaults';
@@ -55,6 +56,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page11ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -68,8 +71,6 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
-
 const tabHeight = 500;
 const tableScrollX = PAGE11_TABLE_MIN_WIDTH;
 const schemeTableColumns = PAGE11_SCHEME_COLUMNS;
@@ -78,15 +79,17 @@ const selectedRowKeys = ref<Key[]>([]);
 const selectedSchemeRows = ref<Page11SchemeRow[]>([]);
 
 function cloneParameterList(source: Page11ParameterItem[]): Page11ParameterItem[] {
-  return source.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return ensurePage11TableComponentIds(
+    source.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
 }
 
 function createInitialParameterList(): Page11ParameterItem[] {
@@ -97,12 +100,12 @@ function createInitialParameterList(): Page11ParameterItem[] {
 }
 
 const parameterTempList = ref<Page11ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage11PageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage11PageParameters,
+  cloneItem: cloneParameterList,
+});
 
 const schemeTableRows = computed(() => getSchemeTableRows(parameterTempList.value));
 
@@ -185,31 +188,38 @@ function handleInitData() {
 
 function updateEl() {
   nextTick(() => {
-
+    applyTaskParamMapToList();
     const selIndex = getSelectedRowIndex(parameterTempList.value);
     if (selIndex === undefined || selIndex === null || String(selIndex) === '') {
       normalizeSelectedRowIndex(parameterTempList.value);
     }
     restoreSelectionFromParam();
-    applyTaskParamMapToList();
   });
 }
 
 setupParameterWatch(updateEl);
 
+function syncParameterListBeforeSave() {
+  applySchemeSelection(parameterTempList.value, selectedSchemeRows.value);
+}
+
 function getCurrentSaveParamValues() {
-  return extractPage11SaveParamValues(parameterTempList.value);
+  syncParameterListBeforeSave();
+  return extractPage11SaveParamValues(ensurePage11TableComponentIds(parameterTempList.value));
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractPage11TableSavePayload(ensurePage11TableComponentIds(parameterTempList.value));
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-  restoreSelectionFromParam();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>
