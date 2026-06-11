@@ -321,10 +321,16 @@ async function designFlow(record: Record<string, any>) {
       message.error('流程页面数据为空');
       return;
     }
-    const cacheKey = `designTaskAppWorkspace:${String((payload as Record<string, any>)?.appId ?? Date.now())}:${Date.now()}`;
-    sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    const p = payload as Record<string, any>;
+    const merged = {
+      ...p,
+      confidentialLevel:
+        p.confidentialLevel ?? record?.confidentialLevel ?? detailData.value?.confidentialLevel,
+    };
+    const cacheKey = `designTaskAppWorkspace:${String(p?.appId ?? Date.now())}:${Date.now()}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify(merged));
     const taskId = String(detailData.value?.id ?? '').trim();
-    const targetAppId = String(appId || (payload as Record<string, any>)?.appId || '').trim();
+    const targetAppId = String(appId || p?.appId || '').trim();
     router.push({
       path: '/internal/design-task-app-workspace',
       query: { cacheKey, taskId, appId: targetAppId },

@@ -49,6 +49,7 @@ interface WorkspaceData {
   appId?: string;
   appCode?: string;
   appName?: string;
+  confidentialLevel?: number | string;
   taskId?: string;
   taskPublishVersionId?: string;
   currentBpmnElementId?: string;
@@ -67,11 +68,13 @@ interface TreeItem {
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 /** 已办「查询详情」等场景：设计页只读，隐藏保存/提交等操作 */
 const isReadOnlyWorkspace = computed(() => String(route.query.readOnly ?? '') === '1');
 /** 协同任务（COLLAB）：左侧树为当前任务发布流程，与独立应用同源交互 */
 const isWbsCollabWorkspace = computed(() => String(route.query.workspaceMode ?? '') === 'wbs');
 const wbsProjectInfoFallback = ref<{ projectName?: string; projectNum?: string }>({});
+const standaloneAppLevelFallback = ref<number | string | undefined>();
 
 function pickNonEmptyText(raw: unknown): string {
   const s = String(raw ?? '').trim();
@@ -95,6 +98,87 @@ const wbsProjectDisplayNum = computed(
 const showWbsProjectBanner = computed(
   () => isWbsCollabWorkspace.value && !!(wbsProjectDisplayName.value || wbsProjectDisplayNum.value),
 );
+
+const standaloneAppDisplayName = computed(() => pickNonEmptyText(workspaceData.value?.appName));
+
+const standaloneAppDisplayCode = computed(() => pickNonEmptyText(workspaceData.value?.appCode));
+
+function formatConfidentialLevelText(level: unknown): string {
+  if (level === undefined || level === null || level === '') return '';
+  const num = Number(level);
+  if (!Number.isFinite(num)) return String(level);
+  const fromStore = userStore.getConfidentialLevel.find(item => Number(item.value) === num);
+  if (fromStore?.label) return String(fromStore.label);
+  const fallback: Record<string, string> = {
+    '0': '公开',
+    '1': '内部',
+    '2': '秘密',
+    '3': '机密',
+  };
+  return fallback[String(num)] ?? String(level);
+}
+
+const standaloneAppDisplayLevel = computed(() =>
+  formatConfidentialLevelText(
+    workspaceData.value?.confidentialLevel ?? standaloneAppLevelFallback.value,
+  ),
+);
+
+const showStandaloneAppBanner = computed(
+  () =>
+    !isWbsCollabWorkspace.value &&
+    !!(standaloneAppDisplayName.value || standaloneAppDisplayCode.value),
+);
+
+function hasConfidentialLevelValue(level: unknown): boolean {
+  return level !== undefined && level !== null && level !== '';
+}
+
+/** 独立应用：缓存无密级时从 projectPages / appList 补全 */
+async function loadStandaloneAppMetaFallback() {
+  if (isWbsCollabWorkspace.value) return;
+  if (hasConfidentialLevelValue(workspaceData.value?.confidentialLevel)) {
+    standaloneAppLevelFallback.value = undefined;
+    return;
+  }
+  const appId = pickNonEmptyText(route.query.appId ?? workspaceData.value?.appId);
+  const appCode = pickNonEmptyText(workspaceData.value?.appCode);
+  const taskId = pickNonEmptyText(route.query.taskId ?? workspaceData.value?.taskId);
+  try {
+    if (appId || appCode) {
+      const query: Record<string, string> = {};
+      if (appId) query.appId = appId;
+      else query.appCode = appCode;
+      const res = await AdminApiSystemProcessTask.projectPages(query);
+      const payload = res?.data?.data as WorkspaceData | undefined;
+      if (payload && hasConfidentialLevelValue(payload.confidentialLevel)) {
+        workspaceData.value = { ...workspaceData.value, ...payload };
+        standaloneAppLevelFallback.value = payload.confidentialLevel;
+        return;
+      }
+    }
+    if (taskId) {
+      const listRes = await AdminApiSystemProcessTask.appList({
+        taskId,
+        appCode: appCode || undefined,
+      });
+      const list = listRes?.data?.data as Array<{ appId?: unknown; confidentialLevel?: unknown }> | undefined;
+      const matched =
+        Array.isArray(list) && list.length
+          ? list.find(row => appId && String(row?.appId ?? '') === appId) ?? list[0]
+          : null;
+      if (matched && hasConfidentialLevelValue(matched.confidentialLevel)) {
+        standaloneAppLevelFallback.value = matched.confidentialLevel as number | string;
+        workspaceData.value = {
+          ...workspaceData.value,
+          confidentialLevel: matched.confidentialLevel as number | string,
+        };
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 async function loadWbsProjectInfoFallback() {
   if (!isWbsCollabWorkspace.value) return;
@@ -1833,6 +1917,7 @@ const rightToggleStyle = computed(() => {
 loadWorkspaceData();
 void initDefaultSelectedNode();
 void loadWorkspaceOperateLogs();
+void loadStandaloneAppMetaFallback();
 
 watch(
   () => workspaceData.value,
@@ -1850,6 +1935,7 @@ watch(
     void initDefaultSelectedNode();
     void loadWorkspaceOperateLogs();
     void loadWbsProjectInfoFallback();
+    void loadStandaloneAppMetaFallback();
   },
 );
 
@@ -1862,6 +1948,7 @@ watch(
 
 onMounted(() => {
   void loadWbsProjectInfoFallback();
+  void loadStandaloneAppMetaFallback();
   nextTick(() => {
     applyDefaultLeftWidthPx();
     leftPaneBeforeCollapse.value = leftPaneSize.value;
@@ -1883,6 +1970,17 @@ onMounted(() => {
       </span>
       <span v-if="wbsProjectDisplayNum" class="workspace-wbs-project-banner__item">
         项目编号：{{ wbsProjectDisplayNum }}
+      </span>
+    </div>
+    <div v-else-if="showStandaloneAppBanner" class="workspace-wbs-project-banner">
+      <span v-if="standaloneAppDisplayName" class="workspace-wbs-project-banner__item">
+        应用名称：{{ standaloneAppDisplayName }}
+      </span>
+      <span v-if="standaloneAppDisplayCode" class="workspace-wbs-project-banner__item">
+        应用编号：{{ standaloneAppDisplayCode }}
+      </span>
+      <span class="workspace-wbs-project-banner__item">
+        密级：{{ standaloneAppDisplayLevel || '--' }}
       </span>
     </div>
     <Splitpanes class="default-theme workspace-splitpanes" @resize="onSplitpanesResized" @resized="onSplitpanesResized">

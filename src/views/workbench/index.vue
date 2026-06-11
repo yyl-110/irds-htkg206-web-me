@@ -923,8 +923,13 @@ async function openDesignWorkspace(task: TaskItem, options?: { readOnly?: boolea
       message.error('流程页面数据为空');
       return;
     }
+    const merged = {
+      ...payload,
+      confidentialLevel:
+        (payload as Record<string, unknown>).confidentialLevel ?? task.confidentialLevel,
+    };
     const cacheKey = `designTaskAppWorkspace:${String(payload.appId ?? appId)}:${Date.now()}`;
-    sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    sessionStorage.setItem(cacheKey, JSON.stringify(merged));
     const taskId = String(task.taskId ?? '').trim();
     const targetAppId = String((payload.appId as string | number | undefined) ?? appId).trim();
     await router.push({
