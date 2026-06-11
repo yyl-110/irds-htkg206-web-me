@@ -83,6 +83,10 @@ const persistedProjectIdForBasicInfo = computed(() => {
 /** 供任务管理 Tab 立即判断创建人权限（避免子组件重复请求尚未返回时无操作按钮） */
 const projectCreatorForWbs = ref<string | undefined>();
 const projectCreatorNameForWbs = ref<string | undefined>();
+/** 当前登录用户是否为项目经理（可编辑基本信息、分配团队人员） */
+const projectManagerAuth = ref(true);
+
+const canEditProjectInfo = computed(() => !projectId.value || projectManagerAuth.value);
 
 function disabledPlanStartDate(current: Dayjs) {
   if (!current) return false;
@@ -113,6 +117,7 @@ function resetProjectForm() {
   projectFormTab.value = '1';
   projectCreatorForWbs.value = undefined;
   projectCreatorNameForWbs.value = undefined;
+  projectManagerAuth.value = true;
   projectForm.projectNum = '';
   projectForm.productPlatform = '';
   projectForm.projectName = '';
@@ -131,6 +136,10 @@ async function handleTabchange(key: string) {
 }
 
 async function submitProjectForm() {
+  if (projectId.value && !projectManagerAuth.value) {
+    message.warning(WeiI18n.$t('仅项目经理可编辑项目信息'));
+    return;
+  }
   try {
     await basicInfoRef.value?.validateForm();
   } catch {
@@ -160,6 +169,7 @@ async function submitProjectForm() {
       data.projectStatus = 1;
       const res = await AdminApiProjectTemp.createProject(data);
       projectId.value = res.data.data;
+      projectManagerAuth.value = true;
     }
     message.success(WeiI18n.$t('保存成功'));
   } finally {
@@ -238,6 +248,7 @@ async function getProjectInfo() {
   projectCreatorForWbs.value =
     projectDto.creator !== undefined && projectDto.creator !== null ? String(projectDto.creator) : undefined;
   projectCreatorNameForWbs.value = projectDto.creatorName ?? undefined;
+  projectManagerAuth.value = projectDto.projectManagerAuth === true;
   projectForm.projectNum = projectDto.projectNum;
   projectForm.productPlatform = projectDto.productPlatform;
   projectForm.productPlatformId = projectDto.productPlatformId;
@@ -272,6 +283,7 @@ async function getProjectInfo() {
             ref="basicInfoRef"
             :project-form="projectForm"
             :persisted-project-id="persistedProjectIdForBasicInfo"
+            :readonly="!canEditProjectInfo"
             :project-form-label-col="projectFormLabelCol"
             :project-form-wrapper-col="projectFormWrapperCol"
             :confidential-options="confidentialOptions"
@@ -280,7 +292,7 @@ async function getProjectInfo() {
             :disabled-plan-end-date="disabledPlanEndDate" />
         </a-tab-pane>
         <a-tab-pane v-if="projectId" key="2" :tab="$t('项目团队')">
-          <ProjectTeamTab ref="projectTeamRef" :project-id="projectId" />
+          <ProjectTeamTab ref="projectTeamRef" :project-id="projectId" :can-manage-team="projectManagerAuth" />
         </a-tab-pane>
         <a-tab-pane v-if="projectId" key="3" :tab="$t('任务管理')" class="project-editor-tabs-pane--wbs">
           <div class="project-editor-tab-wbs">
@@ -298,7 +310,7 @@ async function getProjectInfo() {
 
     <div class="project-editor-page-footer">
       <a-button
-        v-if="projectFormTab === '1'"
+        v-if="projectFormTab === '1' && canEditProjectInfo"
         type="primary"
         :loading="projectFormSubmitting"
         @click="submitProjectForm">

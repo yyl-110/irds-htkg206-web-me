@@ -507,7 +507,7 @@ defineExpose({ getResourcesByParent });
             <template v-else-if="column.dataIndex === 'operation'">
               <div class="project-list-adm-op-cell">
                 <a
-                  v-if="record.wbsCategoryAssignee === true || isProjectCreator(record)"
+                  v-if="record.wbsCategoryAssignee === true"
                   @click="noticeAdd(record)">
                   {{ $t('编辑') }}
                 </a>

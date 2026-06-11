@@ -1,38 +1,38 @@
 <template>
-  <div style="width: 44%; height: 100%">
-    <v-chart :option="chartOption" class="chart" ref="myChart" />
+  <div class="complete-pie">
+    <v-chart :option="chartOption" class="chart" ref="myChart" autoresize />
   </div>
 </template>
 
 <script setup>
-import * as echarts from "echarts";
+import * as echarts from 'echarts';
 
 const defaultList = [
   {
     taskNums: 0,
     taskState: 2,
-    taskStateName: "已完成",
-    color: '#43CF7C'
+    taskStateName: '已完成',
+    color: '#43CF7C',
   },
   {
     taskNums: 0,
     taskState: 1,
-    taskStateName: "进行中",
+    taskStateName: '进行中',
     color: '#FFEB3B',
   },
   {
     taskNums: 0,
     taskState: 3,
-    taskStateName: "变更中",
-    color: '#D43030'
+    taskStateName: '变更中',
+    color: '#D43030',
   },
   {
     taskNums: 0,
     taskState: 0,
-    taskStateName: "未开始",
-    color: '#66B2C8'
+    taskStateName: '未开始',
+    color: '#66B2C8',
   },
-]
+];
 
 const props = defineProps({
   chartData: {
@@ -43,273 +43,255 @@ const props = defineProps({
 
 const chartOption = ref({});
 const myChart = ref(null);
-// 添加定时器引用
 const timer = ref(null);
-const initChart = () => {
-  if (timer.value) {
-    clearInterval(timer.value);
-  }
-  const dataList = defaultList.map((item) => {
-    const valueObj = props.chartData.find((v) => v.taskState === item.taskState);
-    if (valueObj) {
-      return {
-        name: item.taskStateName,
-        value: valueObj.taskNums,
-        color: item.color,
-      };
-    }
+let angle = 0;
+
+const buildDataList = () => {
+  const source = Array.isArray(props.chartData) ? props.chartData : [];
+  return defaultList.map((item) => {
+    const valueObj = source.find((v) => v.taskState === item.taskState);
     return {
       name: item.taskStateName,
-      value: 0,
+      value: valueObj ? Number(valueObj.taskNums) || 0 : 0,
       color: item.color,
     };
   });
-  let angle = 0;
+};
 
-  const orderNames = ["已完成", "进行中", "变更中", "未开始"];
-  const data1 = [];
-  for (const name of orderNames) {
-    const row = dataList.find((x) => x.name === name);
-    if (!row) continue;
-    if (name === "未开始" && (!row.value || row.value === 0)) {
-      continue;
-    }
-    data1.push({
+const buildPieData = (dataList) => {
+  const orderNames = ['已完成', '进行中', '变更中'];
+  const data1 = orderNames
+    .map((name) => dataList.find((x) => x.name === name))
+    .filter((row) => row && row.value > 0)
+    .map((row) => ({
       ...row,
       itemStyle: { color: row.color },
-    });
-  }
+    }));
+
   if (!data1.length) {
     data1.push({
-      name: "暂无",
+      name: '暂无',
       value: 1,
-      itemStyle: { color: "rgba(255,255,255,0.15)" },
+      itemStyle: { color: 'rgba(255,255,255,0.15)' },
     });
   }
+  return data1;
+};
 
-  let sum = 0;
-  dataList.forEach((v) => {
-    sum += v.value;
-  });
-
-  const option = {
-    tooltip: {
-      show: true,
-      trigger: "item",
-    },
-    title: {
-      text: `{a|${sum}}\n{b|总任务}`,
-      x: "center",
-      y: "37%",
-      textStyle: {
-        rich: {
-          b: {
-            color: "#fff",
-            fontSize: 15,
-            padding: [10, 0, 0, 0],
-            textAlign: "center",
-          },
-          a: {
-            color: "#66FFFF",
-            fontSize: 35,
-            fontWeight: 600,
-            textAlign: "center",
-          },
+const buildOption = (data1, sum) => ({
+  tooltip: {
+    show: true,
+    trigger: 'item',
+  },
+  title: {
+    text: `{a|${sum}}\n{b|总任务}`,
+    left: 'center',
+    top: '34%',
+    textStyle: {
+      rich: {
+        a: {
+          color: '#ffffff',
+          fontSize: 38,
+          fontWeight: 700,
+          lineHeight: 42,
+          textAlign: 'center',
+        },
+        b: {
+          color: 'rgba(255,255,255,0.88)',
+          fontSize: 14,
+          padding: [8, 0, 0, 0],
+          textAlign: 'center',
         },
       },
     },
-    legend: {
-      left: "center",
-      bottom: "5%",
-      icon: "circle",
-      itemWidth: 14,
-      itemHeight: 14,
-      itemGap: 18,
-      data: data1.map((d) => d.name).filter((n) => n !== "暂无"),
-      textStyle: {
-        color: "#fff",
-        fontSize: 12,
-      },
-      selectedMode: false,
+  },
+  legend: {
+    left: 'center',
+    bottom: '4%',
+    icon: 'circle',
+    itemWidth: 10,
+    itemHeight: 10,
+    itemGap: 20,
+    data: data1.map((d) => d.name).filter((n) => n !== '暂无'),
+    textStyle: {
+      color: '#fff',
+      fontSize: 12,
     },
-    series: [
-      {
-        name: "总任务",
-        type: "pie",
-        center: ["50%", "45%"],
-        radius: ["25%", "48%"],
-        avoidLabelOverlap: false,
-        hoverAnimation: false,
-        label: {
-          show: false,
-          formatter: "({d}%)",
-        },
-        emphasis: {
-          label: {
-            show: false,
-            fontSize: 12,
-            fontWeight: "bold",
-          },
-        },
-        labelLine: {
-          length: 4,
-          length2: 4,
-        },
-        data: data1,
+    selectedMode: false,
+  },
+  series: [
+    {
+      name: '总任务',
+      type: 'pie',
+      center: ['50%', '42%'],
+      radius: ['28%', '50%'],
+      avoidLabelOverlap: false,
+      hoverAnimation: false,
+      label: { show: false },
+      emphasis: {
+        label: { show: false },
       },
+      labelLine: { show: false },
+      data: data1,
+    },
+    {
+      type: 'custom',
+      coordinateSystem: 'none',
+      silent: true,
+      data: [0],
+      renderItem(params, api) {
+        const r = Math.min(api.getWidth(), api.getHeight()) / 2;
+        const center = {
+          x: api.getWidth() * 0.5,
+          y: api.getHeight() * 0.42,
+        };
+        const rBig = r * 0.78;
+        const rSmall = r * 0.66;
+        const bigSector = [];
+        const smallSector = [];
+        const sectorSize = 60;
+        const sectorInterval = 30;
+        const bigStartAngle = 310;
 
-      {
-        type: "custom",
-        coordinateSystem: "none",
-        silent: true,
-        data: [0],
-        renderItem (params, api) {
-          // 环形图半径
-          const r = Math.min(api.getWidth(), api.getHeight()) / 2;
-          // 圆心
-          const center = {
-            x: api.getWidth() * 0.5,
-            y: api.getHeight() / 2.2,
-          };
-          // 大圆半径
-          const rBig = r * 0.75;
-          // 小圆半径
-          const rSmall = r * 0.63;
-          // 大圆上的扇形
-          const bigSector = [];
-          const smallSector = [];
-          const circleOnCircle = []; // 小圆上携带的小圆圈
-          const sectorSize = 60; // 扇形长度（弧度）
-          const sectorInterval = 30; // 扇形与扇形之间的间隔
-          const BigStartAngle = 310; // 大扇形起始角度
-          for (let i = 0; i < 4; i++) {
-            const startAngle =
-              ((i * (sectorInterval + sectorSize) + BigStartAngle) * Math.PI) /
-              180;
-            const endAngle = startAngle + (sectorSize * Math.PI) / 180;
-            const smallStartAngle =
-              (Math.PI / 180) *
-              (280 + angle + i * (sectorSize + sectorInterval));
-            const smallEndAngle =
-              smallStartAngle + (sectorSize * Math.PI) / 180;
-            bigSector.push({
-              type: "sector",
-              shape: {
-                cx: center.x,
-                cy: center.y,
-                r: rBig,
-                r0: rBig * 0.93,
-                startAngle,
-                endAngle,
-              },
-              style: {
-                fill: "#00C1BD",
-                lineWidth: 1,
-              },
-            });
-            smallSector.push({
-              type: "sector",
-              shape: {
-                cx: center.x,
-                cy: center.y,
-                r: rSmall * 0.93,
-                r0: rSmall * 0.87,
-                startAngle: smallStartAngle,
-                endAngle: smallEndAngle,
-              },
-              style: {
-                fill: "#19ECFF",
-                lineWidth: 2,
-              },
-            });
-          }
-          return {
-            type: "group",
-            children: [
-              {
-                type: "group",
-                children: [
-                  ...bigSector,
-                  {
-                    // 外圆环
-                    type: "arc",
-                    shape: {
-                      cx: center.x,
-                      cy: center.y,
-                      r: rBig,
-                    },
-                    style: {
-                      fill: "transparent",
-                      stroke: "#19ECFF",
-                      lineWidth: 2,
-                    },
+        for (let i = 0; i < 4; i += 1) {
+          const startAngle =
+            ((i * (sectorInterval + sectorSize) + bigStartAngle) * Math.PI) / 180;
+          const endAngle = startAngle + (sectorSize * Math.PI) / 180;
+          const smallStartAngle =
+            (Math.PI / 180) * (280 + angle + i * (sectorSize + sectorInterval));
+          const smallEndAngle = smallStartAngle + (sectorSize * Math.PI) / 180;
+
+          bigSector.push({
+            type: 'sector',
+            shape: {
+              cx: center.x,
+              cy: center.y,
+              r: rBig,
+              r0: rBig * 0.93,
+              startAngle,
+              endAngle,
+            },
+            style: {
+              fill: '#00C1BD',
+              lineWidth: 1,
+            },
+          });
+          smallSector.push({
+            type: 'sector',
+            shape: {
+              cx: center.x,
+              cy: center.y,
+              r: rSmall * 0.93,
+              r0: rSmall * 0.87,
+              startAngle: smallStartAngle,
+              endAngle: smallEndAngle,
+            },
+            style: {
+              fill: '#19ECFF',
+              lineWidth: 2,
+            },
+          });
+        }
+
+        return {
+          type: 'group',
+          children: [
+            {
+              type: 'group',
+              children: [
+                ...bigSector,
+                {
+                  type: 'arc',
+                  shape: {
+                    cx: center.x,
+                    cy: center.y,
+                    r: rBig,
                   },
-                ],
-              },
-              {
-                // 内圆环
-                type: "group",
-                children: [
-                  ...smallSector,
-                  ...circleOnCircle,
-                  {
-                    // 内圆
-                    type: "arc",
-                    shape: {
-                      cx: center.x,
-                      cy: center.y,
-                      r: rSmall,
-                    },
-                    style: {
-                      fill: "transparent",
-                      stroke: "#19ECFF",
-                      lineWidth: 2,
-                    },
+                  style: {
+                    fill: 'transparent',
+                    stroke: '#19ECFF',
+                    lineWidth: 2,
                   },
-                ],
-              },
-            ],
-          };
-        },
+                },
+              ],
+            },
+            {
+              type: 'group',
+              children: [
+                ...smallSector,
+                {
+                  type: 'arc',
+                  shape: {
+                    cx: center.x,
+                    cy: center.y,
+                    r: rSmall,
+                  },
+                  style: {
+                    fill: 'transparent',
+                    stroke: '#19ECFF',
+                    lineWidth: 2,
+                  },
+                },
+              ],
+            },
+          ],
+        };
       },
-    ],
+    },
+  ],
+});
+
+const initChart = () => {
+  if (timer.value) {
+    clearInterval(timer.value);
+    timer.value = null;
+  }
+
+  const dataList = buildDataList();
+  const data1 = buildPieData(dataList);
+  const sum = dataList.reduce((total, item) => total + item.value, 0);
+  const option = buildOption(data1, sum);
+
+  chartOption.value = option;
+  angle = 0;
+
+  const play = () => {
+    angle += 3;
+    myChart.value?.setOption(buildOption(data1, sum), { notMerge: false, lazyUpdate: true });
   };
 
-  function play () {
-    angle += 3;
-    nextTick(() => {
-      myChart.value && myChart.value.setOption(option);
-    });
-  }
   nextTick(() => {
-    myChart.value && myChart.value.setOption(option);
-  });
-
-  setTimeout(() => {
+    myChart.value?.setOption(option);
     timer.value = setInterval(() => {
       requestAnimationFrame(play);
     }, 50);
-  }, 1000);
+  });
 };
 
 onUnmounted(() => {
   if (timer.value) {
     clearInterval(timer.value);
   }
-  if (myChart.value) {
-    myChart.value.dispose();
-  }
 });
 
 watch(
   () => props.chartData,
-  (val) => {
-    if (val && val.length) {
-      initChart();
-    }
+  () => {
+    initChart();
   },
   { deep: true, immediate: true },
 );
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.complete-pie {
+  width: 42%;
+  height: 100%;
+  min-width: 260px;
+
+  .chart {
+    width: 100%;
+    height: 100%;
+  }
+}
+</style>

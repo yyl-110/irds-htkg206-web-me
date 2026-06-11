@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import ScreenContainer from '../../components/screen-container.vue';
@@ -87,8 +87,10 @@ import drawingProgress from './component/drawing-progress.vue';
 import type { DrawingProgressItem } from './component/drawing-progress.vue';
 import {
   collabStandaloneBoard,
+  deliveryByDeptBoard,
   deliveryReport,
   getReportProjectList,
+  getReportProjectPhaseList,
   pdmPicReport,
   productBoardProjectOverview,
 } from '@/api/data-screen';
@@ -102,6 +104,7 @@ import {
 
 const router = useRouter();
 const indexStore = useIndexStore();
+const { updateProjectList, updateSelectProjectId, updatePhaseList } = indexStore;
 const { selectProjectId, selectPhaseId } = storeToRefs(indexStore);
 
 const overviewInfo = ref<Record<string, any>>({});
@@ -130,9 +133,12 @@ const timeOptions = computed(() => {
 });
 
 /** 项目交付看板：总任务数、协同任务数、独立应用数 */
-const mergedDeliveryCollab = computed(() => {
-  const d = deliveryInfo.value || {};
-  const c = collabStandaloneInfo.value || {};
+function mergeDeliveryCollabData(
+  delivery: Record<string, any>,
+  collab: Record<string, any>,
+) {
+  const d = delivery || {};
+  const c = collab || {};
   const keys = new Set([...Object.keys(d), ...Object.keys(c)]);
   if (!keys.size) return {};
   const out: Record<string, { totalCount: number; collabTaskCount: number; standaloneAppCount: number }> = {};
@@ -140,13 +146,17 @@ const mergedDeliveryCollab = computed(() => {
     const rowD = d[k] || {};
     const rowC = c[k] || {};
     out[k] = {
-      totalCount: Number(rowD.total_docs ?? rowC.totalPublishedCount) || 0,
-      collabTaskCount: Number(rowC.collabPublished) || 0,
-      standaloneAppCount: Number(rowC.standaloneAppCount) || 0,
+      totalCount: Number(rowD.totalCount ?? rowD.totalPublishedCount ?? rowD.total_docs ?? rowC.totalPublishedCount) || 0,
+      collabTaskCount: Number(rowC.collabTaskCount ?? rowC.collabPublished ?? rowD.collabPublished) || 0,
+      standaloneAppCount: Number(rowC.standaloneAppCount ?? rowD.standaloneAppCount) || 0,
     };
   });
   return out;
-});
+}
+
+const mergedDeliveryCollab = computed(() =>
+  mergeDeliveryCollabData(deliveryInfo.value, collabStandaloneInfo.value),
+);
 
 const pdmPicList = computed<DrawingProgressItem[]>(() => mapPdmPicData(pdmPicRaw.value));
 
@@ -158,6 +168,25 @@ function isApiSuccess(res: any) {
 
 function getApiData<T = any>(res: any): T | undefined {
   return res?.data?.data;
+}
+
+function normalizeMapData(raw: unknown): Record<string, any> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return raw as Record<string, any>;
+}
+
+function hasMapData(raw: Record<string, any>) {
+  return Object.keys(raw || {}).length > 0;
+}
+
+function hasTaskBoardData(raw: Record<string, any>) {
+  const tasks = raw?.taskNumsList;
+  const phases = raw?.phaseList;
+  return Array.isArray(tasks) && tasks.length > 0 && Array.isArray(phases) && phases.length > 0;
+}
+
+function hasDeliveryBoardData(raw: Record<string, any>) {
+  return hasMapData(raw);
 }
 
 function mapPdmPicData(raw: Record<string, any>): DrawingProgressItem[] {
@@ -230,8 +259,7 @@ const changeTaskPhase = (val: string) => {
 
 const changeInteractionPhase = (val: string) => {
   interactionPhaseId.value = val;
-  fetchDeliveryData();
-  fetchCollabStandaloneData();
+  fetchDeliveryBoardData();
 };
 
 /** 左上-项目概览（按年度） */
@@ -257,16 +285,22 @@ const fetchProjectOverview = async () => {
 
 /** 左下-项目任务（按项目+阶段） */
 const fetchTaskData = async (val?: string) => {
-  if (!selectProjectId.value) return;
+  if (!selectProjectId.value) {
+    if (USE_MOCK_DATA) applyTaskMock();
+    return;
+  }
   try {
-    const phaseIdData = val ?? selectPhaseId.value;
+    const phaseIdData = val ?? taskPhaseId.value ?? selectPhaseId.value;
     const res: any = await getReportProjectList({
       projectId: selectProjectId.value,
       phaseId: phaseIdData === '-1' ? '' : phaseIdData,
     });
     if (isApiSuccess(res)) {
-      productInfo.value = getApiData(res) || {};
-      return;
+      const data = getApiData(res) || {};
+      if (hasTaskBoardData(data)) {
+        productInfo.value = data;
+        return;
+      }
     }
   } catch (error) {
     console.log('error:', error);
@@ -274,35 +308,40 @@ const fetchTaskData = async (val?: string) => {
   if (USE_MOCK_DATA) applyTaskMock();
 };
 
-const fetchDeliveryData = async () => {
-  try {
-    const res: any = await deliveryReport({
-      phaseId: interactionPhaseId.value === '-1' ? '' : interactionPhaseId.value,
-      projectId: selectProjectId.value,
-    });
-    if (isApiSuccess(res)) {
-      deliveryInfo.value = getApiData(res) || {};
-      return;
-    }
-  } catch (error) {
-    console.log('error:', error);
-  }
-};
+const fetchDeliveryBoardData = async () => {
+  deliveryInfo.value = {};
+  collabStandaloneInfo.value = {};
 
-const fetchCollabStandaloneData = async () => {
-  try {
-    const res: any = await collabStandaloneBoard({
-      projectId: selectProjectId.value,
-      phaseId: interactionPhaseId.value === '-1' ? '' : interactionPhaseId.value,
-    });
-    if (isApiSuccess(res)) {
-      collabStandaloneInfo.value = getApiData(res) || {};
-      if (Object.keys(collabStandaloneInfo.value).length) return;
-    }
-  } catch (error) {
-    console.log('error:', error);
+  if (!selectProjectId.value) {
+    if (USE_MOCK_DATA) applyDeliveryMock();
+    return;
   }
-  if (USE_MOCK_DATA) applyDeliveryMock();
+
+  const phaseParam = interactionPhaseId.value === '-1' ? '' : interactionPhaseId.value;
+  const req = { projectId: selectProjectId.value, phaseId: phaseParam };
+
+  const loaders = [
+    deliveryByDeptBoard(req),
+    collabStandaloneBoard(req),
+    deliveryReport(req),
+  ];
+
+  const results = await Promise.allSettled(loaders);
+  results.forEach((result, index) => {
+    if (result.status !== 'fulfilled' || !isApiSuccess(result.value)) return;
+    const data = normalizeMapData(getApiData(result.value));
+    if (!hasMapData(data)) return;
+    if (index === 0 || index === 1) {
+      collabStandaloneInfo.value = { ...collabStandaloneInfo.value, ...data };
+    } else {
+      deliveryInfo.value = { ...deliveryInfo.value, ...data };
+    }
+  });
+
+  const merged = mergeDeliveryCollabData(deliveryInfo.value, collabStandaloneInfo.value);
+  if (!hasDeliveryBoardData(merged) && USE_MOCK_DATA) {
+    applyDeliveryMock();
+  }
 };
 
 const fetchPdmPicReport = async () => {
@@ -320,16 +359,42 @@ const fetchPdmPicReport = async () => {
 
 const loadBoard = () => {
   fetchProjectOverview();
-  if (!selectProjectId.value) return;
+  if (!selectProjectId.value) {
+    if (USE_MOCK_DATA) {
+      applyTaskMock();
+      applyDeliveryMock();
+      applyPdmPicMock();
+    }
+    return;
+  }
   interactionPhaseId.value = '-1';
   taskPhaseId.value = '-1';
   fetchTaskData();
-  fetchDeliveryData();
-  fetchCollabStandaloneData();
+  fetchDeliveryBoardData();
   fetchPdmPicReport();
 };
 
-watch(() => selectProjectId.value, loadBoard, { immediate: true });
+const ensureProjectSelected = async () => {
+  if (selectProjectId.value) return;
+  try {
+    const res: any = await getReportProjectPhaseList();
+    if (!isApiSuccess(res)) return;
+    const list = getApiData(res) || [];
+    if (!Array.isArray(list) || !list.length) return;
+    updateProjectList(list);
+    updateSelectProjectId(list[0]?.projectId);
+    updatePhaseList(list[0]?.phaseList);
+  } catch (error) {
+    console.log('error:', error);
+  }
+};
+
+onMounted(async () => {
+  await ensureProjectSelected();
+  loadBoard();
+});
+
+watch(() => selectProjectId.value, loadBoard);
 </script>
 
 <style lang="less" scoped>
@@ -444,7 +509,10 @@ watch(() => selectProjectId.value, loadBoard, { immediate: true });
           height: 0;
           display: flex;
           justify-content: center;
-          margin-top: 28px;
+          align-items: stretch;
+          margin-top: 16px;
+          padding: 0 8px 8px;
+          box-sizing: border-box;
         }
       }
 
@@ -480,8 +548,8 @@ watch(() => selectProjectId.value, loadBoard, { immediate: true });
           display: flex;
           align-items: stretch;
           min-height: 0;
-          padding: 0 8px 10px;
-          gap: 8px;
+          padding: 4px 8px 10px;
+          gap: 4px;
         }
 
         .taskRight {

@@ -186,12 +186,17 @@ async function applyAppCode() {
 async function confirmCreateFlow() {
   const appCode = String(createForm.value.appCode ?? '').trim();
   const appName = String(createForm.value.appName ?? '').trim();
+  const confidentialLevel = createForm.value.confidentialLevel;
   if (!appCode) {
     message.warning(`请输入${appCodeLabel.value}`);
     return;
   }
   if (!appName) {
     message.warning(`请输入${appNameLabel.value}`);
+    return;
+  }
+  if (confidentialLevel == null) {
+    message.warning('请选择密级');
     return;
   }
   createFlowLoading.value = true;
@@ -414,8 +419,8 @@ void loadAppList();
           <a-input v-model:value="createForm.appName" :placeholder="`请输入${appNameLabel}`" />
         </div>
         <div class="create-flow-form__row">
-          <span class="create-flow-form__label">密级:</span>
-          <a-select v-model:value="createForm.confidentialLevel" placeholder="请选择密级" allow-clear>
+          <span class="create-flow-form__label create-flow-form__label--required">密级:</span>
+          <a-select v-model:value="createForm.confidentialLevel" placeholder="请选择密级">
             <a-select-option v-for="item in userStore.getConfidentialLevel" :key="item.value" :value="item.value">
               {{ item.label }}
             </a-select-option>
@@ -509,6 +514,12 @@ void loadAppList();
   text-align: left;
   color: #1f2937;
   flex: 0 0 auto;
+}
+
+.create-flow-form__label--required::before {
+  content: '*';
+  color: #ff4d4f;
+  margin-right: 4px;
 }
 
 .detail-page__table-card {
