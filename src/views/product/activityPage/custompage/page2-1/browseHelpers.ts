@@ -1,13 +1,5 @@
 import type { Page2_1ParameterItem } from './parameterDefaults';
-
-interface FlowParameterItem {
-  paramnum?: string;
-  paramvalue?: string;
-}
-
-function getFlowParameterList(): FlowParameterItem[] {
-  return [];
-}
+import { getFlowParameterList } from '../shared/flowContext';
 
 /** 计算模型库浏览时的查询预填参数（原 browserRowData 逻辑） */
 export function buildReducerBrowseQueryPrefill(list: Page2_1ParameterItem[]): Record<string, string> {

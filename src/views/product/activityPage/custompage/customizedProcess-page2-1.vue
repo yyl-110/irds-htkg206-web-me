@@ -86,6 +86,7 @@ import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
 import { extractPage2_1SaveParamValues, extractPage2_1TableSavePayload } from './page2-1/calculations';
 import { buildReducerBrowseQueryPrefill } from './page2-1/browseHelpers';
+import { applyPage2_1InitData } from './page2-1/initData';
 import { loadPage2_1PageParameters } from './page2-1/loadPageParameters';
 import { createDefaultPage2_1ParameterList, type Page2_1ParameterItem, type Page2_1TableRow } from './page2-1/parameterDefaults';
 import { addReducerRow, applyModuleLibraryToRow, deleteReducerRows, getReducerTableRows } from './page2-1/rowOperations';
@@ -338,12 +339,14 @@ function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns:
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
+    applyPage2_1InitData(parameterTempList.value, props.savedParamValues);
   });
 }
 
 setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
+  applyPage2_1InitData(parameterTempList.value, props.savedParamValues);
   return extractPage2_1SaveParamValues(parameterTempList.value);
 }
 

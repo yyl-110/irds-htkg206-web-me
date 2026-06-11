@@ -36,6 +36,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { loadPage1_4PageParameters } from './page1-4/loadPageParameters';
+import { applyPage1_4InitData } from './page1-4/initData';
 import { createDefaultPage1_4ParameterList, type Page1_4ParameterItem } from './page1-4/parameterDefaults';
 
 defineOptions({ name: 'rx-customizedProcess-page1-4' });
@@ -46,6 +47,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page1_4ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -154,12 +157,14 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
+    applyPage1_4InitData(parameterTempList.value, props.savedParamValues);
   });
 }
 
 setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
+  applyPage1_4InitData(parameterTempList.value, props.savedParamValues);
   return parameterTempList.value
     .filter(item => String(item.parameterNum ?? '').trim())
     .map(item => ({
