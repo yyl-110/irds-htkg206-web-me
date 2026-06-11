@@ -2,13 +2,13 @@
   <div class="layout-wrapper">
     <div class="layout-content">
       <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
-        <a-form-item label="舵机工作方式：" class="form-item--indent work-mode-item"> 
+        <a-form-item label="舟它工作方式：" class="form-item--indent work-mode-item"> 
           <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled />
           </a-form-item>
           <div class="section-header__title">确定末端减速器形式：</div>
         <section class="main-section">
-          <div class="section-tip">此处的直线和旋转是针对减速器的，不是舵机的</div>
-          <a-form-item label="舵机末端减速器形式：">
+          <div class="section-tip">此处的直线和旋转是针对减速器的，不是舟它的</div>
+          <a-form-item label="舟它末端减速器形式：">
             <a-input v-model:value="parameterTempList[1].defaultValue" class="field-input" disabled />
           </a-form-item>
 
@@ -33,7 +33,7 @@
               allow-clear
               disabled
               @input="setSaveBtnEnable()" />
-            <span class="field-hint">(=舵机最大力矩*1000/等效力臂)</span>
+            <span class="field-hint">(=舟它最大力矩*1000/等效力臂)</span>
           </a-form-item>
 
           <a-form-item label="减速器旋转载荷(Nm)：">
@@ -44,7 +44,7 @@
               allow-clear
               disabled
               @input="setSaveBtnEnable()" />
-            <span class="field-hint">(=舵机最大力矩)</span>
+            <span class="field-hint">(=舟它最大力矩)</span>
           </a-form-item>
         </section>
       </a-form>

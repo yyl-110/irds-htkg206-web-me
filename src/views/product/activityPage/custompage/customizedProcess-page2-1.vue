@@ -140,13 +140,13 @@ interface FormFieldConfig {
 }
 
 const formFields: FormFieldConfig[] = [
-  { index: 6, label: '舵机工作方式:' },
+  { index: 6, label: '舟它工作方式:' },
   { index: 0, label: '机械行程（单边转角）:' },
   { index: 1, label: '机械行程（单边直线）:' },
   { index: 3, label: '减速器载荷 (旋转) (Nm):' },
   { index: 4, label: '减速器载荷 (直线) (Nm):' },
   { index: 7, label: '等效力臂（mm）:' },
-  { index: 2, label: '舵机末端减速器形式:' },
+  { index: 2, label: '舟它末端减速器形式:' },
 ];
 
 const formFieldRows = computed(() => {

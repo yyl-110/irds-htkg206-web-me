@@ -4,10 +4,10 @@
       <div class="layout-header__title">电机选型：</div>
 
       <a-form layout="vertical" label-align="left" :colon="false" class="power-form">
-        <a-form-item label="舵机额定功率（旋转）（W）：">
+        <a-form-item label="舟它额定功率（旋转）（W）：">
           <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
-        <a-form-item label="舵机额定功率（直线）（W）：">
+        <a-form-item label="舟它额定功率（直线）（W）：">
           <a-input v-model:value="parameterTempList[1].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
       </a-form>

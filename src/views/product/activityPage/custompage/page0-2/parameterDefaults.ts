@@ -34,7 +34,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       ],
       propertyType: '1',
       pageId,
-      inputName: '舵机工作方式',
+      inputName: '舟它工作方式',
     },
     {
       inputOrOutput: '0',
@@ -45,7 +45,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机最大输出力矩',
+      inputName: '舟它最大输出力矩',
     },
     {
       inputOrOutput: '0',
@@ -67,7 +67,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机负载转速（旋转）',
+      inputName: '舟它负载转速（旋转）',
     },
     {
       inputOrOutput: '0',
@@ -100,7 +100,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机额定功率（旋转）',
+      inputName: '舟它额定功率（旋转）',
     },
     {
       inputOrOutput: '0',
@@ -122,7 +122,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机最大输出力',
+      inputName: '舟它最大输出力',
     },
     {
       inputOrOutput: '0',
@@ -144,7 +144,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机负载转速（直线）',
+      inputName: '舟它负载转速（直线）',
     },
     {
       inputOrOutput: '0',
@@ -177,7 +177,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机额定功率（直线）',
+      inputName: '舟它额定功率（直线）',
     },
   ];
 }

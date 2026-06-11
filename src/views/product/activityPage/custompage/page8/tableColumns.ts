@@ -33,9 +33,9 @@ export const PAGE8_ANT_COLUMNS: Page8AntColumn[] = [
     title: '执行机构零位性能',
     align: 'center',
     children: [
-      schemeMetricGroup('舵机最大输出力矩', 'p1', 'Nm', SCHEME_METRIC_WIDTH),
-      schemeMetricGroup('舵机最大空载速度', 'p2', '°/S', SCHEME_METRIC_WIDTH),
-      schemeMetricGroup('舵机额定负载速度', 'p3', '°/S', SCHEME_METRIC_WIDTH),
+      schemeMetricGroup('舟它最大输出力矩', 'p1', 'Nm', SCHEME_METRIC_WIDTH),
+      schemeMetricGroup('舟它最大空载速度', 'p2', '°/S', SCHEME_METRIC_WIDTH),
+      schemeMetricGroup('舟它额定负载速度', 'p3', '°/S', SCHEME_METRIC_WIDTH),
     ],
   },
   {

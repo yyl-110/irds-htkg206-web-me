@@ -34,9 +34,9 @@ export const PAGE4_ANT_COLUMNS: Page4AntColumn[] = [
     title: '初算指标',
     align: 'center',
     children: [
-      metricGroup('舵机最大输出力矩', 'p1', 'Nm'),
-      metricGroup('舵机最大空载转速', 'p2', '°/S'),
-      metricGroup('舵机额定负载转速', 'p3', '°/S'),
+      metricGroup('舟它最大输出力矩', 'p1', 'Nm'),
+      metricGroup('舟它最大空载转速', 'p2', '°/S'),
+      metricGroup('舟它额定负载转速', 'p3', '°/S'),
     ],
   },
   {
