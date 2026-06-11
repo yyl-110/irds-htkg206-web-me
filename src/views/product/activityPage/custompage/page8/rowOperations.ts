@@ -43,17 +43,3 @@ export function syncPage8SelectionIndexes(list: Page8ParameterItem[], selectedRo
   }
 }
 
-export function extractPage8SaveParamValues(list: Page8ParameterItem[]) {
-  const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
-  list.forEach(item => {
-    if (item.ifSingleLine === 't') return;
-    const key = String(item.parameterNum ?? '').trim();
-    if (!key) return;
-    result.push({
-      paramKey: key,
-      paramName: String(item.inputName ?? key),
-      paramValue: String(item.defaultValue ?? ''),
-    });
-  });
-  return result;
-}

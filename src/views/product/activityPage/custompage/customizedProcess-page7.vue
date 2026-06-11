@@ -29,16 +29,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
-import { calculateAllPage7Rows } from './page7/calculations';
+import {
+  calculateAllPage7Rows,
+  extractPage7SaveParamValues,
+  extractPage7TableSavePayload,
+} from './page7/calculations';
 import { applyPage7InitData } from './page7/initData';
 import { loadPage7PageParameters } from './page7/loadPageParameters';
-import { createDefaultPage7ParameterList, type Page7ParameterItem, type Page7TableRow } from './page7/parameterDefaults';
-import { extractPage7SaveParamValues, getPage7TableRows, setPage7TableRows } from './page7/rowOperations';
+import {
+  createDefaultPage7ParameterList,
+  ensurePage7TableComponentIds,
+  type Page7ParameterItem,
+  type Page7TableRow,
+} from './page7/parameterDefaults';
+import { getPage7TableRows, setPage7TableRows } from './page7/rowOperations';
 import { PAGE7_ANT_COLUMNS, PAGE7_TABLE_MIN_WIDTH } from './page7/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page7' });
@@ -49,6 +57,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page7ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -62,35 +72,38 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
-
 const tabHeight = 580;
 const tableScrollX = PAGE7_TABLE_MIN_WIDTH;
 const page7TableColumns = PAGE7_ANT_COLUMNS;
 
+function clonePage7ParameterList(list: Page7ParameterItem[]): Page7ParameterItem[] {
+  return ensurePage7TableComponentIds(
+    list.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
+}
+
 function createInitialParameterList(): Page7ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage7ParameterList(props.pageid);
+    return clonePage7ParameterList(createDefaultPage7ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return clonePage7ParameterList(props.parameterTempList);
 }
 
 const parameterTempList = ref<Page7ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage7PageParameters,
-  });
-
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage7PageParameters,
+  cloneItem: clonePage7ParameterList,
+});
 
 const tableRowData = computed(() => getPage7TableRows(parameterTempList.value));
 
@@ -147,7 +160,6 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
@@ -160,9 +172,14 @@ function getCurrentSaveParamValues() {
   return extractPage7SaveParamValues(parameterTempList.value);
 }
 
+function getCurrentTableSavePayload() {
+  return extractPage7TableSavePayload(ensurePage7TableComponentIds(parameterTempList.value));
+}
+
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

@@ -42,6 +42,7 @@ export interface Page7ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -53,6 +54,9 @@ export interface Page7ParameterItem {
 }
 
 export const PAGE7_TABLE_NUM = 'DJ7_T_XNCHECK';
+
+/** 性能校核计算表 componentId（customizedProcess-page7 专用） */
+export const PAGE7_TABLE_COMPONENT_ID = 22;
 
 const PAGE7_COL_STR = [
   'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
@@ -203,6 +207,19 @@ export function createDefaultPage7Row(overrides?: Partial<Page7TableRow>): Page7
   };
 }
 
+export function ensurePage7TableComponentIds(list: Page7ParameterItem[]): Page7ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === PAGE7_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: PAGE7_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
+
 export function createDefaultPage7ParameterList(pageId = ''): Page7ParameterItem[] {
   return [
     {
@@ -219,6 +236,7 @@ export function createDefaultPage7ParameterList(pageId = ''): Page7ParameterItem
       inputName: '性能校核计算',
       tableType: '2',
       tableNum: PAGE7_TABLE_NUM,
+      componentId: PAGE7_TABLE_COMPONENT_ID,
     },
   ];
 }

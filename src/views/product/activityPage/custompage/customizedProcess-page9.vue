@@ -69,26 +69,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
-import { calculateAllPage9GearRows, applyRootBendingStressToRow, applyTangentialForceToRow } from './page9/calculations';
+import {
+  calculateAllPage9GearRows,
+  applyRootBendingStressToRow,
+  applyTangentialForceToRow,
+  extractPage9SaveParamValues,
+  extractPage9TableSavePayload,
+} from './page9/calculations';
 import { createGearRatioTable, lookupGearFactors } from './page9/gearRatio';
 import { applyPage9InitData } from './page9/initData';
 import { loadPage9PageParameters } from './page9/loadPageParameters';
 import {
   createDefaultPage9ParameterList,
+  ensurePage9TableComponentIds,
   type Page9GearRow,
   type Page9ParameterItem,
   type Page9SchemeRow,
 } from './page9/parameterDefaults';
 import {
   applyLoadCoefficientToGearRows,
-  extractPage9SaveParamValues,
   getGearDisplayRows,
   getLoadCoefficient,
   getSchemeTableRows,
@@ -116,6 +121,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page9ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -128,8 +135,6 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
-const route = useRoute();
 
 const schemeTabHeight = 280;
 const gearTabHeight = 360;
@@ -147,28 +152,34 @@ const diagramBottomSrc = ref('/images/cl.png');
 let diagramTopFallback = false;
 let diagramBottomFallback = false;
 
+function clonePage9ParameterList(list: Page9ParameterItem[]): Page9ParameterItem[] {
+  return ensurePage9TableComponentIds(
+    list.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
+}
+
 function createInitialParameterList(): Page9ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage9ParameterList(props.pageid);
+    return clonePage9ParameterList(createDefaultPage9ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return clonePage9ParameterList(props.parameterTempList);
 }
 
 const parameterTempList = ref<Page9ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage9PageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage9PageParameters,
+  cloneItem: clonePage9ParameterList,
+});
 
 const loadCoefficient = ref(getLoadCoefficient(parameterTempList.value));
 
@@ -339,13 +350,32 @@ function updateEl() {
 
 setupParameterWatch(updateEl);
 
+function syncStateBeforeSave() {
+  setLoadCoefficient(parameterTempList.value, loadCoefficient.value);
+  const gearRows = getGearDisplayRows(parameterTempList.value);
+  if (selectedSchemeRows.value.length === 1 && gearRows.length) {
+    syncCalculatedGearRowsToSource(
+      parameterTempList.value,
+      String(selectedSchemeRows.value[0].p0 ?? ''),
+      gearRows,
+    );
+  }
+}
+
 function getCurrentSaveParamValues() {
-  return extractPage9SaveParamValues(parameterTempList.value);
+  syncStateBeforeSave();
+  return extractPage9SaveParamValues(ensurePage9TableComponentIds(parameterTempList.value));
+}
+
+function getCurrentTableSavePayload() {
+  syncStateBeforeSave();
+  return extractPage9TableSavePayload(ensurePage9TableComponentIds(parameterTempList.value));
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

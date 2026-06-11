@@ -30,21 +30,6 @@ export function applyLoadCoefficientToGearRows(list: Page9ParameterItem[], value
   setGearDisplayRows(list, rows);
 }
 
-export function extractPage9SaveParamValues(list: Page9ParameterItem[]) {
-  const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
-  list.forEach(item => {
-    if (item.ifSingleLine === 't') return;
-    const key = String(item.parameterNum ?? '').trim();
-    if (!key) return;
-    result.push({
-      paramKey: key,
-      paramName: String(item.inputName ?? key),
-      paramValue: String(item.defaultValue ?? ''),
-    });
-  });
-  return result;
-}
-
 export { getGearDisplayRows, setGearDisplayRows };
 
 export function updateGearRowField(

@@ -34,6 +34,7 @@ export interface Page8ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   userid?: string;
   addthis?: string;
@@ -49,6 +50,9 @@ export interface Page8ParameterItem {
 
 export const PAGE8_TABLE_NUM = 'DJ8_T_INITCOMBINSCHEME';
 export const PAGE8_SEL_INDEX_PARAM = 'DJ2_9_SELINDEXS';
+
+/** 初步筛选组合方案表 componentId（customizedProcess-page8 专用） */
+export const PAGE8_TABLE_COMPONENT_ID = 23;
 
 const PAGE8_COL_STR = [
   'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
@@ -166,6 +170,19 @@ export function createDefaultPage8Row(overrides?: Partial<Page8TableRow>): Page8
   };
 }
 
+export function ensurePage8TableComponentIds(list: Page8ParameterItem[]): Page8ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === PAGE8_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: PAGE8_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
+
 export function createDefaultPage8ParameterList(pageId = ''): Page8ParameterItem[] {
   return [
     {
@@ -183,6 +200,7 @@ export function createDefaultPage8ParameterList(pageId = ''): Page8ParameterItem
       tableName: '初步筛选若干组合方案',
       tableType: '1',
       tableNum: PAGE8_TABLE_NUM,
+      componentId: PAGE8_TABLE_COMPONENT_ID,
     },
   ];
 }

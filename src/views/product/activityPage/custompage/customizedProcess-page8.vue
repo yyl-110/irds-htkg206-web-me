@@ -26,21 +26,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
+import { extractPage8SaveParamValues, extractPage8TableSavePayload } from './page8/calculations';
 import { applyPage8InitData } from './page8/initData';
 import { loadPage8PageParameters } from './page8/loadPageParameters';
-import { createDefaultPage8ParameterList, type Page8ParameterItem, type Page8TableRow } from './page8/parameterDefaults';
 import {
-  extractPage8SaveParamValues,
-  getPage8TableRows,
-  setPage8TableRows,
-  syncPage8SelectionIndexes,
-} from './page8/rowOperations';
+  createDefaultPage8ParameterList,
+  ensurePage8TableComponentIds,
+  type Page8ParameterItem,
+  type Page8TableRow,
+} from './page8/parameterDefaults';
+import { getPage8TableRows, setPage8TableRows, syncPage8SelectionIndexes } from './page8/rowOperations';
 import { PAGE8_ANT_COLUMNS, PAGE8_TABLE_MIN_WIDTH } from './page8/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page8' });
@@ -51,6 +51,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page8ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -64,35 +66,39 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
-
 const tabHeight = 580;
 const tableScrollX = PAGE8_TABLE_MIN_WIDTH;
 const page8TableColumns = PAGE8_ANT_COLUMNS;
 const selectedRowKeys = ref<Key[]>([]);
 
+function clonePage8ParameterList(list: Page8ParameterItem[]): Page8ParameterItem[] {
+  return ensurePage8TableComponentIds(
+    list.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
+}
+
 function createInitialParameterList(): Page8ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage8ParameterList(props.pageid);
+    return clonePage8ParameterList(createDefaultPage8ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return clonePage8ParameterList(props.parameterTempList);
 }
 
 const parameterTempList = ref<Page8ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage8PageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage8PageParameters,
+  cloneItem: clonePage8ParameterList,
+});
 
 
 const tableRowData = computed(() => getPage8TableRows(parameterTempList.value));
@@ -160,13 +166,29 @@ function updateEl() {
 
 setupParameterWatch(updateEl);
 
+function syncSelectionBeforeSave() {
+  const rows = getPage8TableRows(parameterTempList.value);
+  const selected = rows.filter((row, index) =>
+    selectedRowKeys.value.includes(page8TableRowKey(row, index)),
+  );
+  if (selected.length) {
+    syncPage8SelectionIndexes(parameterTempList.value, selected);
+  }
+}
+
 function getCurrentSaveParamValues() {
-  return extractPage8SaveParamValues(parameterTempList.value);
+  syncSelectionBeforeSave();
+  return extractPage8SaveParamValues(ensurePage8TableComponentIds(parameterTempList.value));
+}
+
+function getCurrentTableSavePayload() {
+  return extractPage8TableSavePayload(ensurePage8TableComponentIds(parameterTempList.value));
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

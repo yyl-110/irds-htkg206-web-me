@@ -27,6 +27,7 @@ export interface Page9ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   userid?: string;
   userId?: string;
@@ -45,6 +46,13 @@ export interface Page9ParameterItem {
 export const PAGE9_INPUT_TABLE_NUM = 'DJ9_T_INPUTPARAMS';
 export const PAGE9_GEAR_TABLE_NUM = 'DJ9_T_GEARINTERFORCECAL';
 export const PAGE9_LOAD_COEFF_PARAM = 'DJ2_10_ZHXS';
+
+/** 计算输入参数表 componentId（customizedProcess-page9 专用） */
+export const PAGE9_INPUT_TABLE_COMPONENT_ID = 24;
+/** 齿轮应力展示表 componentId（customizedProcess-page9 专用） */
+export const PAGE9_GEAR_DISPLAY_TABLE_COMPONENT_ID = 25;
+/** 按方案齿轮应力表 componentId 起始值（+ 方案索引） */
+export const PAGE9_GEAR_SCHEME_TABLE_COMPONENT_ID_BASE = 26;
 
 const SCHEME_COL_STR = [
   'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
@@ -154,6 +162,30 @@ export function createDefaultSchemeRow(overrides?: Partial<Page9SchemeRow>): Pag
   };
 }
 
+export function ensurePage9TableComponentIds(list: Page9ParameterItem[]): Page9ParameterItem[] {
+  return list.map(item => {
+    if (item.ifSingleLine !== 't') return item;
+    const rawId = String(item.componentId ?? '').trim();
+    if (rawId) return item;
+
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (tableNum === PAGE9_INPUT_TABLE_NUM) {
+      return { ...item, componentId: PAGE9_INPUT_TABLE_COMPONENT_ID };
+    }
+    if (tableNum === PAGE9_GEAR_TABLE_NUM) {
+      return { ...item, componentId: PAGE9_GEAR_DISPLAY_TABLE_COMPONENT_ID };
+    }
+    const schemeMatch = tableNum.match(new RegExp(`^${PAGE9_GEAR_TABLE_NUM}(\\d+)$`));
+    if (schemeMatch) {
+      const idx = Number(schemeMatch[1]);
+      if (!Number.isNaN(idx)) {
+        return { ...item, componentId: PAGE9_GEAR_SCHEME_TABLE_COMPONENT_ID_BASE + idx };
+      }
+    }
+    return item;
+  });
+}
+
 export function createDefaultPage9ParameterList(pageId = ''): Page9ParameterItem[] {
   const loadCoeff = '1.2';
   return [
@@ -172,6 +204,7 @@ export function createDefaultPage9ParameterList(pageId = ''): Page9ParameterItem
       inputName: '计算输入参数',
       tableType: '1',
       tableNum: PAGE9_INPUT_TABLE_NUM,
+      componentId: PAGE9_INPUT_TABLE_COMPONENT_ID,
     },
     {
       inputOrOutput: '0',
@@ -199,6 +232,7 @@ export function createDefaultPage9ParameterList(pageId = ''): Page9ParameterItem
       inputName: '齿轮应力计算',
       tableType: '1',
       tableNum: PAGE9_GEAR_TABLE_NUM,
+      componentId: PAGE9_GEAR_DISPLAY_TABLE_COMPONENT_ID,
     },
   ];
 }
