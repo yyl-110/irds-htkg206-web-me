@@ -12,6 +12,7 @@ export interface Page1ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   colData?: Array<{ colName?: string; isShowCol?: string }>;
   tableMap?: {
     tableType?: string;
@@ -21,6 +22,11 @@ export interface Page1ParameterItem {
     colStr?: string[];
   };
 }
+
+/** 零位表 componentId（customizedProcess-page1 专用，勿与其他定制页复用） */
+export const PAGE1_ZERO_TABLE_COMPONENT_ID = 3;
+/** 结果数据表 componentId（customizedProcess-page1 专用） */
+export const PAGE1_RESULT_TABLE_COMPONENT_ID = 4;
 
 export function initCustomizedProcessPage1Data(pageId = ''): Page1ParameterItem[] {
   const data1 = [
@@ -166,15 +172,16 @@ export function initCustomizedProcessPage1Data(pageId = ''): Page1ParameterItem[
       pageId,
       tableMap: {
         tableType: '1',
-        colNums: '3',
-        rowNums: '3',
+        colNums: '8',
+        rowNums: '1',
         rowData: data2,
-        colStr: ['p0', 'p1', 'p2'],
+        colStr: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'],
       },
       tableName: '零位（初始位置）',
       inputName: '零位（初始位置）',
       tableType: '1',
       tableNum: 'DJ1_T_ZEROINITPOSITION',
+      componentId: PAGE1_ZERO_TABLE_COMPONENT_ID,
       colData: [
         { colName: '转动角度', isShowCol: '1' },
         { colName: '弧度', isShowCol: '1' },
@@ -202,7 +209,7 @@ export function initCustomizedProcessPage1Data(pageId = ''): Page1ParameterItem[
       pageId,
       tableMap: {
         tableType: '2',
-        colNums: '3',
+        colNums: '8',
         rowData: data3,
         colStr: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'],
       },
@@ -210,6 +217,7 @@ export function initCustomizedProcessPage1Data(pageId = ''): Page1ParameterItem[
       inputName: '结果数据',
       tableNum: 'DJ1_T_RESULTDATA',
       tableType: '2',
+      componentId: PAGE1_RESULT_TABLE_COMPONENT_ID,
       colData: [
         { colName: '转动角度', isShowCol: '1' },
         { colName: '弧度', isShowCol: '1' },

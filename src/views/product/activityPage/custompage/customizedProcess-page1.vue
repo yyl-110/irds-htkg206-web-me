@@ -2,35 +2,35 @@
   <div>
     <div class="layout-wrapper">
       <div class="layout-header">
-        <div class="layout-header__title">计算输入参数：</div>
+        <div class="layout-header__title">计算输入参数*：</div>
         <div class="input-param-table">
-            <a-table
-              :columns="inputParamColumns"
-              :data-source="parameterTempList[0]?.tableMap?.rowData ?? []"
-              :pagination="false"
-              bordered
-              size="small"
-              class="adaptive-table"
-              :row-key="tableRowKey">
-              <template #bodyCell="{ column, record, index }">
-                <template v-if="column.dataIndex === 'p1' && column.editable">
-                  <a-input-number
-                    v-model:value="record.p1"
-                    type="number"
-                    class="table-cell-input"
-                    @input="onInputParamInput(record, index, 'p1')"
-                    @blur="onInputParamBlur(record, index, 'p1', $event)" />
-                </template>
-                <template v-else-if="column.dataIndex === 'p2' && column.editable">
-                  <a-input-number
-                    v-model:value="record.p2"
-                    type="number"
-                    class="table-cell-input"
-                    @input="onInputParamInput(record, index, 'p2')"
-                    @blur="onInputParamBlur(record, index, 'p2', $event)" />
-                </template>
+          <a-table
+            :columns="inputParamColumns"
+            :data-source="parameterTempList[0]?.tableMap?.rowData ?? []"
+            :pagination="false"
+            bordered
+            size="small"
+            class="adaptive-table"
+            :row-key="tableRowKey">
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'p1' && column.editable">
+                <a-input-number
+                  v-model:value="record.p1"
+                  type="number"
+                  class="table-cell-input"
+                  @input="onInputParamInput(record, index, 'p1')"
+                  @blur="onInputParamBlur(record, index, 'p1', $event)" />
               </template>
-            </a-table>
+              <template v-else-if="column.dataIndex === 'p2' && column.editable">
+                <a-input-number
+                  v-model:value="record.p2"
+                  type="number"
+                  class="table-cell-input"
+                  @input="onInputParamInput(record, index, 'p2')"
+                  @blur="onInputParamBlur(record, index, 'p2', $event)" />
+              </template>
+            </template>
+          </a-table>
         </div>
       </div>
 
@@ -117,7 +117,11 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import { createPage1Calculations, extractPage1SaveParamValues } from './page1/calculations';
+import {
+  createPage1Calculations,
+  extractPage1SaveParamValues,
+  extractPage1TableSavePayload,
+} from './page1/calculations';
 import { loadPage1PageParameters } from './page1/loadPageParameters';
 import { createDefaultPage1ParameterList, type Page1ParameterItem } from './page1/parameterDefaults';
 import {
@@ -263,12 +267,17 @@ function resultTableRowKey(record: Record<string, string>, index?: number) {
   return String(index ?? 0);
 }
 
+function syncLocalDataFromParameterList() {
+  data.value = [...(parameterTempList.value[0]?.tableMap?.rowData ?? [])];
+  data1.value = [...(parameterTempList.value[1]?.tableMap?.rowData ?? [])];
+  data2.value = [...(parameterTempList.value[3]?.tableMap?.rowData ?? [])];
+  trip.value = String(parameterTempList.value[2]?.defaultValue ?? '');
+}
 
 function updateEl() {
   nextTick(() => {
-
-    // no-op, preserved for parent compatibility
     applyTaskParamMapToList();
+    syncLocalDataFromParameterList();
   });
 }
 
@@ -354,13 +363,35 @@ function handleDelRow() {
   selectedResultRowKeys.value = [];
 }
 
+function syncParameterListBeforeSave() {
+  if (parameterTempList.value[0]?.tableMap) {
+    parameterTempList.value[0].tableMap.rowData = data.value;
+  }
+  if (parameterTempList.value[1]?.tableMap) {
+    parameterTempList.value[1].tableMap.rowData = data1.value;
+  }
+  if (parameterTempList.value[2]) {
+    parameterTempList.value[2].defaultValue = trip.value;
+  }
+  if (parameterTempList.value[3]?.tableMap) {
+    parameterTempList.value[3].tableMap.rowData = data2.value;
+  }
+}
+
 function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
   return extractPage1SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractPage1TableSavePayload(parameterTempList.value);
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

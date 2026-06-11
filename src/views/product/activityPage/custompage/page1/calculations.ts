@@ -342,6 +342,30 @@ export function createPage1Calculations(ctx: Page1CalcContext) {
   };
 }
 
+export const PAGE1_INPUT_PARAMS_TABLE_NUM = 'DJ1_T_INPUTPARAMS';
+
+export type Page1TableSaveRow = {
+  componentId: string | number;
+  tableName: string;
+  values: Array<Record<string, string>>;
+};
+
+function getPage1TableColNums(tableMap?: Page1ParameterItem['tableMap']): number {
+  const fromColNums = Number(tableMap?.colNums ?? 0);
+  if (fromColNums > 0) return fromColNums;
+  return tableMap?.colStr?.length ?? 0;
+}
+
+function mapPage1RowToCValueFormat(row: Record<string, string>, colNums: number): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (let i = 0; i < colNums; i++) {
+    const val = String(row[`p${i}`] ?? '');
+    if (val !== '') result[`c${i + 1}`] = val;
+  }
+  return result;
+}
+
+/** values：单行参数 + 计算输入参数表可编辑列（不含零位表、结果表） */
 export function extractPage1SaveParamValues(list: Page1ParameterItem[]) {
   const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
 
@@ -355,23 +379,41 @@ export function extractPage1SaveParamValues(list: Page1ParameterItem[]) {
       return;
     }
 
-    if (item.ifSingleLine !== 't' || !item.tableMap?.rowData) {
-      return;
-    }
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (tableNum !== PAGE1_INPUT_PARAMS_TABLE_NUM || !item.tableMap?.rowData) return;
 
-    const colNums = Number(item.tableMap.colNums ?? 0);
     item.tableMap.rowData.forEach(row => {
-      for (let i = 0; i < colNums; i++) {
-        const paramKey = String(row[`cellParentNum${i}`] ?? '').trim();
+      for (const colIndex of [1, 2]) {
+        const paramKey = String(row[`cellParentNum${colIndex}`] ?? '').trim();
         if (!paramKey) continue;
         result.push({
           paramKey,
           paramName: paramKey,
-          paramValue: String(row[`p${i}`] ?? ''),
+          paramValue: String(row[`p${colIndex}`] ?? ''),
         });
       }
     });
   });
 
   return result;
+}
+
+/** tables：带 componentId 的数据表格（零位表=3，结果表=4，page1 专用） */
+export function extractPage1TableSavePayload(list: Page1ParameterItem[]): Page1TableSaveRow[] {
+  return list
+    .filter(item => item.ifSingleLine === 't' && item.tableMap && item.componentId != null && item.componentId !== '')
+    .map(item => {
+      const colNums = getPage1TableColNums(item.tableMap);
+      const rowData = item.tableMap?.rowData ?? [];
+      const values = rowData.map(row => mapPage1RowToCValueFormat(row, colNums));
+      const rawId = String(item.componentId ?? '').trim();
+      const numericId = Number(rawId);
+      const componentId =
+        rawId && !Number.isNaN(numericId) && String(numericId) === rawId ? numericId : item.componentId!;
+      return {
+        componentId,
+        tableName: String(item.tableName ?? item.inputName ?? ''),
+        values,
+      };
+    });
 }
