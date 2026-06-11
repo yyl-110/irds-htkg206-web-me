@@ -35,10 +35,10 @@
             @input="handleEfficiencyChange" />
         </div>
         <a-space :size="12">
-          <a-button type="primary" @click="openImportModal">
+          <!-- <a-button type="primary" @click="openImportModal">
             <template #icon><ImportOutlined /></template>
             导入
-          </a-button>
+          </a-button> -->
           <a-button type="primary" @click="handleCalculation">
             <template #icon><CalculatorOutlined /></template>
             计算
@@ -70,7 +70,7 @@
     </div>
 
     <a-modal
-      v-model:open="importModalVisible"
+      v-model:visible="importModalVisible"
       title="批量上传"
       :mask-closable="false"
       width="600px"
@@ -380,10 +380,8 @@ async function handleExcelBeforeUpload(file: File) {
   return false;
 }
 
-
 function updateEl() {
   nextTick(() => {
-
     restoreSelectionFromParam();
     applyTaskParamMapToList();
   });
