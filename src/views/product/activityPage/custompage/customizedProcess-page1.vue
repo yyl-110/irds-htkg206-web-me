@@ -2,7 +2,7 @@
   <div>
     <div class="layout-wrapper">
       <div class="layout-header">
-        <div class="layout-header__title">计算输入参数*：</div>
+        <div class="layout-header__title">计算输入参数：</div>
         <div class="input-param-table">
           <a-table
             :columns="inputParamColumns"
@@ -117,11 +117,7 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import {
-  createPage1Calculations,
-  extractPage1SaveParamValues,
-  extractPage1TableSavePayload,
-} from './page1/calculations';
+import { createPage1Calculations, extractPage1SaveParamValues, extractPage1TableSavePayload } from './page1/calculations';
 import { loadPage1PageParameters } from './page1/loadPageParameters';
 import { createDefaultPage1ParameterList, type Page1ParameterItem } from './page1/parameterDefaults';
 import {
