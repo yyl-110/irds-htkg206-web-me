@@ -44,6 +44,8 @@ const props = defineProps<{
   otherTasksParamMap?: Record<string, string> | null;
   /** WBS 协同：本任务已落库值（不按活动页隔离） */
   taskSavedParamMap?: Record<string, string> | null;
+  /** 只读查看：禁用编辑并隐藏操作按钮 */
+  readOnly?: boolean;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
@@ -460,6 +462,10 @@ function isOutputIoType(item: any) {
   return String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT';
 }
 
+function isPreviewFieldDisabled(item: any) {
+  return !!props.readOnly || isOutputIoType(item);
+}
+
 function normalizeDateFormatForPicker(raw: unknown) {
   const fmt = String(raw ?? '').trim();
   if (!fmt) return 'YYYY-MM-DD';
@@ -480,7 +486,7 @@ function onPreviewDateChange(item: any, index: number, d: Dayjs | null) {
 }
 
 function shouldDisable3dModelInput(item: any) {
-  return isOutputIoType(item) || !!item?.customProps?.btnApplyPartNo;
+  return !!props.readOnly || isOutputIoType(item) || !!item?.customProps?.btnApplyPartNo;
 }
 
 const MODULE_PICKER_QUERY_PREFILL_TYPES = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE']);
@@ -990,6 +996,7 @@ function tableDimensionRange(count: number) {
   return Array.from({ length: n }, (_, i) => i + 1);
 }
 function shouldShowWorkspaceTableOperationColumn(item: any) {
+  if (props.readOnly) return false;
   const biz = String(item?.customProps?.tableBizType ?? '');
   return biz === 'MODULE_LIB_READ' || biz === 'BASIC_RESOURCE_LIB_READ' || biz === 'FILE_COLLAB' || biz === 'FILE_COLLAB_SIMPLE';
 }
@@ -1996,7 +2003,7 @@ defineExpose({
 
 <template>
   <div class="activity-preview-canvas">
-    <div class="param-impact-scope-entry-anchor">
+    <div v-if="!readOnly" class="param-impact-scope-entry-anchor">
       <a-tooltip title="参数影响范围" placement="left">
         <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
       </a-tooltip>
@@ -2061,7 +2068,7 @@ defineExpose({
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
-            <a-tooltip v-if="showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
+            <a-tooltip v-if="!readOnly && showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
               <ClockCircleOutlined class="component-project-param-sync" @click.stop="openWbsParamChangeLogModal(item, index)" />
             </a-tooltip>
           </div>
@@ -2081,7 +2088,7 @@ defineExpose({
             <a-input
               :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :placeholder="item.customProps?.placeholder || '请输入'"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               class="preview-field"
               :class="{ 'preview-input-range-error': isPreviewInputRangeError(item, index) }"
               @update:value="(v: string) => onPreviewInputValue(item, index, v)"
@@ -2093,7 +2100,7 @@ defineExpose({
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :rows="item.customProps?.rows || 4"
               :placeholder="item.customProps?.placeholder || '请输入'"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               class="preview-field" />
           </div>
           <div v-else-if="item.componentType === 'DATE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
@@ -2102,7 +2109,7 @@ defineExpose({
               :show-time="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss')"
               :format="normalizeDateFormatForPicker(item.customProps?.format)"
               :placeholder="normalizeDateFormatForPicker(item.customProps?.format).includes('HH:mm:ss') ? '请选择日期时间' : '请选择日期'"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               class="preview-field"
               @update:value="(d: any) => onPreviewDateChange(item, index, d)" />
           </div>
@@ -2129,7 +2136,7 @@ defineExpose({
                   disabled
                   class="preview-field" />
               </div>
-              <a-button type="primary" class="data-view-assemble-btn" :disabled="isOutputIoType(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
+              <a-button v-if="!readOnly" type="primary" class="data-view-assemble-btn" :disabled="isPreviewFieldDisabled(item)" @click="showModuleInfo(item, index, 'dataView')">浏览</a-button>
             </div>
           </div>
 
@@ -2138,7 +2145,7 @@ defineExpose({
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
               placeholder="请选择"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               class="preview-field" />
           </div>
           <div v-else-if="item.componentType === 'AUTO_COMPLETE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
@@ -2146,7 +2153,7 @@ defineExpose({
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :options="getSelectOptions(item).map(v => ({ value: v }))"
               placeholder="请选择或输入"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               class="preview-field" />
           </div>
 
@@ -2156,14 +2163,14 @@ defineExpose({
             </div>
             <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
             <div v-else class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
-              <a-radio-group v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="radio-preview-grid">
+              <a-radio-group v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isPreviewFieldDisabled(item)" class="radio-preview-grid">
                 <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">{{ opt }}</a-radio>
               </a-radio-group>
             </div>
           </div>
 
           <div v-else-if="item.componentType === 'RICH_TEXT'" class="rich-preview-wrap preview-field-trigger" @click.capture="onParamTitleClick(item)">
-            <CkeditorPlugin :ref="(inst: any) => bindRichTextEditorRef(item, index, inst)" height="180" :disabled="isOutputIoType(item)" />
+            <CkeditorPlugin :ref="(inst: any) => bindRichTextEditorRef(item, index, inst)" height="180" :disabled="isPreviewFieldDisabled(item)" />
           </div>
 
           <div v-else-if="item.componentType === 'FILE'" class="file-preview-wrap">
@@ -2173,7 +2180,7 @@ defineExpose({
             <div class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
               <a-upload-dragger
                 :file-list="previewUploadFileMap[getPreviewItemKey(item, index)] || []"
-                :disabled="isOutputIoType(item)"
+                :disabled="isPreviewFieldDisabled(item)"
                 :multiple="false"
                 :custom-request="(options: any) => customRequestPreviewUpload(item, index, options)"
                 @preview="(file: any) => onPreviewFileDownload(file)"
@@ -2198,12 +2205,12 @@ defineExpose({
               <span class="fixed-table-preview-title-text component-title-text--clickable" @click="onParamTitleClick(item)">{{
                 item.customProps?.tableTitle || item.paramName || '表格'
               }}</span>
-              <div v-if="String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
-                <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
-                <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
+              <div v-if="!readOnly && String(item.customProps?.tableBizType ?? '') === 'FILE_COLLAB'" class="file-collab-preview-toolbar">
+                <a-button type="link" size="small" :disabled="isPreviewFieldDisabled(item)" @click="onFileCollabPreviewAddRow(item, index)">添加行</a-button>
+                <a-button type="link" size="small" :disabled="isPreviewFieldDisabled(item)" @click="onFileCollabPreviewUpdate(item, index)">更新</a-button>
               </div>
-              <div v-else-if="isRowExpandTable(item)" class="file-collab-preview-toolbar">
-                <a-button type="link" size="small" :disabled="isOutputIoType(item)" @click="onRowExpandPreviewAddRow(item, index)">添加行</a-button>
+              <div v-else-if="!readOnly && isRowExpandTable(item)" class="file-collab-preview-toolbar">
+                <a-button type="link" size="small" :disabled="isPreviewFieldDisabled(item)" @click="onRowExpandPreviewAddRow(item, index)">添加行</a-button>
               </div>
             </div>
             <div class="fixed-table-preview-scroll">
@@ -2267,7 +2274,7 @@ defineExpose({
                         :value="getPreviewTableCellValue(item, index, r, c)"
                         size="small"
                         placeholder="请输入"
-                        :disabled="isOutputIoType(item) || isPreviewTableCellReadonly(item, r, c)"
+                        :disabled="isPreviewFieldDisabled(item) || isPreviewTableCellReadonly(item, r, c)"
                         @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
                     </td>
                   </tr>
@@ -2286,7 +2293,7 @@ defineExpose({
                     placeholder="请选择参数"
                     disabled
                     class="template-browse-3d-input preview-field" />
-                  <a-button type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'templateBrowse')">浏览</a-button>
+                  <a-button v-if="!readOnly" type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'templateBrowse')">浏览</a-button>
                 </div>
               </div>
               <div class="template-browse-3d-group">
@@ -2297,14 +2304,14 @@ defineExpose({
                     placeholder="请输入"
                     :disabled="shouldDisable3dModelInput(item)"
                     :class="['template-browse-3d-input', 'preview-field']" />
-                  <div class="three-d-preview-btn-grid">
+                  <div v-if="!readOnly" class="three-d-preview-btn-grid">
                     <a-button
                       v-for="btn in get3dPreviewButtons(item)"
                       :key="`preview-tpl-btn-${btn}`"
                       type="primary"
                       size="small"
                       class="template-browse-3d-action-btn"
-                      :disabled="isOutputIoType(item)"
+                      :disabled="isPreviewFieldDisabled(item)"
                       @click="handle3dPreviewButtonClick(btn, item, index)"
                       >{{ btn }}</a-button
                     >
@@ -2334,14 +2341,14 @@ defineExpose({
                     placeholder="请输入"
                     :disabled="shouldDisable3dModelInput(item)"
                     :class="['template-browse-3d-input', 'preview-field']" />
-                  <div class="three-d-preview-btn-grid">
+                  <div v-if="!readOnly" class="three-d-preview-btn-grid">
                     <a-button
                       v-for="btn in get3dPreviewButtons(item)"
                       :key="`preview-fixed-btn-${btn}`"
                       type="primary"
                       size="small"
                       class="template-browse-3d-action-btn"
-                      :disabled="isOutputIoType(item)"
+                      :disabled="isPreviewFieldDisabled(item)"
                       @click="handle3dPreviewButtonClick(btn, item, index)"
                       >{{ btn }}</a-button
                     >
@@ -2359,22 +2366,24 @@ defineExpose({
                 placeholder="请输入"
                 disabled
                 class="template-browse-3d-input preview-field" />
-              <a-button type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'modelSelectBrowse')">浏览</a-button>
-              <a-button
-                v-for="btn in getModelSelectPreviewButtons(item)"
-                :key="`preview-model-select-btn-${btn}`"
-                type="primary"
-                size="small"
-                class="template-browse-3d-action-btn"
-                :disabled="isOutputIoType(item)"
-                @click="handle3dPreviewButtonClick(btn, item, index)"
-                >{{ btn }}</a-button
-              >
+              <a-button v-if="!readOnly" type="primary" size="small" class="template-browse-3d-action-btn template-browse-3d-browse-btn" @click="showModuleInfo(item, index, 'modelSelectBrowse')">浏览</a-button>
+              <template v-if="!readOnly">
+                <a-button
+                  v-for="btn in getModelSelectPreviewButtons(item)"
+                  :key="`preview-model-select-btn-${btn}`"
+                  type="primary"
+                  size="small"
+                  class="template-browse-3d-action-btn"
+                  :disabled="isPreviewFieldDisabled(item)"
+                  @click="handle3dPreviewButtonClick(btn, item, index)"
+                  >{{ btn }}</a-button
+                >
+              </template>
             </div>
           </div>
 
           <div v-else class="preview-field-join-row">
-            <a-input v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" :disabled="isOutputIoType(item)" class="preview-field" />
+            <a-input v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]" :disabled="isPreviewFieldDisabled(item)" class="preview-field" />
           </div>
         </div>
       </div>

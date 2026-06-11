@@ -51,7 +51,7 @@
     <ModuleDataClSelect
       ref="moduleDataSelectRef"
       :moduleDataSelect="moduleDataClFlag"
-      :mcategoryid="moduleCategoryId"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="handleModuleOk"
       @moduleCancel="handleModuleCancel" />
   </div>
@@ -82,7 +82,6 @@ import {
   createDefaultFs151_1GParameterList,
   deleteSelectedMaterialRows,
   getMaterialTableRows,
-  MATERIAL_CATEGORY_ID,
   setMaterialTableRows,
   type Fs151_1GParameterItem,
   type MaterialSettingRow,
@@ -132,7 +131,7 @@ const tabHeight = 530;
 
 const tableColumns = MATERIAL_TABLE_COLUMNS;
 
-const moduleCategoryId = '';
+const MODULE_LIBRARY_CATEGORY_ID = '0';
 
 const moduleDataClFlag = ref(false);
 
@@ -243,7 +242,7 @@ function handleInitData() {
 }
 
 function handleBrowseMaterial() {
-  moduleDataSelectRef.value?.initData(MATERIAL_CATEGORY_ID, '');
+  moduleDataSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, '');
 
   moduleDataClFlag.value = true;
 }

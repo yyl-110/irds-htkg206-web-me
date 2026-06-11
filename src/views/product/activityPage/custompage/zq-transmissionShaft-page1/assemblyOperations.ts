@@ -60,10 +60,10 @@ export function buildShaftBrowseFilters(
 
   const shaftType = selectedRow.p1;
   if (shaftType === 1 || shaftType === '1') {
-    return { categoryId: '1249', filters };
+    return { categoryId: '0', filters };
   }
   if (shaftType === 0 || shaftType === '0') {
-    return { categoryId: '1250', filters };
+    return { categoryId: '0', filters };
   }
 
   message.warning('请先选择名称');

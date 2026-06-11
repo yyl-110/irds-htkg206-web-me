@@ -86,7 +86,6 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
 import { extractPage2_1SaveParamValues, extractPage2_1TableSavePayload } from './page2-1/calculations';
@@ -194,7 +193,6 @@ const modulePickerVisible = ref(false);
 const modulePickerCategoryId = ref('');
 const modulePickerMenuId = ref('');
 const modulePickerQueryPrefill = ref<Record<string, string>>({});
-const modulecategoryid = ref('');
 const selectRow = ref(0);
 const browseClickBusy = ref(false);
 const BROWSE_ROW_HINT_KEY = 'customized-process-page2-1-browse-row';
@@ -321,46 +319,21 @@ function handleDeleteRow() {
   setSaveBtnEnable();
 }
 
-async function resolveModuleCategoryId() {
-  if (isValid(modulecategoryid.value)) {
-    return String(modulecategoryid.value);
+function handleBrowseRow() {
+  if (!selectList.value.length) {
+    message.info('请选择浏览行');
+    return;
   }
-  const response: { code?: string; data?: { data?: string } | string } = await getFlowModuleid({ moduleName: '减速器' });
-  if (!response || response.code !== '0') {
-    message.info('获取模型库id失败');
-    return '';
+  if (selectList.value.length !== 1) {
+    message.info('请只选择一个浏览行');
+    return;
   }
-  const categoryId = String(
-    typeof response.data === 'object' && response.data !== null ? (response.data.data ?? '') : (response.data ?? ''),
-  ).trim();
-  if (!categoryId) {
-    message.info('获取模型库id失败');
-    return '';
+  if (!isBrowseModeRow(selectList.value[0])) {
+    message.info('请选择浏览行.');
+    return;
   }
-  modulecategoryid.value = categoryId;
-  return categoryId;
-}
 
-async function handleBrowseRow() {
-  if (browseClickBusy.value) return;
-  browseClickBusy.value = true;
-  try {
-    const selected = resolveBrowseTargetRow();
-    if (!selected) {
-      const rows = getReducerTableRows(parameterTempList.value);
-      const browseCount = rows.filter(row => isBrowseModeRow(row)).length;
-      if (!selectList.value.length && browseCount === 0) {
-        showBrowseHint('请先添加一行，并将类别设为「浏览」');
-      } else if (browseCount > 1) {
-        showBrowseHint('存在多行「浏览」类别，请勾选其中一行后再点击浏览');
-      } else {
-        showBrowseHint('请勾选类别为「浏览」的数据行后再点击浏览');
-      }
-      return;
-    }
-
-    const categoryId = await resolveModuleCategoryId();
-    if (!categoryId) return;
+  const categoryId = '195';
 
     const rows = getReducerTableRows(parameterTempList.value);
     selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
@@ -378,6 +351,11 @@ async function handleBrowseRow() {
       browseClickBusy.value = false;
     }, 400);
   }
+
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = '9';
+  modulePickerQueryPrefill.value = buildReducerBrowseQueryPrefill(parameterTempList.value);
+  modulePickerVisible.value = true;
 }
 
 function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns: Array<Record<string, unknown>> }) {

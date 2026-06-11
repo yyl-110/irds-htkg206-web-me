@@ -155,14 +155,14 @@
     <ModuleDataSelect
       ref="shaftModuleSelectRef"
       :module-data-select="shaftModuleFlag"
-      :mcategoryid="shaftModuleCategoryId"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="handleShaftModuleOk"
       @moduleCancel="shaftModuleFlag = false" />
 
     <ModuleDataSelect
       ref="supportModuleSelectRef"
       :module-data-select="supportModuleFlag"
-      :mcategoryid="MODULE_CATEGORY_SID"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="handleSupportModuleOk"
       @moduleCancel="supportModuleFlag = false" />
 
@@ -204,7 +204,6 @@ import {
 import {
   cloneParameterList,
   createDefaultTransmissionShaftPage1ParameterList,
-  MODULE_CATEGORY_SID,
   SHAFT_COUNT_OPTIONS,
   SHAFT_NAME_OPTIONS,
   type TransmissionShaftPage1ParameterItem,
@@ -281,7 +280,7 @@ const supportSelectedKeys = ref<Key[]>([]);
 
 const shaftModuleFlag = ref(false);
 const supportModuleFlag = ref(false);
-const shaftModuleCategoryId = ref('');
+const MODULE_LIBRARY_CATEGORY_ID = '0';
 const sdtModalOpen = ref(false);
 
 const shaftModelTypes = ref<string[]>(['', '', '', '']);
@@ -405,8 +404,7 @@ function handleShowModuleData() {
   const browse = buildShaftBrowseFilters(parameterTempList.value, selected);
   if (!browse) return;
 
-  shaftModuleCategoryId.value = browse.categoryId;
-  shaftModuleSelectRef.value?.initData(browse.categoryId, browse.filters);
+  shaftModuleSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, browse.filters);
   shaftModuleFlag.value = true;
 }
 
@@ -415,7 +413,7 @@ function handleShowProductList() {
   if (!selected) return;
 
   const filters = buildSupportBrowseFilters(parameterTempList.value, selected);
-  supportModuleSelectRef.value?.initData(MODULE_CATEGORY_SID, filters);
+  supportModuleSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, filters);
   supportModuleFlag.value = true;
 }
 

@@ -280,26 +280,6 @@ function handleDeleteRow() {
   setSaveBtnEnable();
 }
 
-async function resolveModuleCategoryId() {
-  if (isValid(modulecategoryid.value)) {
-    return String(modulecategoryid.value);
-  }
-  const response: { code?: string; data?: { data?: string } | string } = await getFlowModuleid({ moduleName: '电机(C)' });
-  if (!response || response.code !== '0') {
-    message.info('获取模型库id失败');
-    return '';
-  }
-  const categoryId = String(
-    typeof response.data === 'object' && response.data !== null ? (response.data.data ?? '') : (response.data ?? ''),
-  ).trim();
-  if (!categoryId) {
-    message.info('获取模型库id失败');
-    return '';
-  }
-  modulecategoryid.value = categoryId;
-  return categoryId;
-}
-
 async function handleBrowseRow() {
   if (browseClickBusy.value) return;
   browseClickBusy.value = true;
@@ -318,8 +298,7 @@ async function handleBrowseRow() {
       return;
     }
 
-    const categoryId = await resolveModuleCategoryId();
-    if (!categoryId) return;
+    const categoryId = '194';
 
     const rows = getMotorTableRows(parameterTempList.value);
     selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
@@ -337,6 +316,16 @@ async function handleBrowseRow() {
       browseClickBusy.value = false;
     }, 400);
   }
+
+  let edgl = parameterTempList.value[0]?.defaultValue ?? '';
+  if (!isValid(edgl)) {
+    edgl = parameterTempList.value[1]?.defaultValue ?? '';
+  }
+
+  modulePickerCategoryId.value = categoryId;
+  modulePickerMenuId.value = '9';
+  modulePickerQueryPrefill.value = edgl ? { DJ1_1_EDGL_X: String(edgl) } : {};
+  modulePickerVisible.value = true;
 }
 
 function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns: Array<Record<string, unknown>> }) {
