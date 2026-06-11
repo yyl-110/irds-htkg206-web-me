@@ -11,6 +11,8 @@ export interface ZjzcjhParameterItem {
   ifSingleLine?: string;
   pageId?: string;
   parameterId?: string;
+  /** 保存到 tables 接口时使用的组件 id */
+  componentId?: string | number;
   tableName?: string;
   inputName?: string;
   tableType?: string;
@@ -25,6 +27,26 @@ export interface ZjzcjhParameterItem {
 }
 
 const TABLE_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4'];
+
+export const ZJZCJH1_1_TABLE_NUM = 'ZJZCJH1_1_T_FRAMECHECK';
+
+export const ZJZCJH1_1_TABLE_INDEX = 0;
+
+/** 车架总成校核表 componentId（customizedProcess-zjzcjh1-1 专用） */
+export const ZJZCJH1_1_TABLE_COMPONENT_ID = 36;
+
+export function ensureZjzcjhTableComponentIds(list: ZjzcjhParameterItem[]): ZjzcjhParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === ZJZCJH1_1_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: ZJZCJH1_1_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
 
 function createCheckRow(
   index: string,
@@ -83,10 +105,11 @@ export function createDefaultZjzcjhParameterList(pageId = ''): ZjzcjhParameterIt
         rowData: createDefaultCheckRows(),
         colStr: TABLE_COL_STR,
       },
-      tableName: '',
-      inputName: '',
+      tableName: '车架总成校核表',
+      inputName: '车架总成校核表',
       tableType: '2',
-      tableNum: '',
+      tableNum: ZJZCJH1_1_TABLE_NUM,
+      componentId: ZJZCJH1_1_TABLE_COMPONENT_ID,
     },
   ];
 }

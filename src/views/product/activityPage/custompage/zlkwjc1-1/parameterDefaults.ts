@@ -11,6 +11,8 @@ export interface ZlkwjcParameterItem {
   ifSingleLine?: string;
   pageId?: string;
   parameterId?: string;
+  /** 保存到 tables 接口时使用的组件 id */
+  componentId?: string | number;
   tableName?: string;
   inputName?: string;
   tableType?: string;
@@ -25,6 +27,26 @@ export interface ZlkwjcParameterItem {
 }
 
 const TABLE_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4'];
+
+export const ZLKWJC1_1_TABLE_NUM = 'ZLKWJC1_1_T_HOLECHECK';
+
+export const ZLKWJC1_1_TABLE_INDEX = 0;
+
+/** 纵梁孔位检查表 componentId（customizedProcess-zlkwjc1-1 专用） */
+export const ZLKWJC1_1_TABLE_COMPONENT_ID = 37;
+
+export function ensureZlkwjcTableComponentIds(list: ZlkwjcParameterItem[]): ZlkwjcParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === ZLKWJC1_1_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: ZLKWJC1_1_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
 
 function createCheckRow(index: string, content: string, overrides?: Partial<ZlkwjcCheckRow>): ZlkwjcCheckRow {
   return {
@@ -79,10 +101,11 @@ export function createDefaultZlkwjcParameterList(pageId = ''): ZlkwjcParameterIt
         rowData: createDefaultCheckRows(),
         colStr: TABLE_COL_STR,
       },
-      tableName: '',
-      inputName: '',
+      tableName: '纵梁孔位检查表',
+      inputName: '纵梁孔位检查表',
       tableType: '2',
-      tableNum: '',
+      tableNum: ZLKWJC1_1_TABLE_NUM,
+      componentId: ZLKWJC1_1_TABLE_COMPONENT_ID,
     },
   ];
 }

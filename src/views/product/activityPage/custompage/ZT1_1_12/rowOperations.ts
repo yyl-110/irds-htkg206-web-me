@@ -21,18 +21,11 @@ export function deleteStatsRows(list: Zt1ParameterItem[], selectedRows: Zt1Table
 }
 
 export function extractZt1SaveParamValues(list: Zt1ParameterItem[]) {
-  const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
-  list.forEach(item => {
-    if (item.ifSingleLine === 't' && item.tableMap?.rowData) {
-      return;
-    }
-    const key = String(item.parameterNum ?? '').trim();
-    if (!key) return;
-    result.push({
-      paramKey: key,
-      paramName: String(item.inputName ?? key),
+  return list
+    .filter(item => item.ifSingleLine !== 't' && String(item.parameterNum ?? '').trim())
+    .map(item => ({
+      paramKey: String(item.parameterNum),
+      paramName: String(item.inputName ?? item.parameterNum),
       paramValue: String(item.defaultValue ?? ''),
-    });
-  });
-  return result;
+    }));
 }

@@ -65,14 +65,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, getCurrentInstance, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { BuildOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { assembleModule, parameterInFirstCsys } from '@/libs/webSocket';
-import { loadZt1_4101PageParameters } from './ZT1_4_10_1/loadPageParameters';
+import { extractZt1_4101TableSavePayload, loadZt1_4101PageParameters } from './ZT1_4_10_1/loadPageParameters';
 import {
   buildModelParametersStr,
   extractZt1_4101SaveParamValues,
@@ -82,11 +81,13 @@ import {
 import {
   CABINET_COUNT_OPTIONS,
   createDefaultZt1_4101ParameterList,
+  ensureZt1_4101TableComponentIds,
   getCabinetTableRows,
   POSITION_OPTIONS,
   resolveTemplateByPosition,
   setCabinetTableRows,
   syncCabinetRowCount,
+  ZT1_4101_CABINET_TABLE_INDEX,
   type Zt1_4101ParameterItem,
   type Zt1CabinetRow,
 } from './ZT1_4_10_1/parameterDefaults';
@@ -102,6 +103,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Zt1_4101ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     checkId: '',
@@ -116,8 +119,6 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
-const route = useRoute();
 
 const tableColumns = ZT1_4_10_1_TABLE_COLUMNS;
 const cabinetCountOptions = CABINET_COUNT_OPTIONS.map(value => ({ label: value, value }));
@@ -146,12 +147,11 @@ function createInitialParameterList(): Zt1_4101ParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1_4101ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadZt1_4101PageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadZt1_4101PageParameters,
+});
 
 const tableRows = computed(() => getCabinetTableRows(parameterTempList.value));
 
@@ -299,13 +299,29 @@ function updateEl() {
 
 setupParameterWatch(updateEl);
 
+function syncParameterListBeforeSave() {
+  const rows = getCabinetTableRows(parameterTempList.value);
+  const tableItem = parameterTempList.value[ZT1_4101_CABINET_TABLE_INDEX];
+  if (tableItem?.tableMap) {
+    tableItem.tableMap.rowData = rows.map(row => ({ ...row }));
+    tableItem.tableMap.rowNums = String(rows.length);
+  }
+}
+
 function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
   return extractZt1_4101SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractZt1_4101TableSavePayload(ensureZt1_4101TableComponentIds(parameterTempList.value));
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
   setSaveBtnEnable,
 });
 

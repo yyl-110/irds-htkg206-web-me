@@ -25,6 +25,8 @@ export interface Zt1_4101ParameterItem {
   defaultValue?: string;
   propertyType?: string;
   inputName?: string;
+  /** 保存到 tables 接口时使用的组件 id */
+  componentId?: string | number;
   tableName?: string;
   tableType?: string;
   tableNum?: string;
@@ -39,6 +41,26 @@ export interface Zt1_4101ParameterItem {
 }
 
 const TABLE_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13'];
+
+export const ZT1_4101_CABINET_TABLE_NUM = 'ZT1_4_10_1_T_SBCMODEL';
+
+export const ZT1_4101_CABINET_TABLE_INDEX = 1;
+
+/** 设备舱模型表 componentId（customizedProcess1-ZT1_4_10_1 专用） */
+export const ZT1_4101_CABINET_TABLE_COMPONENT_ID = 39;
+
+export function ensureZt1_4101TableComponentIds(list: Zt1_4101ParameterItem[]): Zt1_4101ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === ZT1_4101_CABINET_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: ZT1_4101_CABINET_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
 
 export const CABINET_COUNT_OPTIONS = ['2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
@@ -101,7 +123,8 @@ export function createDefaultZt1_4101ParameterList(pageId = ''): Zt1_4101Paramet
       tableName: '设备舱模型表',
       inputName: '设备舱模型表',
       tableType: '1',
-      tableNum: 'ZT1_4_10_1_T_SBCMODEL',
+      tableNum: ZT1_4101_CABINET_TABLE_NUM,
+      componentId: ZT1_4101_CABINET_TABLE_COMPONENT_ID,
       colData: [
         { colName: '选择', isShowCol: '1', colParameterNum: '' },
         { colName: '序号', isShowCol: '1', colParameterNum: '' },

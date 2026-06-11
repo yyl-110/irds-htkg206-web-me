@@ -15,6 +15,8 @@ export interface Tbdemo1Page2ParameterItem {
   ifSingleLine?: string;
   pageId?: string;
   parameterId?: string;
+  /** 保存到 tables 接口时使用的组件 id */
+  componentId?: string | number;
   tableName?: string;
   inputName?: string;
   tableType?: string;
@@ -30,6 +32,24 @@ export interface Tbdemo1Page2ParameterItem {
 }
 
 export const TB_DEMO1_LAYER_VOLTAGE_TABLE = 'TB_DEMO1_T_LAYERVOLTAGE';
+
+export const TB_DEMO1_PAGE2_TABLE_INDEX = 0;
+
+/** 层级电压计算表 componentId（customizedProcess-tbdemo1-page2 专用） */
+export const TB_DEMO1_PAGE2_TABLE_COMPONENT_ID = 35;
+
+export function ensureTbdemo1Page2TableComponentIds(list: Tbdemo1Page2ParameterItem[]): Tbdemo1Page2ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === TB_DEMO1_LAYER_VOLTAGE_TABLE) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: TB_DEMO1_PAGE2_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
 
 const TABLE_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
 
@@ -50,6 +70,7 @@ export function createDefaultTbdemo1Page2ParameterList(pageId = ''): Tbdemo1Page
       inputName: '层级电压计算表',
       tableType: '1',
       tableNum: TB_DEMO1_LAYER_VOLTAGE_TABLE,
+      componentId: TB_DEMO1_PAGE2_TABLE_COMPONENT_ID,
       colData: [
         { colName: '分接号', isShowCol: '1' },
         { colName: '线电压', isShowCol: '1' },

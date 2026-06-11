@@ -60,17 +60,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, getCurrentInstance, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { apiExtHoleCheck, apiExtHoleCheckShow } from '@/libs/webSocket';
 import { buildPdfViewerUrl, CHECK_METHOD_URLS, matchFileType } from './zlkwjc1-1/mediaAssets';
 import { applyHoleCheckResults, getFailedRowExpandItems, type HoleCheckResponse } from './zlkwjc1-1/holeCheck';
-import { loadZlkwjcPageParameters } from './zlkwjc1-1/loadPageParameters';
+import {
+  extractZlkwjcSaveParamValues,
+  extractZlkwjcTableSavePayload,
+  loadZlkwjcPageParameters,
+} from './zlkwjc1-1/loadPageParameters';
 import {
   createDefaultZlkwjcParameterList,
+  ensureZlkwjcTableComponentIds,
   getCheckTableRows,
   setCheckTableRows,
+  ZLKWJC1_1_TABLE_INDEX,
   type ZlkwjcCheckRow,
   type ZlkwjcParameterItem,
 } from './zlkwjc1-1/parameterDefaults';
@@ -84,6 +89,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: ZlkwjcParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -97,7 +104,6 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
 
 const tabHeight = 420;
 const modelHeight = Math.max(document.body.clientHeight - 240, 480);
@@ -130,12 +136,11 @@ function createInitialParameterList(): ZlkwjcParameterItem[] {
 }
 
 const parameterTempList = ref<ZlkwjcParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadZlkwjcPageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadZlkwjcPageParameters,
+});
 
 const tableRows = computed(() => getCheckTableRows(parameterTempList.value));
 
@@ -203,9 +208,30 @@ function updateEl() {
 
 setupParameterWatch(updateEl);
 
+function syncParameterListBeforeSave() {
+  const rows = getCheckTableRows(parameterTempList.value);
+  const tableItem = parameterTempList.value[ZLKWJC1_1_TABLE_INDEX];
+  if (tableItem?.tableMap) {
+    tableItem.tableMap.rowData = rows.map(row => ({ ...row }));
+    tableItem.tableMap.rowNums = String(rows.length);
+  }
+}
+
+function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
+  return extractZlkwjcSaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractZlkwjcTableSavePayload(ensureZlkwjcTableComponentIds(parameterTempList.value));
+}
+
 defineExpose({
   initUdfCheckData,
   updateEl,
+  getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

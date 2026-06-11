@@ -42,6 +42,8 @@ const submitting = ref(false);
 const selectedProcessId = ref<string | number | null>(null);
 const listData = ref<any[]>([]);
 
+const BPM_DETAIL_PAGE = () => import('@/views/bpm/processInstance/detail/index.vue');
+
 const SKIP_APPROVAL_ID = '__SKIP_APPROVAL__';
 
 const SKIP_APPROVAL_ITEM = {
@@ -96,6 +98,7 @@ watch(
     if (visible) {
       selectedProcessId.value = null;
       getListData();
+      void BPM_DETAIL_PAGE();
     }
   },
 );
@@ -154,6 +157,7 @@ async function handleSave() {
     message.warning('请选择要发起的流程类型');
     return;
   }
+  void BPM_DETAIL_PAGE();
   Modal.confirm({
     title: `${WeiI18n.$t('此数据确认要发起流程吗')}?`,
     content: `将使用「${selectedProcess.value.name}」对「${selectedModelLabel.value}」发起审批`,
@@ -174,15 +178,16 @@ async function handleSave() {
           userId: useUserStore().getUser.id,
         });
         if (res.data.code === 200) {
+          const processInstanceId = res.data.data;
+          submitting.value = false;
+          emit('onClose', false);
           message.success('操作成功');
-          router.push({
+          void router.push({
             name: 'BpmProcessInstanceDetail',
             query: {
-              id: res.data.data,
+              id: processInstanceId,
             },
           });
-          emit('onSuccess');
-          emit('onClose', false);
         }
       } catch (error) {
         console.log(error);

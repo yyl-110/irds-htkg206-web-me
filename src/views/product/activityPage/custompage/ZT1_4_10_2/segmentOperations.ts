@@ -20,19 +20,8 @@ export function syncSegmentRowCount(list: Zt1_4102ParameterItem[], cabinNo: numb
   setSegmentRows(list, cabinNo, rows);
 }
 
-export function extractZt1_4102SaveParamValues(list: Zt1_4102ParameterItem[]) {
-  const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
-  list.forEach(item => {
-    if (item.ifSingleLine === 't' && item.tableMap?.rowData) return;
-    const key = String(item.parameterNum ?? '').trim();
-    if (!key) return;
-    result.push({
-      paramKey: key,
-      paramName: String(item.inputName ?? key),
-      paramValue: String(item.defaultValue ?? ''),
-    });
-  });
-  return result;
+export function extractZt1_4102SaveParamValues(_list: Zt1_4102ParameterItem[]) {
+  return [] as Array<{ paramKey: string; paramName: string; paramValue: string }>;
 }
 
 export function updateSegmentCell(

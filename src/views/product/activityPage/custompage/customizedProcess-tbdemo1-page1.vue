@@ -62,8 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { HotTable } from '@handsontable/vue3';
@@ -76,13 +75,20 @@ import { useUserStore } from '@/store/modules/user';
 import { getJsContent, setJsContent } from '@/api/flowData/flowData';
 import { loadScript } from '@/utils/loadScript';
 import { createTbdemo1HotSettings, HOT_LICENSE_KEY } from './tbdemo1-page1/handsontableSettings';
-import { extractTbdemo1SaveParamValues, loadTbdemo1PageParameters } from './tbdemo1-page1/loadPageParameters';
+import {
+  extractTbdemo1SaveParamValues,
+  extractTbdemo1TableSavePayload,
+  loadTbdemo1PageParameters,
+} from './tbdemo1-page1/loadPageParameters';
 import {
   createDefaultTbdemo1ParameterList,
+  ensureTbdemo1TableComponentIds,
   getTerminalTableRows,
+  TB_DEMO1_TABLE_INDEX,
   TY_FS_OPTIONS,
   TY_WZ_OPTIONS,
   type Tbdemo1ParameterItem,
+  type Tbdemo1TerminalRow,
 } from './tbdemo1-page1/parameterDefaults';
 
 registerAllModules();
@@ -97,6 +103,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Tbdemo1ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -111,7 +119,6 @@ const emit = defineEmits<{
 }>();
 
 const userStore = useUserStore();
-const route = useRoute();
 
 const formLabelCol = { style: { width: '120px' } };
 const tyWzOptions = TY_WZ_OPTIONS;
@@ -283,29 +290,44 @@ async function saveJsScript() {
 
 function updateEl() {
   nextTick(() => {
-
-    reloadHotTable();
     applyTaskParamMapToList();
+    reloadHotTable();
   });
 }
 
 setupParameterWatch(updateEl);
 
+function syncParameterListBeforeSave() {
+  const hot = textHotRef.value?.hotInstance;
+  if (hot) {
+    const rows = hot.getSourceData() as Tbdemo1TerminalRow[];
+    const tableItem = parameterTempList.value[TB_DEMO1_TABLE_INDEX];
+    if (tableItem?.tableMap) {
+      tableItem.tableMap.rowData = rows.map(row => ({ ...row }));
+      tableItem.tableMap.rowNums = String(rows.length);
+    }
+  }
+}
+
 function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
   return extractTbdemo1SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractTbdemo1TableSavePayload(ensureTbdemo1TableComponentIds(parameterTempList.value));
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
   jsinvoke,
   jsedit,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-  reloadHotTable();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

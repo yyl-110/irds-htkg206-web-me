@@ -71,20 +71,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { isValid } from '@/api/flowData/flowData';
 import { buildTableSummary, calcRowPercents } from './ZT1_1_12/calculations';
-import { loadZt1PageParameters } from './ZT1_1_12/loadPageParameters';
+import { extractZt1TableSavePayload, loadZt1PageParameters } from './ZT1_1_12/loadPageParameters';
 import {
   createDefaultZt1ParameterList,
+  ensureZt1TableComponentIds,
   getStatsTableRows,
   setStatsTableRows,
+  ZT1_1_12_STATS_TABLE_INDEX,
   type Zt1ParameterItem,
   type Zt1TableRow,
 } from './ZT1_1_12/parameterDefaults';
@@ -106,6 +107,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Zt1ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     checkId: '',
@@ -120,8 +123,6 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
-const route = useRoute();
 
 const tableColumns = ZT1_1_12_TABLE_COLUMNS;
 const summaryKeys = ZT1_1_12_SUMMARY_KEYS;
@@ -150,12 +151,11 @@ function createInitialParameterList(): Zt1ParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadZt1PageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadZt1PageParameters,
+});
 
 const tableRows = computed(() => getStatsTableRows(parameterTempList.value));
 const summaryValues = computed(() => buildTableSummary(tableRows.value));
@@ -238,13 +238,29 @@ function updateEl() {
 
 setupParameterWatch(updateEl);
 
+function syncParameterListBeforeSave() {
+  const rows = getStatsTableRows(parameterTempList.value);
+  const tableItem = parameterTempList.value[ZT1_1_12_STATS_TABLE_INDEX];
+  if (tableItem?.tableMap) {
+    tableItem.tableMap.rowData = rows.map(row => ({ ...row }));
+    tableItem.tableMap.rowNums = String(rows.length);
+  }
+}
+
 function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
   return extractZt1SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractZt1TableSavePayload(ensureZt1TableComponentIds(parameterTempList.value));
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
   setSaveBtnEnable,
 });
 

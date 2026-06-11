@@ -42,8 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import {
@@ -69,11 +68,17 @@ import {
   createLayerVoltageHotSettings,
   HOT_LICENSE_KEY,
 } from './tbdemo1-page2/handsontableSettings';
-import { loadTbdemo1Page2Parameters } from './tbdemo1-page2/loadPageParameters';
+import {
+  extractTbdemo1Page2SaveParamValues,
+  extractTbdemo1Page2TableSavePayload,
+  loadTbdemo1Page2Parameters,
+} from './tbdemo1-page2/loadPageParameters';
 import {
   createDefaultTbdemo1Page2ParameterList,
+  ensureTbdemo1Page2TableComponentIds,
   getLayerVoltageRows,
   setLayerVoltageRows,
+  TB_DEMO1_PAGE2_TABLE_INDEX,
   type Tbdemo1Page2ParameterItem,
   type Tbdemo1Page2Row,
 } from './tbdemo1-page2/parameterDefaults';
@@ -91,6 +96,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Tbdemo1Page2ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -105,7 +112,6 @@ const emit = defineEmits<{
 }>();
 
 const userStore = useUserStore();
-const route = useRoute();
 
 const licenseKey = HOT_LICENSE_KEY;
 const jsname = 'tb_demo1.js';
@@ -136,7 +142,7 @@ function createInitialParameterList(): Tbdemo1Page2ParameterItem[] {
 }
 
 const parameterTempList = ref<Tbdemo1Page2ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } =
   useCustomPageTaskParamMap({
     props,
     parameterTempList,
@@ -322,23 +328,44 @@ function handleExportExcel() {
 
 function updateEl() {
   nextTick(() => {
-
+    applyTaskParamMapToList();
     calcContext.value.rowData = getLayerVoltageRows(parameterTempList.value);
     reloadHotTable();
-    applyTaskParamMapToList();
   });
 }
 
 setupParameterWatch(updateEl);
 
+function syncParameterListBeforeSave() {
+  const hot = textHotRef.value?.hotInstance;
+  if (hot) {
+    const rows = hot.getSourceData() as Tbdemo1Page2Row[];
+    const tableItem = parameterTempList.value[TB_DEMO1_PAGE2_TABLE_INDEX];
+    if (tableItem?.tableMap) {
+      tableItem.tableMap.rowData = rows.map(row => ({ ...row }));
+      tableItem.tableMap.rowNums = String(rows.length);
+    }
+    calcContext.value.rowData = rows.map(row => ({ ...row }));
+  }
+}
+
+function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
+  return extractTbdemo1Page2SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractTbdemo1Page2TableSavePayload(ensureTbdemo1Page2TableComponentIds(parameterTempList.value));
+}
+
 defineExpose({
   updateEl,
+  getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-  reloadHotTable();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

@@ -14,6 +14,8 @@ export interface Tbdemo1ParameterItem {
   defaultValue?: string;
   pageId?: string;
   inputName?: string;
+  /** 保存到 tables 接口时使用的组件 id */
+  componentId?: string | number;
   tableName?: string;
   tableType?: string;
   tableNum?: string;
@@ -38,6 +40,22 @@ export const TB_DEMO1_PARAM = {
 } as const;
 
 export const TB_DEMO1_TABLE_INDEX = 6;
+
+/** 端子定义表 componentId（customizedProcess-tbdemo1-page1 专用） */
+export const TB_DEMO1_TABLE_COMPONENT_ID = 34;
+
+export function ensureTbdemo1TableComponentIds(list: Tbdemo1ParameterItem[]): Tbdemo1ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === TB_DEMO1_PARAM.TABLE) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: TB_DEMO1_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
 
 export const TY_WZ_OPTIONS = [
   { value: '高压尾端', label: '高压尾端' },
@@ -141,6 +159,7 @@ export function createDefaultTbdemo1ParameterList(pageId = ''): Tbdemo1Parameter
       inputName: '端子定义表',
       tableType: '1',
       tableNum: TB_DEMO1_PARAM.TABLE,
+      componentId: TB_DEMO1_TABLE_COMPONENT_ID,
       colData: [
         { colName: '端子名称', isShowCol: '1' },
         { colName: '端子容量kVA', isShowCol: '1' },

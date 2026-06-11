@@ -126,8 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { UploadOutlined } from '@ant-design/icons-vue';
@@ -136,17 +135,20 @@ import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { useUserStore } from '@/store/modules/user';
 import { previewUrlFile } from '@/utils/file';
 import { readCabinetCountFromFlow, readCabinetModelDataFromFlow } from './ZT1_4_10_2/flowSync';
-import { loadZt1_4102PageParameters } from './ZT1_4_10_2/loadPageParameters';
+import { extractZt1_4102TableSavePayload, loadZt1_4102PageParameters } from './ZT1_4_10_2/loadPageParameters';
 import { formatPicField, parsePicField } from './ZT1_4_10_2/picFieldUtils';
 import PicAttachmentField from './ZT1_4_10_2/PicAttachmentField.vue';
 import {
   createDefaultZt1_4102ParameterList,
+  ensureZt1_4102TableComponentIds,
   getCabinetSegmentCount,
   getSegmentCountRow,
   getSegmentRows,
   INSULATION_OPTIONS,
   resolveCabinetLength,
   SEGMENT_COUNT_OPTIONS,
+  setSegmentRows,
+  ZT1_4102_SEGMENT_COUNT_TABLE_INDEX,
   type SbcModelSummaryRow,
   type Zt1_4102ParameterItem,
   type Zt1SegmentRow,
@@ -163,6 +165,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Zt1_4102ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     checkId: '',
@@ -177,8 +181,6 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
-
-const route = useRoute();
 
 const userStore = useUserStore();
 
@@ -215,12 +217,11 @@ function createInitialParameterList(): Zt1_4102ParameterItem[] {
 }
 
 const parameterTempList = ref<Zt1_4102ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadZt1_4102PageParameters,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadZt1_4102PageParameters,
+});
 
 const segmentCountRow = computed(() => getSegmentCountRow(parameterTempList.value));
 
@@ -365,28 +366,43 @@ function previewPicFile(value: string) {
 
 function updateEl() {
   nextTick(() => {
-
-    syncFlowContextData();
     applyTaskParamMapToList();
+    syncFlowContextData();
   });
 }
 
 setupParameterWatch(updateEl);
 
+function syncParameterListBeforeSave() {
+  const countItem = parameterTempList.value[ZT1_4102_SEGMENT_COUNT_TABLE_INDEX];
+  if (countItem?.tableMap) {
+    countItem.tableMap.rowData = [{ ...getSegmentCountRow(parameterTempList.value) }];
+  }
+
+  for (let cabinNo = 1; cabinNo <= cabinCount.value; cabinNo++) {
+    const rows = getSegmentRows(parameterTempList.value, cabinNo);
+    setSegmentRows(parameterTempList.value, cabinNo, rows.map(row => ({ ...row })));
+  }
+}
+
 function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
   return extractZt1_4102SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractZt1_4102TableSavePayload(ensureZt1_4102TableComponentIds(parameterTempList.value));
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
   setSaveBtnEnable,
 });
 
-onMounted(async () => {
-  await loadPageParametersIfNeeded();
-  syncFlowContextData();
-});
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

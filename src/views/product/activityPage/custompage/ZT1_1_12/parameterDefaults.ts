@@ -23,6 +23,8 @@ export interface Zt1ParameterItem {
   parameterNum?: string;
   defaultValue?: string;
   inputName?: string;
+  /** 保存到 tables 接口时使用的组件 id */
+  componentId?: string | number;
   tableName?: string;
   tableType?: string;
   tableNum?: string;
@@ -37,6 +39,26 @@ export interface Zt1ParameterItem {
 }
 
 const TABLE_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10'];
+
+export const ZT1_1_12_STATS_TABLE_NUM = 'ZT1_1_12_T_YQJTJ';
+
+export const ZT1_1_12_STATS_TABLE_INDEX = 1;
+
+/** 系统元器件统计表 componentId（customizedProcess1-ZT1_1_12 专用） */
+export const ZT1_1_12_STATS_TABLE_COMPONENT_ID = 38;
+
+export function ensureZt1TableComponentIds(list: Zt1ParameterItem[]): Zt1ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === ZT1_1_12_STATS_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: ZT1_1_12_STATS_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
 
 export function createDefaultTableRow(delIndex = 1): Zt1TableRow {
   return {
@@ -80,7 +102,8 @@ export function createDefaultZt1ParameterList(pageId = ''): Zt1ParameterItem[] {
       tableName: '系统元器件统计表',
       inputName: '系统元器件统计表',
       tableType: '1',
-      tableNum: 'ZT1_1_12_T_YQJTJ',
+      tableNum: ZT1_1_12_STATS_TABLE_NUM,
+      componentId: ZT1_1_12_STATS_TABLE_COMPONENT_ID,
       colData: [
         { colName: '系统名称', isShowCol: '1' },
         { colName: '种类', isShowCol: '1' },
