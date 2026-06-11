@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { TableColumnsType } from 'ant-design-vue';
-import { message, Modal } from 'ant-design-vue';
+import { message, Modal, type FormInstance } from 'ant-design-vue';
 import localeDatePickerZh from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -198,9 +198,14 @@ type WbsPlanModalMode = 'start' | 'publish';
 const wbsPlanModalMode = ref<WbsPlanModalMode>('start');
 const wbsStartPlanModalVisible = ref(false);
 const wbsStartPlanTarget = ref<WbsTaskNode | null>(null);
-const wbsStartPlanStart = ref('');
-const wbsStartPlanEnd = ref('');
+const wbsStartPlanFormRef = ref<FormInstance>();
+const wbsStartPlanForm = reactive({ start: '', end: '' });
 const wbsStartPlanSubmitting = ref(false);
+
+const wbsStartPlanFormRules = {
+  start: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
+  end: [{ required: true, message: '请选择完成时间', trigger: 'change' }],
+};
 
 const wbsPlanModalTitle = computed(() =>
   wbsPlanModalMode.value === 'publish' ? '填写计划时间并发布' : '填写计划时间并启动',
@@ -474,6 +479,27 @@ function mapTaskStatus(status?: string): TaskWbsStatus {
   return 'pending';
 }
 
+function isApiWbsRootNode(node: any): boolean {
+  const p = node?.parentId;
+  return p === undefined || p === null || p === '' || p === 0 || p === '0';
+}
+
+/** 分类已启动(publish)但后端 taskStatus 仍为 NOT_STARTED 时，前端按进行中展示；顶层节点创建即进行中 */
+function resolveEffectiveWbsTaskStatus(node: any, unpublished: boolean): string | undefined {
+  const raw = node?.taskStatus != null ? String(node.taskStatus) : undefined;
+  const type = Number(node?.type ?? 2);
+  const isRoot = isApiWbsRootNode(node);
+  const published =
+    Number(node?.publishStatus) === 1 || String(node?.assignStatus ?? '').toUpperCase() === 'PUBLISHED';
+  if (type === 1) {
+    if (raw === 'COMPLETED' || raw === 'CHANGING') return raw;
+    if (published || isRoot) return 'DESIGNING';
+    return raw || 'NOT_STARTED';
+  }
+  if (unpublished) return 'NOT_STARTED';
+  return raw || 'NOT_STARTED';
+}
+
 /** 任务行是否尚未发布到工作台（撤销发布后应为 true） */
 function isApiWbsTaskNodeUnpublished(node: any): boolean {
   if (Number(node?.type ?? 2) !== 2) return false;
@@ -521,8 +547,7 @@ function mapApiNodeToWbs(
   const bindTaskId = bindRaw !== undefined && bindRaw !== null ? String(bindRaw) : undefined;
   const selfId = apiRawIdToDisplayString(node?.id, serialNo);
   const unpublished = isApiWbsTaskNodeUnpublished(node);
-  const rawTaskStatus = node?.taskStatus != null ? String(node.taskStatus) : undefined;
-  const effectiveTaskStatus = unpublished ? 'NOT_STARTED' : rawTaskStatus;
+  const effectiveTaskStatus = resolveEffectiveWbsTaskStatus(node, unpublished);
   const effectiveProgress = unpublished ? 0 : Number.isFinite(progressNum) ? progressNum : 0;
 
   const mapped: WbsTaskNode = {
@@ -703,6 +728,90 @@ function getProjectPlanBounds(): { start: Dayjs | null; end: Dayjs | null } {
   };
 }
 
+function planBoundsFromNode(node: WbsTaskNode | null | undefined): { start: Dayjs | null; end: Dayjs | null } {
+  if (!node) return { start: null, end: null };
+  const s = node.startDate ? dayjs(node.startDate).startOf('day') : null;
+  const e = node.endDate ? dayjs(node.endDate).startOf('day') : null;
+  return {
+    start: s?.isValid() ? s : null,
+    end: e?.isValid() ? e : null,
+  };
+}
+
+function intersectPlanBounds(
+  a: { start: Dayjs | null; end: Dayjs | null },
+  b: { start: Dayjs | null; end: Dayjs | null },
+): { start: Dayjs | null; end: Dayjs | null } {
+  let start = a.start;
+  if (b.start && (!start || b.start.isAfter(start, 'day'))) start = b.start;
+  let end = a.end;
+  if (b.end && (!end || b.end.isBefore(end, 'day'))) end = b.end;
+  if (start && end && start.isAfter(end, 'day')) return { start: null, end: null };
+  return { start, end };
+}
+
+/**
+ * 可选计划时间范围：
+ * - 顶级节点：项目计划（只读）
+ * - 分类启动：项目周期；若有上级分类则取交集
+ * - 任务：上级分类（含顶级=项目）计划周期
+ */
+function getPlanSelectableBounds(record: WbsTaskNode): { start: Dayjs | null; end: Dayjs | null } {
+  const proj = getProjectPlanBounds();
+  if (Number(record.type) === 1) {
+    if (isWbsRoot(record)) return proj;
+    const parent = getWbsParentNode(record);
+    if (parent && Number(parent.type) === 1 && !isWbsRoot(parent)) {
+      const parentBounds = planBoundsFromNode(parent);
+      if (parentBounds.start && parentBounds.end) {
+        return intersectPlanBounds(parentBounds, proj);
+      }
+    }
+    return proj;
+  }
+  const cat = findNearestCategoryAncestorNode(record);
+  if (!cat) return proj;
+  if (isWbsRoot(cat)) return proj;
+  const catBounds = planBoundsFromNode(cat);
+  if (catBounds.start && catBounds.end) {
+    return intersectPlanBounds(catBounds, proj);
+  }
+  return { start: null, end: null };
+}
+
+const wbsPlanModalBoundsHint = computed(() => {
+  const record = wbsStartPlanTarget.value;
+  if (!record) return '';
+  const proj = getProjectPlanBounds();
+  const bounds = getPlanSelectableBounds(record);
+  if (Number(record.type) === 2) {
+    if (!bounds.start || !bounds.end) {
+      return '请先在上级分类节点「启动」并填写计划时间，再为任务选择日期';
+    }
+    return `任务计划时间须在上级分类周期内：${bounds.start.format('YYYY-MM-DD')} ~ ${bounds.end.format('YYYY-MM-DD')}`;
+  }
+  if (Number(record.type) === 1 && !isWbsRoot(record)) {
+    if (bounds.start && bounds.end && proj.start && proj.end) {
+      const sameAsProj =
+        bounds.start.isSame(proj.start, 'day') && bounds.end.isSame(proj.end, 'day');
+      if (sameAsProj && projectPlanStart.value && projectPlanEnd.value) {
+        return `分类启动须填写计划开始与完成时间（须在项目周期内：${projectPlanStart.value} ~ ${projectPlanEnd.value}）`;
+      }
+      return `分类启动须填写计划时间（须在 ${bounds.start.format('YYYY-MM-DD')} ~ ${bounds.end.format('YYYY-MM-DD')} 内）`;
+    }
+    if (projectPlanStart.value && projectPlanEnd.value) {
+      return `分类启动须填写计划开始与完成时间（须在项目周期内：${projectPlanStart.value} ~ ${projectPlanEnd.value}）`;
+    }
+    return '分类启动须填写计划开始与完成时间';
+  }
+  if (projectPlanStart.value && projectPlanEnd.value) {
+    return `计划时间须在项目周期内：${projectPlanStart.value} ~ ${projectPlanEnd.value}`;
+  }
+  return '';
+});
+
+/** 计划时间仅通过「分类-启动 / 任务-发布」弹窗填写，不在列表内编辑 */
+
 /** 从树节点与日历兜底缓存读取计划起止（日） */
 function readNodePlanDates(record: WbsTaskNode): { start: string; end: string } {
   const treeRow = findNodeById(treeData.value, String(record.id)) ?? record;
@@ -742,40 +851,89 @@ async function persistWbsNodePlanDates(record: WbsTaskNode, planStart: string, p
   }
 }
 
+function clampPlanDateWithinBounds(
+  dateStr: string,
+  bounds: { start: Dayjs | null; end: Dayjs | null },
+): string {
+  if (!dateStr?.trim()) return '';
+  const d = dayjs(dateStr).startOf('day');
+  if (!d.isValid()) return '';
+  let cur = d;
+  if (bounds.start?.isValid() && cur.isBefore(bounds.start, 'day')) cur = bounds.start;
+  if (bounds.end?.isValid() && cur.isAfter(bounds.end, 'day')) cur = bounds.end;
+  return cur.format('YYYY-MM-DD');
+}
+
+/** 启动/发布弹窗默认起止：优先节点已有值，否则取可选范围；并限制在可选范围内 */
+function resolveWbsPlanModalDefaultDates(record: WbsTaskNode): { start: string; end: string } {
+  const bounds = getPlanSelectableBounds(record);
+  const existing = readNodePlanDates(record);
+  const proj = getProjectPlanBounds();
+
+  let startStr =
+    existing.start ||
+    (bounds.start?.isValid() ? bounds.start.format('YYYY-MM-DD') : '') ||
+    projectPlanStart.value ||
+    (proj.start?.isValid() ? proj.start.format('YYYY-MM-DD') : '');
+
+  let endStr =
+    existing.end ||
+    (bounds.end?.isValid() ? bounds.end.format('YYYY-MM-DD') : '') ||
+    projectPlanEnd.value ||
+    (proj.end?.isValid() ? proj.end.format('YYYY-MM-DD') : '') ||
+    startStr;
+
+  if (bounds.start?.isValid() && bounds.end?.isValid()) {
+    startStr = clampPlanDateWithinBounds(startStr, bounds) || bounds.start.format('YYYY-MM-DD');
+    endStr = clampPlanDateWithinBounds(endStr, bounds) || bounds.end.format('YYYY-MM-DD');
+    const s = dayjs(startStr).startOf('day');
+    const e = dayjs(endStr).startOf('day');
+    if (s.isValid() && e.isValid() && e.isBefore(s, 'day')) {
+      endStr = startStr;
+    }
+  }
+
+  return { start: startStr, end: endStr };
+}
+
 function openWbsPlanModal(record: WbsTaskNode, mode: WbsPlanModalMode) {
   const row = findNodeById(treeData.value, String(record.id)) ?? record;
   wbsPlanModalMode.value = mode;
   wbsStartPlanTarget.value = row;
-  const { start, end } = readNodePlanDates(row);
-  wbsStartPlanStart.value = start || projectPlanStart.value || '';
-  wbsStartPlanEnd.value = end || projectPlanEnd.value || wbsStartPlanStart.value;
+  const defaults = resolveWbsPlanModalDefaultDates(row);
+  wbsStartPlanForm.start = defaults.start;
+  wbsStartPlanForm.end = defaults.end;
   wbsStartPlanModalVisible.value = true;
+  nextTick(() => wbsStartPlanFormRef.value?.clearValidate());
 }
 
 function closeWbsStartPlanModal() {
   wbsStartPlanModalVisible.value = false;
   wbsStartPlanTarget.value = null;
-  wbsStartPlanStart.value = '';
-  wbsStartPlanEnd.value = '';
+  wbsStartPlanForm.start = '';
+  wbsStartPlanForm.end = '';
+  wbsStartPlanFormRef.value?.clearValidate();
 }
 
 function disabledWbsStartPlanStartDate(current: Dayjs | undefined): boolean {
   if (!current) return false;
   const cur = current.startOf('day');
-  const proj = getProjectPlanBounds();
-  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
-  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
+  const record = wbsStartPlanTarget.value;
+  const bounds = record ? getPlanSelectableBounds(record) : getProjectPlanBounds();
+  if (bounds.start && cur.isBefore(bounds.start, 'day')) return true;
+  if (bounds.end && cur.isAfter(bounds.end, 'day')) return true;
   return false;
 }
 
 function disabledWbsStartPlanEndDate(current: Dayjs | undefined): boolean {
   if (!current) return false;
   const cur = current.startOf('day');
-  const start = dayjs(wbsStartPlanStart.value).startOf('day');
+  const start = dayjs(wbsStartPlanForm.start).startOf('day');
   if (start.isValid() && cur.isBefore(start, 'day')) return true;
-  const proj = getProjectPlanBounds();
-  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
-  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
+  const record = wbsStartPlanTarget.value;
+  const bounds = record ? getPlanSelectableBounds(record) : getProjectPlanBounds();
+  if (bounds.start && cur.isBefore(bounds.start, 'day')) return true;
+  if (bounds.end && cur.isAfter(bounds.end, 'day')) return true;
   return false;
 }
 
@@ -785,16 +943,17 @@ async function confirmWbsPlanModal() {
     closeWbsStartPlanModal();
     return;
   }
-  const sd = wbsStartPlanStart.value.trim();
-  const ed = wbsStartPlanEnd.value.trim();
-  if (!sd || !ed) {
-    message.warning('请填写计划开始与完成时间');
-    return;
+  try {
+    await wbsStartPlanFormRef.value?.validate();
+  } catch {
+    return Promise.reject();
   }
+  const sd = String(wbsStartPlanForm.start ?? '').trim();
+  const ed = String(wbsStartPlanForm.end ?? '').trim();
   const err = validatePlanDatesForWbsAction(sd, ed, record);
   if (err) {
     message.warning(err);
-    return;
+    return Promise.reject();
   }
   const isPublish = wbsPlanModalMode.value === 'publish';
   wbsStartPlanSubmitting.value = true;
@@ -826,6 +985,11 @@ async function onTaskPublish(record: WbsTaskNode) {
   }
   if (!isUpstreamCategoryManager(record)) {
     message.warning('仅上级分类负责人可发布任务');
+    return;
+  }
+  const unstartedCat = findUnstartedCategoryAncestor(record);
+  if (unstartedCat) {
+    message.warning(`上级分类「${unstartedCat.taskName || '未命名'}」尚未启动，请先启动后再发布下级任务`);
     return;
   }
   if (!record.assigneeUserId) {
@@ -1210,15 +1374,24 @@ function isWbsTaskCompletedReadonly(record: WbsTaskNode): boolean {
   return false;
 }
 
+/** 任务协同已完成（可发起变更的前提） */
+function isWbsTaskCompleted(record: WbsTaskNode): boolean {
+  if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
+  const ts = String(record.taskStatusRaw ?? '').toUpperCase();
+  if (ts === 'CHANGING') return false;
+  return isWbsTaskCompletedReadonly(record);
+}
+
 function wbsTaskRowOpsLocked(record: WbsTaskNode): boolean {
   return isWbsTaskCompletedReadonly(record) || isWbsRowBusy(record);
 }
 
-/** 仅已完成任务可发起变更（与其它行内操作相反：完成后锁定改期/编辑，变更除外） */
+/** 仅已完成任务、且负责人为当前用户时可发起变更 */
 function canWbsTaskChangeRequest(record: WbsTaskNode): boolean {
   if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
   if (isWbsRowBusy(record)) return false;
-  return isWbsTaskCompletedReadonly(record);
+  if (!canEditAsAssignee(record)) return false;
+  return isWbsTaskCompleted(record);
 }
 
 /** 沿父链向上第一个分类节点(type=1)，与后端权限一致 */
@@ -1268,21 +1441,40 @@ function canAssignResponsible(record: WbsTaskNode): boolean {
 }
 
 function canEditAsAssignee(record: WbsTaskNode): boolean {
-  return !!record.assigneeUserId && sameUserId(userStore.getUser.id, record.assigneeUserId);
+  const assigneeId = record.assigneeUserId ?? record.responsibleUserId;
+  return !!assigneeId && sameUserId(userStore.getUser.id, assigneeId);
 }
 
-/** 任务执行人本人、协同进行中：可从任务管理进入 WBS 协同设计页 */
-function canOpenWbsTaskDesignPage(record: WbsTaskNode): boolean {
+/** 任务已发布到工作台（任务行的「启动」语义） */
+function isWbsTaskPublished(record: WbsTaskNode): boolean {
+  return record.publishStatus === 1 || String(record.assignStatus ?? '') === 'PUBLISHED';
+}
+
+/**
+ * 已发布任务展示设计入口：负责人可编辑进入，其他用户只读查看。
+ */
+function canShowWbsTaskDesignLink(record: WbsTaskNode): boolean {
   if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
-  if (!canEditAsAssignee(record)) return false;
   if (!record.bindTaskId) return false;
-  if (record.publishStatus !== 1 && record.assignStatus !== 'PUBLISHED') return false;
+  return isWbsTaskPublished(record);
+}
+
+/** 非任务负责人，或任务已协同完成时，以只读模式打开设计页 */
+function isWbsTaskDesignReadOnly(record: WbsTaskNode): boolean {
+  if (!canEditAsAssignee(record)) return true;
   const ts = String(record.taskStatusRaw ?? '').toUpperCase();
-  return ts === 'DESIGNING' || ts === 'CHANGING';
+  if (ts === 'CHANGING' || ts === 'DESIGNING') return false;
+  if (ts === 'COMPLETED' || record.status === 'completed') return true;
+  return false;
+}
+
+function wbsTaskDesignLinkTitle(record: WbsTaskNode): string {
+  return isWbsTaskDesignReadOnly(record) ? '查看协同设计（只读）' : '进入协同设计';
 }
 
 async function openWbsTaskDesignPage(record: WbsTaskNode) {
-  if (!canOpenWbsTaskDesignPage(record)) return;
+  if (!canShowWbsTaskDesignLink(record)) return;
+  const readOnly = isWbsTaskDesignReadOnly(record);
   const projectId = normalizedProjectId();
   const taskId = String(record.bindTaskId ?? '').trim();
   if (!projectId || !taskId) {
@@ -1310,6 +1502,7 @@ async function openWbsTaskDesignPage(record: WbsTaskNode) {
         projectId: String(projectId),
         workspaceMode: 'wbs',
         returnPath: route.fullPath,
+        ...(readOnly ? { readOnly: '1' } : {}),
       },
     });
   } catch (e: unknown) {
@@ -1356,9 +1549,31 @@ function canShowStartButton(record: WbsTaskNode): boolean {
   /** 分类「启动」：仅上级分类负责人（非本节点任务执行人） */
   if (record.type !== 1 || isWbsRoot(record)) return false;
   if (isRowRemoved(record)) return false;
-  if (record.publishStatus === 1 || record.assignStatus === 'PUBLISHED') return false;
+  if (isWbsCategoryStarted(record)) return false;
   if (!record.assigneeUserId) return false;
   return isUpstreamCategoryManager(record);
+}
+
+function isWbsCategoryStarted(record: WbsTaskNode): boolean {
+  if (Number(record.publishStatus) === 1) return true;
+  if (String(record.assignStatus ?? '').toUpperCase() === 'PUBLISHED') return true;
+  if (Number(record.type) === 1) {
+    const ts = String(record.taskStatusRaw ?? '').toUpperCase();
+    if (ts === 'DESIGNING' || ts === 'CHANGING' || ts === 'COMPLETED') return true;
+  }
+  return false;
+}
+
+/** 任务发布前：上级非顶级分类须均已「启动」 */
+function findUnstartedCategoryAncestor(record: WbsTaskNode): WbsTaskNode | null {
+  let p = getWbsParentNode(record);
+  while (p) {
+    if (Number(p.type) === 1 && !isWbsRoot(p) && !isWbsCategoryStarted(p)) {
+      return p;
+    }
+    p = getWbsParentNode(p);
+  }
+  return null;
 }
 
 function canShowTaskPublish(record: WbsTaskNode): boolean {
@@ -1368,7 +1583,8 @@ function canShowTaskPublish(record: WbsTaskNode): boolean {
     isUpstreamCategoryManager(record) &&
     !!record.assigneeUserId &&
     !!record.bindTaskId &&
-    isWbsTaskUnpublished(record)
+    isWbsTaskUnpublished(record) &&
+    findUnstartedCategoryAncestor(record) === null
   );
 }
 
@@ -1397,7 +1613,7 @@ function subtreeHasProgressOrStarted(node: WbsTaskNode): boolean {
 /** 分类节点：未开始且无下级进度时才允许裁剪 */
 function canSuspendCategoryNode(record: WbsTaskNode): boolean {
   if (Number(record.type) !== 1 || isWbsRoot(record)) return false;
-  if (record.publishStatus === 1 || record.assignStatus === 'PUBLISHED') return false;
+  if (isWbsCategoryStarted(record)) return false;
   return !subtreeHasProgressOrStarted(record);
 }
 
@@ -1479,7 +1695,12 @@ function taskRowHasVisibleOps(record: WbsTaskNode): boolean {
       return true;
     }
   }
-  return canEditAsAssignee(record);
+  if (canWbsTaskChangeRequest(record)) return true;
+  if (canEditAsAssignee(record)) {
+    const bindId = record.bindTaskId != null ? String(record.bindTaskId) : '';
+    if (bindId && (wbsParamPendingByTaskId.value[bindId] ?? 0) > 0) return true;
+  }
+  return false;
 }
 
 /** 执行人未发布时提示其在小待办中办理 */
@@ -1662,7 +1883,7 @@ async function persistWbsPlanDatesAfterTaskChange(record: WbsTaskNode) {
   }
 }
 
-/** 校验任务计划日期：仅项目周期 + 起止先后（可选校验不早于今天） */
+/** 校验任务/分类计划日期是否在项目周期内 */
 function validateTaskPlanDatesWithinProject(
   startDate: string,
   endDate: string,
@@ -1686,20 +1907,49 @@ function validateTaskPlanDatesWithinProject(
   return null;
 }
 
+/** 任务须在上级分类周期内；分类启动须在上级分类（若有）周期内 */
+function validatePlanDatesWithinParentCategory(
+  startDate: string,
+  endDate: string,
+  record: WbsTaskNode,
+): string | null {
+  const bounds = getPlanSelectableBounds(record);
+  if (Number(record.type) === 2 && (!bounds.start || !bounds.end)) {
+    return '上级分类尚未启动或未填写计划时间，请先在分类节点上启动并填写时间';
+  }
+  if (!bounds.start || !bounds.end) return null;
+  const s = dayjs(startDate).startOf('day');
+  const e = dayjs(endDate).startOf('day');
+  if (s.isBefore(bounds.start, 'day')) {
+    return `开始时间不能早于上级分类开始时间（${bounds.start.format('YYYY-MM-DD')}）`;
+  }
+  if (e.isAfter(bounds.end, 'day')) {
+    return `完成时间不能晚于上级分类完成时间（${bounds.end.format('YYYY-MM-DD')}）`;
+  }
+  return null;
+}
+
 /** 校验当前行日期；通过返回 null */
 function validateTaskDates(record: WbsTaskNode): string | null {
   if (record.type === 1) return null;
-  return validateTaskPlanDatesWithinProject(record.startDate, record.endDate, { checkToday: true });
+  const err = validateTaskPlanDatesWithinProject(record.startDate, record.endDate, { checkToday: true });
+  if (err) return err;
+  return validatePlanDatesWithinParentCategory(record.startDate, record.endDate, record);
 }
 
-/** 启动/发布弹窗：仅校验项目计划周期 */
+/** 启动/发布弹窗：校验项目周期 + 上级分类范围 */
 function validatePlanDatesForWbsAction(
   startStr: string,
   endStr: string,
   record?: WbsTaskNode | null,
 ): string | null {
   const checkToday = record != null && Number(record.type) === 2;
-  return validateTaskPlanDatesWithinProject(startStr, endStr, { checkToday });
+  const err = validateTaskPlanDatesWithinProject(startStr, endStr, { checkToday });
+  if (err) return err;
+  if (record) {
+    return validatePlanDatesWithinParentCategory(startStr, endStr, record);
+  }
+  return null;
 }
 
 function disabledTaskStartDate(record: WbsTaskNode, current: Dayjs | undefined): boolean {
@@ -1708,15 +1958,10 @@ function disabledTaskStartDate(record: WbsTaskNode, current: Dayjs | undefined):
   const today = dayjs().startOf('day');
   if (cur.isBefore(today, 'day')) return true;
 
-  const proj = getProjectPlanBounds();
-  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
-  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
-
-  const parent = getWbsParentNode(record);
-  if (parent) {
-    const ps = dayjs(parent.startDate).startOf('day');
-    if (ps.isValid() && cur.isBefore(ps, 'day')) return true;
-  }
+  const bounds = getPlanSelectableBounds(record);
+  if (!bounds.start || !bounds.end) return true;
+  if (cur.isBefore(bounds.start, 'day')) return true;
+  if (cur.isAfter(bounds.end, 'day')) return true;
 
   const { minS } = descendantsMinStartMaxEnd(record);
   if (minS && cur.isAfter(minS, 'day')) return true;
@@ -1730,15 +1975,10 @@ function disabledTaskEndDate(record: WbsTaskNode, current: Dayjs | undefined): b
   if (!start.isValid()) return false;
   if (cur.isBefore(start, 'day')) return true;
 
-  const proj = getProjectPlanBounds();
-  if (proj.start && cur.isBefore(proj.start, 'day')) return true;
-  if (proj.end && cur.isAfter(proj.end, 'day')) return true;
-
-  const parent = getWbsParentNode(record);
-  if (parent) {
-    const pe = dayjs(parent.endDate).startOf('day');
-    if (pe.isValid() && cur.isAfter(pe, 'day')) return true;
-  }
+  const bounds = getPlanSelectableBounds(record);
+  if (!bounds.start || !bounds.end) return true;
+  if (cur.isBefore(bounds.start, 'day')) return true;
+  if (cur.isAfter(bounds.end, 'day')) return true;
 
   const { maxE } = descendantsMinStartMaxEnd(record);
   if (maxE && cur.isBefore(maxE, 'day')) return true;
@@ -2410,7 +2650,7 @@ watch(ganttCollapsed, () => {
             {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `${record.wbsCode}` : record.wbsCode }}
           </template>
           <template v-else-if="column.key === 'taskName'">
-            <a-tooltip v-if="canOpenWbsTaskDesignPage(record)" title="进入协同设计">
+            <a-tooltip v-if="canShowWbsTaskDesignLink(record)" :title="wbsTaskDesignLinkTitle(record)">
               <a class="task-wbs-task-design-link" @click.stop="openWbsTaskDesignPage(record)">
                 {{ record.taskName }}
               </a>
@@ -2418,7 +2658,7 @@ watch(ganttCollapsed, () => {
             <span v-else :title="record.taskName">{{ record.taskName }}</span>
           </template>
           <template v-else-if="column.key === 'nodeKind'">
-            <a-tooltip v-if="canOpenWbsTaskDesignPage(record)" title="进入协同设计">
+            <a-tooltip v-if="canShowWbsTaskDesignLink(record)" :title="wbsTaskDesignLinkTitle(record)">
               <span
                 class="task-wbs-node-kind task-wbs-node-kind--task task-wbs-node-kind--linkable"
                 :class="{ 'task-wbs-node-kind--removed': isRowRemoved(record) }"
@@ -2594,12 +2834,8 @@ watch(ganttCollapsed, () => {
                           </a>
                         </a-badge>
                       </a-tooltip>
-                      <a-tooltip
-                        :title="canWbsTaskChangeRequest(record) ? '变更' : '仅已完成任务可发起变更'">
-                        <a
-                          class="task-wbs-ops__link"
-                          :class="{ 'is-disabled': !canWbsTaskChangeRequest(record) }"
-                          @click.stop="canWbsTaskChangeRequest(record) && onTaskChangeRequest(record)">
+                      <a-tooltip v-if="canWbsTaskChangeRequest(record)" title="变更">
+                        <a class="task-wbs-ops__link" @click.stop="onTaskChangeRequest(record)">
                           变更
                         </a>
                       </a-tooltip>
@@ -2663,35 +2899,39 @@ watch(ganttCollapsed, () => {
         cancel-text="取消"
         @ok="confirmWbsPlanModal"
         @cancel="closeWbsStartPlanModal">
-        <p v-if="projectPlanStart && projectPlanEnd" class="project-task-wbs__sync-modal-hint">
-          计划时间须在项目周期内：{{ projectPlanStart }} ~ {{ projectPlanEnd }}
+        <p v-if="wbsPlanModalBoundsHint" class="project-task-wbs__sync-modal-hint">
+          {{ wbsPlanModalBoundsHint }}
         </p>
-        <div class="task-wbs-start-plan-modal">
-          <div class="task-wbs-start-plan-modal__row">
-            <span class="task-wbs-start-plan-modal__label">开始时间</span>
+        <a-form
+          ref="wbsStartPlanFormRef"
+          class="task-wbs-start-plan-modal"
+          :model="wbsStartPlanForm"
+          layout="horizontal"
+          :colon="false"
+          :label-col="{ style: { width: '88px' } }">
+          <a-form-item label="开始时间" name="start" required :rules="wbsStartPlanFormRules.start">
             <a-date-picker
               :locale="localeDatePickerZh"
-              v-model:value="wbsStartPlanStart"
-              class="task-wbs-date-picker"
+              v-model:value="wbsStartPlanForm.start"
+              class="task-wbs-date-picker task-wbs-date-picker--modal"
               format="YYYY-MM-DD"
               value-format="YYYY-MM-DD"
               size="small"
-              placeholder="开始时间"
+              placeholder="请选择开始时间"
               :disabled-date="disabledWbsStartPlanStartDate" />
-          </div>
-          <div class="task-wbs-start-plan-modal__row">
-            <span class="task-wbs-start-plan-modal__label">完成时间</span>
+          </a-form-item>
+          <a-form-item label="完成时间" name="end" required :rules="wbsStartPlanFormRules.end">
             <a-date-picker
               :locale="localeDatePickerZh"
-              v-model:value="wbsStartPlanEnd"
-              class="task-wbs-date-picker"
+              v-model:value="wbsStartPlanForm.end"
+              class="task-wbs-date-picker task-wbs-date-picker--modal"
               format="YYYY-MM-DD"
               value-format="YYYY-MM-DD"
               size="small"
-              placeholder="完成时间"
+              placeholder="请选择完成时间"
               :disabled-date="disabledWbsStartPlanEndDate" />
-          </div>
-        </div>
+          </a-form-item>
+        </a-form>
       </a-modal>
 
       <a-modal
@@ -3498,22 +3738,19 @@ watch(ganttCollapsed, () => {
 }
 
 .task-wbs-start-plan-modal {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   margin-top: 8px;
+
+  :deep(.ant-form-item) {
+    margin-bottom: 12px;
+  }
+
+  :deep(.ant-form-item:last-child) {
+    margin-bottom: 0;
+  }
 }
 
-.task-wbs-start-plan-modal__row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.task-wbs-start-plan-modal__label {
-  flex: 0 0 72px;
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.65);
+.task-wbs-date-picker--modal {
+  width: 100%;
 }
 
 .project-task-wbs-table :deep(.ant-table-row-expand-icon-cell),
