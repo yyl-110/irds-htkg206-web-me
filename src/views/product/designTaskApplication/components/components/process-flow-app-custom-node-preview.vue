@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 自定义页面
-import { nextTick, ref, shallowRef, watch } from 'vue';
+import { ref, shallowRef, watch } from 'vue';
 import type { Component } from 'vue';
 import { message } from 'ant-design-vue';
 import CustomPageScope from '../../../activityPage/custompage/_shared/components/CustomPageScope.vue';
@@ -35,11 +35,6 @@ const customComponentRef = ref<{
 const parameterTempList = ref<unknown[]>([]);
 const pageKey = ref<string | null>(null);
 
-async function syncChildFromParameterList() {
-  await nextTick();
-  customComponentRef.value?.updateEl?.();
-}
-
 async function loadPageContent() {
   ready.value = false;
   resolvedComponent.value = null;
@@ -63,7 +58,6 @@ async function loadPageContent() {
       props.savedTables,
     );
     ready.value = true;
-    await syncChildFromParameterList();
   } catch (error) {
     console.error('load custom page failed:', error);
     message.error('自定义页面加载失败');

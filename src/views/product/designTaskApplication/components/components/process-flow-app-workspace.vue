@@ -848,6 +848,115 @@ function patchWorkspaceNodeStatuses(statusMap: Record<string, string> | null | u
   workspaceData.value = { ...workspaceData.value, pages: [...pages] };
 }
 
+async function buildNodeDetailWithTaskParamMap(
+  key: string,
+  detailObj: Record<string, any>,
+  taskId: string | number,
+  appId: string | number,
+  appCode: string,
+): Promise<Record<string, any>> {
+  if (!appId && !appCode) return detailObj;
+  const paramQuery: Record<string, any> = { taskId };
+  if (appId) paramQuery.appId = appId;
+  else paramQuery.appCode = appCode;
+  const mapRes = await AdminApiSystemProcessTask.taskParamMap(paramQuery);
+  const raw = mapRes?.data?.data;
+  if (!raw || typeof raw !== 'object') return detailObj;
+  const dataObj = raw as Record<string, any>;
+  const paramsObj = dataObj?.params && typeof dataObj.params === 'object' ? dataObj.params : null;
+  const tablesObj = Array.isArray(dataObj?.tables) ? dataObj.tables : [];
+  const currentNodeMap = dataObj?.[key];
+  const source = paramsObj ?? currentNodeMap ?? dataObj;
+  const cfg = detailObj?.componentsJson || {};
+  const pageComponents = [
+    ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
+    ...(Array.isArray(cfg.threeDComponentList) ? cfg.threeDComponentList : []),
+    ...(Array.isArray(cfg.uploadComponentList) ? cfg.uploadComponentList : []),
+    ...(Array.isArray(cfg.tableComponentList) ? cfg.tableComponentList : []),
+  ];
+  const pageParamRows = pageComponents
+    .map((item: any) => ({
+      paramCode: String(item?.paramCode ?? item?.paramKey ?? '').trim(),
+      paramName: String(item?.paramName ?? '').trim(),
+    }))
+    .filter((row: any) => row.paramCode);
+  const sourceMap = new Map<string, string>();
+  if (Array.isArray(source)) {
+    source.forEach((row: any) => {
+      const code = String(row?.paramCode ?? row?.paramKey ?? row?.code ?? '').trim();
+      if (!code) return;
+      sourceMap.set(code, String(row?.paramValue ?? row?.value ?? row?.savedValue ?? ''));
+    });
+  } else if (source && typeof source === 'object') {
+    Object.entries(source as Record<string, any>).forEach(([k, v]) => {
+      const code = String(k ?? '').trim();
+      if (!code) return;
+      if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+        sourceMap.set(code, String((v as any)?.paramValue ?? (v as any)?.value ?? (v as any)?.savedValue ?? ''));
+        return;
+      }
+      sourceMap.set(code, String(v ?? ''));
+    });
+  }
+  const pageType = String(detailObj?.activityType ?? detailObj?.pageType ?? detailObj?.type ?? '').trim();
+  let effectivePageParamRows = pageParamRows;
+  if (!effectivePageParamRows.length && pageType === '3') {
+    if (sourceMap.size > 0) {
+      effectivePageParamRows = Array.from(sourceMap.keys()).map(paramCode => ({
+        paramCode,
+        paramName: paramCode,
+      }));
+    } else if (Array.isArray(detailObj?.savedParamValues)) {
+      effectivePageParamRows = detailObj.savedParamValues
+        .map((row: any) => ({
+          paramCode: String(row?.paramCode ?? row?.paramKey ?? '').trim(),
+          paramName: String(row?.paramName ?? '').trim(),
+        }))
+        .filter((row: any) => row.paramCode);
+    }
+  }
+  if (!effectivePageParamRows.length) {
+    if (sourceMap.size > 0) {
+      return {
+        ...detailObj,
+        savedParamValues: Array.from(sourceMap.entries()).map(([paramCode, paramValue]) => ({
+          paramCode,
+          paramName: paramCode,
+          paramValue: String(paramValue ?? ''),
+        })),
+        savedTables: tablesObj,
+      };
+    }
+    return detailObj;
+  }
+  const normalizedValues = effectivePageParamRows.map((row: any) => ({
+    paramCode: row.paramCode,
+    paramName: row.paramName,
+    paramValue: String(sourceMap.get(row.paramCode) ?? ''),
+  }));
+  const fullMapValues = Array.from(sourceMap.entries()).map(([paramCode, paramValue]) => ({
+    paramCode,
+    paramName: paramCode,
+    paramValue: String(paramValue ?? ''),
+  }));
+  const mergedByCode = new Map<string, { paramCode: string; paramName: string; paramValue: string }>();
+  fullMapValues.forEach(row => {
+    const code = String(row?.paramCode ?? '').trim();
+    if (!code) return;
+    mergedByCode.set(code, row);
+  });
+  normalizedValues.forEach(row => {
+    const code = String(row?.paramCode ?? '').trim();
+    if (!code) return;
+    mergedByCode.set(code, row);
+  });
+  return {
+    ...detailObj,
+    savedParamValues: Array.from(mergedByCode.values()),
+    savedTables: tablesObj,
+  };
+}
+
 async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefresh?: boolean }) {
   if (!key) return;
   rightPanelManualOverride.value = false;
@@ -879,7 +988,6 @@ async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefre
       const detail = res?.data?.data;
       detailObj = detail && typeof detail === 'object' ? detail : null;
     }
-    nodeDetailData.value = detailObj;
     activityImageUrl.value = '';
     activityImageMarginTop.value = 0;
     activityImageWidth.value = 260;
@@ -913,15 +1021,24 @@ async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefre
       activityKnowledgeList.value = [];
       currentActivityParamList.value = [];
     }
+
+    const taskId = route.query.taskId ?? workspaceData.value?.taskId ?? '';
+    const appId = route.query.appId ?? workspaceData.value?.appId ?? '';
+    const appCode = String(workspaceData.value?.appCode ?? '').trim();
+    if (detailObj && !isWbsCollabWorkspace.value && taskId) {
+      try {
+        detailObj = await buildNodeDetailWithTaskParamMap(key, detailObj, taskId, appId, appCode);
+      } catch {
+        // task-param-map 失败不阻断节点详情展示
+      }
+    }
+    nodeDetailData.value = detailObj;
   } finally {
     nodeDetailLoading.value = false;
     knowledgeLoading.value = false;
   }
 
-  const taskId = route.query.taskId ?? workspaceData.value?.taskId ?? '';
-  const appId = route.query.appId ?? workspaceData.value?.appId ?? '';
-  const appCode = String(workspaceData.value?.appCode ?? '').trim();
-  if (!taskId || !detailObj) return;
+  if (!detailObj) return;
   if (isWbsCollabWorkspace.value) {
     if (!options?.skipParamMapRefresh) {
       try {
@@ -941,112 +1058,6 @@ async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefre
     }
     hasUnsavedChanges.value = false;
     return;
-  }
-  if (!appId && !appCode) return;
-  const paramQuery: Record<string, any> = { taskId };
-  if (appId) paramQuery.appId = appId;
-  else paramQuery.appCode = appCode;
-  try {
-    let raw: unknown;
-    const mapRes = await AdminApiSystemProcessTask.taskParamMap(paramQuery);
-    raw = mapRes?.data?.data;
-    if (!raw || typeof raw !== 'object') return;
-    const dataObj = raw as Record<string, any>;
-    const paramsObj = dataObj?.params && typeof dataObj.params === 'object' ? dataObj.params : null;
-    const tablesObj = Array.isArray(dataObj?.tables) ? dataObj.tables : [];
-    const currentNodeMap = dataObj?.[key];
-    const source = paramsObj ?? currentNodeMap ?? dataObj;
-    const cfg = detailObj?.componentsJson || {};
-    const pageComponents = [
-      ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
-      ...(Array.isArray(cfg.threeDComponentList) ? cfg.threeDComponentList : []),
-      ...(Array.isArray(cfg.uploadComponentList) ? cfg.uploadComponentList : []),
-      ...(Array.isArray(cfg.tableComponentList) ? cfg.tableComponentList : []),
-    ];
-    const pageParamRows = pageComponents
-      .map((item: any) => ({
-        paramCode: String(item?.paramCode ?? item?.paramKey ?? '').trim(),
-        paramName: String(item?.paramName ?? '').trim(),
-      }))
-      .filter((row: any) => row.paramCode);
-    const sourceMap = new Map<string, string>();
-    if (Array.isArray(source)) {
-      source.forEach((row: any) => {
-        const code = String(row?.paramCode ?? row?.paramKey ?? row?.code ?? '').trim();
-        if (!code) return;
-        sourceMap.set(code, String(row?.paramValue ?? row?.value ?? row?.savedValue ?? ''));
-      });
-    } else if (source && typeof source === 'object') {
-      Object.entries(source as Record<string, any>).forEach(([k, v]) => {
-        const code = String(k ?? '').trim();
-        if (!code) return;
-        if (v != null && typeof v === 'object' && !Array.isArray(v)) {
-          sourceMap.set(code, String((v as any)?.paramValue ?? (v as any)?.value ?? (v as any)?.savedValue ?? ''));
-          return;
-        }
-        sourceMap.set(code, String(v ?? ''));
-      });
-    }
-    const pageType = String(detailObj?.activityType ?? detailObj?.pageType ?? detailObj?.type ?? '').trim();
-    let effectivePageParamRows = pageParamRows;
-    if (!effectivePageParamRows.length && pageType === '3') {
-      if (sourceMap.size > 0) {
-        effectivePageParamRows = Array.from(sourceMap.keys()).map(paramCode => ({
-          paramCode,
-          paramName: paramCode,
-        }));
-      } else if (Array.isArray(detailObj?.savedParamValues)) {
-        effectivePageParamRows = detailObj.savedParamValues
-          .map((row: any) => ({
-            paramCode: String(row?.paramCode ?? row?.paramKey ?? '').trim(),
-            paramName: String(row?.paramName ?? '').trim(),
-          }))
-          .filter((row: any) => row.paramCode);
-      }
-    }
-    if (!effectivePageParamRows.length) {
-      if (sourceMap.size > 0) {
-        nodeDetailData.value = {
-          ...detailObj,
-          savedParamValues: Array.from(sourceMap.entries()).map(([paramCode, paramValue]) => ({
-            paramCode,
-            paramName: paramCode,
-            paramValue: String(paramValue ?? ''),
-          })),
-          savedTables: tablesObj,
-        };
-      }
-      return;
-    }
-    const normalizedValues = effectivePageParamRows.map((row: any) => ({
-      paramCode: row.paramCode,
-      paramName: row.paramName,
-      paramValue: String(sourceMap.get(row.paramCode) ?? ''),
-    }));
-    const fullMapValues = Array.from(sourceMap.entries()).map(([paramCode, paramValue]) => ({
-      paramCode,
-      paramName: paramCode,
-      paramValue: String(paramValue ?? ''),
-    }));
-    const mergedByCode = new Map<string, { paramCode: string; paramName: string; paramValue: string }>();
-    fullMapValues.forEach(row => {
-      const code = String(row?.paramCode ?? '').trim();
-      if (!code) return;
-      mergedByCode.set(code, row);
-    });
-    normalizedValues.forEach(row => {
-      const code = String(row?.paramCode ?? '').trim();
-      if (!code) return;
-      // 当前页组件参数优先（保留更准确的 paramName）
-      mergedByCode.set(code, row);
-    });
-    nodeDetailData.value = {
-      ...detailObj,
-      savedParamValues: Array.from(mergedByCode.values()),
-      savedTables: tablesObj,
-    };
-  } catch {
-    // task-param-map 失败不阻断节点详情展示
   }
   hasUnsavedChanges.value = false;
 }

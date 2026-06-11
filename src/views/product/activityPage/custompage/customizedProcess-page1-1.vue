@@ -251,7 +251,6 @@ function resultTableRowKey(record: Record<string, string>, index?: number) {
   return String(index ?? 0);
 }
 
-
 function syncLocalDataFromParameterList() {
   data.value = [...(parameterTempList.value[0]?.tableMap?.rowData ?? [])];
   data1.value = [...(parameterTempList.value[1]?.tableMap?.rowData ?? [])];

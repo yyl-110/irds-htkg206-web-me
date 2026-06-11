@@ -113,10 +113,7 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { ReloadOutlined } from '@ant-design/icons-vue';
 import { isValid } from '@/api/flowData/flowData';
 import { createDefaultPage0_1ParameterList, type Page0_1ParameterItem } from './page0-1/parameterDefaults';
-import {
-  extractPage0_1SaveParamValues,
-  extractPage0_1TableSavePayload,
-} from './page0-1/calculations';
+import { extractPage0_1SaveParamValues, extractPage0_1TableSavePayload } from './page0-1/calculations';
 import {
   BASE_PARAMS_COLUMNS,
   COMM_PARAMS_COLUMNS,
@@ -183,11 +180,9 @@ const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch
     loadPageParameters: loadPage0_1PageParameters,
   });
 
-
 function tableRowKey(record: Record<string, string>, index?: number) {
   return String(record?.p0 ?? index ?? 0);
 }
-
 
 function freshData() {
   applyFreshData(parameterTempList.value);
