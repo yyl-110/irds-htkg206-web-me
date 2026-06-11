@@ -159,25 +159,34 @@ export function normalizeCustomPageKey(raw?: string | null): string {
     .replace(/_/g, '-');
 }
 
-export function resolveCustomPageKey(pageUrl?: string | null, pageName?: string | null): string | null {
-  const normalized = normalizeCustomPageKey(pageUrl);
+function resolveRegistryKeyFromUrl(raw?: string | null): string | null {
+  const text = String(raw ?? '').trim();
+  if (!text) return null;
+
+  const normalized = normalizeCustomPageKey(text);
   if (normalized && CUSTOM_PAGE_REGISTRY[normalized]) {
     return normalized;
   }
-  const url = String(pageUrl ?? '').toLowerCase();
-  if (url.includes('customized-process-ansys') || url.includes('customizedprocess-ansys')) {
-    return 'customized-process-ansys';
+
+  const pathWithoutQuery = text.split('?')[0]?.split('#')[0] ?? text;
+  const lastSegment = pathWithoutQuery.split('/').filter(Boolean).pop() ?? '';
+  const segmentKey = normalizeCustomPageKey(lastSegment);
+  if (segmentKey && CUSTOM_PAGE_REGISTRY[segmentKey]) {
+    return segmentKey;
   }
-  if (url.includes('customized-process-jsinvoke') || url.includes('customizedprocess-jsinvoke')) {
-    return 'customized-process-jsinvoke';
-  }
-  if (url.includes('customized-process-page0-1') || url.includes('customizedprocess-page0-1')) {
-    return 'customized-process-page0-1';
-  }
-  if (url.includes('customized-process-page0') || url.includes('customizedprocess-page0')) {
-    return 'customized-process-page0';
+
+  const urlLower = text.toLowerCase();
+  const registryKeys = Object.keys(CUSTOM_PAGE_REGISTRY).sort((a, b) => b.length - a.length);
+  for (const key of registryKeys) {
+    if (urlLower.includes(key)) {
+      return key;
+    }
   }
   return null;
+}
+
+export function resolveCustomPageKey(pageUrl?: string | null, _pageName?: string | null): string | null {
+  return resolveRegistryKeyFromUrl(pageUrl);
 }
 
 export async function loadCustomPageComponent(key: string): Promise<Component | null> {
