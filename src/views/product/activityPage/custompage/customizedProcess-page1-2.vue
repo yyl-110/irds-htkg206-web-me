@@ -2,10 +2,10 @@
   <div class="layout-wrapper">
     <div class="layout-content">
       <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
-        <a-form-item label="舵机工作方式：" class="form-item--indent work-mode-item"> 
+        <a-form-item label="舵机工作方式：" class="form-item--indent work-mode-item">
           <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled />
-          </a-form-item>
-          <div class="section-header__title">确定末端减速器形式：</div>
+        </a-form-item>
+        <div class="section-header__title">确定末端减速器形式：</div>
         <section class="main-section">
           <div class="section-tip">此处的直线和旋转是针对减速器的，不是舵机的</div>
           <a-form-item label="舵机末端减速器形式：">
@@ -55,11 +55,7 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
-import {
-  applyPage1_2InitData,
-  extractPage1_2SaveParamValues,
-  extractPage1_2TableSavePayload,
-} from './page1-2/initData';
+import { applyPage1_2InitData, extractPage1_2SaveParamValues, extractPage1_2TableSavePayload } from './page1-2/initData';
 import { loadPage1_2PageParameters } from './page1-2/loadPageParameters';
 import { createDefaultPage1_2ParameterList, type Page1_2ParameterItem } from './page1-2/parameterDefaults';
 
@@ -101,11 +97,8 @@ const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch
     loadPageParameters: loadPage1_2PageParameters,
   });
 
-
 const flag = ref(false);
 const djzdlj = ref('');
-
-
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -157,7 +150,6 @@ function onInputParm(event: FocusEvent) {
   }
   setSaveBtnEnable();
 }
-
 
 function updateEl() {
   nextTick(() => {
