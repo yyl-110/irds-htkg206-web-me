@@ -129,14 +129,14 @@
     <ModuleDataSelect
       ref="productDataSelectRef"
       :module-data-select="productFlag"
-      :mcategoryid="PRODUCT_CATEGORY_ID"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="handleProductOk"
       @moduleCancel="handleProductCancel" />
 
     <ModuleDataSelect
       ref="moduleDataSelectRef"
       :module-data-select="moduleDataFlag"
-      :mcategoryid="MODULE_CATEGORY_ID"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="handleModuleOk"
       @moduleCancel="handleModuleCancel" />
   </div>
@@ -163,8 +163,6 @@ import {
   CONNECTION_TYPE_OPTIONS,
   createDefaultZqFrameDesignPage1ParameterList,
   getFrameModelRows,
-  MODULE_CATEGORY_ID,
-  PRODUCT_CATEGORY_ID,
   PRODUCT_ROOT_NODE_ID,
   setFrameModelRows,
   type FrameModelRow,
@@ -234,6 +232,8 @@ const moduleDataFlag = ref(false);
 const selectList = ref<FrameModelRow[]>([]);
 const selectedRowKeys = ref<Key[]>([]);
 
+const MODULE_LIBRARY_CATEGORY_ID = '0';
+
 const productDataSelectRef = ref<ModuleDataSelectExpose | null>(null);
 const moduleDataSelectRef = ref<ModuleDataSelectExpose | null>(null);
 
@@ -293,12 +293,12 @@ function updateEl() {
 setupParameterWatch(updateEl);
 
 function showProductList() {
-  productDataSelectRef.value?.initData(PRODUCT_CATEGORY_ID, PRODUCT_ROOT_NODE_ID);
+  productDataSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, PRODUCT_ROOT_NODE_ID);
   productFlag.value = true;
 }
 
 function showModuleData(_type: number) {
-  moduleDataSelectRef.value?.initData(MODULE_CATEGORY_ID, '');
+  moduleDataSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, '');
   moduleDataFlag.value = true;
 }
 

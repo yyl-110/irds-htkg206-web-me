@@ -89,7 +89,7 @@
     <ModuleDataSelect
       ref="moduleDataSelectRef"
       :module-data-select="moduleDataFlag"
-      :mcategoryid="moduleCategoryId"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @module-ok="handleModuleOk"
       @module-cancel="handleModuleCancel" />
   </div>
@@ -110,7 +110,6 @@ import { applyFs15_1LInitData } from './FS1_5_1L/initData';
 import { extractFs15_1LSaveParamValues, loadFs15_1LPageParameters } from './FS1_5_1L/loadPageParameters';
 import {
   createDefaultFs15_1LParameterList,
-  MODULE_CATEGORY_ID,
   NUMERIC_REG,
   PRESSURE_DIRECTION_OPTIONS,
   type Fs15_1LParameterItem,
@@ -156,7 +155,7 @@ const route = useRoute();
 const tabHeight = 260;
 const selectTableColumns = SELECT_TABLE_COLUMNS;
 const checkTableColumns = CHECK_TABLE_COLUMNS;
-const moduleCategoryId = MODULE_CATEGORY_ID;
+const MODULE_LIBRARY_CATEGORY_ID = '0';
 const pressureDirectionOptions = PRESSURE_DIRECTION_OPTIONS;
 
 const moduleDataSelectRef = ref<{ initData: (categoryId: string, pageStr: string) => void } | null>(null);
@@ -288,7 +287,7 @@ function handleDeleteRow() {
 
 function handleBrowse() {
   if (singleDisabled.value) return;
-  moduleDataSelectRef.value?.initData(MODULE_CATEGORY_ID, '');
+  moduleDataSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, '');
   moduleDataFlag.value = true;
 }
 

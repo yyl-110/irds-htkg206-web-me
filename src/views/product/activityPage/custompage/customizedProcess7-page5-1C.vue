@@ -117,7 +117,7 @@
     <ModuleDataSelect
       ref="moduleDataSelectRef"
       :module-data-select="moduleDataFlag"
-      :mcategoryid="modulecategoryid"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="moduleOk"
       @moduleCancel="moduleCancel" />
   </div>
@@ -130,7 +130,6 @@ import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import ModuleDataSelect from '@/views/product/activityPage/components/module-data-select.vue';
-import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 import { TABLE_COLUMNS, TABLE_MIN_WIDTH, TYPE_OPTIONS } from './Process7-page5-1/tableColumns';
 import {
@@ -206,7 +205,7 @@ const paramz5 = ref('');
 const selectList = ref<ChassisTableRow[]>([]);
 const selectedRowKeys = ref<Key[]>([]);
 const moduleDataFlag = ref(false);
-const modulecategoryid = ref('');
+const MODULE_LIBRARY_CATEGORY_ID = '0';
 const selectRow = ref(0);
 
 const moduleDataSelectRef = ref<{ initData: (categoryId: string, pageStr: string) => void } | null>(null);
@@ -334,7 +333,7 @@ function updateEl() {
 
 setupParameterWatch(updateEl);
 
-async function browserRowData() {
+function browserRowData() {
   if (!selectList.value.length) {
     message.info('请选择浏览行');
     return;
@@ -348,14 +347,7 @@ async function browserRowData() {
     return;
   }
 
-  if (!isValid(modulecategoryid.value)) {
-    const response: { code?: string; data?: { data?: string } } = await getFlowModuleid({ moduleName: '插箱(C)' });
-    if (!response || response.code !== '0') {
-      message.info('获取模型库id失败');
-      return;
-    }
-    modulecategoryid.value = response.data?.data ?? '';
-  }
+  const categoryId = MODULE_LIBRARY_CATEGORY_ID;
 
   const rowData = parameterTempList.value[8].tableMap?.rowData ?? [];
   for (let i = 0; i < rowData.length; i += 1) {
@@ -365,7 +357,7 @@ async function browserRowData() {
     }
   }
 
-  moduleDataSelectRef.value?.initData(modulecategoryid.value, '');
+  moduleDataSelectRef.value?.initData(categoryId, '');
   moduleDataFlag.value = true;
 }
 

@@ -81,14 +81,14 @@
     <ModuleDataSelect
       ref="shaftModuleSelectRef"
       :module-data-select="shaftModuleFlag"
-      :mcategoryid="SHAFT_MODULE_CATEGORY_ID"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="handleShaftModuleOk"
       @moduleCancel="shaftModuleFlag = false" />
 
     <ModuleDataSelect
       ref="pipeModuleSelectRef"
       :module-data-select="pipeModuleFlag"
-      :mcategoryid="PIPE_MODULE_CATEGORY_ID"
+      :mcategoryid="MODULE_LIBRARY_CATEGORY_ID"
       @moduleOk="handlePipeModuleOk"
       @moduleCancel="pipeModuleFlag = false" />
   </div>
@@ -119,8 +119,6 @@ import {
   cloneParameterList,
   createDefaultTransmissionShaftPage2ParameterList,
   FORM_PARAM_COUNT,
-  PIPE_MODULE_CATEGORY_ID,
-  SHAFT_MODULE_CATEGORY_ID,
   type TransmissionShaftPage2ParameterItem,
 } from './zq-transmissionShaft-page2/parameterDefaults';
 
@@ -170,6 +168,8 @@ const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch
 
 const paramRefs = Array.from({ length: FORM_PARAM_COUNT }, () => ref(''));
 
+const MODULE_LIBRARY_CATEGORY_ID = '0';
+
 const shaftModuleFlag = ref(false);
 const pipeModuleFlag = ref(false);
 
@@ -200,7 +200,7 @@ function handleCalculation() {
 }
 
 function handleShowShaftModule() {
-  shaftModuleSelectRef.value?.initData(SHAFT_MODULE_CATEGORY_ID, buildShaftBrowseFilters());
+  shaftModuleSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, buildShaftBrowseFilters());
   if (shaftModuleFlag.value) {
     shaftModuleFlag.value = false;
     nextTick(() => {
@@ -212,7 +212,7 @@ function handleShowShaftModule() {
 }
 
 function handleShowPipeModule() {
-  pipeModuleSelectRef.value?.initData(PIPE_MODULE_CATEGORY_ID, buildPipeBrowseFilters(parameterTempList.value));
+  pipeModuleSelectRef.value?.initData(MODULE_LIBRARY_CATEGORY_ID, buildPipeBrowseFilters(parameterTempList.value));
   if (pipeModuleFlag.value) {
     pipeModuleFlag.value = false;
     nextTick(() => {

@@ -86,7 +86,6 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
 import { buildReducerBrowseQueryPrefill } from './page2-1/browseHelpers';
@@ -179,7 +178,6 @@ const modulePickerVisible = ref(false);
 const modulePickerCategoryId = ref('');
 const modulePickerMenuId = ref('');
 const modulePickerQueryPrefill = ref<Record<string, string>>({});
-const modulecategoryid = ref('');
 const selectRow = ref(0);
 
 const tableRowData = computed(() => getReducerTableRows(parameterTempList.value));
@@ -276,27 +274,7 @@ function handleDeleteRow() {
   setSaveBtnEnable();
 }
 
-async function resolveModuleCategoryId() {
-  if (isValid(modulecategoryid.value)) {
-    return String(modulecategoryid.value);
-  }
-  const response: { code?: string; data?: { data?: string } | string } = await getFlowModuleid({ moduleName: '减速器' });
-  if (!response || response.code !== '0') {
-    message.info('获取模型库id失败');
-    return '';
-  }
-  const categoryId = String(
-    typeof response.data === 'object' && response.data !== null ? (response.data.data ?? '') : (response.data ?? ''),
-  ).trim();
-  if (!categoryId) {
-    message.info('获取模型库id失败');
-    return '';
-  }
-  modulecategoryid.value = categoryId;
-  return categoryId;
-}
-
-async function handleBrowseRow() {
+function handleBrowseRow() {
   if (!selectList.value.length) {
     message.info('请选择浏览行');
     return;
@@ -310,8 +288,7 @@ async function handleBrowseRow() {
     return;
   }
 
-  const categoryId = await resolveModuleCategoryId();
-  if (!categoryId) return;
+  const categoryId = '195';
 
   const rows = getReducerTableRows(parameterTempList.value);
   const selected = selectList.value[0];
@@ -322,7 +299,7 @@ async function handleBrowseRow() {
   }
 
   modulePickerCategoryId.value = categoryId;
-  modulePickerMenuId.value = categoryId;
+  modulePickerMenuId.value = '9';
   modulePickerQueryPrefill.value = buildReducerBrowseQueryPrefill(parameterTempList.value);
   modulePickerVisible.value = true;
 }
