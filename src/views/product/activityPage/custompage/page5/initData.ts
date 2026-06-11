@@ -1,5 +1,6 @@
-import { PAGE4_TABLE_NUM } from '../page4/parameterDefaults';
-import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
+import { PAGE4_TABLE_COMPONENT_ID, PAGE4_TABLE_NUM } from '../page4/parameterDefaults';
+import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
+import { getFlowParameterList } from '../shared/flowContext';
 import type { Page5ParameterItem, Page5TableRow } from './parameterDefaults';
 
 export interface Page5InitResult {
@@ -47,19 +48,21 @@ function buildRowFromCombin(
 }
 
 /** 从组合方案表刷新（原 initData） */
-export function applyPage5InitData(list: Page5ParameterItem[]): Page5InitResult {
+export function applyPage5InitData(
+  list: Page5ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): Page5InitResult {
   const paramList = getFlowParameterList();
-  const tableList = getFlowTableList();
+  const sources = collectTableSources(savedTables);
 
-  let combinList: Array<Record<string, string | number | undefined>> = [];
+  const combinList = resolveTableRows(
+    sources,
+    [{ tableNum: PAGE4_TABLE_NUM, componentId: PAGE4_TABLE_COMPONENT_ID }],
+    16,
+  );
+
   let jsqStyle = '';
   let equivalent = 0;
-
-  tableList.forEach(item => {
-    if (item.tablenum === PAGE4_TABLE_NUM) {
-      combinList = item.rowdata ?? [];
-    }
-  });
 
   paramList.forEach(item => {
     if (jsqStyle === '' && item.paramnum === 'DJ1_5_MDJSQXS') {

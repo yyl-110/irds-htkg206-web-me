@@ -1,6 +1,7 @@
 import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
-import { PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
-import { getFlowTableList } from '../shared/flowContext';
+import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
+import { PAGE5_TABLE_COMPONENT_ID, PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
+import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
 import type { Page6ParameterItem, Page6TableRow } from './parameterDefaults';
 
 export interface Page6InitResult {
@@ -57,20 +58,22 @@ function buildRowFromDispatch(
 }
 
 /** 从齿轮减速比分配表、电机选型表刷新（原 initData） */
-export function applyPage6InitData(list: Page6ParameterItem[]): Page6InitResult {
-  const tableList = getFlowTableList();
+export function applyPage6InitData(
+  list: Page6ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): Page6InitResult {
+  const sources = collectTableSources(savedTables);
 
-  let dispatchList: Array<Record<string, string | number | undefined>> = [];
-  let motorList: Array<Record<string, string | number | undefined>> = [];
-
-  tableList.forEach(item => {
-    if (item.tablenum === PAGE5_TABLE_NUM) {
-      dispatchList = item.rowdata ?? [];
-    }
-    if (item.tablenum === MOTOR_SELECT_TABLE_NUM) {
-      motorList = item.rowdata ?? [];
-    }
-  });
+  const dispatchList = resolveTableRows(
+    sources,
+    [{ tableNum: PAGE5_TABLE_NUM, componentId: PAGE5_TABLE_COMPONENT_ID }],
+    14,
+  );
+  const motorList = resolveTableRows(
+    sources,
+    [{ tableNum: MOTOR_SELECT_TABLE_NUM, componentId: PAGE2_MOTOR_TABLE_COMPONENT_ID }],
+    20,
+  );
 
   const dataList = dispatchList.map((item, index) => buildRowFromDispatch(index, item, motorList));
 

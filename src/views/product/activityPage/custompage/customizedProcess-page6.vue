@@ -199,7 +199,7 @@ function onCellInput(record: Page6TableRow, index: number, field: string) {
 }
 
 function handleInitData() {
-  const result = applyPage6InitData(parameterTempList.value);
+  const result = applyPage6InitData(parameterTempList.value, props.savedTables);
   if (!result.ok) {
     message.warning('未能更新表格：请先在「齿轮减速比分配」页面生成数据并注入流程上下文后再试');
     return;

@@ -28,8 +28,6 @@ function normalizeTableRows(table: TableSource): Array<Record<string, string | n
 }
 
 function collectTableSources(savedTables?: Array<Record<string, unknown>> | null): TableSource[] {
-  console.log(getFlowTableList(), 'getFlowTableList');
-
   const sources: TableSource[] = [...getFlowTableList()];
   (Array.isArray(savedTables) ? savedTables : []).forEach(raw => {
     if (!raw || typeof raw !== 'object') return;

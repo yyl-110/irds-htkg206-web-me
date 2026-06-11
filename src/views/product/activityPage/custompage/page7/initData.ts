@@ -1,9 +1,16 @@
-import { REDUCER_TABLE_NUM } from '../page2-1/parameterDefaults';
-import { INIT_XN_TABLE_NUM } from '../page4/initData';
-import { PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
-import { PAGE6_TABLE_NUM } from '../page6/parameterDefaults';
-import { getFlowTableList } from '../shared/flowContext';
+import { PAGE2_1_REDUCER_TABLE_COMPONENT_ID, REDUCER_TABLE_NUM } from '../page2-1/parameterDefaults';
+import {
+  PAGE3_1_TABLE_COMPONENT_ID,
+  PAGE3_TABLE_COMPONENT_ID,
+  PAGE3_TABLE_NUM,
+} from '../page3/parameterDefaults';
+import { PAGE5_TABLE_COMPONENT_ID, PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
+import { PAGE6_TABLE_COMPONENT_ID, PAGE6_TABLE_NUM } from '../page6/parameterDefaults';
+import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
 import type { Page7ParameterItem, Page7TableRow } from './parameterDefaults';
+
+/** 旧版 page3 表号，与 PAGE3_TABLE_NUM 同义 */
+const LEGACY_INIT_XN_TABLE_NUM = 'DJ3_T_INITXN';
 
 export interface Page7InitResult {
   ok: boolean;
@@ -59,28 +66,32 @@ function buildRow(
 }
 
 /** 从 page6 / page3 / page2-1 / page5 流程表刷新（原 initData） */
-export function applyPage7InitData(list: Page7ParameterItem[]): Page7InitResult {
-  const tableList = getFlowTableList();
+export function applyPage7InitData(
+  list: Page7ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): Page7InitResult {
+  const sources = collectTableSources(savedTables);
 
-  let zjsbList: Array<Record<string, string | number | undefined>> = [];
-  let xnList: Array<Record<string, string | number | undefined>> = [];
-  let jsqList: Array<Record<string, string | number | undefined>> = [];
-  let gearDispatchList: Array<Record<string, string | number | undefined>> = [];
-
-  tableList.forEach(item => {
-    if (item.tablenum === PAGE6_TABLE_NUM) {
-      zjsbList = item.rowdata ?? [];
-    }
-    if (item.tablenum === INIT_XN_TABLE_NUM) {
-      xnList = item.rowdata ?? [];
-    }
-    if (item.tablenum === REDUCER_TABLE_NUM) {
-      jsqList = item.rowdata ?? [];
-    }
-    if (item.tablenum === PAGE5_TABLE_NUM) {
-      gearDispatchList = item.rowdata ?? [];
-    }
-  });
+  const zjsbList = resolveTableRows(sources, [{ tableNum: PAGE6_TABLE_NUM, componentId: PAGE6_TABLE_COMPONENT_ID }], 16);
+  const xnList = resolveTableRows(
+    sources,
+    [
+      { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID },
+      { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_1_TABLE_COMPONENT_ID },
+      { tableNum: LEGACY_INIT_XN_TABLE_NUM },
+    ],
+    18,
+  );
+  const jsqList = resolveTableRows(
+    sources,
+    [{ tableNum: REDUCER_TABLE_NUM, componentId: PAGE2_1_REDUCER_TABLE_COMPONENT_ID }],
+    14,
+  );
+  const gearDispatchList = resolveTableRows(
+    sources,
+    [{ tableNum: PAGE5_TABLE_NUM, componentId: PAGE5_TABLE_COMPONENT_ID }],
+    14,
+  );
 
   const dataList: Page7TableRow[] = [];
 

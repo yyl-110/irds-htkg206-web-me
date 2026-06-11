@@ -1,9 +1,12 @@
 import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
-import { REDUCER_TABLE_NUM } from '../page2-1/parameterDefaults';
-import { getFlowTableList } from '../shared/flowContext';
+import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
+import { REDUCER_TABLE_NUM, PAGE2_1_REDUCER_TABLE_COMPONENT_ID } from '../page2-1/parameterDefaults';
+import { PAGE3_1_TABLE_COMPONENT_ID, PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
+import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
 import type { Page4ParameterItem, Page4TableRow } from './parameterDefaults';
 
-export const INIT_XN_TABLE_NUM = 'DJ3_T_INITXN';
+/** 与 page3 初始总减速比表同义（旧名 DJ3_T_INITXN） */
+export const INIT_XN_TABLE_NUM = PAGE3_TABLE_NUM;
 
 function hasProductCode(row: Record<string, string | number | undefined>) {
   const code = row.p2;
@@ -57,24 +60,31 @@ function buildCombinationRow(
 }
 
 /** 从流程上下文生成电机×减速器组合方案（原 initData） */
-export function applyPage4InitData(list: Page4ParameterItem[]): boolean {
-  const tableList = getFlowTableList();
+export function applyPage4InitData(
+  list: Page4ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): boolean {
+  const sources = collectTableSources(savedTables);
 
-  let motorList: Array<Record<string, string | number | undefined>> = [];
-  let reducerList: Array<Record<string, string | number | undefined>> = [];
-  let xnList: Array<Record<string, string | number | undefined>> = [];
-
-  tableList.forEach(item => {
-    if (item.tablenum === MOTOR_SELECT_TABLE_NUM) {
-      motorList = item.rowdata ?? [];
-    }
-    if (item.tablenum === REDUCER_TABLE_NUM) {
-      reducerList = item.rowdata ?? [];
-    }
-    if (item.tablenum === INIT_XN_TABLE_NUM) {
-      xnList = item.rowdata ?? [];
-    }
-  });
+  const motorList = resolveTableRows(
+    sources,
+    [{ tableNum: MOTOR_SELECT_TABLE_NUM, componentId: PAGE2_MOTOR_TABLE_COMPONENT_ID }],
+    20,
+  );
+  const reducerList = resolveTableRows(
+    sources,
+    [{ tableNum: REDUCER_TABLE_NUM, componentId: PAGE2_1_REDUCER_TABLE_COMPONENT_ID }],
+    14,
+  );
+  const xnList = resolveTableRows(
+    sources,
+    [
+      { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID },
+      { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_1_TABLE_COMPONENT_ID },
+      { tableNum: 'DJ3_T_INITXN' },
+    ],
+    18,
+  );
 
   const dataList: Page4TableRow[] = [];
 

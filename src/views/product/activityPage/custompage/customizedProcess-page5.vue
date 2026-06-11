@@ -171,7 +171,7 @@ function onCellInput(record: Page5TableRow, index: number, field: string) {
 }
 
 function handleInitData() {
-  const result = applyPage5InitData(parameterTempList.value);
+  const result = applyPage5InitData(parameterTempList.value, props.savedTables);
   if (!result.ok) {
     message.warning('未能更新表格：请先在「组合方案确定」页面生成数据并注入流程上下文后再试');
     return;

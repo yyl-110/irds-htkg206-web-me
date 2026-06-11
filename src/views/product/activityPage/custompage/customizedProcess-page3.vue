@@ -55,11 +55,7 @@ import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
-import {
-  calculateAllPage3Rows,
-  extractPage3SaveParamValues,
-  extractPage3TableSavePayload,
-} from './page3/calculations';
+import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
 import { applyPage3InitData } from './page3/initData';
 import { loadPage3PageParameters } from './page3/loadPageParameters';
 import { createDefaultPage3ParameterList, type Page3ParameterItem, type Page3TableRow } from './page3/parameterDefaults';
@@ -181,7 +177,7 @@ function onEditableBlur(record: Page3TableRow, index: number, field: string, eve
 }
 
 function handleInitData() {
-  const ok = applyPage3InitData(parameterTempList.value);
+  const ok = applyPage3InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
     message.warning('未能更新表格：请先在「电机选型」等前置页面保存数据，且流程上下文已注入后再试');
     return;

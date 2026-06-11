@@ -19,7 +19,7 @@
         </a-button>
         <a-button type="primary" danger style="margin-left: 20px" :disabled="rowFlag" @click="handleDeleteRow">
           <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
-          删除
+          删除行
         </a-button>
         <a-button type="primary" style="margin-left: 20px" @click.stop="handleBrowseRow">
           <template #icon><FolderOpenOutlined /></template>
@@ -40,7 +40,11 @@
           :row-selection="motorRowSelection">
           <template #bodyCell="{ column, record, index }">
             <template v-if="column.dataIndex === 'p0'">
-              <a-select v-model:value="record.p0" class="table-cell-select" @change="onMotorTypeChange(record, index)">
+              <a-select
+                v-model:value="record.p0"
+                class="table-cell-select"
+                @change="onMotorTypeChange(record, index)"
+                :allowClear="false">
                 <a-select-option v-for="item in motorTypeOptions" :key="item.value" :value="item.value">
                   {{ item.label }}
                 </a-select-option>
@@ -89,7 +93,13 @@ import { loadPage2PageParameters } from './page2/loadPageParameters';
 import { createDefaultPage2ParameterList, type Page2ParameterItem } from './page2/parameterDefaults';
 import { extractPage2SaveParamValues, extractPage2TableSavePayload } from './page2/calculations';
 import { addMotorRow, applyModuleLibraryToRow, deleteMotorRows, getMotorTableRows } from './page2/rowOperations';
-import { isBrowseModeRow, MOTOR_SELECT_ANT_COLUMNS, MOTOR_TYPE_OPTIONS, normalizeMotorCategoryValue, type Page2AntColumn } from './page2/tableColumns';
+import {
+  isBrowseModeRow,
+  MOTOR_SELECT_ANT_COLUMNS,
+  MOTOR_TYPE_OPTIONS,
+  normalizeMotorCategoryValue,
+  type Page2AntColumn,
+} from './page2/tableColumns';
 import { buildMotorBrowseQueryPrefill } from './page2/browseHelpers';
 import type { Page2TableRow } from './page2/parameterDefaults';
 
@@ -139,11 +149,12 @@ function createInitialParameterList(): Page2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page2ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage2PageParameters,
-});
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage2PageParameters,
+  });
 
 const selectList = ref<Array<Record<string, string | number | undefined>>>([]);
 const selectedRowKeys = ref<Array<string | number>>([]);
@@ -266,8 +277,8 @@ function handleAddRow() {
 }
 
 function handleDeleteRow() {
-  if (!selectList.value.length) return;
-  deleteMotorRows(parameterTempList.value, selectList.value);
+  if (!selectedRowKeys.value.length) return;
+  deleteMotorRows(parameterTempList.value, selectedRowKeys.value);
   selectList.value = [];
   selectedRowKeys.value = [];
   setSaveBtnEnable();
@@ -301,7 +312,7 @@ async function handleBrowseRow() {
     }
 
     modulePickerCategoryId.value = categoryId;
-    modulePickerMenuId.value = "9";
+    modulePickerMenuId.value = '9';
     modulePickerQueryPrefill.value = buildMotorBrowseQueryPrefill(parameterTempList.value);
     modulePickerVisible.value = true;
   } finally {

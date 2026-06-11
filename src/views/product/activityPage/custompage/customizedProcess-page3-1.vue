@@ -184,7 +184,7 @@ function onEditableBlur(record: Page3TableRow, index: number, field: string, eve
 }
 
 function handleInitData() {
-  const ok = applyPage3InitData(parameterTempList.value);
+  const ok = applyPage3InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
     message.info('暂无可同步的流程数据');
     return;

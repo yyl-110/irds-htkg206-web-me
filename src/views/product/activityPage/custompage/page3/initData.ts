@@ -1,6 +1,67 @@
 import type { Page3ParameterItem, Page3TableRow } from './parameterDefaults';
+import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
 import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
 import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
+
+type TableSource = {
+  tablenum?: string;
+  tableNum?: string;
+  componentId?: string | number;
+  rowdata?: Array<Record<string, string | number | undefined>>;
+  rowData?: Array<Record<string, string | number | undefined>>;
+  values?: Array<Record<string, string | number | undefined>>;
+};
+
+function readTableCell(row: Record<string, string | number | undefined> | undefined, pIndex: number): string {
+  if (!row) return '';
+  const pVal = String(row[`p${pIndex}`] ?? '').trim();
+  if (pVal) return pVal;
+  return String(row[`c${pIndex + 1}`] ?? '').trim();
+}
+
+function normalizeTableRows(table: TableSource): Array<Record<string, string | number | undefined>> {
+  const rows = table.rowdata ?? table.rowData ?? table.values;
+  return Array.isArray(rows) ? rows : [];
+}
+
+function normalizeMotorRow(row: Record<string, string | number | undefined>): Record<string, string | number | undefined> {
+  const next: Record<string, string | number | undefined> = { ...row };
+  for (let i = 0; i <= 20; i++) {
+    const val = readTableCell(row, i);
+    if (val) next[`p${i}`] = val;
+  }
+  return next;
+}
+
+function collectTableSources(savedTables?: Array<Record<string, unknown>> | null): TableSource[] {
+  const sources: TableSource[] = getFlowTableList().map(item => ({
+    tablenum: item.tablenum,
+    componentId: item.componentId,
+    rowdata: item.rowdata,
+  }));
+  (Array.isArray(savedTables) ? savedTables : []).forEach(raw => {
+    if (!raw || typeof raw !== 'object') return;
+    sources.push(raw as TableSource);
+  });
+  return sources;
+}
+
+function resolveMotorRowsFromSources(sources: TableSource[]): Array<Record<string, string | number | undefined>> {
+  const wantTableNum = MOTOR_SELECT_TABLE_NUM;
+  const wantComponentId = String(PAGE2_MOTOR_TABLE_COMPONENT_ID);
+
+  for (const table of sources) {
+    const tableNum = String(table.tablenum ?? table.tableNum ?? '').trim();
+    const componentId = String(table.componentId ?? '').trim();
+    const matchTableNum = tableNum === wantTableNum;
+    const matchComponentId = componentId === wantComponentId;
+    if (!matchTableNum && !matchComponentId) continue;
+
+    const rows = normalizeTableRows(table).map(normalizeMotorRow);
+    if (rows.length) return rows;
+  }
+  return [];
+}
 
 function buildPage3RowFromMotor(
   motorRow: Record<string, string | number | undefined>,
@@ -36,17 +97,13 @@ function buildPage3RowFromMotor(
   return data;
 }
 
-/** 从流程上下文刷新表格（原 initData） */
-export function applyPage3InitData(list: Page3ParameterItem[]): boolean {
+/** 从流程上下文 / 已保存表格刷新表格（原 initData） */
+export function applyPage3InitData(
+  list: Page3ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): boolean {
   const paramList = getFlowParameterList();
-  const tableList = getFlowTableList();
-
-  let djList: Array<Record<string, string | number | undefined>> = [];
-  tableList.forEach(item => {
-    if (item.tablenum === MOTOR_SELECT_TABLE_NUM) {
-      djList = item.rowdata ?? [];
-    }
-  });
+  const djList = resolveMotorRowsFromSources(collectTableSources(savedTables));
 
   let motionEffic = '';
   let djOutputStyle = '';

@@ -7,8 +7,15 @@ export function getMotorTableRows(list: Page2ParameterItem[]): Page2TableRow[] {
   return list[2]?.tableMap?.rowData ?? [];
 }
 
+function ensureMotorRowDelIndexes(rows: Page2TableRow[]) {
+  rows.forEach((row, index) => {
+    row.delIndex = index;
+  });
+}
+
 export function setMotorTableRows(list: Page2ParameterItem[], rows: Page2TableRow[]) {
   if (!list[2]?.tableMap) return;
+  ensureMotorRowDelIndexes(rows);
   list[2].tableMap.rowData = rows;
   list[2].tableMap.rowNums = rows.length;
   list[2].tableMap.colStr = [
@@ -43,16 +50,13 @@ export function addMotorRow(list: Page2ParameterItem[]) {
   setMotorTableRows(list, rows);
 }
 
-export function deleteMotorRows(list: Page2ParameterItem[], selectedRows: Page2TableRow[]) {
-  let rows = [...getMotorTableRows(list)];
-  selectedRows.forEach(selected => {
-    rows = rows.filter(row => {
-      if (selected.id != null && selected.id !== '') {
-        return row.id !== selected.id;
-      }
-      return row.delIndex !== selected.delIndex;
-    });
-  });
+export function deleteMotorRows(list: Page2ParameterItem[], selectedRowKeys: Array<string | number>) {
+  const deleteSet = new Set(
+    selectedRowKeys.map(key => Number(key)).filter(index => !Number.isNaN(index) && index >= 0),
+  );
+  if (!deleteSet.size) return;
+
+  const rows = getMotorTableRows(list).filter((_, index) => !deleteSet.has(index));
   rows.forEach((row, index) => {
     row.p1 = `电机${index + 1}`;
   });

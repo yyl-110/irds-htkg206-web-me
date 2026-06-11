@@ -138,7 +138,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 }
 
 function handleInitData() {
-  const result = applyPage7InitData(parameterTempList.value);
+  const result = applyPage7InitData(parameterTempList.value, props.savedTables);
   if (!result.ok) {
     message.warning(
       '未能更新表格：请先在「确定齿数和最终实际总减速比」「初步性能计算」「减速器选型」等前置页面生成数据并注入流程上下文后再试',

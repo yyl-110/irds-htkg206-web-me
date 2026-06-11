@@ -2,6 +2,7 @@
 
 export interface FlowTableItem {
   tablenum?: string;
+  componentId?: string | number;
   rowdata?: Array<Record<string, string | number | undefined>>;
 }
 

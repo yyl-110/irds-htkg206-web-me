@@ -184,7 +184,7 @@ export function createDefaultMotorRow(motorNum: number, delIndex: number): Page2
 }
 
 export function createDefaultPage2ParameterList(pageId = ''): Page2ParameterItem[] {
-  const defaultRow = createDefaultMotorRow(1, 1);
+  const defaultRow = createDefaultMotorRow(1, 0);
   return [
     {
       inputOrOutput: '1',

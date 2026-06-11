@@ -128,7 +128,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 }
 
 function handleInitData() {
-  const ok = applyPage4InitData(parameterTempList.value);
+  const ok = applyPage4InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
     message.warning(
       '未能生成组合方案：请先在「电机选型」「减速器选型」「初始性能计算」页面填写并保存，且流程上下文已注入后再点更新数据',

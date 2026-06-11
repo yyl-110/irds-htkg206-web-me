@@ -104,8 +104,37 @@ const COMPONENT_ID_TO_TABLE_NUM: Record<string, string> = {
   '2': 'DJ1-1_T_RESULTDATA',
   '3': 'DJ1_T_ZEROINITPOSITION',
   '4': 'DJ1_T_RESULTDATA',
+  '5': 'DJ0_1_BASEPARAMS',
+  '6': 'DJ0_1_WORKPARAMS',
+  '7': 'DJ0_1_COMMSTYLE',
+  '8': 'DJ0_1_XIANGPINPARAM',
   '9': 'DJ1-1_T_ZEROINITPOSITION',
   '10': 'DJ1-1_T_RESULTDATA',
+  '11': 'DJ0_BASEPARAMS',
+  '12': 'DJ0_WORKPARAMS',
+  '13': 'DJ0_COMMSTYLE',
+  '14': 'DJ0_XIANGPINPARAM',
+  '15': 'DJ2_T_MOTORSELECT',
+  '16': 'DJ2-1_T_JSQSELECT',
+  '17': 'DJ3_T_INITTOTALJSB',
+  '18': 'DJ3_T_INITTOTALJSB',
+  '19': 'DJ4_T_COMBINSCHEME',
+  '20': 'DJ5_T_GEARJSBDISPATCH',
+  '21': 'DJ6_T_FINALTOTALJSB',
+  '22': 'DJ7_T_XNCHECK',
+  '23': 'DJ8_T_INITCOMBINSCHEME',
+  '24': 'DJ9_T_INPUTPARAMS',
+  '25': 'DJ9_T_GEARINTERFORCECAL',
+  '30': 'DJ10_T_INPUTPARAMS',
+  '31': 'DJ10_T_DEGREERESET',
+  '33': 'DJ11_T_INPUTPARAMS',
+  '34': 'TB_DEMO1_T_DUANZIDEF',
+  '35': 'TB_DEMO1_T_LAYERVOLTAGE',
+  '36': 'ZJZCJH1_1_T_FRAMECHECK',
+  '37': 'ZLKWJC1_1_T_HOLECHECK',
+  '38': 'ZT1_1_12_T_YQJTJ',
+  '39': 'ZT1_4_10_1_T_SBCMODEL',
+  '40': 'ZT1_4_10_2_T_FDS',
 };
 
 function resolveSavedTableNum(table: CustomPageSavedTableRow): string {
@@ -142,7 +171,7 @@ function mergeSavedRowsIntoTableRowData(
   return savedRows.map((savedRow, rowIndex) => {
     const rowTemplate = templateRows[rowIndex] ?? templateRows[0] ?? {};
     const pRow = normalizeSavedTableRowToPFormat(savedRow);
-    const nextRow: Record<string, string> = { ...rowTemplate };
+    const nextRow: Record<string, string> = { ...rowTemplate, delIndex: String(rowIndex) };
     for (let i = 0; i < colNums; i++) {
       const val = pRow[`p${i}`];
       if (val !== undefined && val !== '') {
@@ -237,11 +266,14 @@ export function syncFlowContextFromTaskParamMap(
     .filter(row => row.paramnum);
 
   const flowTableList: FlowTableItem[] = (Array.isArray(savedTables) ? savedTables : [])
-    .map(table => ({
-      tablenum: resolveSavedTableNum(table),
-      rowdata: normalizeSavedTableRows(table),
-    }))
-    .filter(table => table.tablenum);
+    .map(table => {
+      const componentIdRaw = table.componentId;
+      const componentId = componentIdRaw != null && componentIdRaw !== '' ? componentIdRaw : undefined;
+      const tablenum = resolveSavedTableNum(table);
+      const rowdata = normalizeSavedTableRows(table).map(row => normalizeSavedTableRowToPFormat(row));
+      return { tablenum: tablenum || undefined, componentId, rowdata };
+    })
+    .filter(table => table.tablenum || table.componentId != null);
 
   if (!flowParameterList.length && !flowTableList.length) return;
   setFlowContext({
