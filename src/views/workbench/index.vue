@@ -714,8 +714,7 @@ function resolveWorkbenchTaskTypeIcon(task: TaskItem): Component {
 }
 
 /**
- * 类型维度允许的按钮 ∩ 业务权限；仅已办展示详情；已办独立应用另展示变更；已办不展示设计
- * 已办：不展示指派/转办（完成后仅保留详情）；WBS 仅 task_type 为「协同任务」的卡片展示变更（分类协同、WBS 人员指派等不展示）
+ * 类型维度允许的按钮 ∩ 业务权限；已办开放「查询详情」「变更」等，不提供设计/指派/转办
  * @param task
  * @param action
  */
@@ -754,6 +753,26 @@ function taskActionAllowed(task: TaskItem, action: TaskActionKey): boolean {
 }
 
 /**
+ * WBS 协同任务：进入项目信息编辑 — 任务管理 Tab
+ */
+function openWbsProjectFromWorkbench(task: TaskItem, options?: { returnPath?: string }) {
+  const projectId = task.projectId != null ? String(task.projectId).trim() : '';
+  if (!projectId) {
+    message.warning('待办缺少项目标识，无法进入项目');
+    return;
+  }
+  const returnPath = options?.returnPath?.trim();
+  void router.push({
+    path: '/internal/project-info-editor',
+    query: {
+      id: projectId,
+      tab: '3',
+      ...(returnPath ? { from: encodeURIComponent(returnPath) } : {}),
+    },
+  });
+}
+
+/**
  * 「WBS分配」类待办：进入项目信息编辑 — 任务管理，用于为下层节点分配负责人（需先拉取项目创建人信息）
  */
 function openWbsPersonAssignFromWorkbench(task: TaskItem) {
@@ -780,9 +799,20 @@ function openWbsPersonAssignFromWorkbench(task: TaskItem) {
 /**
  * 设计入口：WBS 走协同参数页；独立应用走 project-pages → workspace；计算占位
  * @param task
+ * @param options.readOnly 已办「查询详情」：协同任务/独立应用进设计页只读；WBS 人员指派等进项目
  */
-async function openDesignWorkspace(task: TaskItem) {
+async function openDesignWorkspace(task: TaskItem, options?: { readOnly?: boolean }) {
+  const readOnly = options?.readOnly === true;
+  const designQueryExtra: Record<string, string> = readOnly
+    ? { readOnly: '1', returnPath: route.fullPath }
+    : {};
+
   if (task.taskKind === 'wbs') {
+    /** 已办查询详情：仅「协同任务」进只读设计页；人员指派、分类协同等进项目任务管理 */
+    if (readOnly && !isWbsDesignTaskEligibleForChange(task)) {
+      openWbsProjectFromWorkbench(task, { returnPath: route.fullPath });
+      return;
+    }
     const projectId = task.projectId != null ? String(task.projectId).trim() : '';
     /** 分类节点无独立「协同设计任务」：由发布/启动推送到工作台，用于提醒进入项目 WBS 继续分配人员 */
     if (isWbsCategoryCollaborationWorkbenchTask(task)) {
@@ -801,7 +831,7 @@ async function openDesignWorkspace(task: TaskItem) {
       return;
     }
     /** 协同任务已驳回或未发布：须先在项目 WBS 重新分配人员并发布，不可直接进协同设计 */
-    if (isWbsCollabTaskUnpublishedForDesign(task)) {
+    if (!readOnly && isWbsCollabTaskUnpublishedForDesign(task)) {
       if (!projectId) {
         message.warning('待办缺少项目标识，无法进入任务管理');
         return;
@@ -847,6 +877,7 @@ async function openDesignWorkspace(task: TaskItem) {
           taskId,
           projectId,
           workspaceMode: 'wbs',
+          ...designQueryExtra,
           ...(projectNameQ ? { projectName: projectNameQ } : {}),
         },
       });
@@ -860,7 +891,7 @@ async function openDesignWorkspace(task: TaskItem) {
     return;
   }
   if (task.taskKind === 'compute') {
-    message.info('计算任务设计工作台尚未接入');
+    message.info(readOnly ? '计算任务设计页面只读查看尚未接入' : '计算任务设计工作台尚未接入');
     return;
   }
 
@@ -898,37 +929,23 @@ async function openDesignWorkspace(task: TaskItem) {
     const targetAppId = String((payload.appId as string | number | undefined) ?? appId).trim();
     await router.push({
       path: '/internal/design-task-app-workspace',
-      query: { cacheKey, taskId, appId: targetAppId },
+      query: { cacheKey, taskId, appId: targetAppId, ...designQueryExtra },
     });
   } catch {
     message.error('获取流程页面失败');
   }
 }
 
-/**
- * 已办进入设计任务应用列表页
- * @param task
- */
-function openTaskAppDetail(task: TaskItem) {
+/** 已办「查询详情」：协同任务 → 只读协同设计页；人员指派/分类协同 → 项目；独立应用 → 只读设计页 */
+async function openTaskAppDetail(task: TaskItem) {
   if (task.status !== 'done') {
     return;
   }
-  const tid = task.taskId ?? task.id;
-  if (tid == null || tid === '') {
-    message.warning('缺少任务标识，无法打开详情');
+  if (task.taskKind === 'wbs' && !isWbsDesignTaskEligibleForChange(task)) {
+    openWbsProjectFromWorkbench(task, { returnPath: route.fullPath });
     return;
   }
-  const taskObj = {
-    id: tid,
-    processName: workbenchCardDisplayTitle(task),
-    categoryName: workbenchCardDisplayTitle(task),
-  };
-  const cacheKey = `designTaskAppDetail:${String(tid)}:${Date.now()}`;
-  sessionStorage.setItem(cacheKey, JSON.stringify(taskObj));
-  void router.push({
-    path: '/internal/design-task-app-detail',
-    query: { cacheKey, returnPath: route.fullPath },
-  });
+  await openDesignWorkspace(task, { readOnly: true });
 }
 
 function closeWbsChangeModal() {
@@ -2089,7 +2106,7 @@ onUnmounted(() => {
                                     <SwapOutlined />
                                   </a>
                                 </a-tooltip>
-                                <a-tooltip v-if="taskActionAllowed(item, 'detail')" title="详情">
+                                <a-tooltip v-if="taskActionAllowed(item, 'detail')" title="查询详情">
                                   <a
                                     href="#"
                                     class="tc-action-icon text-primary cursor-pointer text-[15px] leading-none"
@@ -2218,7 +2235,7 @@ onUnmounted(() => {
                                   <UndoOutlined />
                                 </a>
                               </a-tooltip>
-                              <a-tooltip v-if="taskActionAllowed(record, 'detail')" title="详情">
+                              <a-tooltip v-if="taskActionAllowed(record, 'detail')" title="查询详情">
                                 <a
                                   href="#"
                                   class="tc-action-icon text-primary cursor-pointer text-[16px] leading-none"

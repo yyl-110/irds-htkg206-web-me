@@ -67,6 +67,8 @@ interface TreeItem {
 
 const route = useRoute();
 const router = useRouter();
+/** 已办「查询详情」等场景：设计页只读，隐藏保存/提交等操作 */
+const isReadOnlyWorkspace = computed(() => String(route.query.readOnly ?? '') === '1');
 /** 协同任务（COLLAB）：左侧树为当前任务发布流程，与独立应用同源交互 */
 const isWbsCollabWorkspace = computed(() => String(route.query.workspaceMode ?? '') === 'wbs');
 const wbsProjectInfoFallback = ref<{ projectName?: string; projectNum?: string }>({});
@@ -1063,7 +1065,7 @@ async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefre
 }
 
 function onPreviewContentMutated() {
-  if (nodeDetailLoading.value || isRootNodeSelected.value || isCurrentNodeNotStarted.value) return;
+  if (isReadOnlyWorkspace.value || nodeDetailLoading.value || isRootNodeSelected.value || isCurrentNodeNotStarted.value) return;
   hasUnsavedChanges.value = true;
 }
 
@@ -1721,6 +1723,11 @@ async function finishFlow() {
 }
 
 function goBackPage() {
+  const returnPath = String(route.query.returnPath ?? '').trim();
+  if (returnPath) {
+    void router.push(returnPath);
+    return;
+  }
   router.back();
 }
 
@@ -1868,6 +1875,7 @@ onMounted(() => {
     ref="workspacePageRef"
     class="workspace-page splitpanes-tree-collapse-wrap"
     :class="[{ 'workspace-page--flow': isRootNodeSelected, 'workspace-page--wbs': isWbsCollabWorkspace }]">
+    <div v-if="isReadOnlyWorkspace" class="workspace-readonly-banner">只读查看模式，不可编辑或提交</div>
     <div v-if="showWbsProjectBanner" class="workspace-wbs-project-banner">
       <span v-if="wbsProjectDisplayName" class="workspace-wbs-project-banner__item">
         项目名称：{{ wbsProjectDisplayName }}
@@ -1924,6 +1932,7 @@ onMounted(() => {
                     :project-param-map="wbsProjectParamMap"
                     :other-tasks-param-map="wbsOtherTasksParamMap"
                     :task-saved-param-map="wbsTaskSavedParamMap"
+                    :read-only="isReadOnlyWorkspace"
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppCustomNodePreview
@@ -1934,6 +1943,7 @@ onMounted(() => {
                     :page-name="String(nodeDetailData?.nodeName ?? nodeDetailData?.pageName ?? '')"
                     :saved-param-values="nodeDetailData?.savedParamValues"
                     :saved-tables="nodeDetailData?.savedTables"
+                    :read-only="isReadOnlyWorkspace"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppNodePreview
                     v-else
@@ -1948,6 +1958,7 @@ onMounted(() => {
                     :project-param-map="wbsProjectParamMap"
                     :other-tasks-param-map="wbsOtherTasksParamMap"
                     :task-saved-param-map="wbsTaskSavedParamMap"
+                    :read-only="isReadOnlyWorkspace"
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                 </div>
@@ -1960,54 +1971,58 @@ onMounted(() => {
             </div>
           </a-spin>
         </div>
-        <div v-if="!isRootNodeSelected && !isCurrentNodeNotStarted" class="workspace-center-footer">
+        <div
+          v-if="!isRootNodeSelected && (!isCurrentNodeNotStarted || isReadOnlyWorkspace)"
+          class="workspace-center-footer">
+          <template v-if="!isReadOnlyWorkspace">
+            <a-button
+              type="primary"
+              :loading="saveFlowLoading"
+              :disabled="
+                saveFlowLoading ||
+                submitFlowLoading ||
+                finishFlowLoading ||
+                toolbarActionLoadingIndex !== null ||
+                !hasUnsavedChanges
+              "
+              @click="saveFlowInfo">
+              <EpcIcon type="icon-baocun" style="font-size: 12px" />保 存
+            </a-button>
+            <a-button
+              v-for="(tbLabel, tbIdx) in nodeDetailToolbarButtons"
+              :key="`node-toolbar-${tbIdx}-${tbLabel}`"
+              type="primary"
+              :loading="toolbarActionLoadingIndex === tbIdx"
+              :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
+              @click="onNodeDetailToolbarAction(tbLabel, tbIdx)">
+              {{ tbLabel }}
+            </a-button>
+            <a-button
+              v-if="canGoPrev"
+              type="primary"
+              :disabled="finishFlowLoading || toolbarActionLoadingIndex !== null"
+              @click="goPrevNode">
+              <EpcIcon type="icon-paixujiantou2" style="font-size: 12px" />上一步
+            </a-button>
+            <a-button
+              v-if="canGoNext"
+              type="primary"
+              :loading="submitFlowLoading"
+              :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
+              @click="goNextNode">
+              <EpcIcon type="icon-paixujiantou" style="font-size: 12px" />提 交
+            </a-button>
+            <a-button
+              v-if="isLastActivity"
+              type="primary"
+              :loading="finishFlowLoading"
+              :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
+              @click="finishFlow">
+              <EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成
+            </a-button>
+          </template>
           <a-button
-            type="primary"
-            :loading="saveFlowLoading"
-            :disabled="
-              saveFlowLoading ||
-              submitFlowLoading ||
-              finishFlowLoading ||
-              toolbarActionLoadingIndex !== null ||
-              !hasUnsavedChanges
-            "
-            @click="saveFlowInfo">
-            <EpcIcon type="icon-baocun" style="font-size: 12px" />保 存
-          </a-button>
-          <a-button
-            v-for="(tbLabel, tbIdx) in nodeDetailToolbarButtons"
-            :key="`node-toolbar-${tbIdx}-${tbLabel}`"
-            type="primary"
-            :loading="toolbarActionLoadingIndex === tbIdx"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
-            @click="onNodeDetailToolbarAction(tbLabel, tbIdx)">
-            {{ tbLabel }}
-          </a-button>
-          <a-button
-            v-if="canGoPrev"
-            type="primary"
-            :disabled="finishFlowLoading || toolbarActionLoadingIndex !== null"
-            @click="goPrevNode">
-            <EpcIcon type="icon-paixujiantou2" style="font-size: 12px" />上一步
-          </a-button>
-          <a-button
-            v-if="canGoNext"
-            type="primary"
-            :loading="submitFlowLoading"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
-            @click="goNextNode">
-            <EpcIcon type="icon-paixujiantou" style="font-size: 12px" />提 交
-          </a-button>
-          <a-button
-            v-if="isLastActivity"
-            type="primary"
-            :loading="finishFlowLoading"
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
-            @click="finishFlow">
-            <EpcIcon type="icon-yiwancheng" style="font-size: 12px" />完 成
-          </a-button>
-          <a-button
-            :disabled="saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null"
+            :disabled="!isReadOnlyWorkspace && (saveFlowLoading || submitFlowLoading || finishFlowLoading || toolbarActionLoadingIndex !== null)"
             @click="goBackPage">
             <EpcIcon type="icon-fanhui" style="font-size: 12px" />返 回
           </a-button>
@@ -2154,6 +2169,16 @@ onMounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.workspace-readonly-banner {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #ad6800;
+  background: #fffbe6;
+  border-bottom: 1px solid #ffe58f;
 }
 
 .workspace-wbs-project-banner {

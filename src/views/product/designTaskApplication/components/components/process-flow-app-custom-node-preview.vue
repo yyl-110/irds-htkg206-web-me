@@ -18,6 +18,8 @@ const props = defineProps<{
   pageName?: string | null;
   savedParamValues?: CustomPageSavedParamRow[] | null;
   savedTables?: CustomPageSavedTableRow[] | null;
+  /** 只读查看：禁止页面内交互 */
+  readOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -75,6 +77,7 @@ function getCurrentTableSavePayload() {
 }
 
 function onContentMutated() {
+  if (props.readOnly) return;
   emit('content-mutated');
 }
 
@@ -94,7 +97,7 @@ defineExpose({
 
 <template>
   <a-spin :spinning="loading">
-    <CustomPageScope v-if="ready && resolvedComponent">
+    <CustomPageScope v-if="ready && resolvedComponent" :class="{ 'custom-page-scope--readonly': readOnly }">
       <component
         :is="resolvedComponent"
         ref="customComponentRef"
@@ -109,6 +112,11 @@ defineExpose({
 </template>
 
 <style scoped>
+.custom-page-scope--readonly {
+  pointer-events: none;
+  user-select: text;
+}
+
 .custom-page-empty {
   padding: 24px;
   color: rgba(0, 0, 0, 0.45);

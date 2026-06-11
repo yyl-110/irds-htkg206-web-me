@@ -31,6 +31,8 @@ const props = defineProps<{
   projectParamMap?: Record<string, string> | null;
   otherTasksParamMap?: Record<string, string> | null;
   taskSavedParamMap?: Record<string, string> | null;
+  /** 只读查看：禁用编辑并隐藏操作按钮 */
+  readOnly?: boolean;
 }>();
 const emit = defineEmits<{
   (e: 'param-title-click', payload: { paramNum: string; paramName: string }): void;
@@ -233,6 +235,9 @@ function getSelectOptions(item: any) {
 }
 function isOutputIoType(item: any) {
   return String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT';
+}
+function isPreviewFieldDisabled(item: any) {
+  return !!props.readOnly || isOutputIoType(item);
 }
 function knowledgeHintText(item: any): string {
   return String(item?.knowledgeContent ?? '').trim();
@@ -605,7 +610,7 @@ defineExpose({
 
 <template>
   <div ref="previewCanvasRef" class="activity-preview-canvas">
-    <div class="param-impact-scope-entry-anchor">
+    <div v-if="!readOnly" class="param-impact-scope-entry-anchor">
       <a-tooltip title="参数影响分析" placement="left">
         <span class="param-impact-scope-entry" @click="onImpactEvalEntryClick">影响评估</span>
       </a-tooltip>
@@ -665,7 +670,7 @@ defineExpose({
             <a-tooltip v-if="hasKnowledgeHint(item)" :title="knowledgeHintText(item)" placement="top">
               <ExclamationCircleOutlined class="component-knowledge-hint" />
             </a-tooltip>
-            <a-tooltip v-if="showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
+            <a-tooltip v-if="!readOnly && showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
               <ClockCircleOutlined class="component-project-param-sync" @click.stop="openWbsParamChangeLogModal(item, index)" />
             </a-tooltip>
           </div>
@@ -682,7 +687,7 @@ defineExpose({
             <a-input
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :placeholder="item.customProps?.placeholder || '请输入'"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               class="preview-field" />
           </div>
           <div
@@ -694,7 +699,7 @@ defineExpose({
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :rows="item.customProps?.rows || 4"
               :placeholder="item.customProps?.placeholder || '请输入'"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               class="preview-field" />
           </div>
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
@@ -703,7 +708,7 @@ defineExpose({
               <span class="component-title-text--clickable" @click="onParamTitleClick(item)">{{
                 item.paramName || '数据浏览'
               }}</span>
-              <a-tooltip v-if="showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
+              <a-tooltip v-if="!readOnly && showWbsProjectParamSyncHint(item, index)" :title="wbsProjectParamSyncHint(item, index)" placement="top">
                 <ClockCircleOutlined class="component-project-param-sync" @click.stop="openWbsParamChangeLogModal(item, index)" />
               </a-tooltip>
             </div>
@@ -716,9 +721,10 @@ defineExpose({
                   class="preview-field" />
               </div>
               <a-button
+                v-if="!readOnly"
                 type="primary"
                 class="data-view-assemble-btn"
-                :disabled="isOutputIoType(item)"
+                :disabled="isPreviewFieldDisabled(item)"
                 @click="showModuleInfo(item, index)"
                 >浏览</a-button
               >
@@ -731,7 +737,7 @@ defineExpose({
             <a-select
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               placeholder="请选择"
               class="preview-field" />
           </div>
@@ -742,16 +748,16 @@ defineExpose({
             <a-auto-complete
               v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :options="getSelectOptions(item).map(v => ({ value: v }))"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               placeholder="请选择或输入"
               class="preview-field" />
           </div>
-          <div v-else-if="item.componentType === 'CALC_BUTTON'" class="calc-button-preview-wrap">
+          <div v-else-if="item.componentType === 'CALC_BUTTON' && !readOnly" class="calc-button-preview-wrap">
             <a-button
               type="primary"
               class="data-view-assemble-btn"
               :loading="calcSubmitting"
-              :disabled="isOutputIoType(item)"
+              :disabled="isPreviewFieldDisabled(item)"
               @click="onCalcButtonPreviewClick">
               {{ item.customProps?.buttonText || '计算' }}
             </a-button>
