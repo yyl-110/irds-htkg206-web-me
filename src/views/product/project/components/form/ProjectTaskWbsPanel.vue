@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import type { TableColumnsType } from 'ant-design-vue';
 import { message, Modal } from 'ant-design-vue';
 import localeDatePickerZh from 'ant-design-vue/es/date-picker/locale/zh_CN';
@@ -26,6 +27,8 @@ import { useUserStore } from '@/store/modules/user';
 dayjs.extend(isoWeek);
 
 const userStore = useUserStore();
+const route = useRoute();
+const router = useRouter();
 
 const props = defineProps<{
   projectId: string | number;
@@ -1268,6 +1271,54 @@ function canEditAsAssignee(record: WbsTaskNode): boolean {
   return !!record.assigneeUserId && sameUserId(userStore.getUser.id, record.assigneeUserId);
 }
 
+/** 任务执行人本人、协同进行中：可从任务管理进入 WBS 协同设计页 */
+function canOpenWbsTaskDesignPage(record: WbsTaskNode): boolean {
+  if (Number(record.type) !== 2 || isRowRemoved(record)) return false;
+  if (!canEditAsAssignee(record)) return false;
+  if (!record.bindTaskId) return false;
+  if (record.publishStatus !== 1 && record.assignStatus !== 'PUBLISHED') return false;
+  const ts = String(record.taskStatusRaw ?? '').toUpperCase();
+  return ts === 'DESIGNING' || ts === 'CHANGING';
+}
+
+async function openWbsTaskDesignPage(record: WbsTaskNode) {
+  if (!canOpenWbsTaskDesignPage(record)) return;
+  const projectId = normalizedProjectId();
+  const taskId = String(record.bindTaskId ?? '').trim();
+  if (!projectId || !taskId) {
+    message.warning('缺少项目或任务标识，无法进入协同设计');
+    return;
+  }
+  const hide = message.loading('加载协同设计工作台…', 0);
+  try {
+    const res = await AdminApiProjectTemp.wbsCollabProjectPages({
+      projectId: String(projectId),
+      taskId,
+    });
+    const payload = res?.data?.data as Record<string, unknown> | undefined;
+    if (!payload || typeof payload !== 'object') {
+      message.error('协同流程数据为空（请确认任务已发布 COLLAB 版本）');
+      return;
+    }
+    const cacheKey = `designTaskCollabWorkspace:${String(projectId)}:${taskId}:${Date.now()}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+    await router.push({
+      path: '/internal/design-task-app-workspace',
+      query: {
+        cacheKey,
+        taskId,
+        projectId: String(projectId),
+        workspaceMode: 'wbs',
+        returnPath: route.fullPath,
+      },
+    });
+  } catch (e: unknown) {
+    showRequestErrorIfNeeded(e, '加载协同设计工作台失败');
+  } finally {
+    hide();
+  }
+}
+
 /** 分类节点不维护自身计划时间（展示为下级合集）；任务节点：根节点固定为项目计划时间且不可改 */
 function canModifyRowFields(record: WbsTaskNode): boolean {
   if (isRowRemoved(record)) return false;
@@ -2358,8 +2409,29 @@ watch(ganttCollapsed, () => {
           <template v-if="column.key === 'wbsCode'">
             {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `${record.wbsCode}` : record.wbsCode }}
           </template>
+          <template v-else-if="column.key === 'taskName'">
+            <a-tooltip v-if="canOpenWbsTaskDesignPage(record)" title="进入协同设计">
+              <a class="task-wbs-task-design-link" @click.stop="openWbsTaskDesignPage(record)">
+                {{ record.taskName }}
+              </a>
+            </a-tooltip>
+            <span v-else :title="record.taskName">{{ record.taskName }}</span>
+          </template>
           <template v-else-if="column.key === 'nodeKind'">
+            <a-tooltip v-if="canOpenWbsTaskDesignPage(record)" title="进入协同设计">
+              <span
+                class="task-wbs-node-kind task-wbs-node-kind--task task-wbs-node-kind--linkable"
+                :class="{ 'task-wbs-node-kind--removed': isRowRemoved(record) }"
+                role="button"
+                tabindex="0"
+                @click.stop="openWbsTaskDesignPage(record)"
+                @keydown.enter.prevent="openWbsTaskDesignPage(record)">
+                <SettingOutlined class="task-wbs-node-kind__icon" aria-hidden="true" />
+                <span>任务</span>
+              </span>
+            </a-tooltip>
             <span
+              v-else
               class="task-wbs-node-kind"
               :class="[
                 Number(record.type) === 1 ? 'task-wbs-node-kind--category' : 'task-wbs-node-kind--task',
@@ -3234,6 +3306,29 @@ watch(ganttCollapsed, () => {
 
 .task-wbs-node-kind--task .task-wbs-node-kind__icon {
   color: #52c41a;
+}
+
+.task-wbs-node-kind--linkable {
+  cursor: pointer;
+  color: #1677ff;
+}
+
+.task-wbs-node-kind--linkable .task-wbs-node-kind__icon {
+  color: #1677ff;
+}
+
+.task-wbs-node-kind--linkable:hover {
+  text-decoration: underline;
+}
+
+.task-wbs-task-design-link {
+  color: #1677ff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.task-wbs-task-design-link:hover {
+  text-decoration: underline;
 }
 
 .task-wbs-node-kind--removed .task-wbs-node-kind__icon {
