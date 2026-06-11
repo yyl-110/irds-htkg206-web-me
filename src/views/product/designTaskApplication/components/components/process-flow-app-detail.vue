@@ -51,6 +51,7 @@ const tableColumns = computed(() => [
   { title: appCodeLabel.value, dataIndex: 'appCode', key: 'appCode', width: 300, ellipsis: true },
   { title: appNameLabel.value, dataIndex: 'appName', key: 'appName', width: 220, ellipsis: true },
   { title: '任务版本', dataIndex: 'versionNum', key: 'versionNum', align: 'center', width: 100 },
+  { title: '密级', dataIndex: 'confidentialLevel', key: 'confidentialLevel', align: 'center', width: 100 },
   { title: '创建人', dataIndex: 'creatorName', key: 'creatorName', align: 'center', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 150 },
   { title: '状态', key: 'status', align: 'center', width: 96 },
@@ -116,6 +117,16 @@ function canManageApp(record: Record<string, any>) {
 
 function canDeleteApp(record: Record<string, any>) {
   return canManageApp(record);
+}
+
+function getConfidentialLevelText(record: Record<string, any>) {
+  const raw = record?.confidentialLevel ?? record?.levelName ?? record?.secretLevel;
+  if (raw === undefined || raw === null || raw === '') return '--';
+  const found = userStore.getConfidentialLevel.find((item) => String(item.value) === String(raw));
+  if (found) return found.label;
+  const text = String(raw).trim();
+  if (['公开', '内部', '秘密', '机密'].includes(text)) return text;
+  return text || '--';
 }
 
 function resolveAppStatusText(record: Record<string, any>) {
@@ -381,6 +392,9 @@ void loadAppList();
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'versionNum'">
             <span>{{ record.versionNum != null && record.versionNum !== '' ? `V${record.versionNum}.0` : 'V-.0' }}</span>
+          </template>
+          <template v-else-if="column.dataIndex === 'confidentialLevel'">
+            <span>{{ getConfidentialLevelText(record) }}</span>
           </template>
           <template v-else-if="column.key === 'status'">
             <a-tag :class="['app-status-tag', resolveAppStatusTagClass(resolveAppStatusText(record))]">

@@ -26,6 +26,10 @@ const userStore = useUserStore()
 
 const route = useRoute()
 const $router = useRouter()
+/** 设计任务应用页面、报告设置页面不展示工作区右上角「公开」密级角标 */
+const showWorkspaceMijiBadge = computed(
+  () => route.name !== 'DesignTaskAppWorkspace' && route.name !== 'ReportPreparationSetting',
+)
 /** 侧栏菜单主题 CSS 变量（挂在侧栏列容器上，避免影响顶栏横向菜单） */
 const siderColumnTheme = computed(() => {
   const { vars, isLight } = computeMenuChromeCssVars(projectUi.menuBg)
@@ -258,7 +262,7 @@ onBeforeMount(() => {
         <!-- 页面标签栏 -->
         <WeiPageTabs v-if="!layoutStore.homepage && projectUi.showTabs" tab-style="card" />
         <!-- 密级标志：独立零高图层，勿给 layout-container 加 position，以免干扰左侧抽屉定位 -->
-        <div class="workspace-miji-badge-layer" aria-hidden="true">
+        <div v-if="showWorkspaceMijiBadge" class="workspace-miji-badge-layer" aria-hidden="true">
           <img class="workspace-miji-badge" src="@/assets/images/miji-gk.png" alt="" />
         </div>
         <!-- 页面容器 -->
