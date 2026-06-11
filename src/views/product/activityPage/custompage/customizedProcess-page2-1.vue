@@ -7,11 +7,7 @@
         <div v-for="(row, rowIndex) in formFieldRows" :key="rowIndex" class="form-row">
           <div v-for="field in row" :key="field.index" class="form-col">
             <a-form-item :label="field.label">
-              <a-input
-                v-model:value="parameterTempList[field.index].defaultValue"
-                class="field-input"
-                disabled
-                allow-clear />
+              <a-input v-model:value="parameterTempList[field.index].defaultValue" class="field-input" disabled allow-clear />
             </a-form-item>
           </div>
         </div>
@@ -91,24 +87,9 @@ import ModuleLibraryPickerModal from '@/views/product/activityPage/components/mo
 import { extractPage2_1SaveParamValues, extractPage2_1TableSavePayload } from './page2-1/calculations';
 import { buildReducerBrowseQueryPrefill } from './page2-1/browseHelpers';
 import { loadPage2_1PageParameters } from './page2-1/loadPageParameters';
-import {
-  createDefaultPage2_1ParameterList,
-  type Page2_1ParameterItem,
-  type Page2_1TableRow,
-} from './page2-1/parameterDefaults';
-import {
-  addReducerRow,
-  applyModuleLibraryToRow,
-  deleteReducerRows,
-  getReducerTableRows,
-} from './page2-1/rowOperations';
-import {
-  isBrowseModeRow,
-  REDUCER_SELECT_ANT_COLUMNS,
-  REDUCER_TYPE_OPTIONS,
-  normalizeReducerCategoryValue,
-  type Page2_1AntColumn,
-} from './page2-1/tableColumns';
+import { createDefaultPage2_1ParameterList, type Page2_1ParameterItem, type Page2_1TableRow } from './page2-1/parameterDefaults';
+import { addReducerRow, applyModuleLibraryToRow, deleteReducerRows, getReducerTableRows } from './page2-1/rowOperations';
+import { isBrowseModeRow, REDUCER_SELECT_ANT_COLUMNS, REDUCER_TYPE_OPTIONS, normalizeReducerCategoryValue, type Page2_1AntColumn } from './page2-1/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page2-1' });
 
@@ -179,12 +160,11 @@ function createInitialParameterList(): Page2_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page2_1ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage2_1PageParameters,
-  });
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage2_1PageParameters,
+});
 
 const selectList = ref<Array<Record<string, string | number | undefined>>>([]);
 const selectedRowKeys = ref<Array<string | number>>([]);
@@ -335,21 +315,11 @@ function handleBrowseRow() {
 
   const categoryId = '195';
 
-    const rows = getReducerTableRows(parameterTempList.value);
-    selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
-    if (selectRow.value < 0) {
-      showBrowseHint('未找到所选行');
-      return;
-    }
-
-    modulePickerCategoryId.value = categoryId;
-    modulePickerMenuId.value = categoryId;
-    modulePickerQueryPrefill.value = buildReducerBrowseQueryPrefill(parameterTempList.value);
-    modulePickerVisible.value = true;
-  } finally {
-    window.setTimeout(() => {
-      browseClickBusy.value = false;
-    }, 400);
+  const rows = getReducerTableRows(parameterTempList.value);
+  selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
+  if (selectRow.value < 0) {
+    showBrowseHint('未找到所选行');
+    return;
   }
 
   modulePickerCategoryId.value = categoryId;

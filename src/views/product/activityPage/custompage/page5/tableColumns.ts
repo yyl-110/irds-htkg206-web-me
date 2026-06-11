@@ -36,30 +36,17 @@ export const PAGE5_ANT_COLUMNS: Page5AntColumn[] = [
   {
     title: '初算指标',
     align: 'center',
-    children: [
-      metricGroup('舟它最大输出力矩', 'p1', 'Nm'),
-      metricGroup('舟它最大空载速度', 'p2', '°/S'),
-      metricGroup('舟它额定负载速度', 'p3', '°/S'),
-    ],
+    children: [metricGroup('舟它最大输出力矩', 'p1', 'Nm'), metricGroup('舟它最大空载速度', 'p2', '°/S'), metricGroup('舟它额定负载速度', 'p3', '°/S')],
   },
   {
     title: '电机参数',
     align: 'center',
-    children: [
-      leaf('产品代号', 'p4', 95),
-      unitGroup('空载转速', 'p5', 'r/min'),
-      unitGroup('额定转速', 'p6', 'r/min'),
-    ],
+    children: [leaf('产品代号', 'p4', 95), unitGroup('空载转速', 'p5', 'r/min'), unitGroup('额定转速', 'p6', 'r/min')],
   },
   {
     title: '末端减速器参数',
     align: 'center',
-    children: [
-      leaf('产品代号', 'p7', 95),
-      leaf('输出形式', 'p8', 95),
-      unitGroup('传动比（自动计算）', 'p9', 'N/Nm'),
-      unitGroup('最大输出力', 'p10', 'N'),
-    ],
+    children: [leaf('产品代号', 'p7', 95), leaf('输出形式', 'p8', 95), unitGroup('传动比（自动计算）', 'p9', 'N/Nm'), unitGroup('最大输出力', 'p10', 'N')],
   },
   leaf('总减速比', 'p11', 95),
   leaf('末端减速比', 'p12', 95),

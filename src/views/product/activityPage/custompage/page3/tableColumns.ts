@@ -29,11 +29,7 @@ function unitColumn(title: string, dataIndex: string, unit: string, cellMode: Pa
   };
 }
 
-function flatColumn(
-  title: string,
-  dataIndex: string,
-  options: { cellMode: Page3CellMode; unit?: string; inputType?: 'number' | 'text' },
-): Page3AntColumn {
+function flatColumn(title: string, dataIndex: string, options: { cellMode: Page3CellMode; unit?: string; inputType?: 'number' | 'text' }): Page3AntColumn {
   if (options.unit) {
     return unitColumn(title, dataIndex, options.unit, options.cellMode);
   }

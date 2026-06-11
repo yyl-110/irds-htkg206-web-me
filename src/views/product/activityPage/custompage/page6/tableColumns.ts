@@ -37,11 +37,7 @@ export const PAGE6_ANT_COLUMNS: Page6AntColumn[] = [
   {
     title: '初算指标',
     align: 'center',
-    children: [
-      metricGroup('舟它最大输出力矩', 'p1', 'Nm'),
-      metricGroup('舟它最大空载速度', 'p2', '°/S'),
-      metricGroup('舟它额定负载速度', 'p3', '°/S'),
-    ],
+    children: [metricGroup('舟它最大输出力矩', 'p1', 'Nm'), metricGroup('舟它最大空载速度', 'p2', '°/S'), metricGroup('舟它额定负载速度', 'p3', '°/S')],
   },
   leaf('理论总减速比', 'p4', 145),
   leaf('理论齿轮减速比', 'p5', 150),
@@ -59,18 +55,12 @@ export const PAGE6_ANT_COLUMNS: Page6AntColumn[] = [
   {
     title: '第二级减速',
     align: 'center',
-    children: [
-      leaf('第二级主动轮齿数', 'p11', SCHEME_MID_TITLE_WIDTH, 'editable'),
-      leaf('第二级从动轮齿数', 'p12', SCHEME_MID_TITLE_WIDTH, 'editable'),
-    ],
+    children: [leaf('第二级主动轮齿数', 'p11', SCHEME_MID_TITLE_WIDTH, 'editable'), leaf('第二级从动轮齿数', 'p12', SCHEME_MID_TITLE_WIDTH, 'editable')],
   },
   {
     title: '第三级减速',
     align: 'center',
-    children: [
-      leaf('第三级主动轮齿数', 'p13', SCHEME_MID_TITLE_WIDTH, 'editable'),
-      leaf('第三级从动轮齿数', 'p14', SCHEME_MID_TITLE_WIDTH, 'editable'),
-    ],
+    children: [leaf('第三级主动轮齿数', 'p13', SCHEME_MID_TITLE_WIDTH, 'editable'), leaf('第三级从动轮齿数', 'p14', SCHEME_MID_TITLE_WIDTH, 'editable')],
   },
   leaf('实际齿轮减速比', 'p15', 150),
   leaf('实际零位总减速比', 'p16', 155),

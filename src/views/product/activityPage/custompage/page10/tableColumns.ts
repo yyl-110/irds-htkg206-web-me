@@ -11,12 +11,7 @@ export interface Page10AntColumn {
   children?: Page10AntColumn[];
 }
 
-function leaf(
-  title: string,
-  dataIndex: string,
-  width = 140,
-  opts?: { fixed?: 'left' | 'right'; cellMode?: Page10CellMode },
-): Page10AntColumn {
+function leaf(title: string, dataIndex: string, width = 140, opts?: { fixed?: 'left' | 'right'; cellMode?: Page10CellMode }): Page10AntColumn {
   return {
     title,
     dataIndex,

@@ -63,14 +63,9 @@ export const PAGE10_DEGREE_DISPLAY_TABLE_COMPONENT_ID = 31;
 /** 全角度性能校核表 componentId 起始值（+ 方案索引） */
 export const PAGE10_ALL_DEGREE_TABLE_COMPONENT_ID_BASE = 32;
 
-const SCHEME_COL_STR = [
-  'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
-  'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p20',
-];
+const SCHEME_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p20'];
 
-const DEGREE_COL_STR = [
-  'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16',
-];
+const DEGREE_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16'];
 
 export function createDefaultSchemeRow(overrides?: Partial<Page10SchemeRow>): Page10SchemeRow {
   return {

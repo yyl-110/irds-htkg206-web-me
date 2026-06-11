@@ -26,12 +26,7 @@ export interface Page9AntColumn {
   children?: Page9AntColumn[];
 }
 
-function leaf(
-  title: string,
-  dataIndex: string,
-  width = SCHEME_LEAF_WIDTH,
-  opts?: { fixed?: 'left' | 'right'; cellMode?: Page9CellMode },
-): Page9AntColumn {
+function leaf(title: string, dataIndex: string, width = SCHEME_LEAF_WIDTH, opts?: { fixed?: 'left' | 'right'; cellMode?: Page9CellMode }): Page9AntColumn {
   return {
     ...schemeLeaf(title, dataIndex, width),
     fixed: opts?.fixed,
@@ -53,11 +48,7 @@ export const PAGE9_SCHEME_COLUMNS: Page9AntColumn[] = [
   {
     title: '执行机构零位性能',
     align: 'center',
-    children: [
-      metricGroup('舟它最大输出力矩', 'p1', 'Nm'),
-      metricGroup('舟它额定负载速度', 'p2', '°/S'),
-      metricGroup('舟它最大空载速度', 'p3', '°/S'),
-    ],
+    children: [metricGroup('舟它最大输出力矩', 'p1', 'Nm'), metricGroup('舟它额定负载速度', 'p2', '°/S'), metricGroup('舟它最大空载速度', 'p3', '°/S')],
   },
   {
     title: '第一级减速',

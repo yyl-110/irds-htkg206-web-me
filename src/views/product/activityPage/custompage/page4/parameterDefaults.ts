@@ -46,25 +46,7 @@ export const PAGE4_TABLE_NUM = 'DJ4_T_COMBINSCHEME';
 /** 组合方案表 componentId（customizedProcess-page4 专用） */
 export const PAGE4_TABLE_COMPONENT_ID = 19;
 
-const PAGE4_COL_STR = [
-  'p0',
-  'p1',
-  'p2',
-  'p3',
-  'p4',
-  'p5',
-  'p6',
-  'p7',
-  'p8',
-  'p9',
-  'p10',
-  'p11',
-  'p12',
-  'p13',
-  'p14',
-  'p15',
-  'p16',
-];
+const PAGE4_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16'];
 
 export function createDefaultPage4Row(): Page4TableRow {
   return {

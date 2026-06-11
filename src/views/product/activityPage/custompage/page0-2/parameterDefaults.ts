@@ -26,12 +26,7 @@ export function createDefaultPage1_1_1_1ParameterList(pageId = ''): Page1_1_1_1P
       parameterNum: 'DJ1_1_GZFS',
       parameterId: '',
       defaultValue: '直线喷管',
-      selectStr: [
-        { label: '直线喷管' },
-        { label: '直线非喷管' },
-        { label: '旋转拨叉类' },
-        { label: '旋转非拨叉类' },
-      ],
+      selectStr: [{ label: '直线喷管' }, { label: '直线非喷管' }, { label: '旋转拨叉类' }, { label: '旋转非拨叉类' }],
       propertyType: '1',
       pageId,
       inputName: '舟它工作方式',

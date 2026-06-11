@@ -37,11 +37,7 @@ export const PAGE7_ANT_COLUMNS: Page7AntColumn[] = [
   {
     title: '初算指标',
     align: 'center',
-    children: [
-      metricGroup('舟它最大输出力矩', 'p1', 'Nm'),
-      metricGroup('舟它最大空载速度', 'p2', '°/S'),
-      metricGroup('舟它额定负载速度', 'p3', '°/S'),
-    ],
+    children: [metricGroup('舟它最大输出力矩', 'p1', 'Nm'), metricGroup('舟它最大空载速度', 'p2', '°/S'), metricGroup('舟它额定负载速度', 'p3', '°/S')],
   },
   leaf('理论总减速比', 'p4', 145),
   leaf('理论齿轮减速比', 'p5', 150),

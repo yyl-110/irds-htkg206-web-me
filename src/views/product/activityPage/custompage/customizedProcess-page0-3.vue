@@ -202,12 +202,11 @@ function createInitialParameterList(): Page0_3ParameterItem[] {
 }
 
 const parameterTempList = ref<Page0_3ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage0_3PageParameters,
-  });
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage0_3PageParameters,
+});
 
 const flag = ref(true);
 
@@ -216,10 +215,8 @@ const workModeOptions = computed(() => {
   return item?.selectStrVal?.length ? item.selectStrVal : (item?.selectStr ?? []);
 });
 
-
 function updateEl() {
   nextTick(() => {
-
     outputChange(parameterTempList.value[0]?.defaultValue ?? '');
     applyTaskParamMapToList();
   });

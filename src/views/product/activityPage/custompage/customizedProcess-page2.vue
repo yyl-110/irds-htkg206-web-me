@@ -89,13 +89,7 @@ import { loadPage2PageParameters } from './page2/loadPageParameters';
 import { createDefaultPage2ParameterList, type Page2ParameterItem } from './page2/parameterDefaults';
 import { extractPage2SaveParamValues, extractPage2TableSavePayload } from './page2/calculations';
 import { addMotorRow, applyModuleLibraryToRow, deleteMotorRows, getMotorTableRows } from './page2/rowOperations';
-import {
-  isBrowseModeRow,
-  MOTOR_SELECT_ANT_COLUMNS,
-  MOTOR_TYPE_OPTIONS,
-  normalizeMotorCategoryValue,
-  type Page2AntColumn,
-} from './page2/tableColumns';
+import { isBrowseModeRow, MOTOR_SELECT_ANT_COLUMNS, MOTOR_TYPE_OPTIONS, normalizeMotorCategoryValue, type Page2AntColumn } from './page2/tableColumns';
 import { buildMotorBrowseQueryPrefill } from './page2/browseHelpers';
 import type { Page2TableRow } from './page2/parameterDefaults';
 
@@ -145,12 +139,11 @@ function createInitialParameterList(): Page2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page2ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage2PageParameters,
-  });
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage2PageParameters,
+});
 
 const selectList = ref<Array<Record<string, string | number | undefined>>>([]);
 const selectedRowKeys = ref<Array<string | number>>([]);

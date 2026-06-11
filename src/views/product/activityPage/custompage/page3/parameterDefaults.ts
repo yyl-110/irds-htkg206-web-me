@@ -50,27 +50,7 @@ export const PAGE3_TABLE_COMPONENT_ID = 17;
 /** 初始总减速比表 componentId（customizedProcess-page3-1 专用） */
 export const PAGE3_1_TABLE_COMPONENT_ID = 18;
 
-const PAGE3_COL_STR = [
-  'p0',
-  'p1',
-  'p2',
-  'p3',
-  'p4',
-  'p5',
-  'p6',
-  'p7',
-  'p8',
-  'p9',
-  'p10',
-  'p11',
-  'p12',
-  'p13',
-  'p14',
-  'p15',
-  'p16',
-  'p17',
-  'p18',
-];
+const PAGE3_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18'];
 
 export function createDefaultPage3Row(): Page3TableRow {
   const row: Page3TableRow = { p0: '' };

@@ -59,9 +59,35 @@ export const PAGE7_TABLE_NUM = 'DJ7_T_XNCHECK';
 export const PAGE7_TABLE_COMPONENT_ID = 22;
 
 const PAGE7_COL_STR = [
-  'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
-  'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19',
-  'p20', 'p21', 'p22', 'p23', 'p24', 'p25', 'p26', 'p27', 'p28',
+  'p0',
+  'p1',
+  'p2',
+  'p3',
+  'p4',
+  'p5',
+  'p6',
+  'p7',
+  'p8',
+  'p9',
+  'p10',
+  'p11',
+  'p12',
+  'p13',
+  'p14',
+  'p15',
+  'p16',
+  'p17',
+  'p18',
+  'p19',
+  'p20',
+  'p21',
+  'p22',
+  'p23',
+  'p24',
+  'p25',
+  'p26',
+  'p27',
+  'p28',
 ];
 
 export function createDefaultPage7Row(overrides?: Partial<Page7TableRow>): Page7TableRow {

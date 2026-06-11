@@ -54,29 +54,7 @@ const MOTOR_COL_DATA = [
   { colName: '其它说明', isShowCol: '1' },
 ];
 
-const MOTOR_COL_STR = [
-  'p0',
-  'p1',
-  'p2',
-  'p3',
-  'p4',
-  'p5',
-  'p6',
-  'p7',
-  'p8',
-  'p9',
-  'p10',
-  'p11',
-  'p12',
-  'p13',
-  'p14',
-  'p15',
-  'p16',
-  'p17',
-  'p18',
-  'p19',
-  'p20',
-];
+const MOTOR_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p20'];
 
 /** 电机选型表 componentId（customizedProcess-page2 专用） */
 export const PAGE2_MOTOR_TABLE_COMPONENT_ID = 15;

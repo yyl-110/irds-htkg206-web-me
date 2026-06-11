@@ -22,11 +22,7 @@
           </div>
           <div class="form-column-right">
             <a-form-item v-for="field in rightFields" :key="field.index" :label="field.label">
-              <a-input
-                v-model:value="parameterTempList[field.index].defaultValue"
-                class="field-input"
-                disabled
-                @input="setSaveBtnEnable()" />
+              <a-input v-model:value="parameterTempList[field.index].defaultValue" class="field-input" disabled @input="setSaveBtnEnable()" />
             </a-form-item>
           </div>
         </section>
@@ -73,14 +69,11 @@ function createInitialParameterList(): Page1_4ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_4ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage1_4PageParameters,
-  });
-
-
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage1_4PageParameters,
+});
 
 interface FormFieldConfig {
   index: number;
@@ -157,7 +150,6 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
     }
   });
 }
-
 
 function updateEl() {
   nextTick(() => {

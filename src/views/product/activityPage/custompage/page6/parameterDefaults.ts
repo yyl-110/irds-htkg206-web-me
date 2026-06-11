@@ -46,25 +46,7 @@ export const PAGE6_TABLE_NUM = 'DJ6_T_FINALTOTALJSB';
 /** 齿数/实际总减速比表 componentId（customizedProcess-page6 专用） */
 export const PAGE6_TABLE_COMPONENT_ID = 21;
 
-const PAGE6_COL_STR = [
-  'p0',
-  'p1',
-  'p2',
-  'p3',
-  'p4',
-  'p5',
-  'p6',
-  'p7',
-  'p8',
-  'p9',
-  'p10',
-  'p11',
-  'p12',
-  'p13',
-  'p14',
-  'p15',
-  'p16',
-];
+const PAGE6_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16'];
 
 export function createDefaultPage6Row(overrides?: Partial<Page6TableRow>): Page6TableRow {
   return {

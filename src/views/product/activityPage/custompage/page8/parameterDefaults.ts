@@ -54,10 +54,7 @@ export const PAGE8_SEL_INDEX_PARAM = 'DJ2_9_SELINDEXS';
 /** 初步筛选组合方案表 componentId（customizedProcess-page8 专用） */
 export const PAGE8_TABLE_COMPONENT_ID = 23;
 
-const PAGE8_COL_STR = [
-  'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9',
-  'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p20',
-];
+const PAGE8_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p20'];
 
 export function createDefaultPage8Row(overrides?: Partial<Page8TableRow>): Page8TableRow {
   return {
