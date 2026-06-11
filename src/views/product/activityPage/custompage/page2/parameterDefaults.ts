@@ -213,7 +213,7 @@ export function createDefaultPage2ParameterList(pageId = ''): Page2ParameterItem
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机额定功率（旋转）',
+      inputName: '舟它额定功率（旋转）',
     },
     {
       inputOrOutput: '1',
@@ -224,7 +224,7 @@ export function createDefaultPage2ParameterList(pageId = ''): Page2ParameterItem
       defaultValue: '8000',
       propertyType: '1',
       pageId,
-      inputName: '舵机额定功率（直线）',
+      inputName: '舟它额定功率（直线）',
     },
     {
       inputType: 'table',

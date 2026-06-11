@@ -4,7 +4,7 @@
       <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
         <div class="section-header">
           <div class="section-header__title">确认设计输入：</div>
-          <a-form-item label="舵机工作方式：" class="work-mode-item">
+          <a-form-item label="舟它工作方式：" class="work-mode-item">
             <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled />
           </a-form-item>
         </div>
@@ -95,16 +95,16 @@ interface FormRowConfig {
 
 const formRows: FormRowConfig[] = [
   {
-    left: { index: 1, label: '舵机最大输出力矩（Nm）：', disabled: true },
-    right: { index: 12, label: '舵机最大输出力（等效, Nm）：', disabled: true },
+    left: { index: 1, label: '舟它最大输出力矩（Nm）：', disabled: true },
+    right: { index: 12, label: '舟它最大输出力（等效, Nm）：', disabled: true },
   },
   {
     left: { index: 2, label: '额定输出力矩（Nm）：', disabled: true },
     right: { index: 13, label: '额定输出力矩（等效, Nm）：', disabled: true },
   },
   {
-    left: { index: 3, label: '舵机负载转速（旋转）（°/S）：', disabled: true },
-    right: { index: 14, label: '舵机负载速度（等效, °/S）：', disabled: true },
+    left: { index: 3, label: '舟它负载转速（旋转）（°/S）：', disabled: true },
+    right: { index: 14, label: '舟它负载速度（等效, °/S）：', disabled: true },
   },
   {
     left: { index: 4, label: '机械行程（单边转角）（°）：', disabled: true },
@@ -115,12 +115,12 @@ const formRows: FormRowConfig[] = [
     right: { index: 16, label: '最大空载速度（等效, °/S）：', disabled: true },
   },
   {
-    left: { index: 6, label: '舵机额定功率（W）：', disabled: true },
-    right: { index: 17, label: '舵机额定功率（W）：', disabled: true },
+    left: { index: 6, label: '舟它额定功率（W）：', disabled: true },
+    right: { index: 17, label: '舟它额定功率（W）：', disabled: true },
   },
   { left: { index: 7, label: '传动效率：', disabled: false } },
   { left: { index: 8, label: '等效力臂（mm）：', disabled: true } },
-  { left: { index: 9, label: '舵机末端减速器形式：', disabled: true } },
+  { left: { index: 9, label: '舟它末端减速器形式：', disabled: true } },
   { left: { index: 10, label: '减速器直线载荷(N)：', disabled: true } },
   { left: { index: 11, label: '减速器旋转载荷(Nm)：', disabled: true } },
 ];

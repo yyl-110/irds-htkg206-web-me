@@ -54,9 +54,9 @@ export const PAGE9_SCHEME_COLUMNS: Page9AntColumn[] = [
     title: '执行机构零位性能',
     align: 'center',
     children: [
-      metricGroup('舵机最大输出力矩', 'p1', 'Nm'),
-      metricGroup('舵机额定负载速度', 'p2', '°/S'),
-      metricGroup('舵机最大空载速度', 'p3', '°/S'),
+      metricGroup('舟它最大输出力矩', 'p1', 'Nm'),
+      metricGroup('舟它额定负载速度', 'p2', '°/S'),
+      metricGroup('舟它最大空载速度', 'p3', '°/S'),
     ],
   },
   {

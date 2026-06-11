@@ -49,7 +49,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: withCustomPageScope(() => import('@/views/product/activityPage/custompage/customizedProcess-page0-2.vue')),
     meta: {
       hidden: true,
-      title: '舵机设计输入',
+      title: '舟它设计输入',
       noCache: true,
     },
   },
@@ -59,7 +59,7 @@ export const customPageRoutes: RouteRecordRaw[] = [
     component: withCustomPageScope(() => import('@/views/product/activityPage/custompage/customizedProcess-page0-3.vue')),
     meta: {
       hidden: true,
-      title: '舵机设计参数',
+      title: '舟它设计参数',
       noCache: true,
     },
   },

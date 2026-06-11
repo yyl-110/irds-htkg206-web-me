@@ -26,7 +26,7 @@ export function createDefaultPage1_2ParameterList(pageId = ''): Page1_2Parameter
       defaultValue: '',
       propertyType: '1',
       pageId,
-      inputName: '舵机工作方式',
+      inputName: '舟它工作方式',
     },
     {
       inputOrOutput: '1',
@@ -37,7 +37,7 @@ export function createDefaultPage1_2ParameterList(pageId = ''): Page1_2Parameter
       defaultValue: '直线',
       propertyType: '1',
       pageId,
-      inputName: '舵机末端减速器形式',
+      inputName: '舟它末端减速器形式',
     },
     {
       inputOrOutput: '0',

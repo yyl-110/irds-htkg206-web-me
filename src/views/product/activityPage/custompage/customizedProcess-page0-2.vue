@@ -3,7 +3,7 @@
     <div class="layout-content">
       <a-form layout="vertical" label-align="left" :colon="false" class="design-form">
         <div class="section-header">
-          <a-form-item label="舵机工作方式：" class="form-field-item">
+          <a-form-item label="舟它工作方式：" class="form-field-item">
             <a-select v-model:value="parameterTempList[0].defaultValue" class="field-input" @change="outputChange">
               <a-select-option v-for="item in workModeOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
@@ -14,7 +14,7 @@
 
         <section class="main-section">
           <div v-show="!isLinearMode" class="form-column-left">
-            <a-form-item label="舵机最大输出力矩（Nm）：" class="form-field-item">
+            <a-form-item label="舟它最大输出力矩（Nm）：" class="form-field-item">
               <a-input-number
                 v-model:value="parameterTempList[1].defaultValue"
                 type="number"
@@ -35,7 +35,7 @@
                 @blur="calculateEDGLX()" />
             </a-form-item>
 
-            <a-form-item label="舵机负载转速（旋转）（°/S）：" class="form-field-item">
+            <a-form-item label="舟它负载转速（旋转）（°/S）：" class="form-field-item">
               <a-input-number
                 v-model:value="parameterTempList[3].defaultValue"
                 type="number"
@@ -66,7 +66,7 @@
                 @input="setSaveBtnEnable()" />
             </a-form-item>
 
-            <a-form-item label="舵机额定功率（W）：" class="form-field-item">
+            <a-form-item label="舟它额定功率（W）：" class="form-field-item">
               <a-input-number
                 v-model:value="parameterTempList[6].defaultValue"
                 type="number"
@@ -79,7 +79,7 @@
           </div>
 
           <div v-show="isLinearMode" class="form-column-right">
-            <a-form-item label="舵机最大输出力矩（等效, Nm）：" class="form-field-item">
+            <a-form-item label="舟它最大输出力矩（等效, Nm）：" class="form-field-item">
               <a-input-number
                 v-model:value="parameterTempList[8].defaultValue"
                 type="number"
@@ -100,7 +100,7 @@
                 @blur="calculateEDGLZ()" />
             </a-form-item>
 
-            <a-form-item label="舵机负载速度（等效, °/S）：" class="form-field-item">
+            <a-form-item label="舟它负载速度（等效, °/S）：" class="form-field-item">
               <a-input-number
                 v-model:value="parameterTempList[10].defaultValue"
                 type="number"
@@ -131,7 +131,7 @@
                 @input="setSaveBtnEnable()" />
             </a-form-item>
 
-            <a-form-item label="舵机额定功率（W）：" class="form-field-item">
+            <a-form-item label="舟它额定功率（W）：" class="form-field-item">
               <a-input-number
                 v-model:value="parameterTempList[13].defaultValue"
                 type="number"

@@ -38,9 +38,9 @@ export const PAGE6_ANT_COLUMNS: Page6AntColumn[] = [
     title: '初算指标',
     align: 'center',
     children: [
-      metricGroup('舵机最大输出力矩', 'p1', 'Nm'),
-      metricGroup('舵机最大空载速度', 'p2', '°/S'),
-      metricGroup('舵机额定负载速度', 'p3', '°/S'),
+      metricGroup('舟它最大输出力矩', 'p1', 'Nm'),
+      metricGroup('舟它最大空载速度', 'p2', '°/S'),
+      metricGroup('舟它额定负载速度', 'p3', '°/S'),
     ],
   },
   leaf('理论总减速比', 'p4', 145),
