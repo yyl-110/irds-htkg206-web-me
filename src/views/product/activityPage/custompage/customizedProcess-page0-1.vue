@@ -114,6 +114,10 @@ import { ReloadOutlined } from '@ant-design/icons-vue';
 import { isValid } from '@/api/flowData/flowData';
 import { createDefaultPage0_1ParameterList, type Page0_1ParameterItem } from './page0-1/parameterDefaults';
 import {
+  extractPage0_1SaveParamValues,
+  extractPage0_1TableSavePayload,
+} from './page0-1/calculations';
+import {
   BASE_PARAMS_COLUMNS,
   COMM_PARAMS_COLUMNS,
   FUXIANG_PARAMS_COLUMNS,
@@ -132,6 +136,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page0_1ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -217,30 +223,25 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
+function updateEl() {
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
+}
+
+setupParameterWatch(updateEl);
+
 function getCurrentSaveParamValues() {
-  return parameterTempList.value
-    .filter(item => item.ifSingleLine !== 't' && String(item.parameterNum ?? '').trim())
-    .map(item => ({
-      paramKey: String(item.parameterNum),
-      paramName: String(item.inputName ?? item.parameterNum),
-      paramValue: String(item.defaultValue ?? ''),
-    }));
+  return extractPage0_1SaveParamValues(parameterTempList.value);
 }
 
 function getCurrentTableSavePayload() {
-  return parameterTempList.value
-    .filter(item => item.ifSingleLine === 't' && item.tableMap)
-    .map(item => ({
-      tableNum: String(item.tableNum ?? ''),
-      tableName: String(item.tableName ?? ''),
-      rowData: item.tableMap?.rowData ?? [],
-      colStr: item.tableMap?.colStr ?? [],
-    }))
-    .filter(row => row.tableNum);
+  return extractPage0_1TableSavePayload(parameterTempList.value);
 }
 
 async function initPageData() {
   await loadPageParametersIfNeeded();
+  applyTaskParamMapToList();
   await nextTick();
   if (isValid(parameterTempList.value[1]?.tableMap?.rowData) === false) {
     freshData();
@@ -248,6 +249,7 @@ async function initPageData() {
 }
 
 defineExpose({
+  updateEl,
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
 });

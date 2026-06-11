@@ -121,8 +121,8 @@ import {
   extractPage0_5SaveParamValues,
   extractPage0_5TableSavePayload,
 } from './page0-5/calculations';
-import { loadPage0_5PageParameters } from './page0-5/loadPageParameters';
-import { createDefaultPage0_5ParameterList, type Page0_5ParameterItem } from './page0-5/parameterDefaults';
+import { loadPage0_4PageParameters } from './page0-4/loadPageParameters';
+import { createDefaultPage0_4ParameterList, applyPage0_4TableComponentIds, type Page0_4ParameterItem } from './page0-4/parameterDefaults';
 import {
   INPUT_PARAM_ANT_COLUMNS,
   INPUT_PARAM_NUMBER_REG,
@@ -135,14 +135,16 @@ import {
   ZERO_POSITION_ANT_COLUMNS,
 } from './page0-5/tableColumns';
 
-defineOptions({ name: 'rx-customizedProcess-page0-5' });
+defineOptions({ name: 'rx-customizedProcess-page0-4' });
 
 const props = withDefaults(
   defineProps<{
     width?: number;
     modalFlag?: boolean;
     pageid?: string;
-    parameterTempList?: Page0_5ParameterItem[];
+    parameterTempList?: Page0_4ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -166,7 +168,7 @@ const inputParamColumns = INPUT_PARAM_ANT_COLUMNS;
 const zeroPositionColumns = ZERO_POSITION_ANT_COLUMNS;
 const resultTableColumns = RESULT_TABLE_ANT_COLUMNS;
 
-function cloneParameterList(source: Page0_5ParameterItem[]): Page0_5ParameterItem[] {
+function cloneParameterList(source: Page0_4ParameterItem[]): Page0_4ParameterItem[] {
   return source.map(item => ({
     ...item,
     tableMap: item.tableMap
@@ -178,19 +180,19 @@ function cloneParameterList(source: Page0_5ParameterItem[]): Page0_5ParameterIte
   }));
 }
 
-function createInitialParameterList(): Page0_5ParameterItem[] {
+function createInitialParameterList(): Page0_4ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage0_5ParameterList(props.pageid);
+    return createDefaultPage0_4ParameterList(props.pageid);
   }
   return cloneParameterList(props.parameterTempList);
 }
 
-const parameterTempList = ref<Page0_5ParameterItem[]>(createInitialParameterList());
+const parameterTempList = ref<Page0_4ParameterItem[]>(createInitialParameterList());
 const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
   useCustomPageTaskParamMap({
     props,
     parameterTempList,
-    loadPageParameters: loadPage0_5PageParameters,
+    loadPageParameters: loadPage0_4PageParameters,
   });
 
 const data = ref<Array<Record<string, string>>>(parameterTempList.value[0]?.tableMap?.rowData ?? []);
@@ -276,6 +278,7 @@ function syncLocalDataFromParameterList() {
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = applyPage0_4TableComponentIds(parameterTempList.value);
     syncLocalDataFromParameterList();
   });
 }
@@ -358,11 +361,28 @@ function handleDelRow() {
   selectedResultRowKeys.value = [];
 }
 
+function syncParameterListBeforeSave() {
+  if (parameterTempList.value[0]?.tableMap) {
+    parameterTempList.value[0].tableMap.rowData = data.value;
+  }
+  if (parameterTempList.value[1]?.tableMap) {
+    parameterTempList.value[1].tableMap.rowData = data1.value;
+  }
+  if (parameterTempList.value[2]) {
+    parameterTempList.value[2].defaultValue = trip.value;
+  }
+  if (parameterTempList.value[3]?.tableMap) {
+    parameterTempList.value[3].tableMap.rowData = data2.value;
+  }
+}
+
 function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
   return extractPage0_5SaveParamValues(parameterTempList.value);
 }
 
 function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
   return extractPage0_5TableSavePayload(parameterTempList.value);
 }
 

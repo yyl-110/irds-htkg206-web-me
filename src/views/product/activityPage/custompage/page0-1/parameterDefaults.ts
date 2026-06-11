@@ -11,6 +11,7 @@ export interface Page0_1ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -22,6 +23,15 @@ export interface Page0_1ParameterItem {
     colStr?: string[];
   };
 }
+
+/** 基本参数表 componentId（customizedProcess-page0-1 专用） */
+export const PAGE0_1_BASE_TABLE_COMPONENT_ID = 5;
+/** 工作参数表 componentId（customizedProcess-page0-1 专用） */
+export const PAGE0_1_WORK_TABLE_COMPONENT_ID = 6;
+/** 通讯形式表 componentId（customizedProcess-page0-1 专用） */
+export const PAGE0_1_COMM_TABLE_COMPONENT_ID = 7;
+/** 幅相参数表 componentId（customizedProcess-page0-1 专用） */
+export const PAGE0_1_FUXIANG_TABLE_COMPONENT_ID = 8;
 
 export function createDefaultPage0_1ParameterList(pageId = ''): Page0_1ParameterItem[] {
   return [
@@ -77,6 +87,7 @@ export function createDefaultPage0_1ParameterList(pageId = ''): Page0_1Parameter
       inputName: '',
       tableType: '2',
       tableNum: 'DJ0_1_BASEPARAMS',
+      componentId: PAGE0_1_BASE_TABLE_COMPONENT_ID,
     },
     {
       inputType: 'table',
@@ -116,6 +127,7 @@ export function createDefaultPage0_1ParameterList(pageId = ''): Page0_1Parameter
       inputName: '',
       tableType: '2',
       tableNum: 'DJ0_1_WORKPARAMS',
+      componentId: PAGE0_1_WORK_TABLE_COMPONENT_ID,
     },
     {
       inputType: 'table',
@@ -134,12 +146,13 @@ export function createDefaultPage0_1ParameterList(pageId = ''): Page0_1Parameter
         ],
         rowNums: '1',
         rowData: [],
-        colStr: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'],
+        colStr: ['p0', 'p1'],
       },
-      tableName: '工作参数',
+      tableName: '通讯形式',
       inputName: '',
       tableType: '2',
       tableNum: 'DJ0_1_COMMSTYLE',
+      componentId: PAGE0_1_COMM_TABLE_COMPONENT_ID,
     },
     {
       inputType: 'table',
@@ -147,7 +160,7 @@ export function createDefaultPage0_1ParameterList(pageId = ''): Page0_1Parameter
       pageId,
       tableMap: {
         tableType: '2',
-        colNums: '2',
+        colNums: '4',
         colData: [
           { colName: '', isShowCol: '1' },
           { colName: '幅频宽', isShowCol: '1' },
@@ -167,10 +180,11 @@ export function createDefaultPage0_1ParameterList(pageId = ''): Page0_1Parameter
         ],
         colStr: ['p0', 'p1', 'p2', 'p3'],
       },
-      tableName: '工作参数',
+      tableName: '幅相参数',
       inputName: '',
       tableType: '2',
       tableNum: 'DJ0_1_XIANGPINPARAM',
+      componentId: PAGE0_1_FUXIANG_TABLE_COMPONENT_ID,
     },
   ];
 }

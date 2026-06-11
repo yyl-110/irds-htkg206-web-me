@@ -29,8 +29,8 @@ export const CUSTOM_PAGE_PARAMETER_LOADERS: Partial<Record<string, CustomPagePar
     return loadPage0_3PageParameters(pageId, saved);
   }),
   'customized-process-page0-4': wrapExistingParameterLoader(async (pageId, saved) => {
-    const { loadPage0_5PageParameters } = await import('../page0-5/loadPageParameters');
-    return loadPage0_5PageParameters(pageId, saved);
+    const { loadPage0_4PageParameters } = await import('../page0-4/loadPageParameters');
+    return loadPage0_4PageParameters(pageId, saved);
   }),
   'customized-process-page1': wrapExistingParameterLoader(async (pageId, saved) => {
     const { loadPage1PageParameters } = await import('../page1/loadPageParameters');

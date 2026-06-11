@@ -85,6 +85,10 @@ import { isValid, readTDDPInputData } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import { createDefaultPage0ParameterList, type Page0ParameterItem } from './page0/parameterDefaults';
 import {
+  extractPage0SaveParamValues,
+  extractPage0TableSavePayload,
+} from './page0/calculations';
+import {
   BASE_PARAMS_COLUMNS,
   COMM_PARAMS_COLUMNS,
   FUXIANG_PARAMS_COLUMNS,
@@ -102,6 +106,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page0ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -234,34 +240,30 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
+function updateEl() {
+  nextTick(() => {
+    applyTaskParamMapToList();
+  });
+}
+
+setupParameterWatch(updateEl);
+
 function getCurrentSaveParamValues() {
-  return parameterTempList.value
-    .filter(item => item.ifSingleLine !== 't' && String(item.parameterNum ?? '').trim())
-    .map(item => ({
-      paramKey: String(item.parameterNum),
-      paramName: String(item.inputName ?? item.parameterNum),
-      paramValue: String(item.defaultValue ?? ''),
-    }));
+  return extractPage0SaveParamValues(parameterTempList.value);
 }
 
 function getCurrentTableSavePayload() {
-  return parameterTempList.value
-    .filter(item => item.ifSingleLine === 't' && item.tableMap)
-    .map(item => ({
-      tableNum: String(item.tableNum ?? ''),
-      tableName: String(item.tableName ?? ''),
-      rowData: item.tableMap?.rowData ?? [],
-      colStr: item.tableMap?.colStr ?? [],
-    }))
-    .filter(row => row.tableNum);
+  return extractPage0TableSavePayload(parameterTempList.value);
 }
 
 async function initPageData() {
   await loadPageParametersIfNeeded();
+  applyTaskParamMapToList();
   await nextTick();
 }
 
 defineExpose({
+  updateEl,
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
 });

@@ -118,6 +118,13 @@ export function applyPage1_2InitData(parameterTempList: Page1_2ParameterItem[]):
   return state;
 }
 
+export type Page1_2TableSaveRow = {
+  componentId: string | number;
+  tableName: string;
+  values: Array<Record<string, string>>;
+};
+
+/** values：单行参数字段（本页无表格，全部写入 values） */
 export function extractPage1_2SaveParamValues(list: Page1_2ParameterItem[]) {
   return list
     .filter(item => String(item.parameterNum ?? '').trim())
@@ -126,4 +133,9 @@ export function extractPage1_2SaveParamValues(list: Page1_2ParameterItem[]) {
       paramName: String(item.inputName ?? item.parameterNum),
       paramValue: String(item.defaultValue ?? ''),
     }));
+}
+
+/** tables：本页无数据表格，固定返回空数组 */
+export function extractPage1_2TableSavePayload(_list: Page1_2ParameterItem[]): Page1_2TableSaveRow[] {
+  return [];
 }
