@@ -12,6 +12,7 @@ export type CustomPageParameterItem = {
   parameterNum?: string;
   parameterId?: string;
   defaultValue?: string;
+  componentId?: string | number;
   tableNum?: string;
   tableMap?: {
     colNums?: string | number;
@@ -23,7 +24,8 @@ export type CustomPageParameterItem = {
 export type CustomPageSavedTableRow = {
   tableNum?: string;
   tablenum?: string;
-  componentId?: string;
+  componentId?: string | number;
+  tableName?: string;
   rowData?: Array<Record<string, string | number | undefined>>;
   rowdata?: Array<Record<string, string | number | undefined>>;
   values?: Array<Record<string, string | number | undefined>>;
@@ -97,10 +99,45 @@ function normalizeSavedTableRows(table: CustomPageSavedTableRow): Array<Record<s
 }
 
 function resolveSavedTableNum(table: CustomPageSavedTableRow): string {
-  return String(table.tableNum ?? table.tablenum ?? table.componentId ?? '').trim();
+  return String(table.tableNum ?? table.tablenum ?? '').trim();
 }
 
-/** 按 tableNum 合并 task-param-map 表格快照到页面表格 */
+/** 将 tables 接口中的 c1/c2 列格式转换为页面内部的 p0/p1 格式 */
+function normalizeSavedTableRowToPFormat(row: Record<string, string | number | undefined>): Record<string, string> {
+  const nextRow: Record<string, string> = {};
+  Object.entries(row).forEach(([key, value]) => {
+    const cMatch = /^c(\d+)$/i.exec(String(key).trim());
+    if (cMatch) {
+      const pIndex = Number(cMatch[1]) - 1;
+      if (pIndex >= 0) nextRow[`p${pIndex}`] = String(value ?? '');
+      return;
+    }
+    nextRow[key] = String(value ?? '');
+  });
+  return nextRow;
+}
+
+function mergeSavedRowsIntoTableRowData(
+  savedRows: Array<Record<string, string | number | undefined>>,
+  templateRows: Array<Record<string, string>>,
+  colNums: number,
+): Array<Record<string, string>> {
+  const template = templateRows.length ? templateRows : [{}];
+  return savedRows.map((savedRow, rowIndex) => {
+    const rowTemplate = templateRows[rowIndex] ?? templateRows[0] ?? {};
+    const pRow = normalizeSavedTableRowToPFormat(savedRow);
+    const nextRow: Record<string, string> = { ...rowTemplate };
+    for (let i = 0; i < colNums; i++) {
+      const val = pRow[`p${i}`];
+      if (val !== undefined && val !== '') {
+        nextRow[`p${i}`] = val;
+      }
+    }
+    return nextRow;
+  });
+}
+
+/** 按 tableNum / componentId 合并 task-param-map 表格快照到页面表格 */
 export function mergeSavedTablesIntoList<T extends CustomPageParameterItem>(
   list: T[],
   savedTables?: CustomPageSavedTableRow[] | null,
@@ -109,32 +146,38 @@ export function mergeSavedTablesIntoList<T extends CustomPageParameterItem>(
   if (!tableList.length) return list;
 
   const byTableNum = new Map<string, CustomPageSavedTableRow>();
+  const byComponentId = new Map<string, CustomPageSavedTableRow>();
   tableList.forEach(table => {
     const num = resolveSavedTableNum(table);
     if (num) byTableNum.set(num, table);
+    const componentId = String(table.componentId ?? '').trim();
+    if (componentId) byComponentId.set(componentId, table);
   });
-  if (!byTableNum.size) return list;
+  if (!byTableNum.size && !byComponentId.size) return list;
 
   return list.map(item => {
     if (item.ifSingleLine !== 't' || !item.tableMap) return item;
     const tableNum = String(item.tableNum ?? item.parameterNum ?? '').trim();
-    if (!tableNum || !byTableNum.has(tableNum)) return item;
+    const itemComponentId = String(item.componentId ?? '').trim();
+    let savedTable = tableNum ? byTableNum.get(tableNum) : undefined;
+    if (!savedTable && itemComponentId) savedTable = byComponentId.get(itemComponentId);
+    if (!savedTable) return item;
 
-    const savedTable = byTableNum.get(tableNum)!;
     const savedRows = normalizeSavedTableRows(savedTable);
     if (!savedRows.length) return item;
 
+    const colNums = Number(item.tableMap.colNums ?? 0);
+    const templateRows = item.tableMap.rowData ?? [];
+    const rowData = mergeSavedRowsIntoTableRowData(savedRows, templateRows, colNums);
+    const savedComponentId = String(savedTable.componentId ?? item.componentId ?? '').trim();
+
     return {
       ...item,
+      componentId: savedComponentId || item.componentId,
       tableMap: {
         ...item.tableMap,
-        rowData: savedRows.map(row => {
-          const nextRow: Record<string, string> = {};
-          Object.entries(row).forEach(([key, value]) => {
-            nextRow[key] = String(value ?? '');
-          });
-          return nextRow;
-        }),
+        rowData,
+        rowNums: String(rowData.length),
       },
     };
   });

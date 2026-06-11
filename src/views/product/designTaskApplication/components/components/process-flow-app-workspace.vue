@@ -25,7 +25,10 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { flowSynchronizeChildrenModelsToWeb, setModelParameterInFirstCsysNew } from '@/libs/webSocketNew';
-import { enrichWbsSaveItemsWithIoType, findChangedWbsInputParamKeys } from '@/composables/designWorkspace/useWbsProjectParamSync';
+import {
+  enrichWbsSaveItemsWithIoType,
+  findChangedWbsInputParamKeys,
+} from '@/composables/designWorkspace/useWbsProjectParamSync';
 
 interface FlowNode {
   id?: string | number;
@@ -73,16 +76,18 @@ function pickNonEmptyText(raw: unknown): string {
   return s === '' || s === 'undefined' || s === 'null' ? '' : s;
 }
 
-const wbsProjectDisplayName = computed(() =>
-  pickNonEmptyText(workspaceData.value?.projectName)
-    || pickNonEmptyText(route.query.projectName)
-    || pickNonEmptyText(wbsProjectInfoFallback.value.projectName),
+const wbsProjectDisplayName = computed(
+  () =>
+    pickNonEmptyText(workspaceData.value?.projectName) ||
+    pickNonEmptyText(route.query.projectName) ||
+    pickNonEmptyText(wbsProjectInfoFallback.value.projectName),
 );
 
-const wbsProjectDisplayNum = computed(() =>
-  pickNonEmptyText(workspaceData.value?.projectNum)
-    || pickNonEmptyText(route.query.projectNum)
-    || pickNonEmptyText(wbsProjectInfoFallback.value.projectNum),
+const wbsProjectDisplayNum = computed(
+  () =>
+    pickNonEmptyText(workspaceData.value?.projectNum) ||
+    pickNonEmptyText(route.query.projectNum) ||
+    pickNonEmptyText(wbsProjectInfoFallback.value.projectNum),
 );
 
 const showWbsProjectBanner = computed(
@@ -91,10 +96,8 @@ const showWbsProjectBanner = computed(
 
 async function loadWbsProjectInfoFallback() {
   if (!isWbsCollabWorkspace.value) return;
-  const hasName =
-    pickNonEmptyText(workspaceData.value?.projectName) || pickNonEmptyText(route.query.projectName);
-  const hasNum =
-    pickNonEmptyText(workspaceData.value?.projectNum) || pickNonEmptyText(route.query.projectNum);
+  const hasName = pickNonEmptyText(workspaceData.value?.projectName) || pickNonEmptyText(route.query.projectName);
+  const hasNum = pickNonEmptyText(workspaceData.value?.projectNum) || pickNonEmptyText(route.query.projectNum);
   if (hasName && hasNum) {
     wbsProjectInfoFallback.value = {};
     return;
@@ -741,18 +744,19 @@ async function refreshWbsProjectParamMap() {
   try {
     const mapRes = await AdminApiProjectTemp.wbsTaskParamMap({ projectId, taskId });
     const payload = mapRes?.data?.data as
-      | { params?: Record<string, string>; paramsFromOtherTasks?: Record<string, string>; taskSavedParams?: Record<string, string> }
+      | {
+          params?: Record<string, string>;
+          paramsFromOtherTasks?: Record<string, string>;
+          taskSavedParams?: Record<string, string>;
+        }
       | undefined;
-    wbsProjectParamMap.value =
-      payload?.params && typeof payload.params === 'object' ? { ...payload.params } : {};
+    wbsProjectParamMap.value = payload?.params && typeof payload.params === 'object' ? { ...payload.params } : {};
     wbsOtherTasksParamMap.value =
       payload?.paramsFromOtherTasks && typeof payload.paramsFromOtherTasks === 'object'
         ? { ...payload.paramsFromOtherTasks }
         : {};
     wbsTaskSavedParamMap.value =
-      payload?.taskSavedParams && typeof payload.taskSavedParams === 'object'
-        ? { ...payload.taskSavedParams }
-        : {};
+      payload?.taskSavedParams && typeof payload.taskSavedParams === 'object' ? { ...payload.taskSavedParams } : {};
   } catch {
     wbsProjectParamMap.value = {};
     wbsOtherTasksParamMap.value = {};
@@ -1233,10 +1237,7 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
       .filter((row: any) => row.paramKey);
     const dedup = new Map<string, any>();
     [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
-    const items = enrichWbsSaveItemsWithIoType(
-      Array.from(dedup.values()),
-      nodeDetailData.value?.componentsJson,
-    );
+    const items = enrichWbsSaveItemsWithIoType(Array.from(dedup.values()), nodeDetailData.value?.componentsJson);
     if (!items.length) {
       message.warning('当前节点暂无可保存参数');
       return false;
@@ -1411,10 +1412,7 @@ async function goNextNode() {
       .filter((row: any) => row.paramKey);
     const dedup = new Map<string, any>();
     [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
-    const items = enrichWbsSaveItemsWithIoType(
-      Array.from(dedup.values()),
-      nodeDetailData.value?.componentsJson,
-    );
+    const items = enrichWbsSaveItemsWithIoType(Array.from(dedup.values()), nodeDetailData.value?.componentsJson);
     const body: Record<string, unknown> = {
       projectId,
       taskId,
@@ -1613,10 +1611,7 @@ async function finishFlow() {
       .filter((row: any) => row.paramKey);
     const dedup = new Map<string, any>();
     [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
-    const items = enrichWbsSaveItemsWithIoType(
-      Array.from(dedup.values()),
-      nodeDetailData.value?.componentsJson,
-    );
+    const items = enrichWbsSaveItemsWithIoType(Array.from(dedup.values()), nodeDetailData.value?.componentsJson);
     const body: Record<string, unknown> = {
       projectId,
       taskId,
@@ -1921,7 +1916,7 @@ onMounted(() => {
                     @param-title-click="onParamTitleClick"
                     @content-mutated="onPreviewContentMutated" />
                   <ProcessFlowAppCustomNodePreview
-                    v-else-if="isCustomPagePreview"
+                    v-if="isCustomPagePreview"
                     ref="customNodePreviewRef"
                     :activity-page-id="String(nodeDetailData?.activityPageId ?? '')"
                     :page-url="String(nodeDetailData?.url ?? nodeDetailData?.pageUrl ?? '')"

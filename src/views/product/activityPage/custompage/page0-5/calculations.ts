@@ -443,6 +443,25 @@ export function createPage0_5Calculations(ctx: Page0_5CalcContext) {
   };
 }
 
+/** 顶部输入参数表 tableNum，仅该表的可编辑列进入 values */
+export const PAGE0_5_INPUT_PARAMS_TABLE_NUM = 'DJ1-1_T_INPUTPARAMS';
+
+export type Page0_5TableSaveRow = {
+  componentId: string | number;
+  tableName: string;
+  values: Array<Record<string, string>>;
+};
+
+function mapPage0_5RowToCValueFormat(row: Record<string, string>, colNums: number): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (let i = 0; i < colNums; i++) {
+    const val = String(row[`p${i}`] ?? '');
+    if (val !== '') result[`c${i + 1}`] = val;
+  }
+  return result;
+}
+
+/** values：单行参数 + 顶部输入框（不含两个数据表格） */
 export function extractPage0_5SaveParamValues(list: Page0_5ParameterItem[]) {
   const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
 
@@ -456,23 +475,40 @@ export function extractPage0_5SaveParamValues(list: Page0_5ParameterItem[]) {
       return;
     }
 
-    if (item.ifSingleLine !== 't' || !item.tableMap?.rowData) {
-      return;
-    }
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (tableNum !== PAGE0_5_INPUT_PARAMS_TABLE_NUM || !item.tableMap?.rowData) return;
 
-    const colNums = Number(item.tableMap.colNums ?? 0);
     item.tableMap.rowData.forEach(row => {
-      for (let i = 0; i < colNums; i++) {
-        const paramKey = String(row[`cellParentNum${i}`] ?? '').trim();
-        if (!paramKey) continue;
-        result.push({
-          paramKey,
-          paramName: paramKey,
-          paramValue: String(row[`p${i}`] ?? ''),
-        });
-      }
+      const paramKey = String(row.cellParentNum2 ?? row[`cellParentNum2`] ?? '').trim();
+      if (!paramKey) return;
+      const label = `${row.p0 ?? ''}${row.p1 ?? ''}`.trim();
+      result.push({
+        paramKey,
+        paramName: label || paramKey,
+        paramValue: String(row.p2 ?? ''),
+      });
     });
   });
 
   return result;
+}
+
+/** tables：带 componentId 的数据表格（零位表=1，行程计算表=2） */
+export function extractPage0_5TableSavePayload(list: Page0_5ParameterItem[]): Page0_5TableSaveRow[] {
+  return list
+    .filter(item => item.ifSingleLine === 't' && item.tableMap && item.componentId != null && item.componentId !== '')
+    .map(item => {
+      const colNums = Number(item.tableMap?.colNums ?? 0);
+      const rowData = item.tableMap?.rowData ?? [];
+      const values = rowData.map(row => mapPage0_5RowToCValueFormat(row, colNums));
+      const rawId = String(item.componentId ?? '').trim();
+      const numericId = Number(rawId);
+      const componentId =
+        rawId && !Number.isNaN(numericId) && String(numericId) === rawId ? numericId : item.componentId!;
+      return {
+        componentId,
+        tableName: String(item.tableName ?? item.inputName ?? ''),
+        values,
+      };
+    });
 }

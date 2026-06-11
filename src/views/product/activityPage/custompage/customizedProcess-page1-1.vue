@@ -102,7 +102,11 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import { createPage0_5Calculations, extractPage0_5SaveParamValues } from './page0-5/calculations';
+import {
+  createPage0_5Calculations,
+  extractPage0_5SaveParamValues,
+  extractPage0_5TableSavePayload,
+} from './page0-5/calculations';
 import { loadPage0_5PageParameters } from './page0-5/loadPageParameters';
 import { createDefaultPage0_5ParameterList, type Page0_5ParameterItem } from './page0-5/parameterDefaults';
 import {
@@ -248,11 +252,17 @@ function resultTableRowKey(record: Record<string, string>, index?: number) {
 }
 
 
+function syncLocalDataFromParameterList() {
+  data.value = [...(parameterTempList.value[0]?.tableMap?.rowData ?? [])];
+  data1.value = [...(parameterTempList.value[1]?.tableMap?.rowData ?? [])];
+  data2.value = [...(parameterTempList.value[3]?.tableMap?.rowData ?? [])];
+  trip.value = String(parameterTempList.value[2]?.defaultValue ?? '');
+}
+
 function updateEl() {
   nextTick(() => {
-
-    // no-op, preserved for parent compatibility
     applyTaskParamMapToList();
+    syncLocalDataFromParameterList();
   });
 }
 
@@ -334,13 +344,35 @@ function handleDelRow() {
   selectedResultRowKeys.value = [];
 }
 
+function syncParameterListBeforeSave() {
+  if (parameterTempList.value[0]?.tableMap) {
+    parameterTempList.value[0].tableMap.rowData = data.value;
+  }
+  if (parameterTempList.value[1]?.tableMap) {
+    parameterTempList.value[1].tableMap.rowData = data1.value;
+  }
+  if (parameterTempList.value[2]) {
+    parameterTempList.value[2].defaultValue = trip.value;
+  }
+  if (parameterTempList.value[3]?.tableMap) {
+    parameterTempList.value[3].tableMap.rowData = data2.value;
+  }
+}
+
 function getCurrentSaveParamValues() {
+  syncParameterListBeforeSave();
   return extractPage0_5SaveParamValues(parameterTempList.value);
+}
+
+function getCurrentTableSavePayload() {
+  syncParameterListBeforeSave();
+  return extractPage0_5TableSavePayload(parameterTempList.value);
 }
 
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

@@ -9,6 +9,8 @@ export interface Page0_5ParameterItem {
   pageId?: string;
   inputName?: string;
   id?: string | number;
+  /** 保存到 tables 接口时使用的组件 id */
+  componentId?: string | number;
   tableName?: string;
   tableType?: string;
   tableNum?: string;
@@ -204,6 +206,7 @@ export function createDefaultPage0_5ParameterList(pageId = ''): Page0_5Parameter
       inputName: '零位（初始位置）',
       tableType: '1',
       tableNum: 'DJ1-1_T_ZEROINITPOSITION',
+      componentId: 1,
       colData: [
         { colName: '转动角度', isShowCol: '1' },
         { colName: '弧度', isShowCol: '1' },
@@ -242,6 +245,7 @@ export function createDefaultPage0_5ParameterList(pageId = ''): Page0_5Parameter
       inputName: '行程计算表',
       tableType: '2',
       tableNum: 'DJ1-1_T_RESULTDATA',
+      componentId: 2,
       colData: [
         { colName: '转动角度', isShowCol: '1' },
         { colName: '弧度', isShowCol: '1' },
