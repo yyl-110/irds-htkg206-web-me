@@ -38,7 +38,7 @@ import {
 } from '@/libs/webSocketNew';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
-import { isModuleQueryTextField } from '../../composables/useModuleQueryFields';
+import { isModuleQueryTextField, enrichQuerySelectOptionsFromDataSource, resolveDistinctOptionsForQueryColumn } from '../../composables/useModuleQueryFields';
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
 import moduleIcon1 from '@/assets/images/module1.png';
 import moduleIcon2 from '@/assets/images/module2.png';
@@ -76,6 +76,11 @@ const page = reactive({
 });
 const columns = ref<TableColumnType<any>[]>([]);
 const queryColumns = ref<any>([]);
+const defaultQueryColumns = ref<any[]>([]);
+const optionalQueryFieldCandidates = ref<any[]>([]);
+const selectedOptionalQueryKeys = ref<string[]>([]);
+const queryFieldModalVisible = ref(false);
+const queryFieldModalCheckedKeys = ref<string[]>([]);
 const dropdownList = ref<any>([
   { id: 1, name: '导入' },
   { id: 8, name: '导出' },
@@ -346,6 +351,111 @@ async function initData(categoryidStr: string, menuid: any) {
   sortState.value = { key: '', order: '' };
   modalInit();
 }
+
+function getPropertyQueryKey(item: any): string {
+  return item.propertyName == '贡献者' ? 'para7Name' : item.dataProp;
+}
+
+function buildQueryColumnFromProperty(item: any, distinctValues: Record<string, any[]>) {
+  const key = getPropertyQueryKey(item);
+  const isTextField = isModuleQueryTextField(item.propertyName);
+  const dataProp = String(item.dataProp ?? '');
+  let options: string[] = [];
+  const inputType: 'text' | 'select' = isTextField ? 'text' : 'select';
+  if (!isTextField) {
+    options = resolveDistinctOptionsForQueryColumn({ dataProp, key }, distinctValues);
+  }
+  return {
+    id: item.id,
+    title: item.propertyName,
+    key,
+    dataProp,
+    inputType,
+    options,
+  };
+}
+
+async function loadOptionalQueryDistinctValues() {
+  const selectedOptional = optionalQueryFieldCandidates.value.filter(c => selectedOptionalQueryKeys.value.includes(c.key));
+  if (!selectedOptional.length) {
+    return;
+  }
+
+  const needFetch = selectedOptional.filter(c => c.inputType === 'select' && !c.options?.length);
+  if (needFetch.length) {
+    const extraDataProps = needFetch.map(c => c.dataProp).filter((p: string) => /^para\d+$/.test(p));
+    if (extraDataProps.length) {
+      try {
+        const data: any = {
+          categoryId: categoryid.value,
+          menuId: menuId.value,
+          extraDataProps,
+        };
+        const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data);
+        const distinctValues: Record<string, any[]> =
+          (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {};
+        needFetch.forEach((column: any) => {
+          column.options = resolveDistinctOptionsForQueryColumn(column, distinctValues);
+        });
+      } catch (error) {
+        console.error('加载可选查询字段下拉值失败:', error);
+      }
+    }
+  }
+
+  enrichQuerySelectOptionsFromDataSource(selectedOptional, dataSource.value, queryForm);
+  refreshQueryColumns();
+}
+
+function syncQuerySelectOptionsFromDataSource() {
+  const targets = [
+    ...defaultQueryColumns.value,
+    ...optionalQueryFieldCandidates.value.filter(c => selectedOptionalQueryKeys.value.includes(c.key)),
+  ];
+  enrichQuerySelectOptionsFromDataSource(targets, dataSource.value, queryForm);
+  refreshQueryColumns();
+}
+
+function refreshQueryColumns() {
+  const optionalCols = optionalQueryFieldCandidates.value.filter(c => selectedOptionalQueryKeys.value.includes(c.key));
+  const activeKeys = new Set([...defaultQueryColumns.value, ...optionalCols].map(c => c.key));
+  Object.keys(queryForm).forEach(k => {
+    if (!activeKeys.has(k)) {
+      delete queryForm[k];
+    }
+  });
+  queryColumns.value = [...defaultQueryColumns.value, ...optionalCols];
+  queryColumns.value.forEach((c: any) => {
+    if (!(c.key in queryForm)) {
+      queryForm[c.key] = c.inputType === 'select' ? undefined : '';
+    }
+    if (c.inputType === 'select') {
+      const v = queryForm[c.key];
+      if (v === '' || v === null) queryForm[c.key] = undefined;
+    }
+  });
+}
+
+function openQueryFieldModal() {
+  if (!optionalQueryFieldCandidates.value.length) {
+    message.info('暂无可新增的查询字段');
+    return;
+  }
+  queryFieldModalCheckedKeys.value = [...selectedOptionalQueryKeys.value];
+  queryFieldModalVisible.value = true;
+}
+
+function confirmQueryFieldModal() {
+  selectedOptionalQueryKeys.value = [...queryFieldModalCheckedKeys.value];
+  refreshQueryColumns();
+  queryFieldModalVisible.value = false;
+  void loadOptionalQueryDistinctValues();
+}
+
+function cancelQueryFieldModal() {
+  queryFieldModalVisible.value = false;
+}
+
 // 列表初始化
 async function modalInit() {
   loading.value = true;
@@ -357,6 +467,10 @@ async function modalInit() {
   sortState.value = { key: '', order: '' };
   columns.value = [];
   queryColumns.value = [];
+  defaultQueryColumns.value = [];
+  optionalQueryFieldCandidates.value = [];
+  selectedOptionalQueryKeys.value = [];
+  queryFieldModalCheckedKeys.value = [];
   dataSource.value = [];
   const data: any = {};
   data.userId = userStore.getUser.id;
@@ -385,29 +499,11 @@ async function modalInit() {
     moduleTableColumnFilter.value = {};
     moduleTableFilterOpenMap.value = {};
     for (let i = 0; i < resData.length; i++) {
-      // 动态查询条件：searchFlag == 0（默认查询）
+      const queryCol = buildQueryColumnFromProperty(resData[i], distinctValues);
       if (resData[i].searchFlag == 0) {
-        const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp;
-        const isTextField = isModuleQueryTextField(resData[i].propertyName);
-        let options: string[] = [];
-        if (!isTextField) {
-          const valueKeyCandidates = [
-            String(resData[i].dataProp ?? ''),
-            String(key ?? ''),
-            String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
-          ].filter(Boolean);
-          const rawOptions =
-            valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || [];
-          options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '');
-        }
-        queryColumns.value.push({
-          id: resData[i].id,
-          title: resData[i].propertyName,
-          key,
-          inputType: isTextField ? 'text' : 'select',
-          options,
-        });
-        if (!(key in queryForm)) queryForm[key] = isTextField ? '' : undefined;
+        defaultQueryColumns.value.push(queryCol);
+      } else {
+        optionalQueryFieldCandidates.value.push(queryCol);
       }
 
       if (resData[i].showFlag == 0) {
@@ -432,12 +528,7 @@ async function modalInit() {
         moduleDataColIndex++;
       }
     }
-    queryColumns.value.forEach((c: any) => {
-      if (c.inputType === 'select') {
-        const v = queryForm[c.key];
-        if (v === '' || v === null) queryForm[c.key] = undefined;
-      }
-    });
+    refreshQueryColumns();
     moduleFilterableColumnKeys.value = filterKeys;
     parm.push({
       title: '操作',
@@ -459,6 +550,7 @@ async function modalInit() {
     const resData: any = res.data.data;
     const moduleListData = resData.list || [];
     dataSource.value = moduleListData;
+    syncQuerySelectOptionsFromDataSource();
     // 总条数：优先使用 total（总记录数），其次 pageCount / totalPage
     page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
   }
@@ -480,6 +572,7 @@ async function fetchModuleList(filterArr?: any) {
     const resData: any = res.data.data;
     dataSource.value = resData.list || [];
     page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0;
+    syncQuerySelectOptionsFromDataSource();
   }
   loading.value = false;
 }
@@ -1585,6 +1678,9 @@ defineExpose({ initData, selectAllModuleInfo });
             <a-button size="middle" @click="handleQueryReset"
               ><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button
             >
+            <a-button size="middle" @click="openQueryFieldModal"
+              ><EpcIcon type="icon-tianjia1" style="font-size: 12px" />新增</a-button
+            >
           </div>
         </div>
         <div class="btn-box-container">
@@ -1835,6 +1931,25 @@ defineExpose({ initData, selectAllModuleInfo });
       </template>
     </a-modal>
   </div>
+
+  <a-modal
+    v-model:visible="queryFieldModalVisible"
+    title="搜索条件"
+    width="420px"
+    :mask-closable="false"
+    @cancel="cancelQueryFieldModal">
+    <div class="query-field-modal-body">
+      <a-checkbox-group v-model:value="queryFieldModalCheckedKeys" class="query-field-checkbox-group">
+        <div v-for="item in optionalQueryFieldCandidates" :key="item.key" class="query-field-option">
+          <a-checkbox :value="item.key">{{ item.title }}</a-checkbox>
+        </div>
+      </a-checkbox-group>
+    </div>
+    <template #footer>
+      <a-button @click="cancelQueryFieldModal">取消</a-button>
+      <a-button type="primary" @click="confirmQueryFieldModal">确定</a-button>
+    </template>
+  </a-modal>
 
   <a-modal
     v-model:visible="tabularflag"
@@ -2359,9 +2474,29 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 .query-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding-top: 35px;
   white-space: nowrap;
+}
+.query-field-modal-body {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid #f0f0f0;
+}
+.query-field-checkbox-group {
+  display: block;
+  width: 100%;
+}
+.query-field-option {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.query-field-option:last-child {
+  border-bottom: none;
 }
 :deep(.query-item) {
   margin-bottom: 0 !important;
