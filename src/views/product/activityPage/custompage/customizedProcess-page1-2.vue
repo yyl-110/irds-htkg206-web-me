@@ -26,12 +26,24 @@
           </a-form-item>
 
           <a-form-item label="减速器直线载荷(N)：" class="form-item--wide">
-            <a-input v-model:value="parameterTempList[3].defaultValue" placeholder="请输入..." class="field-input" allow-clear disabled @input="setSaveBtnEnable()" />
+            <a-input
+              v-model:value="parameterTempList[3].defaultValue"
+              placeholder="请输入..."
+              class="field-input"
+              allow-clear
+              disabled
+              @input="setSaveBtnEnable()" />
             <span class="field-hint">(=舟它最大力矩*1000/等效力臂)</span>
           </a-form-item>
 
           <a-form-item label="减速器旋转载荷(Nm)：">
-            <a-input v-model:value="parameterTempList[4].defaultValue" placeholder="请输入..." class="field-input" allow-clear disabled @input="setSaveBtnEnable()" />
+            <a-input
+              v-model:value="parameterTempList[4].defaultValue"
+              placeholder="请输入..."
+              class="field-input"
+              allow-clear
+              disabled
+              @input="setSaveBtnEnable()" />
             <span class="field-hint">(=舟它最大力矩)</span>
           </a-form-item>
         </section>
@@ -78,11 +90,12 @@ function createInitialParameterList(): Page1_2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_2ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage1_2PageParameters,
-});
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage1_2PageParameters,
+  });
 
 const flag = ref(false);
 const djzdlj = ref('');
@@ -117,7 +130,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 }
 
 function runInitData() {
-  const state = applyPage1_2InitData(parameterTempList.value);
+  const state = applyPage1_2InitData(parameterTempList.value, props.savedTables);
   flag.value = state.flag;
   djzdlj.value = state.djzdlj;
 }
@@ -153,7 +166,7 @@ function syncParameterListBeforeSave() {
   const equalArm = parameterTempList.value[2]?.defaultValue ?? '';
   const maxTorque = Number(djzdlj.value);
 
-  if (endpointStyle === '旋转非拨叉类') {
+  if (endpointStyle === '旋转') {
     if (parameterTempList.value[4]) {
       parameterTempList.value[4].defaultValue = String(djzdlj.value);
     }
@@ -165,7 +178,7 @@ function syncParameterListBeforeSave() {
   }
   if (workMode === '直线喷管' || workMode === '直线非喷管') {
     if (parameterTempList.value[4]) {
-      parameterTempList.value[4].defaultValue = '';
+      parameterTempList.value[4].defaultValue = String(djzdlj.value);
     }
   }
 }

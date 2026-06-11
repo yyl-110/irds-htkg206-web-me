@@ -98,8 +98,24 @@ function normalizeSavedTableRows(table: CustomPageSavedTableRow): Array<Record<s
   return Array.isArray(rows) ? rows : [];
 }
 
+/** save-params / task-param-map 中仅有 componentId 时，反查 tableNum 供 flowContext 使用 */
+const COMPONENT_ID_TO_TABLE_NUM: Record<string, string> = {
+  '1': 'DJ1-1_T_ZEROINITPOSITION',
+  '2': 'DJ1-1_T_RESULTDATA',
+  '3': 'DJ1_T_ZEROINITPOSITION',
+  '4': 'DJ1_T_RESULTDATA',
+  '9': 'DJ1-1_T_ZEROINITPOSITION',
+  '10': 'DJ1-1_T_RESULTDATA',
+};
+
 function resolveSavedTableNum(table: CustomPageSavedTableRow): string {
-  return String(table.tableNum ?? table.tablenum ?? '').trim();
+  const direct = String(table.tableNum ?? table.tablenum ?? '').trim();
+  if (direct) return direct;
+  const componentId = String(table.componentId ?? '').trim();
+  if (componentId && COMPONENT_ID_TO_TABLE_NUM[componentId]) {
+    return COMPONENT_ID_TO_TABLE_NUM[componentId];
+  }
+  return '';
 }
 
 /** 将 tables 接口中的 c1/c2 列格式转换为页面内部的 p0/p1 格式 */
