@@ -301,7 +301,7 @@ async function handleBrowseRow() {
     }
 
     modulePickerCategoryId.value = categoryId;
-    modulePickerMenuId.value = categoryId;
+    modulePickerMenuId.value = "9";
     modulePickerQueryPrefill.value = buildMotorBrowseQueryPrefill(parameterTempList.value);
     modulePickerVisible.value = true;
   } finally {

@@ -313,6 +313,7 @@ function handleBrowseRow() {
     return;
   }
 
+  const selected = selectList.value[0];
   const categoryId = '195';
 
   const rows = getReducerTableRows(parameterTempList.value);
