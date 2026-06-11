@@ -46,18 +46,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
-import { calculateAllPage6Rows } from './page6/calculations';
+import {
+  calculateAllPage6Rows,
+  extractPage6SaveParamValues,
+  extractPage6TableSavePayload,
+} from './page6/calculations';
 import { applyPage6InitData } from './page6/initData';
 import { loadPage6PageParameters } from './page6/loadPageParameters';
-import { createDefaultPage6ParameterList, type Page6ParameterItem, type Page6TableRow } from './page6/parameterDefaults';
-import { extractPage6SaveParamValues, getPage6TableRows, setPage6TableRows } from './page6/rowOperations';
-import { isPage6CellDisabled, PAGE6_ANT_COLUMNS, PAGE6_LEAF_COLUMNS, PAGE6_TABLE_MIN_WIDTH, type Page6AntColumn } from './page6/tableColumns';
+import {
+  createDefaultPage6ParameterList,
+  ensurePage6TableComponentIds,
+  type Page6ParameterItem,
+  type Page6TableRow,
+} from './page6/parameterDefaults';
+import { getPage6TableRows, setPage6TableRows } from './page6/rowOperations';
+import {
+  isPage6CellDisabled,
+  PAGE6_ANT_COLUMNS,
+  PAGE6_LEAF_COLUMNS,
+  PAGE6_TABLE_MIN_WIDTH,
+  type Page6AntColumn,
+} from './page6/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page6' });
 
@@ -67,6 +82,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page6ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -102,29 +119,35 @@ function tryLoadPublicDiagram() {
   probe.src = '/images/clcs.png';
 }
 
+function clonePage6ParameterList(list: Page6ParameterItem[]): Page6ParameterItem[] {
+  return ensurePage6TableComponentIds(
+    list.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
+}
+
 function createInitialParameterList(): Page6ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage6ParameterList(props.pageid);
+    return clonePage6ParameterList(createDefaultPage6ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return clonePage6ParameterList(props.parameterTempList);
 }
 
 const parameterTempList = ref<Page6ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } =
   useCustomPageTaskParamMap({
     props,
     parameterTempList,
     loadPageParameters: loadPage6PageParameters,
+    cloneItem: clonePage6ParameterList,
   });
-
 
 const tableRowData = computed(() => getPage6TableRows(parameterTempList.value));
 
@@ -196,7 +219,6 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
@@ -209,15 +231,21 @@ function getCurrentSaveParamValues() {
   return extractPage6SaveParamValues(parameterTempList.value);
 }
 
+function getCurrentTableSavePayload() {
+  return extractPage6TableSavePayload(ensurePage6TableComponentIds(parameterTempList.value));
+}
+
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
-onMounted(async () => {
+onMounted(() => {
   tryLoadPublicDiagram();
-  await loadPageParametersIfNeeded();
 });
+
+mountWithTaskParamMap(updateEl);
 </script>
 
 <style scoped>

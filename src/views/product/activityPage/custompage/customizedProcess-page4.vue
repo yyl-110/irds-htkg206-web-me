@@ -31,10 +31,11 @@ import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
+import { extractPage4SaveParamValues, extractPage4TableSavePayload } from './page4/calculations';
 import { applyPage4InitData } from './page4/initData';
 import { loadPage4PageParameters } from './page4/loadPageParameters';
 import { createDefaultPage4ParameterList, type Page4ParameterItem, type Page4TableRow } from './page4/parameterDefaults';
-import { extractPage4SaveParamValues, getPage4TableRows, setPage4TableRows } from './page4/rowOperations';
+import { getPage4TableRows, setPage4TableRows } from './page4/rowOperations';
 import { PAGE4_ANT_COLUMNS } from './page4/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page4' });
@@ -45,6 +46,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page4ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -149,9 +152,14 @@ function getCurrentSaveParamValues() {
   return extractPage4SaveParamValues(parameterTempList.value);
 }
 
+function getCurrentTableSavePayload() {
+  return extractPage4TableSavePayload(parameterTempList.value);
+}
+
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

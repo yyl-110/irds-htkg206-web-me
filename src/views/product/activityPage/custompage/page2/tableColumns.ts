@@ -10,8 +10,8 @@ export interface Page2AntColumn {
 }
 
 export const MOTOR_TYPE_OPTIONS = [
-  { value: 1, label: '浏览' },
-  { value: 2, label: '输入' },
+  { value: '1', label: '浏览' },
+  { value: '2', label: '输入' },
 ];
 
 function unitColumn(title: string, dataIndex: string, unit: string): Page2AntColumn {
@@ -80,8 +80,20 @@ export const MOTOR_SELECT_ANT_COLUMNS: Page2AntColumn[] = [
   flatColumn('其它说明', 'p20', { editable: true, inputType: 'text' }),
 ];
 
+/** 统一类别字段：下拉值为 1/2，兼容历史数据中的中文或数字 */
+export function normalizeMotorCategoryValue(value: string | number | undefined): string {
+  const raw = String(value ?? '').trim();
+  if (raw === '1' || raw === '浏览') return '1';
+  if (raw === '2' || raw === '输入') return '2';
+  return raw;
+}
+
 export function isBrowseModeRow(record: Record<string, string | number | undefined>): boolean {
-  return String(record.p0 ?? '') === '1';
+  return normalizeMotorCategoryValue(record.p0) === '1';
+}
+
+export function isInputModeRow(record: Record<string, string | number | undefined>): boolean {
+  return normalizeMotorCategoryValue(record.p0) === '2';
 }
 
 export function flattenEditableColumns(columns: Page2AntColumn[]): Page2AntColumn[] {

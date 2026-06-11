@@ -1338,7 +1338,8 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
   const dedup = new Map<string, any>();
   [...baseValues, ...extraValues].forEach((row: any) => dedup.set(String(row.paramKey), row));
   const values = Array.from(dedup.values());
-  if (!values.length) {
+  const tables = Array.isArray(tablePayload) ? tablePayload : [];
+  if (!values.length && !tables.length) {
     message.warning('当前节点暂无可保存参数');
     return false;
   }
@@ -1348,7 +1349,7 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
     projectId,
     activityPageId,
     values,
-    tables: Array.isArray(tablePayload) ? tablePayload : [],
+    tables,
   };
   if (appId) data.appId = appId;
   else data.appCode = appCode;

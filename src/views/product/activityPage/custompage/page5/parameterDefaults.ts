@@ -28,6 +28,7 @@ export interface Page5ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -39,6 +40,9 @@ export interface Page5ParameterItem {
 }
 
 export const PAGE5_TABLE_NUM = 'DJ5_T_GEARJSBDISPATCH';
+
+/** 齿轮减速比分配表 componentId（customizedProcess-page5 专用） */
+export const PAGE5_TABLE_COMPONENT_ID = 20;
 
 const PAGE5_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14'];
 
@@ -123,6 +127,19 @@ export function createDefaultPage5Row(overrides?: Partial<Page5TableRow>): Page5
   };
 }
 
+export function ensurePage5TableComponentIds(list: Page5ParameterItem[]): Page5ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === PAGE5_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: PAGE5_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
+
 export function createDefaultPage5ParameterList(pageId = ''): Page5ParameterItem[] {
   return [
     {
@@ -139,6 +156,7 @@ export function createDefaultPage5ParameterList(pageId = ''): Page5ParameterItem
       inputName: '',
       tableType: '2',
       tableNum: PAGE5_TABLE_NUM,
+      componentId: PAGE5_TABLE_COMPONENT_ID,
     },
   ];
 }

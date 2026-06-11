@@ -45,11 +45,20 @@ import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
-import { calculateAllPage5Rows } from './page5/calculations';
+import {
+  calculateAllPage5Rows,
+  extractPage5SaveParamValues,
+  extractPage5TableSavePayload,
+} from './page5/calculations';
 import { applyPage5InitData } from './page5/initData';
 import { loadPage5PageParameters } from './page5/loadPageParameters';
-import { createDefaultPage5ParameterList, type Page5ParameterItem, type Page5TableRow } from './page5/parameterDefaults';
-import { extractPage5SaveParamValues, getPage5TableRows, setPage5TableRows } from './page5/rowOperations';
+import {
+  createDefaultPage5ParameterList,
+  ensurePage5TableComponentIds,
+  type Page5ParameterItem,
+  type Page5TableRow,
+} from './page5/parameterDefaults';
+import { getPage5TableRows, setPage5TableRows } from './page5/rowOperations';
 import { PAGE5_ANT_COLUMNS, PAGE5_LEAF_COLUMNS, type Page5AntColumn } from './page5/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page5' });
@@ -60,6 +69,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page5ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -82,17 +93,23 @@ const equivalent = ref(0);
 
 function createInitialParameterList(): Page5ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage5ParameterList(props.pageid);
+    return clonePage5ParameterList(createDefaultPage5ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return clonePage5ParameterList(props.parameterTempList);
+}
+
+function clonePage5ParameterList(list: Page5ParameterItem[]): Page5ParameterItem[] {
+  return ensurePage5TableComponentIds(
+    list.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
 }
 
 const parameterTempList = ref<Page5ParameterItem[]>(createInitialParameterList());
@@ -101,8 +118,8 @@ const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch
     props,
     parameterTempList,
     loadPageParameters: loadPage5PageParameters,
+    cloneItem: clonePage5ParameterList,
   });
-
 
 const tableRowData = computed(() => getPage5TableRows(parameterTempList.value));
 
@@ -175,7 +192,6 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
@@ -188,9 +204,14 @@ function getCurrentSaveParamValues() {
   return extractPage5SaveParamValues(parameterTempList.value);
 }
 
+function getCurrentTableSavePayload() {
+  return extractPage5TableSavePayload(ensurePage5TableComponentIds(parameterTempList.value));
+}
+
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

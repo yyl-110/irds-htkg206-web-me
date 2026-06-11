@@ -92,20 +92,3 @@ export function applyModuleLibraryToRow(
 
   tableItem.tableMap.rowData = [...tableItem.tableMap.rowData];
 }
-
-export function extractPage2SaveParamValues(list: Page2ParameterItem[]) {
-  const result: Array<{ paramKey: string; paramName: string; paramValue: string }> = [];
-  list.forEach(item => {
-    if (item.ifSingleLine === 't' && item.tableMap?.rowData) {
-      return;
-    }
-    const key = String(item.parameterNum ?? '').trim();
-    if (!key) return;
-    result.push({
-      paramKey: key,
-      paramName: String(item.inputName ?? key),
-      paramValue: String(item.defaultValue ?? ''),
-    });
-  });
-  return result;
-}

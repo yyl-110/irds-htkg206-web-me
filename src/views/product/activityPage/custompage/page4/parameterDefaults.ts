@@ -30,6 +30,7 @@ export interface Page4ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -41,6 +42,9 @@ export interface Page4ParameterItem {
 }
 
 export const PAGE4_TABLE_NUM = 'DJ4_T_COMBINSCHEME';
+
+/** 组合方案表 componentId（customizedProcess-page4 专用） */
+export const PAGE4_TABLE_COMPONENT_ID = 19;
 
 const PAGE4_COL_STR = [
   'p0',
@@ -168,6 +172,7 @@ export function createDefaultPage4ParameterList(pageId = ''): Page4ParameterItem
       inputName: '',
       tableType: '2',
       tableNum: PAGE4_TABLE_NUM,
+      componentId: PAGE4_TABLE_COMPONENT_ID,
     },
   ];
 }

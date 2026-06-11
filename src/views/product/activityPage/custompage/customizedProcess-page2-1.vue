@@ -26,7 +26,7 @@
           <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除行
         </a-button>
-        <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">
+        <a-button type="primary" style="margin-left: 20px" @click.stop="handleBrowseRow">
           <template #icon><FolderOpenOutlined /></template>
           浏览
         </a-button>
@@ -89,20 +89,25 @@ import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/ic
 import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
+import { extractPage2_1SaveParamValues, extractPage2_1TableSavePayload } from './page2-1/calculations';
 import { buildReducerBrowseQueryPrefill } from './page2-1/browseHelpers';
 import { loadPage2_1PageParameters } from './page2-1/loadPageParameters';
-import { createDefaultPage2_1ParameterList, type Page2_1ParameterItem } from './page2-1/parameterDefaults';
+import {
+  createDefaultPage2_1ParameterList,
+  type Page2_1ParameterItem,
+  type Page2_1TableRow,
+} from './page2-1/parameterDefaults';
 import {
   addReducerRow,
   applyModuleLibraryToRow,
   deleteReducerRows,
-  extractPage2_1SaveParamValues,
   getReducerTableRows,
 } from './page2-1/rowOperations';
 import {
   isBrowseModeRow,
   REDUCER_SELECT_ANT_COLUMNS,
   REDUCER_TYPE_OPTIONS,
+  normalizeReducerCategoryValue,
   type Page2_1AntColumn,
 } from './page2-1/tableColumns';
 
@@ -114,6 +119,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page2_1ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -161,7 +168,15 @@ function createInitialParameterList(): Page2_1ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
     return createDefaultPage2_1ParameterList(props.pageid);
   }
-  return props.parameterTempList.map(item => ({ ...item }));
+  return props.parameterTempList.map(item => ({
+    ...item,
+    tableMap: item.tableMap
+      ? {
+          ...item.tableMap,
+          rowData: Array.isArray(item.tableMap.rowData) ? item.tableMap.rowData.map(row => ({ ...row })) : [],
+        }
+      : item.tableMap,
+  }));
 }
 
 const parameterTempList = ref<Page2_1ParameterItem[]>(createInitialParameterList());
@@ -181,6 +196,34 @@ const modulePickerMenuId = ref('');
 const modulePickerQueryPrefill = ref<Record<string, string>>({});
 const modulecategoryid = ref('');
 const selectRow = ref(0);
+const browseClickBusy = ref(false);
+const BROWSE_ROW_HINT_KEY = 'customized-process-page2-1-browse-row';
+
+function showBrowseHint(content: string) {
+  message.warning({ content, key: BROWSE_ROW_HINT_KEY });
+}
+
+function resolveBrowseTargetRow(): Page2_1TableRow | null {
+  const rows = getReducerTableRows(parameterTempList.value);
+  const browseRows = rows.filter(row => isBrowseModeRow(row));
+
+  if (selectList.value.length === 1 && isBrowseModeRow(selectList.value[0])) {
+    return selectList.value[0] as Page2_1TableRow;
+  }
+
+  if (browseRows.length === 1) {
+    return browseRows[0];
+  }
+
+  if (browseRows.length > 1) {
+    const selectedBrowse = selectList.value.filter(row => isBrowseModeRow(row));
+    if (selectedBrowse.length === 1) {
+      return selectedBrowse[0] as Page2_1TableRow;
+    }
+  }
+
+  return null;
+}
 
 const tableRowData = computed(() => getReducerTableRows(parameterTempList.value));
 
@@ -250,8 +293,10 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 }
 
 function onReducerTypeChange(record: Record<string, string | number | undefined>, index: number) {
+  const normalized = normalizeReducerCategoryValue(record.p0);
+  record.p0 = normalized;
   if (parameterTempList.value[5]?.tableMap?.rowData?.[index]) {
-    parameterTempList.value[5].tableMap.rowData[index].p0 = record.p0;
+    parameterTempList.value[5].tableMap.rowData[index].p0 = normalized;
   }
   setSaveBtnEnable();
 }
@@ -297,34 +342,42 @@ async function resolveModuleCategoryId() {
 }
 
 async function handleBrowseRow() {
-  if (!selectList.value.length) {
-    message.info('请选择浏览行');
-    return;
-  }
-  if (selectList.value.length !== 1) {
-    message.info('请只选择一个浏览行');
-    return;
-  }
-  if (!isBrowseModeRow(selectList.value[0])) {
-    message.info('请选择浏览行.');
-    return;
-  }
+  if (browseClickBusy.value) return;
+  browseClickBusy.value = true;
+  try {
+    const selected = resolveBrowseTargetRow();
+    if (!selected) {
+      const rows = getReducerTableRows(parameterTempList.value);
+      const browseCount = rows.filter(row => isBrowseModeRow(row)).length;
+      if (!selectList.value.length && browseCount === 0) {
+        showBrowseHint('请先添加一行，并将类别设为「浏览」');
+      } else if (browseCount > 1) {
+        showBrowseHint('存在多行「浏览」类别，请勾选其中一行后再点击浏览');
+      } else {
+        showBrowseHint('请勾选类别为「浏览」的数据行后再点击浏览');
+      }
+      return;
+    }
 
-  const categoryId = await resolveModuleCategoryId();
-  if (!categoryId) return;
+    const categoryId = await resolveModuleCategoryId();
+    if (!categoryId) return;
 
-  const rows = getReducerTableRows(parameterTempList.value);
-  const selected = selectList.value[0];
-  selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
-  if (selectRow.value < 0) {
-    message.info('未找到所选行');
-    return;
+    const rows = getReducerTableRows(parameterTempList.value);
+    selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
+    if (selectRow.value < 0) {
+      showBrowseHint('未找到所选行');
+      return;
+    }
+
+    modulePickerCategoryId.value = categoryId;
+    modulePickerMenuId.value = categoryId;
+    modulePickerQueryPrefill.value = buildReducerBrowseQueryPrefill(parameterTempList.value);
+    modulePickerVisible.value = true;
+  } finally {
+    window.setTimeout(() => {
+      browseClickBusy.value = false;
+    }, 400);
   }
-
-  modulePickerCategoryId.value = categoryId;
-  modulePickerMenuId.value = categoryId;
-  modulePickerQueryPrefill.value = buildReducerBrowseQueryPrefill(parameterTempList.value);
-  modulePickerVisible.value = true;
 }
 
 function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns: Array<Record<string, unknown>> }) {
@@ -332,7 +385,6 @@ function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns:
   modulePickerVisible.value = false;
   setSaveBtnEnable();
 }
-
 
 function updateEl() {
   nextTick(() => {
@@ -346,9 +398,14 @@ function getCurrentSaveParamValues() {
   return extractPage2_1SaveParamValues(parameterTempList.value);
 }
 
+function getCurrentTableSavePayload() {
+  return extractPage2_1TableSavePayload(parameterTempList.value);
+}
+
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

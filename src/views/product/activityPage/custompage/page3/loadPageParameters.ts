@@ -1,5 +1,9 @@
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
-import { createDefaultPage3ParameterList, type Page3ParameterItem } from './parameterDefaults';
+import {
+  applyPage3_1TableComponentId,
+  createDefaultPage3ParameterList,
+  type Page3ParameterItem,
+} from './parameterDefaults';
 
 export type { Page3ParameterItem };
 
@@ -54,4 +58,12 @@ export async function loadPage3PageParameters(
   let list = createDefaultPage3ParameterList(pageKey);
   list = await applyActivityParameterIds(pageKey, list);
   return mergeSavedParamsIntoList(list, saved);
+}
+
+export async function loadPage3_1PageParameters(
+  pageId: string,
+  saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
+): Promise<Page3ParameterItem[]> {
+  const list = await loadPage3PageParameters(pageId, saved);
+  return applyPage3_1TableComponentId(list);
 }

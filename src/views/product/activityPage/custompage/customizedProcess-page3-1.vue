@@ -32,11 +32,7 @@
                 type="text"
                 class="table-cell-input"
                 disabled />
-              <a-input-number
-                v-else
-                v-model:value="record[String(column.dataIndex)]"
-                class="table-cell-input"
-                disabled />
+              <a-input-number v-else v-model:value="record[String(column.dataIndex)]" class="table-cell-input" disabled />
             </template>
             <template v-else-if="resolveLeafColumn(column)?.cellMode === 'editable'">
               <a-input-number
@@ -59,11 +55,16 @@ import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
-import { calculateAllPage3Rows } from './page3/calculations';
+import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
 import { applyPage3InitData } from './page3/initData';
-import { loadPage3PageParameters } from './page3/loadPageParameters';
-import { createDefaultPage3ParameterList, type Page3ParameterItem, type Page3TableRow } from './page3/parameterDefaults';
-import { extractPage3SaveParamValues, getPage3TableRows, setPage3TableRows } from './page3/rowOperations';
+import { loadPage3_1PageParameters } from './page3/loadPageParameters';
+import {
+  applyPage3_1TableComponentId,
+  createDefaultPage3ParameterList,
+  type Page3ParameterItem,
+  type Page3TableRow,
+} from './page3/parameterDefaults';
+import { getPage3TableRows, setPage3TableRows } from './page3/rowOperations';
 import { PAGE3_ANT_COLUMNS, PAGE3_LEAF_COLUMNS, type Page3AntColumn } from './page3/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page3-1' });
@@ -74,6 +75,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page3ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -97,17 +100,19 @@ const NUMERIC_REG = /^\d+(?=\.{0,1}\d+$|$)/;
 
 function createInitialParameterList(): Page3ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage3ParameterList(props.pageid);
+    return applyPage3_1TableComponentId(createDefaultPage3ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return applyPage3_1TableComponentId(
+    props.parameterTempList.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
 }
 
 const parameterTempList = ref<Page3ParameterItem[]>(createInitialParameterList());
@@ -115,9 +120,8 @@ const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch
   useCustomPageTaskParamMap({
     props,
     parameterTempList,
-    loadPageParameters: loadPage3PageParameters,
+    loadPageParameters: loadPage3_1PageParameters,
   });
-
 
 const tableRowData = computed(() => getPage3TableRows(parameterTempList.value));
 
@@ -196,7 +200,6 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
@@ -209,9 +212,14 @@ function getCurrentSaveParamValues() {
   return extractPage3SaveParamValues(parameterTempList.value);
 }
 
+function getCurrentTableSavePayload() {
+  return extractPage3TableSavePayload(parameterTempList.value);
+}
+
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);

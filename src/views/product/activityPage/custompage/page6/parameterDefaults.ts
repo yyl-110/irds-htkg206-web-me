@@ -30,6 +30,7 @@ export interface Page6ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -41,6 +42,9 @@ export interface Page6ParameterItem {
 }
 
 export const PAGE6_TABLE_NUM = 'DJ6_T_FINALTOTALJSB';
+
+/** 齿数/实际总减速比表 componentId（customizedProcess-page6 专用） */
+export const PAGE6_TABLE_COMPONENT_ID = 21;
 
 const PAGE6_COL_STR = [
   'p0',
@@ -153,6 +157,19 @@ export function createDefaultPage6Row(overrides?: Partial<Page6TableRow>): Page6
   };
 }
 
+export function ensurePage6TableComponentIds(list: Page6ParameterItem[]): Page6ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (item.ifSingleLine === 't' && tableNum === PAGE6_TABLE_NUM) {
+      const rawId = String(item.componentId ?? '').trim();
+      if (!rawId) {
+        return { ...item, componentId: PAGE6_TABLE_COMPONENT_ID };
+      }
+    }
+    return item;
+  });
+}
+
 export function createDefaultPage6ParameterList(pageId = ''): Page6ParameterItem[] {
   return [
     {
@@ -169,6 +186,7 @@ export function createDefaultPage6ParameterList(pageId = ''): Page6ParameterItem
       inputName: '',
       tableType: '2',
       tableNum: PAGE6_TABLE_NUM,
+      componentId: PAGE6_TABLE_COMPONENT_ID,
     },
   ];
 }

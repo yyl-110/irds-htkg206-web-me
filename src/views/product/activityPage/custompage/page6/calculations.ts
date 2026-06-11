@@ -1,5 +1,75 @@
 import { handleCutZero } from '@/utils/tools';
-import type { Page6TableRow } from './parameterDefaults';
+import {
+  PAGE6_TABLE_COMPONENT_ID,
+  PAGE6_TABLE_NUM,
+  type Page6ParameterItem,
+  type Page6TableRow,
+} from './parameterDefaults';
+
+export type Page6TableSaveRow = {
+  componentId: string | number;
+  tableName: string;
+  values: Array<Record<string, string>>;
+};
+
+function getPage6TableColNums(tableMap?: Page6ParameterItem['tableMap']): number {
+  const colStrLen = tableMap?.colStr?.length ?? 0;
+  const fromColNums = Number(tableMap?.colNums ?? 0);
+  return colStrLen > 0 ? colStrLen : fromColNums;
+}
+
+function mapPage6RowToCValueFormat(
+  row: Record<string, string | number | undefined>,
+  colNums: number,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (let i = 0; i < colNums; i++) {
+    const val = String(row[`p${i}`] ?? '');
+    if (val !== '') result[`c${i + 1}`] = val;
+  }
+  return result;
+}
+
+function resolvePage6TableComponentId(item: Page6ParameterItem): string | number | undefined {
+  const rawId = String(item.componentId ?? '').trim();
+  if (rawId) return item.componentId!;
+  if (String(item.tableNum ?? '').trim() === PAGE6_TABLE_NUM) return PAGE6_TABLE_COMPONENT_ID;
+  return undefined;
+}
+
+/** values：本页无单行参数，返回空数组 */
+export function extractPage6SaveParamValues(list: Page6ParameterItem[]) {
+  return list
+    .filter(item => item.ifSingleLine !== 't' && String(item.parameterNum ?? '').trim())
+    .map(item => ({
+      paramKey: String(item.parameterNum),
+      paramName: String(item.inputName ?? item.parameterNum),
+      paramValue: String(item.defaultValue ?? ''),
+    }));
+}
+
+/** tables：带 componentId 的齿数/实际总减速比表（page6 专用 componentId=21） */
+export function extractPage6TableSavePayload(list: Page6ParameterItem[]): Page6TableSaveRow[] {
+  return list
+    .filter(item => item.ifSingleLine === 't' && item.tableMap)
+    .map(item => {
+      const resolvedId = resolvePage6TableComponentId(item);
+      if (resolvedId == null || resolvedId === '') return null;
+      const colNums = getPage6TableColNums(item.tableMap);
+      const rowData = item.tableMap?.rowData ?? [];
+      const values = rowData.map(row => mapPage6RowToCValueFormat(row, colNums));
+      const rawId = String(resolvedId).trim();
+      const numericId = Number(rawId);
+      const componentId =
+        rawId && !Number.isNaN(numericId) && String(numericId) === rawId ? numericId : resolvedId;
+      return {
+        componentId,
+        tableName: String(item.tableName ?? item.inputName ?? ''),
+        values,
+      };
+    })
+    .filter((row): row is Page6TableSaveRow => row != null);
+}
 
 function toNumber(value: string | number | undefined): number {
   if (value === '' || value === undefined) {

@@ -32,6 +32,7 @@ export interface Page3ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -41,6 +42,13 @@ export interface Page3ParameterItem {
     rowNums?: number;
   };
 }
+
+export const PAGE3_TABLE_NUM = 'DJ3_T_INITTOTALJSB';
+
+/** 初始总减速比表 componentId（customizedProcess-page3 专用） */
+export const PAGE3_TABLE_COMPONENT_ID = 17;
+/** 初始总减速比表 componentId（customizedProcess-page3-1 专用） */
+export const PAGE3_1_TABLE_COMPONENT_ID = 18;
 
 const PAGE3_COL_STR = [
   'p0',
@@ -135,7 +143,18 @@ export function createDefaultPage3ParameterList(pageId = ''): Page3ParameterItem
       tableName: '初始总减速比计算',
       inputName: '',
       tableType: '2',
-      tableNum: 'DJ3_T_INITTOTALJSB',
+      tableNum: PAGE3_TABLE_NUM,
+      componentId: PAGE3_TABLE_COMPONENT_ID,
     },
   ];
+}
+
+export function applyPage3_1TableComponentId(list: Page3ParameterItem[]): Page3ParameterItem[] {
+  return list.map(item => {
+    const tableNum = String(item.tableNum ?? '').trim();
+    if (tableNum === PAGE3_TABLE_NUM) {
+      return { ...item, componentId: PAGE3_1_TABLE_COMPONENT_ID };
+    }
+    return item;
+  });
 }

@@ -18,6 +18,7 @@ export interface Page2ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -77,9 +78,12 @@ const MOTOR_COL_STR = [
   'p20',
 ];
 
+/** 电机选型表 componentId（customizedProcess-page2 专用） */
+export const PAGE2_MOTOR_TABLE_COMPONENT_ID = 15;
+
 export function createDefaultMotorRow(motorNum: number, delIndex: number): Page2TableRow {
   return {
-    p0: 1,
+    p0: '1',
     cellParameterId0: '',
     cellParentNum0: '',
     cellInputOrOutput0: '1',
@@ -241,6 +245,7 @@ export function createDefaultPage2ParameterList(pageId = ''): Page2ParameterItem
       inputName: '',
       tableType: '2',
       tableNum: 'DJ2_T_MOTORSELECT',
+      componentId: PAGE2_MOTOR_TABLE_COMPONENT_ID,
     },
   ];
 }

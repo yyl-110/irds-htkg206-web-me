@@ -18,6 +18,7 @@ export interface Page2_1ParameterItem {
   tableName?: string;
   tableType?: string;
   tableNum?: string;
+  componentId?: string | number;
   id?: string | number;
   tableMap?: {
     tableType?: string;
@@ -31,6 +32,9 @@ export interface Page2_1ParameterItem {
 
 export const REDUCER_TABLE_INDEX = 5;
 export const REDUCER_TABLE_NUM = 'DJ2-1_T_JSQSELECT';
+
+/** 减速器选型表 componentId（customizedProcess-page2-1 专用） */
+export const PAGE2_1_REDUCER_TABLE_COMPONENT_ID = 16;
 
 const REDUCER_COL_DATA = [
   { colName: '选择', ifShowCols: '1' },
@@ -53,7 +57,7 @@ const REDUCER_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', '
 
 export function createDefaultReducerRow(reducerNum: number, delIndex: number): Page2_1TableRow {
   return {
-    p0: 1,
+    p0: '1',
     cellParameterId0: '',
     cellParentNum0: '',
     cellInputOrOutput0: '1',
@@ -218,6 +222,7 @@ export function createDefaultPage2_1ParameterList(pageId = ''): Page2_1Parameter
       inputName: '减速器选型',
       tableType: '2',
       tableNum: REDUCER_TABLE_NUM,
+      componentId: PAGE2_1_REDUCER_TABLE_COMPONENT_ID,
     },
     {
       inputOrOutput: '1',

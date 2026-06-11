@@ -21,7 +21,7 @@
           <EpcIcon type="icon-shanchu1" style="font-size: 12px" />
           删除
         </a-button>
-        <a-button type="primary" style="margin-left: 20px" @click="handleBrowseRow">
+        <a-button type="primary" style="margin-left: 20px" @click.stop="handleBrowseRow">
           <template #icon><FolderOpenOutlined /></template>
           浏览
         </a-button>
@@ -87,14 +87,17 @@ import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
 import { loadPage2PageParameters } from './page2/loadPageParameters';
 import { createDefaultPage2ParameterList, type Page2ParameterItem } from './page2/parameterDefaults';
+import { extractPage2SaveParamValues, extractPage2TableSavePayload } from './page2/calculations';
+import { addMotorRow, applyModuleLibraryToRow, deleteMotorRows, getMotorTableRows } from './page2/rowOperations';
 import {
-  addMotorRow,
-  applyModuleLibraryToRow,
-  deleteMotorRows,
-  extractPage2SaveParamValues,
-  getMotorTableRows,
-} from './page2/rowOperations';
-import { isBrowseModeRow, MOTOR_SELECT_ANT_COLUMNS, MOTOR_TYPE_OPTIONS, type Page2AntColumn } from './page2/tableColumns';
+  isBrowseModeRow,
+  MOTOR_SELECT_ANT_COLUMNS,
+  MOTOR_TYPE_OPTIONS,
+  normalizeMotorCategoryValue,
+  type Page2AntColumn,
+} from './page2/tableColumns';
+import { buildMotorBrowseQueryPrefill } from './page2/browseHelpers';
+import type { Page2TableRow } from './page2/parameterDefaults';
 
 defineOptions({ name: 'rx-customizedProcess-page2' });
 
@@ -104,6 +107,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page2ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -128,7 +133,15 @@ function createInitialParameterList(): Page2ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
     return createDefaultPage2ParameterList(props.pageid);
   }
-  return props.parameterTempList.map(item => ({ ...item }));
+  return props.parameterTempList.map(item => ({
+    ...item,
+    tableMap: item.tableMap
+      ? {
+          ...item.tableMap,
+          rowData: Array.isArray(item.tableMap.rowData) ? item.tableMap.rowData.map(row => ({ ...row })) : [],
+        }
+      : item.tableMap,
+  }));
 }
 
 const parameterTempList = ref<Page2ParameterItem[]>(createInitialParameterList());
@@ -148,6 +161,34 @@ const modulePickerMenuId = ref('');
 const modulePickerQueryPrefill = ref<Record<string, string>>({});
 const modulecategoryid = ref('');
 const selectRow = ref(0);
+const browseClickBusy = ref(false);
+const BROWSE_ROW_HINT_KEY = 'customized-process-page2-browse-row';
+
+function showBrowseHint(content: string) {
+  message.warning({ content, key: BROWSE_ROW_HINT_KEY });
+}
+
+function resolveBrowseTargetRow(): Page2TableRow | null {
+  const rows = getMotorTableRows(parameterTempList.value);
+  const browseRows = rows.filter(row => isBrowseModeRow(row));
+
+  if (selectList.value.length === 1 && isBrowseModeRow(selectList.value[0])) {
+    return selectList.value[0] as Page2TableRow;
+  }
+
+  if (browseRows.length === 1) {
+    return browseRows[0];
+  }
+
+  if (browseRows.length > 1) {
+    const selectedBrowse = selectList.value.filter(row => isBrowseModeRow(row));
+    if (selectedBrowse.length === 1) {
+      return selectedBrowse[0] as Page2TableRow;
+    }
+  }
+
+  return null;
+}
 
 const tableRowData = computed(() => getMotorTableRows(parameterTempList.value));
 
@@ -168,12 +209,6 @@ const motorRowSelection = computed(() => ({
 }));
 
 function motorTableRowKey(record: Record<string, string | number | undefined>, index?: number) {
-  if (record.id != null && record.id !== '') {
-    return String(record.id);
-  }
-  if (record.delIndex != null && record.delIndex !== '') {
-    return String(record.delIndex);
-  }
   return String(index ?? 0);
 }
 
@@ -217,8 +252,10 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 }
 
 function onMotorTypeChange(record: Record<string, string | number | undefined>, index: number) {
+  const normalized = normalizeMotorCategoryValue(record.p0);
+  record.p0 = normalized;
   if (parameterTempList.value[2]?.tableMap?.rowData?.[index]) {
-    parameterTempList.value[2].tableMap.rowData[index].p0 = record.p0;
+    parameterTempList.value[2].tableMap.rowData[index].p0 = normalized;
   }
   setSaveBtnEnable();
 }
@@ -264,39 +301,42 @@ async function resolveModuleCategoryId() {
 }
 
 async function handleBrowseRow() {
-  if (!selectList.value.length) {
-    message.info('请选择浏览行');
-    return;
-  }
-  if (selectList.value.length !== 1) {
-    message.info('请只选择一个浏览行');
-    return;
-  }
-  if (!isBrowseModeRow(selectList.value[0])) {
-    message.info('请选择浏览行.');
-    return;
-  }
+  if (browseClickBusy.value) return;
+  browseClickBusy.value = true;
+  try {
+    const selected = resolveBrowseTargetRow();
+    if (!selected) {
+      const rows = getMotorTableRows(parameterTempList.value);
+      const browseCount = rows.filter(row => isBrowseModeRow(row)).length;
+      if (!selectList.value.length && browseCount === 0) {
+        showBrowseHint('请先添加一行，并将类别设为「浏览」');
+      } else if (browseCount > 1) {
+        showBrowseHint('存在多行「浏览」类别，请勾选其中一行后再点击浏览');
+      } else {
+        showBrowseHint('请勾选类别为「浏览」的数据行后再点击浏览');
+      }
+      return;
+    }
 
-  const categoryId = await resolveModuleCategoryId();
-  if (!categoryId) return;
+    const categoryId = await resolveModuleCategoryId();
+    if (!categoryId) return;
 
-  const rows = getMotorTableRows(parameterTempList.value);
-  const selected = selectList.value[0];
-  selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
-  if (selectRow.value < 0) {
-    message.info('未找到所选行');
-    return;
+    const rows = getMotorTableRows(parameterTempList.value);
+    selectRow.value = rows.findIndex(row => row.p1 === selected.p1);
+    if (selectRow.value < 0) {
+      showBrowseHint('未找到所选行');
+      return;
+    }
+
+    modulePickerCategoryId.value = categoryId;
+    modulePickerMenuId.value = categoryId;
+    modulePickerQueryPrefill.value = buildMotorBrowseQueryPrefill(parameterTempList.value);
+    modulePickerVisible.value = true;
+  } finally {
+    window.setTimeout(() => {
+      browseClickBusy.value = false;
+    }, 400);
   }
-
-  let edgl = parameterTempList.value[0]?.defaultValue ?? '';
-  if (!isValid(edgl)) {
-    edgl = parameterTempList.value[1]?.defaultValue ?? '';
-  }
-
-  modulePickerCategoryId.value = categoryId;
-  modulePickerMenuId.value = categoryId;
-  modulePickerQueryPrefill.value = edgl ? { DJ1_1_EDGL_X: String(edgl) } : {};
-  modulePickerVisible.value = true;
 }
 
 function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns: Array<Record<string, unknown>> }) {
@@ -304,7 +344,6 @@ function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns:
   modulePickerVisible.value = false;
   setSaveBtnEnable();
 }
-
 
 function updateEl() {
   nextTick(() => {
@@ -318,9 +357,14 @@ function getCurrentSaveParamValues() {
   return extractPage2SaveParamValues(parameterTempList.value);
 }
 
+function getCurrentTableSavePayload() {
+  return extractPage2TableSavePayload(parameterTempList.value);
+}
+
 defineExpose({
   updateEl,
   getCurrentSaveParamValues,
+  getCurrentTableSavePayload,
 });
 
 mountWithTaskParamMap(updateEl);
