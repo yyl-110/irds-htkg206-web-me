@@ -192,6 +192,9 @@ mountWithTaskParamMap(updateEl);
   padding: 10px 10px;
   min-height: 680px;
   background-color: #ffffff;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .layout-content {
@@ -201,8 +204,9 @@ mountWithTaskParamMap(updateEl);
 .section-header {
   width: 100%;
   font-weight: 600;
-  padding: 10px 0 8px 15px;
+  padding: 10px 0 8px;
   margin-bottom: 2px;
+  box-sizing: border-box;
 }
 
 .section-header__title {
@@ -217,12 +221,24 @@ mountWithTaskParamMap(updateEl);
 }
 
 .main-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
   width: 100%;
+  max-width: 100%;
   min-height: calc(100vh - 400px);
   background-color: #ffffff;
-  padding-top: 0px;
-  margin-left: 15px;
-  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.form-column-left,
+.form-column-right {
+  min-width: 0;
+}
+
+.field-input {
+  width: 100%;
+  max-width: 280px;
 }
 
 .design-form :deep(.ant-form-item) {
@@ -237,21 +253,5 @@ mountWithTaskParamMap(updateEl);
   white-space: normal;
   line-height: 1.4;
   height: auto;
-}
-
-.form-column-left {
-  width: 460px;
-  float: left;
-}
-
-.form-column-right {
-  width: 460px;
-  float: left;
-  padding-left: 40px;
-}
-
-.field-input {
-  width: 100%;
-  max-width: 280px;
 }
 </style>

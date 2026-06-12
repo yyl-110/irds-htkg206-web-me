@@ -1,4 +1,10 @@
 /* custompage 目录下表格表头统一取消加粗 */
+.custom-page-scope {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
 .custom-page-scope .ant-table-thead > tr > th,
 .custom-page-scope .ant-table-thead > tr > td {
   font-weight: normal !important;

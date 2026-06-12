@@ -248,7 +248,7 @@ mountWithTaskParamMap(updateEl);
 .section-title {
   width: 100%;
   font-weight: 600;
-  padding: 10px 0 0px 10px;
+  padding: 10px 0 0px 15px;
   margin-bottom: 0px;
   font-size: 15px;
 }
