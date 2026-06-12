@@ -665,7 +665,8 @@ onActivated(() => {
   void fetchProjectWbsTree();
 });
 
-const SCROLL_X_BUFFER_PX = 48;
+/** 树形表格 expand 列宽（与下方 .ant-table-expand-icon-col 样式一致） */
+const WBS_TABLE_EXPAND_COL_PX = 28;
 
 /** 工期(天)：结束日与开始日按自然日计算，含起止两日，即 dayjs 的 end.diff(start,'day') + 1 */
 function computeTaskDurationDays(record: WbsTaskNode): number | null {
@@ -679,30 +680,29 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
   return [
     { title: '序号', dataIndex: 'serialNo', key: 'serialNo', width: 56, align: 'center', fixed: 'left', resizable: true },
     { title: 'WBS', dataIndex: 'wbsCode', key: 'wbsCode', width: 160, ellipsis: true, fixed: 'left', resizable: true },
-    { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, fixed: 'left', resizable: true },
+    { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 220, ellipsis: true, fixed: 'left', resizable: true, customCell: () => ({ class: 'task-wbs-td-task-name' }) },
     { title: '类型', key: 'nodeKind', dataIndex: 'nodeKind', width: 88, align: 'center', resizable: true },
-    { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 125, align: 'center', resizable: true },
-    { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 125, align: 'center', resizable: true },
+    { title: '开始时间', dataIndex: 'startDate', key: 'startDate', width: 92, align: 'center', resizable: true },
+    { title: '完成时间', dataIndex: 'endDate', key: 'endDate', width: 92, align: 'center', resizable: true },
     {
       title: '工期(天)',
       key: 'durationWorkdays',
       dataIndex: 'durationWorkdays',
-      width: 84,
+      width: 64,
       align: 'center',
       resizable: true,
       customRender: ({ record }) => computeTaskDurationDays(record) ?? record.durationWorkdays ?? '-',
     },
-    { title: '裁剪', key: 'tailoringStatus', width: 72, align: 'center', resizable: true },
-    { title: '前置任务', dataIndex: 'predecessor', key: 'predecessor', width: 88, ellipsis: true, resizable: true },
+    { title: '裁剪', key: 'tailoringStatus', width: 48, align: 'center', resizable: true },
+    { title: '进度', key: 'progress', dataIndex: 'progress', width: 96, align: 'center', resizable: true },
     { title: '负责人', dataIndex: 'resource', key: 'resource', width: 168, ellipsis: true, resizable: true },
     { title: '状态', key: 'status', dataIndex: 'status', width: 90, align: 'center', resizable: true },
     {
       title: '操作',
       key: 'operation',
       dataIndex: 'operation',
-      width: 152,
+      width: 108,
       align: 'center',
-      fixed: 'right',
       resizable: false,
       customCell: () => ({ class: 'task-wbs-td-operation' }),
     },
@@ -711,9 +711,18 @@ function createTaskColumns(): TableColumnsType<WbsTaskNode> {
 
 const columns = ref<TableColumnsType<WbsTaskNode>>(createTaskColumns());
 
-const scrollX = computed(
-  () => columns.value.reduce((s, c) => s + (Number(c.width) || 0), 0) + SCROLL_X_BUFFER_PX,
+const wbsTableColumnsWidthSum = computed(() =>
+  columns.value.reduce((sum, col) => sum + (Number(col.width) || 0), 0),
 );
+
+const wbsTableContentMinWidth = computed(
+  () => wbsTableColumnsWidthSum.value + WBS_TABLE_EXPAND_COL_PX,
+);
+
+/** 表头实际渲染总宽（优先于列宽累加估算） */
+const tableHeaderContentWidth = ref(0);
+
+const scrollX = computed(() => tableHeaderContentWidth.value || wbsTableContentMinWidth.value);
 
 function handleResizeColumn(w: number, col: { width?: number | string }) {
   col.width = w;
@@ -2095,6 +2104,12 @@ let ganttHeaderScrollEl: HTMLElement | null = null;
 let scrollLock = false;
 let hScrollLock = false;
 
+function wbsProgressPercent(record: WbsTaskNode): number {
+  const p = Number(record.progress);
+  if (!Number.isFinite(p)) return 0;
+  return Math.min(100, Math.max(0, Math.round(p)));
+}
+
 function statusLabel(s: TaskWbsStatus) {
   if (s === 'delayed') return '已延迟';
   if (s === 'completed') return '已完成';
@@ -2428,6 +2443,11 @@ function measureTheadChromeHeight() {
 function measureTableBodyHeight() {
   const wrap = tableWrapRef.value;
   if (!wrap) return;
+  const headerRow = wrap.querySelector('.ant-table-thead > tr') as HTMLElement | null;
+  if (headerRow) {
+    const headerW = Math.ceil(headerRow.getBoundingClientRect().width);
+    if (headerW > 0) tableHeaderContentWidth.value = headerW;
+  }
   const thead = wrap.querySelector('.ant-table-thead') as HTMLElement | null;
   const theadH = thead ? Math.ceil(thead.getBoundingClientRect().height) : Math.max(40, ganttChromeHeightPx.value);
   const borderReserve = 2;
@@ -2565,6 +2585,7 @@ async function refreshScrollBinding() {
   await nextTick();
   measureSyncHeights();
   await nextTick();
+  measureSyncHeights();
   maybeFitGanttTimelineToView();
   bindTableBodyScroll();
 }
@@ -2593,7 +2614,7 @@ onBeforeUnmount(() => {
   unbindTableBodyScroll();
 });
 
-watch([tableBodyHeight, flatRows, pxPerDay, expandedRowKeys, timelineWidthPx], async () => {
+watch([tableBodyHeight, flatRows, pxPerDay, expandedRowKeys, timelineWidthPx, scrollX], async () => {
   await refreshScrollBinding();
 });
 
@@ -2605,6 +2626,7 @@ watch(ganttChromeHeightPx, async () => {
 watch(ganttCollapsed, () => {
   nextTick(() => {
     if (!ganttCollapsed.value) ensureLeftPaneWidthInitialized();
+    measureTableBodyHeight();
     void refreshScrollBinding();
   });
 });
@@ -2650,12 +2672,17 @@ watch(ganttCollapsed, () => {
             {{ record.wbsCode && !String(record.wbsCode).includes('.') ? `${record.wbsCode}` : record.wbsCode }}
           </template>
           <template v-else-if="column.key === 'taskName'">
-            <a-tooltip v-if="canShowWbsTaskDesignLink(record)" :title="wbsTaskDesignLinkTitle(record)">
-              <a class="task-wbs-task-design-link" @click.stop="openWbsTaskDesignPage(record)">
-                {{ record.taskName }}
-              </a>
+            <a-tooltip :title="record.taskName || ''">
+              <div class="task-wbs-task-name-wrap">
+                <a
+                  v-if="canShowWbsTaskDesignLink(record)"
+                  class="task-wbs-task-design-link task-wbs-task-name"
+                  @click.stop="openWbsTaskDesignPage(record)">
+                  {{ record.taskName }}
+                </a>
+                <span v-else class="task-wbs-task-name">{{ record.taskName }}</span>
+              </div>
             </a-tooltip>
-            <span v-else :title="record.taskName">{{ record.taskName }}</span>
           </template>
           <template v-else-if="column.key === 'nodeKind'">
             <a-tooltip v-if="canShowWbsTaskDesignLink(record)" :title="wbsTaskDesignLinkTitle(record)">
@@ -2730,6 +2757,17 @@ watch(ganttCollapsed, () => {
                   ↩️
                 </span>
               </a-tooltip>
+            </div>
+          </template>
+          <template v-else-if="column.key === 'progress'">
+            <div class="task-wbs-progress-cell" :title="`${wbsProgressPercent(record)}%`">
+              <div class="task-wbs-progress-cell__bar">
+                <div
+                  class="task-wbs-progress-cell__fill"
+                  :class="{ 'is-completed': wbsProgressPercent(record) >= 100 }"
+                  :style="{ width: `${wbsProgressPercent(record)}%` }" />
+              </div>
+              <span class="task-wbs-progress-cell__text">{{ wbsProgressPercent(record) }}%</span>
             </div>
           </template>
           <template v-else-if="column.key === 'resource'">
@@ -3421,6 +3459,11 @@ watch(ganttCollapsed, () => {
   flex-direction: column;
 }
 
+.project-task-wbs-table :deep(.ant-table-header > table),
+.project-task-wbs-table :deep(.ant-table-body > table) {
+  width: max-content;
+}
+
 /* 去掉表格外层 ping 渐变，固定列边界在横向滚动时显示内阴影 */
 .project-task-wbs-table :deep(.ant-table-container::before),
 .project-task-wbs-table :deep(.ant-table-container::after) {
@@ -3571,6 +3614,26 @@ watch(ganttCollapsed, () => {
   text-decoration: underline;
 }
 
+.task-wbs-task-name-wrap {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.task-wbs-task-name {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-task-wbs-table :deep(.task-wbs-td-task-name) {
+  overflow: hidden;
+}
+
 .task-wbs-node-kind--removed .task-wbs-node-kind__icon {
   color: #ff4d4f;
 }
@@ -3664,6 +3727,42 @@ watch(ganttCollapsed, () => {
   color: rgba(0, 0, 0, 0.65);
   border-color: #d9d9d9;
   background: #fafafa;
+}
+
+.task-wbs-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 2px;
+}
+
+.task-wbs-progress-cell__bar {
+  flex: 1 1 0;
+  min-width: 28px;
+  height: 6px;
+  border-radius: 3px;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.task-wbs-progress-cell__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: #1677ff;
+
+  &.is-completed {
+    background: #52c41a;
+  }
+}
+
+.task-wbs-progress-cell__text {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
+  min-width: 32px;
+  text-align: right;
 }
 
 .task-wbs-responsible-cell {
@@ -3898,17 +3997,18 @@ watch(ganttCollapsed, () => {
 .task-wbs-date-readonly {
   display: inline-block;
   width: 100%;
-  max-width: 118px;
+  max-width: 88px;
   min-height: 24px;
   line-height: 24px;
   font-size: 12px;
   color: rgba(0, 0, 0, 0.88);
   text-align: center;
+  white-space: nowrap;
 }
 
 .task-wbs-date-picker {
   width: 100%;
-  max-width: 118px;
+  max-width: 88px;
   font-size: 12px;
   min-height: 24px;
   padding: 1px 6px 1px 8px;

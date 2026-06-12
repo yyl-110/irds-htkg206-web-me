@@ -99,24 +99,14 @@ function sameUserId(a: unknown, b: unknown) {
 }
 
 function resolveRecordCreatorId(record: Record<string, any>) {
-  return record?.creator ?? record?.creatorId ?? record?.createUserId ?? record?.userId;
+  return record?.creator ?? record?.creatorId ?? record?.createUserId;
 }
 
+/** 仅当前登录用户为记录创建人时可编辑、删除 */
 function canManageApp(record: Record<string, any>) {
   const creatorId = resolveRecordCreatorId(record);
-  if (creatorId != null && creatorId !== '' && sameUserId(creatorId, userStore.getUser.id)) {
-    return true;
-  }
-  const creatorName = String(record?.creatorName ?? '').trim();
-  if (!creatorName) return false;
-  const currentNames = [userStore.getUser.nickname, userStore.getUser.userName]
-    .map((name) => String(name ?? '').trim())
-    .filter(Boolean);
-  return currentNames.some((name) => name === creatorName);
-}
-
-function canDeleteApp(record: Record<string, any>) {
-  return canManageApp(record);
+  if (creatorId == null || creatorId === '') return false;
+  return sameUserId(creatorId, userStore.getUser.id);
 }
 
 function getConfidentialLevelText(record: Record<string, any>) {
@@ -412,7 +402,7 @@ void loadAppList();
               <a href="#" @click.stop.prevent="designFlow(record)">设计</a>
               <a v-if="canManageApp(record)" href="#" @click.stop.prevent="openEditModal(record)">编辑</a>
               <a-popconfirm
-                v-if="canDeleteApp(record)"
+                v-if="canManageApp(record)"
                 placement="topLeft"
                 :title="`${$t('确定要删除吗')}?`"
                 ok-text="确定"

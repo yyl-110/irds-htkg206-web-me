@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
-import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, ExportOutlined, FormOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
+import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, ExportOutlined, FormOutlined, PlusCircleOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { WeiMessage } from '@/utils/WeiMessage';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -743,7 +743,8 @@ defineExpose({
           </div>
         </template>
         <template #icon="item">
-          <WeiIcon icon="icon-project" :size="16" v-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" />
+          <ShareAltOutlined v-if="item.fixed" class="tree-node-icon-share" />
+          <WeiIcon icon="icon-project" :size="16" v-else-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" />
           <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'category' && item.level == '2'" />
           <WeiIcon icon="icon-wj" :size="16" v-else-if="item.type === 'category' && item.level == '3'" />
           <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'param' && item.categoryType == 0" />
@@ -908,6 +909,11 @@ defineExpose({
   width: 14px; /* 设置固定宽度确保图标大小一致 */
   display: inline-flex !important;
   align-items: center;
+}
+
+.tree-node-icon-share {
+  font-size: 14px;
+  color: #1890ff;
 }
 
 // 调整节点内容的布局
