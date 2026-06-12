@@ -165,7 +165,8 @@ function convertToTreeNodes(data: any[]): any[] {
       level: level, // 设置level值
       children: hasChildren ? convertToTreeNodes(item.children) : [],
       menuId: item.menuId,
-      moduleCount: item.moduleCount,
+      // 应用端树节点展示已发布模块数量；管理端仍使用 moduleCount
+      moduleCount: item.moduleReleaseCount ?? 0,
     };
   });
 }
