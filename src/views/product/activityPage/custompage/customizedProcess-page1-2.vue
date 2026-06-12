@@ -26,12 +26,24 @@
           </a-form-item>
 
           <a-form-item label="减速器直线载荷(N)：" class="form-item--wide">
-            <a-input v-model:value="parameterTempList[3].defaultValue" placeholder="请输入..." class="field-input" allow-clear disabled @input="setSaveBtnEnable()" />
+            <a-input
+              v-model:value="parameterTempList[3].defaultValue"
+              placeholder="请输入..."
+              class="field-input"
+              allow-clear
+              disabled
+              @input="setSaveBtnEnable()" />
             <span class="field-hint">(=舟它最大力矩*1000/等效力臂)</span>
           </a-form-item>
 
           <a-form-item label="减速器旋转载荷(Nm)：">
-            <a-input v-model:value="parameterTempList[4].defaultValue" placeholder="请输入..." class="field-input" allow-clear disabled @input="setSaveBtnEnable()" />
+            <a-input
+              v-model:value="parameterTempList[4].defaultValue"
+              placeholder="请输入..."
+              class="field-input"
+              allow-clear
+              disabled
+              @input="setSaveBtnEnable()" />
             <span class="field-hint">(=舟它最大力矩)</span>
           </a-form-item>
         </section>
@@ -78,11 +90,12 @@ function createInitialParameterList(): Page1_2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_2ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage1_2PageParameters,
-});
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage1_2PageParameters,
+  });
 
 const flag = ref(false);
 const djzdlj = ref('');
@@ -213,6 +226,7 @@ mountWithTaskParamMap(updateEl);
   display: block;
   font-weight: 600;
   margin-bottom: 8px;
+  margin-left: 16px;
 }
 
 .section-tip {
@@ -228,7 +242,9 @@ mountWithTaskParamMap(updateEl);
 }
 
 .form-item--indent {
-  margin-left: 20px;
+  margin-left: 18px;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .design-form :deep(.ant-form-item) {

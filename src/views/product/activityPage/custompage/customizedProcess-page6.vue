@@ -1,7 +1,7 @@
 <template>
   <div class="page6">
     <div class="page6-header">
-      <div class="page6-title">确定齿数和最终实际总减速比</div>
+      <div class="page6-title">确定齿数和最终实际总减速比：</div>
       <a-space :size="12" class="page6-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
@@ -47,17 +47,12 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
-import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
 import diagramClcs from '@/assets/images/clcs.png';
-import {
-  calculateAllPage6Rows,
-  extractPage6SaveParamValues,
-  extractPage6TableSavePayload,
-} from './page6/calculations';
+import { calculateAllPage6Rows, extractPage6SaveParamValues, extractPage6TableSavePayload } from './page6/calculations';
 import { applyPage6InitData } from './page6/initData';
 import { loadPage6PageParameters } from './page6/loadPageParameters';
 import {
@@ -98,7 +93,7 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
+const hasAutoRefreshed = ref(false);
 
 const tabHeight = 480;
 const tableScrollX = PAGE6_TABLE_MIN_WIDTH;
@@ -134,13 +129,12 @@ function createInitialParameterList(): Page6ParameterItem[] {
 }
 
 const parameterTempList = ref<Page6ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage6PageParameters,
-    cloneItem: clonePage6ParameterList,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage6PageParameters,
+  cloneItem: clonePage6ParameterList,
+});
 
 const tableRowData = computed(() => getPage6TableRows(parameterTempList.value));
 
@@ -191,14 +185,15 @@ function onCellInput(record: Page6TableRow, index: number, field: string) {
   setSaveBtnEnable();
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const result = applyPage6InitData(parameterTempList.value, props.savedTables);
   if (!result.ok) {
     message.warning('未能更新表格：请先在「齿轮减速比分配」页面生成数据并注入流程上下文后再试');
-    return;
+    return false;
   }
   setPage6TableRows(parameterTempList.value, [...getPage6TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
+  return true;
 }
 
 function handleCalculation() {
@@ -212,10 +207,24 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage6ParameterList(parameterTempList.value);
   });
+}
+
+async function runAutoInitAndCalculateOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  if (handleInitData()) {
+    handleCalculation();
+  }
+}
+
+function onMountReady() {
+  void runAutoInitAndCalculateOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -234,7 +243,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

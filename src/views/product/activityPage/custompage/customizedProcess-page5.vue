@@ -40,16 +40,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
-import {
-  calculateAllPage5Rows,
-  extractPage5SaveParamValues,
-  extractPage5TableSavePayload,
-} from './page5/calculations';
+import { calculateAllPage5Rows, extractPage5SaveParamValues, extractPage5TableSavePayload } from './page5/calculations';
 import { applyPage5InitData } from './page5/initData';
 import { loadPage5PageParameters } from './page5/loadPageParameters';
 import {
@@ -84,7 +79,7 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
+const hasAutoRefreshed = ref(false);
 
 const tabHeight = 580;
 const page5TableColumns = PAGE5_ANT_COLUMNS;
@@ -113,13 +108,12 @@ function clonePage5ParameterList(list: Page5ParameterItem[]): Page5ParameterItem
 }
 
 const parameterTempList = ref<Page5ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage5PageParameters,
-    cloneItem: clonePage5ParameterList,
-  });
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage5PageParameters,
+  cloneItem: clonePage5ParameterList,
+});
 
 const tableRowData = computed(() => getPage5TableRows(parameterTempList.value));
 
@@ -170,15 +164,16 @@ function onCellInput(record: Page5TableRow, index: number, field: string) {
   setSaveBtnEnable();
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const result = applyPage5InitData(parameterTempList.value, props.savedTables, props.savedParamValues);
   if (!result.ok) {
     message.warning('未能更新表格：请先在「组合方案确定」页面生成数据并注入流程上下文后再试');
-    return;
+    return false;
   }
   equivalent.value = result.equivalent;
   setPage5TableRows(parameterTempList.value, [...getPage5TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
+  return true;
 }
 
 function handleCalculation() {
@@ -192,10 +187,24 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage5ParameterList(parameterTempList.value);
   });
+}
+
+async function runAutoInitAndCalculateOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  if (handleInitData()) {
+    handleCalculation();
+  }
+}
+
+function onMountReady() {
+  void runAutoInitAndCalculateOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -214,7 +223,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

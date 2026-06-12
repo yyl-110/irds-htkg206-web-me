@@ -26,10 +26,7 @@
           class="page3-1-table">
           <template #bodyCell="{ column, record }">
             <template v-if="resolveLeafColumn(column)?.cellMode === 'readonly-input'">
-              <a-input-number
-                v-model:value="record[String(column.dataIndex)]"
-                class="table-cell-input"
-                disabled />
+              <a-input-number v-model:value="record[String(column.dataIndex)]" class="table-cell-input" disabled />
             </template>
           </template>
         </a-table>
@@ -82,6 +79,8 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
+const hasAutoRefreshed = ref(false);
+
 const tabHeight = 610;
 const page3_1TableColumns = PAGE3_1_ANT_COLUMNS;
 const leafColumnMap = new Map(PAGE3_1_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
@@ -108,12 +107,13 @@ function createInitialParameterList(): Page3_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page3_1ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap<Page3_1ParameterItem>({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage3_1PageParameters,
-  cloneItem: clonePage3_1ParameterList,
-});
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap<Page3_1ParameterItem>({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage3_1PageParameters,
+    cloneItem: clonePage3_1ParameterList,
+  });
 
 const tableRowData = computed(() => getPage3_1TableRows(parameterTempList.value));
 
@@ -156,15 +156,16 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const ok = applyPage3_1InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
     message.warning('未能更新表格：请先在「初始总减速比计算」等前置页面保存数据，且流程上下文已注入后再试');
-    return;
+    return false;
   }
   parameterTempList.value = clonePage3_1ParameterList(parameterTempList.value);
   setPage3_1TableRows(parameterTempList.value, [...getPage3_1TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
+  return true;
 }
 
 function handleCalculation() {
@@ -174,11 +175,24 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage3_1ParameterList(parameterTempList.value);
   });
+}
+
+async function runAutoInitAndCalculateOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  if (handleInitData()) {
+    handleCalculation();
+  }
+}
+
+function onMountReady() {
+  void runAutoInitAndCalculateOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -197,7 +211,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

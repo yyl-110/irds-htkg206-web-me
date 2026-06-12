@@ -147,8 +147,6 @@ const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch
     loadPageParameters: loadPage1_3PageParameters,
   });
 
-
-
 const isDigitalCommType = computed(() => parameterTempList.value[0]?.defaultValue === '数字');
 
 function getSelectOptions(index: number): SelectOption[] {
@@ -209,10 +207,8 @@ function communicationChange() {
   setSaveBtnEnable();
 }
 
-
 function updateEl() {
   nextTick(() => {
-
     outputChange(parameterTempList.value[0]?.defaultValue ?? '');
     applyTaskParamMapToList();
   });
@@ -254,6 +250,7 @@ mountWithTaskParamMap(updateEl);
   font-weight: 600;
   padding: 10px 0 0px 10px;
   margin-bottom: 0px;
+  font-size: 15px;
 }
 
 .design-form :deep(.ant-form-item) {

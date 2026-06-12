@@ -1,7 +1,7 @@
 <template>
   <div class="page11">
     <div class="page11-header">
-      <div class="page11-title">确定最终方案</div>
+      <div class="page11-title">确定最终方案：</div>
       <a-space :size="12" class="page11-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
@@ -70,6 +70,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
+
+const hasAutoRefreshed = ref(false);
 
 const tabHeight = 500;
 const tableScrollX = PAGE11_TABLE_MIN_WIDTH;
@@ -174,27 +176,41 @@ const schemeRowSelection = computed(() => ({
   onChange: handleSchemeSelection,
 }));
 
-function handleInitData() {
+function handleInitData(): boolean {
   const result = applyPage11InitData(parameterTempList.value);
   if (!result.ok) {
     message.warning('未能更新表格：请先在 page10「所有角度性能校核计算」页面生成数据并注入流程上下文后再试');
-    return;
+    return false;
   }
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
+  return true;
 }
 
-
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = cloneParameterList(parameterTempList.value);
     const selIndex = getSelectedRowIndex(parameterTempList.value);
     if (selIndex === undefined || selIndex === null || String(selIndex) === '') {
       normalizeSelectedRowIndex(parameterTempList.value);
     }
     restoreSelectionFromParam();
   });
+}
+
+async function runAutoInitOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  if (handleInitData()) {
+    restoreSelectionFromParam();
+  }
+}
+
+function onMountReady() {
+  void runAutoInitOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -219,7 +235,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

@@ -26,8 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
@@ -61,7 +60,7 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
+const hasAutoRefreshed = ref(false);
 
 const tabHeight = 610;
 const page4TableColumns = PAGE4_ANT_COLUMNS;
@@ -82,7 +81,7 @@ function createInitialParameterList(): Page4ParameterItem[] {
 }
 
 const parameterTempList = ref<Page4ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } =
   useCustomPageTaskParamMap({
     props,
     parameterTempList,
@@ -127,23 +126,34 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const ok = applyPage4InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
     message.warning(
       '未能生成组合方案：请先在「电机选型」「减速器选型」「初始性能计算」页面填写并保存，且流程上下文已注入后再点更新数据',
     );
-    return;
+    return false;
   }
   setPage4TableRows(parameterTempList.value, [...getPage4TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
+  return true;
 }
 
-
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
   });
+}
+
+async function runAutoInitOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  handleInitData();
+}
+
+function onMountReady() {
+  void runAutoInitOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -162,7 +172,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

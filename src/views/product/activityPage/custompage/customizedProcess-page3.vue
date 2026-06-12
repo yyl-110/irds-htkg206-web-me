@@ -50,15 +50,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
 import { applyPage3InitData } from './page3/initData';
 import { loadPage3PageParameters } from './page3/loadPageParameters';
-import { createDefaultPage3ParameterList, applyPage3TableComponentId, type Page3ParameterItem, type Page3TableRow } from './page3/parameterDefaults';
+import {
+  createDefaultPage3ParameterList,
+  applyPage3TableComponentId,
+  type Page3ParameterItem,
+  type Page3TableRow,
+} from './page3/parameterDefaults';
 import { getPage3TableRows, setPage3TableRows } from './page3/rowOperations';
 import { PAGE3_ANT_COLUMNS, PAGE3_LEAF_COLUMNS, type Page3AntColumn } from './page3/tableColumns';
 
@@ -85,7 +89,7 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
+const hasAutoRefreshed = ref(false);
 
 const tabHeight = 610;
 const page3TableColumns = PAGE3_ANT_COLUMNS;
@@ -183,15 +187,16 @@ function onEditableBlur(record: Page3TableRow, index: number, field: string, eve
   onCellInput(record, index, field);
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const ok = applyPage3InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
     message.warning('未能更新表格：请先在「电机选型」等前置页面保存数据，且流程上下文已注入后再试');
-    return;
+    return false;
   }
   setPage3TableRows(parameterTempList.value, [...getPage3TableRows(parameterTempList.value)]);
   parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
   setSaveBtnEnable();
+  return true;
 }
 
 function handleCalculation() {
@@ -201,11 +206,24 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
   });
+}
+
+async function runAutoInitAndCalculateOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  if (handleInitData()) {
+    handleCalculation();
+  }
+}
+
+function onMountReady() {
+  void runAutoInitAndCalculateOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -224,7 +242,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>
@@ -246,6 +264,8 @@ mountWithTaskParamMap(updateEl);
   width: 100%;
   font-size: 15px;
   padding-left: 10px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .section-toolbar {

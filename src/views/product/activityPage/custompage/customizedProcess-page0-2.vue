@@ -15,7 +15,13 @@
         <section class="main-section">
           <div v-show="!isLinearMode" class="form-column-left">
             <a-form-item label="舟它最大输出力矩（Nm）：" class="form-field-item">
-              <a-input-number v-model:value="parameterTempList[1].defaultValue" type="number" placeholder="请输入..." class="field-input" allow-clear @input="setSaveBtnEnable()" />
+              <a-input-number
+                v-model:value="parameterTempList[1].defaultValue"
+                type="number"
+                placeholder="请输入..."
+                class="field-input"
+                allow-clear
+                @input="setSaveBtnEnable()" />
             </a-form-item>
 
             <a-form-item label="额定输出力矩（Nm）：" class="form-field-item">
@@ -41,11 +47,23 @@
             </a-form-item>
 
             <a-form-item label="机械行程（单边转角）（°）：" class="form-field-item">
-              <a-input-number v-model:value="parameterTempList[4].defaultValue" type="number" placeholder="请输入..." class="field-input" allow-clear @input="setSaveBtnEnable()" />
+              <a-input-number
+                v-model:value="parameterTempList[4].defaultValue"
+                type="number"
+                placeholder="请输入..."
+                class="field-input"
+                allow-clear
+                @input="setSaveBtnEnable()" />
             </a-form-item>
 
             <a-form-item label="最大空载转速（旋转）（°/S）：" class="form-field-item">
-              <a-input-number v-model:value="parameterTempList[5].defaultValue" type="number" placeholder="请输入..." class="field-input" allow-clear @input="setSaveBtnEnable()" />
+              <a-input-number
+                v-model:value="parameterTempList[5].defaultValue"
+                type="number"
+                placeholder="请输入..."
+                class="field-input"
+                allow-clear
+                @input="setSaveBtnEnable()" />
             </a-form-item>
 
             <a-form-item label="舟它额定功率（W）：" class="form-field-item">
@@ -62,7 +80,13 @@
 
           <div v-show="isLinearMode" class="form-column-right">
             <a-form-item label="舟它最大输出力矩（等效, Nm）：" class="form-field-item">
-              <a-input-number v-model:value="parameterTempList[8].defaultValue" type="number" placeholder="请输入..." class="field-input" allow-clear @input="setSaveBtnEnable()" />
+              <a-input-number
+                v-model:value="parameterTempList[8].defaultValue"
+                type="number"
+                placeholder="请输入..."
+                class="field-input"
+                allow-clear
+                @input="setSaveBtnEnable()" />
             </a-form-item>
 
             <a-form-item label="额定输出力矩（等效, Nm）：" class="form-field-item">
@@ -164,11 +188,12 @@ function createInitialParameterList(): Page1_1_1_1ParameterItem[] {
 }
 
 const parameterTempList = ref<Page1_1_1_1ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage1_1_1_1PageParameters,
-});
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage1_1_1_1PageParameters,
+  });
 
 const isLinearMode = ref(true);
 
@@ -326,6 +351,7 @@ mountWithTaskParamMap(updateEl);
   padding: 0 10px 8px;
   margin-bottom: 8px;
   box-sizing: border-box;
+  font-size: 15px;
 }
 
 .section-header__title {

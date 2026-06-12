@@ -1,7 +1,7 @@
 <template>
   <div class="page7">
     <div class="page7-header">
-      <div class="page7-title">性能校核计算</div>
+      <div class="page7-title">性能校核计算：</div>
       <a-space :size="12" class="page7-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
@@ -33,11 +33,7 @@ import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
-import {
-  calculateAllPage7Rows,
-  extractPage7SaveParamValues,
-  extractPage7TableSavePayload,
-} from './page7/calculations';
+import { calculateAllPage7Rows, extractPage7SaveParamValues, extractPage7TableSavePayload } from './page7/calculations';
 import { applyPage7InitData } from './page7/initData';
 import { loadPage7PageParameters } from './page7/loadPageParameters';
 import {
@@ -71,6 +67,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
+
+const hasAutoRefreshed = ref(false);
 
 const tabHeight = 580;
 const tableScrollX = PAGE7_TABLE_MIN_WIDTH;
@@ -137,16 +135,17 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const result = applyPage7InitData(parameterTempList.value, props.savedTables);
   if (!result.ok) {
     message.warning(
       '未能更新表格：请先在「确定齿数和最终实际总减速比」「初步性能计算」「减速器选型」等前置页面生成数据并注入流程上下文后再试',
     );
-    return;
+    return false;
   }
   setPage7TableRows(parameterTempList.value, [...getPage7TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
+  return true;
 }
 
 function handleCalculation() {
@@ -160,10 +159,24 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage7ParameterList(parameterTempList.value);
   });
+}
+
+async function runAutoInitAndCalculateOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  if (handleInitData()) {
+    handleCalculation();
+  }
+}
+
+function onMountReady() {
+  void runAutoInitAndCalculateOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -182,7 +195,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

@@ -1,7 +1,7 @@
 <template>
   <div class="page10">
     <div class="page10-header">
-      <div class="page10-title">所有角度性能校核计算</div>
+      <div class="page10-title">所有角度性能校核计算：</div>
       <a-space :size="12" class="page10-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
@@ -28,7 +28,11 @@
       <div class="page10-toolbar">
         <div class="page10-toolbar__field">
           <span class="page10-toolbar__label">传动效率:</span>
-          <a-input v-model:value="efficiencyValue" allow-clear class="page10-toolbar__input" @input="handleEfficiencyChange" />
+          <a-input
+            v-model:value="efficiencyValue"
+            allow-clear
+            class="page10-toolbar__input"
+            @input="handleEfficiencyChange" />
         </div>
         <a-space :size="12">
           <a-button type="primary" @click="openImportModal">
@@ -65,7 +69,13 @@
       </div>
     </div>
 
-    <a-modal v-model:visible="importModalVisible" title="批量上传" :mask-closable="false" width="600px" @ok="closeImportModal" @cancel="closeImportModal">
+    <a-modal
+      v-model:visible="importModalVisible"
+      title="批量上传"
+      :mask-closable="false"
+      width="600px"
+      @ok="closeImportModal"
+      @cancel="closeImportModal">
       <div class="import-panel">
         <div class="import-panel__row">
           <span>请选择模板：</span>
@@ -97,7 +107,11 @@ import { CalculatorOutlined, DownloadOutlined, ImportOutlined, SyncOutlined, Upl
 import type { Key } from 'ant-design-vue/es/table/interface';
 import { handleDownloadByFilename } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
-import { calculateAllPage10DegreeRows, extractPage10SaveParamValues, extractPage10TableSavePayload } from './page10/calculations';
+import {
+  calculateAllPage10DegreeRows,
+  extractPage10SaveParamValues,
+  extractPage10TableSavePayload,
+} from './page10/calculations';
 import { buildDegreeRowsFromImport, readDegreeExcelFile } from './page10/excelImport';
 import {
   applyEfficiencyToDegreeRows,
@@ -113,7 +127,13 @@ import {
   syncCalculatedDegreeRowsToSource,
 } from './page10/initData';
 import { loadPage10PageParameters } from './page10/loadPageParameters';
-import { createDefaultPage10ParameterList, ensurePage10TableComponentIds, type Page10DegreeRow, type Page10ParameterItem, type Page10SchemeRow } from './page10/parameterDefaults';
+import {
+  createDefaultPage10ParameterList,
+  ensurePage10TableComponentIds,
+  type Page10DegreeRow,
+  type Page10ParameterItem,
+  type Page10SchemeRow,
+} from './page10/parameterDefaults';
 import {
   PAGE10_DEGREE_COLUMNS,
   PAGE10_DEGREE_TABLE_MIN_WIDTH,
@@ -145,6 +165,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
+
+const hasAutoRefreshed = ref(false);
 
 const route = useRoute();
 
@@ -307,18 +329,19 @@ function ensureSingleSchemeSelected() {
   return true;
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
   const userId = String(userStore.getUser?.id ?? '');
   const result = applyPage10InitData(parameterTempList.value, pageId, userId);
   if (!result.ok) {
     message.warning('未能更新表格：请先在 page9「校核减速机构的齿轮强度」页面生成数据并注入流程上下文后再试');
-    return;
+    return false;
   }
   efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
+  return true;
 }
 
 function handleCalculation() {
@@ -360,11 +383,26 @@ async function handleExcelBeforeUpload(file: File) {
   return false;
 }
 
-function updateEl() {
-  nextTick(() => {
-    restoreSelectionFromParam();
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage10ParameterList(parameterTempList.value);
+    efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
+    restoreSelectionFromParam();
   });
+}
+
+async function runAutoInitAndCalculateOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  if (handleInitData()) {
+    restoreSelectionFromParam();
+  }
+}
+
+function onMountReady() {
+  void runAutoInitAndCalculateOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -420,7 +458,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

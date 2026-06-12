@@ -1,7 +1,7 @@
 <template>
   <div class="page8">
     <div class="page8-header">
-      <div class="page8-title">初步筛选若干组合方案</div>
+      <div class="page8-title">初步筛选若干组合方案：</div>
       <a-space :size="12" class="page8-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
@@ -66,6 +66,8 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
+const hasAutoRefreshed = ref(false);
+
 const tabHeight = 580;
 const tableScrollX = PAGE8_TABLE_MIN_WIDTH;
 const page8TableColumns = PAGE8_ANT_COLUMNS;
@@ -99,7 +101,6 @@ const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = 
   loadPageParameters: loadPage8PageParameters,
   cloneItem: clonePage8ParameterList,
 });
-
 
 const tableRowData = computed(() => getPage8TableRows(parameterTempList.value));
 
@@ -144,33 +145,43 @@ const rowSelection = computed(() => ({
   onChange: handleSelectionChange,
 }));
 
-function handleInitData() {
+function handleInitData(): boolean {
   const result = applyPage8InitData(parameterTempList.value);
   if (!result.ok) {
     message.warning(
       '未能更新表格：请先在「齿轮减速比分配」「确定齿数」「性能校核」等前置页面生成数据并注入流程上下文后再试',
     );
-    return;
+    return false;
   }
   selectedRowKeys.value = [];
   setPage8TableRows(parameterTempList.value, [...getPage8TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
+  return true;
 }
 
-
-function updateEl() {
-  nextTick(() => {
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage8ParameterList(parameterTempList.value);
   });
+}
+
+async function runAutoInitOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  handleInitData();
+}
+
+function onMountReady() {
+  void runAutoInitOnce();
 }
 
 setupParameterWatch(updateEl);
 
 function syncSelectionBeforeSave() {
   const rows = getPage8TableRows(parameterTempList.value);
-  const selected = rows.filter((row, index) =>
-    selectedRowKeys.value.includes(page8TableRowKey(row, index)),
-  );
+  const selected = rows.filter((row, index) => selectedRowKeys.value.includes(page8TableRowKey(row, index)));
   if (selected.length) {
     syncPage8SelectionIndexes(parameterTempList.value, selected);
   }
@@ -191,7 +202,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>

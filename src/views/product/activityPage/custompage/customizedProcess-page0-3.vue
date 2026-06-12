@@ -202,11 +202,12 @@ function createInitialParameterList(): Page0_3ParameterItem[] {
 }
 
 const parameterTempList = ref<Page0_3ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage0_3PageParameters,
-});
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage0_3PageParameters,
+  });
 
 const flag = ref(true);
 
@@ -355,7 +356,8 @@ mountWithTaskParamMap(updateEl);
 
 .work-mode-item {
   margin-bottom: 0;
-  font-weight: 400;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .main-section {

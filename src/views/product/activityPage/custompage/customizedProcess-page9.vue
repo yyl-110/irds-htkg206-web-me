@@ -1,14 +1,14 @@
 <template>
   <div class="page9">
     <div class="page9-header">
-      <div class="page9-title">校核减速机构的齿轮强度</div>
+      <div class="page9-title">校核减速机构的齿轮强度：</div>
       <a-space :size="12" class="page9-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
         </a-button>
       </a-space>
-        </div>
+    </div>
 
     <div class="page9-scheme-wrap">
       <a-table
@@ -21,7 +21,7 @@
         :row-key="schemeRowKey"
         :row-selection="schemeRowSelection"
         class="page9-table" />
-            </div>
+    </div>
 
     <div class="page9-toolbar">
       <span class="page9-toolbar__label">载荷系数：</span>
@@ -30,7 +30,7 @@
         <template #icon><CalculatorOutlined /></template>
         计算
       </a-button>
-          </div>
+    </div>
 
     <div class="page9-body">
       <div class="page9-gear-wrap">
@@ -54,17 +54,17 @@
             </template>
           </template>
         </a-table>
-          </div>
+      </div>
 
       <div class="page9-diagrams">
         <div class="page9-diagram">
           <img :src="diagramTopSrc" alt="推荐模数示意" class="page9-diagram__img" @error="onDiagramTopError" />
-            </div>
+        </div>
         <div class="page9-diagram">
           <img :src="diagramBottomSrc" alt="齿轮参数示意" class="page9-diagram__img" @error="onDiagramBottomError" />
-            </div>
-          </div>
         </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -137,6 +137,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
+
+const hasAutoRefreshed = ref(false);
 
 const schemeTabHeight = 280;
 const gearTabHeight = 360;
@@ -222,9 +224,9 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
           }
         });
       }
-            }
-          });
-        }
+    }
+  });
+}
 
 function handleSchemeSelection(_keys: Key[], rows: Page9SchemeRow[]) {
   if (rows.length > 1) {
@@ -296,30 +298,31 @@ function onGearCellBlur(record: Page9GearRow, index: number, field: string) {
   setSaveBtnEnable();
 }
 
-function handleInitData() {
+function handleInitData(): boolean {
   const result = applyPage9InitData(parameterTempList.value);
   if (result.cleared) {
     message.warning('请先在 page8 勾选组合方案并保存方案索引后再试');
     selectedRowKeys.value = [];
     selectedSchemeRows.value = [];
     setSaveBtnEnable();
-    return;
+    return false;
   }
   if (!result.ok) {
     message.warning('未能更新表格：请先在「初步筛选若干组合方案」页面勾选方案并注入流程上下文后再试');
-    return;
+    return false;
   }
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
+  return true;
 }
 
 function handleCalculation() {
   const rows = [...getGearDisplayRows(parameterTempList.value)];
   if (!rows.length) {
     message.warning('请先选择一个组合方案');
-        return;
-      }
+    return;
+  }
   calculateAllPage9GearRows(rows);
   setGearDisplayRows(parameterTempList.value, rows);
 
@@ -341,13 +344,24 @@ function onDiagramBottomError() {
   diagramBottomSrc.value = diagramPlaceholder;
 }
 
-
-function updateEl() {
-  nextTick(() => {
-
+function updateEl(): Promise<void> {
+  return nextTick(() => {
     setGearDisplayRows(parameterTempList.value, []);
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage9ParameterList(parameterTempList.value);
+    loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
   });
+}
+
+async function runAutoInitAndCalculateOnce() {
+  if (hasAutoRefreshed.value) return;
+  hasAutoRefreshed.value = true;
+  await updateEl();
+  handleInitData();
+}
+
+function onMountReady() {
+  void runAutoInitAndCalculateOnce();
 }
 
 setupParameterWatch(updateEl);
@@ -356,11 +370,7 @@ function syncStateBeforeSave() {
   setLoadCoefficient(parameterTempList.value, loadCoefficient.value);
   const gearRows = getGearDisplayRows(parameterTempList.value);
   if (selectedSchemeRows.value.length === 1 && gearRows.length) {
-    syncCalculatedGearRowsToSource(
-      parameterTempList.value,
-      String(selectedSchemeRows.value[0].p0 ?? ''),
-      gearRows,
-    );
+    syncCalculatedGearRowsToSource(parameterTempList.value, String(selectedSchemeRows.value[0].p0 ?? ''), gearRows);
   }
 }
 
@@ -380,7 +390,7 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(onMountReady);
 </script>
 
 <style scoped>
@@ -515,7 +525,7 @@ mountWithTaskParamMap(updateEl);
   }
 
   .page9-diagrams {
-  width: 100%;
+    width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
   }
