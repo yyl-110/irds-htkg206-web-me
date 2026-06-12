@@ -28,17 +28,13 @@
       <div class="page10-toolbar">
         <div class="page10-toolbar__field">
           <span class="page10-toolbar__label">传动效率:</span>
-          <a-input
-            v-model:value="efficiencyValue"
-            allow-clear
-            class="page10-toolbar__input"
-            @input="handleEfficiencyChange" />
+          <a-input v-model:value="efficiencyValue" allow-clear class="page10-toolbar__input" @input="handleEfficiencyChange" />
         </div>
         <a-space :size="12">
-          <!-- <a-button type="primary" @click="openImportModal">
+          <a-button type="primary" @click="openImportModal">
             <template #icon><ImportOutlined /></template>
             导入
-          </a-button> -->
+          </a-button>
           <a-button type="primary" @click="handleCalculation">
             <template #icon><CalculatorOutlined /></template>
             计算
@@ -69,13 +65,7 @@
       </div>
     </div>
 
-    <a-modal
-      v-model:visible="importModalVisible"
-      title="批量上传"
-      :mask-closable="false"
-      width="600px"
-      @ok="closeImportModal"
-      @cancel="closeImportModal">
+    <a-modal v-model:visible="importModalVisible" title="批量上传" :mask-closable="false" width="600px" @ok="closeImportModal" @cancel="closeImportModal">
       <div class="import-panel">
         <div class="import-panel__row">
           <span>请选择模板：</span>
@@ -105,13 +95,9 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, DownloadOutlined, ImportOutlined, SyncOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
-import HttpRequestConfig from '@/httpRequest/config';
+import { handleDownloadByFilename } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
-import {
-  calculateAllPage10DegreeRows,
-  extractPage10SaveParamValues,
-  extractPage10TableSavePayload,
-} from './page10/calculations';
+import { calculateAllPage10DegreeRows, extractPage10SaveParamValues, extractPage10TableSavePayload } from './page10/calculations';
 import { buildDegreeRowsFromImport, readDegreeExcelFile } from './page10/excelImport';
 import {
   applyEfficiencyToDegreeRows,
@@ -127,13 +113,7 @@ import {
   syncCalculatedDegreeRowsToSource,
 } from './page10/initData';
 import { loadPage10PageParameters } from './page10/loadPageParameters';
-import {
-  createDefaultPage10ParameterList,
-  ensurePage10TableComponentIds,
-  type Page10DegreeRow,
-  type Page10ParameterItem,
-  type Page10SchemeRow,
-} from './page10/parameterDefaults';
+import { createDefaultPage10ParameterList, ensurePage10TableComponentIds, type Page10DegreeRow, type Page10ParameterItem, type Page10SchemeRow } from './page10/parameterDefaults';
 import {
   PAGE10_DEGREE_COLUMNS,
   PAGE10_DEGREE_TABLE_MIN_WIDTH,
@@ -359,7 +339,7 @@ function closeImportModal() {
 }
 
 function downloadTemplate() {
-  window.location.href = `${HttpRequestConfig.baseUrl}/fileManagerController/downloadByFilename.json?filename=multiDegree-Template.xlsx`;
+  handleDownloadByFilename('multiDegree-Template.xlsx');
 }
 
 async function handleExcelBeforeUpload(file: File) {

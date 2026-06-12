@@ -108,21 +108,9 @@ export function applyPage5InitData(
   const paramList = getFlowParameterList();
   const sources = collectTableSources(savedTables);
 
-  const combinList = resolveTableRows(
-    sources,
-    [{ tableNum: PAGE4_TABLE_NUM, componentId: PAGE4_TABLE_COMPONENT_ID }],
-    16,
-  );
-  const page7List = resolveTableRows(
-    sources,
-    [{ tableNum: PAGE7_TABLE_NUM, componentId: PAGE7_TABLE_COMPONENT_ID }],
-    28,
-  );
-  const page6List = resolveTableRows(
-    sources,
-    [{ tableNum: PAGE6_TABLE_NUM, componentId: PAGE6_TABLE_COMPONENT_ID }],
-    16,
-  );
+  const combinList = resolveTableRows(sources, [{ tableNum: PAGE4_TABLE_NUM, componentId: PAGE4_TABLE_COMPONENT_ID }], 16);
+  const page7List = resolveTableRows(sources, [{ tableNum: PAGE7_TABLE_NUM, componentId: PAGE7_TABLE_COMPONENT_ID }], 28);
+  const page6List = resolveTableRows(sources, [{ tableNum: PAGE6_TABLE_NUM, componentId: PAGE6_TABLE_COMPONENT_ID }], 16);
 
   const jsqStyle = readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ1_5_MDJSQXS');
   const dxlbStr = readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ1_5_DXLB');
@@ -134,11 +122,7 @@ export function applyPage5InitData(
     const schemeLabel = `组合方案${index + 1}`;
     const page7Row = findRowByScheme(page7List, index, schemeLabel);
     const page6Row = findRowByScheme(page6List, index, schemeLabel);
-    const existingRow = findRowByScheme(
-      existingRows as Array<Record<string, string | number | undefined>>,
-      index,
-      schemeLabel,
-    ) as Page5TableRow | undefined;
+    const existingRow = findRowByScheme(existingRows as Array<Record<string, string | number | undefined>>, index, schemeLabel) as Page5TableRow | undefined;
     return buildRowFromCombin(index, item, jsqStyle, page7Row, page6Row, existingRow);
   });
 

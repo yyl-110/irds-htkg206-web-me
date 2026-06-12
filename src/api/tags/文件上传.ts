@@ -168,6 +168,34 @@ export class AdminApiSystemUploadFile {
     );
 
   /**
+   * 根据文件名下载文件
+   *
+   * @tags 管理后台 - 上传
+   * @name downloadByFilename
+   * @summary 根据文件名下载
+   * @request GET:/system-service/fileManagerController/downloadByFilename.json
+   * @secure
+   */
+  static downloadByFilename = <
+    Req extends {
+      filename?: string;
+    } = {
+      filename?: string;
+    },
+  >(
+    data: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<any, any>({
+      path: `/system-service/fileManagerController/downloadByFilename.json`,
+      method: 'GET',
+      query: data,
+      secure: true,
+      format: 'blob',
+      ...params,
+    });
+
+  /**
    * 模块树属性管理文件上传
    *
    * @tags 模块树属性管理文件上传 - 上传

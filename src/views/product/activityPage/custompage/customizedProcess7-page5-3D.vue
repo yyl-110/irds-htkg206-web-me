@@ -76,7 +76,7 @@
                 >导出</a-button
               >
 
-              <a v-show="downloadUrl !== ''" :href="downloadUrl" style="color: blue">下载</a>
+              <a v-show="exportDownloadFilename" href="#" style="color: blue" @click.prevent="downloadExportedFile">下载</a>
             </a-form-item>
           </div>
         </a-form>
@@ -98,7 +98,9 @@ import { writeToFile } from '@/api/flowData/flowData';
 
 import { assembleModule, DownloadFile, parameterInFirstCsys } from '@/libs/webSocket';
 
-import { accessUrl, baseUrl } from '@/views/product/activityPage/custompage/_shared/utils/legacyEnv';
+import { handleDownloadByFilename } from '@/utils/file';
+
+import { accessUrl } from '@/views/product/activityPage/custompage/_shared/utils/legacyEnv';
 
 import { applyProcess7SaveBtnEnable } from './shared/process7/setSaveBtnEnable';
 
@@ -173,7 +175,7 @@ const selectList = ref<AssemblyTableRow[]>([]);
 
 const selectedRowKeys = ref<Key[]>([]);
 
-const downloadUrl = ref('');
+const exportDownloadFilename = ref('');
 
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
@@ -212,7 +214,7 @@ function updateEl() {
 setupParameterWatch(updateEl);
 
 async function exportDataToFile() {
-  downloadUrl.value = '';
+  exportDownloadFilename.value = '';
 
   const filename = String(parameterTempList.value[1]?.defaultValue ?? '');
 
@@ -242,7 +244,7 @@ async function exportDataToFile() {
 
   setSaveBtnEnable();
 
-  downloadUrl.value = `${baseUrl}/fileManagerController/downloadByFilename.json?filename=${savedFilename}`;
+  exportDownloadFilename.value = savedFilename;
 
   const newUrl = accessUrl + savedFilename;
 
@@ -258,6 +260,12 @@ async function exportDataToFile() {
     }
   } else {
     message.warning('文件自动下载失败!');
+  }
+}
+
+function downloadExportedFile() {
+  if (exportDownloadFilename.value) {
+    handleDownloadByFilename(exportDownloadFilename.value);
   }
 }
 

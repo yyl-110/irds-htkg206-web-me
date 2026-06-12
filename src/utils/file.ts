@@ -225,6 +225,14 @@ export function handleEpcDownload(params: downLoadEpcItem, fileName: string) {
   });
 }
 
+/** 根据文件名下载附件 */
+export function handleDownloadByFilename(filename: string) {
+  if (!filename) return;
+  AdminApiSystemUploadFile.downloadByFilename({ filename }).then((res: any) => {
+    exportFile(res, filename);
+  });
+}
+
 /**
  * 解析 upload.json 响应（兼容直接返回文件 DTO 与 CommonResult 包装）
  */
