@@ -1,7 +1,7 @@
 <template>
   <div class="layout-wrapper">
     <div class="layout-header">
-      <div class="layout-header__title">初始总减速比计算：</div>
+      <div class="layout-header__title">初始性能计算：</div>
 
       <div class="section-toolbar">
         <a-button type="primary" @click="handleInitData">
@@ -16,31 +16,20 @@
 
       <div class="selectBox">
         <a-table
-          :columns="page3TableColumns"
+          :columns="page3_1TableColumns"
           :data-source="tableRowData"
           :pagination="false"
           bordered
           size="small"
           :scroll="{ y: tabHeight }"
-          :row-key="page3TableRowKey"
-          class="page3-table">
-          <template #bodyCell="{ column, record, index }">
+          :row-key="page3_1TableRowKey"
+          class="page3-1-table">
+          <template #bodyCell="{ column, record }">
             <template v-if="resolveLeafColumn(column)?.cellMode === 'readonly-input'">
-              <a-input
-                v-if="resolveLeafColumn(column)?.inputType !== 'number'"
-                v-model:value="record[String(column.dataIndex)]"
-                type="text"
-                class="table-cell-input"
-                disabled />
-              <a-input-number v-else v-model:value="record[String(column.dataIndex)]" class="table-cell-input" disabled />
-            </template>
-            <template v-else-if="resolveLeafColumn(column)?.cellMode === 'editable'">
               <a-input-number
                 v-model:value="record[String(column.dataIndex)]"
-                type="number"
                 class="table-cell-input"
-                @blur="onEditableBlur(record, index, String(column.dataIndex), $event)"
-                @input="onCellInput(record, index, String(column.dataIndex))" />
+                disabled />
             </template>
           </template>
         </a-table>
@@ -50,22 +39,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, nextTick, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
-import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
-import { applyPage3InitData } from './page3/initData';
-import { loadPage3_1PageParameters } from './page3/loadPageParameters';
+import {
+  calculateAllPage3_1Rows,
+  extractPage3_1SaveParamValues,
+  extractPage3_1TableSavePayload,
+} from './page3-1/calculations';
+import { applyPage3_1InitData } from './page3-1/initData';
+import { loadPage3_1PageParameters } from './page3-1/loadPageParameters';
 import {
   applyPage3_1TableComponentId,
-  createDefaultPage3ParameterList,
-  type Page3ParameterItem,
-  type Page3TableRow,
-} from './page3/parameterDefaults';
-import { getPage3TableRows, setPage3TableRows } from './page3/rowOperations';
-import { PAGE3_ANT_COLUMNS, PAGE3_LEAF_COLUMNS, type Page3AntColumn } from './page3/tableColumns';
+  createDefaultPage3_1ParameterList,
+  type Page3_1ParameterItem,
+  type Page3_1TableRow,
+} from './page3-1/parameterDefaults';
+import { getPage3_1TableRows, setPage3_1TableRows } from './page3-1/rowOperations';
+import { PAGE3_1_ANT_COLUMNS, PAGE3_1_LEAF_COLUMNS, type Page3_1AntColumn } from './page3-1/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page3-1' });
 
@@ -74,7 +66,7 @@ const props = withDefaults(
     width?: number;
     modalFlag?: boolean;
     pageid?: string;
-    parameterTempList?: Page3ParameterItem[];
+    parameterTempList?: Page3_1ParameterItem[];
     savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
     savedTables?: Array<Record<string, unknown>> | null;
   }>(),
@@ -90,20 +82,13 @@ const emit = defineEmits<{
   setSaveBtnEnable: [value: boolean];
 }>();
 
-const route = useRoute();
-
 const tabHeight = 610;
-const page3TableColumns = PAGE3_ANT_COLUMNS;
-const leafColumnMap = new Map(PAGE3_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
+const page3_1TableColumns = PAGE3_1_ANT_COLUMNS;
+const leafColumnMap = new Map(PAGE3_1_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
 
-const NUMERIC_REG = /^\d+(?=\.{0,1}\d+$|$)/;
-
-function createInitialParameterList(): Page3ParameterItem[] {
-  if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return applyPage3_1TableComponentId(createDefaultPage3ParameterList(props.pageid));
-  }
+function clonePage3_1ParameterList(list: Page3_1ParameterItem[]): Page3_1ParameterItem[] {
   return applyPage3_1TableComponentId(
-    props.parameterTempList.map(item => ({
+    list.map(item => ({
       ...item,
       tableMap: item.tableMap
         ? {
@@ -115,21 +100,28 @@ function createInitialParameterList(): Page3ParameterItem[] {
   );
 }
 
-const parameterTempList = ref<Page3ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
-  useCustomPageTaskParamMap({
-    props,
-    parameterTempList,
-    loadPageParameters: loadPage3_1PageParameters,
-  });
+function createInitialParameterList(): Page3_1ParameterItem[] {
+  if (!props.parameterTempList || props.parameterTempList.length <= 0) {
+    return clonePage3_1ParameterList(createDefaultPage3_1ParameterList(props.pageid));
+  }
+  return clonePage3_1ParameterList(props.parameterTempList);
+}
 
-const tableRowData = computed(() => getPage3TableRows(parameterTempList.value));
+const parameterTempList = ref<Page3_1ParameterItem[]>(createInitialParameterList());
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap<Page3_1ParameterItem>({
+  props,
+  parameterTempList,
+  loadPageParameters: loadPage3_1PageParameters,
+  cloneItem: clonePage3_1ParameterList,
+});
 
-function resolveLeafColumn(column: { dataIndex?: string | number }): Page3AntColumn | undefined {
+const tableRowData = computed(() => getPage3_1TableRows(parameterTempList.value));
+
+function resolveLeafColumn(column: { dataIndex?: string | number }): Page3_1AntColumn | undefined {
   return leafColumnMap.get(String(column.dataIndex ?? ''));
 }
 
-function page3TableRowKey(record: Page3TableRow, index?: number) {
+function page3_1TableRowKey(record: Page3_1TableRow, index?: number) {
   return String(record.p0 ?? index ?? '');
 }
 
@@ -164,56 +156,39 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
   });
 }
 
-function onCellInput(record: Page3TableRow, index: number, field: string) {
-  const rows = getPage3TableRows(parameterTempList.value);
-  if (rows[index]) {
-    rows[index][field] = record[field];
-  }
-  setSaveBtnEnable();
-}
-
-function onEditableBlur(record: Page3TableRow, index: number, field: string, event: FocusEvent) {
-  const target = event.target as HTMLInputElement | null;
-  const value = target?.value ?? '';
-  if (value && !NUMERIC_REG.test(value)) {
-    message.error('请输入数字');
-    return;
-  }
-  record[field] = value;
-  onCellInput(record, index, field);
-}
-
 function handleInitData() {
-  const ok = applyPage3InitData(parameterTempList.value, props.savedTables);
+  const ok = applyPage3_1InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
-    message.info('暂无可同步的流程数据');
+    message.warning('未能更新表格：请先在「初始总减速比计算」等前置页面保存数据，且流程上下文已注入后再试');
     return;
   }
-  setPage3TableRows(parameterTempList.value, [...getPage3TableRows(parameterTempList.value)]);
+  parameterTempList.value = clonePage3_1ParameterList(parameterTempList.value);
+  setPage3_1TableRows(parameterTempList.value, [...getPage3_1TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
 }
 
 function handleCalculation() {
-  const rows = [...getPage3TableRows(parameterTempList.value)];
-  calculateAllPage3Rows(rows);
-  setPage3TableRows(parameterTempList.value, rows);
+  const rows = [...getPage3_1TableRows(parameterTempList.value)];
+  calculateAllPage3_1Rows(rows);
+  setPage3_1TableRows(parameterTempList.value, rows);
   setSaveBtnEnable();
 }
 
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage3_1ParameterList(parameterTempList.value);
   });
 }
 
 setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
-  return extractPage3SaveParamValues(parameterTempList.value);
+  return extractPage3_1SaveParamValues(parameterTempList.value);
 }
 
 function getCurrentTableSavePayload() {
-  return extractPage3TableSavePayload(parameterTempList.value);
+  return extractPage3_1TableSavePayload(clonePage3_1ParameterList(parameterTempList.value));
 }
 
 defineExpose({
@@ -243,6 +218,7 @@ mountWithTaskParamMap(updateEl);
 .layout-header__title {
   width: 100%;
   font-size: 15px;
+  font-weight: 600;
   padding-left: 10px;
 }
 
@@ -268,20 +244,20 @@ mountWithTaskParamMap(updateEl);
   width: 100%;
 }
 
-.page3-table {
+.page3-1-table {
   width: 100%;
 }
 
-.page3-table :deep(.ant-table-wrapper) {
+.page3-1-table :deep(.ant-table-wrapper) {
   width: 100%;
 }
 
-.page3-table :deep(.ant-table-content table) {
+.page3-1-table :deep(.ant-table-content table) {
   table-layout: fixed;
   width: 100% !important;
 }
 
-.page3-table :deep(.ant-table-thead > tr > th) {
+.page3-1-table :deep(.ant-table-thead > tr > th) {
   white-space: normal;
   word-break: break-all;
   line-height: 1.35;
@@ -296,7 +272,8 @@ mountWithTaskParamMap(updateEl);
   font-size: 12px;
 }
 
-.selectBox :deep(.ant-input[disabled]) {
+.selectBox :deep(.ant-input[disabled]),
+.selectBox :deep(.ant-input-number-disabled) {
   color: rgba(0, 0, 0, 0.88);
   cursor: default;
 }

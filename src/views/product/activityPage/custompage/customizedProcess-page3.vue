@@ -58,7 +58,7 @@ import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
 import { applyPage3InitData } from './page3/initData';
 import { loadPage3PageParameters } from './page3/loadPageParameters';
-import { createDefaultPage3ParameterList, type Page3ParameterItem, type Page3TableRow } from './page3/parameterDefaults';
+import { createDefaultPage3ParameterList, applyPage3TableComponentId, type Page3ParameterItem, type Page3TableRow } from './page3/parameterDefaults';
 import { getPage3TableRows, setPage3TableRows } from './page3/rowOperations';
 import { PAGE3_ANT_COLUMNS, PAGE3_LEAF_COLUMNS, type Page3AntColumn } from './page3/tableColumns';
 
@@ -93,19 +93,25 @@ const leafColumnMap = new Map(PAGE3_LEAF_COLUMNS.map(col => [String(col.dataInde
 
 const NUMERIC_REG = /^\d+(?=\.{0,1}\d+$|$)/;
 
+function clonePage3ParameterList(list: Page3ParameterItem[]): Page3ParameterItem[] {
+  return applyPage3TableComponentId(
+    list.map(item => ({
+      ...item,
+      tableMap: item.tableMap
+        ? {
+            ...item.tableMap,
+            rowData: item.tableMap.rowData?.map(row => ({ ...row })),
+          }
+        : item.tableMap,
+    })),
+  );
+}
+
 function createInitialParameterList(): Page3ParameterItem[] {
   if (!props.parameterTempList || props.parameterTempList.length <= 0) {
-    return createDefaultPage3ParameterList(props.pageid);
+    return clonePage3ParameterList(createDefaultPage3ParameterList(props.pageid));
   }
-  return props.parameterTempList.map(item => ({
-    ...item,
-    tableMap: item.tableMap
-      ? {
-          ...item.tableMap,
-          rowData: item.tableMap.rowData?.map(row => ({ ...row })),
-        }
-      : item.tableMap,
-  }));
+  return clonePage3ParameterList(props.parameterTempList);
 }
 
 const parameterTempList = ref<Page3ParameterItem[]>(createInitialParameterList());
@@ -114,6 +120,7 @@ const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch
     props,
     parameterTempList,
     loadPageParameters: loadPage3PageParameters,
+    cloneItem: clonePage3ParameterList,
   });
 
 const tableRowData = computed(() => getPage3TableRows(parameterTempList.value));
@@ -183,6 +190,7 @@ function handleInitData() {
     return;
   }
   setPage3TableRows(parameterTempList.value, [...getPage3TableRows(parameterTempList.value)]);
+  parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
   setSaveBtnEnable();
 }
 
@@ -196,6 +204,7 @@ function handleCalculation() {
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
+    parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
   });
 }
 
@@ -206,7 +215,7 @@ function getCurrentSaveParamValues() {
 }
 
 function getCurrentTableSavePayload() {
-  return extractPage3TableSavePayload(parameterTempList.value);
+  return extractPage3TableSavePayload(clonePage3ParameterList(parameterTempList.value));
 }
 
 defineExpose({

@@ -47,8 +47,6 @@ export const PAGE3_TABLE_NUM = 'DJ3_T_INITTOTALJSB';
 
 /** 初始总减速比表 componentId（customizedProcess-page3 专用） */
 export const PAGE3_TABLE_COMPONENT_ID = 17;
-/** 初始总减速比表 componentId（customizedProcess-page3-1 专用） */
-export const PAGE3_1_TABLE_COMPONENT_ID = 18;
 
 const PAGE3_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18'];
 
@@ -129,11 +127,11 @@ export function createDefaultPage3ParameterList(pageId = ''): Page3ParameterItem
   ];
 }
 
-export function applyPage3_1TableComponentId(list: Page3ParameterItem[]): Page3ParameterItem[] {
+export function applyPage3TableComponentId(list: Page3ParameterItem[]): Page3ParameterItem[] {
   return list.map(item => {
     const tableNum = String(item.tableNum ?? '').trim();
     if (tableNum === PAGE3_TABLE_NUM) {
-      return { ...item, componentId: PAGE3_1_TABLE_COMPONENT_ID };
+      return { ...item, componentId: PAGE3_TABLE_COMPONENT_ID };
     }
     return item;
   });

@@ -1,16 +1,10 @@
 import { PAGE2_1_REDUCER_TABLE_COMPONENT_ID, REDUCER_TABLE_NUM } from '../page2-1/parameterDefaults';
-import {
-  PAGE3_1_TABLE_COMPONENT_ID,
-  PAGE3_TABLE_COMPONENT_ID,
-  PAGE3_TABLE_NUM,
-} from '../page3/parameterDefaults';
+import { PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
+import { PAGE3_1_TABLE_COMPONENT_ID, PAGE3_1_TABLE_NUM } from '../page3-1/parameterDefaults';
 import { PAGE5_TABLE_COMPONENT_ID, PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
 import { PAGE6_TABLE_COMPONENT_ID, PAGE6_TABLE_NUM } from '../page6/parameterDefaults';
 import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
 import type { Page7ParameterItem, Page7TableRow } from './parameterDefaults';
-
-/** 旧版 page3 表号，与 PAGE3_TABLE_NUM 同义 */
-const LEGACY_INIT_XN_TABLE_NUM = 'DJ3_T_INITXN';
 
 export interface Page7InitResult {
   ok: boolean;
@@ -77,10 +71,10 @@ export function applyPage7InitData(
     sources,
     [
       { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID },
-      { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_1_TABLE_COMPONENT_ID },
-      { tableNum: LEGACY_INIT_XN_TABLE_NUM },
+      { tableNum: PAGE3_1_TABLE_NUM, componentId: PAGE3_1_TABLE_COMPONENT_ID },
+      { tableNum: PAGE3_1_TABLE_NUM },
     ],
-    18,
+    16,
   );
   const jsqList = resolveTableRows(
     sources,

@@ -1,12 +1,13 @@
 import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
 import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
 import { REDUCER_TABLE_NUM, PAGE2_1_REDUCER_TABLE_COMPONENT_ID } from '../page2-1/parameterDefaults';
-import { PAGE3_1_TABLE_COMPONENT_ID, PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
+import { PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
+import { PAGE3_1_TABLE_COMPONENT_ID, PAGE3_1_TABLE_NUM } from '../page3-1/parameterDefaults';
 import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
 import type { Page4ParameterItem, Page4TableRow } from './parameterDefaults';
 
-/** 与 page3 初始总减速比表同义（旧名 DJ3_T_INITXN） */
-export const INIT_XN_TABLE_NUM = PAGE3_TABLE_NUM;
+/** 与 page3-1 初始性能计算表同义（旧名 DJ3_T_INITXN） */
+export const INIT_XN_TABLE_NUM = PAGE3_1_TABLE_NUM;
 
 function hasProductCode(row: Record<string, string | number | undefined>) {
   const code = row.p2;
@@ -80,10 +81,10 @@ export function applyPage4InitData(
     sources,
     [
       { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID },
-      { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_1_TABLE_COMPONENT_ID },
-      { tableNum: 'DJ3_T_INITXN' },
+      { tableNum: PAGE3_1_TABLE_NUM, componentId: PAGE3_1_TABLE_COMPONENT_ID },
+      { tableNum: PAGE3_1_TABLE_NUM },
     ],
-    18,
+    16,
   );
 
   const dataList: Page4TableRow[] = [];

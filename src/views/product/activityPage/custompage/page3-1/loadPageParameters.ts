@@ -1,12 +1,16 @@
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
-import { applyPage3TableComponentId, createDefaultPage3ParameterList, type Page3ParameterItem } from './parameterDefaults';
+import {
+  applyPage3_1TableComponentId,
+  createDefaultPage3_1ParameterList,
+  type Page3_1ParameterItem,
+} from './parameterDefaults';
 
-export type { Page3ParameterItem };
+export type { Page3_1ParameterItem };
 
 export function mergeSavedParamsIntoList(
-  list: Page3ParameterItem[],
+  list: Page3_1ParameterItem[],
   saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
-): Page3ParameterItem[] {
+): Page3_1ParameterItem[] {
   const savedMap = new Map<string, string>();
   (saved || []).forEach(row => {
     const code = String(row?.paramCode ?? row?.paramKey ?? '').trim();
@@ -24,7 +28,7 @@ export function mergeSavedParamsIntoList(
   });
 }
 
-async function applyActivityParameterIds(pageId: string, list: Page3ParameterItem[]): Promise<Page3ParameterItem[]> {
+async function applyActivityParameterIds(pageId: string, list: Page3_1ParameterItem[]): Promise<Page3_1ParameterItem[]> {
   if (!pageId) return list;
   try {
     const res = await AdminApiSystemParameter.getParameterActList({ businessId: pageId, type: '2' });
@@ -46,12 +50,12 @@ async function applyActivityParameterIds(pageId: string, list: Page3ParameterIte
   }
 }
 
-export async function loadPage3PageParameters(
+export async function loadPage3_1PageParameters(
   pageId: string,
   saved?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
-): Promise<Page3ParameterItem[]> {
+): Promise<Page3_1ParameterItem[]> {
   const pageKey = String(pageId ?? '').trim();
-  let list = createDefaultPage3ParameterList(pageKey);
+  let list = createDefaultPage3_1ParameterList(pageKey);
   list = await applyActivityParameterIds(pageKey, list);
-  return applyPage3TableComponentId(mergeSavedParamsIntoList(list, saved));
+  return applyPage3_1TableComponentId(mergeSavedParamsIntoList(list, saved));
 }
