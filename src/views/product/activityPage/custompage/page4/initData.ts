@@ -18,17 +18,16 @@ function buildCombinationRow(
   schemeIndex: number,
   motorRow: Record<string, string | number | undefined>,
   reducerRow: Record<string, string | number | undefined>,
-  xnRow: Record<string, string | number | undefined> | undefined,
+  xnMetrics: { p1: string; p2: string; p3: string; p16: string },
 ): Page4TableRow {
-  const xn = xnRow ?? {};
   const data: Page4TableRow = {};
   data.p0 = `组合方案${schemeIndex + 1}`;
   data.cellInputOrOutput0 = '1';
-  data.p1 = String(xn.p13 ?? '');
+  data.p1 = xnMetrics.p1;
   data.cellInputOrOutput1 = '1';
-  data.p2 = String(xn.p14 ?? '');
+  data.p2 = xnMetrics.p2;
   data.cellInputOrOutput2 = '1';
-  data.p3 = String(xn.p15 ?? '');
+  data.p3 = xnMetrics.p3;
   data.cellInputOrOutput3 = '1';
   data.p4 = String(motorRow.p2 ?? '');
   data.cellInputOrOutput4 = '1';
@@ -55,9 +54,42 @@ function buildCombinationRow(
   const strokeHalf = Number(reducerRow.p9);
   data.p15 = Number.isFinite(strokeHalf) ? String(strokeHalf / 2) : '';
   data.cellInputOrOutput15 = '1';
-  data.p16 = String(xn.p6 ?? '');
+  data.p16 = xnMetrics.p16;
   data.cellInputOrOutput16 = '1';
   return data;
+}
+
+function cellText(row: Record<string, string | number | undefined> | undefined, field: string): string {
+  return String(row?.[field] ?? '').trim();
+}
+
+/** page3-1（初始性能计算）：p13/p14/p15 + p6；page3（初始总减速比）：p7/p6/p8 + p18 */
+function resolveXnMetricsForMotor(
+  motorIndex: number,
+  page3_1List: Array<Record<string, string | number | undefined>>,
+  page3List: Array<Record<string, string | number | undefined>>,
+): { p1: string; p2: string; p3: string; p16: string } {
+  const row31 = page3_1List[motorIndex];
+  if (row31 && (cellText(row31, 'p13') || cellText(row31, 'p14') || cellText(row31, 'p15'))) {
+    return {
+      p1: cellText(row31, 'p13'),
+      p2: cellText(row31, 'p14'),
+      p3: cellText(row31, 'p15'),
+      p16: cellText(row31, 'p6'),
+    };
+  }
+
+  const row3 = page3List[motorIndex];
+  if (row3) {
+    return {
+      p1: cellText(row3, 'p7'),
+      p2: cellText(row3, 'p6'),
+      p3: cellText(row3, 'p8'),
+      p16: cellText(row3, 'p18'),
+    };
+  }
+
+  return { p1: '', p2: '', p3: '', p16: '' };
 }
 
 /** 从流程上下文生成电机×减速器组合方案（原 initData） */
@@ -77,24 +109,31 @@ export function applyPage4InitData(
     [{ tableNum: REDUCER_TABLE_NUM, componentId: PAGE2_1_REDUCER_TABLE_COMPONENT_ID }],
     14,
   );
-  const xnList = resolveTableRows(
+  const xnListPage3_1 = resolveTableRows(
     sources,
     [
-      { tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID },
       { tableNum: PAGE3_1_TABLE_NUM, componentId: PAGE3_1_TABLE_COMPONENT_ID },
       { tableNum: PAGE3_1_TABLE_NUM },
     ],
     16,
   );
+  const xnListPage3 = resolveTableRows(
+    sources,
+    [{ tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID }],
+    18,
+  );
 
   const dataList: Page4TableRow[] = [];
+  let validMotorIndex = 0;
 
-  motorList.forEach((motorRow, motorIndex) => {
+  motorList.forEach(motorRow => {
     if (!hasProductCode(motorRow)) return;
+    const xnMetrics = resolveXnMetricsForMotor(validMotorIndex, xnListPage3_1, xnListPage3);
     reducerList.forEach(reducerRow => {
       if (!hasProductCode(reducerRow)) return;
-      dataList.push(buildCombinationRow(dataList.length, motorRow, reducerRow, xnList[motorIndex]));
+      dataList.push(buildCombinationRow(dataList.length, motorRow, reducerRow, xnMetrics));
     });
+    validMotorIndex += 1;
   });
 
   if (!list[0]?.tableMap) {
