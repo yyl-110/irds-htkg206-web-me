@@ -282,10 +282,18 @@ function resetProcessFlowColumnFilter(key: string) {
 }
 
 async function loadFlowListData() {
+  const mid = props.menuId != null ? String(props.menuId).trim() : '';
+  const tid = props.treeNodeKey != null ? String(props.treeNodeKey).trim() : '';
+  if (!mid || !tid) {
+    tableData.value = [];
+    pagination.total = 0;
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
-    requestParams.menuId = props.menuId ?? '';
-    requestParams.treeId = props.treeNodeKey ?? '';
+    requestParams.menuId = mid;
+    requestParams.treeId = tid;
     requestParams.releaseType = 2;
     const res = await AdminApiSystemProcessTask.taskBasicInfoPage(requestParams);
     console.log('loadFlowListData res:', res);
@@ -552,6 +560,13 @@ async function handleToolbarConfig(record?: FlowRow) {
 watch(
   () => [props.menuId, props.treeNodeKey],
   () => {
+    const mid = props.menuId != null ? String(props.menuId).trim() : '';
+    const tid = props.treeNodeKey != null ? String(props.treeNodeKey).trim() : '';
+    if (!mid || !tid) {
+      tableData.value = [];
+      pagination.total = 0;
+      return;
+    }
     resetAndReload();
   },
   { immediate: true },

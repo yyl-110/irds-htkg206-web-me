@@ -226,7 +226,7 @@ const onClickMenuItem: MenuClickEventHandler = event => {
   if (isSameMenuRoutePath(targetPath, route)) {
     const resolved = router.resolve({ path: targetPath });
     if (isPlatformPickerDrawerRoute(resolved))
-      openPlatformPickerDrawerBus.emit();
+      openPlatformPickerDrawerBus.emit(targetPath);
     return;
   }
   router.push({ path: targetPath });

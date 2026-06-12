@@ -15,7 +15,7 @@ import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, LeftOutlined, Right
 import knowledgeConfig from '../components/knowledge-config.vue';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
-import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { sortermethod, findNodeByIdFromKey } from '@/utils/tools';
@@ -444,8 +444,7 @@ async function getListData(type?: string) {
 
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeList();
-    titleList.value = normalizePlatformPickerList(res?.data?.data);
+    titleList.value = await fetchPlatformPickerList({ force: options?.forceOpenDrawer });
     if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
       shouldShowDrawer.value = false;
       titleVisible.value = false;
@@ -1146,8 +1145,7 @@ async function openAssignCategoryModal() {
   assignCategorySelectedKey.value = '';
   assignCategoryLoading.value = true;
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeList();
-    assignCategoryPlatforms.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    assignCategoryPlatforms.value = await fetchPlatformPickerList();
     if (!assignCategoryPlatforms.value.length) {
       message.warning('暂无可选产品平台');
       assignCategoryTreeData.value = [];

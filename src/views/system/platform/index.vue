@@ -11,7 +11,7 @@ import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传'
 import { Uploado_draggerFile } from '@/components/UploadFile'
 import { useUserStore } from '@/store/modules/user'
-import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue'
+import { invalidatePlatformPickerListCache } from '@/utils/platformPickerList'
 
 const userStore = useUserStore()
 
@@ -362,6 +362,7 @@ async function submitAddForm() {
       message.success(WeiI18n.$t('保存成功'))
       addModalVisible.value = false
       addFileList.value = []
+      invalidatePlatformPickerListCache()
       fetchPlatformList()
     }
     else {
@@ -425,6 +426,7 @@ async function submitEditForm() {
       message.success(WeiI18n.$t('保存成功'))
       editModalVisible.value = false
       editFileList.value = []
+      invalidatePlatformPickerListCache()
       fetchPlatformList()
     }
     else {
@@ -694,6 +696,7 @@ async function handleMemberAuthConfirm(userIds: string[]) {
     }
     message.success(WeiI18n.$t('授权成功!'))
     memberAuthVisible.value = false
+    invalidatePlatformPickerListCache()
     await fetchPlatformList()
   }
   catch {
@@ -739,6 +742,7 @@ function onDelete(record: PlatformRoleRow) {
         const codeOk = payload?.code === 200 || payload?.code === undefined
         if (codeOk) {
           message.success(WeiI18n.$t('删除成功'))
+          invalidatePlatformPickerListCache()
           await fetchPlatformList()
         }
         else {

@@ -14,7 +14,7 @@ import { useDateRangeParams } from '@/hooks/useDate';
 import { useRender } from '@/components/escape';
 import { ProductTempPageRequestDTOModel } from '@/api/models/productTemp/ProductTempPageRequestDTOModel';
 import { AdminApiProductTemp } from '@/api/tags/productTemp/产品模板后台';
-import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { useUserStore } from '@/store/modules/user';
@@ -322,8 +322,7 @@ async function handleDelete(id: any) {
 
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeList();
-    titleList.value = normalizePlatformPickerList(res?.data?.data);
+    titleList.value = await fetchPlatformPickerList({ force: options?.forceOpenDrawer });
     const skipDrawerOnReturn = sessionStorage.getItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN) === '1';
     if (skipDrawerOnReturn) {
       sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);

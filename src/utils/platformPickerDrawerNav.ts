@@ -18,6 +18,8 @@ const PLATFORM_PICKER_COMPONENT_MARKERS = [
   'product/productTemp',
   'product/designTask',
   'product/project',
+  'product/check/sys',
+  'product/check/use',
 ] as const
 
 type PlatformPickerRouteLike = {

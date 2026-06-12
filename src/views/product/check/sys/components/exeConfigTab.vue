@@ -85,6 +85,8 @@ function formatPublishStatusText(item: any): string {
 }
 
 const props = defineProps<{
+  /** 产品平台 menuId */
+  menuId?: string | number;
   /** 左侧分类树当前节点 id，与参数列表接口 treeId 一致 */
   treeId?: string;
   currentNodeName?: string;
@@ -111,6 +113,14 @@ const { pagination } = usePagination(requestParams as any, () => {
 let fetchExeListSeq = 0;
 
 async function fetchExeList() {
+  const mid = props.menuId != null ? String(props.menuId).trim() : '';
+  const tid = String(props.treeId ?? '').trim();
+  if (!mid || !tid) {
+    exeListRaw.value = [];
+    pagination.total = 0;
+    loading.value = false;
+    return;
+  }
   const seq = ++fetchExeListSeq;
   loading.value = true;
   try {
@@ -118,6 +128,7 @@ async function fetchExeList() {
       userId: userStore.getUser.id,
       pageNo: requestParams.pageNo,
       pageSize: requestParams.pageSize,
+      menuId: mid,
     };
     const tid = String(props.treeId ?? '').trim();
     if (tid) body.treeId = tid;
@@ -159,8 +170,15 @@ async function fetchExeList() {
 }
 
 watch(
-  () => props.treeId,
+  () => [props.menuId, props.treeId],
   () => {
+    const mid = props.menuId != null ? String(props.menuId).trim() : '';
+    const tid = String(props.treeId ?? '').trim();
+    if (!mid || !tid) {
+      exeListRaw.value = [];
+      pagination.total = 0;
+      return;
+    }
     requestParams.pageNo = 1;
     pagination.current = 1;
     void fetchExeList();

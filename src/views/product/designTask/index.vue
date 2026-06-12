@@ -9,7 +9,7 @@ import {
 } from '@/utils/platformPickerDrawerNav';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
 import { PermissionAssignUsersRoleRequestDTOmenuModel } from '@/api/models/menu/PermissionAssignUsersRoleRequestDTOmenuModel';
 import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/ProductModuleTreeInfoRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
@@ -56,8 +56,7 @@ const updateMenu = async (item: any) => {
 /** 获取分类数据 */
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeList();
-    titleList.value = normalizePlatformPickerList(res.data.data);
+    titleList.value = await fetchPlatformPickerList({ force: options?.forceOpenDrawer });
     const skipDrawerOnReturn = sessionStorage.getItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN) === '1';
     if (skipDrawerOnReturn) {
       sessionStorage.removeItem(PROJECT_LIST_SKIP_DRAWER_ON_RETURN);

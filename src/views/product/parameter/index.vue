@@ -8,7 +8,7 @@ import type { TableColumnType, TableProps } from 'ant-design-vue';
 import { message, Tooltip } from 'ant-design-vue';
 import { useForm } from 'ant-design-vue/es/form';
 import { AdminApiSystemMenu } from '@/api/tags/管理后台菜单';
-import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import type { MenuResponseDTOModel } from '@/api/models/MenuResponseDTOModel';
 import { WeiI18n } from '@/utils/WeiI18n';
@@ -503,8 +503,7 @@ async function openAssignCategoryModal() {
   assignCategorySelectedKey.value = '';
   assignCategoryLoading.value = true;
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeList();
-    assignCategoryPlatforms.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    assignCategoryPlatforms.value = await fetchPlatformPickerList();
     if (!assignCategoryPlatforms.value.length) {
       message.warning('暂无可选产品平台');
       assignCategoryTreeData.value = [];
@@ -736,8 +735,7 @@ async function getListData(type?: string, focusKey?: string) {
 
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeList();
-    titleList.value = Array.isArray(res?.data?.data) ? res.data.data : [];
+    titleList.value = await fetchPlatformPickerList({ force: options?.forceOpenDrawer });
     if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
       shouldShowDrawer.value = false;
       titleVisible.value = false;

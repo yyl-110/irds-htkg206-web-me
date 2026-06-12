@@ -1,7 +1,9 @@
-import { onActivated, onMounted } from 'vue'
+import { onActivated, onMounted, onScopeDispose } from 'vue'
+import { useRoute } from 'vue-router'
 import { useEventBus } from '@vueuse/core'
 import { OpenPlatformPickerDrawerEventKey } from '@/utils/EventBus'
 import { consumeSkipPlatformPickerDrawerOnTab } from '@/utils/platformPickerDrawerNav'
+import { isSameMenuRoutePath } from '@/utils/routeCacheKey'
 
 type GetMenuListDataFn = (options?: { forceOpenDrawer?: boolean }) => void | Promise<void>
 
@@ -15,6 +17,10 @@ export function usePlatformPickerDrawerLifecycle(
     onTabSkip?: () => void
   },
 ) {
+  const route = useRoute()
+  /** 本页实例所属菜单 path（keep-alive 下与当前全局 route 解耦） */
+  const ownerMenuPath = route.path
+
   let skipActivatedAfterMount = false
 
   onMounted(() => {
@@ -35,5 +41,13 @@ export function usePlatformPickerDrawerLifecycle(
   })
 
   const openDrawerBus = useEventBus(OpenPlatformPickerDrawerEventKey)
-  openDrawerBus.on(() => void getMenuListData({ forceOpenDrawer: true }))
+  const stopBus = openDrawerBus.on((clickedPath: string) => {
+    if (!clickedPath || !isSameMenuRoutePath(clickedPath, route)) return
+    if (clickedPath !== ownerMenuPath) return
+    void getMenuListData({ forceOpenDrawer: true })
+  })
+
+  onScopeDispose(() => {
+    stopBus()
+  })
 }

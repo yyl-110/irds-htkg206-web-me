@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { inject, nextTick, reactive, ref, h } from 'vue';
+import { inject, nextTick, onMounted, reactive, ref, h } from 'vue';
 import { computed } from 'vue';
+import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
+import {
+  consumeSkipPlatformPickerDrawerOnTab,
+  createPlatformPickerDrawerStyle,
+  shouldAutoSelectSinglePlatform,
+} from '@/utils/platformPickerDrawerNav';
 import { Pane, Splitpanes } from 'splitpanes';
 import { message, Tooltip } from 'ant-design-vue';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { useForm } from 'ant-design-vue/es/form';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { sortermethod, findNodeByIdFromKey } from '@/utils/tools';
 import { ParameterPageRequestDTOModel } from '@/api/models/parameter/ParameterPageRequestDTOModel';
@@ -14,6 +21,8 @@ import Tree from '@/components/tree/tree.vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { ProductModuleTreeInfoRequestDTOModel } from '@/api/models/product/ProductModuleTreeInfoRequestDTOModel';
 import { useUserStore } from '@/store/modules/user';
+import { useLayoutStore } from '@/store/modules/layout/layout';
+import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import ExeConfigTab from './components/exeConfigTab.vue';
 import ProcessFlowListPanel from './components/process-check-flow-list-panel.vue';
@@ -25,6 +34,20 @@ const treePage = ref<any>(null);
 const loadingTree = ref<boolean>(false);
 const treeNodeColmoun = ref<any[]>([]);
 const userStore = useUserStore();
+const layoutStore = useLayoutStore();
+const titleVisible = ref<boolean>(false);
+const shouldShowDrawer = ref<boolean>(false);
+const titleList = ref<any[]>([]);
+const menuId = ref<string>('');
+const drawerStyle = ref<any>({
+  marginLeft: '201px',
+  marginTop: '0px',
+  width: 'calc(100% - 201px)',
+  height: 'calc(100vh)',
+});
+function resetDrawerStyle() {
+  drawerStyle.value = {};
+}
 const parameterName = ref<string>('');
 const parameterNum = ref<string>('');
 const selectNodeKeys = ref<string>('');
@@ -54,8 +77,12 @@ const selectedRowList = ref<any>([]);
 const loading = ref<boolean>(false);
 /** 获取分类数据 */
 async function getListData(type?: string) {
+  if (!menuId.value) {
+    return;
+  }
   loadingTree.value = true;
   try {
+    treeParameterParams.menuId = menuId.value;
     const res = await AdminApiSystemParameter.checkTreeList(treeParameterParams);
     loadingTree.value = false;
     // 处理返回的数据格式
@@ -72,25 +99,34 @@ async function getListData(type?: string) {
         selectedKeys.value = '';
         nextTick(() => {
           if (type) {
-            if (currentNode.value.key) {
+            if (currentNode.value?.key) {
               let rootNode = findNodeByIdFromKey(treeData.value, currentNode.value.key, 'key');
-              // 刷新后需要重新设置 expandedKeys，避免三级节点被折叠
-              const pathNodes = findNodePathByKey(treeNodes, String(currentNode.value.key));
-              if (pathNodes && pathNodes.length) {
-                expandedKeys.value = pathNodes
-                  .filter(n => Array.isArray(n?.children) && n.children.length > 0)
-                  .map(n => n.key)
-                  .join(',');
+              if (rootNode) {
+                // 刷新后需要重新设置 expandedKeys，避免三级节点被折叠
+                const pathNodes = findNodePathByKey(treeNodes, String(currentNode.value.key));
+                if (pathNodes && pathNodes.length) {
+                  expandedKeys.value = pathNodes
+                    .filter(n => Array.isArray(n?.children) && n.children.length > 0)
+                    .map(n => n.key)
+                    .join(',');
+                }
+                selectNode(rootNode);
+                return;
               }
-              selectNode(rootNode);
             }
-          } else {
-            selectedKeys.value = treeNodes[0].key;
-            expandedKeys.value = treeNodes[0].key;
-            selectNode(treeNodes[0]);
           }
+          selectedKeys.value = treeNodes[0].key;
+          expandedKeys.value = treeNodes[0].key;
+          selectNode(treeNodes[0]);
         });
+      } else {
+        selectedKeys.value = '';
+        expandedKeys.value = '';
+        selectNodeKeys.value = '';
+        currentNode.value = undefined;
       }
+    } else {
+      resetCheckPageState();
     }
   } catch (error) {
     console.error('获取树数据失败:', error);
@@ -100,8 +136,86 @@ async function getListData(type?: string) {
   }
 }
 
+function resetCheckPageState() {
+  treeData.value = [];
+  selectedKeys.value = '';
+  expandedKeys.value = '';
+  selectNodeKeys.value = '';
+  currentNode.value = undefined;
+  rawTreeData.value = [];
+  dataSource.value = [];
+}
+
+async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
+  try {
+    titleList.value = await fetchPlatformPickerList({ force: options?.forceOpenDrawer });
+    if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      resetDrawerStyle();
+      if (!menuId.value && titleList.value.length > 0) {
+        menuId.value = String(titleList.value[0]?.id ?? '');
+        await getListData();
+      }
+      return;
+    }
+    // 重复点击侧栏菜单：弹出平台列表，允许切换平台
+    if (options?.forceOpenDrawer) {
+      if (shouldAutoSelectSinglePlatform(titleList.value)) {
+        shouldShowDrawer.value = false;
+        if (!menuId.value) {
+          await updateMenu(titleList.value[0]);
+        }
+        return;
+      }
+      drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+      shouldShowDrawer.value = true;
+      titleVisible.value = true;
+      return;
+    }
+    // 已有平台且非重复点击菜单，不弹窗
+    if (menuId.value) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      resetDrawerStyle();
+      return;
+    }
+    resetCheckPageState();
+    if (shouldAutoSelectSinglePlatform(titleList.value)) {
+      shouldShowDrawer.value = false;
+      await updateMenu(titleList.value[0]);
+      return;
+    }
+    drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+    shouldShowDrawer.value = true;
+    titleVisible.value = true;
+  } catch (error) {
+    console.error('获取平台分类失败:', error);
+  }
+}
+
+async function updateMenu(item: any) {
+  menuId.value = String(item?.id ?? '');
+  onCloseDrawer();
+  resetCheckPageState();
+  await getListData();
+}
+
+function onCloseDrawer() {
+  resetDrawerStyle();
+  titleVisible.value = false;
+}
+
 onMounted(() => {
-  getListData();
+  drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+});
+
+usePlatformPickerDrawerLifecycle(getMenuListData, {
+  onTabSkip: () => {
+    shouldShowDrawer.value = false;
+    titleVisible.value = false;
+    resetDrawerStyle();
+  },
 });
 
 /** 将数据转换为树结构所需格式 */
@@ -432,6 +546,7 @@ async function submitTreeData(nodeList: any) {
   const data: any = {};
   data.categoryName = nodeList.categoryName;
   data.parentId = nodeList.pid;
+  data.menuId = menuId.value;
   const res = await AdminApiSystemParameter.createCheckTree(data);
   await getListData('change');
   Selectafterchanges();
@@ -445,6 +560,7 @@ async function editTreeData(nodeList: any, selectedKeys: any) {
   data.categoryName = nodeList.categoryName;
   data.parentId = nodeList.pid;
   data.id = nodeList.id;
+  data.menuId = menuId.value;
   const res = await AdminApiSystemParameter.updateCheckTree(data);
   await getListData('change');
   message.success(WeiI18n.t('修改成功').value);
@@ -494,7 +610,7 @@ function handleExeAction(action: string) {
 
 <template>
   <div class="drawerContent h-full">
-    <div :class="splitpanesTreeCollapseWrapClass">
+    <div v-if="menuId" :class="splitpanesTreeCollapseWrapClass">
       <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
           <a-spin :spinning="loadingTree" tip="加载中...">
@@ -526,7 +642,7 @@ function handleExeAction(action: string) {
               <a-tab-pane key="excel">
                 <template #tab>excel计算配置</template>
                 <div class="calc-config-pane">
-                  <ProcessFlowListPanel :tree-node-key="selectNodeKeys || selectedKeys" />
+                  <ProcessFlowListPanel :menu-id="menuId" :tree-node-key="selectNodeKeys || selectedKeys" />
                 </div>
               </a-tab-pane>
               <a-tab-pane key="matlab">
@@ -535,7 +651,7 @@ function handleExeAction(action: string) {
               </a-tab-pane>
               <a-tab-pane key="exe">
                 <template #tab>exe计算配置</template>
-                <ExeConfigTab :tree-id="String(selectNodeKeys || selectedKeys || '')" :current-node-name="currentNode?.partName" @action="handleExeAction" />
+                <ExeConfigTab :menu-id="menuId" :tree-id="String(selectNodeKeys || selectedKeys || '')" :current-node-name="currentNode?.partName" @action="handleExeAction" />
               </a-tab-pane>
             </a-tabs>
           </a-card>
@@ -559,6 +675,13 @@ function handleExeAction(action: string) {
       @cancel-select-tree-node="cancelSelectTreeNode"
       @handle-select-tree-node="handleSelectTreeNode" />
   </div>
+  <ProductPlatformPicker
+    v-if="shouldShowDrawer"
+    :visible="titleVisible"
+    :drawer-style="drawerStyle"
+    :list="titleList"
+    @select="updateMenu"
+    @close="onCloseDrawer" />
 </template>
 
 <style lang="less" scoped>
@@ -611,9 +734,9 @@ function handleExeAction(action: string) {
   padding-bottom: 5px !important;
 }
 .drawerContent {
-  position: sticky;
-  bottom: 20px !important;
-  display: flex;
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - 84px);
   background-color: #ffffff !important;
 }
 

@@ -444,6 +444,7 @@ export class AdminApiSystemParameter {
       {
         path: `/business-service/business/check-tree/check-tree-list`,
         method: 'GET',
+        query,
         ...params,
       },
       CommonResultListDeptResponseDTOModel,
@@ -463,6 +464,7 @@ export class AdminApiSystemParameter {
       {
         path: `/business-service/business/check-tree/check-tree-app-list`,
         method: 'GET',
+        query,
         ...params,
       },
       CommonResultListDeptResponseDTOModel,

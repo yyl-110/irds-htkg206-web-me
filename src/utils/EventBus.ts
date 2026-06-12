@@ -17,8 +17,8 @@ export const SetTabTitleEventKey: EventBusKey<string> = Symbol('SetTabTitle')
  */
 export const RevealSiderMenuEventKey: EventBusKey<string> = Symbol('RevealSiderMenu')
 
-/** 侧栏再次点击带平台选择抽屉的菜单时打开抽屉 */
-export const OpenPlatformPickerDrawerEventKey: EventBusKey<void> = Symbol('OpenPlatformPickerDrawer')
+/** 侧栏再次点击带平台选择抽屉的菜单时打开抽屉（payload 为目标菜单 path） */
+export const OpenPlatformPickerDrawerEventKey: EventBusKey<string> = Symbol('OpenPlatformPickerDrawer')
 
 /** @deprecated 使用 OpenPlatformPickerDrawerEventKey */
 export const OpenModuleLibDrawerEventKey = OpenPlatformPickerDrawerEventKey

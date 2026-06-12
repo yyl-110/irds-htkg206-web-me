@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { usePlatformPickerDrawerLifecycle } from '@/composables/usePlatformPickerDrawerLifecycle';
+import {
+  consumeSkipPlatformPickerDrawerOnTab,
+  createPlatformPickerDrawerStyle,
+  shouldAutoSelectSinglePlatform,
+} from '@/utils/platformPickerDrawerNav';
 import { Pane, Splitpanes } from 'splitpanes';
 import { message, Tooltip } from 'ant-design-vue';
 import { LeftOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons-vue';
@@ -7,12 +13,15 @@ import dayjs from 'dayjs';
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
 import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
 import { AdminApiSystemStatisticsLog } from '@/api/tags/StatisticsLogController';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
 import { WeiI18n } from '@/utils/WeiI18n';
 import { findNodeByIdFromKey } from '@/utils/tools';
 import { ParameterPageRequestDTOModel } from '@/api/models/parameter/ParameterPageRequestDTOModel';
 import Tree from '@/components/tree/tree.vue';
 import { useSplitpanesTreeCollapse } from '@/composables/useSplitpanesTreeCollapse';
 import { useUserStore } from '@/store/modules/user';
+import { useLayoutStore } from '@/store/modules/layout/layout';
+import ProductPlatformPicker from '@/components/ProductPlatformPicker/index.vue';
 import checkExeBg from '@/assets/images/check-exe.png';
 import checkMatlabBg from '@/assets/images/check-matlab.png';
 import checkExcelBg from '@/assets/images/check-excel.png';
@@ -21,6 +30,20 @@ import { download } from '@/libs/webSocketNew';
 import { useRoute, useRouter } from 'vue-router';
 
 const userStore = useUserStore();
+const layoutStore = useLayoutStore();
+const titleVisible = ref<boolean>(false);
+const shouldShowDrawer = ref<boolean>(false);
+const titleList = ref<any[]>([]);
+const menuId = ref<string>('');
+const drawerStyle = ref<any>({
+  marginLeft: '201px',
+  marginTop: '0px',
+  width: 'calc(100% - 201px)',
+  height: 'calc(100vh)',
+});
+function resetDrawerStyle() {
+  drawerStyle.value = {};
+}
 const router = useRouter();
 const route = useRoute();
 const treeData = ref<any[]>([]);
@@ -184,6 +207,11 @@ const checklistCards = computed<ChecklistCard[]>(() => {
 });
 
 async function fetchChecklist(options?: { serverSearch?: boolean }) {
+  const mid = menuId.value != null ? String(menuId.value).trim() : '';
+  if (!mid) {
+    checklistRaw.value = [];
+    return;
+  }
   const treeId = String(currentNode.value?.key ?? '').trim();
   if (!treeId) {
     checklistRaw.value = [];
@@ -196,6 +224,7 @@ async function fetchChecklist(options?: { serverSearch?: boolean }) {
     const query: Record<string, unknown> = {
       userId: userStore.getUser.id,
       treeId,
+      menuId: mid,
     };
     const kw = checklistKeyword.value.trim();
     if (options?.serverSearch && kw) {
@@ -235,10 +264,86 @@ function onChecklistSearch() {
   void fetchChecklist({ serverSearch: true });
 }
 
+function resetCheckPageState() {
+  fetchChecklistSeq += 1;
+  treeData.value = [];
+  selectedKeys.value = '';
+  expandedKeys.value = '';
+  currentNode.value = undefined;
+  rawTreeData.value = [];
+  dataSource.value = [];
+  checklistRaw.value = [];
+  checklistKeyword.value = '';
+}
+
+async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
+  try {
+    titleList.value = await fetchPlatformPickerList({ force: options?.forceOpenDrawer });
+    if (!options?.forceOpenDrawer && consumeSkipPlatformPickerDrawerOnTab()) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      resetDrawerStyle();
+      if (!menuId.value && titleList.value.length > 0) {
+        menuId.value = String(titleList.value[0]?.id ?? '');
+        await getListData();
+      }
+      return;
+    }
+    // 重复点击侧栏菜单：弹出平台列表，允许切换平台
+    if (options?.forceOpenDrawer) {
+      if (shouldAutoSelectSinglePlatform(titleList.value)) {
+        shouldShowDrawer.value = false;
+        if (!menuId.value) {
+          await updateMenu(titleList.value[0]);
+        }
+        return;
+      }
+      drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+      shouldShowDrawer.value = true;
+      titleVisible.value = true;
+      return;
+    }
+    // 已有平台且非重复点击菜单，不弹窗
+    if (menuId.value) {
+      shouldShowDrawer.value = false;
+      titleVisible.value = false;
+      resetDrawerStyle();
+      return;
+    }
+    resetCheckPageState();
+    if (shouldAutoSelectSinglePlatform(titleList.value)) {
+      shouldShowDrawer.value = false;
+      await updateMenu(titleList.value[0]);
+      return;
+    }
+    drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+    shouldShowDrawer.value = true;
+    titleVisible.value = true;
+  } catch (error) {
+    console.error('获取平台分类失败:', error);
+  }
+}
+
+async function updateMenu(item: any) {
+  menuId.value = String(item?.id ?? '');
+  onCloseDrawer();
+  resetCheckPageState();
+  await getListData();
+}
+
+function onCloseDrawer() {
+  resetDrawerStyle();
+  titleVisible.value = false;
+}
+
 /** 获取分类数据 */
 async function getListData(type?: string) {
+  if (!menuId.value) {
+    return;
+  }
   loadingTree.value = true;
   try {
+    treeParameterParams.menuId = menuId.value;
     const res = await AdminApiSystemParameter.checkTreeAppList(treeParameterParams);
     loadingTree.value = false;
     if ((res.data.code == 0 || res.data.code == 200) && res.data.data) {
@@ -251,24 +356,34 @@ async function getListData(type?: string) {
         selectedKeys.value = '';
         nextTick(() => {
           if (type) {
-            if (currentNode.value.key) {
+            if (currentNode.value?.key) {
               const rootNode = findNodeByIdFromKey(treeData.value, currentNode.value.key, 'key');
-              const pathNodes = findNodePathByKey(treeNodes, String(currentNode.value.key));
-              if (pathNodes && pathNodes.length) {
-                expandedKeys.value = pathNodes
-                  .filter(n => Array.isArray(n?.children) && n.children.length > 0)
-                  .map(n => n.key)
-                  .join(',');
+              if (rootNode) {
+                const pathNodes = findNodePathByKey(treeNodes, String(currentNode.value.key));
+                if (pathNodes && pathNodes.length) {
+                  expandedKeys.value = pathNodes
+                    .filter(n => Array.isArray(n?.children) && n.children.length > 0)
+                    .map(n => n.key)
+                    .join(',');
+                }
+                selectNode(rootNode);
+                return;
               }
-              selectNode(rootNode);
             }
-          } else {
-            selectedKeys.value = treeNodes[0].key;
-            expandedKeys.value = treeNodes[0].key;
-            selectNode(treeNodes[0]);
           }
+          selectedKeys.value = treeNodes[0].key;
+          expandedKeys.value = treeNodes[0].key;
+          selectNode(treeNodes[0]);
         });
+      } else {
+        selectedKeys.value = '';
+        expandedKeys.value = '';
+        currentNode.value = undefined;
+        checklistRaw.value = [];
+        checklistKeyword.value = '';
       }
+    } else {
+      resetCheckPageState();
     }
   } catch (error) {
     console.error('获取树数据失败:', error);
@@ -279,7 +394,15 @@ async function getListData(type?: string) {
 }
 
 onMounted(() => {
-  getListData();
+  drawerStyle.value = createPlatformPickerDrawerStyle(layoutStore.asideWidthStyle);
+});
+
+usePlatformPickerDrawerLifecycle(getMenuListData, {
+  onTabSkip: () => {
+    shouldShowDrawer.value = false;
+    titleVisible.value = false;
+    resetDrawerStyle();
+  },
 });
 
 function convertToTreeNodes(data: any[]): any[] {
@@ -488,7 +611,7 @@ const {
 
 <template>
   <div class="drawerContent h-full">
-    <div :class="splitpanesTreeCollapseWrapClass" class="h-full">
+    <div v-if="menuId" :class="splitpanesTreeCollapseWrapClass" class="h-full">
       <Splitpanes class="default-theme sbom" @resize="onSplitpanesResized" @resized="onSplitpanesResized">
         <Pane :min-size="leftTreeCollapsed ? 0 : minExpanded" :size="leftTreePaneSize" class="splitpane-cls marginstyle">
           <a-spin :spinning="loadingTree" tip="加载中...">
@@ -564,6 +687,13 @@ const {
       </Tooltip>
     </div>
   </div>
+  <ProductPlatformPicker
+    v-if="shouldShowDrawer"
+    :visible="titleVisible"
+    :drawer-style="drawerStyle"
+    :list="titleList"
+    @select="updateMenu"
+    @close="onCloseDrawer" />
 </template>
 
 <style lang="less" scoped>
