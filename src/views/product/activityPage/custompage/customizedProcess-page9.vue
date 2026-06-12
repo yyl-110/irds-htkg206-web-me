@@ -75,6 +75,8 @@ import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import type { Key } from 'ant-design-vue/es/table/interface';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
+import diagramCl from '@/assets/images/cl.png';
+import diagramTjms from '@/assets/images/tjms.png';
 import {
   calculateAllPage9GearRows,
   applyRootBendingStressToRow,
@@ -147,8 +149,8 @@ const gearRatioTable = createGearRatioTable();
 
 const selectedRowKeys = ref<Key[]>([]);
 const selectedSchemeRows = ref<Page9SchemeRow[]>([]);
-const diagramTopSrc = ref('/images/tjms.png');
-const diagramBottomSrc = ref('/images/cl.png');
+const diagramTopSrc = ref(diagramTjms);
+const diagramBottomSrc = ref(diagramCl);
 let diagramTopFallback = false;
 let diagramBottomFallback = false;
 

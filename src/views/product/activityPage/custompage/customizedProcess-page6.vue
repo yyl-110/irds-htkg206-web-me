@@ -46,12 +46,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
+import diagramClcs from '@/assets/images/clcs.png';
 import {
   calculateAllPage6Rows,
   extractPage6SaveParamValues,
@@ -104,19 +105,11 @@ const tableScrollX = PAGE6_TABLE_MIN_WIDTH;
 const page6TableColumns = PAGE6_ANT_COLUMNS;
 const leafColumnMap = new Map(PAGE6_LEAF_COLUMNS.map(col => [String(col.dataIndex), col]));
 
-/** 示意图：默认占位图；若 public/images/clcs.png 存在则替换 */
-const diagramSrc = ref(diagramPlaceholder);
+/** 示意图：默认 clcs；加载失败时回退占位图 */
+const diagramSrc = ref(diagramClcs);
 
 function onDiagramError() {
   diagramSrc.value = diagramPlaceholder;
-}
-
-function tryLoadPublicDiagram() {
-  const probe = new Image();
-  probe.onload = () => {
-    diagramSrc.value = '/images/clcs.png';
-  };
-  probe.src = '/images/clcs.png';
 }
 
 function clonePage6ParameterList(list: Page6ParameterItem[]): Page6ParameterItem[] {
@@ -239,10 +232,6 @@ defineExpose({
   updateEl,
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
-});
-
-onMounted(() => {
-  tryLoadPublicDiagram();
 });
 
 mountWithTaskParamMap(updateEl);
