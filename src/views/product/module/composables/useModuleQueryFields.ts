@@ -11,6 +11,30 @@ export function isModuleQueryTextField(propertyName: string): boolean {
   return MODULE_QUERY_TEXT_FIELD_NAMES.has(propertyName);
 }
 
+export function getPropertyQueryKey(item: { propertyName?: string; dataProp?: string }): string {
+  return item.propertyName == '贡献者' ? 'para7Name' : String(item.dataProp ?? '');
+}
+
+export function buildQueryColumnFromProperty(item: any, distinctValues: Record<string, any[]>) {
+  const key = getPropertyQueryKey(item);
+  const isTextField = isModuleQueryTextField(item.propertyName);
+  const dataProp = String(item.dataProp ?? '');
+  let options: string[] = [];
+  const inputType: 'text' | 'select' = isTextField ? 'text' : 'select';
+  if (!isTextField) {
+    options = resolveDistinctOptionsForQueryColumn({ dataProp, key }, distinctValues);
+  }
+  return {
+    id: item.id,
+    title: item.propertyName,
+    key,
+    dataProp,
+    parameterNum: String(item.parameterNum ?? item.paramNum ?? '').trim(),
+    inputType,
+    options,
+  };
+}
+
 export function collectDistinctValuesFromRows(rows: any[], key: string): string[] {
   const set = new Set<string>();
   for (const row of rows || []) {

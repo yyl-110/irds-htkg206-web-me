@@ -38,7 +38,11 @@ import {
 } from '@/libs/webSocketNew';
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证';
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery';
-import { isModuleQueryTextField, enrichQuerySelectOptionsFromDataSource, resolveDistinctOptionsForQueryColumn } from '../../composables/useModuleQueryFields';
+import {
+  buildQueryColumnFromProperty,
+  enrichQuerySelectOptionsFromDataSource,
+  resolveDistinctOptionsForQueryColumn,
+} from '../../composables/useModuleQueryFields';
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue';
 import moduleIcon1 from '@/assets/images/module1.png';
 import moduleIcon2 from '@/assets/images/module2.png';
@@ -76,9 +80,8 @@ const page = reactive({
 });
 const columns = ref<TableColumnType<any>[]>([]);
 const queryColumns = ref<any>([]);
-const defaultQueryColumns = ref<any[]>([]);
-const optionalQueryFieldCandidates = ref<any[]>([]);
-const selectedOptionalQueryKeys = ref<string[]>([]);
+const allQueryFieldCandidates = ref<any[]>([]);
+const visibleQueryKeys = ref<string[]>([]);
 const queryFieldModalVisible = ref(false);
 const queryFieldModalCheckedKeys = ref<string[]>([]);
 const dropdownList = ref<any>([
@@ -352,36 +355,13 @@ async function initData(categoryidStr: string, menuid: any) {
   modalInit();
 }
 
-function getPropertyQueryKey(item: any): string {
-  return item.propertyName == '贡献者' ? 'para7Name' : item.dataProp;
-}
-
-function buildQueryColumnFromProperty(item: any, distinctValues: Record<string, any[]>) {
-  const key = getPropertyQueryKey(item);
-  const isTextField = isModuleQueryTextField(item.propertyName);
-  const dataProp = String(item.dataProp ?? '');
-  let options: string[] = [];
-  const inputType: 'text' | 'select' = isTextField ? 'text' : 'select';
-  if (!isTextField) {
-    options = resolveDistinctOptionsForQueryColumn({ dataProp, key }, distinctValues);
-  }
-  return {
-    id: item.id,
-    title: item.propertyName,
-    key,
-    dataProp,
-    inputType,
-    options,
-  };
-}
-
-async function loadOptionalQueryDistinctValues() {
-  const selectedOptional = optionalQueryFieldCandidates.value.filter(c => selectedOptionalQueryKeys.value.includes(c.key));
-  if (!selectedOptional.length) {
+async function loadQueryDistinctValues() {
+  const visibleCols = allQueryFieldCandidates.value.filter(c => visibleQueryKeys.value.includes(c.key));
+  if (!visibleCols.length) {
     return;
   }
 
-  const needFetch = selectedOptional.filter(c => c.inputType === 'select' && !c.options?.length);
+  const needFetch = visibleCols.filter(c => c.inputType === 'select' && !c.options?.length);
   if (needFetch.length) {
     const extraDataProps = needFetch.map(c => c.dataProp).filter((p: string) => /^para\d+$/.test(p));
     if (extraDataProps.length) {
@@ -398,33 +378,30 @@ async function loadOptionalQueryDistinctValues() {
           column.options = resolveDistinctOptionsForQueryColumn(column, distinctValues);
         });
       } catch (error) {
-        console.error('加载可选查询字段下拉值失败:', error);
+        console.error('加载查询字段下拉值失败:', error);
       }
     }
   }
 
-  enrichQuerySelectOptionsFromDataSource(selectedOptional, dataSource.value, queryForm);
+  enrichQuerySelectOptionsFromDataSource(visibleCols, dataSource.value, queryForm);
   refreshQueryColumns();
 }
 
 function syncQuerySelectOptionsFromDataSource() {
-  const targets = [
-    ...defaultQueryColumns.value,
-    ...optionalQueryFieldCandidates.value.filter(c => selectedOptionalQueryKeys.value.includes(c.key)),
-  ];
+  const targets = allQueryFieldCandidates.value.filter(c => visibleQueryKeys.value.includes(c.key));
   enrichQuerySelectOptionsFromDataSource(targets, dataSource.value, queryForm);
   refreshQueryColumns();
 }
 
 function refreshQueryColumns() {
-  const optionalCols = optionalQueryFieldCandidates.value.filter(c => selectedOptionalQueryKeys.value.includes(c.key));
-  const activeKeys = new Set([...defaultQueryColumns.value, ...optionalCols].map(c => c.key));
+  const visibleCols = allQueryFieldCandidates.value.filter(c => visibleQueryKeys.value.includes(c.key));
+  const activeKeys = new Set(visibleCols.map(c => c.key));
   Object.keys(queryForm).forEach(k => {
     if (!activeKeys.has(k)) {
       delete queryForm[k];
     }
   });
-  queryColumns.value = [...defaultQueryColumns.value, ...optionalCols];
+  queryColumns.value = visibleCols;
   queryColumns.value.forEach((c: any) => {
     if (!(c.key in queryForm)) {
       queryForm[c.key] = c.inputType === 'select' ? undefined : '';
@@ -437,19 +414,19 @@ function refreshQueryColumns() {
 }
 
 function openQueryFieldModal() {
-  if (!optionalQueryFieldCandidates.value.length) {
-    message.info('暂无可新增的查询字段');
+  if (!allQueryFieldCandidates.value.length) {
+    message.info('暂无查询字段');
     return;
   }
-  queryFieldModalCheckedKeys.value = [...selectedOptionalQueryKeys.value];
+  queryFieldModalCheckedKeys.value = [...visibleQueryKeys.value];
   queryFieldModalVisible.value = true;
 }
 
 function confirmQueryFieldModal() {
-  selectedOptionalQueryKeys.value = [...queryFieldModalCheckedKeys.value];
+  visibleQueryKeys.value = [...queryFieldModalCheckedKeys.value];
   refreshQueryColumns();
   queryFieldModalVisible.value = false;
-  void loadOptionalQueryDistinctValues();
+  void loadQueryDistinctValues();
 }
 
 function cancelQueryFieldModal() {
@@ -467,9 +444,8 @@ async function modalInit() {
   sortState.value = { key: '', order: '' };
   columns.value = [];
   queryColumns.value = [];
-  defaultQueryColumns.value = [];
-  optionalQueryFieldCandidates.value = [];
-  selectedOptionalQueryKeys.value = [];
+  allQueryFieldCandidates.value = [];
+  visibleQueryKeys.value = [];
   queryFieldModalCheckedKeys.value = [];
   dataSource.value = [];
   const data: any = {};
@@ -500,10 +476,9 @@ async function modalInit() {
     moduleTableFilterOpenMap.value = {};
     for (let i = 0; i < resData.length; i++) {
       const queryCol = buildQueryColumnFromProperty(resData[i], distinctValues);
+      allQueryFieldCandidates.value.push(queryCol);
       if (resData[i].searchFlag == 0) {
-        defaultQueryColumns.value.push(queryCol);
-      } else {
-        optionalQueryFieldCandidates.value.push(queryCol);
+        visibleQueryKeys.value.push(queryCol.key);
       }
 
       if (resData[i].showFlag == 0) {
@@ -1643,7 +1618,7 @@ defineExpose({ initData, selectAllModuleInfo });
   <div class="module-body">
     <div class="selectLeft">
       <div class="btn-box">
-        <div class="btn-box-middle" v-if="queryColumns.length">
+        <div class="btn-box-middle" v-if="allQueryFieldCandidates.length">
           <div class="query-scroll">
             <a-row :gutter="[12, 6]">
               <a-col v-for="item in queryColumns" :key="item.key" :span="8">
@@ -1672,14 +1647,16 @@ defineExpose({ initData, selectAllModuleInfo });
             </a-row>
           </div>
           <div class="query-actions">
+            <a-tooltip title="配置查询条件">
+              <a-button size="middle" class="query-config-btn" @click="openQueryFieldModal">
+                <EpcIcon type="icon-tianjia1" style="font-size: 14px" />
+              </a-button>
+            </a-tooltip>
             <a-button type="primary" size="middle" @click="handleQuery()"
               ><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button
             >
             <a-button size="middle" @click="handleQueryReset"
               ><EpcIcon type="icon-zhongzhi" style="font-size: 12px" />重置</a-button
-            >
-            <a-button size="middle" @click="openQueryFieldModal"
-              ><EpcIcon type="icon-tianjia1" style="font-size: 12px" />新增</a-button
             >
           </div>
         </div>
@@ -1939,8 +1916,11 @@ defineExpose({ initData, selectAllModuleInfo });
     :mask-closable="false"
     @cancel="cancelQueryFieldModal">
     <div class="query-field-modal-body">
+      <div class="query-field-option query-field-option--header">
+        <span class="query-field-option-label">参数名称</span>
+      </div>
       <a-checkbox-group v-model:value="queryFieldModalCheckedKeys" class="query-field-checkbox-group">
-        <div v-for="item in optionalQueryFieldCandidates" :key="item.key" class="query-field-option">
+        <div v-for="item in allQueryFieldCandidates" :key="item.key" class="query-field-option">
           <a-checkbox :value="item.key">{{ item.title }}</a-checkbox>
         </div>
       </a-checkbox-group>
@@ -2475,9 +2455,13 @@ defineExpose({ initData, selectAllModuleInfo });
 .query-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   padding-top: 35px;
   white-space: nowrap;
+}
+.query-config-btn {
+  padding: 0 8px;
 }
 .query-field-modal-body {
   max-height: 360px;
@@ -2497,6 +2481,13 @@ defineExpose({ initData, selectAllModuleInfo });
 }
 .query-field-option:last-child {
   border-bottom: none;
+}
+.query-field-option--header {
+  background: #fafafa;
+  font-weight: 500;
+}
+.query-field-option-label {
+  padding-left: 24px;
 }
 :deep(.query-item) {
   margin-bottom: 0 !important;

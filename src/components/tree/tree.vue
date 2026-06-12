@@ -725,7 +725,7 @@ defineExpose({
           <div class="tree-node-title-row">
             <a-dropdown v-if="bomType === 'unBom'" class="tree-node-title-main">
               <TreeNode
-                :show-name="`${item.partName} (${item.moduleCount})`"
+                :show-name="`${item.partName} [${item.moduleCount}]`"
                 :search-value="searchValue"
                 :node="item"
                 v-if="item.moduleCount != undefined && item.moduleCount != 0" />

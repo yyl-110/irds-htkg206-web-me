@@ -38,7 +38,11 @@ import {
 
 import { AdminApiSystemAuth } from '@/api/tags/管理后台认证'
 import { GlobalQueryPara10Cell, useGlobalQuery } from '../../composables/useGlobalQuery'
-import { isModuleQueryTextField } from '../../composables/useModuleQueryFields'
+import {
+  buildQueryColumnFromProperty,
+  enrichQuerySelectOptionsFromDataSource,
+  resolveDistinctOptionsForQueryColumn,
+} from '../../composables/useModuleQueryFields'
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue'
 import moduleIcon1 from '@/assets/images/module1.png'
 import moduleIcon2 from '@/assets/images/module2.png'
@@ -79,6 +83,10 @@ const page = reactive({
 })
 const columns = ref<TableColumnType<any>[]>([])
 const queryColumns = ref<any>([])
+const allQueryFieldCandidates = ref<any[]>([])
+const visibleQueryKeys = ref<string[]>([])
+const queryFieldModalVisible = ref(false)
+const queryFieldModalCheckedKeys = ref<string[]>([])
 const dropdownList = ref<any>([
   { id: 1, name: '导入' },
   { id: 8, name: '导出' },
@@ -390,6 +398,84 @@ function handleAddOrUpdate() {
   })
 }
 
+async function loadQueryDistinctValues() {
+  const visibleCols = allQueryFieldCandidates.value.filter(c => visibleQueryKeys.value.includes(c.key))
+  if (!visibleCols.length) {
+    return
+  }
+
+  const needFetch = visibleCols.filter(c => c.inputType === 'select' && !c.options?.length)
+  if (needFetch.length) {
+    const extraDataProps = needFetch.map(c => c.dataProp).filter((p: string) => /^para\d+$/.test(p))
+    if (extraDataProps.length) {
+      try {
+        const data: any = {
+          categoryId: categoryid.value,
+          menuId: menuId.value,
+          extraDataProps,
+        }
+        const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data)
+        const distinctValues: Record<string, any[]> =
+          (clumnsRes as any)?.data?.data?.values || (clumnsRes as any)?.data?.values || (clumnsRes as any)?.data?.data || {}
+        needFetch.forEach((column: any) => {
+          column.options = resolveDistinctOptionsForQueryColumn(column, distinctValues)
+        })
+      } catch (error) {
+        console.error('加载查询字段下拉值失败:', error)
+      }
+    }
+  }
+
+  enrichQuerySelectOptionsFromDataSource(visibleCols, dataSource.value, queryForm)
+  refreshQueryColumns()
+}
+
+function syncQuerySelectOptionsFromDataSource() {
+  const targets = allQueryFieldCandidates.value.filter(c => visibleQueryKeys.value.includes(c.key))
+  enrichQuerySelectOptionsFromDataSource(targets, dataSource.value, queryForm)
+  refreshQueryColumns()
+}
+
+function refreshQueryColumns() {
+  const visibleCols = allQueryFieldCandidates.value.filter(c => visibleQueryKeys.value.includes(c.key))
+  const activeKeys = new Set(visibleCols.map(c => c.key))
+  Object.keys(queryForm).forEach(k => {
+    if (!activeKeys.has(k)) {
+      delete queryForm[k]
+    }
+  })
+  queryColumns.value = visibleCols
+  queryColumns.value.forEach((c: any) => {
+    if (!(c.key in queryForm)) {
+      queryForm[c.key] = c.inputType === 'select' ? undefined : ''
+    }
+    if (c.inputType === 'select') {
+      const v = queryForm[c.key]
+      if (v === '' || v === null) queryForm[c.key] = undefined
+    }
+  })
+}
+
+function openQueryFieldModal() {
+  if (!allQueryFieldCandidates.value.length) {
+    message.info('暂无查询字段')
+    return
+  }
+  queryFieldModalCheckedKeys.value = [...visibleQueryKeys.value]
+  queryFieldModalVisible.value = true
+}
+
+function confirmQueryFieldModal() {
+  visibleQueryKeys.value = [...queryFieldModalCheckedKeys.value]
+  refreshQueryColumns()
+  queryFieldModalVisible.value = false
+  void loadQueryDistinctValues()
+}
+
+function cancelQueryFieldModal() {
+  queryFieldModalVisible.value = false
+}
+
 function handleGlobalModelNumClick(record: any) {
   if (props.pickerMode) {
     const key = record._rowKey ?? record.id
@@ -480,6 +566,9 @@ async function modalInit() {
   sortState.value = { key: '', order: '' }
   columns.value = []
   queryColumns.value = []
+  allQueryFieldCandidates.value = []
+  visibleQueryKeys.value = []
+  queryFieldModalCheckedKeys.value = []
   dataSource.value = []
   const data: any = {}
   data.userId = userStore.getUser.id
@@ -508,30 +597,10 @@ async function modalInit() {
     moduleTableColumnFilter.value = {}
     moduleTableFilterOpenMap.value = {}
     for (let i = 0; i < resData.length; i++) {
-      // 动态查询条件：searchFlag == 0（默认查询）
+      const queryCol = buildQueryColumnFromProperty(resData[i], distinctValues)
+      allQueryFieldCandidates.value.push(queryCol)
       if (resData[i].searchFlag == 0) {
-        const key = resData[i].propertyName == '贡献者' ? 'para7Name' : resData[i].dataProp
-        const isTextField = isModuleQueryTextField(resData[i].propertyName)
-        let options: string[] = []
-        if (!isTextField) {
-          const valueKeyCandidates = [
-            String(resData[i].dataProp ?? ''),
-            String(key ?? ''),
-            String(key ?? '').endsWith('Name') ? String(key).slice(0, -4) : '',
-          ].filter(Boolean)
-          const rawOptions =
-            valueKeyCandidates.map(k => distinctValues?.[k]).find(v => Array.isArray(v) && v.length > 0) || []
-          options = (rawOptions || []).map((v: any) => String(v)).filter((v: string) => v.trim() !== '')
-        }
-        queryColumns.value.push({
-          id: resData[i].id,
-          title: resData[i].propertyName,
-          key,
-          parameterNum: String(resData[i].parameterNum ?? resData[i].paramNum ?? '').trim(),
-          inputType: isTextField ? 'text' : 'select',
-          options,
-        })
-        if (!(key in queryForm)) queryForm[key] = isTextField ? '' : undefined
+        visibleQueryKeys.value.push(queryCol.key)
       }
 
       if (resData[i].showFlag == 0) {
@@ -556,12 +625,7 @@ async function modalInit() {
         moduleDataColIndex++
       }
     }
-    queryColumns.value.forEach((c: any) => {
-      if (c.inputType === 'select') {
-        const v = queryForm[c.key]
-        if (v === '' || v === null) queryForm[c.key] = undefined
-      }
-    })
+    refreshQueryColumns()
     moduleFilterableColumnKeys.value = filterKeys
     if (!props.pickerMode) {
       parm.push({
@@ -585,6 +649,7 @@ async function modalInit() {
     const resData: any = res.data.data
     const moduleListData = resData.list || []
     dataSource.value = moduleListData
+    syncQuerySelectOptionsFromDataSource()
     // 总条数：优先使用 total（总记录数），其次 pageCount / totalPage
     page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0
   }
@@ -606,6 +671,7 @@ async function fetchModuleList(filterArr?: any) {
     const resData: any = res.data.data
     dataSource.value = resData.list || []
     page.pageCount = resData.total ?? resData.pageCount ?? resData.totalPage ?? 0
+    syncQuerySelectOptionsFromDataSource()
   }
   loading.value = false
 }
@@ -1587,7 +1653,7 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
   <div class="module-body h-full min-h-0 flex flex-1 flex-col" :class="pickerMode ? 'module-body--picker' : 'p-[16px]'">
     <div class="selectLeft">
       <div class="btn-box">
-        <div class="btn-box-middle" v-if="queryColumns.length">
+        <div class="btn-box-middle" v-if="allQueryFieldCandidates.length">
           <div class="query-scroll">
             <a-row :gutter="[12, 6]">
               <a-col v-for="item in queryColumns" :key="item.key" :span="8">
@@ -1650,6 +1716,11 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
               全局查询
             </a-button>
             <div class="query-actions-btns">
+              <a-tooltip title="配置查询条件">
+                <a-button size="middle" class="query-config-btn" @click="openQueryFieldModal">
+                  <EpcIcon type="icon-tianjia1" style="font-size: 14px" />
+                </a-button>
+              </a-tooltip>
               <a-button type="primary" size="middle" @click="handleQuery()"
                 ><EpcIcon type="icon-fangdajing" style="font-size: 12px" />查询</a-button
               >
@@ -1921,6 +1992,29 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
       </template>
     </a-modal>
   </div>
+
+  <a-modal
+    v-model:visible="queryFieldModalVisible"
+    title="搜索条件"
+    width="420px"
+    :mask-closable="false"
+    @cancel="cancelQueryFieldModal">
+    <div class="query-field-modal-body">
+      <div class="query-field-option query-field-option--header">
+        <span class="query-field-option-label">参数名称</span>
+      </div>
+      <a-checkbox-group v-model:value="queryFieldModalCheckedKeys" class="query-field-checkbox-group">
+        <div v-for="item in allQueryFieldCandidates" :key="item.key" class="query-field-option">
+          <a-checkbox :value="item.key">{{ item.title }}</a-checkbox>
+        </div>
+      </a-checkbox-group>
+    </div>
+    <template #footer>
+      <a-button @click="cancelQueryFieldModal">取消</a-button>
+      <a-button type="primary" @click="confirmQueryFieldModal">确定</a-button>
+    </template>
+  </a-modal>
+
   <a-modal
     v-model:visible="tabularflag"
     style="width: 80%"
@@ -2254,6 +2348,41 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
   padding-top: 35px;
   white-space: nowrap;
 }
+.query-actions-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.query-config-btn {
+  padding: 0 8px;
+}
+.query-field-modal-body {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid #f0f0f0;
+}
+.query-field-checkbox-group {
+  display: block;
+  width: 100%;
+}
+.query-field-option {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.query-field-option:last-child {
+  border-bottom: none;
+}
+.query-field-option--header {
+  background: #fafafa;
+  font-weight: 500;
+}
+.query-field-option-label {
+  padding-left: 24px;
+}
 :deep(.query-item) {
   margin-bottom: 0 !important;
   display: flex;
@@ -2347,11 +2476,6 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
   height: 28px;
   padding: 0 4px;
   line-height: 28px;
-}
-.query-actions-btns {
-  display: flex;
-  gap: 8px;
-  white-space: nowrap;
 }
 .btn-item-select {
   min-width: 28px;
