@@ -2432,18 +2432,19 @@ defineExpose({
 }
 .activity-preview-canvas {
   position: relative;
-  width: max-content;
-  min-width: 100%;
-  max-width: none;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: auto;
-  overflow: hidden;
+  min-height: min-content;
+  overflow: visible;
   padding: 4px 16px 20px 12px;
   box-sizing: border-box;
   --activity-preview-component-width: 300px;
   --activity-preview-wide-component-width: 650px;
   --activity-preview-file-upload-width: 600px;
   --activity-preview-table-width: 700px;
-  --activity-preview-table-max-width: 95%;
+  --activity-preview-table-max-width: 100%;
   --activity-preview-grid-column-gap: 120px;
   --activity-preview-grid-row-gap: 12px;
 }
@@ -2486,6 +2487,7 @@ defineExpose({
   grid-auto-rows: min-content;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 .component-card {
@@ -2508,6 +2510,7 @@ defineExpose({
   grid-column: 1 / -1;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
 }
 .component-card.full-row-item .preview-field,
 .component-card.full-row-item :deep(.ant-input),
@@ -2596,6 +2599,7 @@ defineExpose({
 .component-preview-wrap {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 .data-view-preview-row {
@@ -2652,6 +2656,7 @@ defineExpose({
 .fixed-table-preview {
   width: 100%;
   max-width: var(--activity-preview-table-max-width);
+  min-width: 0;
 }
 .rich-preview-wrap {
   width: 100%;
@@ -2715,6 +2720,7 @@ defineExpose({
   overflow-y: hidden;
   width: 100%;
   max-width: var(--activity-preview-table-max-width);
+  min-width: 0;
   padding-right: 0;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
