@@ -5,6 +5,7 @@ import type { TableColumnType } from 'ant-design-vue';
 import { message, Modal } from 'ant-design-vue';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
+import { canManageCheckPlatformShare, isPlatformShared } from '@/utils/checkPlatformShare';
 import { usePagination } from '@/hooks/usePagination';
 import { useUserStore } from '@/store/modules/user';
 import ExeConfigAddModal from './exeConfigAddModal.vue';
@@ -198,7 +199,7 @@ const exeConfigColumns = ref<TableColumnType<ExeConfigRecord>[]>([
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 120, ellipsis: true, resizable: true },
   { title: '编辑时间', dataIndex: 'updateTime', key: 'updateTime', align: 'center', width: 120, ellipsis: true, resizable: true },
   /** 固定右侧列不建议 resizable：拖拽手柄与 vc-table 测量宽度易与 sticky 错位，横向滚到尽头时操作列会抖/压盖前一列 */
-  { title: '操作', dataIndex: 'operation', key: 'operation', align: 'center', width: 200, fixed: 'right' },
+  { title: '操作', dataIndex: 'operation', key: 'operation', align: 'center', width: 260, fixed: 'right' },
 ]);
 
 function handleResizeColumn(w: number, col: TableColumnType<ExeConfigRecord>) {
@@ -224,6 +225,7 @@ const editModalVisible = ref(false);
 const editRow = ref<Record<string, unknown> | null>(null);
 /** 发布/取消发布请求中的行 id，用于防重复点击 */
 const publishBusyId = ref<string | number | null>(null);
+const shareBusyId = ref<string | number | null>(null);
 
 const sourceList = computed<ExeConfigRecord[]>(() => {
   return (exeListRaw.value || []).map((item: any, index: number) => {
@@ -397,6 +399,50 @@ function isApiOk(res: any): boolean {
   return code === 0 || code === 200 || code === '0';
 }
 
+function canRecordPlatformShare(record: ExeConfigRecord): boolean {
+  const row = getExeRawByRecord(record);
+  return canManageCheckPlatformShare({
+    published: isRecordPublished(record),
+    canPlatformShare: row?.canPlatformShare === true,
+    creator: row?.creator as string | number | undefined,
+    loginUserId: userStore.getUser?.id,
+  });
+}
+
+function isRecordPlatformShared(record: ExeConfigRecord): boolean {
+  const row = getExeRawByRecord(record);
+  return isPlatformShared(row?.platformShareStatus as number | string | undefined);
+}
+
+async function requestPlatformShareExe(record: ExeConfigRecord, share: boolean) {
+  if (shareBusyId.value != null || publishBusyId.value != null) {
+    message.warning('请等待当前操作完成');
+    return;
+  }
+  const row = getExeRawByRecord(record);
+  if (!row || !canRecordPlatformShare(record)) {
+    return;
+  }
+  shareBusyId.value = record.id;
+  try {
+    const res = await AdminApiSystemCheckInfoApi.saveCheckPlatformShare({
+      bizType: 'EXE',
+      bizId: String(row.id ?? record.id),
+      share,
+    });
+    if (!isApiOk(res)) {
+      message.error(String(res?.data?.msg || (share ? '共享失败' : '撤销共享失败')));
+      return;
+    }
+    message.success(share ? '已共享到全平台' : '已撤销全平台共享');
+    void fetchExeList();
+  } catch {
+    message.error(share ? '共享失败，请稍后重试' : '撤销共享失败，请稍后重试');
+  } finally {
+    shareBusyId.value = null;
+  }
+}
+
 /** 发布：写入计算清单（saveCheckSummar）后更新 exe 状态为已发布 */
 async function requestPublishExe(record: ExeConfigRecord) {
   if (publishBusyId.value != null) {
@@ -563,6 +609,14 @@ function onAction(action: string, record: ExeConfigRecord) {
     confirmCancelPublish(record);
     return;
   }
+  if (action === '共享') {
+    void requestPlatformShareExe(record, true);
+    return;
+  }
+  if (action === '撤销共享') {
+    void requestPlatformShareExe(record, false);
+    return;
+  }
   emit('action', action, record);
 }
 
@@ -664,6 +718,20 @@ watch(editModalVisible, v => {
               <a v-else :class="{ 'calc-operation-links--disabled': publishBusyId === record.id }" @click.stop.prevent="onAction('发布', record)">
                 {{ publishBusyId === record.id ? '处理中…' : '发布' }}
               </a>
+              <template v-if="canRecordPlatformShare(record)">
+                <a
+                  v-if="!isRecordPlatformShared(record)"
+                  :class="{ 'calc-operation-links--disabled': shareBusyId === record.id }"
+                  @click.stop.prevent="onAction('共享', record)">
+                  {{ shareBusyId === record.id ? '处理中…' : '共享' }}
+                </a>
+                <a
+                  v-else
+                  :class="{ 'calc-operation-links--disabled': shareBusyId === record.id }"
+                  @click.stop.prevent="onAction('撤销共享', record)">
+                  {{ shareBusyId === record.id ? '处理中…' : '撤销共享' }}
+                </a>
+              </template>
             </div>
           </template>
           <template v-else-if="column.ellipsis">

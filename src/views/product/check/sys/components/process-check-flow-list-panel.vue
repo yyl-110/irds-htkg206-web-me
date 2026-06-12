@@ -7,6 +7,7 @@ import { WeiI18n } from '@/utils/WeiI18n';
 import { usePagination } from '@/hooks/usePagination';
 import { ProcessFlowListPageRequestDTOModel } from '@/api/models/processTask/ProcessFlowListPageRequestDTOModel';
 import { sortermethod } from '@/utils/tools';
+import { AdminApiSystemCheckInfoApi } from '@/api/tags/check/计算管理后台';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import Empty from '@/components/Empty/index.vue';
 import FlowView from '@/components/flowview/indexManager.vue';
@@ -14,6 +15,7 @@ import { useUserStore } from '@/store/modules/user';
 import { useRouter } from 'vue-router';
 import { CaretDownOutlined, CaretUpOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
+import { canManageCheckPlatformShare, isPlatformShared } from '@/utils/checkPlatformShare';
 const props = defineProps<{
   menuId?: string | number;
   treeNodeKey?: string | number;
@@ -42,6 +44,9 @@ type FlowRow = {
   bpmnXml?: string;
   latestPublishVersionId?: number | string;
   latestPublishVersionNo?: number;
+  platformShareStatus?: number;
+  canPlatformShare?: boolean;
+  canShare?: boolean;
 };
 
 const loading = ref(false);
@@ -181,11 +186,46 @@ const columns = ref<TableColumnType<FlowRow>[]>([
     dataIndex: 'operation',
     key: 'operation',
     align: 'center',
-    width: 250,
+    width: 320,
     fixed: 'right',
     resizable: false,
   },
 ]);
+
+const shareBusyId = ref<string | number | null>(null);
+
+function isApiOk(res: any): boolean {
+  const code = res?.data?.code as number | string | undefined;
+  return code === 0 || code === 200 || code === '0' || code === '200';
+}
+
+async function requestPlatformShareTask(record: FlowRow, share: boolean) {
+  if (!record?.id || !canRowPlatformShare(record)) {
+    return;
+  }
+  if (shareBusyId.value != null) {
+    message.warning('请等待当前操作完成');
+    return;
+  }
+  shareBusyId.value = record.id;
+  try {
+    const res = await AdminApiSystemCheckInfoApi.saveCheckPlatformShare({
+      bizType: 'TASK',
+      bizId: String(record.id),
+      share,
+    });
+    if (!isApiOk(res)) {
+      message.error(String(res?.data?.msg || (share ? '共享失败' : '撤销共享失败')));
+      return;
+    }
+    message.success(share ? '已共享到全平台' : '已撤销全平台共享');
+    await loadFlowListData();
+  } catch {
+    message.error(share ? '共享失败，请稍后重试' : '撤销共享失败，请稍后重试');
+  } finally {
+    shareBusyId.value = null;
+  }
+}
 
 /** 横向滚动：列宽之和 + 勾选列 + 缓冲（与 parameter/index.vue 一致） */
 const SCROLL_X_BUFFER_PX = 2;
@@ -355,6 +395,20 @@ function isCollabPublished(record: FlowRow) {
 /** 独立应用状态：1 / 已发布 视为已发布 */
 function isAppPublished(record: FlowRow) {
   return String(record.appStatus) === '1' || record.appStatus === '已发布';
+}
+
+function canRowPlatformShare(record: FlowRow) {
+  return canManageCheckPlatformShare({
+    published: isAppPublished(record),
+    canPlatformShare: record.canPlatformShare,
+    canShare: record.canShare,
+    creator: record.creator,
+    loginUserId: userStore.getUser?.id,
+  });
+}
+
+function isRowPlatformShared(record: FlowRow) {
+  return isPlatformShared(record.platformShareStatus);
 }
 
 /** 发布任务、独立应用均为未发布时，才允许进入「配置」 */
@@ -701,6 +755,22 @@ defineExpose({
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
                 <a href="#" @click.prevent>撤销计算发布</a>
               </a-popconfirm>
+              <template v-if="canRowPlatformShare(record)">
+                <a
+                  v-if="!isRowPlatformShared(record)"
+                  href="#"
+                  :class="{ 'calc-operation-links--disabled': shareBusyId === record.id }"
+                  @click.prevent="requestPlatformShareTask(record, true)">
+                  {{ shareBusyId === record.id ? '处理中…' : '共享' }}
+                </a>
+                <a
+                  v-else
+                  href="#"
+                  :class="{ 'calc-operation-links--disabled': shareBusyId === record.id }"
+                  @click.prevent="requestPlatformShareTask(record, false)">
+                  {{ shareBusyId === record.id ? '处理中…' : '撤销共享' }}
+                </a>
+              </template>
               <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
               <span v-else class="operation-disabled">配置</span>
               <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record.id)">

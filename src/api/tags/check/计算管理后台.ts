@@ -148,6 +148,21 @@ export class AdminApiSystemCheckInfoApi {
       },
       CommonResultListDeptResponseDTOModel
     );
+
+  /**
+   * 计算校核全平台共享 / 撤销共享
+   */
+  static saveCheckPlatformShare = <Req extends { bizType: string; bizId: string; share: boolean }>(body: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `business-service/business/check-platform-share/save`,
+        method: 'POST',
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel
+    );
   
 }
 

@@ -26,7 +26,7 @@ import checkExeBg from '@/assets/images/check-exe.png';
 import checkMatlabBg from '@/assets/images/check-matlab.png';
 import checkExcelBg from '@/assets/images/check-excel.png';
 
-import { download } from '@/libs/webSocketNew';
+import { isCheckSharedTreeNodeKey } from '@/utils/checkPlatformShare';
 import { useRoute, useRouter } from 'vue-router';
 
 const userStore = useUserStore();
@@ -226,6 +226,9 @@ async function fetchChecklist(options?: { serverSearch?: boolean }) {
       treeId,
       menuId: mid,
     };
+    if (isCheckSharedTreeNodeKey(treeId)) {
+      delete query.menuId;
+    }
     const kw = checklistKeyword.value.trim();
     if (options?.serverSearch && kw) {
       query.checkName = kw;
@@ -420,7 +423,8 @@ function convertToTreeNodes(data: any[]): any[] {
       type: 'param',
       categoryType: item.type,
       parentId: item.parentId,
-      level: level,
+      level: item.fixed === true ? 3 : level,
+      fixed: item.fixed === true,
       children: hasChildren ? convertToTreeNodes(item.children) : [],
     };
   });
