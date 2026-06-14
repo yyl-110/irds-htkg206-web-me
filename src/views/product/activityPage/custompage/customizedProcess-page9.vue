@@ -26,7 +26,7 @@
     <div class="page9-toolbar">
       <span class="page9-toolbar__label">载荷系数：</span>
       <a-input v-model:value="loadCoefficient" class="page9-toolbar__input" @input="handleCoefficientChange" />
-      <a-button type="primary" class="page9-toolbar__calc" @click="handleCalculation">
+      <a-button type="primary" @click="handleCalculation">
         <template #icon><CalculatorOutlined /></template>
         计算
       </a-button>
@@ -250,6 +250,14 @@ function handleSchemeSelection(_keys: Key[], rows: Page9SchemeRow[]) {
   setSaveBtnEnable();
 }
 
+function ensureDefaultSchemeSelection() {
+  if (selectedRowKeys.value.length > 0) return;
+  const rows = getSchemeTableRows(parameterTempList.value);
+  if (!rows.length) return;
+  const firstRow = rows[0];
+  handleSchemeSelection([schemeRowKey(firstRow, 0)], [firstRow]);
+}
+
 const schemeRowSelection = computed(() => ({
   type: 'radio' as const,
   selectedRowKeys: selectedRowKeys.value,
@@ -314,6 +322,7 @@ function handleInitData(): boolean {
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
+  ensureDefaultSchemeSelection();
   return true;
 }
 
@@ -350,6 +359,7 @@ function updateEl(): Promise<void> {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage9ParameterList(parameterTempList.value);
     loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
+    ensureDefaultSchemeSelection();
   });
 }
 
@@ -439,10 +449,6 @@ mountWithTaskParamMap(onMountReady);
 
 .page9-toolbar__input {
   width: 100px;
-}
-
-.page9-toolbar__calc {
-  margin-left: auto;
 }
 
 .page9-body {

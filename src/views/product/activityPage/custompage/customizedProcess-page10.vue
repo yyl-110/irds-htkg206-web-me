@@ -26,24 +26,20 @@
     <div class="page10-detail">
       <div class="page10-detail__title">{{ programmeTitle }}</div>
       <div class="page10-toolbar">
-        <div class="page10-toolbar__field">
-          <span class="page10-toolbar__label">传动效率:</span>
-          <a-input
-            v-model:value="efficiencyValue"
-            allow-clear
-            class="page10-toolbar__input"
-            @input="handleEfficiencyChange" />
-        </div>
-        <a-space :size="12">
-          <a-button type="primary" @click="openImportModal">
-            <template #icon><ImportOutlined /></template>
-            导入
-          </a-button>
-          <a-button type="primary" @click="handleCalculation">
-            <template #icon><CalculatorOutlined /></template>
-            计算
-          </a-button>
-        </a-space>
+        <span class="page10-toolbar__label">传动效率:</span>
+        <a-input
+          v-model:value="efficiencyValue"
+          allow-clear
+          class="page10-toolbar__input"
+          @input="handleEfficiencyChange" />
+        <a-button type="primary" @click="openImportModal">
+          <template #icon><ImportOutlined /></template>
+          导入
+        </a-button>
+        <a-button type="primary" @click="handleCalculation">
+          <template #icon><CalculatorOutlined /></template>
+          计算
+        </a-button>
       </div>
 
       <div class="page10-degree-wrap">
@@ -292,8 +288,17 @@ function handleSchemeSelection(_keys: Key[], rows: Page10SchemeRow[]) {
   setSaveBtnEnable();
 }
 
+function ensureDefaultSchemeSelection() {
+  if (selectedRowKeys.value.length > 0) return;
+  const rows = getSchemeTableRows(parameterTempList.value);
+  if (!rows.length) return;
+  const firstRow = rows[0];
+  handleSchemeSelection([schemeRowKey(firstRow, 0)], [firstRow]);
+}
+
 const schemeRowSelection = computed(() => ({
   type: 'radio' as const,
+  fixed: true,
   selectedRowKeys: selectedRowKeys.value,
   onChange: handleSchemeSelection,
 }));
@@ -341,6 +346,7 @@ function handleInitData(): boolean {
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
+  ensureDefaultSchemeSelection();
   return true;
 }
 
@@ -389,6 +395,7 @@ function updateEl(): Promise<void> {
     parameterTempList.value = clonePage10ParameterList(parameterTempList.value);
     efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
     restoreSelectionFromParam();
+    ensureDefaultSchemeSelection();
   });
 }
 
@@ -396,9 +403,7 @@ async function runAutoInitAndCalculateOnce() {
   if (hasAutoRefreshed.value) return;
   hasAutoRefreshed.value = true;
   await updateEl();
-  if (handleInitData()) {
-    restoreSelectionFromParam();
-  }
+  handleInitData();
 }
 
 function onMountReady() {
@@ -500,20 +505,14 @@ mountWithTaskParamMap(onMountReady);
 .page10-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
-.page10-toolbar__field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .page10-toolbar__label {
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .page10-toolbar__input {
@@ -547,6 +546,10 @@ mountWithTaskParamMap(onMountReady);
 .page10-table :deep(.ant-table-cell-fix-left) {
   background: #fff;
   z-index: 2;
+}
+
+.page10-table :deep(.ant-table-selection-column) {
+  text-align: left;
 }
 
 .table-cell-input {

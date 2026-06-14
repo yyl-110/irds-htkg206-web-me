@@ -1206,8 +1206,15 @@ async function requestDesignTaskBasicInfo() {
   }
 }
 
-async function onSelectTree(keys: (string | number)[]) {
-  const k = String(keys?.[0] ?? '');
+async function onSelectTree(
+  keys: (string | number)[],
+  info?: { selected?: boolean; node?: { key?: string | number } },
+) {
+  let k = String(keys?.[0] ?? '');
+  if (!k && info?.node?.key != null && info.node.key !== '') {
+    k = String(info.node.key);
+  }
+  if (!k) return;
   selectedNodeKey.value = k;
   rightPanelManualOverride.value = false;
   const targetNode = allNodeMap.value.get(k);

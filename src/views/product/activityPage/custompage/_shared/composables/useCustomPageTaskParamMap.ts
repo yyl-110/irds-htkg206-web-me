@@ -145,14 +145,22 @@ export function useCustomPageTaskParamMap<T extends CustomPageParameterItem>(opt
     );
   }
 
-  function mountWithTaskParamMap(updateEl: () => void) {
+  function mountWithTaskParamMap(updateEl: () => void, afterInit?: () => void) {
     onMounted(async () => {
       await loadPageParametersIfNeeded();
       if (!taskParamLoaded) {
         await ensureTaskParamMapLoaded();
       }
       updateEl();
+      afterInit?.();
     });
+  }
+
+  function getTaskParamSavedSnapshot() {
+    return {
+      saved: [...taskParamSaved.value],
+      savedTables: [...taskParamSavedTables.value],
+    };
   }
 
   return {
@@ -160,5 +168,6 @@ export function useCustomPageTaskParamMap<T extends CustomPageParameterItem>(opt
     loadPageParametersIfNeeded,
     setupParameterWatch,
     mountWithTaskParamMap,
+    getTaskParamSavedSnapshot,
   };
 }

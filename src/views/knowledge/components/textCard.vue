@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { doCollectFile, getPdfPreviewPath, modifyInit, saveLookFileLog, updateKldCounting } from '@/api/knowledge';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import comment from '@/components/Comment/index.vue';
 import { useUserStore } from '@/store/modules/user';
 import { getTimes } from '@/utils/dateUtils';
+import { downloadFileFromStream } from '@/utils/file';
 import {
   EyeOutlined,
   MessageOutlined,
@@ -50,24 +52,58 @@ const confidentialLevel = computed(() => {
   return '公开';
 });
 
+function normalizeFileType(fileType?: string) {
+  return String(fileType ?? '')
+    .toLowerCase()
+    .replace(/^\./, '');
+}
+
+function isPreviewableFileType(fileType?: string) {
+  const type = normalizeFileType(fileType);
+  return (
+    type === 'doc' ||
+    type === 'docx' ||
+    type === 'word' ||
+    type === 'pdf' ||
+    type === 'excel' ||
+    type === 'xls' ||
+    type === 'xlsx' ||
+    type === 'ppt' ||
+    type === 'pptx'
+  );
+}
+
+function isExcelFileType(fileType?: string) {
+  const type = normalizeFileType(fileType);
+  return type === 'xlsx' || type === 'xls' || type === 'excel';
+}
+
+const downloadSourceFile = async (item: { fileId: string; fileName?: string; fileType?: string }) => {
+  const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: item.fileId } as any);
+  const fileInfo = await AdminApiSystemUploadFile.getFileByIds({ fileIds: item.fileId } as any);
+  const stream = (res as any)?.data !== undefined ? (res as any).data : res;
+  const fallbackName = item.fileName && item.fileType ? `${item.fileName}.${item.fileType}` : '知识文件';
+  downloadFileFromStream(stream, fileInfo.data[0].oldFileName || fallbackName);
+};
+
 const viewPdfFun = async () => {
+  const content = props.textData.content;
+  const shouldDownload = !isPreviewableFileType(content.fileType);
   const params = {
     name: useUserStore().getUser.userName, //userName
     userId: useUserStore().getUser.id,
-    kldId: props.textData.content.id, //fileId
-    type: '1', //1,浏览  2，下载
+    kldId: content.id, //fileId
+    type: shouldDownload ? '2' : '1', //1,浏览  2，下载
   };
   await saveLookFileLog(params);
 
-  viewPdf(props.textData.content);
-};
+  if (shouldDownload) {
+    await downloadSourceFile(content);
+    return;
+  }
 
-function isExcelFileType(fileType?: string) {
-  const type = String(fileType ?? '')
-    .toLowerCase()
-    .replace(/^\./, '');
-  return type === 'xlsx' || type === 'xls' || type === 'excel';
-}
+  viewPdf(content);
+};
 
 // 查看pdf
 const viewPdf = async (item: any) => {

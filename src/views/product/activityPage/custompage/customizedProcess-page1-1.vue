@@ -109,6 +109,7 @@ import {
 } from './page0-5/calculations';
 import { loadPage0_5PageParameters } from './page0-5/loadPageParameters';
 import { createDefaultPage0_5ParameterList, type Page0_5ParameterItem } from './page0-5/parameterDefaults';
+import { hasPage0_5SavedData } from './page0-5/hasPageSavedData';
 import {
   INPUT_PARAM_NUMBER_REG,
   isResultTableEditableColumn,
@@ -127,6 +128,8 @@ const props = withDefaults(
     modalFlag?: boolean;
     pageid?: string;
     parameterTempList?: Page0_5ParameterItem[];
+    savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null;
+    savedTables?: Array<Record<string, unknown>> | null;
   }>(),
   {
     width: 1000,
@@ -168,7 +171,7 @@ function createInitialParameterList(): Page0_5ParameterItem[] {
 }
 
 const parameterTempList = ref<Page0_5ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } =
+const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap, getTaskParamSavedSnapshot } =
   useCustomPageTaskParamMap({
     props,
     parameterTempList,
@@ -263,6 +266,33 @@ function updateEl() {
     applyTaskParamMapToList();
     syncLocalDataFromParameterList();
   });
+}
+
+let inputParamsInitApplied = false;
+
+function hasPageSavedData() {
+  if (hasPage0_5SavedData(props.savedTables, props.savedParamValues)) {
+    return true;
+  }
+  const snapshot = getTaskParamSavedSnapshot();
+  return hasPage0_5SavedData(snapshot.savedTables, snapshot.saved);
+}
+
+function applyInputParamsChangeOnInit() {
+  if (inputParamsInitApplied || hasPageSavedData()) {
+    inputParamsInitApplied = true;
+    return;
+  }
+  inputParamsInitApplied = true;
+
+  const rows = parameterTempList.value[0]?.tableMap?.rowData ?? [];
+  if (rows.length < 4) return;
+
+  changeInput(String(rows[0]?.p2 ?? ''));
+  changeInput1(String(rows[1]?.p2 ?? ''));
+  changeInput2(String(rows[2]?.p2 ?? ''));
+  changeInput3(String(rows[3]?.p2 ?? ''));
+  syncLocalDataFromParameterList();
 }
 
 setupParameterWatch(updateEl);
@@ -374,7 +404,9 @@ defineExpose({
   getCurrentTableSavePayload,
 });
 
-mountWithTaskParamMap(updateEl);
+mountWithTaskParamMap(updateEl, () => {
+  nextTick(() => applyInputParamsChangeOnInit());
+});
 </script>
 
 <style scoped>

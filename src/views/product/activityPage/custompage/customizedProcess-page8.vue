@@ -40,7 +40,15 @@ import {
   type Page8ParameterItem,
   type Page8TableRow,
 } from './page8/parameterDefaults';
-import { getPage8TableRows, setPage8TableRows, syncPage8SelectionIndexes } from './page8/rowOperations';
+import {
+  clearPage8SelectionParam,
+  getPage8TableRows,
+  hasPage8SavedData,
+  page8TableRowKey,
+  resolvePage8SelectedRowKeys,
+  setPage8TableRows,
+  syncPage8SelectionIndexes,
+} from './page8/rowOperations';
 import { PAGE8_ANT_COLUMNS, PAGE8_TABLE_MIN_WIDTH } from './page8/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page8' });
@@ -67,6 +75,7 @@ const emit = defineEmits<{
 }>();
 
 const hasAutoRefreshed = ref(false);
+const suppressSelectionChange = ref(false);
 
 const tabHeight = 580;
 const tableScrollX = PAGE8_TABLE_MIN_WIDTH;
@@ -95,17 +104,41 @@ function createInitialParameterList(): Page8ParameterItem[] {
 }
 
 const parameterTempList = ref<Page8ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage8PageParameters,
-  cloneItem: clonePage8ParameterList,
-});
+const { applyTaskParamMapToList, getTaskParamSavedSnapshot, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage8PageParameters,
+    cloneItem: clonePage8ParameterList,
+  });
 
 const tableRowData = computed(() => getPage8TableRows(parameterTempList.value));
 
-function page8TableRowKey(record: Page8TableRow, index?: number) {
-  return String(record.p0 ?? index ?? '');
+function hasPageSavedData() {
+  if (hasPage8SavedData(props.savedTables, props.savedParamValues)) {
+    return true;
+  }
+  const snapshot = getTaskParamSavedSnapshot();
+  return hasPage8SavedData(snapshot.savedTables, snapshot.saved);
+}
+
+function resolveSavedParamSnapshot() {
+  if (Array.isArray(props.savedParamValues) && props.savedParamValues.length) {
+    return props.savedParamValues;
+  }
+  return getTaskParamSavedSnapshot().saved;
+}
+
+async function applySelectionState(restoreFromSaved: boolean) {
+  suppressSelectionChange.value = true;
+  if (restoreFromSaved) {
+    selectedRowKeys.value = resolvePage8SelectedRowKeys(parameterTempList.value, resolveSavedParamSnapshot());
+  } else {
+    selectedRowKeys.value = [];
+    clearPage8SelectionParam(parameterTempList.value);
+  }
+  await nextTick();
+  suppressSelectionChange.value = false;
 }
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
@@ -135,6 +168,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 }
 
 function handleSelectionChange(keys: Key[], rows: Page8TableRow[]) {
+  if (suppressSelectionChange.value) return;
   selectedRowKeys.value = keys;
   syncPage8SelectionIndexes(parameterTempList.value, rows);
   setSaveBtnEnable();
@@ -145,24 +179,27 @@ const rowSelection = computed(() => ({
   onChange: handleSelectionChange,
 }));
 
-function handleInitData(): boolean {
+async function handleInitData(): Promise<boolean> {
+  suppressSelectionChange.value = true;
   const result = applyPage8InitData(parameterTempList.value);
   if (!result.ok) {
+    suppressSelectionChange.value = false;
     message.warning(
       '未能更新表格：请先在「齿轮减速比分配」「确定齿数」「性能校核」等前置页面生成数据并注入流程上下文后再试',
     );
     return false;
   }
-  selectedRowKeys.value = [];
   setPage8TableRows(parameterTempList.value, [...getPage8TableRows(parameterTempList.value)]);
+  await applySelectionState(hasPageSavedData());
   setSaveBtnEnable();
   return true;
 }
 
 function updateEl(): Promise<void> {
-  return nextTick(() => {
+  return nextTick(async () => {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage8ParameterList(parameterTempList.value);
+    await applySelectionState(hasPageSavedData());
   });
 }
 
@@ -170,7 +207,7 @@ async function runAutoInitOnce() {
   if (hasAutoRefreshed.value) return;
   hasAutoRefreshed.value = true;
   await updateEl();
-  handleInitData();
+  await handleInitData();
 }
 
 function onMountReady() {

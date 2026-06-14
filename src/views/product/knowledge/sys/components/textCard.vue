@@ -63,24 +63,57 @@ const confidentialLevel = computed(() => {
   return '公开';
 });
 
+function normalizeFileType(fileType?: string) {
+  return String(fileType ?? '')
+    .toLowerCase()
+    .replace(/^\./, '');
+}
+
+function isPreviewableFileType(fileType?: string) {
+  const type = normalizeFileType(fileType);
+  return (
+    type === 'doc' ||
+    type === 'docx' ||
+    type === 'word' ||
+    type === 'pdf' ||
+    type === 'excel' ||
+    type === 'xls' ||
+    type === 'xlsx' ||
+    type === 'ppt' ||
+    type === 'pptx'
+  );
+}
+
+function isExcelFileType(fileType?: string) {
+  const type = normalizeFileType(fileType);
+  return type === 'xlsx' || type === 'xls' || type === 'excel';
+}
+
+const downloadSourceFile = async (item: { fileId: string; fileName?: string; fileType?: string }) => {
+  const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: item.fileId } as any);
+  const fileInfo = await AdminApiSystemUploadFile.getFileByIds({ fileIds: item.fileId } as any);
+  const stream = (res as any)?.data !== undefined ? (res as any).data : res;
+  const fallbackName = item.fileName && item.fileType ? `${item.fileName}.${item.fileType}` : '知识文件';
+  downloadFileFromStream(stream, fileInfo.data[0].oldFileName || fallbackName);
+};
+
 const viewPdfFun = async () => {
+  const shouldDownload = !isPreviewableFileType(props.textData.fileType);
   const params = {
     name: useUserStore().getUser.userName, //userName
     userId: useUserStore().getUser.id,
     kldId: props.textData.id, //fileId
-    type: '1', //1,浏览  2，下载
+    type: shouldDownload ? '2' : '1', //1,浏览  2，下载
   };
   await saveLookFileLog(params);
 
+  if (shouldDownload) {
+    await downloadSourceFile(props.textData);
+    return;
+  }
+
   viewPdf(props.textData);
 };
-
-function isExcelFileType(fileType?: string) {
-  const type = String(fileType ?? '')
-    .toLowerCase()
-    .replace(/^\./, '');
-  return type === 'xlsx' || type === 'xls' || type === 'excel';
-}
 
 // 查看pdf
 const viewPdf = async (item: any) => {
@@ -149,12 +182,7 @@ const closeShare = () => {
 
 //下载
 const download = async () => {
-  // window.location.href = import.meta.env.VITE_BASE_HTMLPREVIEW_URL + '/base-service/fileManagerController/download.json?fileId=' + props.textData.fileId;
-  const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId: props.textData.fileId } as any);
-  //根据fileID查找文件信息
-  const fileInfo = await AdminApiSystemUploadFile.getFileByIds({ fileIds: props.textData.fileId } as any);
-  const stream = (res as any)?.data !== undefined ? (res as any).data : res;
-  downloadFileFromStream(stream, fileInfo.data[0].oldFileName || '知识文件.doc');
+  await downloadSourceFile(props.textData);
 };
 
 const deleteData = async () => {
