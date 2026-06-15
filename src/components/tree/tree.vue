@@ -743,7 +743,7 @@ defineExpose({
           </div>
         </template>
         <template #icon="item">
-          <ShareAltOutlined v-if="item.fixed" class="tree-node-icon-share" />
+          <ShareAltOutlined v-if="item.sharedNode" class="tree-node-icon-share" />
           <WeiIcon icon="icon-project" :size="16" v-else-if="(item.type === 'category' && item.level == '1') || (item.categoryType == 1 && item.type === 'category')" />
           <WeiIcon icon="icon-wjj" :size="16" v-else-if="item.type === 'category' && item.level == '2'" />
           <WeiIcon icon="icon-wj" :size="16" v-else-if="item.type === 'category' && item.level == '3'" />

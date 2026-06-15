@@ -26,7 +26,7 @@ import checkExeBg from '@/assets/images/check-exe.png';
 import checkMatlabBg from '@/assets/images/check-matlab.png';
 import checkExcelBg from '@/assets/images/check-excel.png';
 
-import { isCheckSharedTreeNodeKey } from '@/utils/checkPlatformShare';
+import { CHECK_SHARED_TREE_NODE_KEY, isCheckSharedTreeNodeKey } from '@/utils/checkPlatformShare';
 import { useRoute, useRouter } from 'vue-router';
 
 const userStore = useUserStore();
@@ -425,6 +425,7 @@ function convertToTreeNodes(data: any[]): any[] {
       parentId: item.parentId,
       level: item.fixed === true ? 3 : level,
       fixed: item.fixed === true,
+      sharedNode: item.sharedNode === true || (item.fixed === true && String(item.id ?? '') === CHECK_SHARED_TREE_NODE_KEY),
       children: hasChildren ? convertToTreeNodes(item.children) : [],
     };
   });
