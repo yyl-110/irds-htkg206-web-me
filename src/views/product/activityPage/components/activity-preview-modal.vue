@@ -198,9 +198,30 @@ function parseTableDropdownOptions(raw: unknown) {
     .filter(Boolean)
     .map(v => ({ label: v, value: v }));
 }
+function getTableCellBasicDefEntry(item: any, bodyRow: number, col: number): Record<string, any> | null {
+  const rawMap = item?.customProps?.cellBasicDefMap;
+  if (!rawMap || typeof rawMap !== 'object' || Array.isArray(rawMap)) return null;
+  const key = `${bodyRow}-${col}`;
+  const entry = rawMap[key] ?? rawMap[key.replace(/\s+/g, '')] ?? rawMap[`${bodyRow}:${col}`] ?? rawMap[`${bodyRow}_${col}`];
+  if (entry && typeof entry === 'object') return entry as Record<string, any>;
+  const hit = Object.entries(rawMap as Record<string, unknown>).find(([k]) => {
+    const kk = String(k ?? '')
+      .trim()
+      .replace(/\s+/g, '');
+    if (kk === key) return true;
+    const m = /^(\d+)\D+(\d+)$/.exec(kk);
+    if (!m) return false;
+    return Number(m[1]) === bodyRow && Number(m[2]) === col;
+  });
+  const found = hit?.[1];
+  return found && typeof found === 'object' ? (found as Record<string, any>) : null;
+}
 function getPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number) {
   const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);
-  return previewTableCellMap.value[k] ?? '';
+  const direct = previewTableCellMap.value[k];
+  if (direct != null && String(direct) !== '') return direct;
+  const basicDef = getTableCellBasicDefEntry(item, bodyRow, col);
+  return String(basicDef?.defaultValue ?? '');
 }
 function setPreviewTableCellValue(item: any, componentIndex: number, bodyRow: number, col: number, v: string) {
   const k = getTableCellPreviewKey(item, componentIndex, bodyRow, col);

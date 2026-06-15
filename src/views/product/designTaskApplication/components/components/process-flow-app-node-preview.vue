@@ -1055,6 +1055,26 @@ function isWorkspaceTableIndexColumn(item: any, colIndex: number) {
   if (colIndex !== 1) return false;
   return String(item?.customProps?.firstColumnType || 'INDEX') === 'INDEX';
 }
+function isWorkspaceTableBizWithColDefs(item: any) {
+  if (item?.componentType !== 'TABLE') return false;
+  const biz = String(item?.customProps?.tableBizType ?? '');
+  return ['MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ', 'FILE_COLLAB', 'FILE_COLLAB_SIMPLE', 'NORMAL'].includes(biz);
+}
+function getPreviewTableColDef(item: any, physicalColIndex: number) {
+  return item?.customProps?.tableColDefs?.[physicalColIndex - 1];
+}
+function getPreviewTableColDataType(item: any, physicalColIndex: number): string {
+  return String(getPreviewTableColDef(item, physicalColIndex)?.dataType ?? 'TEXT');
+}
+function parseTableDropdownOptions(raw: unknown) {
+  const s = String(raw ?? '').trim();
+  if (!s) return [];
+  return s
+    .split(/[;；]/)
+    .map(x => x.trim())
+    .filter(Boolean)
+    .map(v => ({ label: v, value: v }));
+}
 function getWorkspaceTableOperationButtons(item: any) {
   const p = item?.customProps || {};
   const biz = String(p.tableBizType ?? '');
@@ -1197,9 +1217,9 @@ function getTableCellInheritConfig(item: any, bodyRow: number, col: number): { i
     tableCellRef: String(entry?.cellTableCellRef ?? '').trim(),
   };
 }
-function getTableCellUniqueCode(item: any, bodyRow: number, col: number): string {
+function getTableCellBasicDefEntry(item: any, bodyRow: number, col: number): Record<string, any> | null {
   const rawMap = item?.cellBasicDefMap ?? item?.customProps?.cellBasicDefMap;
-  if (!rawMap) return '';
+  if (!rawMap) return null;
   let mapObj: Record<string, any> | null = null;
   if (typeof rawMap === 'string') {
     try {
@@ -1211,7 +1231,7 @@ function getTableCellUniqueCode(item: any, bodyRow: number, col: number): string
   } else if (typeof rawMap === 'object' && !Array.isArray(rawMap)) {
     mapObj = rawMap as Record<string, any>;
   }
-  if (!mapObj) return '';
+  if (!mapObj) return null;
   const key = `${bodyRow}-${col}`;
   const directEntry = mapObj[key];
   const normalizedDirectEntry = mapObj[key.replace(/\s+/g, '')] || mapObj[`${bodyRow}:${col}`] || mapObj[`${bodyRow}_${col}`];
@@ -1229,8 +1249,15 @@ function getTableCellUniqueCode(item: any, bodyRow: number, col: number): string
     });
     entry = hit?.[1];
   }
-  if (!entry || typeof entry !== 'object') return '';
+  return entry && typeof entry === 'object' ? (entry as Record<string, any>) : null;
+}
+function getTableCellUniqueCode(item: any, bodyRow: number, col: number): string {
+  const entry = getTableCellBasicDefEntry(item, bodyRow, col);
   return String(entry?.uniqueCode ?? '').trim();
+}
+function getTableCellDefaultValue(item: any, bodyRow: number, col: number): string {
+  const entry = getTableCellBasicDefEntry(item, bodyRow, col);
+  return String(entry?.defaultValue ?? '').trim();
 }
 /** 单元格继承值来源：task-param-map -> savedParamValues；WBS 本任务为空时 fallback 项目值 */
 function getInheritedParamValueByCode(paramCodeRaw: string): string {
@@ -1262,16 +1289,23 @@ function getPreviewTableCellValue(item: any, componentIndex: number, bodyRow: nu
   const direct = previewTableCellMap.value[k];
   if (direct != null && String(direct) !== '') return direct;
   const inherit = getTableCellInheritConfig(item, bodyRow, col);
-  if (!inherit) return '';
-  if (inherit.inheritType === 'FROM_PARAM' && inherit.paramCode) {
-    return getInheritedParamValueByCode(inherit.paramCode);
+  if (inherit) {
+    if (inherit.inheritType === 'FROM_PARAM' && inherit.paramCode) {
+      const inherited = getInheritedParamValueByCode(inherit.paramCode);
+      if (inherited) return inherited;
+    }
+    if (inherit.inheritType === 'FIXED') {
+      if (inherit.tableNumber) {
+        const inherited = getInheritedParamValueByCode(inherit.tableNumber);
+        if (inherited) return inherited;
+      }
+      if (inherit.tableCellRef) {
+        const inherited = getInheritedParamValueByCode(inherit.tableCellRef);
+        if (inherited) return inherited;
+      }
+    }
   }
-  if (inherit.inheritType === 'FIXED') {
-    // 从其他表格继承：使用“继承唯一编号”作为参数key，从 task-param-map 读取
-    if (inherit.tableNumber) return getInheritedParamValueByCode(inherit.tableNumber);
-    if (inherit.tableCellRef) return getInheritedParamValueByCode(inherit.tableCellRef);
-  }
-  return '';
+  return getTableCellDefaultValue(item, bodyRow, col);
 }
 function isPreviewTableCellReadonly(item: any, bodyRow: number, col: number): boolean {
   // MODULE_LIB_READ 的“模型件号/模型名称”列在预览态中不允许编辑：只读置灰
@@ -1739,6 +1773,28 @@ function applySavedTablesToPreviewMap(list: any[], tables: any[] | null | undefi
   return { cellMap: nextMap, fileIdMap: nextFileIdMap };
 }
 
+/** 将单元格基础定义中的默认值写入预览 map（无已保存值时使用） */
+function applyTableCellDefaultValuesToPreviewMap(list: any[], baseMap: Record<string, string>) {
+  const nextMap = { ...baseMap };
+  list.forEach((item: any, componentIndex: number) => {
+    if (String(item?.componentType ?? '') !== 'TABLE') return;
+    const biz = String(item?.customProps?.tableBizType ?? '');
+    if (['FILE_COLLAB', 'FILE_COLLAB_SIMPLE', 'MODULE_LIB_READ', 'BASIC_RESOURCE_LIB_READ'].includes(biz)) return;
+    const rowCount = getPreviewTableBodyRowCountForTable(item, componentIndex);
+    const totalCols = getWorkspaceTablePreviewColCount(item);
+    for (let r = 1; r <= rowCount; r++) {
+      for (let c = 2; c <= totalCols; c++) {
+        if (isWorkspaceTableOperationColumn(item, c)) continue;
+        const key = getTableCellPreviewKey(item, componentIndex, r, c);
+        if (nextMap[key] != null && String(nextMap[key]) !== '') continue;
+        const def = getTableCellDefaultValue(item, r, c);
+        if (def) nextMap[key] = def;
+      }
+    }
+  });
+  return nextMap;
+}
+
 /** 与导出参数一致：不向富文本 / 上传 / 表格 / 三维写入导入值 */
 const EXPORT_PARAM_EXCEL_SKIP_TYPES = new Set(['RICH_TEXT', 'FILE', 'TABLE', '3D_VIEW']);
 
@@ -2044,7 +2100,7 @@ watch(
     richTextValueMap.value = nextRichTextMap;
     previewUploadFileMap.value = { ...previewUploadFileMap.value, ...nextUploadMap };
     const tableRestore = applySavedTablesToPreviewMap(list, props.savedTables);
-    previewTableCellMap.value = tableRestore.cellMap;
+    previewTableCellMap.value = applyTableCellDefaultValuesToPreviewMap(list, tableRestore.cellMap);
     previewFileCollabFileIdMap.value = tableRestore.fileIdMap;
     previewTableRowCountMap.value = {};
     inputRangeBlurredMap.value = nextBlurred;
@@ -2336,12 +2392,38 @@ defineExpose({
                           </template>
                         </div>
                       </template>
+                      <template v-else-if="isWorkspaceTableBizWithColDefs(item)">
+                        <span v-if="getPreviewTableColDataType(item, c) === 'READONLY_TEXT'" class="fixed-table-preview-cell-text">
+                          {{ getPreviewTableCellValue(item, index, r, c) || '—' }}
+                        </span>
+                        <a-input
+                          v-else-if="getPreviewTableColDataType(item, c) === 'TEXT'"
+                          :value="getPreviewTableCellValue(item, index, r, c)"
+                          size="small"
+                          placeholder="请输入"
+                          :disabled="isPreviewFieldDisabled(item) || isPreviewTableCellReadonly(item, r, c)"
+                          class="fixed-table-preview-cell-input"
+                          @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
+                        <a-select
+                          v-else-if="getPreviewTableColDataType(item, c) === 'DROPDOWN'"
+                          :value="getPreviewTableCellValue(item, index, r, c) || undefined"
+                          :options="parseTableDropdownOptions(getPreviewTableColDef(item, c)?.dropdownValues)"
+                          placeholder="请选择"
+                          size="small"
+                          allow-clear
+                          :disabled="isPreviewFieldDisabled(item) || isPreviewTableCellReadonly(item, r, c)"
+                          class="fixed-table-preview-cell-select"
+                          popup-class-name="fixed-table-preview-select-dropdown"
+                          @update:value="(v: string | undefined) => setPreviewTableCellValue(item, index, r, c, v ?? '')" />
+                        <span v-else class="fixed-table-preview-cell-text">{{ getPreviewTableCellValue(item, index, r, c) }}</span>
+                      </template>
                       <a-input
                         v-else
                         :value="getPreviewTableCellValue(item, index, r, c)"
                         size="small"
                         placeholder="请输入"
                         :disabled="isPreviewFieldDisabled(item) || isPreviewTableCellReadonly(item, r, c)"
+                        class="fixed-table-preview-cell-input"
                         @update:value="(v: string) => setPreviewTableCellValue(item, index, r, c, v)" />
                     </td>
                   </tr>
@@ -2841,6 +2923,23 @@ defineExpose({
 }
 .fixed-table-preview-title-text {
   font-size: 14px;
+}
+.fixed-table-preview-cell-text {
+  display: inline-block;
+  max-width: 100%;
+  word-break: break-word;
+}
+.fixed-table-preview-cell-input,
+.fixed-table-preview-cell-select {
+  width: 100%;
+  min-width: 88px;
+  max-width: 100%;
+}
+.fixed-table-preview-td .fixed-table-preview-cell-input :deep(.ant-input) {
+  font-size: 13px;
+}
+.fixed-table-preview-td .fixed-table-preview-cell-select :deep(.ant-select-selector) {
+  font-size: 13px;
 }
 .file-collab-preview-toolbar {
   display: flex;

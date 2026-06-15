@@ -2054,8 +2054,9 @@ function ensureCellBasicDefEntry(component: any, row: number, col: number) {
   if (!p.cellBasicDefMap || typeof p.cellBasicDefMap !== 'object') p.cellBasicDefMap = {};
   const k = cellParamInheritKey(row, col);
   if (!p.cellBasicDefMap[k] || typeof p.cellBasicDefMap[k] !== 'object') {
-    p.cellBasicDefMap[k] = { uniqueCode: '' };
+    p.cellBasicDefMap[k] = { uniqueCode: '', defaultValue: '' };
   }
+  if (p.cellBasicDefMap[k].defaultValue == null) p.cellBasicDefMap[k].defaultValue = '';
   return p.cellBasicDefMap[k];
 }
 
@@ -2133,6 +2134,22 @@ const selectedTableCellDataTypeLabel = computed(() => {
   const dt = c.customProps.tableColDefs?.[s.col - 1]?.dataType || 'TEXT';
   return getFixedTableColDataTypeLabel(dt);
 });
+const selectedTableCellDataType = computed(() => {
+  const c = selectedComponent.value;
+  const s = selectedTableCell.value;
+  if (!c?.customProps || !s) return '';
+  return String(c.customProps.tableColDefs?.[s.col - 1]?.dataType ?? 'TEXT');
+});
+const selectedTableCellDropdownOptions = computed(() => {
+  const c = selectedComponent.value;
+  const s = selectedTableCell.value;
+  if (!c?.customProps || !s) return [];
+  return parseTableDropdownOptionsForCanvas(c.customProps.tableColDefs?.[s.col - 1]?.dropdownValues);
+});
+function getCanvasTableCellDefaultValue(item: any, row: number, col: number) {
+  const entry = item?.customProps?.cellBasicDefMap?.[cellParamInheritKey(row, col)];
+  return String(entry?.defaultValue ?? '');
+}
 
 /** 文本/下拉单元格：申请唯一编号（演示：前端生成 UUID） */
 function onApplyCellUniqueCode() {
@@ -3066,13 +3083,14 @@ watch(
                               <span v-if="getCanvasTableColDataType(item, c) === 'READONLY_TEXT'" class="fixed-table-preview-cell-text">—</span>
                               <a-input
                                 v-else-if="getCanvasTableColDataType(item, c) === 'TEXT'"
-                                value=""
+                                :value="getCanvasTableCellDefaultValue(item, r, c)"
                                 size="small"
                                 placeholder="请输入"
                                 disabled
                                 class="fixed-table-preview-cell-input" />
                               <a-select
                                 v-else-if="getCanvasTableColDataType(item, c) === 'DROPDOWN'"
+                                :value="getCanvasTableCellDefaultValue(item, r, c) || undefined"
                                 :options="parseTableDropdownOptionsForCanvas(item.customProps?.tableColDefs?.[c - 1]?.dropdownValues)"
                                 placeholder="请选择"
                                 size="small"
@@ -3738,6 +3756,21 @@ watch(
                       <div class="row-control">
                         <a-input :value="activeCellBasicDef.uniqueCode" disabled placeholder="请点击申请编号" class="table-cell-inherit-readonly-input" />
                         <a-button type="primary" size="small" @click="onApplyCellUniqueCode">申请编号</a-button>
+                      </div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">默认值：</div>
+                      <div class="row-control">
+                        <a-input
+                          v-if="selectedTableCellDataType === 'TEXT'"
+                          v-model:value="activeCellBasicDef.defaultValue"
+                          placeholder="请输入" />
+                        <a-select
+                          v-else-if="selectedTableCellDataType === 'DROPDOWN'"
+                          v-model:value="activeCellBasicDef.defaultValue"
+                          allow-clear
+                          placeholder="请选择"
+                          :options="selectedTableCellDropdownOptions" />
                       </div>
                     </div>
                   </a-collapse-panel>

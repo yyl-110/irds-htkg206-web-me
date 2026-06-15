@@ -1567,8 +1567,9 @@ function ensureCellBasicDefEntry(component: any, row: number, col: number) {
   if (!p.cellBasicDefMap || typeof p.cellBasicDefMap !== 'object') p.cellBasicDefMap = {};
   const k = cellParamInheritKey(row, col);
   if (!p.cellBasicDefMap[k] || typeof p.cellBasicDefMap[k] !== 'object') {
-    p.cellBasicDefMap[k] = { uniqueCode: '' };
+    p.cellBasicDefMap[k] = { uniqueCode: '', defaultValue: '' };
   }
+  if (p.cellBasicDefMap[k].defaultValue == null) p.cellBasicDefMap[k].defaultValue = '';
   return p.cellBasicDefMap[k];
 }
 
