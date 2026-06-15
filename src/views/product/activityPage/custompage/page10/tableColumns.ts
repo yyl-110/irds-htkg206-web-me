@@ -46,6 +46,12 @@ export const PAGE10_DEGREE_COLUMNS: Page10AntColumn[] = [
 
 export const PAGE10_DEGREE_TABLE_MIN_WIDTH = PAGE10_DEGREE_COLUMNS.reduce((sum, col) => sum + (col.width ?? 140), 0);
 
+export const PAGE10_EDITABLE_FIELDS = new Set(['p0', 'p1']);
+
+export function getPage10EditableFieldIndexes(): number[] {
+  return [...PAGE10_EDITABLE_FIELDS].map(field => Number(field.slice(1)));
+}
+
 export const NUMERIC_INPUT_REG = /^(\-|\+)?\d+(\.\d+)?$/;
 
 export function isNumericInput(val: string) {

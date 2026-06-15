@@ -45,7 +45,7 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage5Rows, extractPage5SaveParamValues, extractPage5TableSavePayload } from './page5/calculations';
-import { applyPage5InitData } from './page5/initData';
+import { applyPage5InitData, captureEditableInputValues, restoreEditableInputValues } from './page5/initData';
 import { loadPage5PageParameters } from './page5/loadPageParameters';
 import {
   createDefaultPage5ParameterList,
@@ -160,16 +160,21 @@ function onCellInput(record: Page5TableRow, index: number, field: string) {
   const rows = getPage5TableRows(parameterTempList.value);
   if (rows[index]) {
     rows[index][field] = record[field];
+    if (field === 'p14') {
+      rows[index].cellInputOrOutput14 = '0';
+    }
   }
   setSaveBtnEnable();
 }
 
 function handleInitData(): boolean {
+  const editableSnapshot = captureEditableInputValues([...getPage5TableRows(parameterTempList.value)]);
   const result = applyPage5InitData(parameterTempList.value, props.savedTables, props.savedParamValues);
   if (!result.ok) {
     message.warning('未能更新表格：请先在「组合方案确定」页面生成数据并注入流程上下文后再试');
     return false;
   }
+  restoreEditableInputValues(getPage5TableRows(parameterTempList.value), editableSnapshot);
   equivalent.value = result.equivalent;
   setPage5TableRows(parameterTempList.value, [...getPage5TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
@@ -177,12 +182,14 @@ function handleInitData(): boolean {
 }
 
 function handleCalculation() {
+  const editableSnapshot = captureEditableInputValues([...getPage5TableRows(parameterTempList.value)]);
   const rows = [...getPage5TableRows(parameterTempList.value)];
   if (!rows.length) {
     message.warning('暂无数据可计算');
     return;
   }
   calculateAllPage5Rows(rows, equivalent.value);
+  restoreEditableInputValues(rows, editableSnapshot);
   setPage5TableRows(parameterTempList.value, rows);
   setSaveBtnEnable();
 }

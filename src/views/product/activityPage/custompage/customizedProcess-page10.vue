@@ -113,10 +113,15 @@ import {
   applyEfficiencyToDegreeRows,
   applyPage10InitData,
   applyPage10SchemeSelection,
+  captureAllPage10DegreeTablesEditable,
+  captureDegreeEditableValues,
   getDegreeDisplayRows,
   getEfficiencyValue,
   getSchemeTableRows,
   getSelectedRowIndex,
+  markPage10DegreeManualEdit,
+  restoreAllPage10DegreeTablesEditable,
+  restoreDegreeEditableValues,
   setDegreeDisplayRows,
   setEfficiencyValue,
   setSelectedRowIndex,
@@ -317,6 +322,7 @@ function onDegreeCellInput(record: Page10DegreeRow, index: number, field: string
   const rows = [...getDegreeDisplayRows(parameterTempList.value)];
   if (rows[index]) {
     rows[index][field] = record[field];
+    markPage10DegreeManualEdit(rows[index], field);
   }
   setDegreeDisplayRows(parameterTempList.value, rows);
   setSaveBtnEnable();
@@ -337,11 +343,15 @@ function ensureSingleSchemeSelected() {
 function handleInitData(): boolean {
   const pageId = String(props.pageid || route.query.pageId || route.query.activityPageId || route.query.pageid || '').trim();
   const userId = String(userStore.getUser?.id ?? '');
+  const degreeEditableSnapshot = captureAllPage10DegreeTablesEditable(parameterTempList.value);
   const result = applyPage10InitData(parameterTempList.value, pageId, userId);
   if (!result.ok) {
     message.warning('未能更新表格：请先在 page9「校核减速机构的齿轮强度」页面生成数据并注入流程上下文后再试');
     return false;
   }
+  parameterTempList.value = ensurePage10TableComponentIds(parameterTempList.value);
+  applyTaskParamMapToList();
+  restoreAllPage10DegreeTablesEditable(parameterTempList.value, degreeEditableSnapshot);
   efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
@@ -352,7 +362,9 @@ function handleInitData(): boolean {
 
 function handleCalculation() {
   if (!ensureSingleSchemeSelected()) return;
+  const editableSnapshot = captureDegreeEditableValues([...getDegreeDisplayRows(parameterTempList.value)]);
   const rows = calculateAllPage10DegreeRows([...getDegreeDisplayRows(parameterTempList.value)]);
+  restoreDegreeEditableValues(rows, editableSnapshot);
   setDegreeDisplayRows(parameterTempList.value, rows);
   syncCalculatedDegreeRowsToSource(parameterTempList.value, String(selectedSchemeRows.value[0].p0 ?? ''), rows);
   setSaveBtnEnable();
@@ -394,8 +406,12 @@ function updateEl(): Promise<void> {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage10ParameterList(parameterTempList.value);
     efficiencyValue.value = getEfficiencyValue(parameterTempList.value);
-    restoreSelectionFromParam();
-    ensureDefaultSchemeSelection();
+    selectedRowKeys.value = [];
+    selectedSchemeRows.value = [];
+    if (getSchemeTableRows(parameterTempList.value).length > 0) {
+      restoreSelectionFromParam();
+      ensureDefaultSchemeSelection();
+    }
   });
 }
 

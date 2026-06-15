@@ -5,16 +5,137 @@ import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
 import {
   allDegreeTableNum,
   createDefaultDegreeRow,
+  PAGE10_ALL_DEGREE_PREFIX,
   PAGE10_ALL_DEGREE_TABLE_COMPONENT_ID_BASE,
   PAGE10_BASE_PARAM_COUNT,
+  PAGE10_DEGREE_TABLE_NUM,
   PAGE10_EFFICIENCY_PARAM,
   type Page10DegreeRow,
   type Page10ParameterItem,
   type Page10SchemeRow,
 } from './parameterDefaults';
+import { getPage10EditableFieldIndexes } from './tableColumns';
 
 export interface Page10InitResult {
   ok: boolean;
+}
+
+type DegreeEditableSnapshot = Map<string, Partial<Page10DegreeRow>>;
+
+function isPage10DegreeTable(item: Page10ParameterItem): boolean {
+  const tableNum = String(item.tableNum ?? '');
+  return tableNum === PAGE10_DEGREE_TABLE_NUM || tableNum.startsWith(`${PAGE10_ALL_DEGREE_PREFIX}`);
+}
+
+export function captureDegreeEditableValues(rows: Page10DegreeRow[]): DegreeEditableSnapshot {
+  const editableIndexes = getPage10EditableFieldIndexes();
+  const saved = new Map<string, Partial<Page10DegreeRow>>();
+
+  rows.forEach((row, rowIndex) => {
+    const key = String(row.p0 ?? '').trim() || String(rowIndex);
+    const patch: Partial<Page10DegreeRow> = {};
+    editableIndexes.forEach(index => {
+      patch[`p${index}`] = row[`p${index}`];
+      const flag = row[`cellInputOrOutput${index}`];
+      if (flag !== undefined && flag !== '') {
+        patch[`cellInputOrOutput${index}`] = flag;
+      }
+      const override = row[`cellUserOverride${index}`];
+      if (override !== undefined && override !== '') {
+        patch[`cellUserOverride${index}`] = override;
+      }
+    });
+    saved.set(key, patch);
+  });
+  return saved;
+}
+
+export function restoreDegreeEditableValues(
+  rows: Page10DegreeRow[],
+  saved: DegreeEditableSnapshot,
+  options?: { preserveOnlySavedOrManual?: boolean },
+) {
+  const editableIndexes = getPage10EditableFieldIndexes();
+  const preserveOnlySavedOrManual = options?.preserveOnlySavedOrManual ?? false;
+
+  rows.forEach((row, rowIndex) => {
+    const key = String(row.p0 ?? '').trim() || String(rowIndex);
+    const patch = saved.get(key) ?? saved.get(String(rowIndex));
+    if (!patch) return;
+
+    editableIndexes.forEach(index => {
+      const field = `p${index}`;
+      if (!(field in patch)) return;
+
+      const overrideField = `cellUserOverride${index}`;
+      const hasOverride = patch[overrideField] === '1';
+      const hasValue = String(patch[field] ?? '') !== '';
+      if (preserveOnlySavedOrManual && !hasOverride && !hasValue) return;
+
+      row[field] = patch[field];
+
+      const flagField = `cellInputOrOutput${index}`;
+      if (flagField in patch) {
+        row[flagField] = patch[flagField];
+      }
+      if (overrideField in patch) {
+        row[overrideField] = patch[overrideField];
+      }
+    });
+  });
+}
+
+export function captureAllPage10DegreeTablesEditable(
+  list: Page10ParameterItem[],
+): Map<string, DegreeEditableSnapshot> {
+  const result = new Map<string, DegreeEditableSnapshot>();
+  list.forEach(item => {
+    if (!isPage10DegreeTable(item)) return;
+    const tableNum = String(item.tableNum ?? '');
+    const rows = (item.tableMap?.rowData ?? []) as Page10DegreeRow[];
+    result.set(tableNum, captureDegreeEditableValues(rows));
+  });
+  return result;
+}
+
+export function restoreAllPage10DegreeTablesEditable(
+  list: Page10ParameterItem[],
+  saved: Map<string, DegreeEditableSnapshot>,
+) {
+  list.forEach(item => {
+    if (!isPage10DegreeTable(item)) return;
+    const tableNum = String(item.tableNum ?? '');
+    const snapshot = saved.get(tableNum);
+    if (!snapshot) return;
+    const rows = (item.tableMap?.rowData ?? []) as Page10DegreeRow[];
+    restoreDegreeEditableValues(rows, snapshot);
+  });
+}
+
+export function markPage10DegreeManualEdit(row: Page10DegreeRow, field: string) {
+  const fieldIndex = Number(String(field).replace(/^p/, ''));
+  if (!getPage10EditableFieldIndexes().includes(fieldIndex)) return;
+  row[`cellUserOverride${fieldIndex}`] = '1';
+}
+
+/** 方案表无数据时，用展示表（componentId=31）已合并的后端值补全 */
+export function supplementDegreeRowsFromDisplay(list: Page10ParameterItem[], degreeRows: Page10DegreeRow[]) {
+  const displayRows = getDegreeDisplayRows(list);
+  if (!displayRows.length || !degreeRows.length) return;
+
+  degreeRows.forEach((row, index) => {
+    const displayRow = displayRows[index] ?? displayRows[0];
+    if (!displayRow) return;
+
+    getPage10EditableFieldIndexes().forEach(fieldIndex => {
+      const field = `p${fieldIndex}`;
+      const current = String(row[field] ?? '');
+      const fallback = String(displayRow[field] ?? '');
+      if (!current && fallback) {
+        row[field] = displayRow[field];
+      }
+    });
+  });
 }
 
 export function trimExtraDegreeTables(list: Page10ParameterItem[]) {
@@ -100,6 +221,8 @@ export function applyPage10InitData(list: Page10ParameterItem[], pageId: string,
     return { ok: false };
   }
 
+  const degreeEditableSnapshot = captureAllPage10DegreeTablesEditable(list);
+
   let cdxl = getEfficiencyValue(list);
   paramList.forEach(item => {
     if (item.paramnum === PAGE10_EFFICIENCY_PARAM) {
@@ -167,7 +290,7 @@ export function applyPage10InitData(list: Page10ParameterItem[], pageId: string,
     });
   });
 
-  setDegreeDisplayRows(list, []);
+  restoreAllPage10DegreeTablesEditable(list, degreeEditableSnapshot);
   setSelectedRowIndex(list, -1);
 
   return { ok: true };
@@ -192,11 +315,17 @@ export function applyPage10SchemeSelection(list: Page10ParameterItem[], selected
       degreeRows = (item.tableMap.rowData as Page10DegreeRow[]).map(row => ({ ...row }));
     }
   });
+  if (!degreeRows.length) return [];
+
+  supplementDegreeRowsFromDisplay(list, degreeRows);
+  const editableSnapshot = captureDegreeEditableValues(degreeRows);
 
   const efficiency = getEfficiencyValue(list);
   degreeRows.forEach(row => {
     row.p6 = efficiency;
   });
+
+  restoreDegreeEditableValues(degreeRows, editableSnapshot, { preserveOnlySavedOrManual: true });
 
   return degreeRows;
 }

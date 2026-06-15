@@ -122,7 +122,11 @@ import {
   extractPage0_5TableSavePayload,
 } from './page0-5/calculations';
 import { loadPage0_4PageParameters } from './page0-4/loadPageParameters';
-import { createDefaultPage0_4ParameterList, applyPage0_4TableComponentIds, type Page0_4ParameterItem } from './page0-4/parameterDefaults';
+import {
+  createDefaultPage0_4ParameterList,
+  applyPage0_4TableComponentIds,
+  type Page0_4ParameterItem,
+} from './page0-4/parameterDefaults';
 import {
   INPUT_PARAM_ANT_COLUMNS,
   INPUT_PARAM_NUMBER_REG,
@@ -266,7 +270,6 @@ function resultTableRowKey(record: Record<string, string>, index?: number) {
   }
   return String(index ?? 0);
 }
-
 
 function syncLocalDataFromParameterList() {
   data.value = [...(parameterTempList.value[0]?.tableMap?.rowData ?? [])];

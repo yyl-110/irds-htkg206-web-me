@@ -120,6 +120,12 @@ export function flattenPage9LeafColumns(columns: Page9AntColumn[]): Page9AntColu
 
 export const PAGE9_GEAR_LEAF_COLUMNS = flattenPage9LeafColumns(PAGE9_GEAR_COLUMNS);
 
+export const PAGE9_EDITABLE_FIELDS = new Set(['p2', 'p4', 'p5', 'p6']);
+
+export function getPage9EditableFieldIndexes(): number[] {
+  return [...PAGE9_EDITABLE_FIELDS].map(field => Number(field.slice(1)));
+}
+
 export const PAGE9_SCHEME_TABLE_MIN_WIDTH = sumTableColumnWidths(PAGE9_SCHEME_COLUMNS, { extra: 48 });
 export const PAGE9_GEAR_TABLE_MIN_WIDTH = sumTableColumnWidths(PAGE9_GEAR_COLUMNS);
 

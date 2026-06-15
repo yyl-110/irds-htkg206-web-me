@@ -2,6 +2,7 @@ import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
 import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
 import { PAGE5_TABLE_COMPONENT_ID, PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
 import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
+import { getPage6EditableFieldIndexes } from './tableColumns';
 import type { Page6ParameterItem, Page6TableRow } from './parameterDefaults';
 
 export interface Page6InitResult {
@@ -57,6 +58,55 @@ function buildRowFromDispatch(
   return data;
 }
 
+export function captureEditableInputValues(rows: Page6TableRow[]): Map<string, Partial<Page6TableRow>> {
+  const editableIndexes = getPage6EditableFieldIndexes();
+  const saved = new Map<string, Partial<Page6TableRow>>();
+
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    if (!key) return;
+
+    const patch: Partial<Page6TableRow> = {};
+    editableIndexes.forEach(index => {
+      patch[`p${index}`] = row[`p${index}`];
+      const flag = row[`cellInputOrOutput${index}`];
+      if (flag !== undefined && flag !== '') {
+        patch[`cellInputOrOutput${index}`] = flag;
+      }
+      const override = row[`cellUserOverride${index}`];
+      if (override !== undefined && override !== '') {
+        patch[`cellUserOverride${index}`] = override;
+      }
+    });
+    saved.set(key, patch);
+  });
+  return saved;
+}
+
+export function restoreEditableInputValues(rows: Page6TableRow[], saved: Map<string, Partial<Page6TableRow>>) {
+  const editableIndexes = getPage6EditableFieldIndexes();
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    const patch = saved.get(key);
+    if (!patch) return;
+
+    editableIndexes.forEach(index => {
+      const field = `p${index}`;
+      if (field in patch) {
+        row[field] = patch[field];
+      }
+      const flagField = `cellInputOrOutput${index}`;
+      if (flagField in patch) {
+        row[flagField] = patch[flagField];
+      }
+      const overrideField = `cellUserOverride${index}`;
+      if (overrideField in patch) {
+        row[overrideField] = patch[overrideField];
+      }
+    });
+  });
+}
+
 /** 从齿轮减速比分配表、电机选型表刷新（原 initData） */
 export function applyPage6InitData(
   list: Page6ParameterItem[],
@@ -84,7 +134,11 @@ export function applyPage6InitData(
     return { ok: false };
   }
 
+  const existingRows = (list[0].tableMap.rowData ?? []) as Page6TableRow[];
+  const editableValues = captureEditableInputValues(existingRows);
+
   list[0].tableMap.rowData = dataList;
+  restoreEditableInputValues(dataList, editableValues);
   list[0].tableMap.rowNums = dataList.length;
   return { ok: true };
 }

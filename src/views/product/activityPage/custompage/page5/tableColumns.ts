@@ -67,3 +67,10 @@ export function flattenPage5LeafColumns(columns: Page5AntColumn[]): Page5AntColu
 }
 
 export const PAGE5_LEAF_COLUMNS = flattenPage5LeafColumns(PAGE5_ANT_COLUMNS);
+
+export const PAGE5_EDITABLE_FIELDS = new Set(['p14']);
+
+/** 可编辑列对应的 p 字段索引（如 p14 -> 14） */
+export function getPage5EditableFieldIndexes(): number[] {
+  return [...PAGE5_EDITABLE_FIELDS].map(field => Number(field.slice(1)));
+}

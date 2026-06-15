@@ -112,7 +112,9 @@ export function calculatePage3Row(item: Page3TableRow) {
     item.p17 = handleCutZero(val8.toFixed(3));
   }
 
-  item.p18 = item.p15;
+  if (item.cellUserOverride18 !== '1' && item.cellInputOrOutput18 !== '0') {
+    item.p18 = item.p15;
+  }
 }
 
 export function calculateAllPage3Rows(rows: Page3TableRow[]) {

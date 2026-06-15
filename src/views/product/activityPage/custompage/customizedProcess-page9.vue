@@ -85,7 +85,14 @@ import {
   extractPage9TableSavePayload,
 } from './page9/calculations';
 import { createGearRatioTable, lookupGearFactors } from './page9/gearRatio';
-import { applyPage9InitData } from './page9/initData';
+import {
+  applyPage9InitData,
+  captureAllPage9GearTablesEditable,
+  captureGearEditableValues,
+  markPage9GearManualEdit,
+  restoreAllPage9GearTablesEditable,
+  restoreGearEditableValues,
+} from './page9/initData';
 import { loadPage9PageParameters } from './page9/loadPageParameters';
 import {
   createDefaultPage9ParameterList,
@@ -280,6 +287,10 @@ function onGearCellInput(record: Page9GearRow, index: number, field: string) {
   }
   const rows = [...getGearDisplayRows(parameterTempList.value)];
   updateGearRowField(rows, index, field as keyof Page9GearRow, value);
+  markPage9GearManualEdit(rows[index], field);
+  if ((field === 'p2' || field === 'p4') && (index === 2 || index === 4) && rows[index + 1]) {
+    markPage9GearManualEdit(rows[index + 1], field);
+  }
   setGearDisplayRows(parameterTempList.value, rows);
   setSaveBtnEnable();
 }
@@ -288,6 +299,7 @@ function onGearCellBlur(record: Page9GearRow, index: number, field: string) {
   const rows = [...getGearDisplayRows(parameterTempList.value)];
   const value = String(record[field] ?? '');
   updateGearRowField(rows, index, field as keyof Page9GearRow, value);
+  markPage9GearManualEdit(rows[index], field);
 
   if (field === 'p4') {
     const factors = lookupGearFactors(String(rows[index]?.p3 ?? ''), gearRatioTable);
@@ -307,9 +319,10 @@ function onGearCellBlur(record: Page9GearRow, index: number, field: string) {
 }
 
 function handleInitData(): boolean {
+  const gearEditableSnapshot = captureAllPage9GearTablesEditable(parameterTempList.value);
   const result = applyPage9InitData(parameterTempList.value);
   if (result.cleared) {
-    message.warning('请先在 page8 勾选组合方案并保存方案索引后再试');
+    message.warning('请先在 初步筛选若干组合方案页面 勾选组合方案并保存方案索引后再试');
     selectedRowKeys.value = [];
     selectedSchemeRows.value = [];
     setSaveBtnEnable();
@@ -319,6 +332,9 @@ function handleInitData(): boolean {
     message.warning('未能更新表格：请先在「初步筛选若干组合方案」页面勾选方案并注入流程上下文后再试');
     return false;
   }
+  parameterTempList.value = ensurePage9TableComponentIds(parameterTempList.value);
+  applyTaskParamMapToList();
+  restoreAllPage9GearTablesEditable(parameterTempList.value, gearEditableSnapshot);
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
@@ -327,12 +343,14 @@ function handleInitData(): boolean {
 }
 
 function handleCalculation() {
+  const editableSnapshot = captureGearEditableValues([...getGearDisplayRows(parameterTempList.value)]);
   const rows = [...getGearDisplayRows(parameterTempList.value)];
   if (!rows.length) {
     message.warning('请先选择一个组合方案');
     return;
   }
   calculateAllPage9GearRows(rows);
+  restoreGearEditableValues(rows, editableSnapshot);
   setGearDisplayRows(parameterTempList.value, rows);
 
   if (selectedSchemeRows.value.length === 1) {
@@ -355,11 +373,14 @@ function onDiagramBottomError() {
 
 function updateEl(): Promise<void> {
   return nextTick(() => {
-    setGearDisplayRows(parameterTempList.value, []);
     applyTaskParamMapToList();
     parameterTempList.value = clonePage9ParameterList(parameterTempList.value);
     loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
-    ensureDefaultSchemeSelection();
+    selectedRowKeys.value = [];
+    selectedSchemeRows.value = [];
+    if (getSchemeTableRows(parameterTempList.value).length > 0) {
+      ensureDefaultSchemeSelection();
+    }
   });
 }
 
@@ -368,6 +389,7 @@ async function runAutoInitAndCalculateOnce() {
   hasAutoRefreshed.value = true;
   await updateEl();
   handleInitData();
+  handleCalculation();
 }
 
 function onMountReady() {

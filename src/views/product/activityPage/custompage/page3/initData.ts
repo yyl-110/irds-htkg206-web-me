@@ -1,4 +1,5 @@
 import type { Page3ParameterItem, Page3TableRow } from './parameterDefaults';
+import { getPage3EditableFieldIndexes } from './tableColumns';
 import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
 import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
 import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
@@ -97,6 +98,68 @@ function buildPage3RowFromMotor(
   return data;
 }
 
+export function captureEditableInputValues(rows: Page3TableRow[]): Map<string, Partial<Page3TableRow>> {
+  const editableIndexes = getPage3EditableFieldIndexes();
+  const saved = new Map<string, Partial<Page3TableRow>>();
+
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    if (!key) return;
+
+    const patch: Partial<Page3TableRow> = {};
+    editableIndexes.forEach(index => {
+      const value = row[`p${index}`];
+      const isManual =
+        row[`cellInputOrOutput${index}`] === '0' || row[`cellUserOverride${index}`] === '1';
+      const hasValue = String(value ?? '') !== '';
+      if (!isManual && !hasValue) return;
+
+      patch[`p${index}`] = value;
+      const flag = row[`cellInputOrOutput${index}`];
+      if (flag !== undefined && flag !== '') {
+        patch[`cellInputOrOutput${index}`] = flag;
+      }
+      const override = row[`cellUserOverride${index}`];
+      if (override !== undefined && override !== '') {
+        patch[`cellUserOverride${index}`] = override;
+      }
+    });
+    if (Object.keys(patch).length) {
+      saved.set(key, patch);
+    }
+  });
+  return saved;
+}
+
+export function restoreEditableInputValues(rows: Page3TableRow[], saved: Map<string, Partial<Page3TableRow>>) {
+  const editableIndexes = getPage3EditableFieldIndexes();
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    const patch = saved.get(key);
+    if (!patch) return;
+
+    editableIndexes.forEach(index => {
+      const field = `p${index}`;
+      if (field in patch) {
+        row[field] = patch[field];
+      }
+      const flagField = `cellInputOrOutput${index}`;
+      if (flagField in patch) {
+        row[flagField] = patch[flagField];
+      }
+      const overrideField = `cellUserOverride${index}`;
+      if (overrideField in patch) {
+        row[overrideField] = patch[overrideField];
+      }
+    });
+  });
+}
+
+export function hasPage3SavedTableData(list: Page3ParameterItem[]): boolean {
+  const rows = (list[0]?.tableMap?.rowData ?? []) as Page3TableRow[];
+  return rows.some(row => String(row.p1 ?? '') !== '' || String(row.p9 ?? '') !== '' || String(row.p18 ?? '') !== '');
+}
+
 /** 从流程上下文 / 已保存表格刷新表格（原 initData） */
 export function applyPage3InitData(
   list: Page3ParameterItem[],
@@ -160,7 +223,12 @@ export function applyPage3InitData(
   if (dataList.length === 0) {
     return false;
   }
+
+  const existingRows = (list[0].tableMap.rowData ?? []) as Page3TableRow[];
+  const editableValues = captureEditableInputValues(existingRows);
+
   list[0].tableMap.rowData = dataList;
+  restoreEditableInputValues(dataList, editableValues);
   list[0].tableMap.rowNums = dataList.length;
   return true;
 }

@@ -55,7 +55,7 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
-import { applyPage3InitData } from './page3/initData';
+import { applyPage3InitData, captureEditableInputValues, hasPage3SavedTableData, restoreEditableInputValues } from './page3/initData';
 import { loadPage3PageParameters } from './page3/loadPageParameters';
 import {
   createDefaultPage3ParameterList,
@@ -172,8 +172,16 @@ function onCellInput(record: Page3TableRow, index: number, field: string) {
   const rows = getPage3TableRows(parameterTempList.value);
   if (rows[index]) {
     rows[index][field] = record[field];
+    markPage3ManualEdit(rows[index], field);
   }
   setSaveBtnEnable();
+}
+
+function markPage3ManualEdit(row: Page3TableRow, field: string) {
+  const match = /^p(\d+)$/.exec(field);
+  if (!match) return;
+  row[`cellUserOverride${match[1]}`] = '1';
+  row[`cellInputOrOutput${match[1]}`] = '0';
 }
 
 function onEditableBlur(record: Page3TableRow, index: number, field: string, event: FocusEvent) {
@@ -184,15 +192,18 @@ function onEditableBlur(record: Page3TableRow, index: number, field: string, eve
     return;
   }
   record[field] = value;
+  markPage3ManualEdit(record, field);
   onCellInput(record, index, field);
 }
 
 function handleInitData(): boolean {
+  const editableSnapshot = captureEditableInputValues([...getPage3TableRows(parameterTempList.value)]);
   const ok = applyPage3InitData(parameterTempList.value, props.savedTables);
   if (!ok) {
     message.warning('未能更新表格：请先在「电机选型」等前置页面保存数据，且流程上下文已注入后再试');
     return false;
   }
+  restoreEditableInputValues(getPage3TableRows(parameterTempList.value), editableSnapshot);
   setPage3TableRows(parameterTempList.value, [...getPage3TableRows(parameterTempList.value)]);
   parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
   setSaveBtnEnable();
@@ -200,8 +211,10 @@ function handleInitData(): boolean {
 }
 
 function handleCalculation() {
+  const editableSnapshot = captureEditableInputValues([...getPage3TableRows(parameterTempList.value)]);
   const rows = [...getPage3TableRows(parameterTempList.value)];
   calculateAllPage3Rows(rows);
+  restoreEditableInputValues(rows, editableSnapshot);
   setPage3TableRows(parameterTempList.value, rows);
   setSaveBtnEnable();
 }
@@ -217,6 +230,9 @@ async function runAutoInitAndCalculateOnce() {
   if (hasAutoRefreshed.value) return;
   hasAutoRefreshed.value = true;
   await updateEl();
+  if (hasPage3SavedTableData(parameterTempList.value)) {
+    return;
+  }
   if (handleInitData()) {
     handleCalculation();
   }

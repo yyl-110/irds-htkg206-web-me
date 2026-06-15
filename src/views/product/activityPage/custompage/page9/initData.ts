@@ -3,15 +3,138 @@ import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
 import {
   createDefaultGearStressRow,
   gearTableNumForIndex,
+  PAGE9_GEAR_SCHEME_TABLE_COMPONENT_ID_BASE,
+  PAGE9_GEAR_TABLE_NUM,
   type Page9GearRow,
   type Page9ParameterItem,
   type Page9SchemeRow,
 } from './parameterDefaults';
+import { getPage9EditableFieldIndexes } from './tableColumns';
 import { calculateGearTorqueChain, extractGearNumbers } from './torqueCalculations';
 
 export interface Page9InitResult {
   ok: boolean;
   cleared?: boolean;
+}
+
+type GearEditableSnapshot = Map<string, Partial<Page9GearRow>>;
+
+function isPage9GearStressTable(item: Page9ParameterItem): boolean {
+  const tableNum = String(item.tableNum ?? '');
+  return tableNum === PAGE9_GEAR_TABLE_NUM || tableNum.startsWith(`${PAGE9_GEAR_TABLE_NUM}`);
+}
+
+export function captureGearEditableValues(rows: Page9GearRow[]): GearEditableSnapshot {
+  const editableIndexes = getPage9EditableFieldIndexes();
+  const saved = new Map<string, Partial<Page9GearRow>>();
+
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    if (!key) return;
+
+    const patch: Partial<Page9GearRow> = {};
+    editableIndexes.forEach(index => {
+      patch[`p${index}`] = row[`p${index}`];
+      const flag = row[`cellInputOrOutput${index}`];
+      if (flag !== undefined && flag !== '') {
+        patch[`cellInputOrOutput${index}`] = flag;
+      }
+      const override = row[`cellUserOverride${index}`];
+      if (override !== undefined && override !== '') {
+        patch[`cellUserOverride${index}`] = override;
+      }
+    });
+    saved.set(key, patch);
+  });
+  return saved;
+}
+
+export function restoreGearEditableValues(
+  rows: Page9GearRow[],
+  saved: GearEditableSnapshot,
+  options?: { preserveOnlySavedOrManual?: boolean },
+) {
+  const editableIndexes = getPage9EditableFieldIndexes();
+  const preserveOnlySavedOrManual = options?.preserveOnlySavedOrManual ?? false;
+
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    const patch = saved.get(key);
+    if (!patch) return;
+
+    editableIndexes.forEach(index => {
+      const field = `p${index}`;
+      if (!(field in patch)) return;
+
+      const overrideField = `cellUserOverride${index}`;
+      const hasOverride = patch[overrideField] === '1';
+      const hasValue = String(patch[field] ?? '') !== '' && String(patch[field] ?? '') !== '--';
+      if (preserveOnlySavedOrManual && !hasOverride && !hasValue) return;
+
+      row[field] = patch[field];
+
+      const flagField = `cellInputOrOutput${index}`;
+      if (flagField in patch) {
+        row[flagField] = patch[flagField];
+      }
+      if (overrideField in patch) {
+        row[overrideField] = patch[overrideField];
+      }
+    });
+  });
+}
+
+export function captureAllPage9GearTablesEditable(
+  list: Page9ParameterItem[],
+): Map<string, GearEditableSnapshot> {
+  const result = new Map<string, GearEditableSnapshot>();
+  list.forEach(item => {
+    if (!isPage9GearStressTable(item)) return;
+    const tableNum = String(item.tableNum ?? '');
+    const rows = (item.tableMap?.rowData ?? []) as Page9GearRow[];
+    result.set(tableNum, captureGearEditableValues(rows));
+  });
+  return result;
+}
+
+export function restoreAllPage9GearTablesEditable(
+  list: Page9ParameterItem[],
+  saved: Map<string, GearEditableSnapshot>,
+) {
+  list.forEach(item => {
+    if (!isPage9GearStressTable(item)) return;
+    const tableNum = String(item.tableNum ?? '');
+    const snapshot = saved.get(tableNum);
+    if (!snapshot) return;
+    const rows = (item.tableMap?.rowData ?? []) as Page9GearRow[];
+    restoreGearEditableValues(rows, snapshot);
+  });
+}
+
+export function markPage9GearManualEdit(row: Page9GearRow, field: string) {
+  const fieldIndex = Number(String(field).replace(/^p/, ''));
+  if (!getPage9EditableFieldIndexes().includes(fieldIndex)) return;
+  row[`cellUserOverride${fieldIndex}`] = '1';
+}
+
+/** 方案表无数据时，用展示表（componentId=25）已合并的后端值补全 */
+export function supplementGearRowsFromDisplay(list: Page9ParameterItem[], gearRows: Page9GearRow[]) {
+  const displayRows = getGearDisplayRows(list);
+  if (!displayRows.length) return;
+
+  gearRows.forEach((row, index) => {
+    const displayRow = displayRows.find(item => item.p0 === row.p0) ?? displayRows[index];
+    if (!displayRow) return;
+
+    getPage9EditableFieldIndexes().forEach(fieldIndex => {
+      const field = `p${fieldIndex}`;
+      const current = String(row[field] ?? '');
+      const fallback = String(displayRow[field] ?? '');
+      if ((!current || current === '--') && fallback && fallback !== '--') {
+        row[field] = displayRow[field];
+      }
+    });
+  });
 }
 
 function cloneGearRowsTemplate(loadCoeff: string, torques: ReturnType<typeof calculateGearTorqueChain>, gearNums: string[]) {
@@ -98,6 +221,7 @@ function buildPerSchemeGearTable(
     inputName: '齿轮应力计算',
     tableType: '1',
     tableNum: gearTableNumForIndex(index),
+    componentId: PAGE9_GEAR_SCHEME_TABLE_COMPONENT_ID_BASE + index,
     addthis: '1',
     treeKey: 4 + index,
     userId,
@@ -167,6 +291,8 @@ export function applyPage9InitData(list: Page9ParameterItem[]): Page9InitResult 
     return { ok: false };
   }
 
+  const gearEditableSnapshot = captureAllPage9GearTablesEditable(list);
+
   const loadCoeff = String(list[1]?.defaultValue ?? '1.2');
   const pageId = String(list[0].pageId ?? '');
   const userId = String(list[0].userid ?? '');
@@ -180,9 +306,7 @@ export function applyPage9InitData(list: Page9ParameterItem[]): Page9InitResult 
     list.push(buildPerSchemeGearTable(scheme, index, loadCoeff, cdxl, pageId, userId));
   });
 
-  if (list[2]?.tableMap) {
-    list[2].tableMap.rowData = [];
-  }
+  restoreAllPage9GearTablesEditable(list, gearEditableSnapshot);
 
   return { ok: true };
 }

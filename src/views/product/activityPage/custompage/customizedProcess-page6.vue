@@ -53,7 +53,7 @@ import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
 import diagramClcs from '@/assets/images/clcs.png';
 import { calculateAllPage6Rows, extractPage6SaveParamValues, extractPage6TableSavePayload } from './page6/calculations';
-import { applyPage6InitData } from './page6/initData';
+import { applyPage6InitData, captureEditableInputValues, restoreEditableInputValues } from './page6/initData';
 import { loadPage6PageParameters } from './page6/loadPageParameters';
 import {
   createDefaultPage6ParameterList,
@@ -63,6 +63,7 @@ import {
 } from './page6/parameterDefaults';
 import { getPage6TableRows, setPage6TableRows } from './page6/rowOperations';
 import {
+  getPage6EditableFieldIndexes,
   isPage6CellDisabled,
   PAGE6_ANT_COLUMNS,
   PAGE6_LEAF_COLUMNS,
@@ -181,28 +182,36 @@ function onCellInput(record: Page6TableRow, index: number, field: string) {
   const rows = getPage6TableRows(parameterTempList.value);
   if (rows[index]) {
     rows[index][field] = record[field] != null ? String(record[field]) : '';
+    const fieldIndex = Number(field.replace(/^p/, ''));
+    if (getPage6EditableFieldIndexes().includes(fieldIndex)) {
+      rows[index][`cellUserOverride${fieldIndex}`] = '1';
+    }
   }
   setSaveBtnEnable();
 }
 
 function handleInitData(): boolean {
+  const editableSnapshot = captureEditableInputValues([...getPage6TableRows(parameterTempList.value)]);
   const result = applyPage6InitData(parameterTempList.value, props.savedTables);
   if (!result.ok) {
     message.warning('未能更新表格：请先在「齿轮减速比分配」页面生成数据并注入流程上下文后再试');
     return false;
   }
+  restoreEditableInputValues(getPage6TableRows(parameterTempList.value), editableSnapshot);
   setPage6TableRows(parameterTempList.value, [...getPage6TableRows(parameterTempList.value)]);
   setSaveBtnEnable();
   return true;
 }
 
 function handleCalculation() {
+  const editableSnapshot = captureEditableInputValues([...getPage6TableRows(parameterTempList.value)]);
   const rows = [...getPage6TableRows(parameterTempList.value)];
   if (!rows.length) {
     message.warning('暂无数据可计算');
     return;
   }
   calculateAllPage6Rows(rows);
+  restoreEditableInputValues(rows, editableSnapshot);
   setPage6TableRows(parameterTempList.value, rows);
   setSaveBtnEnable();
 }

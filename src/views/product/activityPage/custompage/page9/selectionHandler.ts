@@ -8,6 +8,11 @@ import {
   type Page9ParameterItem,
   type Page9SchemeRow,
 } from './parameterDefaults';
+import {
+  captureGearEditableValues,
+  restoreGearEditableValues,
+  supplementGearRowsFromDisplay,
+} from './initData';
 import { calculateGearTorqueChain, extractGearNumbers } from './torqueCalculations';
 
 function applyLevel2DisabledRows(rows: Page9GearRow[]) {
@@ -59,6 +64,9 @@ export function applyPage9SchemeSelection(
     }
   });
   if (!gearRows.length) return [];
+
+  supplementGearRowsFromDisplay(list, gearRows);
+  const editableSnapshot = captureGearEditableValues(gearRows);
 
   const selection = selected[0];
   const gearNums = extractGearNumbers(selection);
@@ -119,6 +127,8 @@ export function applyPage9SchemeSelection(
     if (factors.YS) row.p6 = factors.YS;
     void index;
   });
+
+  restoreGearEditableValues(gearRows, editableSnapshot, { preserveOnlySavedOrManual: true });
 
   return gearRows;
 }

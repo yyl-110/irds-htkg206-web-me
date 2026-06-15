@@ -336,7 +336,6 @@ export function createPage0_5Calculations(ctx: Page0_5CalcContext) {
       delIndex: String(data2.value.length),
     };
     setLocalData();
-    data2.value.unshift({ ...str });
     data2.value.push({ ...str });
     resetParameterTempList();
     onSaveBtnEnable();

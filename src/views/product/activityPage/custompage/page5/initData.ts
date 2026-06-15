@@ -3,6 +3,7 @@ import { PAGE6_TABLE_COMPONENT_ID, PAGE6_TABLE_NUM } from '../page6/parameterDef
 import { PAGE7_TABLE_COMPONENT_ID, PAGE7_TABLE_NUM } from '../page7/parameterDefaults';
 import { collectTableSources, readTableCell, resolveTableRows } from '../_shared/utils/flowTableSources';
 import { getFlowParameterList } from '../shared/flowContext';
+import { getPage5EditableFieldIndexes } from './tableColumns';
 import type { Page5ParameterItem, Page5TableRow } from './parameterDefaults';
 
 export interface Page5InitResult {
@@ -99,6 +100,47 @@ function buildRowFromCombin(
   return data;
 }
 
+export function captureEditableInputValues(rows: Page5TableRow[]): Map<string, Partial<Page5TableRow>> {
+  const editableIndexes = getPage5EditableFieldIndexes();
+  const saved = new Map<string, Partial<Page5TableRow>>();
+
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    if (!key) return;
+
+    const patch: Partial<Page5TableRow> = {};
+    editableIndexes.forEach(index => {
+      patch[`p${index}`] = row[`p${index}`];
+      const flag = row[`cellInputOrOutput${index}`];
+      if (flag !== undefined && flag !== '') {
+        patch[`cellInputOrOutput${index}`] = flag;
+      }
+    });
+    saved.set(key, patch);
+  });
+  return saved;
+}
+
+export function restoreEditableInputValues(rows: Page5TableRow[], saved: Map<string, Partial<Page5TableRow>>) {
+  const editableIndexes = getPage5EditableFieldIndexes();
+  rows.forEach(row => {
+    const key = String(row.p0 ?? '').trim();
+    const patch = saved.get(key);
+    if (!patch) return;
+
+    editableIndexes.forEach(index => {
+      const field = `p${index}`;
+      if (field in patch) {
+        row[field] = patch[field];
+      }
+      const flagField = `cellInputOrOutput${index}`;
+      if (flagField in patch) {
+        row[flagField] = patch[flagField];
+      }
+    });
+  });
+}
+
 /** 从组合方案表刷新（原 initData） */
 export function applyPage5InitData(
   list: Page5ParameterItem[],
@@ -116,7 +158,8 @@ export function applyPage5InitData(
   const dxlbStr = readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ1_5_DXLB');
   const equivalent = dxlbStr ? Number(dxlbStr) : 0;
 
-  const existingRows = list[0]?.tableMap?.rowData ?? [];
+  const existingRows = (list[0]?.tableMap?.rowData ?? []) as Page5TableRow[];
+  const editableValues = captureEditableInputValues(existingRows);
 
   const dataList = combinList.map((item, index) => {
     const schemeLabel = `组合方案${index + 1}`;
@@ -134,6 +177,7 @@ export function applyPage5InitData(
   }
 
   list[0].tableMap.rowData = dataList;
+  restoreEditableInputValues(dataList, editableValues);
   list[0].tableMap.rowNums = dataList.length;
   return { ok: true, equivalent };
 }

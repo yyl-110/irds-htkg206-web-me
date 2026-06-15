@@ -137,6 +137,71 @@ const COMPONENT_ID_TO_TABLE_NUM: Record<string, string> = {
   '40': 'ZT1_4_10_2_T_FDS',
 };
 
+function resolvePage9GearRowMergeSkipIndexes(row: Record<string, string>): number[] {
+  const skip: number[] = [];
+  [2, 4, 5, 6].forEach(index => {
+    if (row[`cellUserOverride${index}`] === '1') {
+      skip.push(index);
+    }
+  });
+  return skip;
+}
+
+function isPage9GearTableComponentId(componentId: string): boolean {
+  if (componentId === '25') return true;
+  const id = Number(componentId);
+  return Number.isFinite(id) && id >= 26;
+}
+
+function resolvePage10DegreeRowMergeSkipIndexes(row: Record<string, string>): number[] {
+  const skip: number[] = [];
+  [0, 1].forEach(index => {
+    if (row[`cellUserOverride${index}`] === '1') {
+      skip.push(index);
+    }
+  });
+  return skip;
+}
+
+function isPage10DegreeTableComponentId(componentId: string): boolean {
+  if (componentId === '31') return true;
+  const id = Number(componentId);
+  if (!Number.isFinite(id)) return false;
+  return (id >= 32 && id < 100) || id >= 132;
+}
+
+function resolveSavedMergeSkipColumnIndexes(
+  itemComponentId: string,
+  templateRows: Array<Record<string, string>>,
+): number[] {
+  if (isPage10DegreeTableComponentId(itemComponentId)) {
+    return [];
+  }
+  if (isPage9GearTableComponentId(itemComponentId)) {
+    return [];
+  }
+  if (itemComponentId === '21') {
+    const templateRow = templateRows[0] ?? {};
+    const skip: number[] = [];
+    for (let i = 10; i <= 14; i++) {
+      if (templateRow[`cellUserOverride${i}`] === '1') {
+        skip.push(i);
+      }
+    }
+    return skip;
+  }
+  if (itemComponentId === '17') {
+    const templateRow = templateRows[0] ?? {};
+    if (templateRow.cellUserOverride18 === '1') return [18];
+    if (templateRow.cellInputOrOutput18 === '0') return [18];
+    return [];
+  }
+  if (itemComponentId !== '20') return [];
+  const templateRow = templateRows[0] ?? {};
+  if (templateRow.cellInputOrOutput14 === '0') return [14];
+  return [];
+}
+
 function resolveSavedTableNum(table: CustomPageSavedTableRow): string {
   const direct = String(table.tableNum ?? table.tablenum ?? '').trim();
   if (direct) return direct;
@@ -166,13 +231,21 @@ function mergeSavedRowsIntoTableRowData(
   savedRows: Array<Record<string, string | number | undefined>>,
   templateRows: Array<Record<string, string>>,
   colNums: number,
+  skipColumnIndexes: number[] = [],
+  resolveRowSkipColumnIndexes?: (rowTemplate: Record<string, string>) => number[],
 ): Array<Record<string, string>> {
+  const tableSkipSet = new Set(skipColumnIndexes);
   const template = templateRows.length ? templateRows : [{}];
   return savedRows.map((savedRow, rowIndex) => {
     const rowTemplate = templateRows[rowIndex] ?? templateRows[0] ?? {};
+    const rowSkipSet = new Set([
+      ...tableSkipSet,
+      ...(resolveRowSkipColumnIndexes ? resolveRowSkipColumnIndexes(rowTemplate) : []),
+    ]);
     const pRow = normalizeSavedTableRowToPFormat(savedRow);
     const nextRow: Record<string, string> = { ...rowTemplate, delIndex: String(rowIndex) };
     for (let i = 0; i < colNums; i++) {
+      if (rowSkipSet.has(i)) continue;
       const val = pRow[`p${i}`];
       if (val !== undefined && val !== '') {
         nextRow[`p${i}`] = val;
@@ -213,7 +286,19 @@ export function mergeSavedTablesIntoList<T extends CustomPageParameterItem>(
 
     const colNums = Number(item.tableMap.colNums ?? 0);
     const templateRows = item.tableMap.rowData ?? [];
-    const rowData = mergeSavedRowsIntoTableRowData(savedRows, templateRows, colNums);
+    const skipColumnIndexes = resolveSavedMergeSkipColumnIndexes(itemComponentId, templateRows);
+    const resolveRowSkip = isPage9GearTableComponentId(itemComponentId)
+      ? resolvePage9GearRowMergeSkipIndexes
+      : isPage10DegreeTableComponentId(itemComponentId)
+        ? resolvePage10DegreeRowMergeSkipIndexes
+        : undefined;
+    const rowData = mergeSavedRowsIntoTableRowData(
+      savedRows,
+      templateRows,
+      colNums,
+      skipColumnIndexes,
+      resolveRowSkip,
+    );
     const savedComponentId = String(savedTable.componentId ?? item.componentId ?? '').trim();
 
     return {

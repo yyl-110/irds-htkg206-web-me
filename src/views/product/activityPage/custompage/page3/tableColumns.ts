@@ -79,3 +79,10 @@ export function flattenPage3LeafColumns(columns: Page3AntColumn[]): Page3AntColu
 }
 
 export const PAGE3_LEAF_COLUMNS = flattenPage3LeafColumns(PAGE3_ANT_COLUMNS);
+
+/** 可编辑列对应的 p 字段索引（如 p18 -> 18） */
+export function getPage3EditableFieldIndexes(): number[] {
+  return PAGE3_LEAF_COLUMNS.filter(col => col.cellMode === 'editable' && col.dataIndex?.startsWith('p')).map(col =>
+    Number(String(col.dataIndex).slice(1)),
+  );
+}

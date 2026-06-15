@@ -32,6 +32,11 @@ function metricGroup(title: string, dataIndex: string, unit: string, width = SCH
 
 export const PAGE6_EDITABLE_FIELDS = new Set(['p10', 'p11', 'p12', 'p13', 'p14']);
 
+/** 可编辑列对应的 p 字段索引（如 p10 -> 10） */
+export function getPage6EditableFieldIndexes(): number[] {
+  return [...PAGE6_EDITABLE_FIELDS].map(field => Number(field.slice(1)));
+}
+
 export const PAGE6_ANT_COLUMNS: Page6AntColumn[] = [
   { ...leaf('组合方案', 'p0', SCHEME_COMBO_WIDTH), fixed: 'left' as const },
   {
