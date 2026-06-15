@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
@@ -86,13 +86,14 @@ import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
 import { loadPage2PageParameters } from './page2/loadPageParameters';
-import { createDefaultPage2ParameterList, type Page2ParameterItem } from './page2/parameterDefaults';
+import { createDefaultPage2ParameterList, PAGE2_MOTOR_TABLE_COMPONENT_ID, type Page2ParameterItem } from './page2/parameterDefaults';
 import { extractPage2SaveParamValues, extractPage2TableSavePayload } from './page2/calculations';
-import { addMotorRow, applyModuleLibraryToRow, deleteMotorRows, getMotorTableRows } from './page2/rowOperations';
+import { addMotorRow, applyModuleLibraryToRow, deleteMotorRows, getMotorTableRows, MOTOR_SELECT_TABLE_NUM } from './page2/rowOperations';
 import { isBrowseModeRow, MOTOR_SELECT_ANT_COLUMNS, MOTOR_TYPE_OPTIONS, normalizeMotorCategoryValue, type Page2AntColumn } from './page2/tableColumns';
 import { buildMotorBrowseQueryPrefill } from './page2/browseHelpers';
 import { isLinearWorkMode, resolveWorkModeFromContext } from './page2/workModeHelpers';
 import type { Page2TableRow } from './page2/parameterDefaults';
+import { syncTableToFlowContext } from './_shared/utils/syncTableToFlowContext';
 
 defineOptions({ name: 'rx-customizedProcess-page2' });
 
@@ -226,8 +227,18 @@ function isEditableMotorCell(column: Page2AntColumn, record: Record<string, stri
   return !isBrowseModeRow(record);
 }
 
+function syncPage2MotorFlowContext() {
+  syncTableToFlowContext(
+    MOTOR_SELECT_TABLE_NUM,
+    PAGE2_MOTOR_TABLE_COMPONENT_ID,
+    getMotorTableRows(parameterTempList.value),
+    20,
+  );
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
+  syncPage2MotorFlowContext();
   if (inputOrOutput === undefined || inputOrOutput === '1') {
     return;
   }
@@ -342,6 +353,7 @@ function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
     syncWorkModeFromContext();
+    syncPage2MotorFlowContext();
   });
 }
 
@@ -359,6 +371,10 @@ defineExpose({
   updateEl,
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
+});
+
+onBeforeUnmount(() => {
+  syncPage2MotorFlowContext();
 });
 
 mountWithTaskParamMap(updateEl);

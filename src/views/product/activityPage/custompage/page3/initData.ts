@@ -64,38 +64,127 @@ function resolveMotorRowsFromSources(sources: TableSource[]): Array<Record<strin
   return [];
 }
 
+type Page3FlowParams = {
+  motionEffic: string;
+  maxZeroLoadRotationRate: string;
+  maxPower: string;
+  standardPower: string;
+};
+
+function resolvePage3FlowParams(): Page3FlowParams {
+  const paramList = getFlowParameterList();
+  let motionEffic = '';
+  let djOutputStyle = '';
+  let maxZeroLoadRotationRateX = '';
+  let maxZeroLoadRotationRateZ = '';
+  let maxPowerX = '';
+  let maxPowerZ = '';
+  let standardPowerX = '';
+  let standardPowerZ = '';
+
+  paramList.forEach(item => {
+    if (motionEffic === '' && item.paramnum === 'DJ2_0_CDXL') {
+      motionEffic = item.paramvalue ?? '';
+    }
+    if (djOutputStyle === '' && item.paramnum === 'DJ1_1_GZFS') {
+      djOutputStyle = item.paramvalue ?? '';
+    }
+    if (maxZeroLoadRotationRateX === '' && item.paramnum === 'DJ1_1_KZZS_MAX_X') {
+      maxZeroLoadRotationRateX = item.paramvalue ?? '';
+    }
+    if (maxZeroLoadRotationRateZ === '' && item.paramnum === 'DJ1_1_KZZS_MAX_Z') {
+      maxZeroLoadRotationRateZ = item.paramvalue ?? '';
+    }
+    if (maxPowerX === '' && item.paramnum === 'DJ1_1_SCLJ_MAX_X') {
+      maxPowerX = item.paramvalue ?? '';
+    }
+    if (maxPowerZ === '' && item.paramnum === 'DJ1_1_SCL_MAX_Z') {
+      maxPowerZ = item.paramvalue ?? '';
+    }
+    if (standardPowerX === '' && item.paramnum === 'DJ1_1_SCLJ_ED_X') {
+      standardPowerX = item.paramvalue ?? '';
+    }
+    if (standardPowerZ === '' && item.paramnum === 'DJ1_1_SCL_ED_Z') {
+      standardPowerZ = item.paramvalue ?? '';
+    }
+  });
+
+  let maxZeroLoadRotationRate = maxZeroLoadRotationRateX;
+  let maxPower = maxPowerX;
+  let standardPower = standardPowerX;
+  if (djOutputStyle.substring(0, 2) === '直线') {
+    maxZeroLoadRotationRate = maxZeroLoadRotationRateZ;
+    maxPower = maxPowerZ;
+    standardPower = standardPowerZ;
+  }
+
+  return { motionEffic, maxZeroLoadRotationRate, maxPower, standardPower };
+}
+
+function applyMotorFieldsToPage3Row(
+  row: Page3TableRow,
+  motorRow: Record<string, string | number | undefined>,
+  flowParams: Page3FlowParams,
+) {
+  row.p0 = readTableCell(motorRow, 1);
+  row.p1 = readTableCell(motorRow, 3);
+  row.p2 = readTableCell(motorRow, 4);
+  row.p3 = readTableCell(motorRow, 5);
+  row.p4 = readTableCell(motorRow, 11);
+  row.p5 = flowParams.motionEffic;
+  row.p6 = flowParams.maxZeroLoadRotationRate;
+  row.p7 = flowParams.maxPower;
+  row.p8 = flowParams.standardPower;
+}
+
 function buildPage3RowFromMotor(
   motorRow: Record<string, string | number | undefined>,
-  motionEffic: string,
-  maxZeroLoadRotationRate: string,
-  maxPower: string,
-  standardPower: string,
+  flowParams: Page3FlowParams,
 ): Page3TableRow {
   const data: Page3TableRow = {};
-  data.p0 = String(motorRow.p1 ?? '');
-  data.cellInputOrOutput0 = '1';
-  data.p1 = String(motorRow.p3 ?? '');
-  data.cellInputOrOutput1 = '1';
-  data.p2 = String(motorRow.p4 ?? '');
-  data.cellInputOrOutput2 = '1';
-  data.p3 = String(motorRow.p5 ?? '');
-  data.cellInputOrOutput3 = '1';
-  data.p4 = String(motorRow.p11 ?? '');
-  data.cellInputOrOutput4 = '1';
-  data.p5 = motionEffic;
-  data.cellInputOrOutput5 = '1';
-  data.p6 = maxZeroLoadRotationRate;
-  data.cellInputOrOutput6 = '1';
-  data.p7 = maxPower;
-  data.cellInputOrOutput7 = '1';
-  data.p8 = standardPower;
-  data.cellInputOrOutput8 = '1';
+  applyMotorFieldsToPage3Row(data, motorRow, flowParams);
+  for (let i = 0; i <= 8; i++) {
+    data[`cellInputOrOutput${i}`] = '1';
+  }
   for (let i = 9; i <= 18; i++) {
     data[`p${i}`] = '';
     data[`cellParameterId${i}`] = '';
     data[`cellInputOrOutput${i}`] = '1';
   }
   return data;
+}
+
+function findMotorRowForPage3Row(
+  row: Page3TableRow,
+  index: number,
+  motorRows: Array<Record<string, string | number | undefined>>,
+): Record<string, string | number | undefined> | undefined {
+  const key = String(row.p0 ?? '').trim();
+  if (key) {
+    const matched = motorRows.find(motor => readTableCell(motor, 1) === key);
+    if (matched) return matched;
+  }
+  return motorRows[index];
+}
+
+/** 从电机选型页刷新 p0-p8，保留已计算列与用户编辑的总减速比 */
+export function refreshPage3MotorFieldsFromFlow(
+  list: Page3ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): boolean {
+  const motorRows = resolveMotorRowsFromSources(collectTableSources(savedTables));
+  if (!motorRows.length || !list[0]?.tableMap?.rowData?.length) {
+    return false;
+  }
+
+  const flowParams = resolvePage3FlowParams();
+  const rows = list[0].tableMap.rowData as Page3TableRow[];
+  rows.forEach((row, index) => {
+    const motorRow = findMotorRowForPage3Row(row, index, motorRows);
+    if (!motorRow) return;
+    applyMotorFieldsToPage3Row(row, motorRow, flowParams);
+  });
+  return true;
 }
 
 export function captureEditableInputValues(rows: Page3TableRow[]): Map<string, Partial<Page3TableRow>> {
@@ -165,57 +254,10 @@ export function applyPage3InitData(
   list: Page3ParameterItem[],
   savedTables?: Array<Record<string, unknown>> | null,
 ): boolean {
-  const paramList = getFlowParameterList();
   const djList = resolveMotorRowsFromSources(collectTableSources(savedTables));
+  const flowParams = resolvePage3FlowParams();
 
-  let motionEffic = '';
-  let djOutputStyle = '';
-  let maxZeroLoadRotationRateX = '';
-  let maxZeroLoadRotationRateZ = '';
-  let maxPowerX = '';
-  let maxPowerZ = '';
-  let standardPowerX = '';
-  let standardPowerZ = '';
-
-  paramList.forEach(item => {
-    if (motionEffic === '' && item.paramnum === 'DJ2_0_CDXL') {
-      motionEffic = item.paramvalue ?? '';
-    }
-    if (djOutputStyle === '' && item.paramnum === 'DJ1_1_GZFS') {
-      djOutputStyle = item.paramvalue ?? '';
-    }
-    if (maxZeroLoadRotationRateX === '' && item.paramnum === 'DJ1_1_KZZS_MAX_X') {
-      maxZeroLoadRotationRateX = item.paramvalue ?? '';
-    }
-    if (maxZeroLoadRotationRateZ === '' && item.paramnum === 'DJ1_1_KZZS_MAX_Z') {
-      maxZeroLoadRotationRateZ = item.paramvalue ?? '';
-    }
-    if (maxPowerX === '' && item.paramnum === 'DJ1_1_SCLJ_MAX_X') {
-      maxPowerX = item.paramvalue ?? '';
-    }
-    if (maxPowerZ === '' && item.paramnum === 'DJ1_1_SCL_MAX_Z') {
-      maxPowerZ = item.paramvalue ?? '';
-    }
-    if (standardPowerX === '' && item.paramnum === 'DJ1_1_SCLJ_ED_X') {
-      standardPowerX = item.paramvalue ?? '';
-    }
-    if (standardPowerZ === '' && item.paramnum === 'DJ1_1_SCL_ED_Z') {
-      standardPowerZ = item.paramvalue ?? '';
-    }
-  });
-
-  let maxZeroLoadRotationRate = maxZeroLoadRotationRateX;
-  let maxPower = maxPowerX;
-  let standardPower = standardPowerX;
-  if (djOutputStyle.substring(0, 2) === '直线') {
-    maxZeroLoadRotationRate = maxZeroLoadRotationRateZ;
-    maxPower = maxPowerZ;
-    standardPower = standardPowerZ;
-  }
-
-  const dataList = djList.map(item =>
-    buildPage3RowFromMotor(item, motionEffic, maxZeroLoadRotationRate, maxPower, standardPower),
-  );
+  const dataList = djList.map(item => buildPage3RowFromMotor(item, flowParams));
 
   if (!list[0]?.tableMap) {
     return false;

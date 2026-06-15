@@ -3,7 +3,7 @@
     <div class="layout-header">
       <div class="layout-header__title">齿轮减速比分配：</div>
 
-      <!-- <div class="section-toolbar">
+      <div class="section-toolbar">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
@@ -12,7 +12,7 @@
           <template #icon><CalculatorOutlined /></template>
           计算
         </a-button>
-      </div> -->
+      </div>
 
       <div class="selectBox">
         <a-table
@@ -29,6 +29,8 @@
               <a-input-number
                 v-model:value="record[String(column.dataIndex)]"
                 type="number"
+                :min="String(column.dataIndex) === 'p14' ? 1 : undefined"
+                :max="String(column.dataIndex) === 'p14' ? 3 : undefined"
                 class="table-cell-input table-cell-input--highlight"
                 @input="onCellInput(record, index, String(column.dataIndex))" />
             </template>
@@ -40,21 +42,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage5Rows, extractPage5SaveParamValues, extractPage5TableSavePayload } from './page5/calculations';
-import { applyPage5InitData, captureEditableInputValues, restoreEditableInputValues } from './page5/initData';
+import { applyPage5InitData, captureEditableInputValues, refreshPage5UpstreamFromFlow, restoreEditableInputValues } from './page5/initData';
 import { loadPage5PageParameters } from './page5/loadPageParameters';
 import {
   createDefaultPage5ParameterList,
   ensurePage5TableComponentIds,
+  PAGE5_TABLE_COMPONENT_ID,
+  PAGE5_TABLE_NUM,
   type Page5ParameterItem,
   type Page5TableRow,
 } from './page5/parameterDefaults';
 import { getPage5TableRows, setPage5TableRows } from './page5/rowOperations';
 import { PAGE5_ANT_COLUMNS, PAGE5_LEAF_COLUMNS, type Page5AntColumn } from './page5/tableColumns';
+import { syncTableToFlowContext } from './_shared/utils/syncTableToFlowContext';
 
 defineOptions({ name: 'rx-customizedProcess-page5' });
 
@@ -125,6 +130,10 @@ function page5TableRowKey(record: Page5TableRow, index?: number) {
   return String(record.p0 ?? index ?? '');
 }
 
+function syncPage5FlowContext() {
+  syncTableToFlowContext(PAGE5_TABLE_NUM, PAGE5_TABLE_COMPONENT_ID, getPage5TableRows(parameterTempList.value), 14);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
   if (inputOrOutput === undefined || inputOrOutput === '1') {
@@ -154,15 +163,25 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
       }
     }
   });
+  syncPage5FlowContext();
+}
+
+function clampPage5GearLevel(value: unknown): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '1';
+  return String(Math.min(3, Math.max(1, Math.round(n))));
 }
 
 function onCellInput(record: Page5TableRow, index: number, field: string) {
   const rows = getPage5TableRows(parameterTempList.value);
   if (rows[index]) {
-    rows[index][field] = record[field];
+    let nextValue = record[field];
     if (field === 'p14') {
+      nextValue = clampPage5GearLevel(record[field]);
+      record[field] = nextValue;
       rows[index].cellInputOrOutput14 = '0';
     }
+    rows[index][field] = nextValue;
   }
   setSaveBtnEnable();
 }
@@ -177,6 +196,7 @@ function handleInitData(): boolean {
   restoreEditableInputValues(getPage5TableRows(parameterTempList.value), editableSnapshot);
   equivalent.value = result.equivalent;
   setPage5TableRows(parameterTempList.value, [...getPage5TableRows(parameterTempList.value)]);
+  syncPage5FlowContext();
   setSaveBtnEnable();
   return true;
 }
@@ -191,13 +211,20 @@ function handleCalculation() {
   calculateAllPage5Rows(rows, equivalent.value);
   restoreEditableInputValues(rows, editableSnapshot);
   setPage5TableRows(parameterTempList.value, rows);
+  syncPage5FlowContext();
   setSaveBtnEnable();
+}
+
+function syncPage5UpstreamFromFlow() {
+  refreshPage5UpstreamFromFlow(parameterTempList.value, props.savedTables, props.savedParamValues);
+  parameterTempList.value = clonePage5ParameterList(parameterTempList.value);
 }
 
 function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
-    parameterTempList.value = clonePage5ParameterList(parameterTempList.value);
+    syncPage5UpstreamFromFlow();
+    syncPage5FlowContext();
   });
 }
 
@@ -231,6 +258,10 @@ defineExpose({
 });
 
 mountWithTaskParamMap(onMountReady);
+
+onBeforeUnmount(() => {
+  syncPage5FlowContext();
+});
 </script>
 
 <style scoped>

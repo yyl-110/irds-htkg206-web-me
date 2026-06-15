@@ -44,6 +44,8 @@ import {
 } from './page7/parameterDefaults';
 import { getPage7TableRows, setPage7TableRows } from './page7/rowOperations';
 import { PAGE7_ANT_COLUMNS, PAGE7_TABLE_MIN_WIDTH } from './page7/tableColumns';
+import { syncTableToFlowContext } from './_shared/utils/syncTableToFlowContext';
+import { PAGE7_TABLE_COMPONENT_ID, PAGE7_TABLE_NUM } from './page7/parameterDefaults';
 
 defineOptions({ name: 'rx-customizedProcess-page7' });
 
@@ -105,6 +107,10 @@ const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = 
 
 const tableRowData = computed(() => getPage7TableRows(parameterTempList.value));
 
+function syncPage7FlowContext() {
+  syncTableToFlowContext(PAGE7_TABLE_NUM, PAGE7_TABLE_COMPONENT_ID, getPage7TableRows(parameterTempList.value), 28);
+}
+
 function page7TableRowKey(record: Page7TableRow, index?: number) {
   return `${record.p0 ?? ''}-${record.p28 ?? index ?? ''}`;
 }
@@ -133,6 +139,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
       }
     }
   });
+  syncPage7FlowContext();
 }
 
 function handleInitData(): boolean {
@@ -144,6 +151,7 @@ function handleInitData(): boolean {
     return false;
   }
   setPage7TableRows(parameterTempList.value, [...getPage7TableRows(parameterTempList.value)]);
+  syncPage7FlowContext();
   setSaveBtnEnable();
   return true;
 }
@@ -156,6 +164,7 @@ function handleCalculation() {
   }
   calculateAllPage7Rows(rows);
   setPage7TableRows(parameterTempList.value, rows);
+  syncPage7FlowContext();
   setSaveBtnEnable();
 }
 
@@ -163,6 +172,7 @@ function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage7ParameterList(parameterTempList.value);
+    syncPage7FlowContext();
   });
 }
 

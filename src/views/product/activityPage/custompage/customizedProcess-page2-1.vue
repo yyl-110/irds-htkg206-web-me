@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
@@ -90,6 +90,7 @@ import { applyPage2_1InitData } from './page2-1/initData';
 import { loadPage2_1PageParameters } from './page2-1/loadPageParameters';
 import { createDefaultPage2_1ParameterList, type Page2_1ParameterItem, type Page2_1TableRow } from './page2-1/parameterDefaults';
 import { addReducerRow, applyModuleLibraryToRow, deleteReducerRows, getReducerTableRows } from './page2-1/rowOperations';
+import { syncPage2_1ReducerTableToFlowContext } from './page2-1/flowSync';
 import { isBrowseModeRow, REDUCER_SELECT_ANT_COLUMNS, REDUCER_TYPE_OPTIONS, normalizeReducerCategoryValue, type Page2_1AntColumn } from './page2-1/tableColumns';
 
 defineOptions({ name: 'rx-customizedProcess-page2-1' });
@@ -242,8 +243,13 @@ function isEditableReducerCell(column: Page2_1AntColumn, record: Record<string, 
   return !isBrowseModeRow(record);
 }
 
+function syncPage2_1ReducerFlowContext() {
+  syncPage2_1ReducerTableToFlowContext(parameterTempList.value);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
+  syncPage2_1ReducerFlowContext();
   if (inputOrOutput === undefined || inputOrOutput === '1') {
     return;
   }
@@ -340,6 +346,7 @@ function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
     applyPage2_1InitData(parameterTempList.value, props.savedParamValues);
+    syncPage2_1ReducerFlowContext();
   });
 }
 
@@ -351,6 +358,7 @@ function getCurrentSaveParamValues() {
 }
 
 function getCurrentTableSavePayload() {
+  syncPage2_1ReducerFlowContext();
   return extractPage2_1TableSavePayload(parameterTempList.value);
 }
 
@@ -358,6 +366,10 @@ defineExpose({
   updateEl,
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
+});
+
+onBeforeUnmount(() => {
+  syncPage2_1ReducerFlowContext();
 });
 
 mountWithTaskParamMap(updateEl);

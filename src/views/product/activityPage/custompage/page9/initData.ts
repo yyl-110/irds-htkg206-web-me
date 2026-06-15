@@ -1,5 +1,7 @@
-import { PAGE8_SEL_INDEX_PARAM, PAGE8_TABLE_NUM } from '../page8/parameterDefaults';
-import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
+import { PAGE8_SEL_INDEX_PARAM, PAGE8_TABLE_COMPONENT_ID, PAGE8_TABLE_NUM } from '../page8/parameterDefaults';
+import { resolvePage8SchemeRowsFromSources } from '../page8/initData';
+import { collectTableSources, readTableCell, resolveTableRows } from '../_shared/utils/flowTableSources';
+import { getFlowParameterList } from '../shared/flowContext';
 import {
   createDefaultGearStressRow,
   gearTableNumForIndex,
@@ -18,6 +20,81 @@ export interface Page9InitResult {
 }
 
 type GearEditableSnapshot = Map<string, Partial<Page9GearRow>>;
+
+function firstNonEmpty(...values: Array<string | number | undefined>): string {
+  for (const v of values) {
+    const s = String(v ?? '').trim();
+    if (s) return s;
+  }
+  return '';
+}
+
+function findRowByScheme(
+  list: Page9SchemeRow[],
+  schemeIndex: number,
+  schemeLabel: string,
+): Page9SchemeRow | undefined {
+  if (list[schemeIndex]) return list[schemeIndex];
+  return list.find(row => String(row.p0 ?? '').trim() === schemeLabel);
+}
+
+/** page9 列顺序与 page5/page8 不同：p2=额定负载速度，p3=最大空载速度 */
+function mapPage8RowToPage9Scheme(row: Record<string, string | number | undefined>): Page9SchemeRow {
+  const data: Page9SchemeRow = {};
+  for (let i = 0; i <= 20; i++) {
+    const val = readTableCell(row, i);
+    if (val) data[`p${i}`] = val;
+  }
+  data.p1 = firstNonEmpty(readTableCell(row, 1));
+  data.p2 = firstNonEmpty(readTableCell(row, 3));
+  data.p3 = firstNonEmpty(readTableCell(row, 2));
+  return data;
+}
+
+/** 优先 page8 流程表，否则从 page5/6/7 构建 */
+export function resolvePage9SchemeSourceRows(
+  savedTables?: Array<Record<string, unknown>> | null,
+): Page9SchemeRow[] {
+  const sources = collectTableSources(savedTables);
+  const page8List = resolveTableRows(
+    sources,
+    [{ tableNum: PAGE8_TABLE_NUM, componentId: PAGE8_TABLE_COMPONENT_ID }],
+    20,
+  );
+  if (page8List.length) {
+    return page8List.map(mapPage8RowToPage9Scheme);
+  }
+  return resolvePage8SchemeRowsFromSources(savedTables).map(mapPage8RowToPage9Scheme);
+}
+
+/** 刷新方案表初算指标等上游字段，保留当前行集合与勾选 */
+export function refreshPage9SchemePerformanceFields(
+  list: Page9ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): boolean {
+  const upstreamRows = resolvePage9SchemeSourceRows(savedTables);
+  if (!upstreamRows.length || !list[0]?.tableMap?.rowData?.length) {
+    return false;
+  }
+
+  const rows = list[0].tableMap.rowData as Page9SchemeRow[];
+  rows.forEach((row, index) => {
+    const schemeLabel = String(row.p0 ?? `组合方案${index + 1}`).trim();
+    const upstream = findRowByScheme(upstreamRows, index, schemeLabel);
+    if (!upstream) return;
+    row.p1 = upstream.p1 ?? row.p1;
+    row.p2 = upstream.p2 ?? row.p2;
+    row.p3 = upstream.p3 ?? row.p3;
+    for (let i = 4; i <= 20; i++) {
+      const field = `p${i}`;
+      const val = String(upstream[field] ?? '').trim();
+      if (val && val !== '--') {
+        row[field] = upstream[field];
+      }
+    }
+  });
+  return true;
+}
 
 function isPage9GearStressTable(item: Page9ParameterItem): boolean {
   const tableNum = String(item.tableNum ?? '');
@@ -244,10 +321,12 @@ export function getGearDisplayRows(list: Page9ParameterItem[]): Page9GearRow[] {
   return (list[2]?.tableMap?.rowData ?? []) as Page9GearRow[];
 }
 
-/** 从 page8 筛选方案刷新（原 initData） */
-export function applyPage9InitData(list: Page9ParameterItem[]): Page9InitResult {
+/** 从 page8 / page5-7 筛选方案刷新（原 initData） */
+export function applyPage9InitData(
+  list: Page9ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+): Page9InitResult {
   const paramList = getFlowParameterList();
-  const tableList = getFlowTableList();
 
   let selIndexs = '';
   let cdxl = '';
@@ -275,12 +354,7 @@ export function applyPage9InitData(list: Page9ParameterItem[]): Page9InitResult 
     selIndexs = selIndexs.slice(0, -1);
   }
 
-  let combinList: Page9SchemeRow[] = [];
-  tableList.forEach(item => {
-    if (item.tablenum === PAGE8_TABLE_NUM) {
-      combinList = (item.rowdata ?? []) as Page9SchemeRow[];
-    }
-  });
+  const combinList = resolvePage9SchemeSourceRows(savedTables);
 
   const indexArr = selIndexs.split(',').filter(Boolean);
   const dataList = indexArr

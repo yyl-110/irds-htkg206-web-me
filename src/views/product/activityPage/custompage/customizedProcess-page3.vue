@@ -2,7 +2,6 @@
   <div class="layout-wrapper">
     <div class="layout-header">
       <div class="layout-header__title">初始总减速比计算：</div>
-<!-- 
       <div class="section-toolbar">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
@@ -12,7 +11,7 @@
           <template #icon><CalculatorOutlined /></template>
           计算
         </a-button>
-      </div> -->
+      </div>
 
       <div class="selectBox">
         <a-table
@@ -56,7 +55,7 @@ import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
 import { syncPage3TableToFlowContext } from './page3/flowSync';
-import { applyPage3InitData, captureEditableInputValues, hasPage3SavedTableData, restoreEditableInputValues } from './page3/initData';
+import { applyPage3InitData, captureEditableInputValues, refreshPage3MotorFieldsFromFlow, restoreEditableInputValues } from './page3/initData';
 import { loadPage3PageParameters } from './page3/loadPageParameters';
 import {
   createDefaultPage3ParameterList,
@@ -222,10 +221,15 @@ function handleCalculation() {
   setSaveBtnEnable();
 }
 
+function syncPage3MotorFieldsFromPage2() {
+  refreshPage3MotorFieldsFromFlow(parameterTempList.value, props.savedTables);
+  parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
+}
+
 function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
-    parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
+    syncPage3MotorFieldsFromPage2();
     syncPage3FlowContext();
   });
 }
@@ -234,12 +238,13 @@ async function runAutoInitAndCalculateOnce() {
   if (hasAutoRefreshed.value) return;
   hasAutoRefreshed.value = true;
   await updateEl();
-  if (hasPage3SavedTableData(parameterTempList.value)) {
+  if (getPage3TableRows(parameterTempList.value).length === 0) {
+    if (handleInitData()) {
+      handleCalculation();
+    }
     return;
   }
-  if (handleInitData()) {
-    handleCalculation();
-  }
+  handleCalculation();
 }
 
 function onMountReady() {

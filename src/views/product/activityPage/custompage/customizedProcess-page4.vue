@@ -31,11 +31,13 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { message } from 'ant-design-vue';
 import { SyncOutlined } from '@ant-design/icons-vue';
 import { extractPage4SaveParamValues, extractPage4TableSavePayload } from './page4/calculations';
-import { applyPage4InitData } from './page4/initData';
+import { applyPage4InitData, refreshPage4UpstreamFromFlow } from './page4/initData';
 import { loadPage4PageParameters } from './page4/loadPageParameters';
 import { createDefaultPage4ParameterList, type Page4ParameterItem, type Page4TableRow } from './page4/parameterDefaults';
 import { getPage4TableRows, setPage4TableRows } from './page4/rowOperations';
 import { PAGE4_ANT_COLUMNS } from './page4/tableColumns';
+import { syncTableToFlowContext } from './_shared/utils/syncTableToFlowContext';
+import { PAGE4_TABLE_COMPONENT_ID, PAGE4_TABLE_NUM } from './page4/parameterDefaults';
 
 defineOptions({ name: 'rx-customizedProcess-page4' });
 
@@ -95,6 +97,10 @@ function page4TableRowKey(record: Page4TableRow, index?: number) {
   return String(record.p0 ?? index ?? '');
 }
 
+function syncPage4FlowContext() {
+  syncTableToFlowContext(PAGE4_TABLE_NUM, PAGE4_TABLE_COMPONENT_ID, getPage4TableRows(parameterTempList.value), 16);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
   if (inputOrOutput === undefined || inputOrOutput === '1') {
@@ -124,6 +130,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
       }
     }
   });
+  syncPage4FlowContext();
 }
 
 function handleInitData(): boolean {
@@ -135,13 +142,20 @@ function handleInitData(): boolean {
     return false;
   }
   setPage4TableRows(parameterTempList.value, [...getPage4TableRows(parameterTempList.value)]);
+  syncPage4FlowContext();
   setSaveBtnEnable();
   return true;
+}
+
+function syncPage4UpstreamFromPage3_1() {
+  refreshPage4UpstreamFromFlow(parameterTempList.value, props.savedTables);
 }
 
 function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
+    syncPage4UpstreamFromPage3_1();
+    syncPage4FlowContext();
   });
 }
 

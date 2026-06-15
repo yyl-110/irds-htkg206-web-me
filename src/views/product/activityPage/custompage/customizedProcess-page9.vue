@@ -90,6 +90,7 @@ import {
   captureAllPage9GearTablesEditable,
   captureGearEditableValues,
   markPage9GearManualEdit,
+  refreshPage9SchemePerformanceFields,
   restoreAllPage9GearTablesEditable,
   restoreGearEditableValues,
 } from './page9/initData';
@@ -97,10 +98,13 @@ import { loadPage9PageParameters } from './page9/loadPageParameters';
 import {
   createDefaultPage9ParameterList,
   ensurePage9TableComponentIds,
+  PAGE9_INPUT_TABLE_COMPONENT_ID,
+  PAGE9_INPUT_TABLE_NUM,
   type Page9GearRow,
   type Page9ParameterItem,
   type Page9SchemeRow,
 } from './page9/parameterDefaults';
+import { syncTableToFlowContext } from './_shared/utils/syncTableToFlowContext';
 import {
   applyLoadCoefficientToGearRows,
   getGearDisplayRows,
@@ -209,6 +213,10 @@ function resolveGearColumn(column: { dataIndex?: string | number }): Page9AntCol
   return gearLeafMap.get(String(column.dataIndex ?? ''));
 }
 
+function syncPage9SchemeFlowContext() {
+  syncTableToFlowContext(PAGE9_INPUT_TABLE_NUM, PAGE9_INPUT_TABLE_COMPONENT_ID, getSchemeTableRows(parameterTempList.value), 20);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
   if (inputOrOutput === undefined || inputOrOutput === '1') return;
@@ -233,6 +241,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
       }
     }
   });
+  syncPage9SchemeFlowContext();
 }
 
 function handleSchemeSelection(_keys: Key[], rows: Page9SchemeRow[]) {
@@ -320,7 +329,7 @@ function onGearCellBlur(record: Page9GearRow, index: number, field: string) {
 
 function handleInitData(): boolean {
   const gearEditableSnapshot = captureAllPage9GearTablesEditable(parameterTempList.value);
-  const result = applyPage9InitData(parameterTempList.value);
+  const result = applyPage9InitData(parameterTempList.value, props.savedTables);
   if (result.cleared) {
     message.warning('请先在 初步筛选若干组合方案页面 勾选组合方案并保存方案索引后再试');
     selectedRowKeys.value = [];
@@ -334,11 +343,13 @@ function handleInitData(): boolean {
   }
   parameterTempList.value = ensurePage9TableComponentIds(parameterTempList.value);
   applyTaskParamMapToList();
+  refreshPage9SchemePerformanceFields(parameterTempList.value, props.savedTables);
   restoreAllPage9GearTablesEditable(parameterTempList.value, gearEditableSnapshot);
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
   ensureDefaultSchemeSelection();
+  syncPage9SchemeFlowContext();
   return true;
 }
 
@@ -374,6 +385,7 @@ function onDiagramBottomError() {
 function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
+    refreshPage9SchemePerformanceFields(parameterTempList.value, props.savedTables);
     parameterTempList.value = clonePage9ParameterList(parameterTempList.value);
     loadCoefficient.value = getLoadCoefficient(parameterTempList.value);
     selectedRowKeys.value = [];
@@ -381,6 +393,7 @@ function updateEl(): Promise<void> {
     if (getSchemeTableRows(parameterTempList.value).length > 0) {
       ensureDefaultSchemeSelection();
     }
+    syncPage9SchemeFlowContext();
   });
 }
 

@@ -51,6 +51,8 @@ import {
   syncPage8SelectionIndexes,
 } from './page8/rowOperations';
 import { PAGE8_ANT_COLUMNS, PAGE8_TABLE_MIN_WIDTH } from './page8/tableColumns';
+import { syncTableToFlowContext } from './_shared/utils/syncTableToFlowContext';
+import { PAGE8_TABLE_COMPONENT_ID, PAGE8_TABLE_NUM } from './page8/parameterDefaults';
 
 defineOptions({ name: 'rx-customizedProcess-page8' });
 
@@ -144,6 +146,10 @@ async function applySelectionState(restoreFromSaved: boolean) {
   suppressSelectionChange.value = false;
 }
 
+function syncPage8FlowContext() {
+  syncTableToFlowContext(PAGE8_TABLE_NUM, PAGE8_TABLE_COMPONENT_ID, getPage8TableRows(parameterTempList.value), 20);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
   if (inputOrOutput === undefined || inputOrOutput === '1') return;
@@ -168,6 +174,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
       }
     }
   });
+  syncPage8FlowContext();
 }
 
 function handleSelectionChange(keys: Key[], rows: Page8TableRow[]) {
@@ -188,7 +195,7 @@ const rowSelection = computed(() => ({
 
 async function handleInitData(): Promise<boolean> {
   suppressSelectionChange.value = true;
-  const result = applyPage8InitData(parameterTempList.value);
+  const result = applyPage8InitData(parameterTempList.value, props.savedTables);
   if (!result.ok) {
     suppressSelectionChange.value = false;
     message.warning(
@@ -197,6 +204,7 @@ async function handleInitData(): Promise<boolean> {
     return false;
   }
   setPage8TableRows(parameterTempList.value, [...getPage8TableRows(parameterTempList.value)]);
+  syncPage8FlowContext();
   await applySelectionState(hasPageSavedData());
   setSaveBtnEnable();
   return true;
@@ -206,6 +214,7 @@ function updateEl(): Promise<void> {
   return nextTick(async () => {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage8ParameterList(parameterTempList.value);
+    syncPage8FlowContext();
     await applySelectionState(hasPageSavedData());
   });
 }

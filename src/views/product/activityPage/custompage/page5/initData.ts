@@ -1,3 +1,4 @@
+import { PAGE2_1_REDUCER_TABLE_COMPONENT_ID, REDUCER_TABLE_NUM } from '../page2-1/parameterDefaults';
 import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
 import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
 import { PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
@@ -74,6 +75,15 @@ function readParamFromFlowOrSaved(
   return val;
 }
 
+function findReducerRowByProductCode(
+  reducerList: Array<Record<string, string | number | undefined>>,
+  productCode: string,
+): Record<string, string | number | undefined> | undefined {
+  const code = String(productCode ?? '').trim();
+  if (!code) return undefined;
+  return reducerList.find(row => readTableCell(row, 2) === code);
+}
+
 function buildRowFromCombin(
   schemeIndex: number,
   combinRow: Record<string, string | number | undefined>,
@@ -81,34 +91,50 @@ function buildRowFromCombin(
   page3TotalReductionRatio: string,
   page7Row?: Record<string, string | number | undefined>,
   page6Row?: Record<string, string | number | undefined>,
-  existingRow?: Page5TableRow,
+  flowMetrics?: { p1: string; p2: string; p3: string },
+  reducerRow?: Record<string, string | number | undefined>,
 ): Page5TableRow {
   const data: Page5TableRow = {};
   const schemeLabel = `组合方案${schemeIndex + 1}`;
   data.p0 = schemeLabel;
   data.cellInputOrOutput0 = '1';
 
-  // 初算指标来自 page7/page6；page4 combin 的 p1-p3 是 page3 减速比，不能用于此处
-  data.p1 = firstNonEmpty(readTableCell(page7Row, 1), readTableCell(page6Row, 1), existingRow?.p1);
+  // 初算指标：优先 page4 组合方案（来自 page3-1/page3）；其次 page7/page6 回写
+  data.p1 = firstNonEmpty(
+    readTableCell(combinRow, 1),
+    readTableCell(page7Row, 1),
+    readTableCell(page6Row, 1),
+    flowMetrics?.p1,
+  );
   data.cellInputOrOutput1 = '1';
-  data.p2 = firstNonEmpty(readTableCell(page7Row, 2), readTableCell(page6Row, 2), existingRow?.p2);
+  data.p2 = firstNonEmpty(
+    readTableCell(combinRow, 2),
+    readTableCell(page7Row, 2),
+    readTableCell(page6Row, 2),
+    flowMetrics?.p2,
+  );
   data.cellInputOrOutput2 = '1';
-  data.p3 = firstNonEmpty(readTableCell(page7Row, 3), readTableCell(page6Row, 3), existingRow?.p3);
+  data.p3 = firstNonEmpty(
+    readTableCell(combinRow, 3),
+    readTableCell(page7Row, 3),
+    readTableCell(page6Row, 3),
+    flowMetrics?.p3,
+  );
   data.cellInputOrOutput3 = '1';
 
-  data.p4 = firstNonEmpty(combinRow.p4, existingRow?.p4);
+  data.p4 = firstNonEmpty(combinRow.p4);
   data.cellInputOrOutput4 = '1';
-  data.p5 = firstNonEmpty(combinRow.p5, existingRow?.p5);
+  data.p5 = firstNonEmpty(combinRow.p5);
   data.cellInputOrOutput5 = '1';
-  data.p6 = firstNonEmpty(combinRow.p6, existingRow?.p6);
+  data.p6 = firstNonEmpty(combinRow.p6);
   data.cellInputOrOutput6 = '1';
-  data.p7 = firstNonEmpty(combinRow.p10, existingRow?.p7);
+  data.p7 = firstNonEmpty(readTableCell(reducerRow, 2), readTableCell(combinRow, 10));
   data.cellInputOrOutput7 = '1';
-  data.p8 = firstNonEmpty(jsqStyle, existingRow?.p8);
+  data.p8 = firstNonEmpty(jsqStyle);
   data.cellInputOrOutput8 = '1';
-  data.p9 = firstNonEmpty(combinRow.p11, existingRow?.p9);
+  data.p9 = firstNonEmpty(readTableCell(reducerRow, 5), readTableCell(combinRow, 11));
   data.cellInputOrOutput9 = '1';
-  data.p10 = firstNonEmpty(combinRow.p12, existingRow?.p10);
+  data.p10 = firstNonEmpty(readTableCell(reducerRow, 6), readTableCell(combinRow, 12));
   data.cellInputOrOutput10 = '1';
 
   // 总减速比：优先 page3 p18 文本框；其次 page6/page7 实际零位总减速比、page4 combin p16
@@ -117,15 +143,14 @@ function buildRowFromCombin(
     readTableCell(page7Row, 23),
     readTableCell(page6Row, 16),
     readTableCell(combinRow, 16),
-    existingRow?.p11,
   );
   data.cellInputOrOutput11 = '1';
 
-  data.p12 = firstNonEmpty(existingRow?.p12);
+  data.p12 = '';
   data.cellInputOrOutput12 = '1';
-  data.p13 = firstNonEmpty(existingRow?.p13);
+  data.p13 = '';
   data.cellInputOrOutput13 = '1';
-  data.p14 = firstNonEmpty(existingRow?.p14);
+  data.p14 = '';
   data.cellInputOrOutput14 = '1';
 
   return data;
@@ -194,10 +219,20 @@ export function applyPage5InitData(
   );
   const page7List = resolveTableRows(sources, [{ tableNum: PAGE7_TABLE_NUM, componentId: PAGE7_TABLE_COMPONENT_ID }], 28);
   const page6List = resolveTableRows(sources, [{ tableNum: PAGE6_TABLE_NUM, componentId: PAGE6_TABLE_COMPONENT_ID }], 16);
+  const reducerList = resolveTableRows(
+    sources,
+    [{ tableNum: REDUCER_TABLE_NUM, componentId: PAGE2_1_REDUCER_TABLE_COMPONENT_ID }],
+    13,
+  );
 
   const jsqStyle = readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ1_5_MDJSQXS');
   const dxlbStr = readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ1_5_DXLB');
   const equivalent = dxlbStr ? Number(dxlbStr) : 0;
+  const flowMetrics = {
+    p1: readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ2_4_SCLJ_MAX'),
+    p2: readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ2_4_KZZS_MAX'),
+    p3: readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ2_4_EDZS'),
+  };
 
   const existingRows = (list[0]?.tableMap?.rowData ?? []) as Page5TableRow[];
   const editableValues = captureEditableInputValues(existingRows);
@@ -206,9 +241,18 @@ export function applyPage5InitData(
     const schemeLabel = `组合方案${index + 1}`;
     const page7Row = findRowByScheme(page7List, index, schemeLabel);
     const page6Row = findRowByScheme(page6List, index, schemeLabel);
-    const existingRow = findRowByScheme(existingRows as Array<Record<string, string | number | undefined>>, index, schemeLabel) as Page5TableRow | undefined;
     const page3TotalReductionRatio = resolveTotalReductionRatioFromPage3(item.p4, motorList, page3List);
-    return buildRowFromCombin(index, item, jsqStyle, page3TotalReductionRatio, page7Row, page6Row, existingRow);
+    const reducerRow = findReducerRowByProductCode(reducerList, readTableCell(item, 10));
+    return buildRowFromCombin(
+      index,
+      item,
+      jsqStyle,
+      page3TotalReductionRatio,
+      page7Row,
+      page6Row,
+      flowMetrics,
+      reducerRow,
+    );
   });
 
   if (!list[0]?.tableMap) {
@@ -222,4 +266,71 @@ export function applyPage5InitData(
   restoreEditableInputValues(dataList, editableValues);
   list[0].tableMap.rowNums = dataList.length;
   return { ok: true, equivalent };
+}
+
+/** 刷新上游继承字段（含减速器传动比 p9、最大输出力 p10），保留齿轮减速级数等用户输入 */
+export function refreshPage5UpstreamFromFlow(
+  list: Page5ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+  savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
+): boolean {
+  const paramList = getFlowParameterList();
+  const sources = collectTableSources(savedTables);
+
+  const combinList = resolveTableRows(sources, [{ tableNum: PAGE4_TABLE_NUM, componentId: PAGE4_TABLE_COMPONENT_ID }], 16);
+  const page3List = resolveTableRows(
+    sources,
+    [{ tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID }],
+    18,
+  );
+  const motorList = resolveTableRows(
+    sources,
+    [{ tableNum: MOTOR_SELECT_TABLE_NUM, componentId: PAGE2_MOTOR_TABLE_COMPONENT_ID }],
+    20,
+  );
+  const page7List = resolveTableRows(sources, [{ tableNum: PAGE7_TABLE_NUM, componentId: PAGE7_TABLE_COMPONENT_ID }], 28);
+  const page6List = resolveTableRows(sources, [{ tableNum: PAGE6_TABLE_NUM, componentId: PAGE6_TABLE_COMPONENT_ID }], 16);
+  const reducerList = resolveTableRows(
+    sources,
+    [{ tableNum: REDUCER_TABLE_NUM, componentId: PAGE2_1_REDUCER_TABLE_COMPONENT_ID }],
+    13,
+  );
+
+  const jsqStyle = readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ1_5_MDJSQXS');
+  const flowMetrics = {
+    p1: readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ2_4_SCLJ_MAX'),
+    p2: readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ2_4_KZZS_MAX'),
+    p3: readParamFromFlowOrSaved(paramList, savedParamValues, 'DJ2_4_EDZS'),
+  };
+
+  const rows = list[0]?.tableMap?.rowData as Page5TableRow[] | undefined;
+  if (!rows?.length) return false;
+
+  rows.forEach((row, index) => {
+    const schemeLabel = String(row.p0 ?? `组合方案${index + 1}`).trim();
+    const combinRow = findRowByScheme(combinList, index, schemeLabel) ?? {};
+    const page7Row = findRowByScheme(page7List, index, schemeLabel);
+    const page6Row = findRowByScheme(page6List, index, schemeLabel);
+    const page3TotalReductionRatio = resolveTotalReductionRatioFromPage3(
+      firstNonEmpty(readTableCell(combinRow, 4), row.p4),
+      motorList,
+      page3List,
+    );
+    const reducerCode = firstNonEmpty(readTableCell(combinRow, 10), row.p7);
+    const reducerRow = findReducerRowByProductCode(reducerList, reducerCode);
+    const refreshed = buildRowFromCombin(
+      index,
+      combinRow,
+      jsqStyle,
+      page3TotalReductionRatio,
+      page7Row,
+      page6Row,
+      flowMetrics,
+      reducerRow,
+    );
+    for (let i = 1; i <= 11; i++) {
+      row[`p${i}`] = refreshed[`p${i}`];
+    }
+  });
+  return true;
 }

@@ -59,9 +59,9 @@ const PAGE8_COL_STR = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9
 export function createDefaultPage8Row(overrides?: Partial<Page8TableRow>): Page8TableRow {
   return {
     p0: '组合方案1',
-    p1: '2000',
-    p2: '1500',
-    p3: '2500',
+    p1: '',
+    p2: '',
+    p3: '',
     p4: '21',
     p5: '54',
     p6: '18',

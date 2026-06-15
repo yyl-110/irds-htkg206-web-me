@@ -53,7 +53,13 @@ import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import diagramPlaceholder from '@/assets/images/viz-schematic-placeholder.png';
 import diagramClcs from '@/assets/images/clcs.png';
 import { calculateAllPage6Rows, extractPage6SaveParamValues, extractPage6TableSavePayload } from './page6/calculations';
-import { applyPage6InitData, captureEditableInputValues, restoreEditableInputValues } from './page6/initData';
+import {
+  applyPage6InitData,
+  applyGearLevelCellFlagsToRows,
+  captureEditableInputValues,
+  refreshPage6UpstreamFromFlow,
+  restoreEditableInputValues,
+} from './page6/initData';
 import { loadPage6PageParameters } from './page6/loadPageParameters';
 import {
   createDefaultPage6ParameterList,
@@ -70,6 +76,8 @@ import {
   PAGE6_TABLE_MIN_WIDTH,
   type Page6AntColumn,
 } from './page6/tableColumns';
+import { syncTableToFlowContext } from './_shared/utils/syncTableToFlowContext';
+import { PAGE6_TABLE_COMPONENT_ID, PAGE6_TABLE_NUM } from './page6/parameterDefaults';
 
 defineOptions({ name: 'rx-customizedProcess-page6' });
 
@@ -147,6 +155,10 @@ function page6TableRowKey(record: Page6TableRow, index?: number) {
   return String(record.p0 ?? index ?? '');
 }
 
+function syncPage6FlowContext() {
+  syncTableToFlowContext(PAGE6_TABLE_NUM, PAGE6_TABLE_COMPONENT_ID, getPage6TableRows(parameterTempList.value), 16);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
   if (inputOrOutput === undefined || inputOrOutput === '1') {
@@ -176,6 +188,7 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
       }
     }
   });
+  syncPage6FlowContext();
 }
 
 function onCellInput(record: Page6TableRow, index: number, field: string) {
@@ -197,8 +210,12 @@ function handleInitData(): boolean {
     message.warning('未能更新表格：请先在「齿轮减速比分配」页面生成数据并注入流程上下文后再试');
     return false;
   }
-  restoreEditableInputValues(getPage6TableRows(parameterTempList.value), editableSnapshot);
+  restoreEditableInputValues(getPage6TableRows(parameterTempList.value), editableSnapshot, {
+    preserveOnlyUserOverride: true,
+  });
+  syncPage6UpstreamFromPage5();
   setPage6TableRows(parameterTempList.value, [...getPage6TableRows(parameterTempList.value)]);
+  syncPage6FlowContext();
   setSaveBtnEnable();
   return true;
 }
@@ -211,15 +228,24 @@ function handleCalculation() {
     return;
   }
   calculateAllPage6Rows(rows);
-  restoreEditableInputValues(rows, editableSnapshot);
+  restoreEditableInputValues(rows, editableSnapshot, { preserveOnlyUserOverride: true });
+  applyGearLevelCellFlagsToRows(rows);
   setPage6TableRows(parameterTempList.value, rows);
+  syncPage6FlowContext();
   setSaveBtnEnable();
+}
+
+function syncPage6UpstreamFromPage5() {
+  refreshPage6UpstreamFromFlow(parameterTempList.value, props.savedTables);
+  applyGearLevelCellFlagsToRows(getPage6TableRows(parameterTempList.value));
+  parameterTempList.value = clonePage6ParameterList(parameterTempList.value);
 }
 
 function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
-    parameterTempList.value = clonePage6ParameterList(parameterTempList.value);
+    syncPage6UpstreamFromPage5();
+    syncPage6FlowContext();
   });
 }
 

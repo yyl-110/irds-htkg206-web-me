@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
@@ -46,6 +46,7 @@ import {
   extractPage3_1TableSavePayload,
 } from './page3-1/calculations';
 import { applyPage3_1InitData } from './page3-1/initData';
+import { syncPage3_1TableToFlowContext } from './page3-1/flowSync';
 import { loadPage3_1PageParameters } from './page3-1/loadPageParameters';
 import {
   applyPage3_1TableComponentId,
@@ -125,8 +126,13 @@ function page3_1TableRowKey(record: Page3_1TableRow, index?: number) {
   return String(record.p0 ?? index ?? '');
 }
 
+function syncPage3_1FlowContext() {
+  syncPage3_1TableToFlowContext(parameterTempList.value);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
+  syncPage3_1FlowContext();
   if (inputOrOutput === undefined || inputOrOutput === '1') {
     return;
   }
@@ -164,6 +170,7 @@ function handleInitData(): boolean {
   }
   parameterTempList.value = clonePage3_1ParameterList(parameterTempList.value);
   setPage3_1TableRows(parameterTempList.value, [...getPage3_1TableRows(parameterTempList.value)]);
+  syncPage3_1FlowContext();
   setSaveBtnEnable();
   return true;
 }
@@ -179,6 +186,7 @@ function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage3_1ParameterList(parameterTempList.value);
+    syncPage3_1FlowContext();
   });
 }
 
@@ -202,6 +210,7 @@ function getCurrentSaveParamValues() {
 }
 
 function getCurrentTableSavePayload() {
+  syncPage3_1FlowContext();
   return extractPage3_1TableSavePayload(clonePage3_1ParameterList(parameterTempList.value));
 }
 
@@ -209,6 +218,10 @@ defineExpose({
   updateEl,
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
+});
+
+onBeforeUnmount(() => {
+  syncPage3_1FlowContext();
 });
 
 mountWithTaskParamMap(onMountReady);

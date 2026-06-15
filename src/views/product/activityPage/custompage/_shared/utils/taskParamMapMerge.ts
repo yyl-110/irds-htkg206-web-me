@@ -50,6 +50,8 @@ function mergeTableRowSavedValues(
   for (let i = 0; i < colNums; i++) {
     const paramKey = String(row[`cellParentNum${i}`] ?? '').trim();
     if (!paramKey || !savedMap.has(paramKey)) continue;
+    // 只读/展示列由 initData 或上游表格注入，不被 task-param-map 标量参数覆盖
+    if (row[`cellInputOrOutput${i}`] === '1') continue;
     const savedVal = savedMap.get(paramKey);
     if (savedVal !== undefined && savedVal !== '') {
       nextRow[`p${i}`] = savedVal;
@@ -182,7 +184,8 @@ function resolveSavedMergeSkipColumnIndexes(
   }
   if (itemComponentId === '21') {
     const templateRow = templateRows[0] ?? {};
-    const skip: number[] = [];
+    // p1-p3/p4-p9/p8 由 page5 上游注入，p15/p16 为计算输出
+    const skip: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16];
     for (let i = 10; i <= 14; i++) {
       if (templateRow[`cellUserOverride${i}`] === '1') {
         skip.push(i);
@@ -190,18 +193,36 @@ function resolveSavedMergeSkipColumnIndexes(
     }
     return skip;
   }
+  if (itemComponentId === '20' || itemComponentId === '22') {
+    const templateRow = templateRows[0] ?? {};
+    if (itemComponentId === '20') {
+      // p1-p11 来自 page4/page2/page2-1/page3 等上游
+      const skip = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+      if (templateRow.cellInputOrOutput14 === '0') skip.push(14);
+      return skip;
+    }
+    const skip = [1, 2, 3];
+    return skip;
+  }
+  if (itemComponentId === '24') {
+    return [1, 2, 3];
+  }
+  if (itemComponentId === '23') {
+    return [1, 2, 3];
+  }
   if (itemComponentId === '17') {
     const templateRow = templateRows[0] ?? {};
-    if (templateRow.cellUserOverride18 === '1') return [18];
-    if (templateRow.cellInputOrOutput18 === '0') return [18];
-    return [];
+    // p0-p4 来自电机选型，p5-p8 来自流程参数，均不由 savedTables 覆盖
+    const skip: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    if (templateRow.cellUserOverride18 === '1' || templateRow.cellInputOrOutput18 === '0') {
+      skip.push(18);
+    }
+    return skip;
   }
   if (itemComponentId === '19') {
-    return [16];
+    // p1-p3 来自 page3-1 性能计算，p4-p15/p16 来自电机/减速器/page3
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
   }
-  if (itemComponentId !== '20') return [];
-  const templateRow = templateRows[0] ?? {};
-  if (templateRow.cellInputOrOutput14 === '0') return [14];
   return [];
 }
 
@@ -248,8 +269,13 @@ function mergeSavedRowsIntoTableRowData(
     const pRow = normalizeSavedTableRowToPFormat(savedRow);
     const nextRow: Record<string, string> = { ...rowTemplate, delIndex: String(rowIndex) };
     for (let i = 0; i < colNums; i++) {
-      if (rowSkipSet.has(i)) continue;
       const val = pRow[`p${i}`];
+      if (rowSkipSet.has(i)) {
+        if (val !== undefined && val !== '') {
+          nextRow[`p${i}`] = val;
+        }
+        continue;
+      }
       if (val !== undefined && val !== '') {
         nextRow[`p${i}`] = val;
       }

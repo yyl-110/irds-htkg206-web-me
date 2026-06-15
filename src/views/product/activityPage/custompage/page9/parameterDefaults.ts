@@ -138,9 +138,9 @@ export function createDefaultGearStressRows(loadCoeff = '1.2'): Page9GearRow[] {
 export function createDefaultSchemeRow(overrides?: Partial<Page9SchemeRow>): Page9SchemeRow {
   return {
     p0: '组合方案1',
-    p1: '2000',
-    p2: '2500',
-    p3: '1500',
+    p1: '',
+    p2: '',
+    p3: '',
     p4: '21',
     p5: '54',
     p6: '18',
