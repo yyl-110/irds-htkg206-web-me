@@ -31,6 +31,7 @@ export function applyPage1_4InitData(
   list.forEach(item => {
     const num = String(item.parameterNum ?? '').trim();
     if (!num) return;
+    if (item.inputOrOutput === '0') return;
     const val = params.get(num);
     if (val) item.defaultValue = val;
   });

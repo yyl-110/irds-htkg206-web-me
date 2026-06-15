@@ -166,9 +166,7 @@ function chunkFieldPairs(fields: FormFieldConfig[]): FormFieldConfig[][] {
   return rows;
 }
 
-const modeFieldRows = computed(() =>
-  chunkFieldPairs(isRotaryWorkMode.value ? rotationFields : linearFields),
-);
+const modeFieldRows = computed(() => chunkFieldPairs(isRotaryWorkMode.value ? rotationFields : linearFields));
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -209,7 +207,6 @@ function updateEl() {
 setupParameterWatch(updateEl);
 
 function getCurrentSaveParamValues() {
-  applyPage1_4InitData(parameterTempList.value, props.savedParamValues);
   return parameterTempList.value
     .filter(item => String(item.parameterNum ?? '').trim())
     .map(item => ({
