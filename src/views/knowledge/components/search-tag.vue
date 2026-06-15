@@ -21,8 +21,17 @@ const emit = defineEmits(['onChangeElCheckTagOne', 'onChangeElCheckTagTwo', 'onO
 const type1 = ref([]);
 const type2 = ref([]);
 
-const tagChangeOne = (item, index) => {
-  emit('onChangeElCheckTagOne', !item.check, item, index);
+const type1Selected = computed(() => {
+  const checked = props.elTagcheckedOneData.find(item => item.check);
+  return checked?.id;
+});
+
+const tagChangeOne = (val: string) => {
+  const index = props.elTagcheckedOneData.findIndex(item => item.id === val);
+  const item = props.elTagcheckedOneData[index];
+  if (item && index >= 0) {
+    emit('onChangeElCheckTagOne', true, item, index);
+  }
 };
 
 const tagChangeTwo = val => {
@@ -60,9 +69,11 @@ const tag2 = computed(() =>
         <div class="second">
           <span class="secondSpan flex-shrink-0">所属类目1：</span>
           <div class="el-check-tag-wrap1">
-            <a-checkbox v-for="(item, index) in elTagcheckedOneData" :key="item.id" :checked="item.check" @change="val => tagChangeOne(item, index)">{{
-              item.nodeName
-            }}</a-checkbox>
+            <a-radio-group :value="type1Selected" @change="e => tagChangeOne(e.target.value)">
+              <a-radio v-for="item in elTagcheckedOneData" :key="item.id" :value="item.id">
+                {{ item.nodeName }}
+              </a-radio>
+            </a-radio-group>
           </div>
         </div>
         <span v-if="elTagcheckedOneData.length > 11" class="btn" @click="clickOffFun('elTagcheckedOne')">
@@ -148,7 +159,8 @@ const tag2 = computed(() =>
           display: flex;
           flex-wrap: wrap;
           line-height: 33px;
-          .ant-checkbox-group {
+          .ant-checkbox-group,
+          .ant-radio-group {
             display: inline-flex;
             align-items: center;
             flex-wrap: wrap;
