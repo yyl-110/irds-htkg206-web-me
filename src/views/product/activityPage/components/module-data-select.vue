@@ -100,6 +100,7 @@ import {
   isApiSuccess,
   isZeroFlag,
   resolveInitArgs,
+  resolveLibraryDataQueryType,
 } from './config/module-data-select.utils';
 
 export type { ModuleOkItem, ModuleOkPayload } from './config/module-data-select.types';
@@ -129,6 +130,7 @@ const loading = ref(false);
 
 const categoryId = ref('');
 const menuId = ref('');
+const libraryDataQueryType = ref('1');
 const queryPrefill = ref<Record<string, string>>({});
 
 const modulePropertyInfo = ref<ModulePropertyItem[]>([]);
@@ -214,7 +216,7 @@ async function loadPickerData() {
       pageNo: page.current,
       pageSize: page.pageSize,
       menuId: currentMenuId,
-      type: '1',
+      type: libraryDataQueryType.value,
     };
 
     const [listRes, distinctRes, propertyRes] = await Promise.all([
@@ -299,7 +301,7 @@ async function fetchModuleList(resetPage = false) {
       pageNo: page.current,
       pageSize: page.pageSize,
       menuId: currentMenuId,
-      type: '1',
+      type: libraryDataQueryType.value,
     };
     const res = await AdminApiSystemModule.preciseQueryModuleLibrary(payload as never);
     if (!isApiSuccess(res.data?.code)) {
@@ -349,10 +351,12 @@ function initData(
   _matchingModuelPara?: string,
   _matchingRelation?: string,
   _matchingParaVal?: string,
+  libraryQueryType?: string | number,
 ) {
   const resolved = resolveInitArgs(nextCategoryId, selectPageStr);
   categoryId.value = nextCategoryId;
   menuId.value = resolved.menuId;
+  libraryDataQueryType.value = libraryQueryType != null ? String(libraryQueryType) : resolveLibraryDataQueryType(resolved.menuId);
   queryPrefill.value = resolved.queryPrefill;
   resetSelection();
   if (props.moduleDataSelect || visible.value) {

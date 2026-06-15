@@ -1093,14 +1093,95 @@ function showParameter(target?: ParameterPickTarget) {
 }
 const requestParams = reactive(new LibraryPageRequestDTOModel());
 const libraryTypeOptions = ref<Array<{ label: string; value: string }>>([]);
+function getLibraryTypeMatchText(libraryTypeValue: string) {
+  const value = String(libraryTypeValue ?? '').trim();
+  const opt = libraryTypeOptions.value.find(o => o.value === value);
+  return `${opt?.label ?? ''}|${value}`.toLowerCase();
+}
+function isModuleLibraryType(libraryTypeValue: string) {
+  const value = String(libraryTypeValue ?? '').trim();
+  if (value === '9') return true;
+  const matchText = getLibraryTypeMatchText(value);
+  return matchText.includes('模块库') || matchText.includes('模型库') || matchText.includes('module');
+}
 function shouldShowDataViewLibraryParam() {
   if (!isDataViewComponent.value || !selectedComponent.value) return true;
   const selectedTypeValue = String(selectedComponent.value.libraryType ?? '').trim();
   if (!selectedTypeValue) return true;
-  const selectedOpt = libraryTypeOptions.value.find(opt => opt.value === selectedTypeValue);
-  const matchText = `${selectedOpt?.label ?? ''}|${selectedTypeValue}`.toLowerCase();
-  // 选中模块库时，不显示「基础资源库对应参数」
-  return !(matchText.includes('模块库') || matchText.includes('module') || matchText.includes('模型库'));
+  return !isModuleLibraryType(selectedTypeValue);
+}
+function onDataViewLibraryTypeChange() {
+  const c = selectedComponent.value;
+  if (!c?.customProps || typeof c.customProps !== 'object') return;
+  c.customProps.libraryCategory = '';
+  c.customProps.libraryCategoryId = '';
+}
+const libraryCategoryModalTitle = computed(() => {
+  if (libraryCategoryPickTarget.value === 'tableRow') return '选择模型库分类';
+  if (libraryCategoryPickTarget.value === 'dataView') {
+    const libraryType = String(selectedComponent.value?.libraryType ?? '').trim();
+    const opt = libraryTypeOptions.value.find(o => o.value === libraryType);
+    return opt?.label ? `选择${opt.label}分类` : '选择分类节点';
+  }
+  return '选择节点';
+});
+function resetLibraryCategoryPickerSelection() {
+  libraryCategorySelectedKeys.value = [];
+  libraryCategorySelectedTitle.value = '';
+  libraryCategorySelectedId.value = '';
+}
+function toModuleMenuTreeNode(item: any): any {
+  const children = Array.isArray(item?.children) ? item.children.map((c: any) => toModuleMenuTreeNode(c)) : [];
+  const nodeId = String(item?.id ?? item?.menuId ?? '');
+  const key = nodeId || String(item?.treeUrl ?? Math.random());
+  return {
+    title: String(item?.categoryName ?? item?.name ?? '未命名节点'),
+    key,
+    nodeId,
+    raw: item,
+    children,
+    isLeaf: children.length === 0,
+  };
+}
+function toBasicResourceCategoryTreeNode(item: any): any {
+  const children = Array.isArray(item?.children) ? item.children.map((c: any) => toBasicResourceCategoryTreeNode(c)) : [];
+  const nodeId = String(item?.id ?? '');
+  const key = nodeId || String(item?.treeUrl ?? Math.random());
+  return {
+    title: String(item?.categoryName ?? item?.name ?? '未命名节点'),
+    key,
+    nodeId,
+    raw: item,
+    children,
+    isLeaf: children.length === 0,
+  };
+}
+async function openModuleLibraryCategoryPicker() {
+  const data: any = { userId: userStore.getUser.id };
+  const res = await AdminApiSystemModule.getModuleMenuList(data);
+  const rawList = Array.isArray(res?.data?.data) ? res.data.data : [];
+  libraryCategoryTreeData.value = rawList.map((item: any) => toModuleMenuTreeNode(item));
+  libraryCategoryExpandedKeys.value = rawList.map((item: any) => String(item?.id ?? item?.menuId ?? '')).filter((k: string) => k !== '');
+  resetLibraryCategoryPickerSelection();
+  libraryCategoryModalVisible.value = true;
+}
+async function openBasicResourceLibraryCategoryPicker(menuId: string) {
+  const res = await AdminApiSystemModule.getMenuCategoryTrees({});
+  const rawList = Array.isArray(res?.data?.data) ? res.data.data : [];
+  const menu = rawList.find((m: any) => String(m?.menuId ?? '') === menuId);
+  if (!menu) {
+    message.warning('未获取到该资源库的分类数据');
+    return;
+  }
+  const roots = Array.isArray(menu?.categoryTrees) ? menu.categoryTrees : [];
+  if (!roots.length) {
+    message.warning('该资源库暂无分类节点');
+    return;
+  }
+  libraryCategoryTreeData.value = roots.map((item: any) => toBasicResourceCategoryTreeNode(item));
+  libraryCategoryExpandedKeys.value = roots.map((item: any) => String(item?.id ?? '')).filter(Boolean);
+  resetLibraryCategoryPickerSelection();
+  libraryCategoryModalVisible.value = true;
 }
 async function selectLibraryCategory() {
   requestParams.pageNo = 1;
@@ -1233,33 +1314,20 @@ async function selectLibraryCategoryName(target: 'dataView' | 'template3d' | 'mo
     syncWorkspaceTableRowColDefs(selectedComponent.value);
     libraryCategoryTableRowIndex.value = tableRowIndex;
   }
-  if (target === 'dataView' && String(selectedComponent.value.libraryType ?? '') !== '9') {
-    message.warning('当前仅模块库类型支持选择分类节点');
+  if (target === 'dataView') {
+    const libraryType = String(selectedComponent.value.libraryType ?? '').trim();
+    if (!libraryType) {
+      message.warning('请先选择基础资源库类型');
+      return;
+    }
+    if (isModuleLibraryType(libraryType)) {
+      await openModuleLibraryCategoryPicker();
+    } else {
+      await openBasicResourceLibraryCategoryPicker(libraryType);
+    }
     return;
   }
-  const data: any = {};
-  data.userId = userStore.getUser.id;
-  const res = await AdminApiSystemModule.getModuleMenuList(data);
-  const rawList = Array.isArray(res?.data?.data) ? res.data.data : [];
-  const toTreeNode = (item: any): any => {
-    const children = Array.isArray(item?.children) ? item.children.map((c: any) => toTreeNode(c)) : [];
-    const nodeId = String(item?.id ?? item?.menuId ?? '');
-    const key = nodeId || String(item?.treeUrl ?? Math.random());
-    return {
-      title: String(item?.categoryName ?? item?.name ?? '未命名节点'),
-      key,
-      nodeId,
-      raw: item,
-      children,
-      isLeaf: children.length === 0,
-    };
-  };
-  libraryCategoryTreeData.value = rawList.map((item: any) => toTreeNode(item));
-  libraryCategoryExpandedKeys.value = rawList.map((item: any) => String(item?.id ?? item?.menuId ?? '')).filter((k: string) => k !== '');
-  libraryCategorySelectedKeys.value = [];
-  libraryCategorySelectedTitle.value = '';
-  libraryCategorySelectedId.value = '';
-  libraryCategoryModalVisible.value = true;
+  await openModuleLibraryCategoryPicker();
 }
 function onLibraryCategorySelect(keys: Array<string | number>, info: any) {
   libraryCategorySelectedKeys.value = keys;
@@ -2790,11 +2858,7 @@ watch(
                   </a-tooltip>
                 </div>
                 <div class="data-view-preview-row">
-                  <a-input
-                    :value="getPreviewValue(item)"
-                    :placeholder="item.customProps?.inputPlaceholder || '请输入设计参数1'"
-                    disabled
-                    class="preview-field" />
+                  <a-input :value="getPreviewValue(item)" :placeholder="item.customProps?.inputPlaceholder || '请输入设计参数1'" disabled class="preview-field" />
                   <a-button type="primary" class="data-view-assemble-btn" disabled>
                     {{ '浏览' }}
                   </a-button>
@@ -3378,7 +3442,6 @@ watch(
                   </div>
                 </a-collapse-panel>
                 <a-collapse-panel key="formula" header="公式定义">
-                
                   <div class="row-field" v-if="selectedComponent.ioType === 'INPUT'">
                     <div class="row-label">调用JS：</div>
                     <div class="row-control">
@@ -3552,7 +3615,7 @@ watch(
                   <div class="row-field">
                     <div class="row-label">基础资源库类型：</div>
                     <div class="row-control">
-                      <a-select v-model:value="selectedComponent.libraryType" placeholder="请选择">
+                      <a-select v-model:value="selectedComponent.libraryType" placeholder="请选择" @change="onDataViewLibraryTypeChange">
                         <a-select-option v-for="opt in libraryTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</a-select-option>
                       </a-select>
                     </div>
@@ -4148,7 +4211,7 @@ watch(
 
   <a-modal
     v-model:visible="libraryCategoryModalVisible"
-    :title="libraryCategoryPickTarget === 'tableRow' ? '选择模型库分类' : '选择节点'"
+    :title="libraryCategoryModalTitle"
     :mask-closable="false"
     :width="700"
     :z-index="1100"

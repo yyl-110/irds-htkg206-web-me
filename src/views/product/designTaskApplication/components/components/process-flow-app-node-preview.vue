@@ -593,6 +593,47 @@ function pickModulePartAndType(row: any, columns: any[]) {
     findValueByRowKeyKeywords(row, ['modeltype', 'model_type', 'parttype', 'part_type', 'type']);
   return { partNo, modelType };
 }
+function isModuleLibraryMenuId(menuId: string | number | null | undefined) {
+  return String(menuId ?? '').trim() === '9';
+}
+function findColumnValueByParamCode(row: any, columns: any[], paramCode: string) {
+  const wanted = String(paramCode ?? '')
+    .trim()
+    .toUpperCase();
+  if (!wanted) return '';
+  const col = (Array.isArray(columns) ? columns : []).find(
+    (c: any) =>
+      String(c?.parameterNum ?? '')
+        .trim()
+        .toUpperCase() === wanted,
+  );
+  if (!col?.dataIndex) return '';
+  return String(row?.[col.dataIndex] ?? '').trim();
+}
+function resolveDataViewPickerPrimaryValue(item: any, row: any, columns: any[], menuId: string) {
+  if (isModuleLibraryMenuId(menuId)) {
+    const { partNo, modelType } = pickModulePartAndType(row, columns);
+    const merged = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
+    if (merged) return merged;
+    const keywords = mapLibraryParamToKeywords(item?.libraryParam);
+    let targetCol = columns.find((c: any) => keywords.some((kw: string) => String(c?.title ?? '').includes(kw)));
+    if (!targetCol) targetCol = columns[0];
+    return String(targetCol ? row?.[targetCol.dataIndex] : '');
+  }
+  const paramCode = String(item?.paramCode ?? '').trim();
+  const byParamCode = findColumnValueByParamCode(row, columns, paramCode);
+  if (byParamCode) return byParamCode;
+  const libraryParam = String(item?.libraryParam ?? '').trim();
+  if (libraryParam) {
+    const byLibraryParam = findValueByParameterNums(row, columns, [libraryParam]);
+    if (byLibraryParam) return byLibraryParam;
+  }
+  const keywords = mapLibraryParamToKeywords(item?.libraryParam);
+  const byTitle = findValueByColumnKeywords(row, columns, keywords);
+  if (byTitle) return byTitle;
+  const firstCol = columns[0];
+  return String(firstCol ? row?.[firstCol.dataIndex] : '');
+}
 function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
   const list = previewList.value;
   if (modulePickerMode.value === 'moduleTableBrowse') {
@@ -641,34 +682,35 @@ function onModulePickerConfirm(payload: { row: any; columns: any[] }) {
   if (!key) return;
   const cols = Array.isArray(payload?.columns) ? payload.columns : [];
   const nextFieldValueMap: Record<string, string> = { ...previewFieldValueMap.value };
-  const { partNo, modelType } = pickModulePartAndType(payload?.row, cols);
-  const merged = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
+  const menuId = String(item?.libraryType ?? modulePickerMenuId.value ?? '').trim();
   if (modulePickerMode.value === 'templateBrowse' || modulePickerMode.value === 'modelSelectBrowse') {
+    const { partNo, modelType } = pickModulePartAndType(payload?.row, cols);
+    const merged = partNo && modelType ? `${partNo}.${modelType}` : partNo || modelType || '';
     nextFieldValueMap[key] = merged;
     previewFieldValueMap.value = nextFieldValueMap;
     return;
   }
-  if (merged) {
-    nextFieldValueMap[key] = merged;
-  } else {
-    const keywords = mapLibraryParamToKeywords(item?.libraryParam);
-    let targetCol = cols.find((c: any) => keywords.some((kw: string) => String(c?.title ?? '').includes(kw)));
-    if (!targetCol) targetCol = cols[0];
-    const fallbackValue = targetCol ? payload?.row?.[targetCol.dataIndex] : '';
-    nextFieldValueMap[key] = String(fallbackValue ?? '');
-  }
+  nextFieldValueMap[key] = resolveDataViewPickerPrimaryValue(item, payload?.row, cols, menuId);
 
   // 联动回填：按返回列 parameterNum 匹配页面中相同 paramCode 的组件，批量赋值
+  const skipCurrentInCrossFill = isModuleLibraryMenuId(menuId);
   cols.forEach((col: any) => {
-    const parameterNum = String(col?.parameterNum ?? '').trim();
+    const parameterNum = String(col?.parameterNum ?? '')
+      .trim()
+      .toUpperCase();
     const dataIndex = String(col?.dataIndex ?? '').trim();
     if (!parameterNum || !dataIndex) return;
     const v = String(payload?.row?.[dataIndex] ?? '');
     for (let i = 0; i < list.length; i++) {
       const comp = list[i] as any;
-      if (String(comp?.paramCode ?? '').trim() !== parameterNum) continue;
+      if (
+        String(comp?.paramCode ?? '')
+          .trim()
+          .toUpperCase() !== parameterNum
+      )
+        continue;
       const compKey = getPreviewItemKey(comp, i);
-      if (compKey === key) continue;
+      if (skipCurrentInCrossFill && compKey === key) continue;
       nextFieldValueMap[compKey] = v;
     }
   });

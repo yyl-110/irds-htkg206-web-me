@@ -68,6 +68,7 @@ const userStore = useUserStore()
 const categoryid = ref('')
 const permissionTypes = ref<any>()
 const menuId = ref<any>(null)
+const libraryDataQueryType = ref('1')
 const pageFlagDrawer = ref<boolean>(false)
 const modulePropertyInfo = ref<any>([])
 const AddVisible = ref<boolean>(false)
@@ -519,10 +520,12 @@ async function initData(
   menuid: any,
   permissionType: any,
   queryPrefill?: Record<string, string> | null,
+  libraryQueryType?: string | number,
 ) {
   permissionTypes.value = permissionType
   categoryid.value = categoryidStr
   menuId.value = menuid
+  libraryDataQueryType.value = String(libraryQueryType ?? '1')
   selectModelList.value = []
   selectedRowkeys.value = []
   sortState.value = { key: '', order: '' }
@@ -577,7 +580,7 @@ async function modalInit() {
   data.currentPage = page.currentPage
   data.numberPage = page.pageSize
   data.menuId = menuId.value
-  data.type = '1'
+  data.type = libraryDataQueryType.value
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
 
   const clumnsRes = await AdminApiSystemModule.getDistinctValuesByDefaultQueryFields(data)
@@ -664,7 +667,7 @@ async function fetchModuleList(filterArr?: any) {
     pageNo: page.currentPage,
     pageSize: page.pageSize,
     menuId: menuId.value,
-    type: '1',
+    type: libraryDataQueryType.value,
   }
   const res = await AdminApiSystemModule.preciseQueryModuleLibrary(data)
   if (res.data.code == 200) {

@@ -10,6 +10,11 @@ export function isApiSuccess(code: unknown) {
   return n === 200 || n === 0;
 }
 
+/** 模块库 menuId=9 用 type=1，其它基础资源库（材料库等）用 type=2 */
+export function resolveLibraryDataQueryType(menuId: string | number | null | undefined) {
+  return String(menuId ?? '').trim() === '9' ? '1' : '2';
+}
+
 export function parseSelectPageStr(selectPageStr: string | SelectPageStrItem[] | undefined): Record<string, string> {
   if (!selectPageStr || typeof selectPageStr === 'string') return {};
   const prefill: Record<string, string> = {};

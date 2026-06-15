@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import ModuleInfoList from '@/views/product/module/application/components/ModuleInfoList.vue';
+import { resolveLibraryDataQueryType } from './config/module-data-select.utils';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -24,6 +25,10 @@ const innerVisible = computed({
 
 const listRef = ref<InstanceType<typeof ModuleInfoList> | null>(null);
 const initializing = ref(false);
+const pickerModalTitle = computed(() => {
+  const menuId = String(props.menuId ?? '').trim();
+  return menuId === '9' ? '选择模型库数据' : '选择资源库数据';
+});
 
 function closeModal() {
   innerVisible.value = false;
@@ -39,7 +44,8 @@ async function initPickerList() {
   initializing.value = true;
   try {
     await nextTick();
-    await listRef.value?.initData(categoryId, menuId, 1, props.queryPrefill);
+    const libraryQueryType = resolveLibraryDataQueryType(menuId);
+    await listRef.value?.initData(categoryId, menuId, 1, props.queryPrefill, libraryQueryType);
   } finally {
     initializing.value = false;
   }
@@ -75,7 +81,7 @@ watch(
 <template>
   <a-modal
     v-model:visible="innerVisible"
-    title="选择模型库数据"
+    :title="pickerModalTitle"
     :width="1400"
     :mask-closable="false"
     class="module-library-picker-modal"
