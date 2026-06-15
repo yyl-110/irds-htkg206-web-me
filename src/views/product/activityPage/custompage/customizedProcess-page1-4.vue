@@ -10,25 +10,50 @@
         </div>
 
         <section class="main-section">
-          <div class="form-column-left">
-            <a-form-item v-for="field in leftFields" :key="field.index" :label="field.label">
-              <a-input
-                v-model:value="parameterTempList[field.index].defaultValue"
-                class="field-input"
-                :disabled="field.disabled"
-                :allow-clear="!field.disabled"
-                @input="setSaveBtnEnable()" />
-            </a-form-item>
-          </div>
-          <div class="form-column-right">
-            <a-form-item v-for="field in rightFields" :key="field.index" :label="field.label">
-              <a-input
-                v-model:value="parameterTempList[field.index].defaultValue"
-                class="field-input"
-                disabled
-                @input="setSaveBtnEnable()" />
-            </a-form-item>
-          </div>
+          <template v-for="(pair, rowIndex) in modeFieldRows" :key="'mode-' + rowIndex">
+            <div class="form-cell">
+              <a-form-item v-if="pair[0]" :label="pair[0].label">
+                <a-input
+                  v-model:value="parameterTempList[pair[0].index].defaultValue"
+                  class="field-input"
+                  :disabled="pair[0].disabled"
+                  :allow-clear="!pair[0].disabled"
+                  @input="setSaveBtnEnable()" />
+              </a-form-item>
+            </div>
+            <div class="form-cell">
+              <a-form-item v-if="pair[1]" :label="pair[1].label">
+                <a-input
+                  v-model:value="parameterTempList[pair[1].index].defaultValue"
+                  class="field-input"
+                  :disabled="pair[1].disabled"
+                  :allow-clear="!pair[1].disabled"
+                  @input="setSaveBtnEnable()" />
+              </a-form-item>
+            </div>
+          </template>
+          <template v-for="(row, rowIndex) in extraFormRows" :key="'extra-' + rowIndex">
+            <div class="form-cell">
+              <a-form-item v-if="row.left" :label="row.left.label">
+                <a-input
+                  v-model:value="parameterTempList[row.left.index].defaultValue"
+                  class="field-input"
+                  :disabled="row.left.disabled"
+                  :allow-clear="!row.left.disabled"
+                  @input="setSaveBtnEnable()" />
+              </a-form-item>
+            </div>
+            <div class="form-cell">
+              <a-form-item v-if="row.right" :label="row.right.label">
+                <a-input
+                  v-model:value="parameterTempList[row.right.index].defaultValue"
+                  class="field-input"
+                  :disabled="row.right.disabled"
+                  :allow-clear="!row.right.disabled"
+                  @input="setSaveBtnEnable()" />
+              </a-form-item>
+            </div>
+          </template>
         </section>
       </a-form>
     </div>
@@ -90,45 +115,60 @@ interface FormFieldConfig {
 }
 
 interface FormRowConfig {
-  left: FormFieldConfig;
+  left?: FormFieldConfig;
   right?: FormFieldConfig;
 }
 
-const formRows: FormRowConfig[] = [
-  {
-    left: { index: 1, label: '舟它最大输出力矩（Nm）：', disabled: true },
-    right: { index: 12, label: '舟它最大输出力（等效, Nm）：', disabled: true },
-  },
-  {
-    left: { index: 2, label: '额定输出力矩（Nm）：', disabled: true },
-    right: { index: 13, label: '额定输出力矩（等效, Nm）：', disabled: true },
-  },
-  {
-    left: { index: 3, label: '舟它负载转速（旋转）（°/S）：', disabled: true },
-    right: { index: 14, label: '舟它负载速度（等效, °/S）：', disabled: true },
-  },
-  {
-    left: { index: 4, label: '机械行程（单边转角）（°）：', disabled: true },
-    right: { index: 15, label: '机械行程（单边直线）（°）：', disabled: true },
-  },
-  {
-    left: { index: 5, label: '最大空载转速（旋转）（°/S）：', disabled: true },
-    right: { index: 16, label: '最大空载速度（等效, °/S）：', disabled: true },
-  },
-  {
-    left: { index: 6, label: '舟它额定功率（W）：', disabled: true },
-    right: { index: 17, label: '舟它额定功率（W）：', disabled: true },
-  },
-  { left: { index: 7, label: '传动效率：', disabled: false } },
-  { left: { index: 8, label: '等效力臂（mm）：', disabled: true } },
-  { left: { index: 9, label: '舟它末端减速器形式：', disabled: true } },
-  { left: { index: 10, label: '减速器直线载荷(N)：', disabled: true } },
-  { left: { index: 11, label: '减速器旋转载荷(Nm)：', disabled: true } },
+const rotationFields: FormFieldConfig[] = [
+  { index: 1, label: '舟它最大输出力矩（Nm）：', disabled: true },
+  { index: 2, label: '额定输出力矩（Nm）：', disabled: true },
+  { index: 3, label: '舟它负载转速（旋转）（°/S）：', disabled: true },
+  { index: 4, label: '机械行程（单边转角）（°）：', disabled: true },
+  { index: 5, label: '最大空载转速（旋转）（°/S）：', disabled: true },
+  { index: 6, label: '舟它额定功率（W）：', disabled: true },
 ];
 
-const leftFields = computed(() => formRows.map(row => row.left));
+const linearFields: FormFieldConfig[] = [
+  { index: 12, label: '舟它最大输出力（等效, Nm）：', disabled: true },
+  { index: 13, label: '额定输出力矩（等效, Nm）：', disabled: true },
+  { index: 14, label: '舟它负载速度（等效, °/S）：', disabled: true },
+  { index: 15, label: '机械行程（单边直线）（°）：', disabled: true },
+  { index: 16, label: '最大空载速度（等效, °/S）：', disabled: true },
+  { index: 17, label: '舟它额定功率（W）：', disabled: true },
+];
 
-const rightFields = computed(() => formRows.filter(row => row.right).map(row => row.right!));
+const extraFormRows: FormRowConfig[] = [
+  {
+    left: { index: 7, label: '传动效率：', disabled: false },
+    right: { index: 8, label: '等效力臂（mm）：', disabled: true },
+  },
+  {
+    left: { index: 9, label: '舟它末端减速器形式：', disabled: true },
+    right: { index: 10, label: '减速器直线载荷(N)：', disabled: true },
+  },
+  {
+    left: { index: 11, label: '减速器旋转载荷(Nm)：', disabled: true },
+  },
+];
+
+const ROTARY_WORK_MODES = ['旋转非拨叉类', '旋转拨叉类'];
+
+const isRotaryWorkMode = computed(() => {
+  const workMode = parameterTempList.value[0]?.defaultValue ?? '';
+  return ROTARY_WORK_MODES.includes(workMode);
+});
+
+function chunkFieldPairs(fields: FormFieldConfig[]): FormFieldConfig[][] {
+  const rows: FormFieldConfig[][] = [];
+  for (let i = 0; i < fields.length; i += 2) {
+    rows.push(fields.slice(i, i + 2));
+  }
+  return rows;
+}
+
+const modeFieldRows = computed(() =>
+  chunkFieldPairs(isRotaryWorkMode.value ? rotationFields : linearFields),
+);
 
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
@@ -231,8 +271,7 @@ mountWithTaskParamMap(updateEl);
   box-sizing: border-box;
 }
 
-.form-column-left,
-.form-column-right {
+.form-cell {
   min-width: 0;
 }
 

@@ -4,10 +4,10 @@
       <div class="layout-header__title">电机选型：</div>
 
       <a-form layout="vertical" label-align="left" :colon="false" class="power-form">
-        <a-form-item label="舟它额定功率（旋转）（W）：">
+        <a-form-item v-if="showRotaryPower" label="舟它额定功率（旋转）（W）：">
           <a-input v-model:value="parameterTempList[0].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
-        <a-form-item label="舟它额定功率（直线）（W）：">
+        <a-form-item v-if="showLinearPower" label="舟它额定功率（直线）（W）：">
           <a-input v-model:value="parameterTempList[1].defaultValue" class="field-input" disabled allow-clear />
         </a-form-item>
       </a-form>
@@ -91,6 +91,7 @@ import { extractPage2SaveParamValues, extractPage2TableSavePayload } from './pag
 import { addMotorRow, applyModuleLibraryToRow, deleteMotorRows, getMotorTableRows } from './page2/rowOperations';
 import { isBrowseModeRow, MOTOR_SELECT_ANT_COLUMNS, MOTOR_TYPE_OPTIONS, normalizeMotorCategoryValue, type Page2AntColumn } from './page2/tableColumns';
 import { buildMotorBrowseQueryPrefill } from './page2/browseHelpers';
+import { isLinearWorkMode, resolveWorkModeFromContext } from './page2/workModeHelpers';
 import type { Page2TableRow } from './page2/parameterDefaults';
 
 defineOptions({ name: 'rx-customizedProcess-page2' });
@@ -139,11 +140,21 @@ function createInitialParameterList(): Page2ParameterItem[] {
 }
 
 const parameterTempList = ref<Page2ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage2PageParameters,
-});
+const { applyTaskParamMapToList, loadPageParametersIfNeeded, setupParameterWatch, mountWithTaskParamMap, getTaskParamSavedSnapshot } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage2PageParameters,
+  });
+
+const workMode = ref('');
+const showLinearPower = computed(() => isLinearWorkMode(workMode.value));
+const showRotaryPower = computed(() => !showLinearPower.value);
+
+function syncWorkModeFromContext() {
+  const { saved } = getTaskParamSavedSnapshot();
+  workMode.value = resolveWorkModeFromContext(props.savedParamValues, saved);
+}
 
 const selectList = ref<Array<Record<string, string | number | undefined>>>([]);
 const selectedRowKeys = ref<Array<string | number>>([]);
@@ -330,6 +341,7 @@ function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns:
 function updateEl() {
   nextTick(() => {
     applyTaskParamMapToList();
+    syncWorkModeFromContext();
   });
 }
 

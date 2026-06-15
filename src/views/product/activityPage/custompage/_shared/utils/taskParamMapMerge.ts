@@ -1,5 +1,5 @@
 import { AdminApiSystemParameter } from '@/api/tags/parameter/系统参数管理';
-import { setFlowContext, type FlowParameterItem, type FlowTableItem } from '../../shared/flowContext';
+import { mergeFlowTableList, setFlowContext, type FlowParameterItem, type FlowTableItem } from '../../shared/flowContext';
 
 export type CustomPageSavedParamRow = {
   paramCode?: string;
@@ -196,6 +196,9 @@ function resolveSavedMergeSkipColumnIndexes(
     if (templateRow.cellInputOrOutput18 === '0') return [18];
     return [];
   }
+  if (itemComponentId === '19') {
+    return [16];
+  }
   if (itemComponentId !== '20') return [];
   const templateRow = templateRows[0] ?? {};
   if (templateRow.cellInputOrOutput14 === '0') return [14];
@@ -363,8 +366,8 @@ export function syncFlowContextFromTaskParamMap(
   if (!flowParameterList.length && !flowTableList.length) return;
   setFlowContext({
     flowParameterList: flowParameterList.length ? flowParameterList : undefined,
-    flowTableList: flowTableList.length ? flowTableList : undefined,
   });
+  mergeFlowTableList(flowTableList);
 }
 
 export function applyTaskParamMapToParameterList<T extends CustomPageParameterItem>(

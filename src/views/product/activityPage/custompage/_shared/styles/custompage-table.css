@@ -13,3 +13,10 @@
 .custom-page-scope .ant-table-thead .ant-table-column-title {
   font-weight: normal !important;
 }
+
+/* 横向滚动条与末行单元格留出间距，避免遮挡文字 */
+.custom-page-scope .ant-table-content,
+.custom-page-scope .ant-table-body {
+  padding-bottom: 14px;
+  box-sizing: border-box;
+}

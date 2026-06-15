@@ -162,24 +162,16 @@ setupParameterWatch(updateEl);
 
 function syncParameterListBeforeSave() {
   const workMode = parameterTempList.value[0]?.defaultValue ?? '';
-  const endpointStyle = parameterTempList.value[1]?.defaultValue ?? '';
   const equalArm = parameterTempList.value[2]?.defaultValue ?? '';
   const maxTorque = Number(djzdlj.value);
+  const isLinearWorkMode = workMode === '直线喷管' || workMode === '直线非喷管';
+  const needsEqualArmCalc = isLinearWorkMode || workMode === '旋转非拨叉类';
 
-  if (endpointStyle === '旋转') {
-    if (parameterTempList.value[4]) {
-      parameterTempList.value[4].defaultValue = String(djzdlj.value);
-    }
-    return;
-  }
-
-  if (equalArm && maxTorque && parameterTempList.value[3]) {
+  if (needsEqualArmCalc && equalArm && maxTorque && parameterTempList.value[3]) {
     parameterTempList.value[3].defaultValue = ((maxTorque * 1000) / Number(equalArm)).toFixed(2);
   }
-  if (workMode === '直线喷管' || workMode === '直线非喷管') {
-    if (parameterTempList.value[4]) {
-      parameterTempList.value[4].defaultValue = String(djzdlj.value);
-    }
+  if (parameterTempList.value[4]) {
+    parameterTempList.value[4].defaultValue = String(djzdlj.value);
   }
 }
 

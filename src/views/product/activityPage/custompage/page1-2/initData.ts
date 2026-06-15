@@ -1,4 +1,5 @@
 import type { Page1_2ParameterItem } from './parameterDefaults';
+import { PAGE1_ZERO_TABLE_COMPONENT_ID } from '../page1/parameterDefaults';
 import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
 
 export interface Page1_2InitState {
@@ -55,26 +56,30 @@ function readEqualArmFromSources(
   return '';
 }
 
-/** 从 page1-1 / page1 零位表读取等效力臂 */
+/** page1（customizedProcess-page1）零位表：等效力臂 L 在 p6 */
+const PAGE1_ZERO_EQUAL_ARM_MATCHERS = [
+  { componentId: PAGE1_ZERO_TABLE_COMPONENT_ID, pIndex: 6 },
+  { tableNum: 'DJ1_T_ZEROINITPOSITION', pIndex: 6 },
+];
+
+/** page1-1 零位表：等效力臂 L1 在 p8 */
+const PAGE1_1_ZERO_EQUAL_ARM_MATCHERS = [
+  { componentId: 1, pIndex: 8 },
+  { tableNum: 'DJ1-1_T_ZEROINITPOSITION', pIndex: 8 },
+];
+
+/** 从 page1 / page1-1 零位表读取等效力臂 */
 function resolveEqualArmFromUpstreamTables(workMode: string, savedTables?: Array<Record<string, unknown>> | null): string {
   const sources = collectTableSources(savedTables);
 
-  // page1-1「比及行程」零位表：等效力臂 L1 在 p8（截图箭头 41.94）
-  const page11Matchers = [
-    { componentId: 1, pIndex: 8 },
-    { tableNum: 'DJ1-1_T_ZEROINITPOSITION', pIndex: 8 },
-  ];
-
-  if (workMode === '直线非喷管' || workMode === '直线喷管') {
-    const fromPage11 = readEqualArmFromSources(sources, page11Matchers);
-    if (fromPage11) return fromPage11;
+  if (workMode === '直线非喷管') {
+    return readEqualArmFromSources(sources, PAGE1_ZERO_EQUAL_ARM_MATCHERS);
   }
 
   if (workMode === '直线喷管') {
-    return readEqualArmFromSources(sources, [
-      { componentId: 3, pIndex: 6 },
-      { tableNum: 'DJ1_T_ZEROINITPOSITION', pIndex: 6 },
-    ]);
+    const fromPage11 = readEqualArmFromSources(sources, PAGE1_1_ZERO_EQUAL_ARM_MATCHERS);
+    if (fromPage11) return fromPage11;
+    return readEqualArmFromSources(sources, PAGE1_ZERO_EQUAL_ARM_MATCHERS);
   }
 
   return '';
@@ -134,8 +139,11 @@ export function applyPage1_2InitData(
   }
 
   const upstreamEqualArm = resolveEqualArmFromUpstreamTables(djOutputStyle, savedTables);
+  const isLinearWorkMode = djOutputStyle === '直线喷管' || djOutputStyle === '直线非喷管';
+  // page0-2：直线模式取 [8]（DJ1_1_SCL_MAX_Z），其余取 [1]（DJ1_1_SCLJ_MAX_X）
+  const reducerRotatingLoad = isLinearWorkMode ? maxPowerZ : maxPowerX;
 
-  if (djOutputStyle === '直线喷管' || djOutputStyle === '直线非喷管') {
+  if (isLinearWorkMode) {
     state.flag = true;
     state.djzdlj = maxPowerZ;
     if (parameterTempList[2]) {
@@ -150,17 +158,16 @@ export function applyPage1_2InitData(
         parameterTempList[3].defaultValue = val.toFixed(2);
       }
     }
-    if (parameterTempList[4]) {
-      parameterTempList[4].defaultValue = maxPowerZ;
-    }
   } else if (djOutputStyle === '旋转拨叉类') {
     state.flag = false;
-  } else if (djOutputStyle === '旋转非拨叉类') {
-    state.flag = true;
     state.djzdlj = maxPowerX;
-    if (parameterTempList[2]) parameterTempList[2].defaultValue = '';
-    if (parameterTempList[3]) parameterTempList[3].defaultValue = '';
-    if (parameterTempList[4]) parameterTempList[4].defaultValue = maxPowerX;
+  } else if (djOutputStyle === '旋转非拨叉类') {
+    state.flag = false;
+    state.djzdlj = maxPowerX;
+  }
+
+  if (parameterTempList[4]) {
+    parameterTempList[4].defaultValue = reducerRotatingLoad;
   }
 
   return state;

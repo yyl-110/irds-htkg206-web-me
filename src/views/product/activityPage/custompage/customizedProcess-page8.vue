@@ -2,12 +2,12 @@
   <div class="page8">
     <div class="page8-header">
       <div class="page8-title">初步筛选若干组合方案：</div>
-      <a-space :size="12" class="page8-actions">
+      <!-- <a-space :size="12" class="page8-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
         </a-button>
-      </a-space>
+      </a-space> -->
     </div>
 
     <div class="page8-table-wrap">
@@ -42,6 +42,7 @@ import {
 } from './page8/parameterDefaults';
 import {
   clearPage8SelectionParam,
+  ensurePage8Selection,
   getPage8TableRows,
   hasPage8SavedData,
   page8TableRowKey,
@@ -137,6 +138,8 @@ async function applySelectionState(restoreFromSaved: boolean) {
     selectedRowKeys.value = [];
     clearPage8SelectionParam(parameterTempList.value);
   }
+  const { keys } = ensurePage8Selection(parameterTempList.value, selectedRowKeys.value);
+  selectedRowKeys.value = keys;
   await nextTick();
   suppressSelectionChange.value = false;
 }
@@ -169,12 +172,16 @@ function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, paramete
 
 function handleSelectionChange(keys: Key[], rows: Page8TableRow[]) {
   if (suppressSelectionChange.value) return;
-  selectedRowKeys.value = keys;
-  syncPage8SelectionIndexes(parameterTempList.value, rows);
+  const selectedRows = rows.slice(0, 1);
+  selectedRowKeys.value = keys.slice(0, 1);
+  if (selectedRows.length) {
+    syncPage8SelectionIndexes(parameterTempList.value, selectedRows);
+  }
   setSaveBtnEnable();
 }
 
 const rowSelection = computed(() => ({
+  type: 'radio' as const,
   selectedRowKeys: selectedRowKeys.value,
   onChange: handleSelectionChange,
 }));
@@ -217,11 +224,8 @@ function onMountReady() {
 setupParameterWatch(updateEl);
 
 function syncSelectionBeforeSave() {
-  const rows = getPage8TableRows(parameterTempList.value);
-  const selected = rows.filter((row, index) => selectedRowKeys.value.includes(page8TableRowKey(row, index)));
-  if (selected.length) {
-    syncPage8SelectionIndexes(parameterTempList.value, selected);
-  }
+  const { keys } = ensurePage8Selection(parameterTempList.value, selectedRowKeys.value);
+  selectedRowKeys.value = keys;
 }
 
 function getCurrentSaveParamValues() {
