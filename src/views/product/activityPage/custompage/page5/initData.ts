@@ -1,3 +1,6 @@
+import { MOTOR_SELECT_TABLE_NUM } from '../page2/rowOperations';
+import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
+import { PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
 import { PAGE4_TABLE_COMPONENT_ID, PAGE4_TABLE_NUM } from '../page4/parameterDefaults';
 import { PAGE6_TABLE_COMPONENT_ID, PAGE6_TABLE_NUM } from '../page6/parameterDefaults';
 import { PAGE7_TABLE_COMPONENT_ID, PAGE7_TABLE_NUM } from '../page7/parameterDefaults';
@@ -28,6 +31,27 @@ function findRowByScheme(
   return list.find(row => String(row.p0 ?? '').trim() === schemeLabel);
 }
 
+/** 总减速比优先读取 page3（初始总减速比计算）p18 文本框，按电机产品代号匹配行 */
+function resolveTotalReductionRatioFromPage3(
+  motorCode: string | number | undefined,
+  motorList: Array<Record<string, string | number | undefined>>,
+  page3List: Array<Record<string, string | number | undefined>>,
+): string {
+  const targetCode = String(motorCode ?? '').trim();
+  let validMotorIndex = 0;
+
+  for (const motorRow of motorList) {
+    const code = String(motorRow.p2 ?? '').trim();
+    if (!code) continue;
+    if (targetCode && code === targetCode) {
+      return readTableCell(page3List[validMotorIndex], 18);
+    }
+    validMotorIndex += 1;
+  }
+
+  return readTableCell(page3List[0], 18);
+}
+
 function readParamFromFlowOrSaved(
   paramList: Array<{ paramnum?: string; paramvalue?: string }>,
   savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
@@ -54,6 +78,7 @@ function buildRowFromCombin(
   schemeIndex: number,
   combinRow: Record<string, string | number | undefined>,
   jsqStyle: string,
+  page3TotalReductionRatio: string,
   page7Row?: Record<string, string | number | undefined>,
   page6Row?: Record<string, string | number | undefined>,
   existingRow?: Page5TableRow,
@@ -86,8 +111,14 @@ function buildRowFromCombin(
   data.p10 = firstNonEmpty(combinRow.p12, existingRow?.p10);
   data.cellInputOrOutput10 = '1';
 
-  // 总减速比：page7 p23 / page6 p16；combin p16 是舟它最大空载转速
-  data.p11 = firstNonEmpty(readTableCell(page7Row, 23), readTableCell(page6Row, 16), existingRow?.p11);
+  // 总减速比：优先 page3 p18 文本框；其次 page6/page7 实际零位总减速比、page4 combin p16
+  data.p11 = firstNonEmpty(
+    page3TotalReductionRatio,
+    readTableCell(page7Row, 23),
+    readTableCell(page6Row, 16),
+    readTableCell(combinRow, 16),
+    existingRow?.p11,
+  );
   data.cellInputOrOutput11 = '1';
 
   data.p12 = firstNonEmpty(existingRow?.p12);
@@ -151,6 +182,16 @@ export function applyPage5InitData(
   const sources = collectTableSources(savedTables);
 
   const combinList = resolveTableRows(sources, [{ tableNum: PAGE4_TABLE_NUM, componentId: PAGE4_TABLE_COMPONENT_ID }], 16);
+  const page3List = resolveTableRows(
+    sources,
+    [{ tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID }],
+    18,
+  );
+  const motorList = resolveTableRows(
+    sources,
+    [{ tableNum: MOTOR_SELECT_TABLE_NUM, componentId: PAGE2_MOTOR_TABLE_COMPONENT_ID }],
+    20,
+  );
   const page7List = resolveTableRows(sources, [{ tableNum: PAGE7_TABLE_NUM, componentId: PAGE7_TABLE_COMPONENT_ID }], 28);
   const page6List = resolveTableRows(sources, [{ tableNum: PAGE6_TABLE_NUM, componentId: PAGE6_TABLE_COMPONENT_ID }], 16);
 
@@ -166,7 +207,8 @@ export function applyPage5InitData(
     const page7Row = findRowByScheme(page7List, index, schemeLabel);
     const page6Row = findRowByScheme(page6List, index, schemeLabel);
     const existingRow = findRowByScheme(existingRows as Array<Record<string, string | number | undefined>>, index, schemeLabel) as Page5TableRow | undefined;
-    return buildRowFromCombin(index, item, jsqStyle, page7Row, page6Row, existingRow);
+    const page3TotalReductionRatio = resolveTotalReductionRatioFromPage3(item.p4, motorList, page3List);
+    return buildRowFromCombin(index, item, jsqStyle, page3TotalReductionRatio, page7Row, page6Row, existingRow);
   });
 
   if (!list[0]?.tableMap) {

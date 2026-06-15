@@ -1716,7 +1716,7 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
           </div>
           <div class="query-actions" :class="{ 'query-actions--picker': pickerMode }">
             <a-button v-if="pickerMode" type="link" class="picker-global-query-link" @click="openPickerGlobalQuery">
-              全局查询1
+              全局查询
             </a-button>
             <div class="query-actions-btns">
               <a-tooltip title="配置查询条件">

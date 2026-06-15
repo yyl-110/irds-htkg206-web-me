@@ -2,12 +2,12 @@
   <div class="page9">
     <div class="page9-header">
       <div class="page9-title">校核减速机构的齿轮强度：</div>
-      <a-space :size="12" class="page9-actions">
+      <!-- <a-space :size="12" class="page9-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
         </a-button>
-      </a-space>
+      </a-space> -->
     </div>
 
     <div class="page9-scheme-wrap">

@@ -2,7 +2,7 @@
   <div class="layout-wrapper">
     <div class="layout-header">
       <div class="layout-header__title">初始总减速比计算：</div>
-
+<!-- 
       <div class="section-toolbar">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
@@ -12,7 +12,7 @@
           <template #icon><CalculatorOutlined /></template>
           计算
         </a-button>
-      </div>
+      </div> -->
 
       <div class="selectBox">
         <a-table
@@ -50,11 +50,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompage/_shared/composables/useCustomPageTaskParamMap';
 import { message } from 'ant-design-vue';
 import { CalculatorOutlined, SyncOutlined } from '@ant-design/icons-vue';
 import { calculateAllPage3Rows, extractPage3SaveParamValues, extractPage3TableSavePayload } from './page3/calculations';
+import { syncPage3TableToFlowContext } from './page3/flowSync';
 import { applyPage3InitData, captureEditableInputValues, hasPage3SavedTableData, restoreEditableInputValues } from './page3/initData';
 import { loadPage3PageParameters } from './page3/loadPageParameters';
 import {
@@ -137,35 +138,35 @@ function page3TableRowKey(record: Page3TableRow, index?: number) {
   return String(record.p0 ?? index ?? '');
 }
 
+function syncPage3FlowContext() {
+  syncPage3TableToFlowContext(parameterTempList.value);
+}
+
 function setSaveBtnEnable(inputOrOutput?: string, parameterId?: string, parameterValue?: string) {
   emit('setSaveBtnEnable', true);
-  if (inputOrOutput === undefined || inputOrOutput === '1') {
-    return;
-  }
-  if (parameterId === undefined || parameterId === null || Number(parameterId) <= 0) {
-    return;
-  }
-  if (parameterValue === undefined || parameterValue === null) {
-    return;
-  }
-  parameterTempList.value.forEach(item => {
-    if (item.ifSingleLine !== 't') {
-      if (item.parameterId === parameterId) {
-        item.defaultValue = parameterValue;
-      }
-    } else {
-      const colNums = Number(item.tableMap?.colNums ?? 0);
-      if (colNums > 0) {
-        item.tableMap?.rowData?.forEach(row => {
-          for (let i = 0; i < colNums; i++) {
-            if (row[`cellParameterId${i}`] === parameterId) {
-              row[`p${i}`] = parameterValue;
-            }
+  if (inputOrOutput !== undefined && inputOrOutput !== '1') {
+    if (parameterId !== undefined && parameterId !== null && Number(parameterId) > 0 && parameterValue !== undefined && parameterValue !== null) {
+      parameterTempList.value.forEach(item => {
+        if (item.ifSingleLine !== 't') {
+          if (item.parameterId === parameterId) {
+            item.defaultValue = parameterValue;
           }
-        });
-      }
+        } else {
+          const colNums = Number(item.tableMap?.colNums ?? 0);
+          if (colNums > 0) {
+            item.tableMap?.rowData?.forEach(row => {
+              for (let i = 0; i < colNums; i++) {
+                if (row[`cellParameterId${i}`] === parameterId) {
+                  row[`p${i}`] = parameterValue;
+                }
+              }
+            });
+          }
+        }
+      });
     }
-  });
+  }
+  syncPage3FlowContext();
 }
 
 function onCellInput(record: Page3TableRow, index: number, field: string) {
@@ -206,6 +207,7 @@ function handleInitData(): boolean {
   restoreEditableInputValues(getPage3TableRows(parameterTempList.value), editableSnapshot);
   setPage3TableRows(parameterTempList.value, [...getPage3TableRows(parameterTempList.value)]);
   parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
+  syncPage3FlowContext();
   setSaveBtnEnable();
   return true;
 }
@@ -216,6 +218,7 @@ function handleCalculation() {
   calculateAllPage3Rows(rows);
   restoreEditableInputValues(rows, editableSnapshot);
   setPage3TableRows(parameterTempList.value, rows);
+  syncPage3FlowContext();
   setSaveBtnEnable();
 }
 
@@ -223,6 +226,7 @@ function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
     parameterTempList.value = clonePage3ParameterList(parameterTempList.value);
+    syncPage3FlowContext();
   });
 }
 
@@ -249,6 +253,7 @@ function getCurrentSaveParamValues() {
 }
 
 function getCurrentTableSavePayload() {
+  syncPage3FlowContext();
   return extractPage3TableSavePayload(clonePage3ParameterList(parameterTempList.value));
 }
 
@@ -256,6 +261,10 @@ defineExpose({
   updateEl,
   getCurrentSaveParamValues,
   getCurrentTableSavePayload,
+});
+
+onBeforeUnmount(() => {
+  syncPage3FlowContext();
 });
 
 mountWithTaskParamMap(onMountReady);

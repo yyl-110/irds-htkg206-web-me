@@ -3,7 +3,7 @@
     <div class="layout-header">
       <div class="layout-header__title">齿轮减速比分配：</div>
 
-      <div class="section-toolbar">
+      <!-- <div class="section-toolbar">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
@@ -12,7 +12,7 @@
           <template #icon><CalculatorOutlined /></template>
           计算
         </a-button>
-      </div>
+      </div> -->
 
       <div class="selectBox">
         <a-table

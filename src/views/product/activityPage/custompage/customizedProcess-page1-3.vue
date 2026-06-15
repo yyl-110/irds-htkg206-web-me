@@ -13,11 +13,10 @@
             </a-select>
           </a-form-item>
 
-          <a-form-item label="数字通讯形式：">
+          <a-form-item v-if="isDigitalCommType" label="数字通讯形式：">
             <a-select
               v-model:value="parameterTempList[1].defaultValue"
               class="field-input"
-              :disabled="!isDigitalCommType"
               @change="communicationChange">
               <a-select-option v-for="item in digitalCommOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
@@ -25,11 +24,10 @@
             </a-select>
           </a-form-item>
 
-          <a-form-item label="是否隔离：">
+          <a-form-item v-if="!isDigitalCommType" label="是否隔离：">
             <a-select
               v-model:value="parameterTempList[2].defaultValue"
               class="field-input"
-              :disabled="isDigitalCommType"
               @change="communicationChange">
               <a-select-option v-for="item in quarantineOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
@@ -37,11 +35,10 @@
             </a-select>
           </a-form-item>
 
-          <a-form-item label="有无遥测信号：">
+          <a-form-item v-if="!isDigitalCommType" label="有无遥测信号：">
             <a-select
               v-model:value="parameterTempList[3].defaultValue"
               class="field-input"
-              :disabled="isDigitalCommType"
               @change="communicationChange">
               <a-select-option v-for="item in telemeteringOptions" :key="item.label" :value="item.label">
                 {{ item.label }}
@@ -49,47 +46,43 @@
             </a-select>
           </a-form-item>
 
-          <a-form-item label="信号电压(V)(下限)：">
+          <a-form-item v-if="!isDigitalCommType" label="信号电压(V)(下限)：">
             <a-input-number
               v-model:value="parameterTempList[4].defaultValue"
               type="number"
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
 
-          <a-form-item label="信号电压(V)(上限)：">
+          <a-form-item v-if="!isDigitalCommType" label="信号电压(V)(上限)：">
             <a-input-number
               v-model:value="parameterTempList[5].defaultValue"
               type="number"
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
 
-          <a-form-item label="反馈电压(V)(下限)：">
+          <a-form-item v-if="!isDigitalCommType" label="反馈电压(V)(下限)：">
             <a-input-number
               v-model:value="parameterTempList[6].defaultValue"
               type="number"
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
 
-          <a-form-item label="反馈电压(V)(上限)：">
+          <a-form-item v-if="!isDigitalCommType" label="反馈电压(V)(上限)：">
             <a-input-number
               v-model:value="parameterTempList[7].defaultValue"
               type="number"
               placeholder="请输入..."
               class="field-input"
               allow-clear
-              :disabled="isDigitalCommType"
               @input="setSaveBtnEnable()" />
           </a-form-item>
         </section>

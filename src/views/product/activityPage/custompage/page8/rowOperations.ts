@@ -101,7 +101,38 @@ export function resolvePage8SelectedRowKeys(
 ): string[] {
   const rows = getPage8TableRows(list);
   const indexes = parsePage8SelectionIndexes(getPage8SelectionParamValue(list, saved));
-  return indexes.filter(index => index < rows.length).map(index => page8TableRowKey(rows[index], index));
+  const index = indexes.find(i => i < rows.length);
+  if (index === undefined) return [];
+  return [page8TableRowKey(rows[index], index)];
+}
+
+/** 无选中项时默认选中第一行，并同步勾选索引参数 */
+export function ensurePage8Selection(
+  list: Page8ParameterItem[],
+  selectedKeys: Array<string | number>,
+): { keys: string[]; rows: Page8TableRow[] } {
+  const rows = getPage8TableRows(list);
+  if (!rows.length) {
+    return { keys: [], rows: [] };
+  }
+
+  let index = -1;
+  for (const key of selectedKeys) {
+    const keyStr = String(key);
+    const hit = rows.findIndex((row, rowIndex) => page8TableRowKey(row, rowIndex) === keyStr);
+    if (hit >= 0) {
+      index = hit;
+      break;
+    }
+  }
+
+  if (index < 0) {
+    index = 0;
+  }
+
+  const selectedRows = [rows[index]];
+  syncPage8SelectionIndexes(list, selectedRows);
+  return { keys: [page8TableRowKey(rows[index], index)], rows: selectedRows };
 }
 
 /** 同步勾选行索引到 parameterTempList（原 selectModelListCheck） */

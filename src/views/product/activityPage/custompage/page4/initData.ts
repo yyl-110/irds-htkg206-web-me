@@ -3,7 +3,7 @@ import { PAGE2_MOTOR_TABLE_COMPONENT_ID } from '../page2/parameterDefaults';
 import { REDUCER_TABLE_NUM, PAGE2_1_REDUCER_TABLE_COMPONENT_ID } from '../page2-1/parameterDefaults';
 import { PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
 import { PAGE3_1_TABLE_COMPONENT_ID, PAGE3_1_TABLE_NUM } from '../page3-1/parameterDefaults';
-import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
+import { collectTableSources, readTableCell, resolveTableRows, type FlowTableSource } from '../_shared/utils/flowTableSources';
 import type { Page4ParameterItem, Page4TableRow } from './parameterDefaults';
 
 /** 与 page3-1 初始性能计算表同义（旧名 DJ3_T_INITXN） */
@@ -18,7 +18,8 @@ function buildCombinationRow(
   schemeIndex: number,
   motorRow: Record<string, string | number | undefined>,
   reducerRow: Record<string, string | number | undefined>,
-  xnMetrics: { p1: string; p2: string; p3: string; p16: string },
+  xnMetrics: { p1: string; p2: string; p3: string },
+  totalReductionRatio: string,
 ): Page4TableRow {
   const data: Page4TableRow = {};
   data.p0 = `组合方案${schemeIndex + 1}`;
@@ -54,7 +55,7 @@ function buildCombinationRow(
   const strokeHalf = Number(reducerRow.p9);
   data.p15 = Number.isFinite(strokeHalf) ? String(strokeHalf / 2) : '';
   data.cellInputOrOutput15 = '1';
-  data.p16 = xnMetrics.p16;
+  data.p16 = totalReductionRatio;
   data.cellInputOrOutput16 = '1';
   return data;
 }
@@ -63,19 +64,18 @@ function cellText(row: Record<string, string | number | undefined> | undefined, 
   return String(row?.[field] ?? '').trim();
 }
 
-/** page3-1（初始性能计算）：p13/p14/p15 + p6；page3（初始总减速比）：p7/p6/p8 + p18 */
+/** page3-1（初始性能计算）：p13/p14/p15；page3（初始总减速比）：p7/p6/p8 */
 function resolveXnMetricsForMotor(
   motorIndex: number,
   page3_1List: Array<Record<string, string | number | undefined>>,
   page3List: Array<Record<string, string | number | undefined>>,
-): { p1: string; p2: string; p3: string; p16: string } {
+): { p1: string; p2: string; p3: string } {
   const row31 = page3_1List[motorIndex];
   if (row31 && (cellText(row31, 'p13') || cellText(row31, 'p14') || cellText(row31, 'p15'))) {
     return {
       p1: cellText(row31, 'p13'),
       p2: cellText(row31, 'p14'),
       p3: cellText(row31, 'p15'),
-      p16: cellText(row31, 'p6'),
     };
   }
 
@@ -85,11 +85,32 @@ function resolveXnMetricsForMotor(
       p1: cellText(row3, 'p7'),
       p2: cellText(row3, 'p6'),
       p3: cellText(row3, 'p8'),
-      p16: cellText(row3, 'p18'),
     };
   }
 
-  return { p1: '', p2: '', p3: '', p16: '' };
+  return { p1: '', p2: '', p3: '' };
+}
+
+function resolvePage3InitTotalJsbRows(
+  savedTables?: Array<Record<string, unknown>> | null,
+): Array<Record<string, string | number | undefined>> {
+  const matchers = [{ tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID }];
+  const fromFlow = resolveTableRows(collectTableSources(null), matchers, 18);
+  if (fromFlow.length) return fromFlow;
+
+  const savedOnly: FlowTableSource[] = (Array.isArray(savedTables) ? savedTables : [])
+    .filter((raw): raw is Record<string, unknown> => !!raw && typeof raw === 'object')
+    .map(raw => raw as FlowTableSource);
+  return resolveTableRows(savedOnly, matchers, 18);
+}
+
+/** 总减速比固定读取 page3（初始总减速比计算）p18 文本框值 */
+function resolveTotalReductionRatioFromPage3(
+  motorIndex: number,
+  page3List: Array<Record<string, string | number | undefined>>,
+): string {
+  const row = page3List[motorIndex] ?? page3List[0];
+  return readTableCell(row, 18);
 }
 
 /** 从流程上下文生成电机×减速器组合方案（原 initData） */
@@ -117,11 +138,7 @@ export function applyPage4InitData(
     ],
     16,
   );
-  const xnListPage3 = resolveTableRows(
-    sources,
-    [{ tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID }],
-    18,
-  );
+  const xnListPage3 = resolvePage3InitTotalJsbRows(savedTables);
 
   const dataList: Page4TableRow[] = [];
   let validMotorIndex = 0;
@@ -129,9 +146,10 @@ export function applyPage4InitData(
   motorList.forEach(motorRow => {
     if (!hasProductCode(motorRow)) return;
     const xnMetrics = resolveXnMetricsForMotor(validMotorIndex, xnListPage3_1, xnListPage3);
+    const totalReductionRatio = resolveTotalReductionRatioFromPage3(validMotorIndex, xnListPage3);
     reducerList.forEach(reducerRow => {
       if (!hasProductCode(reducerRow)) return;
-      dataList.push(buildCombinationRow(dataList.length, motorRow, reducerRow, xnMetrics));
+      dataList.push(buildCombinationRow(dataList.length, motorRow, reducerRow, xnMetrics, totalReductionRatio));
     });
     validMotorIndex += 1;
   });
