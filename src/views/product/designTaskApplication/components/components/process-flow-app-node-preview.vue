@@ -16,6 +16,7 @@ import {
   isWbsInputIoType,
   isWbsOutputIoType,
 } from '@/composables/designWorkspace/useWbsProjectParamSync';
+import { useActivityFormulaEngine } from '@/composables/designWorkspace/useActivityFormulaEngine';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { useUserStore } from '@/store/modules/user';
@@ -1582,6 +1583,29 @@ function getCurrentComponentValue(item: any, index: number) {
   return String(previewFieldValueMap.value[key] ?? item?.paramValue ?? '');
 }
 
+function setFormulaOutputFieldValue(componentKey: string, value: string) {
+  if (previewFieldValueMap.value[componentKey] === value) return;
+  previewFieldValueMap.value = { ...previewFieldValueMap.value, [componentKey]: value };
+}
+
+const { recalculateFormulaOutputs } = useActivityFormulaEngine({
+  getComponents: () => previewList.value,
+  getComponentKey: getPreviewItemKey,
+  getComponentLiveValue: (item, index) => getCurrentComponentValue(item, index),
+  getTaskSavedValue: code => getTaskSavedParamValueByCode(code),
+  setFormulaFieldValue: setFormulaOutputFieldValue,
+  watchSources: () => [
+    previewList.value,
+    previewFieldValueMap.value,
+    radioPreviewValueMap.value,
+    richTextValueMap.value,
+    previewTableCellMap.value,
+    savedValueMap.value,
+    props.taskSavedParamMap,
+    props.savedParamValues,
+  ],
+});
+
 function getCurrentSaveParamValues() {
   return previewList.value
     .map((item: any, index: number) => {
@@ -1983,10 +2007,11 @@ watch(
     previewTableRowCountMap.value = {};
     inputRangeBlurredMap.value = nextBlurred;
     inputLastValidValueMap.value = nextLastValid;
-    void nextTick(() => {
+    void     nextTick(() => {
       Object.entries(nextRichTextMap).forEach(([k, v]) => {
         richTextEditorRefMap.value[k]?.setData?.(v);
       });
+      recalculateFormulaOutputs();
     });
   },
   { immediate: true, deep: true },
