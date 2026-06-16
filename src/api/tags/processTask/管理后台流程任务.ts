@@ -575,6 +575,24 @@ export class AdminApiSystemProcessTask {
     );
 
   /**
+   * 自定义页面刷新（pageType=3）：保存参数并将下游已完成/进行中节点标记为待确认
+   *
+   * @request POST:/business-service/business/standalone-app/custom-page-refresh
+   * @secure
+   */
+  static customPageRefresh = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/standalone-app/custom-page-refresh`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 下一步（自动保存当前节点并推进到下一个未完成/待确认节点）
    *
    * @tags  下一步（自动保存当前节点并推进到下一个未完成/待确认节点）

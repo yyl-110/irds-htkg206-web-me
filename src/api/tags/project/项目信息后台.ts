@@ -436,6 +436,19 @@ export class AdminApiProjectTemp {
       CommonResultListDeptResponseDTOModel,
     )
 
+  static wbsCollabCustomPageRefresh = (body: Record<string, unknown>, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/project-wbs/task-param/collab-custom-page-refresh`,
+        method: 'POST',
+        type: ContentType.Json,
+        body,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    )
+
   static wbsTaskParamEvaluateImpact = (body: Record<string, unknown>, params: RequestParams = {}) =>
     httpClient.request<CommonResultListDeptResponseDTOModel, any>(
       {

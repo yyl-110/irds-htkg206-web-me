@@ -401,7 +401,11 @@ const selectedNodeActivityType = computed(() => {
   const raw = selectedNode.value || {};
   const detail = nodeDetailData.value || {};
   const v = raw?.activityType ?? raw?.pageType ?? raw?.type ?? detail?.activityType ?? detail?.pageType ?? detail?.type;
-  return String(v ?? '').trim();
+  const normalized = String(v ?? '').trim();
+  if (normalized) return normalized;
+  const url = String(detail?.url ?? raw?.url ?? '').trim();
+  if (url) return '3';
+  return '';
 });
 const isCalcNodePreview = computed(() => {
   if (selectedNodeActivityType.value === '2') return true;
@@ -915,6 +919,43 @@ async function notifyWbsInputPushImpact(options: {
 }
 
 /** 用 next-step 返回的 nodeStatusMap 局部更新左侧树，避免 collab-project-pages 全量刷新 */
+function isCustomActivityPage(): boolean {
+  return selectedNodeActivityType.value === '3';
+}
+
+function hasStandaloneParamChanges(values: Array<{ paramKey?: string; paramValue?: string }>): boolean {
+  return values.some(row => {
+    const key = String(row?.paramKey ?? '').trim();
+    if (!key) return false;
+    const saved = (nodeDetailData.value?.savedParamValues || []).find(
+      (item: any) => String(item?.paramKey ?? item?.paramCode ?? '').trim() === key,
+    );
+    return String(saved?.paramValue ?? '') !== String(row?.paramValue ?? '');
+  });
+}
+
+async function invokeCustomPageRefreshIfNeeded(options: {
+  mode: 'wbs' | 'standalone';
+  body: Record<string, unknown>;
+  hasChanges: boolean;
+}): Promise<boolean> {
+  if (!isCustomActivityPage() || !options.hasChanges) return false;
+  const api =
+    options.mode === 'wbs'
+      ? AdminApiProjectTemp.wbsCollabCustomPageRefresh
+      : AdminApiSystemProcessTask.customPageRefresh;
+  const res = await api(options.body);
+  const code = res?.data?.code;
+  if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
+    message.error(String(res?.data?.msg ?? '自定义页面刷新失败'));
+    return false;
+  }
+  patchWorkspaceNodeStatuses(
+    (res?.data?.data as { nodeStatusMap?: Record<string, string> } | undefined)?.nodeStatusMap,
+  );
+  return true;
+}
+
 function patchWorkspaceNodeStatuses(statusMap: Record<string, string> | null | undefined) {
   if (!statusMap || typeof statusMap !== 'object') return;
   const pages = workspaceData.value?.pages;
@@ -1118,7 +1159,11 @@ async function requestNodeDetailByKey(key: string, options?: { skipParamMapRefre
         // task-param-map 失败不阻断节点详情展示
       }
     }
-    nodeDetailData.value = detailObj;
+    nodeDetailData.value = {
+      ...(detailObj || {}),
+      pageType: detailObj?.pageType ?? targetNode?.pageType ?? targetNode?.activityType,
+      nodeStatus: targetNode?.nodeStatus ?? detailObj?.nodeStatus,
+    };
   } finally {
     nodeDetailLoading.value = false;
     knowledgeLoading.value = false;
@@ -1366,8 +1411,23 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
       savedParamValues: nodeDetailData.value?.savedParamValues,
       componentsJson: nodeDetailData.value?.componentsJson,
     });
+    const isCustomPage = isCustomActivityPage();
     setLoading(true);
     try {
+      const useCustomRefresh = isCustomPage && (changedInputKeys.length > 0 || hasUnsavedChanges.value);
+      if (useCustomRefresh) {
+        const refreshed = await invokeCustomPageRefreshIfNeeded({
+          mode: 'wbs',
+          body,
+          hasChanges: true,
+        });
+        if (!refreshed) return false;
+        hasUnsavedChanges.value = false;
+        mergeWbsSavedParamValuesIntoNodeDetail(items);
+        await refreshWbsProjectParamMap();
+        message.success(options?.successMessage || '保存成功');
+        return true;
+      }
       const res = await AdminApiProjectTemp.wbsTaskParamSave(body);
       const code = res?.data?.code;
       if (code === 0 || code === 200 || code === '0' || code === '200') {
@@ -1446,8 +1506,22 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
   };
   if (appId) data.appId = appId;
   else data.appCode = appCode;
+  const isCustomPage = isCustomActivityPage();
+  const hasParamChanges = hasStandaloneParamChanges(values);
+  const useCustomRefresh = isCustomPage && (hasParamChanges || tables.length > 0 || hasUnsavedChanges.value);
   setLoading(true);
   try {
+    if (useCustomRefresh) {
+      const refreshed = await invokeCustomPageRefreshIfNeeded({
+        mode: 'standalone',
+        body: data,
+        hasChanges: true,
+      });
+      if (!refreshed) return false;
+      hasUnsavedChanges.value = false;
+      message.success(options?.successMessage || '保存成功');
+      return true;
+    }
     const res = await AdminApiSystemProcessTask.saveParams(data);
     const code = res?.data?.code;
     if (code === 0 || code === 200 || code === '0' || code === '200') {
@@ -1468,7 +1542,9 @@ async function saveCurrentNodeParams(options?: { successMessage?: string; loadin
 async function saveFlowInfo() {
   const ok = await saveCurrentNodeParams({ successMessage: '保存成功', loadingType: 'save' });
   if (ok) {
-    await refreshWorkspaceTreeData();
+    if (!isCustomActivityPage()) {
+      await refreshWorkspaceTreeData();
+    }
     void loadWorkspaceOperateLogs();
   }
 }
@@ -1534,6 +1610,14 @@ async function goNextNode() {
     });
     submitFlowLoading.value = true;
     try {
+      if (isCustomActivityPage() && (changedInputKeys.length > 0 || hasUnsavedChanges.value)) {
+        const refreshed = await invokeCustomPageRefreshIfNeeded({
+          mode: 'wbs',
+          body,
+          hasChanges: true,
+        });
+        if (!refreshed) return;
+      }
       const res = await AdminApiProjectTemp.wbsCollabNextStep(body);
       const code = res?.data?.code;
       if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
@@ -1552,12 +1636,14 @@ async function goNextNode() {
       message.success('提交成功');
       hasUnsavedChanges.value = false;
       mergeWbsSavedParamValuesIntoNodeDetail(items);
-      void notifyWbsInputPushImpact({
-        projectId,
-        taskId,
-        activityPageId,
-        paramCodes: changedInputKeys,
-      });
+      if (!isCustomActivityPage() || changedInputKeys.length === 0) {
+        void notifyWbsInputPushImpact({
+          projectId,
+          taskId,
+          activityPageId,
+          paramCodes: changedInputKeys,
+        });
+      }
       void loadWorkspaceOperateLogs();
       if (nextKey && !allNodeMap.value.has(nextKey)) {
         nextKey = '';
@@ -1636,9 +1722,18 @@ async function goNextNode() {
   };
   if (appId) data.appId = appId;
   else data.appCode = appCode;
+  const hasParamChanges = hasStandaloneParamChanges(values);
   let serverNextBpmnElementId = '';
   submitFlowLoading.value = true;
   try {
+    if (isCustomActivityPage() && (hasParamChanges || (Array.isArray(tablePayload) && tablePayload.length > 0) || hasUnsavedChanges.value)) {
+      const refreshed = await invokeCustomPageRefreshIfNeeded({
+        mode: 'standalone',
+        body: data,
+        hasChanges: true,
+      });
+      if (!refreshed) return;
+    }
     const res = await AdminApiSystemProcessTask.nextStep(data);
     const code = res?.data?.code;
     if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
@@ -1726,8 +1821,21 @@ async function finishFlow() {
     };
     const wbsId = route.query.wbsId;
     if (wbsId) body.wbsId = wbsId;
+    const changedInputKeys = findChangedWbsInputParamKeys({
+      items,
+      savedParamValues: nodeDetailData.value?.savedParamValues,
+      componentsJson: nodeDetailData.value?.componentsJson,
+    });
     finishFlowLoading.value = true;
     try {
+      if (isCustomActivityPage() && (changedInputKeys.length > 0 || hasUnsavedChanges.value)) {
+        const refreshed = await invokeCustomPageRefreshIfNeeded({
+          mode: 'wbs',
+          body,
+          hasChanges: true,
+        });
+        if (!refreshed) return;
+      }
       const res = await AdminApiProjectTemp.wbsCollabNextStep(body);
       const code = res?.data?.code;
       if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
@@ -1796,8 +1904,17 @@ async function finishFlow() {
   };
   if (appId) data.appId = appId;
   else data.appCode = appCode;
+  const hasParamChanges = hasStandaloneParamChanges(values);
   finishFlowLoading.value = true;
   try {
+    if (isCustomActivityPage() && (hasParamChanges || (Array.isArray(tablePayload) && tablePayload.length > 0) || hasUnsavedChanges.value)) {
+      const refreshed = await invokeCustomPageRefreshIfNeeded({
+        mode: 'standalone',
+        body: data,
+        hasChanges: true,
+      });
+      if (!refreshed) return;
+    }
     const res = await AdminApiSystemProcessTask.nextStep(data);
     const code = res?.data?.code;
     if (!(code === 0 || code === 200 || code === '0' || code === '200')) {
