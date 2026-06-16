@@ -271,13 +271,17 @@ function filterTreeNodes(nodes: any[], searchValue: string): any[] {
 
 /** 获取节点添加数据 */
 async function getNodeAddData(selectedKeys: any) {
-  // 这里可以根据需要实现添加节点的逻辑
-  console.log('getNodeAddData', currentNode.value);
+  const parentNode =
+    selectedKeys && typeof selectedKeys === 'object' ? selectedKeys : currentNode.value;
+  const parentName = parentNode?.partName ?? '';
+  const categoryType = parentNode?.categoryType ?? '';
+  const parentId = parentNode?.key != null && parentNode.key !== '' ? parentNode.key : 0;
+
   treeNodeColmoun.value = [
     {
       title: WeiI18n.t('父节点名称').value,
       key: 'parentName',
-      value: currentNode.value.partName,
+      value: parentName,
       type: 'input',
       hidden: false,
       disabled: true,
@@ -285,7 +289,7 @@ async function getNodeAddData(selectedKeys: any) {
     {
       title: WeiI18n.t('类别').value,
       key: 'categoryType',
-      value: currentNode.value.categoryType,
+      value: categoryType,
       type: 'input',
       hidden: true,
       disabled: true,
@@ -306,7 +310,7 @@ async function getNodeAddData(selectedKeys: any) {
     {
       title: WeiI18n.t('父节点ID').value,
       key: 'pid',
-      value: currentNode.value.key,
+      value: parentId,
       type: 'input',
       disabled: true,
       hidden: true,

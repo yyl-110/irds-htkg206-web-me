@@ -1,151 +1,129 @@
 <script lang="ts" setup>
-import { computed, h, nextTick, onMounted, reactive, ref } from 'vue'
-import type { FormInstance, TableColumnType, UploadFile, UploadProps } from 'ant-design-vue'
-import { Modal, message } from 'ant-design-vue'
-import { CaretDownOutlined, CaretUpOutlined, PlusOutlined } from '@ant-design/icons-vue'
-import Empty from '@/components/Empty/index.vue'
-import { WeiI18n } from '@/utils/WeiI18n'
-import { sortermethod } from '@/utils/tools'
-import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台'
-import { AdminApiSystemDept } from '@/api/tags/管理后台部门'
-import { AdminApiSystemUploadFile } from '@/api/tags/文件上传'
-import { Uploado_draggerFile } from '@/components/UploadFile'
-import { useUserStore } from '@/store/modules/user'
-import { invalidatePlatformPickerListCache } from '@/utils/platformPickerList'
+import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
+import type { FormInstance, TableColumnType, UploadFile, UploadProps } from 'ant-design-vue';
+import { Modal, message } from 'ant-design-vue';
+import { CaretDownOutlined, CaretUpOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import Empty from '@/components/Empty/index.vue';
+import { WeiI18n } from '@/utils/WeiI18n';
+import { sortermethod } from '@/utils/tools';
+import { AdminApiSystemProduct } from '@/api/tags/product/产品平台后台';
+import { AdminApiSystemDept } from '@/api/tags/管理后台部门';
+import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
+import { Uploado_draggerFile } from '@/components/UploadFile';
+import MemberAuthPicker from '@/components/MemberAuthPicker/index.vue';
+import { useUserStore } from '@/store/modules/user';
+import { invalidatePlatformPickerListCache } from '@/utils/platformPickerList';
 
-const userStore = useUserStore()
+const userStore = useUserStore();
 
 /** 1: 固定平台；2: 自定义平台（来自列表接口 status） */
-type PlatformStatus = 1 | 2
+type PlatformStatus = 1 | 2;
 
 interface PlatformRoleRow {
-  id: string
-  roleName: string
-  attribute: string
-  userName: string
+  id: string;
+  roleName: string;
+  attribute: string;
+  userName: string;
   /** 排序索引 */
-  sortIndex: number | null
+  sortIndex: number | null;
   /** 已授权用户 id，用于成员授权弹窗回显 */
-  authUserIds: string[]
-  status: PlatformStatus
-  fileId?: string
-  fileUrl?: string
-  oldFileName?: string
+  authUserIds: string[];
+  status: PlatformStatus;
+  fileId?: string;
+  fileUrl?: string;
+  oldFileName?: string;
 }
 
 interface MemberAuthUser {
-  id: string
-  name: string
-  username: string
-  deptId?: string
+  id: string;
+  name: string;
+  username: string;
+  deptId?: string;
 }
 
 interface MemberAuthDept {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
-const loading = ref(false)
+const loading = ref(false);
 
-const dataSource = ref<PlatformRoleRow[]>([])
+const dataSource = ref<PlatformRoleRow[]>([]);
 
 function formatAuthorizedNames(item: Record<string, unknown>): string {
-  const leaders = item.leaders
+  const leaders = item.leaders;
   if (Array.isArray(leaders) && leaders.length) {
     return leaders
       .map((l: Record<string, unknown>) => String(l.nickname ?? l.name ?? '').trim())
       .filter(Boolean)
-      .join('、')
+      .join('、');
   }
   for (const key of ['userName', 'assignUserNames', 'userNames'] as const) {
-    const v = item[key]
-    if (typeof v === 'string' && v.trim())
-      return v.trim()
+    const v = item[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
   }
-  return ''
+  return '';
 }
 
 function formatAttribute(item: Record<string, unknown>): string {
-  for (const key of [
-    'attribute',
-    'attributeName',
-    'attrName',
-    'property',
-    'propertyName',
-    'categoryTypeName',
-    'typeName',
-    'extProperty',
-    'remark',
-  ] as const) {
-    const v = item[key]
-    if (v != null && String(v).trim())
-      return String(v).trim()
+  for (const key of ['attribute', 'attributeName', 'attrName', 'property', 'propertyName', 'categoryTypeName', 'typeName', 'extProperty', 'remark'] as const) {
+    const v = item[key];
+    if (v != null && String(v).trim()) return String(v).trim();
   }
-  const type = item.categoryType
-  if (type != null && String(type).trim())
-    return String(type).trim()
-  return ''
+  const type = item.categoryType;
+  if (type != null && String(type).trim()) return String(type).trim();
+  return '';
 }
 
 function getAuthorizedUserIdsFromItem(item: Record<string, unknown>): string[] {
-  const raw = item.userIds
-  if (Array.isArray(raw))
-    return raw.map(v => String(v))
+  const raw = item.userIds;
+  if (Array.isArray(raw)) return raw.map(v => String(v));
   if (typeof raw === 'string' && raw.trim()) {
     return raw
       .split(',')
       .map(v => v.trim())
-      .filter(Boolean)
+      .filter(Boolean);
   }
-  const assignIds = item.assignUserIds
-  if (Array.isArray(assignIds))
-    return assignIds.map(v => String(v))
+  const assignIds = item.assignUserIds;
+  if (Array.isArray(assignIds)) return assignIds.map(v => String(v));
   if (typeof assignIds === 'string' && assignIds.trim()) {
     return assignIds
       .split(',')
       .map(v => v.trim())
-      .filter(Boolean)
+      .filter(Boolean);
   }
-  const leaderUserId = item.leaderUserId
-  if (Array.isArray(leaderUserId))
-    return leaderUserId.map(v => String(v))
-  return []
+  const leaderUserId = item.leaderUserId;
+  if (Array.isArray(leaderUserId)) return leaderUserId.map(v => String(v));
+  return [];
 }
 
 function parseSortIndex(item: Record<string, unknown>): number | null {
   for (const key of ['sortIndex', 'sort', 'sortNo'] as const) {
-    const v = item[key]
-    if (v != null && v !== '' && !Number.isNaN(Number(v)))
-      return Number(v)
+    const v = item[key];
+    if (v != null && v !== '' && !Number.isNaN(Number(v))) return Number(v);
   }
-  return null
+  return null;
 }
 
 function parseListItemStatus(item: Record<string, unknown>): PlatformStatus | null {
-  const s = item.status
-  if (s === 1 || s === '1')
-    return 1
-  if (s === 2 || s === '2')
-    return 2
-  return null
+  const s = item.status;
+  if (s === 1 || s === '1') return 1;
+  if (s === 2 || s === '2') return 2;
+  return null;
 }
 
 function rowIsFixedPlatform(record: PlatformRoleRow) {
-  return record.status === 1
+  return record.status === 1;
 }
 
 function mapProjectTreeItemToRow(item: Record<string, unknown>, idx: number): PlatformRoleRow {
-  const idRaw = item.id
-  const st = parseListItemStatus(item)
-  const status: PlatformStatus = st ?? 2
-  const attribute = st != null
-    ? (st === 1
-        ? String(WeiI18n.$t('固定平台'))
-        : String(WeiI18n.$t('自定义平台')))
-    : formatAttribute(item)
-  const fileIdRaw = item.fileId ?? item.picFileId
-  const fileUrlRaw = item.fileUrl ?? item.picUrl
-  const oldFileNameRaw = item.oldFileName ?? item.fileName
+  const idRaw = item.id;
+  const st = parseListItemStatus(item);
+  const status: PlatformStatus = st ?? 2;
+  const attribute = st != null ? (st === 1 ? String(WeiI18n.$t('固定平台')) : String(WeiI18n.$t('自定义平台'))) : formatAttribute(item);
+  const fileIdRaw = item.fileId ?? item.picFileId;
+  const fileUrlRaw = item.fileUrl ?? item.picUrl;
+  const oldFileNameRaw = item.oldFileName ?? item.fileName;
   return {
     id: idRaw != null && idRaw !== '' ? String(idRaw) : `row-${idx}`,
     roleName: String(item.categoryName ?? item.name ?? ''),
@@ -157,49 +135,45 @@ function mapProjectTreeItemToRow(item: Record<string, unknown>, idx: number): Pl
     fileId: fileIdRaw != null && fileIdRaw !== '' ? String(fileIdRaw) : '',
     fileUrl: fileUrlRaw != null ? String(fileUrlRaw) : '',
     oldFileName: oldFileNameRaw != null ? String(oldFileNameRaw) : '',
-  }
+  };
 }
 
 async function fetchPlatformList() {
-  loading.value = true
+  loading.value = true;
   try {
-    const res = await AdminApiSystemProduct.getProjectTreeAllList()
-    const payload = res.data
-    const codeOk = payload?.code === 200 || payload?.code === undefined
-    const rawList = payload?.data
+    const res = await AdminApiSystemProduct.getProjectTreeAllList();
+    const payload = res.data;
+    const codeOk = payload?.code === 200 || payload?.code === undefined;
+    const rawList = payload?.data;
     if (codeOk && rawList != null) {
-      const raw = Array.isArray(rawList) ? rawList : [rawList]
-      dataSource.value = raw.map((row, i) => mapProjectTreeItemToRow(row as Record<string, unknown>, i))
+      const raw = Array.isArray(rawList) ? rawList : [rawList];
+      dataSource.value = raw.map((row, i) => mapProjectTreeItemToRow(row as Record<string, unknown>, i));
+    } else {
+      dataSource.value = [];
+      if (payload?.msg) message.error(payload.msg);
     }
-    else {
-      dataSource.value = []
-      if (payload?.msg)
-        message.error(payload.msg)
-    }
-  }
-  catch {
-    dataSource.value = []
-    message.error(WeiI18n.$t('获取数据失败'))
-  }
-  finally {
-    loading.value = false
+  } catch {
+    dataSource.value = [];
+    message.error(WeiI18n.$t('获取数据失败'));
+  } finally {
+    loading.value = false;
   }
 }
 
 onMounted(() => {
-  fetchPlatformList()
-})
+  fetchPlatformList();
+});
 
-const addModalVisible = ref(false)
-const addFormRef = ref<FormInstance>()
-const addSubmitting = ref(false)
-const addFileList = ref<UploadFile[]>([])
-const editFileList = ref<UploadFile[]>([])
+const addModalVisible = ref(false);
+const addFormRef = ref<FormInstance>();
+const addSubmitting = ref(false);
+const addFileList = ref<UploadFile[]>([]);
+const editFileList = ref<UploadFile[]>([]);
 
 const addFormState = reactive({
   categoryName: '',
   sortIndex: null as number | null,
-})
+});
 
 const addFormRules = {
   categoryName: [
@@ -210,112 +184,90 @@ const addFormRules = {
     { required: true, message: () => WeiI18n.$t('请输入排序索引'), trigger: 'blur' },
     {
       validator: (_rule: unknown, value: number | null) => {
-        if (value == null || Number(value) <= 0)
-          return Promise.reject(WeiI18n.$t('请输入排序索引'))
-        return Promise.resolve()
+        if (value == null || Number(value) <= 0) return Promise.reject(WeiI18n.$t('请输入排序索引'));
+        return Promise.resolve();
       },
       trigger: 'blur',
     },
   ],
-}
+};
 
-const addLabelCol = { span: 6 }
-const addWrapperCol = { span: 16 }
+const addLabelCol = { span: 6 };
+const addWrapperCol = { span: 16 };
 
 function closeAddModal() {
-  addModalVisible.value = false
-  addFileList.value = []
+  addModalVisible.value = false;
+  addFileList.value = [];
 }
 
-function parseUploadFileRecord(raw: unknown): { id: string, fileUrl?: string, displayName?: string } {
-  if (!raw || typeof raw !== 'object')
-    return { id: '' }
-  const body = raw as Record<string, unknown>
-  const code = body.code
-  const ok = code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200'
-  if (!ok)
-    return { id: '' }
-  let record: Record<string, unknown> = body
-  const nested = body.data
-  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null)
-    record = nested as Record<string, unknown>
-  else if (body.id == null && body.queryId == null && nested && typeof nested === 'object')
-    record = nested as Record<string, unknown>
-  const id = String(record.id ?? record.queryId ?? '').trim()
-  const fileUrl = record.fileUrl != null
-    ? String(record.fileUrl)
-    : record.filePath != null
-      ? String(record.filePath)
-      : record.url != null
-        ? String(record.url)
-        : undefined
-  const displayName = record.oldFileName != null
-    ? String(record.oldFileName)
-    : record.fileName != null
-      ? String(record.fileName)
-      : undefined
-  return { id, fileUrl, displayName }
+function parseUploadFileRecord(raw: unknown): { id: string; fileUrl?: string; displayName?: string } {
+  if (!raw || typeof raw !== 'object') return { id: '' };
+  const body = raw as Record<string, unknown>;
+  const code = body.code;
+  const ok = code === undefined || code === null || code === 0 || code === 200 || code === '0' || code === '200';
+  if (!ok) return { id: '' };
+  let record: Record<string, unknown> = body;
+  const nested = body.data;
+  if (nested && typeof nested === 'object' && (nested as Record<string, unknown>).id != null) record = nested as Record<string, unknown>;
+  else if (body.id == null && body.queryId == null && nested && typeof nested === 'object') record = nested as Record<string, unknown>;
+  const id = String(record.id ?? record.queryId ?? '').trim();
+  const fileUrl = record.fileUrl != null ? String(record.fileUrl) : record.filePath != null ? String(record.filePath) : record.url != null ? String(record.url) : undefined;
+  const displayName = record.oldFileName != null ? String(record.oldFileName) : record.fileName != null ? String(record.fileName) : undefined;
+  return { id, fileUrl, displayName };
 }
 
 function getFileListEntryId(entry: UploadFile | undefined): string {
-  if (!entry)
-    return ''
-  const direct = (entry as UploadFile & { id?: string }).id ?? (entry as UploadFile & { queryId?: string }).queryId
-  if (direct != null && String(direct).trim() !== '')
-    return String(direct).trim()
-  return parseUploadFileRecord(entry.response).id
+  if (!entry) return '';
+  const direct = (entry as UploadFile & { id?: string }).id ?? (entry as UploadFile & { queryId?: string }).queryId;
+  if (direct != null && String(direct).trim() !== '') return String(direct).trim();
+  return parseUploadFileRecord(entry.response).id;
 }
 
 function getFileListEntryUrl(entry: UploadFile | undefined): string {
-  if (!entry)
-    return ''
-  const direct = (entry as UploadFile & { fileUrl?: string }).fileUrl
-  if (direct != null && String(direct).trim() !== '')
-    return String(direct).trim()
-  return parseUploadFileRecord(entry.response).fileUrl ?? ''
+  if (!entry) return '';
+  const direct = (entry as UploadFile & { fileUrl?: string }).fileUrl;
+  if (direct != null && String(direct).trim() !== '') return String(direct).trim();
+  return parseUploadFileRecord(entry.response).fileUrl ?? '';
 }
 
 function getFileFieldsFromList(list: UploadFile[]) {
-  if (!list.length)
-    return { fileId: '', fileUrl: '' }
+  if (!list.length) return { fileId: '', fileUrl: '' };
   return {
     fileId: getFileListEntryId(list[0]),
     fileUrl: getFileListEntryUrl(list[0]),
-  }
+  };
 }
 
 function buildFileListFromRecord(record: Pick<PlatformRoleRow, 'fileId' | 'fileUrl' | 'oldFileName'>): UploadFile[] {
-  if (!record.fileId?.trim())
-    return []
-  return [{
-    uid: record.fileId,
-    name: record.oldFileName?.trim() || WeiI18n.$t('示意图'),
-    status: 'done',
-    id: record.fileId,
-    fileUrl: record.fileUrl,
-  } as UploadFile]
+  if (!record.fileId?.trim()) return [];
+  return [
+    {
+      uid: record.fileId,
+      name: record.oldFileName?.trim() || WeiI18n.$t('示意图'),
+      status: 'done',
+      id: record.fileId,
+      fileUrl: record.fileUrl,
+    } as UploadFile,
+  ];
 }
 
 function onAddUploadChange(files: UploadFile[]) {
-  addFileList.value = Array.isArray(files) ? files : []
+  addFileList.value = Array.isArray(files) ? files : [];
 }
 
 function onEditUploadChange(files: UploadFile[]) {
-  editFileList.value = Array.isArray(files) ? files : []
+  editFileList.value = Array.isArray(files) ? files : [];
 }
 
-async function handlePlatformUploadRequest(
-  options: Parameters<NonNullable<UploadProps['customRequest']>>[0],
-  targetList: typeof addFileList,
-) {
+async function handlePlatformUploadRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0], targetList: typeof addFileList) {
   try {
     const res = await AdminApiSystemUploadFile.uploadFile({
       file: options.file as File,
       userId: userStore.getUser.id,
       confidentialLevel: 1,
-    })
-    const parsed = parseUploadFileRecord(res?.data)
-    const codeOk = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200'
+    });
+    const parsed = parseUploadFileRecord(res?.data);
+    const codeOk = res?.data?.code === 0 || res?.data?.code === 200 || res?.data?.code === '0' || res?.data?.code === '200';
     if (codeOk && parsed.id) {
       const file = {
         uid: parsed.id,
@@ -324,68 +276,63 @@ async function handlePlatformUploadRequest(
         response: res.data,
         id: parsed.id,
         fileUrl: parsed.fileUrl,
-      } as UploadFile
-      targetList.value = [file]
-      options.onSuccess?.(res.data, options.file as File)
-      message.success(WeiI18n.$t('上传成功'))
+      } as UploadFile;
+      targetList.value = [file];
+      options.onSuccess?.(res.data, options.file as File);
+      message.success(WeiI18n.$t('上传成功'));
+    } else {
+      message.error(WeiI18n.$t('上传失败'));
+      options.onError?.(new Error(String((res?.data as Record<string, unknown>)?.msg ?? 'upload failed')));
     }
-    else {
-      message.error(WeiI18n.$t('上传失败'))
-      options.onError?.(new Error(String((res?.data as Record<string, unknown>)?.msg ?? 'upload failed')))
-    }
-  }
-  catch (err) {
-    options.onError?.(err instanceof Error ? err : new Error(String(err)))
+  } catch (err) {
+    options.onError?.(err instanceof Error ? err : new Error(String(err)));
   }
 }
 
 function onAddUploadRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0]) {
-  return handlePlatformUploadRequest(options, addFileList)
+  return handlePlatformUploadRequest(options, addFileList);
 }
 
 function onEditUploadRequest(options: Parameters<NonNullable<UploadProps['customRequest']>>[0]) {
-  return handlePlatformUploadRequest(options, editFileList)
+  return handlePlatformUploadRequest(options, editFileList);
 }
 
 async function submitAddForm() {
-  await addFormRef.value?.validate()
-  addSubmitting.value = true
+  await addFormRef.value?.validate();
+  addSubmitting.value = true;
   try {
     const res = await AdminApiSystemProduct.createProjectTree({
       categoryName: addFormState.categoryName.trim(),
       sort: Number(addFormState.sortIndex),
       ...getFileFieldsFromList(addFileList.value),
-    })
-    const payload = res.data
-    const codeOk = payload?.code === 200 || payload?.code === undefined
+    });
+    const payload = res.data;
+    const codeOk = payload?.code === 200 || payload?.code === undefined;
     if (codeOk) {
-      message.success(WeiI18n.$t('保存成功'))
-      addModalVisible.value = false
-      addFileList.value = []
-      invalidatePlatformPickerListCache()
-      fetchPlatformList()
+      message.success(WeiI18n.$t('保存成功'));
+      addModalVisible.value = false;
+      addFileList.value = [];
+      invalidatePlatformPickerListCache();
+      fetchPlatformList();
+    } else {
+      message.error(payload?.msg || WeiI18n.$t('保存失败'));
     }
-    else {
-      message.error(payload?.msg || WeiI18n.$t('保存失败'))
-    }
-  }
-  catch {
-    message.error(WeiI18n.$t('保存失败'))
-  }
-  finally {
-    addSubmitting.value = false
+  } catch {
+    message.error(WeiI18n.$t('保存失败'));
+  } finally {
+    addSubmitting.value = false;
   }
 }
 
-const editModalVisible = ref(false)
-const editFormRef = ref<FormInstance>()
-const editSubmitting = ref(false)
+const editModalVisible = ref(false);
+const editFormRef = ref<FormInstance>();
+const editSubmitting = ref(false);
 const editFormState = reactive({
   id: '',
   categoryName: '',
   sortIndex: null as number | null,
   status: 2 as PlatformStatus,
-})
+});
 
 const editFormRules = {
   categoryName: [
@@ -396,53 +343,48 @@ const editFormRules = {
     { required: true, message: () => WeiI18n.$t('请输入排序索引'), trigger: 'blur' },
     {
       validator: (_rule: unknown, value: number | null) => {
-        if (value == null || Number(value) <= 0)
-          return Promise.reject(WeiI18n.$t('请输入排序索引'))
-        return Promise.resolve()
+        if (value == null || Number(value) <= 0) return Promise.reject(WeiI18n.$t('请输入排序索引'));
+        return Promise.resolve();
       },
       trigger: 'blur',
     },
   ],
-}
+};
 
 function closeEditModal() {
-  editModalVisible.value = false
-  editFileList.value = []
+  editModalVisible.value = false;
+  editFileList.value = [];
 }
 
 async function submitEditForm() {
-  await editFormRef.value?.validate()
-  editSubmitting.value = true
+  await editFormRef.value?.validate();
+  editSubmitting.value = true;
   try {
     const res = await AdminApiSystemProduct.updateProjectTree({
       id: editFormState.id,
       categoryName: editFormState.categoryName.trim(),
       sort: Number(editFormState.sortIndex),
       ...getFileFieldsFromList(editFileList.value),
-    })
-    const payload = res.data
-    const codeOk = payload?.code === 200 || payload?.code === undefined
+    });
+    const payload = res.data;
+    const codeOk = payload?.code === 200 || payload?.code === undefined;
     if (codeOk) {
-      message.success(WeiI18n.$t('保存成功'))
-      editModalVisible.value = false
-      editFileList.value = []
-      invalidatePlatformPickerListCache()
-      fetchPlatformList()
+      message.success(WeiI18n.$t('保存成功'));
+      editModalVisible.value = false;
+      editFileList.value = [];
+      invalidatePlatformPickerListCache();
+      fetchPlatformList();
+    } else {
+      message.error(payload?.msg || WeiI18n.$t('保存失败'));
     }
-    else {
-      message.error(payload?.msg || WeiI18n.$t('保存失败'))
-    }
-  }
-  catch {
-    message.error(WeiI18n.$t('保存失败'))
-  }
-  finally {
-    editSubmitting.value = false
+  } catch {
+    message.error(WeiI18n.$t('保存失败'));
+  } finally {
+    editSubmitting.value = false;
   }
 }
 
 const columns = ref<TableColumnType<PlatformRoleRow>[]>([
-
   {
     title: WeiI18n.$t('平台名称'),
     dataIndex: 'roleName',
@@ -488,17 +430,17 @@ const columns = ref<TableColumnType<PlatformRoleRow>[]>([
     fixed: 'right',
     resizable: false,
   },
-])
+]);
 
-const TABLE_SCROLL_BUFFER = 24
+const TABLE_SCROLL_BUFFER = 24;
 const tableScrollX = computed(() => {
-  let sum = 0
+  let sum = 0;
   for (const col of columns.value) {
-    const w = col.width
-    sum += typeof w === 'number' ? w : Number(w) || 0
+    const w = col.width;
+    sum += typeof w === 'number' ? w : Number(w) || 0;
   }
-  return sum + TABLE_SCROLL_BUFFER
-})
+  return sum + TABLE_SCROLL_BUFFER;
+});
 
 const locale = ref({
   cancelSort: WeiI18n.t('点击取消排序').value,
@@ -508,107 +450,100 @@ const locale = ref({
     description: '暂无数据',
     style: { paddingBottom: '50px' },
   }),
-})
+});
 
 function handleResizeColumn(w: number, col: TableColumnType<PlatformRoleRow>) {
-  col.width = w
+  col.width = w;
 }
 
-type SortOrder = 'ascend' | 'descend' | ''
-const sortState = ref<{ key: string, order: SortOrder }>({ key: '', order: '' })
+type SortOrder = 'ascend' | 'descend' | '';
+const sortState = ref<{ key: string; order: SortOrder }>({ key: '', order: '' });
 
-function isSortableColumn(column: { key?: string, dataIndex?: unknown }) {
-  if (column.key === 'index' || column.key === 'operation')
-    return false
-  return true
+function isSortableColumn(column: { key?: string; dataIndex?: unknown }) {
+  if (column.key === 'index' || column.key === 'operation') return false;
+  return true;
 }
 
-function getColumnSortKey(column: { dataIndex?: string, key?: string }) {
-  return String(column.dataIndex ?? column.key ?? '')
+function getColumnSortKey(column: { dataIndex?: string; key?: string }) {
+  return String(column.dataIndex ?? column.key ?? '');
 }
 
 function getSortOrder(dataIndex: string): SortOrder {
-  return sortState.value.key === dataIndex ? sortState.value.order : ''
+  return sortState.value.key === dataIndex ? sortState.value.order : '';
 }
 
-function toggleColumnSort(column: { key?: string, dataIndex?: unknown }) {
-  if (!isSortableColumn(column))
-    return
-  const key = getColumnSortKey(column as { dataIndex?: string, key?: string })
+function toggleColumnSort(column: { key?: string; dataIndex?: unknown }) {
+  if (!isSortableColumn(column)) return;
+  const key = getColumnSortKey(column as { dataIndex?: string; key?: string });
   if (sortState.value.key !== key) {
-    sortState.value = { key, order: 'ascend' }
-    return
+    sortState.value = { key, order: 'ascend' };
+    return;
   }
   if (sortState.value.order === 'ascend') {
-    sortState.value = { key, order: 'descend' }
-    return
+    sortState.value = { key, order: 'descend' };
+    return;
   }
   if (sortState.value.order === 'descend') {
-    sortState.value = { key: '', order: '' }
-    return
+    sortState.value = { key: '', order: '' };
+    return;
   }
-  sortState.value = { key, order: 'ascend' }
+  sortState.value = { key, order: 'ascend' };
 }
 
 const displayList = computed(() => {
-  const list = [...dataSource.value]
-  if (!sortState.value.key || !sortState.value.order)
-    return list
-  const k = sortState.value.key
+  const list = [...dataSource.value];
+  if (!sortState.value.key || !sortState.value.order) return list;
+  const k = sortState.value.key;
   if (k === 'sortIndex') {
-    const sorted = [...list].sort(
-      (a, b) => (Number(a.sortIndex) || 0) - (Number(b.sortIndex) || 0),
-    )
-    return sortState.value.order === 'ascend' ? sorted : sorted.reverse()
+    const sorted = [...list].sort((a, b) => (Number(a.sortIndex) || 0) - (Number(b.sortIndex) || 0));
+    return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
   }
-  const sorted = [...list].sort((a, b) => sortermethod((a as any)[k], (b as any)[k]))
-  return sortState.value.order === 'ascend' ? sorted : sorted.reverse()
-})
+  const sorted = [...list].sort((a, b) => sortermethod((a as any)[k], (b as any)[k]));
+  return sortState.value.order === 'ascend' ? sorted : sorted.reverse();
+});
 
 function rowKey(record: PlatformRoleRow) {
-  return record.id
+  return record.id;
 }
 
 function rowClassName(_record: PlatformRoleRow, index: number) {
-  return index % 2 === 0 ? 'odd' : 'even'
+  return index % 2 === 0 ? 'odd' : 'even';
 }
 
 function onCreate() {
-  addFormState.categoryName = ''
-  addFormState.sortIndex = dataSource.value.length + 1
-  addFileList.value = []
-  addModalVisible.value = true
+  addFormState.categoryName = '';
+  addFormState.sortIndex = dataSource.value.length + 1;
+  addFileList.value = [];
+  addModalVisible.value = true;
   nextTick(() => {
-    addFormRef.value?.clearValidate()
-  })
+    addFormRef.value?.clearValidate();
+  });
 }
 
-const memberAuthVisible = ref(false)
-const currentPlatformTreeId = ref<string | number | undefined>()
-const memberAuthUsers = ref<MemberAuthUser[]>([])
-const memberAuthDepts = ref<MemberAuthDept[]>([])
-const memberAuthUserIds = ref<string[]>([])
+const memberAuthVisible = ref(false);
+const currentPlatformTreeId = ref<string | number | undefined>();
+const memberAuthUsers = ref<MemberAuthUser[]>([]);
+const memberAuthDepts = ref<MemberAuthDept[]>([]);
+const memberAuthUserIds = ref<string[]>([]);
 
 function mapDeptUserToMemberAuth(raw: Record<string, unknown>): MemberAuthUser | null {
-  const idRaw = raw.id ?? raw.userId
-  if (idRaw == null || idRaw === '')
-    return null
+  const idRaw = raw.id ?? raw.userId;
+  if (idRaw == null || idRaw === '') return null;
   return {
     id: String(idRaw),
     name: String(raw.nickname ?? raw.name ?? ''),
     username: String(raw.username ?? ''),
     deptId: raw.deptId != null && raw.deptId !== '' ? String(raw.deptId) : undefined,
-  }
+  };
 }
 
 function mapDeptToMemberAuth(raw: Record<string, unknown>): MemberAuthDept | null {
-  const idRaw = raw.id
-  if (idRaw == null || idRaw === '')
-    return null
+  const idRaw = raw.id;
+  if (idRaw == null || idRaw === '') return null;
   return {
     id: String(idRaw),
     name: String(raw.name ?? ''),
-  }
+  };
 }
 
 /**
@@ -616,118 +551,111 @@ function mapDeptToMemberAuth(raw: Record<string, unknown>): MemberAuthDept | nul
  * @param resBody
  */
 function parseProjectTreeAuthUserIds(resBody: Record<string, unknown>): string[] {
-  const data = resBody.data
-  if (data == null)
-    return []
+  const data = resBody.data;
+  if (data == null) return [];
   if (Array.isArray(data)) {
     return data
       .map((x): string => {
-        if (typeof x === 'string' || typeof x === 'number')
-          return String(x)
+        if (typeof x === 'string' || typeof x === 'number') return String(x);
         if (x && typeof x === 'object') {
-          const o = x as Record<string, unknown>
-          const id = o.userId ?? o.id ?? o.adminUserId
-          return id != null ? String(id) : ''
+          const o = x as Record<string, unknown>;
+          const id = o.userId ?? o.id ?? o.adminUserId;
+          return id != null ? String(id) : '';
         }
-        return ''
+        return '';
       })
-      .filter(Boolean)
+      .filter(Boolean);
   }
   if (typeof data === 'object') {
-    const o = data as Record<string, unknown>
-    const raw = o.userIds ?? o.assignUserIds ?? o.ids
-    if (Array.isArray(raw))
-      return raw.map(v => String(v)).filter(Boolean)
+    const o = data as Record<string, unknown>;
+    const raw = o.userIds ?? o.assignUserIds ?? o.ids;
+    if (Array.isArray(raw)) return raw.map(v => String(v)).filter(Boolean);
     if (typeof raw === 'string' && raw.trim()) {
       return raw
         .split(',')
         .map(s => s.trim())
-        .filter(Boolean)
+        .filter(Boolean);
     }
   }
-  return []
+  return [];
 }
 
 async function openMemberAuth(record: PlatformRoleRow) {
-  currentPlatformTreeId.value = record.id
-  const [deptRes, authRes] = await Promise.all([
-    AdminApiSystemDept.getDeptInfo({} as any),
-    AdminApiSystemProduct.getProjectTreeUserAuth({ treeId: record.id }).catch(() => null),
-  ])
-  const deptPayload = deptRes.data?.data as Record<string, unknown> | undefined
-  if (deptRes.data.code === 200 && deptPayload) {
-    const rawDepts = Array.isArray(deptPayload.adminDeptResponseDTO) ? deptPayload.adminDeptResponseDTO : []
-    const rawUsers = Array.isArray(deptPayload.adminUserResponseDTO) ? deptPayload.adminUserResponseDTO : []
-    memberAuthDepts.value = rawDepts
-      .map((d: Record<string, unknown>) => mapDeptToMemberAuth(d))
-      .filter((d): d is MemberAuthDept => d != null)
-    memberAuthUsers.value = rawUsers
-      .map((u: Record<string, unknown>) => mapDeptUserToMemberAuth(u))
-      .filter((u): u is MemberAuthUser => u != null)
-  }
-  else {
-    memberAuthDepts.value = []
-    memberAuthUsers.value = []
-  }
+  currentPlatformTreeId.value = record.id;
+  try {
+    const [deptRes, authRes] = await Promise.all([
+      AdminApiSystemDept.getDeptInfo({} as any),
+      AdminApiSystemProduct.getProjectTreeUserAuth({ treeId: record.id }).catch(() => null),
+    ]);
+    const deptPayload = deptRes.data?.data as Record<string, unknown> | undefined;
+    if (deptRes.data?.code === 200 && deptPayload) {
+      const rawDepts = Array.isArray(deptPayload.adminDeptResponseDTO) ? deptPayload.adminDeptResponseDTO : [];
+      const rawUsers = Array.isArray(deptPayload.adminUserResponseDTO) ? deptPayload.adminUserResponseDTO : [];
+      memberAuthDepts.value = rawDepts.map((d: Record<string, unknown>) => mapDeptToMemberAuth(d)).filter((d): d is MemberAuthDept => d != null);
+      memberAuthUsers.value = rawUsers.map((u: Record<string, unknown>) => mapDeptUserToMemberAuth(u)).filter((u): u is MemberAuthUser => u != null);
+    } else {
+      memberAuthDepts.value = [];
+      memberAuthUsers.value = [];
+    }
 
-  const authPayload = authRes?.data as Record<string, unknown> | undefined
-  const authCodeOk = authPayload?.code === 200 || authPayload?.code === undefined
-  let resolvedAuthIds: string[] | null = null
-  if (authRes && authCodeOk && authPayload)
-    resolvedAuthIds = parseProjectTreeAuthUserIds(authPayload)
-  memberAuthUserIds.value = resolvedAuthIds ?? record.authUserIds.map(id => String(id))
+    const authPayload = authRes?.data as Record<string, unknown> | undefined;
+    const authCodeOk = authPayload?.code === 200 || authPayload?.code === undefined;
+    let resolvedAuthIds: string[] | null = null;
+    if (authRes && authCodeOk && authPayload) resolvedAuthIds = parseProjectTreeAuthUserIds(authPayload);
+    memberAuthUserIds.value = resolvedAuthIds ?? (record.authUserIds ?? []).map(id => String(id));
 
-  memberAuthVisible.value = true
+    memberAuthVisible.value = true;
+  } catch {
+    message.error(WeiI18n.$t('加载成员授权数据失败'));
+  }
 }
 
 async function handleMemberAuthConfirm(userIds: string[]) {
-  if (currentPlatformTreeId.value == null)
-    return
+  if (currentPlatformTreeId.value == null) return;
   try {
     const res = await AdminApiSystemProduct.createProjectTreeUserAuth({
       treeId: currentPlatformTreeId.value,
       userIds,
-    })
-    const payload = res.data
-    const codeOk = payload?.code === 200 || payload?.code === undefined
+    });
+    const payload = res.data;
+    const codeOk = payload?.code === 200 || payload?.code === undefined;
     if (!codeOk) {
-      message.error(payload?.msg || WeiI18n.$t('保存失败'))
-      return
+      message.error(payload?.msg || WeiI18n.$t('保存失败'));
+      return;
     }
-    message.success(WeiI18n.$t('授权成功!'))
-    memberAuthVisible.value = false
-    invalidatePlatformPickerListCache()
-    await fetchPlatformList()
-  }
-  catch {
-    message.error(WeiI18n.$t('保存失败'))
+    message.success(WeiI18n.$t('授权成功!'));
+    memberAuthVisible.value = false;
+    invalidatePlatformPickerListCache();
+    await fetchPlatformList();
+  } catch {
+    message.error(WeiI18n.$t('保存失败'));
   }
 }
 
 function onEdit(record: PlatformRoleRow) {
   if (record.id.startsWith('row-')) {
-    message.warning(WeiI18n.$t('当前数据无法编辑'))
-    return
+    message.warning(WeiI18n.$t('当前数据无法编辑'));
+    return;
   }
-  editFormState.id = record.id
-  editFormState.categoryName = record.roleName
-  editFormState.sortIndex = record.sortIndex
-  editFormState.status = record.status
-  editFileList.value = buildFileListFromRecord(record)
-  editModalVisible.value = true
+  editFormState.id = record.id;
+  editFormState.categoryName = record.roleName;
+  editFormState.sortIndex = record.sortIndex;
+  editFormState.status = record.status;
+  editFileList.value = buildFileListFromRecord(record);
+  editModalVisible.value = true;
   nextTick(() => {
-    editFormRef.value?.clearValidate()
-  })
+    editFormRef.value?.clearValidate();
+  });
 }
 
 function onDelete(record: PlatformRoleRow) {
   if (rowIsFixedPlatform(record)) {
-    message.warning(WeiI18n.$t('固定平台不可删除'))
-    return
+    message.warning(WeiI18n.$t('固定平台不可删除'));
+    return;
   }
   if (record.id.startsWith('row-')) {
-    message.warning(WeiI18n.$t('当前数据无法删除'))
-    return
+    message.warning(WeiI18n.$t('当前数据无法删除'));
+    return;
   }
   Modal.confirm({
     title: WeiI18n.$t('是否确认删除'),
@@ -737,23 +665,21 @@ function onDelete(record: PlatformRoleRow) {
     wrapClassName: 'platform-delete-confirm-modal',
     async onOk() {
       try {
-        const res = await AdminApiSystemProduct.deleteProjectTree({ id: record.id })
-        const payload = res.data
-        const codeOk = payload?.code === 200 || payload?.code === undefined
+        const res = await AdminApiSystemProduct.deleteProjectTree({ id: record.id });
+        const payload = res.data;
+        const codeOk = payload?.code === 200 || payload?.code === undefined;
         if (codeOk) {
-          message.success(WeiI18n.$t('删除成功'))
-          invalidatePlatformPickerListCache()
-          await fetchPlatformList()
+          message.success(WeiI18n.$t('删除成功'));
+          invalidatePlatformPickerListCache();
+          await fetchPlatformList();
+        } else {
+          message.error(payload?.msg || WeiI18n.$t('删除失败'));
         }
-        else {
-          message.error(payload?.msg || WeiI18n.$t('删除失败'))
-        }
-      }
-      catch {
-        message.error(WeiI18n.$t('删除失败'))
+      } catch {
+        message.error(WeiI18n.$t('删除失败'));
       }
     },
-  })
+  });
 }
 </script>
 
@@ -781,8 +707,7 @@ function onDelete(record: PlatformRoleRow) {
         :scroll="{ x: tableScrollX }"
         :row-key="rowKey"
         :row-class-name="rowClassName"
-        @resize-column="handleResizeColumn"
-      >
+        @resize-column="handleResizeColumn">
         <template #headerCell="{ column }">
           <template v-if="isSortableColumn(column)">
             <div class="header-cell-main header-cell-main--static">
@@ -851,46 +776,16 @@ function onDelete(record: PlatformRoleRow) {
       </a-table>
     </div>
 
-    <a-modal
-      v-model:visible="addModalVisible"
-      :title="WeiI18n.$t('新建')"
-      :width="560"
-      :mask-closable="false"
-      destroy-on-close
-      @cancel="closeAddModal"
-    >
-      <a-form
-        ref="addFormRef"
-        :model="addFormState"
-        :rules="addFormRules"
-        :label-col="addLabelCol"
-        :wrapper-col="addWrapperCol"
-        class="platform-add-modal-form"
-      >
+    <a-modal v-model:visible="addModalVisible" :title="WeiI18n.$t('新建')" :width="560" :mask-closable="false" destroy-on-close @cancel="closeAddModal">
+      <a-form ref="addFormRef" :model="addFormState" :rules="addFormRules" :label-col="addLabelCol" :wrapper-col="addWrapperCol" class="platform-add-modal-form">
         <a-form-item :label="WeiI18n.$t('平台名称')" name="categoryName">
-          <a-input
-            v-model:value="addFormState.categoryName"
-            :placeholder="WeiI18n.$t('请输入平台名称')"
-            allow-clear
-            :maxlength="100"
-          />
+          <a-input v-model:value="addFormState.categoryName" :placeholder="WeiI18n.$t('请输入平台名称')" allow-clear :maxlength="100" />
         </a-form-item>
         <a-form-item :label="WeiI18n.$t('排序索引')" name="sortIndex">
-          <a-input-number
-            v-model:value="addFormState.sortIndex"
-            :min="1"
-            style="width: 100%"
-            :placeholder="WeiI18n.$t('请输入排序索引')"
-          />
+          <a-input-number v-model:value="addFormState.sortIndex" :min="1" style="width: 100%" :placeholder="WeiI18n.$t('请输入排序索引')" />
         </a-form-item>
         <a-form-item :label="WeiI18n.$t('示意图')">
-          <Uploado_draggerFile
-            width="100%"
-            file-types-img
-            :file-list="addFileList"
-            @change="onAddUploadChange"
-            @custom-request="onAddUploadRequest"
-          />
+          <Uploado_draggerFile width="100%" file-types-img :file-list="addFileList" @change="onAddUploadChange" @custom-request="onAddUploadRequest" />
         </a-form-item>
       </a-form>
       <template #footer>
@@ -903,46 +798,16 @@ function onDelete(record: PlatformRoleRow) {
       </template>
     </a-modal>
 
-    <a-modal
-      v-model:visible="editModalVisible"
-      :title="WeiI18n.$t('编辑')"
-      :width="560"
-      :mask-closable="false"
-      destroy-on-close
-      @cancel="closeEditModal"
-    >
-      <a-form
-        ref="editFormRef"
-        :model="editFormState"
-        :rules="editFormRules"
-        :label-col="addLabelCol"
-        :wrapper-col="addWrapperCol"
-        class="platform-add-modal-form"
-      >
+    <a-modal v-model:visible="editModalVisible" :title="WeiI18n.$t('编辑')" :width="560" :mask-closable="false" destroy-on-close @cancel="closeEditModal">
+      <a-form ref="editFormRef" :model="editFormState" :rules="editFormRules" :label-col="addLabelCol" :wrapper-col="addWrapperCol" class="platform-add-modal-form">
         <a-form-item :label="WeiI18n.$t('平台名称')" name="categoryName">
-          <a-input
-            v-model:value="editFormState.categoryName"
-            :placeholder="WeiI18n.$t('请输入平台名称')"
-            allow-clear
-            :maxlength="100"
-          />
+          <a-input v-model:value="editFormState.categoryName" :placeholder="WeiI18n.$t('请输入平台名称')" allow-clear :maxlength="100" />
         </a-form-item>
         <a-form-item :label="WeiI18n.$t('排序索引')" name="sortIndex">
-          <a-input-number
-            v-model:value="editFormState.sortIndex"
-            :min="1"
-            style="width: 100%"
-            :placeholder="WeiI18n.$t('请输入排序索引')"
-          />
+          <a-input-number v-model:value="editFormState.sortIndex" :min="1" style="width: 100%" :placeholder="WeiI18n.$t('请输入排序索引')" />
         </a-form-item>
         <a-form-item :label="WeiI18n.$t('示意图')">
-          <Uploado_draggerFile
-            width="100%"
-            file-types-img
-            :file-list="editFileList"
-            @change="onEditUploadChange"
-            @custom-request="onEditUploadRequest"
-          />
+          <Uploado_draggerFile width="100%" file-types-img :file-list="editFileList" @change="onEditUploadChange" @custom-request="onEditUploadRequest" />
         </a-form-item>
       </a-form>
       <template #footer>
@@ -961,8 +826,7 @@ function onDelete(record: PlatformRoleRow) {
       :users="memberAuthUsers"
       :depts="memberAuthDepts"
       :authorized-user-ids="memberAuthUserIds"
-      @confirm="handleMemberAuthConfirm"
-    />
+      @confirm="handleMemberAuthConfirm" />
   </div>
 </template>
 
