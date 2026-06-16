@@ -526,6 +526,7 @@ async function initData(
   categoryid.value = categoryidStr
   menuId.value = menuid
   libraryDataQueryType.value = String(libraryQueryType ?? '1')
+  page.currentPage = 1
   selectModelList.value = []
   selectedRowkeys.value = []
   sortState.value = { key: '', order: '' }

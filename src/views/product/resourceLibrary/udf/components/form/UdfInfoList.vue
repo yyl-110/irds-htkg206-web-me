@@ -325,6 +325,7 @@ const pdmType = ref<string>('');
 async function initData(categoryidStr: string, menuid: any) {
   categoryid.value = categoryidStr;
   menuId.value = menuid;
+  page.currentPage = 1;
   selectModelList.value = [];
   selectedRowkeys.value = [];
   sortState.value = { key: '', order: '' };

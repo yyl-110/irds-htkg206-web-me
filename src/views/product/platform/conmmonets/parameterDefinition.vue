@@ -440,6 +440,7 @@ const columns = ref<
 const categoryInfo = ref<any>(null);
 async function reloadTableParameter(selectedKeys: any) {
   categoryInfo.value = selectedKeys;
+  pagination.value.current = 1;
   queryParameterInfoS();
 }
 // 保存原始columns配置，用于在不同level之间切换时恢复

@@ -47,10 +47,18 @@ export function usePagination<P extends BasePaginationParamsType>(params: P, onC
   watch(() => pagination.current, () => params.pageNo = pagination.current || 1)
   watch(() => pagination.pageSize, () => params.pageSize = pagination.pageSize || defaultPageSize.value)
 
+  /** 仅重置到第一页，保留当前每页条数 */
+  function resetToFirstPage() {
+    params.pageNo = 1
+    pagination.current = 1
+  }
+
   return {
     /** 可用于 a-table 的 pagination 参数 */
     pagination,
     /** 初始化请求参数中的分页参数 */
     resetPagination,
+    /** 切换分类/树节点等场景：页码回到第一页 */
+    resetToFirstPage,
   }
 }

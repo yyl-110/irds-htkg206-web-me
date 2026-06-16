@@ -176,7 +176,7 @@ const modelData = ref<any>({
 const requestParams = reactive(new InformationPageRequestDTOModel());
 
 /** 初始化绑定分页请求参数 */
-const { pagination } = usePagination(requestParams, getListData);
+const { pagination, resetToFirstPage } = usePagination(requestParams, getListData);
 pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
 pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
 pagination.showQuickJumper = false;
@@ -498,6 +498,7 @@ function reloadTableData(id: string) {
   //重置查询条件
   formRef.value.resetFields();
   selectedKeys.value = id;
+  resetToFirstPage();
   //查询数据
   getListData();
 }

@@ -99,7 +99,7 @@ const requestParams = reactive(new ActivityPageRequestDTOModel());
 /** 列表数据 */
 const datasource = ref<any>([]);
 /** 初始化绑定分页请求参数 */
-const { pagination } = usePagination(requestParams, loadParameterListData);
+const { pagination, resetToFirstPage } = usePagination(requestParams, loadParameterListData);
 pagination.buildOptionText = pageSizeOptions => `${pageSizeOptions.value}${WeiI18n.$t('条/页')}`;
 pagination.showTotal = total => `${WeiI18n.$t('共') + total + WeiI18n.$t('条')}`;
 pagination.showQuickJumper = false;
@@ -607,6 +607,7 @@ async function selectNode(node: any) {
   currentNode.value = node;
   pageName.value = '';
   selectNodeKeys.value = node.key;
+  resetToFirstPage();
   loadParameterListData();
 }
 
