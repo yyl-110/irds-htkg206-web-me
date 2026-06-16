@@ -35,9 +35,10 @@
                 <Title
                   text="项目任务"
                   showSelect
-                  showPhase
-                  :phaseId="taskPhaseId"
-                  @changePhase="changeTaskPhase"
+                  showMenu
+                  :menuId="taskMenuId"
+                  :menuOptions="menuOptions"
+                  @changeMenu="changeTaskMenu"
                 />
                 <div class="taskBody">
                   <complete-pie :chartData="productInfo?.taskNumsList" />
@@ -50,18 +51,26 @@
                 <Title
                   text="项目交付看板"
                   showSelect
-                  showPhase
-                  :phaseId="interactionPhaseId"
-                  @changePhase="changeInteractionPhase"
+                  showMenu
+                  :menuId="deliveryMenuId"
+                  :menuOptions="menuOptions"
+                  @changeMenu="changeDeliveryMenu"
                 />
                 <div class="wrap">
-                  <interaction :chartData="mergedDeliveryCollab" />
+                  <interaction :chartData="deliveryBoardData" />
                 </div>
               </div>
               <div class="picture">
-                <Title text="二维图纸进展" />
+                <Title
+                  text="活动页面引用"
+                  showSelect
+                  showMenu
+                  :menuId="activityRankMenuId"
+                  :menuOptions="menuOptions"
+                  @changeMenu="changeActivityRankMenu"
+                />
                 <div class="pieWrap">
-                  <drawing-progress :list="pdmPicList" />
+                  <activity-page-ref-rank :list="activityRefRankList" />
                 </div>
               </div>
             </a-col>
@@ -83,38 +92,46 @@ import interaction from './component/interaction.vue';
 import completePie from './component/completePie.vue';
 import productLine from './component/productLine.vue';
 import taskDetail from './component/task-detail.vue';
-import drawingProgress from './component/drawing-progress.vue';
-import type { DrawingProgressItem } from './component/drawing-progress.vue';
+import activityPageRefRank from './component/activity-page-ref-rank.vue';
+import type { ActivityPageRefRankItem } from './component/activity-page-ref-rank.vue';
 import {
-  collabStandaloneBoard,
-  deliveryByDeptBoard,
-  deliveryReport,
-  getReportProjectList,
   getReportProjectPhaseList,
-  pdmPicReport,
+  productBoardActivityPageRefRank,
+  productBoardDeliveryByMenu,
   productBoardProjectOverview,
+  productBoardTaskByMenu,
 } from '@/api/data-screen';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
 import { useIndexStore } from '@/store/data-screen';
 import {
   USE_MOCK_DATA,
   MOCK_PRODUCT_INFO,
-  MOCK_DELIVERY_INFO,
-  MOCK_PDM_PIC_LIST,
 } from './mock-data';
+
+const EMPTY_TASK_INFO = {
+  taskNumsList: [
+    { taskState: 2, taskNums: 0, taskStateName: '已完成' },
+    { taskState: 1, taskNums: 0, taskStateName: '进行中' },
+    { taskState: 3, taskNums: 0, taskStateName: '变更中' },
+    { taskState: 0, taskNums: 0, taskStateName: '未开始' },
+  ],
+  phaseList: [] as Array<{ nodeName?: string; countNums?: number; sumNum?: number }>,
+};
 
 const router = useRouter();
 const indexStore = useIndexStore();
 const { updateProjectList, updateSelectProjectId, updatePhaseList } = indexStore;
-const { selectProjectId, selectPhaseId } = storeToRefs(indexStore);
+const { selectProjectId } = storeToRefs(indexStore);
 
 const overviewInfo = ref<Record<string, any>>({});
-const productInfo = ref<Record<string, any>>({});
-const deliveryInfo = ref<Record<string, any>>({});
-const collabStandaloneInfo = ref<Record<string, any>>({});
-const pdmPicRaw = ref<Record<string, any>>({});
+const productInfo = ref<Record<string, any>>({ ...EMPTY_TASK_INFO });
+const deliveryBoardData = ref<Record<string, any>>({});
+const activityRefRankList = ref<ActivityPageRefRankItem[]>([]);
 
-const interactionPhaseId = ref('-1');
-const taskPhaseId = ref('-1');
+const taskMenuId = ref<string | number>('');
+const deliveryMenuId = ref<string | number>('');
+const activityRankMenuId = ref<string | number>('');
+const menuOptions = ref<Array<{ value: string | number; label: string }>>([]);
 
 const list = ref([
   { title: '项目总数', num: 0, color: '#2A82E4' },
@@ -132,33 +149,22 @@ const timeOptions = computed(() => {
   });
 });
 
-/** 项目交付看板：总任务数、协同任务数、独立应用数 */
-function mergeDeliveryCollabData(
-  delivery: Record<string, any>,
-  collab: Record<string, any>,
-) {
-  const d = delivery || {};
-  const c = collab || {};
-  const keys = new Set([...Object.keys(d), ...Object.keys(c)]);
-  if (!keys.size) return {};
+/** 项目交付看板：映射后端汇总字段 */
+function mapDeliveryBoardData(raw: Record<string, any>) {
+  if (!raw || typeof raw !== 'object') return {};
   const out: Record<string, { totalCount: number; collabTaskCount: number; standaloneAppCount: number }> = {};
-  keys.forEach((k) => {
-    const rowD = d[k] || {};
-    const rowC = c[k] || {};
-    out[k] = {
-      totalCount: Number(rowD.totalCount ?? rowD.totalPublishedCount ?? rowD.total_docs ?? rowC.totalPublishedCount) || 0,
-      collabTaskCount: Number(rowC.collabTaskCount ?? rowC.collabPublished ?? rowD.collabPublished) || 0,
-      standaloneAppCount: Number(rowC.standaloneAppCount ?? rowD.standaloneAppCount) || 0,
+  Object.keys(raw).forEach((key) => {
+    const row = raw[key] || {};
+    const collab = Number(row.collabPublished ?? row.collabTaskCount) || 0;
+    const standalone = Number(row.standaloneAppCount) || 0;
+    out[key] = {
+      totalCount: Number(row.totalPublishedCount ?? row.totalCount) || collab + standalone,
+      collabTaskCount: collab,
+      standaloneAppCount: standalone,
     };
   });
   return out;
 }
-
-const mergedDeliveryCollab = computed(() =>
-  mergeDeliveryCollabData(deliveryInfo.value, collabStandaloneInfo.value),
-);
-
-const pdmPicList = computed<DrawingProgressItem[]>(() => mapPdmPicData(pdmPicRaw.value));
 
 /** httpRequest 返回 Axios response，业务数据在 res.data */
 function isApiSuccess(res: any) {
@@ -170,42 +176,14 @@ function getApiData<T = any>(res: any): T | undefined {
   return res?.data?.data;
 }
 
-function normalizeMapData(raw: unknown): Record<string, any> {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
-  return raw as Record<string, any>;
-}
-
-function hasMapData(raw: Record<string, any>) {
-  return Object.keys(raw || {}).length > 0;
-}
-
-function hasTaskBoardData(raw: Record<string, any>) {
-  const tasks = raw?.taskNumsList;
-  const phases = raw?.phaseList;
-  return Array.isArray(tasks) && tasks.length > 0 && Array.isArray(phases) && phases.length > 0;
-}
-
-function hasDeliveryBoardData(raw: Record<string, any>) {
-  return hasMapData(raw);
-}
-
-function mapPdmPicData(raw: Record<string, any>): DrawingProgressItem[] {
-  if (!raw || typeof raw !== 'object') return [];
-  return Object.keys(raw).map((title) => {
-    const row = raw[title];
-    if (row && typeof row === 'object') {
-      return {
-        title,
-        data: {
-          totalCount: Number(row.totalCount ?? row.total ?? row.taskNums ?? 0),
-          archivedCount: Number(
-            row.archivedCount ?? row.archived ?? row.completeNums ?? row.archivedNums ?? 0,
-          ),
-        },
-      };
-    }
-    return { title, data: { totalCount: 0, archivedCount: 0 } };
-  });
+function normalizeTaskBoardData(raw: Record<string, any>) {
+  const taskNumsList = Array.isArray(raw?.taskNumsList) && raw.taskNumsList.length
+    ? raw.taskNumsList
+    : EMPTY_TASK_INFO.taskNumsList;
+  return {
+    taskNumsList,
+    phaseList: Array.isArray(raw?.phaseList) ? raw.phaseList : [],
+  };
 }
 
 function applyOverviewMock() {
@@ -224,25 +202,6 @@ function applyOverviewMock() {
   ];
 }
 
-function applyTaskMock() {
-  productInfo.value = {
-    taskNumsList: MOCK_PRODUCT_INFO.taskNumsList,
-    phaseList: MOCK_PRODUCT_INFO.phaseList,
-  };
-}
-
-function applyDeliveryMock() {
-  deliveryInfo.value = {};
-  collabStandaloneInfo.value = { ...MOCK_DELIVERY_INFO };
-}
-
-function applyPdmPicMock() {
-  pdmPicRaw.value = MOCK_PDM_PIC_LIST.reduce<Record<string, any>>((acc, item) => {
-    acc[item.title] = { ...item.data };
-    return acc;
-  }, {});
-}
-
 const changeTime = (year: string) => {
   timeType.value = year;
   fetchProjectOverview();
@@ -252,14 +211,19 @@ const back = () => {
   router.back();
 };
 
-const changeTaskPhase = (val: string) => {
-  taskPhaseId.value = val;
+const changeTaskMenu = (val: string | number) => {
+  taskMenuId.value = val;
   fetchTaskData(val);
 };
 
-const changeInteractionPhase = (val: string) => {
-  interactionPhaseId.value = val;
-  fetchDeliveryBoardData();
+const changeDeliveryMenu = (val: string | number) => {
+  deliveryMenuId.value = val;
+  fetchDeliveryBoardData(val);
+};
+
+const changeActivityRankMenu = (val: string | number) => {
+  activityRankMenuId.value = val;
+  fetchActivityPageRefRank(val);
 };
 
 /** 左上-项目概览（按年度） */
@@ -283,95 +247,104 @@ const fetchProjectOverview = async () => {
   if (USE_MOCK_DATA) applyOverviewMock();
 };
 
-/** 左下-项目任务（按项目+阶段） */
-const fetchTaskData = async (val?: string) => {
-  if (!selectProjectId.value) {
-    if (USE_MOCK_DATA) applyTaskMock();
+/** 左下-项目任务（按 menuId 汇总，无数据时展示空态，不走 Mock） */
+const fetchTaskData = async (menuIdParam?: string | number) => {
+  const menuId = menuIdParam ?? taskMenuId.value;
+  if (!menuId) {
+    productInfo.value = { ...EMPTY_TASK_INFO, phaseList: [] };
     return;
   }
   try {
-    const phaseIdData = val ?? taskPhaseId.value ?? selectPhaseId.value;
-    const res: any = await getReportProjectList({
-      projectId: selectProjectId.value,
-      phaseId: phaseIdData === '-1' ? '' : phaseIdData,
-    });
+    const res: any = await productBoardTaskByMenu({ menuId });
     if (isApiSuccess(res)) {
-      const data = getApiData(res) || {};
-      if (hasTaskBoardData(data)) {
-        productInfo.value = data;
-        return;
-      }
+      productInfo.value = normalizeTaskBoardData(getApiData(res) || {});
+      return;
     }
   } catch (error) {
     console.log('error:', error);
   }
-  if (USE_MOCK_DATA) applyTaskMock();
+  productInfo.value = { ...EMPTY_TASK_INFO, phaseList: [] };
 };
 
-const fetchDeliveryBoardData = async () => {
-  deliveryInfo.value = {};
-  collabStandaloneInfo.value = {};
+const ensureMenuOptionsLoaded = async () => {
+  if (menuOptions.value.length) return;
+  try {
+    const list = await fetchPlatformPickerList();
+    menuOptions.value = list.map((item) => ({
+      value: item.id,
+      label: item.categoryName || item.name || String(item.id),
+    }));
+  } catch (error) {
+    console.log('error:', error);
+  }
+};
 
-  if (!selectProjectId.value) {
-    if (USE_MOCK_DATA) applyDeliveryMock();
+const ensureTaskMenuSelected = () => {
+  if (!taskMenuId.value && menuOptions.value.length) {
+    taskMenuId.value = menuOptions.value[0].value;
+  }
+};
+
+const ensureDeliveryMenuSelected = () => {
+  if (!deliveryMenuId.value && menuOptions.value.length) {
+    deliveryMenuId.value = menuOptions.value[0].value;
+  }
+};
+
+const ensureActivityRankMenuSelected = () => {
+  if (!activityRankMenuId.value && menuOptions.value.length) {
+    activityRankMenuId.value = menuOptions.value[0].value;
+  }
+};
+
+/** 右上-项目交付看板（按 menuId 汇总，无数据时展示空态） */
+const fetchDeliveryBoardData = async (menuIdParam?: string | number) => {
+  const menuId = menuIdParam ?? deliveryMenuId.value;
+  if (!menuId) {
+    deliveryBoardData.value = {};
     return;
   }
-
-  const phaseParam = interactionPhaseId.value === '-1' ? '' : interactionPhaseId.value;
-  const req = { projectId: selectProjectId.value, phaseId: phaseParam };
-
-  const loaders = [
-    deliveryByDeptBoard(req),
-    collabStandaloneBoard(req),
-    deliveryReport(req),
-  ];
-
-  const results = await Promise.allSettled(loaders);
-  results.forEach((result, index) => {
-    if (result.status !== 'fulfilled' || !isApiSuccess(result.value)) return;
-    const data = normalizeMapData(getApiData(result.value));
-    if (!hasMapData(data)) return;
-    if (index === 0 || index === 1) {
-      collabStandaloneInfo.value = { ...collabStandaloneInfo.value, ...data };
-    } else {
-      deliveryInfo.value = { ...deliveryInfo.value, ...data };
-    }
-  });
-
-  const merged = mergeDeliveryCollabData(deliveryInfo.value, collabStandaloneInfo.value);
-  if (!hasDeliveryBoardData(merged) && USE_MOCK_DATA) {
-    applyDeliveryMock();
-  }
-};
-
-const fetchPdmPicReport = async () => {
   try {
-    const res: any = await pdmPicReport({ projectId: selectProjectId.value });
+    const res: any = await productBoardDeliveryByMenu({ menuId });
     if (isApiSuccess(res)) {
-      pdmPicRaw.value = getApiData(res) || {};
-      if (Object.keys(pdmPicRaw.value).length) return;
+      deliveryBoardData.value = mapDeliveryBoardData(getApiData(res) || {});
+      return;
     }
   } catch (error) {
     console.log('error:', error);
   }
-  if (USE_MOCK_DATA) applyPdmPicMock();
+  deliveryBoardData.value = {};
 };
 
-const loadBoard = () => {
+/** 右下-活动页面引用排行（按 menuId，无 Mock） */
+const fetchActivityPageRefRank = async (menuIdParam?: string | number) => {
+  const menuId = menuIdParam ?? activityRankMenuId.value;
+  if (!menuId) {
+    activityRefRankList.value = [];
+    return;
+  }
+  try {
+    const res: any = await productBoardActivityPageRefRank({ menuId, limit: 10 });
+    if (isApiSuccess(res)) {
+      const data = getApiData(res);
+      activityRefRankList.value = Array.isArray(data) ? data : [];
+      return;
+    }
+  } catch (error) {
+    console.log('error:', error);
+  }
+  activityRefRankList.value = [];
+};
+
+const loadBoard = async () => {
   fetchProjectOverview();
-  if (!selectProjectId.value) {
-    if (USE_MOCK_DATA) {
-      applyTaskMock();
-      applyDeliveryMock();
-      applyPdmPicMock();
-    }
-    return;
-  }
-  interactionPhaseId.value = '-1';
-  taskPhaseId.value = '-1';
+  await ensureMenuOptionsLoaded();
+  ensureTaskMenuSelected();
+  ensureDeliveryMenuSelected();
+  ensureActivityRankMenuSelected();
   fetchTaskData();
   fetchDeliveryBoardData();
-  fetchPdmPicReport();
+  fetchActivityPageRefRank();
 };
 
 const ensureProjectSelected = async () => {
@@ -391,7 +364,7 @@ const ensureProjectSelected = async () => {
 
 onMounted(async () => {
   await ensureProjectSelected();
-  loadBoard();
+  await loadBoard();
 });
 
 watch(() => selectProjectId.value, loadBoard);
@@ -546,15 +519,16 @@ watch(() => selectProjectId.value, loadBoard);
         .taskBody {
           flex: 1;
           display: flex;
-          align-items: stretch;
+          align-items: center;
           min-height: 0;
-          padding: 4px 8px 10px;
-          gap: 4px;
+          padding: 8px 12px 14px;
+          gap: 12px;
         }
 
         .taskRight {
           flex: 1;
           min-width: 0;
+          height: 100%;
         }
       }
     }

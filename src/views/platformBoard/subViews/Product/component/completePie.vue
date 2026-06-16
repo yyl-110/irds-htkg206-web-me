@@ -70,9 +70,9 @@ const buildPieData = (dataList) => {
 
   if (!data1.length) {
     data1.push({
-      name: '暂无',
+      name: '__empty__',
       value: 1,
-      itemStyle: { color: 'rgba(255,255,255,0.15)' },
+      itemStyle: { color: 'rgba(255,255,255,0.08)' },
     });
   }
   return data1;
@@ -112,7 +112,7 @@ const buildOption = (data1, sum) => ({
     itemWidth: 10,
     itemHeight: 10,
     itemGap: 20,
-    data: data1.map((d) => d.name).filter((n) => n !== '暂无'),
+    data: ['已完成', '进行中', '变更中'],
     textStyle: {
       color: '#fff',
       fontSize: 12,
@@ -285,9 +285,10 @@ watch(
 
 <style lang="less" scoped>
 .complete-pie {
-  width: 42%;
+  width: 44%;
   height: 100%;
-  min-width: 260px;
+  min-width: 280px;
+  flex-shrink: 0;
 
   .chart {
     width: 100%;

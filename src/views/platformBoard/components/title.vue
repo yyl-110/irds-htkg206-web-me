@@ -12,6 +12,10 @@
         style="width: 197px" v-if="showPhase" :dropdownMatchSelectWidth="false">
         <a-select-option v-for="item in phaseList" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
       </a-select>
+      <a-select @change="changeMenu" :value="value4" class="select" placeholder="选择平台" size="large"
+        style="width: 197px" v-if="showMenu && menuOptions.length" :dropdownMatchSelectWidth="false">
+        <a-select-option v-for="item in menuOptions" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
+      </a-select>
       <a-select @change="changeTime" :value="value3" class="select" placeholder="选择时间" size="large"
         style="width: 197px" v-if="showTime" :dropdownMatchSelectWidth="false">
         <a-select-option v-for="item in timeOptions" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
@@ -36,7 +40,7 @@ const {
 } = indexStore;
 const { selectProjectId, phaseList, selectPhaseId } = storeToRefs(indexStore);
 
-const emits = defineEmits(["changePhase", "changeTime"]);
+const emits = defineEmits(["changePhase", "changeTime", "changeMenu"]);
 
 const props = defineProps({
   text: {
@@ -58,6 +62,18 @@ const props = defineProps({
   showPhase: {
     type: Boolean,
     default: false,
+  },
+  showMenu: {
+    type: Boolean,
+    default: false,
+  },
+  menuOptions: {
+    type: Array,
+    default: () => [],
+  },
+  menuId: {
+    type: [String, Number],
+    default: "",
   },
   // 阶段Id
   phaseId: {
@@ -87,6 +103,7 @@ const props = defineProps({
 const value1 = ref(selectProjectId.value); // 项目
 const value2 = ref(props.phaseId || "-1"); // 阶段
 const value3 = ref(props.defaultTime || "1"); // 时间
+const value4 = ref(props.menuId || ""); // 平台 menuId
 
 // 修改项目
 const changeProject = (val) => {
@@ -110,6 +127,11 @@ const changeTime = (val) => {
   emits("changeTime", val);
 };
 
+const changeMenu = (val) => {
+  value4.value = val;
+  emits("changeMenu", val);
+};
+
 watch(
   () => selectProjectId.value,
   (val) => {
@@ -124,6 +146,13 @@ watch(
   () => props.phaseId,
   (val) => {
     value2.value = val;
+  }
+);
+
+watch(
+  () => props.menuId,
+  (val) => {
+    value4.value = val;
   }
 );
 </script>

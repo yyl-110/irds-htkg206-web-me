@@ -36,12 +36,17 @@ const initChart = () => {
   const totalData = props.data.map((item) => Number(item.sumNum) || 0);
   const xMax = Math.max(...totalData, 1);
 
+  const rowCount = yAxisData.length;
+  const barWidth = rowCount <= 3 ? 18 : 16;
+  const gridTop = rowCount <= 3 ? 16 : 8;
+  const gridBottom = rowCount <= 3 ? 16 : 4;
+
   chartOption.value = {
     grid: {
-      top: 8,
+      top: gridTop,
       left: 0,
-      right: 72,
-      bottom: 0,
+      right: 76,
+      bottom: gridBottom,
       containLabel: true,
     },
     xAxis: {
@@ -56,9 +61,10 @@ const initChart = () => {
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
-        margin: 12,
-        color: '#fff',
+        margin: 14,
+        color: 'rgba(255, 255, 255, 0.92)',
         fontSize: 14,
+        lineHeight: 22,
       },
       data: yAxisData,
     },
@@ -75,7 +81,7 @@ const initChart = () => {
       {
         type: 'bar',
         barGap: '-100%',
-        barWidth: 16,
+        barWidth,
         silent: true,
         z: 0,
         data: totalData,
@@ -86,13 +92,13 @@ const initChart = () => {
       },
       {
         type: 'bar',
-        barWidth: 16,
+        barWidth,
         z: 1,
         data: completeData,
         label: {
           show: true,
           position: 'right',
-          distance: 8,
+          distance: 10,
           color: '#fff',
           fontSize: 14,
           formatter: (params) => {

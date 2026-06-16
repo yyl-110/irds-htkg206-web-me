@@ -124,6 +124,35 @@ export function deliveryByDeptBoard(data: {
   });
 }
 /**
+ * 产品设计看板-项目任务：按 menuId 汇总全项目 WBS 协同任务（分类树节点 + 状态分布）
+ */
+export function productBoardTaskByMenu(data: { menuId: string | number }) {
+  return httpRequest({
+    url: "/business-service/business/task-category-tree/product-board-task-by-menu",
+    method: "POST",
+    data,
+  });
+}
+/** 产品设计看板-活动页面被引用次数排行 */
+export function productBoardActivityPageRefRank(data: {
+  menuId: string | number;
+  limit?: number;
+}) {
+  return httpRequest({
+    url: "/business-service/business/activity-basic-info/product-board-activity-page-ref-rank",
+    method: "POST",
+    data,
+  });
+}
+/** 产品设计看板-项目交付：按 menuId 汇总协同任务与独立应用 */
+export function productBoardDeliveryByMenu(data: { menuId: string | number }) {
+  return httpRequest({
+    url: "/business-service/business/project-wbs/product-board-delivery-by-menu",
+    method: "POST",
+    data,
+  });
+}
+/**
  * 知识看板
  * @return {*}
  */

@@ -1,8 +1,8 @@
 import type { DrawingProgressItem } from './component/drawing-progress.vue';
 
 /**
- * 除「项目概览」外其余面板是否启用 Mock。
- * 项目概览已对接 business/project-info/product-board-project-overview。
+ * 除「项目概览」外是否 Mock。
+ * 项目任务 / 项目交付 / 活动页面引用 均走真实接口。
  */
 /** 接口无数据时是否用示意图 Mock 兜底（项目概览始终走真实接口） */
 export const USE_MOCK_DATA = true;

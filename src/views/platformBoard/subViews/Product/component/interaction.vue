@@ -31,18 +31,21 @@ const pickRow = (row) => {
   if (!row || typeof row !== 'object') {
     return { total: 0, collab: 0, standalone: 0 };
   }
+  const collab = Number(row.collabTaskCount ?? row.collabPublished) || 0;
+  const standalone = Number(row.standaloneAppCount) || 0;
   return {
-    total: Number(row.totalCount ?? row.totalPublishedCount ?? row.total_docs) || 0,
-    collab: Number(row.collabTaskCount ?? row.collabPublished) || 0,
-    standalone: Number(row.standaloneAppCount) || 0,
+    total: Number(row.totalCount ?? row.totalPublishedCount) || collab + standalone,
+    collab,
+    standalone,
   };
 };
 
 const calcYAxisMax = (values) => {
   const maxVal = Math.max(...values, 0);
-  if (maxVal <= 0) return 100;
+  if (maxVal <= 0) return 10;
   if (maxVal <= 20) return 20;
   if (maxVal <= 50) return 50;
+  if (maxVal <= 80) return 80;
   return Math.ceil(maxVal / 10) * 10;
 };
 
@@ -59,12 +62,14 @@ const initChart = () => {
     keys.map((item) => pickRow(props.chartData[item]).standalone),
   ];
   const yMax = calcYAxisMax(seriesValues.flat());
+  const categoryCount = keys.length;
+  const barWidth = categoryCount > 6 ? 12 : 14;
 
   chartOption.value = {
     title: {
       text: '总任务数、协同任务数、独立应用数',
       left: 'center',
-      top: 0,
+      top: 4,
       textStyle: {
         color: 'rgba(255,255,255,0.92)',
         fontSize: 13,
@@ -72,10 +77,10 @@ const initChart = () => {
       },
     },
     grid: {
-      left: '2%',
-      right: '2%',
-      bottom: '18%',
-      top: '14%',
+      left: '1%',
+      right: '1%',
+      bottom: '20%',
+      top: '16%',
       containLabel: true,
     },
     tooltip: {
@@ -84,35 +89,28 @@ const initChart = () => {
     },
     legend: {
       data: SERIES_META.map((item) => item.name),
-      right: '2%',
-      bottom: '2%',
+      right: '1%',
+      bottom: '1%',
       align: 'left',
       itemHeight: 10,
       icon: 'rect',
       itemWidth: 18,
-      itemGap: 16,
+      itemGap: 18,
       textStyle: {
         fontSize: 12,
         color: '#CCCCCC',
       },
     },
     xAxis: {
-      name: '部门',
-      nameLocation: 'end',
-      nameGap: 8,
-      nameTextStyle: {
-        color: '#FF5757',
-        fontSize: 13,
-        padding: [8, 0, 0, 0],
-      },
       axisLine: { show: false },
       axisLabel: {
         interval: 0,
         color: '#fff',
         fontSize: 12,
-        margin: 12,
+        margin: 14,
+        lineHeight: 16,
         formatter: (value) =>
-          value && value.length > 6 ? `${value.substring(0, 6)}…` : value,
+          value && value.length > 5 ? `${value.substring(0, 5)}…` : value,
       },
       axisTick: { show: false },
       splitLine: { show: false },
@@ -123,7 +121,7 @@ const initChart = () => {
       type: 'value',
       min: 0,
       max: yMax,
-      splitNumber: 5,
+      splitNumber: 4,
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
@@ -141,16 +139,20 @@ const initChart = () => {
     series: SERIES_META.map((meta, index) => ({
       name: meta.name,
       type: 'bar',
-      barWidth: 14,
-      barGap: '20%',
-      barCategoryGap: '38%',
+      barWidth,
+      barGap: '18%',
+      barCategoryGap: categoryCount > 6 ? '32%' : '40%',
       data: seriesValues[index],
       label: {
         show: true,
         color: '#fff',
         fontSize: 11,
         position: 'top',
-        distance: 4,
+        distance: 5,
+        formatter: (params) => {
+          const val = Number(params.value) || 0;
+          return val > 0 ? String(val) : '';
+        },
       },
       itemStyle: {
         borderRadius: [3, 3, 0, 0],
@@ -172,8 +174,10 @@ watch(
 
 <style lang="less" scoped>
 .interaction-chart {
-  width: 96%;
+  width: 100%;
   height: 100%;
+  padding: 0 4px 4px;
+  box-sizing: border-box;
 
   .chart {
     width: 100%;
