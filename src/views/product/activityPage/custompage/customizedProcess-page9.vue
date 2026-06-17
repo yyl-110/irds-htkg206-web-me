@@ -2,12 +2,12 @@
   <div class="page9">
     <div class="page9-header">
       <div class="page9-title">校核减速机构的齿轮强度：</div>
-      <!-- <a-space :size="12" class="page9-actions">
+      <a-space :size="12" class="page9-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
         </a-button>
-      </a-space> -->
+      </a-space>
     </div>
 
     <div class="page9-scheme-wrap">
@@ -57,10 +57,10 @@
       </div>
 
       <div class="page9-diagrams">
-        <div class="page9-diagram">
+        <div >
           <img :src="diagramTopSrc" alt="推荐模数示意" class="page9-diagram__img" @error="onDiagramTopError" />
         </div>
-        <div class="page9-diagram">
+        <div style="margin-left: 30px;">
           <img :src="diagramBottomSrc" alt="齿轮参数示意" class="page9-diagram__img" @error="onDiagramBottomError" />
         </div>
       </div>
@@ -487,40 +487,41 @@ mountWithTaskParamMap(onMountReady);
 }
 
 .page9-body {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .page9-gear-wrap {
-  flex: 1;
-  min-width: 760px;
-  overflow: hidden;
+  width: 100%;
+  overflow-x: auto;
 }
 
 .page9-diagrams {
-  width: 320px;
-  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+  margin-top: 16px;
 }
 
 .page9-diagram {
   display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
+  min-width: 280px;
   min-height: 180px;
-  padding: 8px;
+  padding: 12px 16px;
   background: #fafafa;
   border: 1px solid #f0f0f0;
   border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .page9-diagram__img {
   max-width: 100%;
-  max-height: 210px;
+  height: 260px;
+  margin-top: 20px;
   object-fit: contain;
 }
 
@@ -561,19 +562,12 @@ mountWithTaskParamMap(onMountReady);
 }
 
 @media (max-width: 1200px) {
-  .page9-gear-wrap {
+  .page9-diagram {
     min-width: 100%;
   }
 
-  .page9-diagrams {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .page9-diagram {
-    flex: 1;
-    min-width: 280px;
+  .page9-diagram__img {
+    max-height: 180px;
   }
 }
 </style>

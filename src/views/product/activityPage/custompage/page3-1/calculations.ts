@@ -1,4 +1,7 @@
 import { handleCutZero } from '@/utils/tools';
+import { PAGE3_TABLE_COMPONENT_ID, PAGE3_TABLE_NUM } from '../page3/parameterDefaults';
+import { collectTableSources, readTableCell, resolveTableRows } from '../_shared/utils/flowTableSources';
+import { getFlowParameterList } from '../shared/flowContext';
 import type { Page3_1ParameterItem, Page3_1TableRow } from './parameterDefaults';
 import { PAGE3_1_TABLE_COMPONENT_ID } from './parameterDefaults';
 
@@ -58,8 +61,82 @@ function isFiniteNumber(val: number) {
   return !Number.isNaN(val) && val !== Infinity && val !== -Infinity;
 }
 
+function firstNonEmpty(...values: Array<string | undefined | null>): string {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+/** 从设计输入等流程参数读取舟它最大输出力矩（与 page3 initData 一致） */
+function resolveMaxOutputTorqueFromFlow(): string {
+  const paramList = getFlowParameterList();
+  let djOutputStyle = '';
+  let maxPowerX = '';
+  let maxPowerZ = '';
+
+  paramList.forEach(item => {
+    if (djOutputStyle === '' && item.paramnum === 'DJ1_1_GZFS') {
+      djOutputStyle = item.paramvalue ?? '';
+    }
+    if (maxPowerX === '' && item.paramnum === 'DJ1_1_SCLJ_MAX_X') {
+      maxPowerX = item.paramvalue ?? '';
+    }
+    if (maxPowerZ === '' && item.paramnum === 'DJ1_1_SCL_MAX_Z') {
+      maxPowerZ = item.paramvalue ?? '';
+    }
+  });
+
+  let maxPower = maxPowerX;
+  if (djOutputStyle.substring(0, 2) === '直线') {
+    maxPower = maxPowerZ;
+  }
+  return String(maxPower ?? '').trim();
+}
+
+function resolvePage3MaxOutputTorqueRows(): Array<Record<string, string | number | undefined>> {
+  return resolveTableRows(
+    collectTableSources(null),
+    [{ tableNum: PAGE3_TABLE_NUM, componentId: PAGE3_TABLE_COMPONENT_ID }],
+    19,
+  );
+}
+
+function resolveMaxOutputTorqueFromPage3Row(
+  page3Rows: Array<Record<string, string | number | undefined>>,
+  motorId: string,
+  rowIndex: number,
+): string {
+  if (!page3Rows.length) return '';
+  if (motorId) {
+    const matched = page3Rows.find(row => readTableCell(row, 0) === motorId);
+    if (matched) return readTableCell(matched, 7);
+  }
+  return readTableCell(page3Rows[rowIndex] ?? page3Rows[0], 7);
+}
+
+function resolveUpstreamMaxOutputTorque(
+  flowMaxOutputTorque: string,
+  page3Rows: Array<Record<string, string | number | undefined>>,
+  motorId: string,
+  rowIndex: number,
+): string {
+  return firstNonEmpty(
+    flowMaxOutputTorque,
+    resolveMaxOutputTorqueFromPage3Row(page3Rows, motorId, rowIndex),
+  );
+}
+
 /** 对单行执行初始性能计算（原 calculation 方法） */
-export function calculatePage3_1Row(item: Page3_1TableRow) {
+export function calculatePage3_1Row(
+  item: Page3_1TableRow,
+  options?: {
+    flowMaxOutputTorque?: string;
+    page3Rows?: Array<Record<string, string | number | undefined>>;
+    rowIndex?: number;
+  },
+) {
   const parm2 = item.p1;
   const parm3 = item.p2;
   const parm4 = item.p3;
@@ -93,9 +170,19 @@ export function calculatePage3_1Row(item: Page3_1TableRow) {
     item.p12 = handleCutZero(val4.toFixed(3));
   }
 
-  const val5 = Number(parm5) * Number(parm6) * Number(parm7);
-  if (isFiniteNumber(val5)) {
-    item.p13 = handleCutZero(val5.toFixed(3));
+  const upstreamMaxOutputTorque = resolveUpstreamMaxOutputTorque(
+    String(options?.flowMaxOutputTorque ?? resolveMaxOutputTorqueFromFlow()),
+    options?.page3Rows ?? resolvePage3MaxOutputTorqueRows(),
+    String(item.p0 ?? '').trim(),
+    options?.rowIndex ?? 0,
+  );
+  if (upstreamMaxOutputTorque) {
+    item.p13 = handleCutZero(upstreamMaxOutputTorque);
+  } else {
+    const val5 = Number(parm5) * Number(parm6) * Number(parm7);
+    if (isFiniteNumber(val5)) {
+      item.p13 = handleCutZero(val5.toFixed(3));
+    }
   }
 
   const val6 = (Number(parm2) * 6) / Number(parm7);
@@ -110,6 +197,10 @@ export function calculatePage3_1Row(item: Page3_1TableRow) {
 }
 
 export function calculateAllPage3_1Rows(rows: Page3_1TableRow[]) {
-  rows.forEach(row => calculatePage3_1Row(row));
+  const flowMaxOutputTorque = resolveMaxOutputTorqueFromFlow();
+  const page3Rows = resolvePage3MaxOutputTorqueRows();
+  rows.forEach((row, index) => {
+    calculatePage3_1Row(row, { flowMaxOutputTorque, page3Rows, rowIndex: index });
+  });
   return rows;
 }

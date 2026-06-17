@@ -107,8 +107,11 @@ export function calculateAllPage5Rows(rows: Page5TableRow[], equivalent: number)
     } else if (gearRatio > 9) {
       gearLevel = '3';
     }
-    if (String(row.p14 ?? '').trim() === '') {
+    const isUserGearLevel = row.cellInputOrOutput14 === '0';
+    const currentGearLevel = String(row.p14 ?? '').trim();
+    if (!isUserGearLevel && gearLevel && (currentGearLevel === '' || currentGearLevel === '0')) {
       row.p14 = gearLevel;
+      row.cellInputOrOutput14 = '1';
     }
   });
   return rows;

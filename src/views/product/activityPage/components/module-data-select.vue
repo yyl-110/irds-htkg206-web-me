@@ -11,7 +11,7 @@
     class="module-data-select"
     @cancel="handleCancel">
     <div class="module-data-select__body">
-      <div v-if="queryColumns.length" class="module-data-select__query">
+      <div v-if="queryColumns.length" class="module-data-select__query" @keyup.enter="handleQuery">
         <a-row :gutter="[12, 8]">
           <a-col v-for="item in queryColumns" :key="item.key" :span="8">
             <div class="query-item-picker-row">

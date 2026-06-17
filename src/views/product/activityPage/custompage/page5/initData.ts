@@ -166,6 +166,9 @@ export function captureEditableInputValues(rows: Page5TableRow[]): Map<string, P
 
     const patch: Partial<Page5TableRow> = {};
     editableIndexes.forEach(index => {
+      const isManual = row[`cellInputOrOutput${index}`] === '0';
+      if (!isManual) return;
+
       patch[`p${index}`] = row[`p${index}`];
       const flag = row[`cellInputOrOutput${index}`];
       if (flag !== undefined && flag !== '') {

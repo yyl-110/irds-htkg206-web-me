@@ -118,7 +118,7 @@ export function createDefaultPage5Row(overrides?: Partial<Page5TableRow>): Page5
     cellParentNum13: 'DJ2_6_CLJSB',
     cellInputOrOutput13: '1',
     cellInputName13: '齿轮减速比',
-    p14: '0',
+    p14: '',
     cellParameterId14: '',
     cellParentNum14: 'DJ2_6_CLJSJS',
     cellInputOrOutput14: '1',

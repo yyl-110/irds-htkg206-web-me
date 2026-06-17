@@ -155,7 +155,9 @@ function createInitialParameterList(): Page2_1ParameterItem[] {
     tableMap: item.tableMap
       ? {
           ...item.tableMap,
-          rowData: Array.isArray(item.tableMap.rowData) ? item.tableMap.rowData.map(row => ({ ...row })) : [],
+          rowData: Array.isArray(item.tableMap.rowData)
+            ? item.tableMap.rowData.map((row, index) => ({ ...row, delIndex: index }))
+            : [],
         }
       : item.tableMap,
   }));
@@ -223,13 +225,7 @@ const reducerRowSelection = computed(() => ({
   },
 }));
 
-function reducerTableRowKey(record: Record<string, string | number | undefined>, index?: number) {
-  if (record.delIndex != null && record.delIndex !== '') {
-    return String(record.delIndex);
-  }
-  if (record.id != null && record.id !== '') {
-    return String(record.id);
-  }
+function reducerTableRowKey(_record: Record<string, string | number | undefined>, index?: number) {
   return String(index ?? 0);
 }
 

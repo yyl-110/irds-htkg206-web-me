@@ -215,7 +215,7 @@ export function createDefaultPage2_1ParameterList(pageId = ''): Page2_1Parameter
         tableType: '2',
         colNums: '14',
         colData: REDUCER_COL_DATA,
-        rowData: [createDefaultReducerRow(1, 1)],
+        rowData: [createDefaultReducerRow(1, 0)],
         colStr: REDUCER_COL_STR,
       },
       tableName: '减速器选型',

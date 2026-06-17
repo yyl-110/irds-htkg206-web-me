@@ -1658,7 +1658,7 @@ defineExpose({ initData, selectAllModuleInfo, getPickerConfirmPayload })
     <div class="selectLeft">
       <div class="btn-box">
         <div class="btn-box-middle" v-if="allQueryFieldCandidates.length">
-          <div class="query-scroll">
+          <div class="query-scroll" @keyup.enter="handleQuery">
             <a-row :gutter="[12, 6]">
               <a-col v-for="item in queryColumns" :key="item.key" :span="8">
                 <a-form-item v-if="pickerMode" class="query-item query-item--picker">

@@ -38,23 +38,34 @@ function readParamFromFlow(paramList: Array<{ paramnum?: string; paramvalue?: st
   return val;
 }
 
-/** 按齿轮减速级数设置各级齿数输入框可编辑/只读：cellInputOrOutput=0 可输入，=1 只读 */
+/** 按齿轮减速级数设置各级齿数输入框可编辑/只读：cellInputOrOutput=0 可输入，=1 只读；只读单元格置空 */
 export function applyGearLevelCellFlags(row: Page6TableRow) {
   const level = Number(row.p8);
-  row.cellInputOrOutput10 = '0';
-  row.cellInputOrOutput11 = '0';
-  row.cellInputOrOutput12 = '0';
-  row.cellInputOrOutput13 = '0';
-  row.cellInputOrOutput14 = '0';
+  const editableByLevel: Record<number, boolean> = {
+    10: true,
+    11: true,
+    12: true,
+    13: true,
+    14: true,
+  };
 
   if (level === 1) {
-    row.cellInputOrOutput11 = '1';
-    row.cellInputOrOutput12 = '1';
-    row.cellInputOrOutput13 = '1';
-    row.cellInputOrOutput14 = '1';
+    editableByLevel[11] = false;
+    editableByLevel[12] = false;
+    editableByLevel[13] = false;
+    editableByLevel[14] = false;
   } else if (level === 2) {
-    row.cellInputOrOutput13 = '1';
-    row.cellInputOrOutput14 = '1';
+    editableByLevel[13] = false;
+    editableByLevel[14] = false;
+  }
+
+  for (let i = 10; i <= 14; i++) {
+    const editable = editableByLevel[i];
+    row[`cellInputOrOutput${i}`] = editable ? '0' : '1';
+    if (!editable) {
+      row[`p${i}`] = '';
+      row[`cellUserOverride${i}`] = '';
+    }
   }
 }
 

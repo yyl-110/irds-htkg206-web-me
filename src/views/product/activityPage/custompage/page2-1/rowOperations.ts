@@ -13,8 +13,15 @@ export function getReducerTableRows(list: Page2_1ParameterItem[]): Page2_1TableR
   return list[REDUCER_TABLE_INDEX]?.tableMap?.rowData ?? [];
 }
 
+function ensureReducerRowDelIndexes(rows: Page2_1TableRow[]) {
+  rows.forEach((row, index) => {
+    row.delIndex = index;
+  });
+}
+
 export function setReducerTableRows(list: Page2_1ParameterItem[], rows: Page2_1TableRow[]) {
   if (!list[REDUCER_TABLE_INDEX]?.tableMap) return;
+  ensureReducerRowDelIndexes(rows);
   list[REDUCER_TABLE_INDEX].tableMap!.rowData = rows;
   list[REDUCER_TABLE_INDEX].tableMap!.rowNums = rows.length;
   list[REDUCER_TABLE_INDEX].tableMap!.colStr = REDUCER_COL_STR;

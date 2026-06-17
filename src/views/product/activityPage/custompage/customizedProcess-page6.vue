@@ -15,10 +15,6 @@
     </div>
 
     <div class="page6-main">
-      <div class="page6-diagram">
-        <img :src="diagramSrc" alt="齿轮传动示意图" class="page6-diagram__img" @error="onDiagramError" />
-      </div>
-
       <div class="page6-table-wrap">
         <a-table
           :columns="page6TableColumns"
@@ -41,7 +37,13 @@
           </template>
         </a-table>
       </div>
+
+     
     </div>
+
+    <div >
+        <img :src="diagramSrc" alt="齿轮传动示意图" class="page6-diagram__img" @error="onDiagramError" />
+      </div>
   </div>
 </template>
 
@@ -67,7 +69,7 @@ import {
   type Page6ParameterItem,
   type Page6TableRow,
 } from './page6/parameterDefaults';
-import { getPage6TableRows, setPage6TableRows } from './page6/rowOperations';
+import { getPage6TableRows, hasPage6SavedData, setPage6TableRows } from './page6/rowOperations';
 import {
   getPage6EditableFieldIndexes,
   isPage6CellDisabled,
@@ -138,12 +140,21 @@ function createInitialParameterList(): Page6ParameterItem[] {
 }
 
 const parameterTempList = ref<Page6ParameterItem[]>(createInitialParameterList());
-const { applyTaskParamMapToList, setupParameterWatch, mountWithTaskParamMap } = useCustomPageTaskParamMap({
-  props,
-  parameterTempList,
-  loadPageParameters: loadPage6PageParameters,
-  cloneItem: clonePage6ParameterList,
-});
+const { applyTaskParamMapToList, getTaskParamSavedSnapshot, setupParameterWatch, mountWithTaskParamMap } =
+  useCustomPageTaskParamMap({
+    props,
+    parameterTempList,
+    loadPageParameters: loadPage6PageParameters,
+    cloneItem: clonePage6ParameterList,
+  });
+
+function hasPageSavedData() {
+  if (hasPage6SavedData(props.savedTables)) {
+    return true;
+  }
+  const snapshot = getTaskParamSavedSnapshot();
+  return hasPage6SavedData(snapshot.savedTables);
+}
 
 const tableRowData = computed(() => getPage6TableRows(parameterTempList.value));
 
@@ -253,6 +264,9 @@ async function runAutoInitAndCalculateOnce() {
   if (hasAutoRefreshed.value) return;
   hasAutoRefreshed.value = true;
   await updateEl();
+  if (hasPageSavedData()) {
+    return;
+  }
   if (handleInitData()) {
     handleCalculation();
   }
@@ -309,22 +323,21 @@ mountWithTaskParamMap(onMountReady);
 }
 
 .page6-main {
-  position: relative;
   width: 100%;
 }
 
+.page6-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .page6-diagram {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(380px, 42%);
-  min-height: 140px;
-  max-height: 220px;
-  padding: 8px 12px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 16px;
   background: #fafafa;
   border: 1px solid #f0f0f0;
   border-radius: 8px;
@@ -333,32 +346,9 @@ mountWithTaskParamMap(onMountReady);
 
 .page6-diagram__img {
   max-width: 100%;
-  max-height: 200px;
+  max-height: 300px;
+  margin-top: 20px;
   object-fit: contain;
-}
-
-.page6-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-}
-
-@media (min-width: 992px) {
-  .page6-table-wrap {
-    padding-right: calc(min(380px, 42%) + 16px);
-  }
-}
-
-@media (max-width: 991px) {
-  .page6-diagram {
-    position: static;
-    width: 100%;
-    max-width: 100%;
-    margin-bottom: 12px;
-  }
-
-  .page6-table-wrap {
-    padding-right: 0;
-  }
 }
 
 .page6-table :deep(.ant-table) {
@@ -395,12 +385,8 @@ mountWithTaskParamMap(onMountReady);
 }
 
 @media (max-width: 1200px) {
-  .page6-diagram {
-    max-height: 180px;
-  }
-
   .page6-diagram__img {
-    max-height: 160px;
+    max-height: 180px;
   }
 }
 </style>

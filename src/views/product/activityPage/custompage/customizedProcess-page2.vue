@@ -82,7 +82,6 @@ import { useCustomPageTaskParamMap } from '@/views/product/activityPage/custompa
 import { message } from 'ant-design-vue';
 import { EpcIcon } from '@/components/icon/EpcIcon';
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons-vue';
-import { getFlowModuleid, isValid } from '@/api/flowData/flowData';
 import { useUserStore } from '@/store/modules/user';
 import ModuleLibraryPickerModal from '@/views/product/activityPage/components/module-library-picker-modal.vue';
 import { loadPage2PageParameters } from './page2/loadPageParameters';
@@ -324,23 +323,13 @@ async function handleBrowseRow() {
 
     modulePickerCategoryId.value = categoryId;
     modulePickerMenuId.value = '9';
-    modulePickerQueryPrefill.value = buildMotorBrowseQueryPrefill(parameterTempList.value);
+    modulePickerQueryPrefill.value = buildMotorBrowseQueryPrefill(parameterTempList.value, workMode.value);
     modulePickerVisible.value = true;
   } finally {
     window.setTimeout(() => {
       browseClickBusy.value = false;
     }, 400);
   }
-
-  let edgl = parameterTempList.value[0]?.defaultValue ?? '';
-  if (!isValid(edgl)) {
-    edgl = parameterTempList.value[1]?.defaultValue ?? '';
-  }
-
-  modulePickerCategoryId.value = categoryId;
-  modulePickerMenuId.value = '9';
-  modulePickerQueryPrefill.value = edgl ? { DJ1_1_EDGL_X: String(edgl) } : {};
-  modulePickerVisible.value = true;
 }
 
 function onModulePickerConfirm(payload: { row: Record<string, unknown>; columns: Array<Record<string, unknown>> }) {

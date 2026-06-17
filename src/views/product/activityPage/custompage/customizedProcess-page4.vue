@@ -2,13 +2,13 @@
   <div class="layout-wrapper">
     <div class="layout-header">
       <div class="layout-header__title">电机、减速器组合（以电机进行电机与末端减速器的排列组合）：</div>
-<!-- 
+
       <div class="section-toolbar">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
         </a-button>
-      </div> -->
+      </div>
 
       <div class="selectBox">
         <a-table

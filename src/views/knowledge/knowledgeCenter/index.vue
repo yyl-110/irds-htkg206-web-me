@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { knowledgeQueryPage, queryPageQuestion, querySecondTagNode, queryThreeTagNode } from '@/api/knowledge';
+import { knowledgeQueryPage, queryPageQuestion, querySecondTagNode, queryThreeTagNode, knowledgeTree } from '@/api/knowledge';
 import textCard from '../components/textCard.vue';
 import askCard from '../components/askCard.vue';
 import videoCard from '../components/videoCard.vue';
@@ -9,8 +9,15 @@ import { useUserStore } from '@/store/modules/user';
 import searchTag from '../components/search-tag.vue';
 import { Empty } from 'ant-design-vue';
 
+interface TreeNode {
+  id: string | number;
+  nodeName: string;
+  children?: TreeNode[];
+}
+
 interface TagNode {
   id: string;
+  nodeName?: string;
   check?: boolean;
   [key: string]: any;
 }
@@ -35,11 +42,15 @@ let abortController: AbortController | null = null;
 let currentRequestId = 0;
 
 // 标签数据
+const rawTreeData = ref<TreeNode[]>([]);
+const elTagcheckedDeptData = ref<TagNode[]>([]);
 const elTagcheckedOneData = ref<TagNode[]>([]);
 const elTagcheckedTwoData = ref<TagNode[]>([]);
 const hiddenStatus = ref(false);
+const elTagcheckedDeptStatus = ref(false);
 const elTagcheckedOneStatus = ref(false);
 const elTagcheckedTwoStatus = ref(false);
+const kldTreeId = ref('');
 
 // 当前选中的三级节点 id 列表
 const arrayData = ref<string[]>([]);
@@ -84,6 +95,7 @@ const searchData = async () => {
       allowDownload: searchType.value[0] === '2' ? '0' : '',
       all: searchValue.value || '',
       kldTagIds: arrayData.value.toString(),
+      kldTreeId: kldTreeId.value,
       currentPage: page.value.currentPage,
       pageSize: page.value.pageSize,
       userId: userStore.getUser.id,
@@ -117,6 +129,7 @@ const getQuestList = () => {
   const params = {
     all: searchValue.value || '',
     kldTagIds: arrayData.value.toString(),
+    kldTreeId: kldTreeId.value,
     userId: userStore.getUser.id,
     currentPage: page.value.currentPage,
     pageSize: page.value.pageSize,
@@ -146,10 +159,60 @@ const changeType = () => {
   page.value.currentPage = 1;
   page.value.pageSize = 10;
   arrayData.value = [];
+  kldTreeId.value = '';
+  elTagcheckedDeptData.value.forEach(i => { i.check = false; });
 
   fetchList();
   getTaglist();
   hiddenStatus.value = false;
+};
+
+const getAllChildrenIds = (node: TreeNode): string[] => {
+  if (!node?.children?.length) return [];
+  let ids: string[] = [];
+  for (const child of node.children) {
+    ids.push(String(child.id));
+    ids = ids.concat(getAllChildrenIds(child));
+  }
+  return ids;
+};
+
+const findTreeNodeById = (nodes: TreeNode[], id: string): TreeNode | null => {
+  for (const node of nodes) {
+    if (String(node.id) === id) return node;
+    if (node.children?.length) {
+      const found = findTreeNodeById(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+const getDeptList = () => {
+  knowledgeTree({ menuId: 1, treeType: '1', parentId: '0', menuParentId: '' }).then(res => {
+    if (res?.data.code === '0' && res.data.data) {
+      const rawData: TreeNode[] = Array.isArray(res.data.data?.result)
+        ? res.data.data.result
+        : [res.data.data.result];
+      rawTreeData.value = rawData;
+
+      const secondLevelNodes: TagNode[] = [];
+      rawData.forEach(root => {
+        root.children?.forEach(child => {
+          secondLevelNodes.push({
+            id: String(child.id),
+            nodeName: child.nodeName,
+            check: false,
+          });
+        });
+      });
+
+      elTagcheckedDeptData.value =
+        secondLevelNodes.length > 12 && !elTagcheckedDeptStatus.value
+          ? secondLevelNodes.slice(0, 13)
+          : secondLevelNodes;
+    }
+  });
 };
 
 // ── 搜索框回车 / 点击 ────────────────────────────────────
@@ -191,6 +254,23 @@ const getThirdData = (id: string) => {
   });
 };
 
+// ── 科室切换 ────────────────────────────────────────────
+const onChangeElCheckTagDept = (val: boolean, item: TagNode, index: number) => {
+  elTagcheckedDeptData.value.forEach(i => { i.check = false; });
+  elTagcheckedDeptData.value[index].check = val;
+
+  if (val && item.id) {
+    const node = findTreeNodeById(rawTreeData.value, item.id);
+    const allIds = node ? [item.id, ...getAllChildrenIds(node)] : [item.id];
+    kldTreeId.value = allIds.join(',');
+  } else {
+    kldTreeId.value = '';
+  }
+
+  page.value.currentPage = 1;
+  fetchList();
+};
+
 // ── 类目一切换 ────────────────────────────────────────────
 const onChangeElCheckTagOne = (val: boolean, item: TagNode, index: number) => {
   elTagcheckedTwoData.value = [];
@@ -224,6 +304,7 @@ const handleCurrentChange = (val: number, size: number) => {
 onMounted(() => {
   searchData();
   getTaglist();
+  getDeptList();
 });
 </script>
 
@@ -251,10 +332,12 @@ onMounted(() => {
         </template>
       </a-tabs>
     </div>
-    <searchTag :elTagcheckedOneData="elTagcheckedOneData" :hiddenStatus="hiddenStatus"
+    <searchTag :elTagcheckedDeptData="elTagcheckedDeptData" :elTagcheckedOneData="elTagcheckedOneData"
+      :hiddenStatus="hiddenStatus" :elTagcheckedDeptStatus="elTagcheckedDeptStatus"
       :elTagcheckedOneStatus="elTagcheckedOneStatus" :elTagcheckedTwoStatus="elTagcheckedTwoStatus"
-      :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagOne="onChangeElCheckTagOne"
-      @onChangeElCheckTagTwo="onChangeElCheckTagTwo" class="mt-[16px]" />
+      :elTagcheckedTwoData="elTagcheckedTwoData" @onChangeElCheckTagDept="onChangeElCheckTagDept"
+      @onChangeElCheckTagOne="onChangeElCheckTagOne" @onChangeElCheckTagTwo="onChangeElCheckTagTwo"
+      class="mt-[16px]" />
     <main class="flex-1 h-0">
       <a-spin :spinning="loading">
         <div class="list wei-scrollbar h-full overflow-y-auto pt-[16px]">

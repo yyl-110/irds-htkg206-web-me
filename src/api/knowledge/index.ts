@@ -13,6 +13,7 @@ interface IQueryPage {
   allowDownload: string;
   all: string;
   kldTagIds: string;
+  kldTreeId?: string;
   currentPage: number;
   pageSize: number;
   userId: string;

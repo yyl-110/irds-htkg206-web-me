@@ -3,6 +3,10 @@ import { DownOutlined, UpOutlined } from '@ant-design/icons-vue';
 import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
+  elTagcheckedDeptData: {
+    type: Array,
+    default: () => [],
+  },
   elTagcheckedOneData: {
     type: Array,
     default: () => [],
@@ -11,20 +15,34 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  elTagcheckedDeptStatus: Boolean,
   elTagcheckedOneStatus: Boolean,
   elTagcheckedTwoStatus: Boolean,
   hiddenStatus: Boolean,
 });
 
-const emit = defineEmits(['onChangeElCheckTagOne', 'onChangeElCheckTagTwo', 'onOffFun']);
+const emit = defineEmits(['onChangeElCheckTagDept', 'onChangeElCheckTagOne', 'onChangeElCheckTagTwo', 'onOffFun']);
 
 const type1 = ref([]);
 const type2 = ref([]);
+
+const deptSelected = computed(() => {
+  const checked = props.elTagcheckedDeptData.find(item => item.check);
+  return checked?.id;
+});
 
 const type1Selected = computed(() => {
   const checked = props.elTagcheckedOneData.find(item => item.check);
   return checked?.id;
 });
+
+const tagChangeDept = (val: string) => {
+  const index = props.elTagcheckedDeptData.findIndex(item => item.id === val);
+  const item = props.elTagcheckedDeptData[index];
+  if (item && index >= 0) {
+    emit('onChangeElCheckTagDept', true, item, index);
+  }
+};
 
 const tagChangeOne = (val: string) => {
   const index = props.elTagcheckedOneData.findIndex(item => item.id === val);
@@ -64,6 +82,24 @@ const tag2 = computed(() =>
 
 <template>
   <div class="classify">
+    <div v-if="elTagcheckedDeptData.length > 0" class="cla-list">
+      <div class="total">
+        <div class="second">
+          <span class="secondSpan flex-shrink-0">所属科室：</span>
+          <div class="el-check-tag-wrap1">
+            <a-radio-group :value="deptSelected" @change="e => tagChangeDept(e.target.value)">
+              <a-radio v-for="item in elTagcheckedDeptData" :key="item.id" :value="item.id">
+                {{ item.nodeName }}
+              </a-radio>
+            </a-radio-group>
+          </div>
+        </div>
+        <span v-if="elTagcheckedDeptData.length > 11" class="btn" @click="clickOffFun('elTagcheckedDept')">
+          <span v-if="!elTagcheckedDeptStatus">展开<down-outlined /></span>
+          <span v-else>收起<UpOutlined /></span>
+        </span>
+      </div>
+    </div>
     <div v-if="elTagcheckedOneData.length > 0" class="cla-list">
       <div class="total">
         <div class="second">
