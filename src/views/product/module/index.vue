@@ -28,6 +28,7 @@ import {
 } from '@/utils/platformPickerDrawerNav';
 import SelectBoomTree from './components/selectBoomTree.vue';
 import { ProductSeriesGBOMInfoRequestDTOModel } from '@/api/models/product/ProductSeriesGBOMInfoRequestDTOModel';
+import { downloadGeneratedFile } from '@/utils/file';
 const layoutStore = useLayoutStore();
 const router = useRoute();
 // 树结构相关属性
@@ -931,14 +932,6 @@ function collectModuleLibraryNodes(node: any): any[] {
   return result;
 }
 
-function downloadFile(url: string) {
-  const link = document.createElement('a');
-  link.href = url;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
 const batchExportLoading = ref(false);
 
 /** 批量导出选中节点及子树中的模块库数据 */
@@ -963,7 +956,11 @@ async function handleBatchExport(node: any) {
   try {
     const res = await AdminApiSystemModule.moduleLibraryBatchExportData(data);
     if (res.data.code == 200) {
-      downloadFile(res.data.data.fileUrl);
+      await downloadGeneratedFile({
+        fileUrl: String(res.data.data?.fileUrl ?? '').trim(),
+        fileId: String(res.data.data?.fileId ?? res.data.data?.id ?? '').trim(),
+        fileName: String(res.data.data?.oldFileName ?? res.data.data?.fileName ?? '').trim(),
+      });
       message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg);
     } else {
       message.error(res.data.msg);

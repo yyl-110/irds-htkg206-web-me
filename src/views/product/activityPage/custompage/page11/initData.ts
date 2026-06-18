@@ -1,6 +1,46 @@
 import { PAGE10_INPUT_TABLE_NUM } from '../page10/parameterDefaults';
-import { getFlowTableList } from '../shared/flowContext';
+import { resolvePage9SchemeSourceRows } from '../page9/initData';
+import type { Page9SchemeRow } from '../page9/parameterDefaults';
+import { getFlowParameterList, getFlowTableList } from '../shared/flowContext';
 import type { Page11ParameterItem, Page11SchemeRow } from './parameterDefaults';
+
+function firstNonEmpty(...values: Array<string | number | undefined>): string {
+  for (const v of values) {
+    const s = String(v ?? '').trim();
+    if (s) return s;
+  }
+  return '';
+}
+
+function findRowByScheme(
+  list: Page9SchemeRow[],
+  schemeIndex: number,
+  schemeLabel: string,
+): Page9SchemeRow | undefined {
+  if (list[schemeIndex]) return list[schemeIndex];
+  return list.find(row => String(row.p0 ?? '').trim() === schemeLabel);
+}
+
+function readMaxOutputTorqueFromFlow(
+  savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
+): string {
+  const paramList = getFlowParameterList();
+  let val = '';
+  (savedParamValues ?? []).forEach(row => {
+    const key = String(row.paramKey ?? row.paramCode ?? '').trim();
+    if (!val && key === 'DJ2_4_SCLJ_MAX') {
+      val = String(row.paramValue ?? '').trim();
+    }
+  });
+  if (!val) {
+    paramList.forEach(item => {
+      if (!val && item.paramnum === 'DJ2_4_SCLJ_MAX') {
+        val = String(item.paramvalue ?? '').trim();
+      }
+    });
+  }
+  return val;
+}
 
 export interface Page11InitResult {
   ok: boolean;
@@ -32,6 +72,32 @@ export function normalizeSelectedRowIndex(list: Page11ParameterItem[]): number {
     setSelectedRowIndex(list, index);
   }
   return index;
+}
+
+/** 从 page8 / page5-7 等上游刷新初算指标（含舟它最大输出力矩 p1） */
+export function refreshPage11SchemePerformanceFields(
+  list: Page11ParameterItem[],
+  savedTables?: Array<Record<string, unknown>> | null,
+  savedParamValues?: Array<{ paramCode?: string; paramKey?: string; paramValue?: string }> | null,
+): boolean {
+  const upstreamRows = resolvePage9SchemeSourceRows(savedTables);
+  const flowMaxTorque = readMaxOutputTorqueFromFlow(savedParamValues);
+  if (!list[0]?.tableMap?.rowData?.length) {
+    return false;
+  }
+
+  const rows = list[0].tableMap.rowData as Page11SchemeRow[];
+  rows.forEach((row, index) => {
+    const schemeLabel = String(row.p0 ?? `组合方案${index + 1}`).trim();
+    const upstream = findRowByScheme(upstreamRows, index, schemeLabel);
+    const maxTorque = firstNonEmpty(upstream?.p1, flowMaxTorque);
+    if (maxTorque) {
+      row.p1 = maxTorque;
+    }
+    if (upstream?.p2) row.p2 = upstream.p2;
+    if (upstream?.p3) row.p3 = upstream.p3;
+  });
+  return upstreamRows.length > 0 || !!flowMaxTorque;
 }
 
 /** 从 page10 组合方案表刷新（原 initData） */

@@ -75,6 +75,7 @@
     "handsontable": "^12.2.0",
     "highlight.js": "^11.9.0",
     "jsencrypt": "^3.3.2",
+    "jszip": "^3.10.1",
     "lodash-es": "^4.17.21",
     "mathjs": "^11.10.0",
     "mp4box": "^0.5.3",

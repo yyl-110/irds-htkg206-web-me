@@ -1,6 +1,8 @@
-const download0 = (data: Blob, fileName: string, mineType: string) => {
+import { injectSystemSourceMetadata } from '@/utils/officeFileSourceMetadata';
+
+const download0 = async (data: Blob, fileName: string, mineType: string) => {
   // 创建 blob
-  const blob = new Blob([data], { type: mineType })
+  const blob = await injectSystemSourceMetadata(new Blob([data], { type: mineType }), fileName);
   // 创建 href 超链接，点击进行下载
   window.URL = window.URL || window.webkitURL
   const href = URL.createObjectURL(blob)

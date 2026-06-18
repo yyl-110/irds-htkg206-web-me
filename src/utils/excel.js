@@ -1,5 +1,11 @@
 /* eslint-disable */
 import * as XLSX from 'xlsx';
+import { exportFile } from './file';
+
+async function writeXlsxFile(wb, filename) {
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    await exportFile(wbout, filename);
+}
 
 function auto_width(ws, data) {
     /*set worksheet max width per col*/
@@ -56,10 +62,10 @@ function get_header_row(sheet) {
     return headers
 }
 
-export const export_table_to_excel = (id, filename) => {
+export const export_table_to_excel = async (id, filename) => {
     const table = document.getElementById(id);
     const wb = XLSX.utils.table_to_book(table);
-    XLSX.writeFile(wb, filename);
+    await writeXlsxFile(wb, filename);
 
     /* the second way */
     // const table = document.getElementById(id);
@@ -69,7 +75,7 @@ export const export_table_to_excel = (id, filename) => {
     // XLSX.writeFile(wb, filename);
 }
 
-export const export_json_to_excel = ({ data, key, title, filename, autoWidth }) => {
+export const export_json_to_excel = async ({ data, key, title, filename, autoWidth }) => {
     const wb = XLSX.utils.book_new();
     data.unshift(title);
     const ws = XLSX.utils.json_to_sheet(data, { header: key, skipHeader: true });
@@ -78,10 +84,10 @@ export const export_json_to_excel = ({ data, key, title, filename, autoWidth }) 
         auto_width(ws, arr);
     }
     XLSX.utils.book_append_sheet(wb, ws, filename);
-    XLSX.writeFile(wb, filename + '.xlsx');
+    await writeXlsxFile(wb, filename + '.xlsx');
 }
 
-export const export_array_to_excel = ({ key, data, title, filename, autoWidth }) => {
+export const export_array_to_excel = async ({ key, data, title, filename, autoWidth }) => {
     const wb = XLSX.utils.book_new();
     const arr = json_to_array(key, data);
     arr.unshift(title);
@@ -90,7 +96,7 @@ export const export_array_to_excel = ({ key, data, title, filename, autoWidth })
         auto_width(ws, arr);
     }
     XLSX.utils.book_append_sheet(wb, ws, filename);
-    XLSX.writeFile(wb, filename + '.xlsx');
+    await writeXlsxFile(wb, filename + '.xlsx');
 }
 
 export const read = (data, type) => {

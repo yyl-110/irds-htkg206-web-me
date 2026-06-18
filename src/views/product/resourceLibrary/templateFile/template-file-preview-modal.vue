@@ -9,7 +9,7 @@ import {
   type ReportPreparationPlaceholderDTO,
 } from '@/api/tags/product/报告编制';
 import { ContentType, httpClient } from '@/api/tags/http-client';
-import { parseUploadFileResponse } from '@/utils/file';
+import { downloadGeneratedFile, parseUploadFileResponse } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
 
 const userStore = useUserStore();
@@ -287,9 +287,13 @@ const exportReport = async () => {
       params: JSON.stringify(params),
       userId: userStore.getUser?.id,
     });
-    const data = unwrapData<{ fileUrl?: string }>(res);
-    if (data?.fileUrl) {
-      window.open(data.fileUrl);
+    const data = unwrapData<{ fileUrl?: string; fileId?: string; id?: string; oldFileName?: string; fileName?: string }>(res);
+    if (data?.fileUrl || data?.fileId || data?.id) {
+      await downloadGeneratedFile({
+        fileUrl: String(data.fileUrl ?? '').trim(),
+        fileId: String(data.fileId ?? data.id ?? '').trim(),
+        fileName: String(data.oldFileName ?? data.fileName ?? '').trim(),
+      });
     }
     message.success('报告已生成');
   } catch (e) {

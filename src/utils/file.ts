@@ -2,45 +2,54 @@ import { downloadFile, newPreviewFile } from '@/api/common';
 import { getAccessToken } from '@/utils/auth';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { ContentType, httpClient } from '@/api/tags/http-client';
+import {
+  extractFileIdFromUrl,
+  extractFileNameFromUrl,
+  injectSystemSourceMetadata,
+} from '@/utils/officeFileSourceMetadata';
 import { WeiMessage } from '@/utils/WeiMessage';
+
+function triggerBlobDownload(blob: Blob, fileName: string) {
+  if ((navigator as any).msSaveBlob) {
+    (navigator as any).msSaveBlob(blob, fileName);
+    return;
+  }
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = fileName;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+async function toDownloadBlob(data: any, fileName: string): Promise<Blob> {
+  const sourceBlob = data instanceof Blob ? data : new Blob([data], { type: 'application/octet-stream' });
+  return injectSystemSourceMetadata(sourceBlob, fileName);
+}
+
 /**
  * 文件流附件下载
  * @param data 文件流
  * @param fileName 附件名
  */
-export function exportFile(data: any, fileName: string) {
-  const elink = document.createElement('a');
-  elink.download = fileName;
-  elink.href = URL.createObjectURL(data);
-  document.body.appendChild(elink);
-  elink.click(); // 点击下载
-  URL.revokeObjectURL(elink.href); // 释放URL 对象
-  document.body.removeChild(elink);
+export async function exportFile(data: any, fileName: string) {
+  const blob = await toDownloadBlob(data, fileName);
+  triggerBlobDownload(blob, fileName);
 }
 
 // 下载数据
-export function downloadFileFromStream(stream: any, fileName: string) {
-  const blob = new Blob([stream], { type: 'application/octet-stream' });
-  if (navigator.msSaveBlob) {
-    // 兼容性处理，适用于 Internet Explorer 和 Edge
-    navigator.msSaveBlob(blob, fileName);
-  } else {
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = fileName;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
+export async function downloadFileFromStream(stream: any, fileName: string) {
+  const blob = await toDownloadBlob(stream, fileName);
+  triggerBlobDownload(blob, fileName);
 }
 
 /**
  * Base64文件流附件下载--转Blob
  */
-export function downloadBase64FileAsBlob(base64Data: any, fileName: any, mimeType: any) {
+export async function downloadBase64FileAsBlob(base64Data: any, fileName: any, mimeType: any) {
   // 将Base64转换为二进制数据
   const byteCharacters = atob(base64Data);
   const byteNumbers = new Array(byteCharacters.length);
@@ -50,24 +59,8 @@ export function downloadBase64FileAsBlob(base64Data: any, fileName: any, mimeTyp
   }
 
   const byteArray = new Uint8Array(byteNumbers);
-  const blob = new Blob([byteArray], { type: mimeType });
-
-  // 创建下载链接
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = fileName;
-
-  // 触发下载
-  document.body.appendChild(link);
-  link.click();
-
-  // 清理
-  setTimeout(() => {
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, 100);
+  const blob = await injectSystemSourceMetadata(new Blob([byteArray], { type: mimeType }), fileName);
+  triggerBlobDownload(blob, fileName);
 }
 
 /**
@@ -221,7 +214,7 @@ interface downLoadEpcItem {
  */
 export function handleEpcDownload(params: downLoadEpcItem, fileName: string) {
   AdminApiSystemUploadFile.downloadEpcFile(params).then((res: any) => {
-    exportFile(res, fileName);
+    void exportFile(res, fileName);
   });
 }
 
@@ -229,8 +222,52 @@ export function handleEpcDownload(params: downLoadEpcItem, fileName: string) {
 export function handleDownloadByFilename(filename: string) {
   if (!filename) return;
   AdminApiSystemUploadFile.downloadByFilename({ filename }).then((res: any) => {
-    exportFile(res, filename);
+    void exportFile(res, filename);
   });
+}
+
+interface DownloadGeneratedFileOptions {
+  fileUrl?: string;
+  fileId?: string;
+  fileName?: string;
+}
+
+async function fetchFileBlobByUrl(fileUrl: string): Promise<Blob> {
+  const href = fileUrl.startsWith('http') ? fileUrl : new URL(fileUrl, window.location.origin).href;
+  const res = await fetch(href, { credentials: 'include' });
+  if (!res.ok) {
+    throw new Error(`下载失败: ${res.status}`);
+  }
+  return res.blob();
+}
+
+/**
+ * 下载后端生成的报告/导出文件，并写入「文件来源：快速设计系统」属性。
+ */
+export async function downloadGeneratedFile(options: DownloadGeneratedFileOptions) {
+  const fileUrl = String(options.fileUrl ?? '').trim();
+  const fileId = String(options.fileId ?? extractFileIdFromUrl(fileUrl) ?? '').trim();
+  let fileName = String(options.fileName ?? '').trim();
+  if (!fileName && fileUrl) {
+    fileName = extractFileNameFromUrl(fileUrl);
+  }
+
+  try {
+    let stream: Blob | ArrayBuffer | any;
+    if (fileId) {
+      stream = await AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any);
+    } else if (fileUrl) {
+      stream = await fetchFileBlobByUrl(fileUrl);
+    } else {
+      return;
+    }
+    await downloadFileFromStream(stream, fileName || 'download');
+  } catch (error) {
+    console.warn('[downloadGeneratedFile] 注入文件来源失败，回退为直接打开链接', error);
+    if (fileUrl) {
+      window.open(fileUrl);
+    }
+  }
 }
 
 /**

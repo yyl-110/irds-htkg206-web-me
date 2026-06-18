@@ -2,12 +2,12 @@
   <div class="page11">
     <div class="page11-header">
       <div class="page11-title">确定最终方案：</div>
-      <!-- <a-space :size="12" class="page11-actions">
+      <a-space :size="12" class="page11-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
         </a-button>
-      </a-space> -->
+      </a-space>
     </div>
 
     <div class="page11-table-wrap">
@@ -38,6 +38,7 @@ import {
   getSchemeTableRows,
   getSelectedRowIndex,
   normalizeSelectedRowIndex,
+  refreshPage11SchemePerformanceFields,
 } from './page11/initData';
 import { loadPage11PageParameters } from './page11/loadPageParameters';
 import {
@@ -182,6 +183,7 @@ function handleInitData(): boolean {
     message.warning('未能更新表格：请先在 page10「所有角度性能校核计算」页面生成数据并注入流程上下文后再试');
     return false;
   }
+  refreshPage11SchemePerformanceFields(parameterTempList.value, props.savedTables, props.savedParamValues);
   selectedRowKeys.value = [];
   selectedSchemeRows.value = [];
   setSaveBtnEnable();
@@ -191,6 +193,7 @@ function handleInitData(): boolean {
 function updateEl(): Promise<void> {
   return nextTick(() => {
     applyTaskParamMapToList();
+    refreshPage11SchemePerformanceFields(parameterTempList.value, props.savedTables, props.savedParamValues);
     parameterTempList.value = cloneParameterList(parameterTempList.value);
     const selIndex = getSelectedRowIndex(parameterTempList.value);
     if (selIndex === undefined || selIndex === null || String(selIndex) === '') {

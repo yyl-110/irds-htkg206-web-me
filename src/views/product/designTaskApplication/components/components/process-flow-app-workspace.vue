@@ -29,6 +29,7 @@ import {
   enrichWbsSaveItemsWithIoType,
   findChangedWbsInputParamKeys,
 } from '@/composables/designWorkspace/useWbsProjectParamSync';
+import { downloadGeneratedFile } from '@/utils/file';
 
 interface FlowNode {
   id?: string | number;
@@ -783,7 +784,12 @@ async function handleToolbarExportReport(): Promise<boolean> {
     userId: useUserStore().getUser.id,
   };
   const res = await AdminApiSystemProcessTask.exportReport(payload);
-  window.open(res.data.data.fileUrl);
+  const data = res?.data?.data ?? {};
+  await downloadGeneratedFile({
+    fileUrl: String(data.fileUrl ?? '').trim(),
+    fileId: String(data.fileId ?? data.id ?? '').trim(),
+    fileName: String(data.oldFileName ?? data.fileName ?? '').trim(),
+  });
   return true;
 }
 
@@ -796,7 +802,7 @@ async function handleToolbarImportParams(): Promise<boolean> {
 async function handleToolbarExportParams(): Promise<boolean> {
   const fn = nodePreviewRef.value?.exportParamsToExcel;
   if (typeof fn !== 'function') return false;
-  return fn() === true;
+  return (await fn()) === true;
 }
 
 function resolveToolbarActionHandler(label: string): (() => Promise<boolean>) | null {

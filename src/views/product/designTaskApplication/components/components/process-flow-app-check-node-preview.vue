@@ -20,6 +20,7 @@ import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
 import { useUserStore } from '@/store/modules/user';
+import { downloadGeneratedFile } from '@/utils/file';
 
 const props = defineProps<{
   componentsJson?: Record<string, any> | null;
@@ -563,12 +564,17 @@ async function onReportOutputClick() {
   try {
     params.userId = userStore.getUser.id;
     const res = await AdminApiActivityPage.generateReport(params);
-    const fileUrl = String(res?.data?.data?.fileUrl ?? '').trim();
-    if (!fileUrl) {
+    const data = res?.data?.data ?? {};
+    const fileUrl = String(data.fileUrl ?? '').trim();
+    if (!fileUrl && !data.fileId && !data.id) {
       message.error('报告生成失败');
       return;
     }
-    window.open(fileUrl);
+    await downloadGeneratedFile({
+      fileUrl,
+      fileId: String(data.fileId ?? data.id ?? '').trim(),
+      fileName: String(data.oldFileName ?? data.fileName ?? '').trim(),
+    });
   } catch {
     message.error('报告生成失败');
   } finally {

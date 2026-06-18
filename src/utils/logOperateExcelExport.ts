@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs';
 import explogTemplateUrl from '@/assets/temp/explog.xlsx?url';
 import { OperateLogSearchDTOModel } from '@/api/models/log/OperateLogSearchDTOModel';
 import { AdminApiLog } from '@/api/tags/管理后台日志管理';
+import { downloadFileFromStream } from '@/utils/file';
 
 /** 单次拉取条数，分页直至取完（与当前筛选条件一致） */
 const EXPORT_PAGE_SIZE = 500;
@@ -183,15 +184,7 @@ function writeDataRowsStyled(ws: ExcelJS.Worksheet, rows: OperateLogExportRow[],
 }
 
 function downloadXlsxBuffer(buffer: BlobPart, filename: string) {
-  const blob = new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  void downloadFileFromStream(buffer, filename);
 }
 
 /**

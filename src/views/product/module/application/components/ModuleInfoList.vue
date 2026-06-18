@@ -25,7 +25,7 @@ import { EpcIcon } from '@/components/icon/EpcIcon.js'
 import Empty from '@/components/Empty/index.vue'
 import ImportFile from '@/components/ImportFile/index.vue'
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传'
-import { handleEpcDownload, previewUrlFile } from '@/utils/file'
+import { downloadGeneratedFile, handleEpcDownload, previewUrlFile } from '@/utils/file'
 import Ddview from '@/components/Ddview/index.vue'
 import vizSchematicPlaceholder from '@/assets/images/viz-schematic-placeholder.png'
 
@@ -43,6 +43,7 @@ import {
   enrichQuerySelectOptionsFromDataSource,
   resolveDistinctOptionsForQueryColumn,
 } from '../../composables/useModuleQueryFields'
+import { applyQueryPrefill } from '@/views/product/activityPage/components/config/module-data-select.utils'
 import TableCellOverflowTooltip from '@/views/product/parameter/components/TableCellOverflowTooltip.vue'
 import moduleIcon1 from '@/assets/images/module1.png'
 import moduleIcon2 from '@/assets/images/module2.png'
@@ -537,25 +538,7 @@ async function initData(
 /** 选择弹窗：按参数代号（parameterNum）匹配默认查询条件并自动查询 */
 function applyPickerQueryPrefill(prefill?: Record<string, string> | null) {
   if (!prefill || typeof prefill !== 'object') return false
-  const byCode = new Map<string, string>()
-  Object.entries(prefill).forEach(([code, rawVal]) => {
-    const key = String(code ?? '')
-      .trim()
-      .toUpperCase()
-    const val = String(rawVal ?? '').trim()
-    if (key && val) byCode.set(key, val)
-  })
-  if (!byCode.size) return false
-
-  let matched = false
-  queryColumns.value.forEach((c: any) => {
-    const paramNum = String(c.parameterNum ?? '')
-      .trim()
-      .toUpperCase()
-    if (!paramNum || !byCode.has(paramNum)) return
-    queryForm[c.key] = byCode.get(paramNum)
-    matched = true
-  })
+  const matched = applyQueryPrefill(queryColumns.value, queryForm, prefill)
   if (matched) void handleQuery(true)
   return matched
 }
@@ -1012,7 +995,11 @@ async function templateDownload() {
   const res = await AdminApiSystemModule.createModuleLibraryTemplateApi(data)
   console.log(res)
   if (res.data.code == 200) {
-    downloadFile(res.data.data.fileUrl)
+    await downloadGeneratedFile({
+      fileUrl: String(res.data.data?.fileUrl ?? '').trim(),
+      fileId: String(res.data.data?.fileId ?? res.data.data?.id ?? '').trim(),
+      fileName: String(res.data.data?.oldFileName ?? res.data.data?.fileName ?? '').trim(),
+    })
     message.success(res.data.msg == '' || res.data.msg == null ? '导出模版成功' : res.data.msg)
   } else {
     message.error(res.data.msg)
@@ -1075,21 +1062,16 @@ async function upDerive() {
   data.userId = userStore.getUser.id
   const res = await AdminApiSystemModule.exportModuleLibraryApi(data)
   if (res.data.code == 200) {
-    downloadFile(res.data.data.fileUrl)
+    await downloadGeneratedFile({
+      fileUrl: String(res.data.data?.fileUrl ?? '').trim(),
+      fileId: String(res.data.data?.fileId ?? res.data.data?.id ?? '').trim(),
+      fileName: String(res.data.data?.oldFileName ?? res.data.data?.fileName ?? '').trim(),
+    })
     message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg)
   } else {
     message.error(res.data.msg)
   }
 }
-// 下载
-function downloadFile(url: any) {
-  const link = document.createElement('a')
-  link.href = url
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
 function getDynamicComponentVal(comp: any) {
   // 获取动态组件内的查询条件
   const prmList = comp.value

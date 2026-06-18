@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
-import { downloadFileFromStream, handleEpcDownload } from '@/utils/file';
+import { downloadFileFromStream, downloadGeneratedFile, handleEpcDownload } from '@/utils/file';
 import { useUserStore } from '@/store/modules/user';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import ModuleLibraryPickerModal from './module-library-picker-modal.vue';
@@ -1017,8 +1017,12 @@ async function onReportOutputClick() {
   const params = buildReportOutputPayload();
   params.userId = userStore.getUser.id;
   const res = await AdminApiActivityPage.generateReport(params as any);
-  console.log(res);
-  window.open(res.data.data.fileUrl);
+  const data = res?.data?.data ?? {};
+  await downloadGeneratedFile({
+    fileUrl: String(data.fileUrl ?? '').trim(),
+    fileId: String(data.fileId ?? data.id ?? '').trim(),
+    fileName: String(data.oldFileName ?? data.fileName ?? '').trim(),
+  });
 }
 
 function rowParamFromPreviewItem(item: any, index: number) {

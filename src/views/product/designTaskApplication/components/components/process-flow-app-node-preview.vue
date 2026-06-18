@@ -25,7 +25,7 @@ import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
 import { openModuleInfoNew, assembleModuleInfoNew, openDrawingInfoNew } from '@/libs/webSocketNew';
-import { downloadFileFromStream } from '@/utils/file';
+import { downloadFileFromStream, exportFile } from '@/utils/file';
 import * as XLSX from 'xlsx';
 import moduleIcon1 from '@/assets/images/module1.png';
 import moduleIcon2 from '@/assets/images/module2.png';
@@ -1986,7 +1986,7 @@ function buildParamExportRowsForExcel(): Array<{ paramName: string; paramCode: s
 }
 
 /** 导出为 Excel：表头 参数名称 / 参数代号 / 参数值，工作表名 Sheet1 */
-function exportParamsToExcel(): boolean {
+async function exportParamsToExcel(): Promise<boolean> {
   const rows = buildParamExportRowsForExcel();
   if (!rows.length) {
     message.warning('暂无可导出的参数');
@@ -1997,7 +1997,9 @@ function exportParamsToExcel(): boolean {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-    XLSX.writeFile(wb, `流程节点参数-${Date.now()}.xlsx`);
+    const fileName = `流程节点参数-${Date.now()}.xlsx`;
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    await exportFile(wbout, fileName);
     message.success('导出成功');
     return true;
   } catch {

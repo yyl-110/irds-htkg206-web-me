@@ -2,12 +2,12 @@
   <div class="page8">
     <div class="page8-header">
       <div class="page8-title">初步筛选若干组合方案：</div>
-      <!-- <a-space :size="12" class="page8-actions">
+      <a-space :size="12" class="page8-actions">
         <a-button type="primary" @click="handleInitData">
           <template #icon><SyncOutlined /></template>
           更新数据
         </a-button>
-      </a-space> -->
+      </a-space>
     </div>
 
     <div class="page8-table-wrap">
