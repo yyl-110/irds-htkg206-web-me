@@ -8,7 +8,12 @@ import {
   PAGE10_INPUT_TABLE_NUM,
   type Page10DegreeRow,
   type Page10ParameterItem,
+  type Page10SchemeRow,
 } from './parameterDefaults';
+
+export type Page10DegreeCalculationContext = {
+  schemeRow?: Page10SchemeRow;
+};
 
 export type Page10TableSaveRow = {
   componentId: string | number;
@@ -92,8 +97,14 @@ function toNumber(value: string | number | undefined): number {
 }
 
 /** 全角度性能校核计算（原 calculation） */
-export function calculateAllPage10DegreeRows(rows: Page10DegreeRow[]) {
+export function calculateAllPage10DegreeRows(
+  rows: Page10DegreeRow[],
+  context?: Page10DegreeCalculationContext,
+) {
   const result: Page10DegreeRow[] = [];
+  const schemeMaxTorque = toNumber(context?.schemeRow?.p1);
+  const schemeTotalRatio = toNumber(context?.schemeRow?.p10);
+  const useSchemeMaxTorque = schemeMaxTorque > 0 && schemeTotalRatio > 0;
 
   rows.forEach(row => {
     const data = { ...row };
@@ -111,7 +122,14 @@ export function calculateAllPage10DegreeRows(rows: Page10DegreeRow[]) {
     if (Number.isNaN(val00) || !Number.isFinite(val00)) val00 = 0;
     data.p12 = handleCutZero(val00.toFixed(2));
 
-    let val = parm5 * parm6 * parm1;
+    // 方案表「舟它最大输出力矩」为零位输出力矩（已含传动效率），按修正减速比缩放即可；
+    // 勿再用 电机最大转矩×传动效率×减速比 重算，否则会等效多乘一次传动效率。
+    let val = 0;
+    if (useSchemeMaxTorque && parm1 > 0) {
+      val = (schemeMaxTorque * parm1) / schemeTotalRatio;
+    } else {
+      val = parm5 * parm6 * parm1;
+    }
     if (Number.isNaN(val) || !Number.isFinite(val)) val = 0;
     data.p13 = val.toFixed(2);
 
