@@ -17,6 +17,7 @@ import {
   isWbsOutputIoType,
 } from '@/composables/designWorkspace/useWbsProjectParamSync';
 import { useActivityFormulaEngine } from '@/composables/designWorkspace/useActivityFormulaEngine';
+import { useActivityPageJsInvoke } from '@/composables/designWorkspace/useActivityPageJsInvoke';
 import CkeditorPlugin from '@/components/Ckeditor/index.vue';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { useUserStore } from '@/store/modules/user';
@@ -34,6 +35,7 @@ const props = defineProps<{
   componentsJson?: Record<string, any> | null;
   savedParamValues?: any[] | null;
   savedTables?: any[] | null;
+  nodeDetailData?: Record<string, any> | null;
   taskId?: string | number | null;
   activityId?: string | number | null;
   projectId?: string | number | null;
@@ -484,6 +486,7 @@ function onPreviewDateChange(item: any, index: number, d: Dayjs | null) {
   const key = getPreviewItemKey(item, index);
   const fmt = normalizeDateFormatForPicker(item.customProps?.format);
   previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: d ? d.format(fmt) : '' };
+  void triggerComponentJsMethod(item, index);
 }
 
 function shouldDisable3dModelInput(item: any) {
@@ -965,6 +968,10 @@ function onPreviewInputValue(item: any, index: number, newVal: string) {
   const key = getPreviewItemKey(item, index);
   previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: newVal };
 }
+
+function onPreviewFieldJsInvoke(item: any, index: number) {
+  void triggerComponentJsMethod(item, index);
+}
 function onPreviewInputBlur(item: any, index: number) {
   if (item?.componentType !== 'INPUT' || isOutputIoType(item)) return;
   const key = getPreviewItemKey(item, index);
@@ -974,6 +981,7 @@ function onPreviewInputBlur(item: any, index: number) {
   const trimmed = raw.trim();
   if (!vr || typeof vr !== 'object' || !hasValueRangeConfig(item) || trimmed === '') {
     inputLastValidValueMap.value = { ...inputLastValidValueMap.value, [key]: raw };
+    void triggerComponentJsMethod(item, index);
     return;
   }
   const st = vr.scopeType;
@@ -987,6 +995,7 @@ function onPreviewInputBlur(item: any, index: number) {
   if (valid) {
     inputLastValidValueMap.value = { ...inputLastValidValueMap.value, [key]: raw };
   }
+  void triggerComponentJsMethod(item, index);
 }
 function isPreviewInputRangeError(item: any, index: number): boolean {
   if (item?.componentType !== 'INPUT') return false;
@@ -1682,6 +1691,34 @@ const { recalculateFormulaOutputs } = useActivityFormulaEngine({
   ],
 });
 
+const { invokeComponentJsMethod } = useActivityPageJsInvoke({
+  getNodeDetail: () => props.nodeDetailData,
+});
+
+function buildActivityJsApplyContext() {
+  return {
+    getComponents: () => previewList.value,
+    getComponentKey: getPreviewItemKey,
+    getComponentValue: (item: any, index: number) => getCurrentComponentValue(item, index),
+    setFieldValue: (componentKey: string, value: string) => {
+      previewFieldValueMap.value = { ...previewFieldValueMap.value, [componentKey]: value };
+    },
+    setRadioValue: (componentKey: string, value: string) => {
+      radioPreviewValueMap.value = { ...radioPreviewValueMap.value, [componentKey]: value };
+    },
+    setLastValidValue: (componentKey: string, value: string) => {
+      inputLastValidValueMap.value = { ...inputLastValidValueMap.value, [componentKey]: value };
+    },
+  };
+}
+
+async function triggerComponentJsMethod(item: any, index: number) {
+  if (props.readOnly) return;
+  await invokeComponentJsMethod(item, index, buildActivityJsApplyContext());
+  recalculateFormulaOutputs();
+  emit('content-mutated');
+}
+
 function getCurrentSaveParamValues() {
   return previewList.value
     .map((item: any, index: number) => {
@@ -2220,11 +2257,13 @@ defineExpose({
           </div>
           <div v-else-if="item.componentType === 'TEXTAREA'" v-textarea-grid-sync class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <a-textarea
-              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :rows="item.customProps?.rows || 4"
               :placeholder="item.customProps?.placeholder || '请输入'"
               :disabled="isPreviewFieldDisabled(item)"
-              class="preview-field" />
+              class="preview-field"
+              @update:value="(v: string) => onPreviewInputValue(item, index, v)"
+              @blur="() => onPreviewFieldJsInvoke(item, index)" />
           </div>
           <div v-else-if="item.componentType === 'DATE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <a-date-picker
@@ -2269,7 +2308,8 @@ defineExpose({
               :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
               placeholder="请选择"
               :disabled="isPreviewFieldDisabled(item)"
-              class="preview-field" />
+              class="preview-field"
+              @change="() => onPreviewFieldJsInvoke(item, index)" />
           </div>
           <div v-else-if="item.componentType === 'AUTO_COMPLETE'" class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
             <a-auto-complete
@@ -2277,7 +2317,8 @@ defineExpose({
               :options="getSelectOptions(item).map(v => ({ value: v }))"
               placeholder="请选择或输入"
               :disabled="isPreviewFieldDisabled(item)"
-              class="preview-field" />
+              class="preview-field"
+              @change="() => onPreviewFieldJsInvoke(item, index)" />
           </div>
 
           <div v-else-if="item.componentType === 'RADIO'" class="radio-preview-wrap">
@@ -2286,7 +2327,11 @@ defineExpose({
             </div>
             <div v-if="getRadioOptions(item).length === 0" class="radio-preview-empty">暂无选项</div>
             <div v-else class="preview-field-trigger" @click.capture="onParamTitleClick(item)">
-              <a-radio-group v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]" :disabled="isPreviewFieldDisabled(item)" class="radio-preview-grid">
+              <a-radio-group
+                v-model:value="radioPreviewValueMap[getPreviewItemKey(item, index)]"
+                :disabled="isPreviewFieldDisabled(item)"
+                class="radio-preview-grid"
+                @change="() => onPreviewFieldJsInvoke(item, index)">
                 <a-radio v-for="(opt, optIdx) in getRadioOptions(item)" :key="`${opt}-${optIdx}`" :value="opt" class="radio-preview-item">{{ opt }}</a-radio>
               </a-radio-group>
             </div>

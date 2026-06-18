@@ -2175,6 +2175,7 @@ onMounted(() => {
                     :components-json="nodeDetailData?.componentsJson"
                     :saved-param-values="nodeDetailData?.savedParamValues"
                     :saved-tables="nodeDetailData?.savedTables"
+                    :node-detail-data="nodeDetailData"
                     :task-id="String(route.query.taskId ?? workspaceData?.taskId ?? '')"
                     :activity-id="String(nodeDetailData?.activityPageId ?? '')"
                     :project-id="String(route.query.projectId ?? workspaceData?.projectId ?? '')"

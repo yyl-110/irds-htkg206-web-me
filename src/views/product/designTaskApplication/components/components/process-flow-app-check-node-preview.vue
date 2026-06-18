@@ -14,6 +14,7 @@ import {
   isWbsInputIoType,
   isWbsOutputIoType,
 } from '@/composables/designWorkspace/useWbsProjectParamSync';
+import { useActivityPageJsInvoke } from '@/composables/designWorkspace/useActivityPageJsInvoke';
 import ModuleLibraryPickerModal from '../../../activityPage/components/module-library-picker-modal.vue';
 import { AdminApiActivityPage } from '@/api/tags/activityPage/活动页面管理';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
@@ -209,8 +210,22 @@ function acceptWbsProjectParamValue(item: any, index: number) {
   emit('content-mutated');
 }
 
+function normalizeValidateRule(raw: unknown): any {
+  if (raw == null) return null;
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return null;
+    try {
+      const p = JSON.parse(s);
+      return typeof p === 'object' && p !== null ? p : null;
+    } catch {
+      return null;
+    }
+  }
+  return typeof raw === 'object' ? raw : null;
+}
+
 const previewList = computed(() => {
-  console.log(props.componentsJson, 'props.componentsJson');
   const cfg = props.componentsJson || {};
   const merged = [
     ...(Array.isArray(cfg.basicComponentList) ? cfg.basicComponentList : []),
@@ -222,7 +237,12 @@ const previewList = computed(() => {
     .filter((item: any) => calcCheckPreviewTypes.has(String(item?.componentType || '')))
     .slice()
     .sort((a: any, b: any) => (Number(a?.sortNo) || 0) - (Number(b?.sortNo) || 0))
-    .map((item: any) => ({ ...item, customProps: item?.customProps || {} }));
+    .map((item: any) => ({
+      ...item,
+      customProps: item?.customProps || {},
+      constraintRules: Array.isArray(item?.constraintRules) ? item.constraintRules : [],
+      validateRule: normalizeValidateRule(item?.validateRule),
+    }));
 });
 
 function getPreviewItemKey(item: any, index: number) {
@@ -239,6 +259,21 @@ function isOutputIoType(item: any) {
 function isPreviewFieldDisabled(item: any) {
   return !!props.readOnly || isOutputIoType(item);
 }
+
+function onPreviewInputValue(item: any, index: number, newVal: string) {
+  const key = getPreviewItemKey(item, index);
+  previewFieldValueMap.value = { ...previewFieldValueMap.value, [key]: newVal };
+}
+
+function onPreviewInputBlur(item: any, index: number) {
+  if (item?.componentType !== 'INPUT' || isOutputIoType(item)) return;
+  void triggerComponentJsMethod(item, index);
+}
+
+function onPreviewFieldJsInvoke(item: any, index: number) {
+  void triggerComponentJsMethod(item, index);
+}
+
 function knowledgeHintText(item: any): string {
   return String(item?.knowledgeContent ?? '').trim();
 }
@@ -588,6 +623,30 @@ watch(
   { immediate: true, deep: true },
 );
 
+const { invokeComponentJsMethod } = useActivityPageJsInvoke({
+  getNodeDetail: () => props.nodeDetailData,
+});
+
+function buildActivityJsApplyContext() {
+  return {
+    getComponents: () => previewList.value,
+    getComponentKey: getPreviewItemKey,
+    getComponentValue: (item: any, index: number) => getCalcPreviewParamValue(item, index),
+    setFieldValue: (componentKey: string, value: string) => {
+      previewFieldValueMap.value = { ...previewFieldValueMap.value, [componentKey]: value };
+    },
+    setRadioValue: (componentKey: string, value: string) => {
+      previewFieldValueMap.value = { ...previewFieldValueMap.value, [componentKey]: value };
+    },
+  };
+}
+
+async function triggerComponentJsMethod(item: any, index: number) {
+  if (props.readOnly) return;
+  await invokeComponentJsMethod(item, index, buildActivityJsApplyContext());
+  emit('content-mutated');
+}
+
 /** 节点详情接口 `button` 文案与页内能力对齐（计算页） */
 async function runToolbarAction(label: string): Promise<boolean> {
   const t = String(label ?? '').trim();
@@ -685,10 +744,12 @@ defineExpose({
             class="preview-field-trigger"
             @click.capture="onParamTitleClick(item)">
             <a-input
-              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :placeholder="item.customProps?.placeholder || '请输入'"
               :disabled="isPreviewFieldDisabled(item)"
-              class="preview-field" />
+              class="preview-field"
+              @update:value="(v: string) => onPreviewInputValue(item, index, v)"
+              @blur="() => onPreviewInputBlur(item, index)" />
           </div>
           <div
             v-else-if="item.componentType === 'TEXTAREA'"
@@ -696,11 +757,13 @@ defineExpose({
             class="preview-field-trigger"
             @click.capture="onParamTitleClick(item)">
             <a-textarea
-              v-model:value="previewFieldValueMap[getPreviewItemKey(item, index)]"
+              :value="previewFieldValueMap[getPreviewItemKey(item, index)]"
               :rows="item.customProps?.rows || 4"
               :placeholder="item.customProps?.placeholder || '请输入'"
               :disabled="isPreviewFieldDisabled(item)"
-              class="preview-field" />
+              class="preview-field"
+              @update:value="(v: string) => onPreviewInputValue(item, index, v)"
+              @blur="() => onPreviewFieldJsInvoke(item, index)" />
           </div>
           <div v-else-if="item.componentType === 'DIVIDER'" class="divider-preview-line"></div>
           <div v-else-if="item.componentType === 'DATA_VIEW'" class="data-view-preview">
@@ -739,7 +802,8 @@ defineExpose({
               :options="getSelectOptions(item).map(v => ({ label: v, value: v }))"
               :disabled="isPreviewFieldDisabled(item)"
               placeholder="请选择"
-              class="preview-field" />
+              class="preview-field"
+              @change="() => onPreviewFieldJsInvoke(item, index)" />
           </div>
           <div
             v-else-if="item.componentType === 'AUTO_COMPLETE'"
@@ -750,7 +814,8 @@ defineExpose({
               :options="getSelectOptions(item).map(v => ({ value: v }))"
               :disabled="isPreviewFieldDisabled(item)"
               placeholder="请选择或输入"
-              class="preview-field" />
+              class="preview-field"
+              @change="() => onPreviewFieldJsInvoke(item, index)" />
           </div>
           <div v-else-if="item.componentType === 'CALC_BUTTON' && !readOnly" class="calc-button-preview-wrap">
             <a-button
