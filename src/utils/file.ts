@@ -5,7 +5,9 @@ import { ContentType, httpClient } from '@/api/tags/http-client';
 import {
   extractFileIdFromUrl,
   extractFileNameFromUrl,
+  hasSystemSourceMetadata,
   injectSystemSourceMetadata,
+  isOfficeOpenXmlFileName,
 } from '@/utils/officeFileSourceMetadata';
 import { WeiMessage } from '@/utils/WeiMessage';
 
@@ -25,9 +27,32 @@ function triggerBlobDownload(blob: Blob, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
-async function toDownloadBlob(data: any, fileName: string): Promise<Blob> {
-  const sourceBlob = data instanceof Blob ? data : new Blob([data], { type: 'application/octet-stream' });
-  return injectSystemSourceMetadata(sourceBlob, fileName);
+function resolveDownloadPayload(data: unknown): Blob | ArrayBuffer | Uint8Array {
+  if (data instanceof Blob) {
+    return data;
+  }
+  if (data instanceof ArrayBuffer) {
+    return data;
+  }
+  if (ArrayBuffer.isView(data)) {
+    return data as Uint8Array;
+  }
+  const nested = (data as { data?: unknown } | null)?.data;
+  if (nested instanceof Blob) {
+    return nested;
+  }
+  if (nested instanceof ArrayBuffer) {
+    return nested;
+  }
+  if (ArrayBuffer.isView(nested)) {
+    return nested as Uint8Array;
+  }
+  return new Blob([data as BlobPart], { type: 'application/octet-stream' });
+}
+
+async function toDownloadBlob(data: unknown, fileName: string): Promise<Blob> {
+  const source = resolveDownloadPayload(data);
+  return injectSystemSourceMetadata(source, fileName);
 }
 
 /**
@@ -241,32 +266,87 @@ async function fetchFileBlobByUrl(fileUrl: string): Promise<Blob> {
   return res.blob();
 }
 
+function resolveGeneratedFileName(options: DownloadGeneratedFileOptions, fileUrl: string): string {
+  const explicit = String(options.fileName ?? '').trim();
+  if (explicit) {
+    return explicit;
+  }
+  if (fileUrl) {
+    const fromUrl = extractFileNameFromUrl(fileUrl);
+    if (fromUrl && isOfficeOpenXmlFileName(fromUrl)) {
+      return fromUrl;
+    }
+  }
+  return '';
+}
+
+async function downloadStreamWithSourceMetadata(stream: unknown, fileName: string) {
+  const source = resolveDownloadPayload(stream);
+  let blob = await injectSystemSourceMetadata(source, fileName);
+  if (!(await hasSystemSourceMetadata(blob))) {
+    console.warn('[downloadGeneratedFile] 未检测到文件来源属性，重试注入', fileName);
+    blob = await injectSystemSourceMetadata(source, fileName);
+  }
+  triggerBlobDownload(blob, fileName);
+}
+
+async function tryDownloadWithSourceMetadata(
+  loadStream: () => Promise<unknown>,
+  fileName: string,
+): Promise<boolean> {
+  try {
+    const stream = await loadStream();
+    await downloadStreamWithSourceMetadata(stream, fileName);
+    return true;
+  } catch (error) {
+    console.warn('[downloadGeneratedFile] 下载或注入失败', error);
+    return false;
+  }
+}
+
+function shouldPreferFileUrlDownload(fileUrl: string): boolean {
+  return isOfficeOpenXmlFileName(extractFileNameFromUrl(fileUrl)) || /\/share\//i.test(fileUrl);
+}
+
 /**
- * 下载后端生成的报告/导出文件，并写入「文件来源：快速设计系统」属性。
+ * 下载后端生成的报告/导出文件，并在「管理者」字段写入「快速设计系统」。
  */
 export async function downloadGeneratedFile(options: DownloadGeneratedFileOptions) {
   const fileUrl = String(options.fileUrl ?? '').trim();
   const fileId = String(options.fileId ?? extractFileIdFromUrl(fileUrl) ?? '').trim();
-  let fileName = String(options.fileName ?? '').trim();
-  if (!fileName && fileUrl) {
-    fileName = extractFileNameFromUrl(fileUrl);
+  const resolvedName = resolveGeneratedFileName(options, fileUrl);
+  const downloadName = resolvedName || 'export.xlsx';
+
+  if (!fileId && !fileUrl) {
+    return;
   }
 
-  try {
-    let stream: Blob | ArrayBuffer | any;
-    if (fileId) {
-      stream = await AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any);
-    } else if (fileUrl) {
-      stream = await fetchFileBlobByUrl(fileUrl);
-    } else {
+  const preferFileUrl = Boolean(fileUrl && shouldPreferFileUrlDownload(fileUrl));
+
+  if (preferFileUrl && fileUrl) {
+    if (await tryDownloadWithSourceMetadata(() => fetchFileBlobByUrl(fileUrl), downloadName)) {
       return;
     }
-    await downloadFileFromStream(stream, fileName || 'download');
-  } catch (error) {
-    console.warn('[downloadGeneratedFile] 注入文件来源失败，回退为直接打开链接', error);
-    if (fileUrl) {
-      window.open(fileUrl);
+  }
+
+  if (fileId) {
+    if (await tryDownloadWithSourceMetadata(
+      () => AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any),
+      downloadName,
+    )) {
+      return;
     }
+  }
+
+  if (fileUrl && !preferFileUrl) {
+    if (await tryDownloadWithSourceMetadata(() => fetchFileBlobByUrl(fileUrl), downloadName)) {
+      return;
+    }
+  }
+
+  console.error('[downloadGeneratedFile] 无法下载并注入文件来源，回退为直接打开链接', { fileId, fileUrl });
+  if (fileUrl) {
+    window.open(fileUrl);
   }
 }
 

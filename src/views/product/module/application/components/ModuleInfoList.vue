@@ -998,7 +998,7 @@ async function templateDownload() {
     await downloadGeneratedFile({
       fileUrl: String(res.data.data?.fileUrl ?? '').trim(),
       fileId: String(res.data.data?.fileId ?? res.data.data?.id ?? '').trim(),
-      fileName: String(res.data.data?.oldFileName ?? res.data.data?.fileName ?? '').trim(),
+      fileName: String(res.data.data?.oldFileName ?? res.data.data?.fileName ?? res.data.data?.newFileName ?? '').trim(),
     })
     message.success(res.data.msg == '' || res.data.msg == null ? '导出模版成功' : res.data.msg)
   } else {
@@ -1065,7 +1065,7 @@ async function upDerive() {
     await downloadGeneratedFile({
       fileUrl: String(res.data.data?.fileUrl ?? '').trim(),
       fileId: String(res.data.data?.fileId ?? res.data.data?.id ?? '').trim(),
-      fileName: String(res.data.data?.oldFileName ?? res.data.data?.fileName ?? '').trim(),
+      fileName: String(res.data.data?.oldFileName ?? res.data.data?.fileName ?? res.data.data?.newFileName ?? '').trim(),
     })
     message.success(res.data.msg == '' || res.data.msg == null ? '导出成功' : res.data.msg)
   } else {
