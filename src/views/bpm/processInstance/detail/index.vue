@@ -23,7 +23,7 @@
           <div class="form-scroll-area">
             <el-scrollbar>
               <el-row>
-                <el-col :span="18" class="!flex !flex-col formCol">
+                <el-col :span="19" class="!flex !flex-col formCol">
                   <div v-loading="processInstanceLoading" class="form-box flex flex-col mb-30px flex-1">
                     <!-- 动态业务类型组件 - 包含审批内容和审签信息 -->
                     <component
@@ -60,7 +60,7 @@
                   </div>
                 </el-col>
 
-                <el-col :span="6">
+                <el-col :span="5">
                   <!-- 审批记录时间线 -->
                   <ProcessInstanceTimeline :activity-nodes="activityNodes" />
                 </el-col>
@@ -172,7 +172,7 @@
             readonly
             placeholder="流程变量内容将显示在这里"
             class="process-variables-textarea"
-            style="font-weight: 800 !important" />
+            />
         </div>
         <template #footer>
           <div class="dialog-footer">
@@ -732,6 +732,8 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  font-size: 13px;
+  font-weight: 400;
 
   :deep(.el-card__body) {
     flex: 1;
@@ -749,6 +751,18 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  :deep(.font-bold),
+  :deep(.text-14px),
+  :deep(.text-15px),
+  :deep(.text-26px) {
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  :deep(*) {
+    font-weight: 400 !important;
+  }
 }
 
 .process-instance-tabs {
@@ -857,8 +871,8 @@ onMounted(async () => {
   .process-variables-textarea {
     :deep(.el-textarea__inner) {
       font-family: 'Courier New', Courier, monospace !important;
-      font-size: 12px !important;
-      font-weight: 800 !important;
+      font-size: 13px !important;
+      font-weight: 400 !important;
       line-height: 1.5 !important;
       background-color: #f8f9fa !important;
       border: 1px solid #e9ecef !important;
@@ -867,9 +881,8 @@ onMounted(async () => {
   }
 }
 
-// 使用更高优先级的选择器确保样式生效
 :deep(.el-dialog .el-textarea__inner) {
-  font-weight: 800 !important;
+  font-weight: 400 !important;
 }
 
 .dialog-footer {

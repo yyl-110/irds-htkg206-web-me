@@ -18,10 +18,10 @@
       </template>
       <div class="flex flex-col items-start gap2" :id="`activity-task-${activity.id}-${index}`">
         <!-- 第一行：节点名称、时间 -->
-        <div class="flex w-full">
-          <div class="font-bold">{{ activity.name }}</div>
+        <div class="flex items-center w-full">
+          <div class="text-13px">{{ activity.name }}</div>
           <!-- 信息：时间 -->
-          <div v-if="activity.status !== TaskStatusEnum.NOT_START" class="text-#a5a5a5 text-13px mt-1 ml-auto">
+          <div v-if="activity.status !== TaskStatusEnum.NOT_START" class="text-#a5a5a5 text-13px ml-auto shrink-0">
             {{ getApprovalNodeTime(activity) }}
           </div>
         </div>
@@ -57,10 +57,13 @@
             {{ user.nickname }}
           </div>
         </div>
-        <div v-else class="flex items-center flex-wrap mt-1 gap2">
-          <!-- 情况一：遍历每个审批节点下的【进行中】task 任务 -->
-          <div v-for="(task, idx) in activity.tasks" :key="idx" class="flex flex-col pr-2 gap2">
-            <div class="position-relative flex flex-wrap gap2" v-if="task.assigneeUser || task.ownerUser">
+        <div v-else class="flex flex-col mt-1 gap2 w-full">
+          <!-- 用户标签：task 执行人与候选人在同一行，保证左对齐 -->
+          <div class="flex items-center flex-wrap gap2">
+            <template v-for="(task, idx) in activity.tasks" :key="`task-user-${idx}`">
+              <div
+                v-if="task.assigneeUser || task.ownerUser"
+                class="position-relative flex flex-wrap gap2">
               <!-- 信息：头像昵称 -->
               <div
                 class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
@@ -89,8 +92,31 @@
                   :style="{ backgroundColor: statusIconMap2[task.status]?.color }">
                   <Icon :size="11" :icon="statusIconMap2[task.status]?.icon" color="#FFFFFF" />
                 </div>
+                </div>
+              </div>
+            </template>
+            <!-- 候选审批人 -->
+            <div
+              v-for="(user, idx1) in activity.candidateUsers"
+              :key="`candidate-${idx1}`"
+              class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
+              <el-avatar class="!m-5px" :size="28" v-if="user.avatar" :src="user.avatar" />
+              <el-avatar class="!m-5px" :size="28" v-else>
+                {{ user.nickname.substring(0, 1) }}
+              </el-avatar>
+              {{ user.nickname }}
+
+              <!-- 信息：任务 ICON -->
+              <div
+                v-if="showStatusIcon"
+                class="position-absolute top-20px left-24px rounded-full flex items-center p-1px border-2 border-white border-solid"
+                :style="{ backgroundColor: statusIconMap2['-1']?.color }">
+                <Icon :size="11" :icon="statusIconMap2['-1']?.icon" color="#FFFFFF" />
               </div>
             </div>
+          </div>
+          <!-- 审批意见、签名 -->
+          <template v-for="(task, idx) in activity.tasks" :key="`task-extra-${idx}`">
             <teleport defer :to="`#activity-task-${activity.id}-${index}`">
               <div
                 v-if="task.reason && [NodeType.USER_TASK_NODE, NodeType.END_EVENT_NODE].includes(activity.nodeType)"
@@ -105,27 +131,7 @@
                 <el-image class="w-90px h-40px ml-5px" :src="task.signPicUrl" :preview-src-list="[task.signPicUrl]" />
               </div>
             </teleport>
-          </div>
-          <!-- 情况二：遍历每个审批节点下的【候选的】task 任务。例如说，1）依次审批，2）未来的审批任务等 -->
-          <div
-            style="margin-left: -10px"
-            v-for="(user, idx1) in activity.candidateUsers"
-            :key="idx1"
-            class="bg-gray-100 h-35px rounded-3xl flex items-center pr-8px dark:color-gray-600 position-relative">
-            <el-avatar class="!m-5px" :size="28" v-if="user.avatar" :src="user.avatar" />
-            <el-avatar class="!m-5px" :size="28" v-else>
-              {{ user.nickname.substring(0, 1) }}
-            </el-avatar>
-            {{ user.nickname }}
-
-            <!-- 信息：任务 ICON -->
-            <div
-              v-if="showStatusIcon"
-              class="position-absolute top-20px left-24px rounded-full flex items-center p-1px border-2 border-white border-solid"
-              :style="{ backgroundColor: statusIconMap2['-1']?.color }">
-              <Icon :size="11" :icon="statusIconMap2['-1']?.icon" color="#FFFFFF" />
-            </div>
-          </div>
+          </template>
         </div>
       </div>
     </el-timeline-item>
@@ -314,6 +320,8 @@ const handleChildProcess = (activity: any) => {
 .bpm-process-timeline {
   padding-left: 4px;
   padding-right: 10px;
+  font-size: 13px;
+  font-weight: 400;
   :deep(.el-timeline-item__wrapper) {
     padding-left: 40px;
     top: 0;

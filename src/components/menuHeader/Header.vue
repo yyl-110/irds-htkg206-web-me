@@ -498,7 +498,7 @@ function showOnLineUser() {
           <img class="header-miji-img" src="@/assets/images/miji.png" alt="" />
         </div>
         <div v-if="isTestEnv" class="project-header-cluster__test-env flex shrink-0 flex-col items-center justify-center">
-          <span class="header-test-env-label">测试系统</span>
+          <!-- <span class="header-test-env-label">测试系统</span> -->
         </div>
       </div>
     </div>
