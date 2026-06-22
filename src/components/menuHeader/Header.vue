@@ -131,6 +131,11 @@ const $router = useRouter()
 
 const layoutStore = useLayoutStore()
 
+const isTestEnv =
+  String(import.meta.env.VITE_BASE_URL_TEST ?? '')
+    .replace(/['"]/g, '')
+    .toLowerCase() === 'true'
+
 /** 皮带-列表请求参数 */
 const requestParams = reactive(new RequestDTOModel())
 
@@ -492,6 +497,9 @@ function showOnLineUser() {
         <div class="project-header-cluster__stamp flex shrink-0 items-center">
           <img class="header-miji-img" src="@/assets/images/miji.png" alt="" />
         </div>
+        <div v-if="isTestEnv" class="project-header-cluster__test-env flex shrink-0 flex-col items-center justify-center">
+          <span class="header-test-env-label">测试系统</span>
+        </div>
       </div>
     </div>
     <div class="project-header-right">
@@ -665,6 +673,25 @@ function showOnLineUser() {
   display: block;
   height: 36px;
   width: auto;
+}
+.project-header-cluster__test-env {
+  gap: 2px;
+  min-width: 0;
+}
+.header-test-env-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.header-test-env-label {
+  color: #e62e2e;
+  font-family: 'PingFang SC', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 100px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .header-bell-badge {
   display: inline-flex;
