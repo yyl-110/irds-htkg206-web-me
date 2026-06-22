@@ -18,7 +18,7 @@ export function resolveJsFileId(record: Record<string, any> | null | undefined):
  * @see com.domed.system.controller.fileInfo.FileManagementController#download
  */
 export async function fetchJsScriptText(fileId: string): Promise<string> {
-  const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any);
+  const res = await AdminApiSystemUploadFile.downloadEpcFile({ fileId } as any, { skipErrorNotify: true });
   const raw = (res as any)?.data !== undefined ? (res as any).data : res;
   const blob = raw instanceof Blob ? raw : new Blob([raw ?? '']);
   let text = await blob.text();

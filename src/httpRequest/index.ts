@@ -300,9 +300,12 @@ service.interceptors.response.use(
     // 6. 业务 401 已在 code === -8 || 401 分支中统一处理无感刷新
     // 7. 处理其他错误码
     else if (Number(code) !== ResponseCode.Successfully && Number(code) !== 0) {
-      WeiMessage.error(WeiI18n.t(msg).value);
+      const skipNotify = (config as AxCfg).skipErrorNotify === true;
+      if (!skipNotify) {
+        WeiMessage.error(WeiI18n.t(msg).value);
+      }
       const businessErr = toResponseError(response, msg);
-      businessErr.notified = true;
+      businessErr.notified = !skipNotify;
       return Promise.reject(businessErr);
     }
     // 8. 无错误

@@ -24,7 +24,7 @@ export function useActivityPageJsMethods(record: Ref<Record<string, any>>) {
     } catch (e) {
       console.error('load js methods failed:', e, { fileId, record: r });
       jsMethodOptions.value = [];
-      message.warning('JS脚本加载失败，请确认活动已上传JS文件且已保存');
+      //message.warning('JS脚本加载失败，请确认活动已上传JS文件且已保存');
     } finally {
       jsMethodsLoading.value = false;
     }

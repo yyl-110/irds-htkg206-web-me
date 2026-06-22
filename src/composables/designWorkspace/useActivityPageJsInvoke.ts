@@ -41,7 +41,7 @@ export function useActivityPageJsInvoke(options: UseActivityPageJsInvokeOptions)
       console.error('load activity js runtime failed:', e, { fileId });
       jsMethods.value = {};
       jsMethodsReady.value = false;
-      message.warning('JS脚本加载失败，请确认活动已上传JS文件且已保存');
+      // message.warning('JS脚本加载失败，请确认活动已上传JS文件且已保存');
     } finally {
       if (token === loadToken) jsMethodsLoading.value = false;
     }
