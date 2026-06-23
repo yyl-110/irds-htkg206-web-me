@@ -28,6 +28,8 @@ export interface Page7TableRow extends Record<string, string | number | undefine
   p26?: string;
   p27?: string;
   p28?: string;
+  /** 舟它额定负载（用于计算 p21，不展示） */
+  auxRatedLoad?: string;
 }
 
 export interface Page7ParameterItem {

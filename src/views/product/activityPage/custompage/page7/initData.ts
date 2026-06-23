@@ -4,6 +4,7 @@ import { PAGE3_1_TABLE_COMPONENT_ID, PAGE3_1_TABLE_NUM } from '../page3-1/parame
 import { PAGE5_TABLE_COMPONENT_ID, PAGE5_TABLE_NUM } from '../page5/parameterDefaults';
 import { PAGE6_TABLE_COMPONENT_ID, PAGE6_TABLE_NUM } from '../page6/parameterDefaults';
 import { collectTableSources, resolveTableRows } from '../_shared/utils/flowTableSources';
+import { computeRatedLoadMotorSpeedFromRow } from './calcAuxParams';
 import type { Page7ParameterItem, Page7TableRow } from './parameterDefaults';
 
 export interface Page7InitResult {
@@ -39,9 +40,8 @@ function buildRow(
   data.p19 = String(xnRow.p5 ?? '');
   data.p20 = String(xnRow.p6 ?? '');
 
-  const fzzj = Number(xnRow.p7) / Number(xnRow.p5) / Number(zjsbRow.p16);
-  const fzzs = Number(xnRow.p8) - Number(xnRow.p10) * fzzj;
-  data.p21 = Number.isFinite(fzzs) ? fzzs.toFixed(2) : '';
+  data.auxRatedLoad = String(xnRow.p7 ?? '');
+  data.p21 = computeRatedLoadMotorSpeedFromRow(data);
   data.p22 = String(zjsbRow.p15 ?? '');
   data.p23 = String(zjsbRow.p16 ?? '');
   data.p24 = '';

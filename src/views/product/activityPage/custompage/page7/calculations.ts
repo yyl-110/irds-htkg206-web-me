@@ -1,4 +1,5 @@
 import { handleCutZero } from '@/utils/tools';
+import { computeRatedLoadMotorSpeedFromRow } from './calcAuxParams';
 import {
   PAGE7_TABLE_COMPONENT_ID,
   PAGE7_TABLE_NUM,
@@ -80,6 +81,8 @@ function toNumber(value: string | number | undefined): number {
 /** 性能校核计算（原 calculation） */
 export function calculateAllPage7Rows(rows: Page7TableRow[]) {
   rows.forEach(row => {
+    row.p21 = computeRatedLoadMotorSpeedFromRow(row);
+
     const parm13 = toNumber(row.p15);
     const parm16 = toNumber(row.p18);
     const parm17 = toNumber(row.p19);
