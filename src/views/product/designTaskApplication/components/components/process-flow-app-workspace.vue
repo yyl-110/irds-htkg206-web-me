@@ -2119,7 +2119,9 @@ onMounted(() => {
         :min-size="leftCollapsed ? 0 : minExpanded"
         class="workspace-left"
         :class="[{ 'workspace-left--collapsed': leftCollapsed }]">
-        <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
+        <div class="workspace-left-body wei-scrollbar">
+          <a-tree :tree-data="treeData" :selected-keys="[selectedNodeKey]" :default-expand-all="true" @select="onSelectTree" />
+        </div>
       </Pane>
       <Pane
         :size="centerPaneSize"
@@ -2450,13 +2452,22 @@ onMounted(() => {
 }
 
 .workspace-left {
-  padding: 1px;
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
+  padding: 1px;
   box-sizing: border-box;
-  overflow: auto;
+  overflow: hidden;
   border: none !important;
   box-shadow: none !important;
+}
+
+.workspace-left-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .workspace-left--collapsed {
