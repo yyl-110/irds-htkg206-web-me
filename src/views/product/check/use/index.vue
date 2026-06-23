@@ -61,6 +61,16 @@ const checklistRaw = ref<any[]>([]);
 const checklistLoading = ref(false);
 let fetchChecklistSeq = 0;
 
+type ChecklistTypeFilter = 'excel' | 'matlab' | 'exe';
+
+const CHECKLIST_TYPE_FILTER_OPTIONS: { key: ChecklistTypeFilter; label: string }[] = [
+  { key: 'excel', label: 'excel' },
+  { key: 'matlab', label: 'matlab' },
+  { key: 'exe', label: 'exe' },
+];
+
+const checklistTypeFilters = ref<ChecklistTypeFilter[]>([]);
+
 /** 点击 exe 卡片后，getCheckExeInfoById 返回的数据（可接弹窗/路由） */
 const lastCheckExeDetail = ref<any>(null);
 
@@ -104,6 +114,26 @@ function formatConfidentialTag(item: any): string {
   const text = String(raw ?? item?.levelName ?? item?.secretLevel ?? '').trim();
   if (['公开', '内部', '秘密', '机密'].includes(text)) return text;
   return text || '公开';
+}
+
+function checkTypeKeyFromItem(item: any): ChecklistTypeFilter {
+  const ct = Number(item?.checkType);
+  if (Number.isFinite(ct) && ct === 3) return 'exe';
+  if (Number.isFinite(ct) && ct === 2) return 'matlab';
+  return 'excel';
+}
+
+function toggleChecklistTypeFilter(type: ChecklistTypeFilter) {
+  const idx = checklistTypeFilters.value.indexOf(type);
+  if (idx >= 0) {
+    checklistTypeFilters.value = checklistTypeFilters.value.filter(t => t !== type);
+  } else {
+    checklistTypeFilters.value = [...checklistTypeFilters.value, type];
+  }
+}
+
+function isChecklistTypeFilterActive(type: ChecklistTypeFilter): boolean {
+  return checklistTypeFilters.value.includes(type);
 }
 
 /** checkType：3 → exe 图，2 → matlab 图，其它 → excel 图 */
@@ -192,8 +222,12 @@ function mapItemToCard(item: any, index: number): ChecklistCard {
 
 const checklistCards = computed<ChecklistCard[]>(() => {
   const kw = checklistKeyword.value.trim().toLowerCase();
+  const typeFilters = checklistTypeFilters.value;
   const rows = checklistRaw.value || [];
-  const mapped = rows.map((item, i) => mapItemToCard(item, i));
+  let mapped = rows.map((item, i) => mapItemToCard(item, i));
+  if (typeFilters.length > 0) {
+    mapped = mapped.filter(c => typeFilters.includes(checkTypeKeyFromItem(c.raw)));
+  }
   if (!kw) return mapped;
   return mapped.filter(
     c =>
@@ -277,6 +311,7 @@ function resetCheckPageState() {
   dataSource.value = [];
   checklistRaw.value = [];
   checklistKeyword.value = '';
+  checklistTypeFilters.value = [];
 }
 
 async function getMenuListData(options?: { forceOpenDrawer?: boolean }) {
@@ -647,6 +682,17 @@ const {
                   <SearchOutlined class="checklist-toolbar__search-icon" />
                 </template>
               </a-input>
+              <div class="checklist-toolbar__type-filters">
+                <button
+                  v-for="opt in CHECKLIST_TYPE_FILTER_OPTIONS"
+                  :key="opt.key"
+                  type="button"
+                  class="checklist-type-filter"
+                  :class="{ 'checklist-type-filter--active': isChecklistTypeFilterActive(opt.key) }"
+                  @click="toggleChecklistTypeFilter(opt.key)">
+                  {{ opt.label }}
+                </button>
+              </div>
             </div>
             <div class="checklist-body">
               <a-spin :spinning="checklistLoading" class="checklist-spin">
@@ -773,6 +819,45 @@ const {
 .checklist-toolbar__input :deep(.ant-input-affix-wrapper-focused) .checklist-toolbar__search-icon,
 .checklist-toolbar__input :deep(.ant-input-affix-wrapper:focus-within) .checklist-toolbar__search-icon {
   color: #1677ff;
+}
+
+.checklist-toolbar__type-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.checklist-type-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 6px 18px;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+  color: #595959;
+  background: #f0f0f0;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+  user-select: none;
+
+  &:hover {
+    background: #e8e8e8;
+  }
+
+  &--active {
+    color: #1677ff;
+    background: #e6f4ff;
+
+    &:hover {
+      background: #d6ebff;
+    }
+  }
 }
 
 .checklist-body {
