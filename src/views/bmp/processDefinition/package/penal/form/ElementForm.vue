@@ -41,7 +41,7 @@
     <!-- 添加表单抽屉：左右布局，底栏按钮，表格样式与参数字典一致 -->
     <a-drawer
       v-model:visible="drawer"
-      title="新建表单"
+      title="关联活动"
       placement="right"
       width="920"
       class="form-selector-drawer"
@@ -61,6 +61,29 @@
             <a-empty v-else description="暂无分类数据" />
           </div>
           <div class="selector-layout__right">
+            <div class="selector-drawer__query">
+              <a-form layout="inline" class="selector-drawer__query-form">
+                <a-form-item :label="$t('活动名称')">
+                  <a-input
+                    v-model:value="searchPageName"
+                    allow-clear
+                    :placeholder="$t('请输入活动名称')"
+                    style="width: 180px"
+                    @press-enter="handleSelectorSearch" />
+                </a-form-item>
+                <a-form-item :label="$t('活动类型')">
+                  <a-select
+                    v-model:value="searchPageType"
+                    allow-clear
+                    :placeholder="$t('请选择活动类型')"
+                    style="width: 160px"
+                    :options="activityPageTypeOptions" />
+                </a-form-item>
+                <a-form-item class="selector-drawer__query-btn">
+                  <a-button type="primary" @click="handleSelectorSearch">{{ $t('查询') }}</a-button>
+                </a-form-item>
+              </a-form>
+            </div>
             <a-table
               ref="tableRef"
               class="exe-config-table selector-activity-table"
@@ -69,7 +92,7 @@
               :pagination="false"
               bordered
               table-layout="fixed"
-              :scroll="{ x: selectorTableScrollX, y: 'calc(100vh - 320px)' }"
+              :scroll="{ x: selectorTableScrollX }"
               row-key="id"
               :custom-row="customRow"
               :row-class-name="getSelectorTableRowClassName"
@@ -156,6 +179,17 @@ const selectedRow = ref({});
 const pageSize = ref(10);
 const pageNum = ref(1);
 const total = ref(0);
+const searchPageName = ref('');
+const searchPageType = ref(undefined);
+/** 关联活动抽屉：记住上次选中的分类、分页与活动行 */
+const lastSelectorTreeId = ref('');
+const lastSelectorPageNum = ref(1);
+const lastSelectorRowId = ref(null);
+const activityPageTypeOptions = computed(() => [
+  { label: WeiI18n.t('设计配置页面').value, value: '1' },
+  { label: WeiI18n.t('计算集成页面').value, value: '2' },
+  { label: WeiI18n.t('自定义页面').value, value: '3' },
+]);
 const deepCope = ref([]);
 const arrData = ref([]);
 const tableRef = ref();
@@ -297,11 +331,14 @@ watch(
 
 // 方法
 const addForm = async () => {
-  pageNum.value = 1;
+  searchPageName.value = '';
+  searchPageType.value = undefined;
+  formList.value = [];
+  total.value = 0;
   selectedRowKeys.value = [];
   selectedRow.value = {};
   drawer.value = true;
-  await loadActivityTree();
+  await loadActivityTree(buildSelectorRestoreState());
 };
 
 function getFirstNodeId(nodes) {
@@ -311,17 +348,90 @@ function getFirstNodeId(nodes) {
   return String(first.id ?? '');
 }
 
-const loadActivityTree = async () => {
+function treeContainsId(nodes, id) {
+  const targetId = id != null ? String(id).trim() : '';
+  if (!targetId) return false;
+  return flattenTreeNodes(nodes, []).some(node => String(node?.id ?? '') === targetId);
+}
+
+function resolveSelectorTreeId(treeData, preferredId) {
+  const preferred = preferredId != null ? String(preferredId).trim() : '';
+  if (preferred && treeContainsId(treeData, preferred)) {
+    return preferred;
+  }
+  return getFirstNodeId(treeData);
+}
+
+function buildSelectorRestoreState() {
+  const linked = fieldList.value[0];
+  const linkedTreeId = linked?.treeId != null ? String(linked.treeId).trim() : '';
+  const linkedRowId = linked?.id != null ? linked.id : null;
+  const preferredTreeId = linkedTreeId || lastSelectorTreeId.value;
+  const sameAsLastTree = !linkedTreeId || linkedTreeId === String(lastSelectorTreeId.value ?? '');
+  let preferredPageNum = 1;
+  if (!linkedRowId && sameAsLastTree) {
+    preferredPageNum = lastSelectorPageNum.value > 0 ? lastSelectorPageNum.value : 1;
+  }
+  const preferredRowId = linkedRowId ?? lastSelectorRowId.value;
+
+  return {
+    preferredTreeId,
+    preferredPageNum,
+    preferredRowId,
+  };
+}
+
+function resetSelectorQueryState() {
+  pageNum.value = 1;
+  searchPageName.value = '';
+  searchPageType.value = undefined;
+  formList.value = [];
+  total.value = 0;
+}
+
+function restoreSelectorRowSelection(preferredRowId) {
+  if (preferredRowId == null || String(preferredRowId).trim() === '') {
+    selectedRowKeys.value = [];
+    selectedRow.value = {};
+    return;
+  }
+  const targetId = String(preferredRowId);
+  const matched = formList.value.find(item => String(item.id) === targetId);
+  if (matched) {
+    selectedRowKeys.value = [matched.id];
+    selectedRow.value = matched;
+    lastSelectorRowId.value = matched.id;
+    return;
+  }
+  selectedRowKeys.value = [];
+  selectedRow.value = {};
+}
+
+function persistSelectorSession() {
+  if (currentTreeId.value) {
+    lastSelectorTreeId.value = currentTreeId.value;
+  }
+  if (pageNum.value > 0) {
+    lastSelectorPageNum.value = pageNum.value;
+  }
+  if (selectedRow.value?.id != null) {
+    lastSelectorRowId.value = selectedRow.value.id;
+  }
+}
+
+const loadActivityTree = async (restore = {}) => {
   try {
     const res = await AdminApiActivityPage.getActivityTree({
       ...getMenuIdParam(),
     });
     const treeData = Array.isArray(res?.data?.data) ? res.data.data : [];
     activityTreeData.value = treeData;
-    const firstId = getFirstNodeId(treeData);
-    currentTreeId.value = firstId;
-    treeSelectedKeys.value = firstId ? [firstId] : [];
+    const treeId = resolveSelectorTreeId(treeData, restore.preferredTreeId);
+    currentTreeId.value = treeId;
+    treeSelectedKeys.value = treeId ? [treeId] : [];
+    pageNum.value = restore.preferredPageNum > 0 ? restore.preferredPageNum : 1;
     await getList();
+    restoreSelectorRowSelection(restore.preferredRowId);
   } catch (error) {
     activityTreeData.value = [];
     treeSelectedKeys.value = [];
@@ -339,7 +449,8 @@ const getList = async () => {
     return;
   }
   const params = {
-    pageName: '',
+    pageName: String(searchPageName.value ?? '').trim(),
+    pageType: searchPageType.value != null && String(searchPageType.value).trim() !== '' ? String(searchPageType.value) : undefined,
     treeId: currentTreeId.value,
     pageNo: pageNum.value,
     pageSize: pageSize.value,
@@ -364,6 +475,7 @@ const onSelectionChange = (selectedKeys, selectedRows) => {
   selectedRowKeys.value = selectedKeys;
   if (selectedRows.length > 0) {
     selectedRow.value = selectedRows[0];
+    lastSelectorRowId.value = selectedRows[0].id;
   }
 };
 
@@ -373,6 +485,7 @@ const customRow = record => {
     onClick: () => {
       selectedRowKeys.value = [record.id];
       selectedRow.value = record;
+      lastSelectorRowId.value = record.id;
     },
   };
 };
@@ -548,6 +661,13 @@ function showSelectorPaginationTotal(totalCount) {
   return `${WeiI18n.t('共').value}${totalCount}${WeiI18n.t('条').value}`;
 }
 
+const handleSelectorSearch = () => {
+  pageNum.value = 1;
+  selectedRowKeys.value = [];
+  selectedRow.value = {};
+  getList();
+};
+
 const onPageSizeChange = (current, size) => {
   pageSize.value = size;
   pageNum.value = 1;
@@ -556,6 +676,7 @@ const onPageSizeChange = (current, size) => {
 
 const onPageChange = (page, pageSize) => {
   pageNum.value = page;
+  lastSelectorPageNum.value = page;
   getList();
 };
 
@@ -564,7 +685,9 @@ const onTreeSelect = selectedKeys => {
   if (!selectedId) return;
   currentTreeId.value = selectedId;
   treeSelectedKeys.value = [selectedId];
-  pageNum.value = 1;
+  lastSelectorTreeId.value = selectedId;
+  lastSelectorPageNum.value = 1;
+  resetSelectorQueryState();
   selectedRowKeys.value = [];
   selectedRow.value = {};
   getList();
@@ -613,11 +736,13 @@ const confirm = () => {
   // 存储到 Vuex
   // store.dispatch("dict/getPageName", selectedRow.value);
 
+  persistSelectorSession();
   drawer.value = false;
   message.success('表单添加成功');
 };
 
 const cancel = () => {
+  persistSelectorSession();
   drawer.value = false;
   selectedRowKeys.value = [];
   selectedRow.value = {};
@@ -713,6 +838,7 @@ const cleanUp = () => {
 .selector-layout__left {
   flex: 0 0 220px;
   width: 220px;
+  align-self: stretch;
   border: 1px solid #e8e8e8;
   border-radius: 2px;
   padding: 10px 8px;
@@ -726,6 +852,28 @@ const cleanUp = () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.selector-drawer__query {
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+}
+
+.selector-drawer__query-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+
+  :deep(.ant-form-item) {
+    margin-bottom: 0;
+    margin-right: 16px;
+  }
+}
+
+.selector-drawer__query-btn {
+  margin-left: auto;
+  margin-right: 0;
 }
 
 .selector-drawer__pagination {
@@ -757,7 +905,105 @@ const cleanUp = () => {
 
 @selector-table-row-height: 42px;
 
-.selector-activity-table,
+.selector-activity-table {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  :deep(.ant-spin-nested-loading),
+  :deep(.ant-spin-container),
+  :deep(.ant-table-wrapper) {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.ant-table) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.ant-table-container) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.ant-table-content) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.ant-table-body) {
+    flex: 1;
+    min-height: 0;
+    overflow: auto !important;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    height: @selector-table-row-height;
+    max-height: @selector-table-row-height;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-right: 1px solid #e8e8e8;
+    text-align: center;
+    vertical-align: middle;
+    background: #fafafa !important;
+    color: rgba(0, 0, 0, 0.88);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: @selector-table-row-height;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  :deep(.ant-table-thead > tr > th.ant-table-cell-align-left) {
+    text-align: left;
+  }
+
+  :deep(.ant-table-tbody > tr.odd > td) {
+    background: #ffffff;
+  }
+
+  :deep(.ant-table-tbody > tr.even > td) {
+    background: #f7f9fc;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    height: @selector-table-row-height;
+    max-height: @selector-table-row-height;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-right: none !important;
+    font-size: 14px;
+    line-height: @selector-table-row-height;
+    vertical-align: middle;
+  }
+
+  :deep(.ant-table-tbody > tr > td.ant-table-cell-align-left) {
+    text-align: left;
+  }
+
+  :deep(.ant-table-tbody > tr > td:last-child) {
+    border-right: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: 1px solid #e8e8e8 !important;
+  }
+
+  :deep(.ant-table-tbody > tr.ant-table-row-selected > td) {
+    background: #e6f4ff !important;
+  }
+}
+
 .form-field-table {
   flex: 1;
   min-height: 0;
