@@ -746,13 +746,7 @@ defineExpose({
                 @confirm.stop.prevent="handlePublishAction(record, 'APP')">
                 <a href="#" @click.prevent>发布计算应用</a>
               </a-popconfirm>
-              <a-popconfirm
-                v-else
-                placement="topLeft"
-                title="确定要撤销发布应用吗？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handlePublishAction(record, 'APP')">
+              <a-popconfirm v-else placement="topLeft" title="确定要撤销发布应用吗？" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handlePublishAction(record, 'APP')">
                 <a href="#" @click.prevent>撤销计算发布</a>
               </a-popconfirm>
               <template v-if="canRowPlatformShare(record)">
@@ -763,11 +757,7 @@ defineExpose({
                   @click.prevent="requestPlatformShareTask(record, true)">
                   {{ shareBusyId === record.id ? '处理中…' : '共享' }}
                 </a>
-                <a
-                  v-else
-                  href="#"
-                  :class="{ 'calc-operation-links--disabled': shareBusyId === record.id }"
-                  @click.prevent="requestPlatformShareTask(record, false)">
+                <a v-else href="#" :class="{ 'calc-operation-links--disabled': shareBusyId === record.id }" @click.prevent="requestPlatformShareTask(record, false)">
                   {{ shareBusyId === record.id ? '处理中…' : '撤销共享' }}
                 </a>
               </template>

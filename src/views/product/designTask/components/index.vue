@@ -258,6 +258,13 @@ async function loadParameterListData() {
   await processFlowListRef.value?.reloadList?.(true);
 }
 
+async function onCategoryAssigned(targetMenuId: string) {
+  await processFlowListRef.value?.reloadList?.(true);
+  if (String(menuId.value) === String(targetMenuId)) {
+    await getListData('change');
+  }
+}
+
 /** 获取节点编辑数据 */
 async function getNodeUpdateData(selectedKeys: any) {
   if (selectedKeys.parentId == 0) {
@@ -520,7 +527,12 @@ defineExpose({ initInfoList });
 
         <!-- 右侧内容区域 -->
         <Pane class="splitpane-cls" :size="rightTreePaneSize">
-          <ProcessFlowListPanel v-if="isTaskNodeSelected" ref="processFlowListRef" :menu-id="menuId" :tree-node-key="selectNodeKeys" />
+          <ProcessFlowListPanel
+            v-if="isTaskNodeSelected"
+            ref="processFlowListRef"
+            :menu-id="menuId"
+            :tree-node-key="selectNodeKeys"
+            @category-assigned="onCategoryAssigned" />
         </Pane>
       </Splitpanes>
       <Tooltip :title="leftTreeCollapsed ? $t('展开分类') : $t('折叠分类')">

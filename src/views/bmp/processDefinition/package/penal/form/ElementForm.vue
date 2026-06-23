@@ -48,7 +48,18 @@
       :body-style="{ padding: 0 }"
       destroy-on-close>
       <div class="selector-drawer">
-        <div class="selector-drawer__main">
+        <div v-if="authorizedPlatforms.length" class="selector-drawer__platform-tabs">
+          <a-tabs v-model:activeKey="activeSelectorMenuId" @change="onSelectorPlatformTabChange">
+            <a-tab-pane
+              v-for="platform in authorizedPlatforms"
+              :key="String(platform.id)"
+              :tab="platform.categoryName || platform.name || String(platform.id)" />
+          </a-tabs>
+        </div>
+        <div v-if="!authorizedPlatforms.length" class="selector-drawer__empty-platform">
+          <a-empty description="暂无已授权的产品平台" />
+        </div>
+        <div v-else class="selector-drawer__main">
           <div class="selector-layout__left">
             <a-tree
               v-if="activityTreeData.length"
@@ -131,7 +142,7 @@
             </div>
           </div>
         </div>
-        <div class="selector-drawer__footer">
+        <div v-if="authorizedPlatforms.length" class="selector-drawer__footer">
           <a-button type="primary" @click="confirm">确定</a-button>
           <a-button @click="cancel">取消</a-button>
         </div>
@@ -172,6 +183,8 @@ const drawer = ref(false);
 const fieldList = ref([]);
 const formList = ref([]);
 const activityTreeData = ref([]);
+const authorizedPlatforms = ref([]);
+const activeSelectorMenuId = ref('');
 const treeSelectedKeys = ref([]);
 const currentTreeId = ref('');
 const selectedRowKeys = ref([]);
@@ -181,7 +194,8 @@ const pageNum = ref(1);
 const total = ref(0);
 const searchPageName = ref('');
 const searchPageType = ref(undefined);
-/** 关联活动抽屉：记住上次选中的分类、分页与活动行 */
+/** 关联活动抽屉：记住上次选中的平台、分类、分页与活动行 */
+const lastSelectorMenuId = ref('');
 const lastSelectorTreeId = ref('');
 const lastSelectorPageNum = ref(1);
 const lastSelectorRowId = ref(null);
@@ -233,9 +247,39 @@ function formKeyMapStorageKey() {
 /** 切换节点或重新同步时递增，丢弃过期的异步回查结果 */
 let fieldListHydrateGeneration = 0;
 
+function getSelectorMenuIdParam() {
+  const m = activeSelectorMenuId.value || props.menuId;
+  return m != null && String(m).trim() !== '' ? { menuId: m } : {};
+}
+
 function getMenuIdParam() {
-  const m = props.menuId != null ? props.menuId : '';
-  return m ? { menuId: m } : {};
+  return getSelectorMenuIdParam();
+}
+
+function resolveDefaultSelectorMenuId(platforms, preferredMenuId) {
+  const preferred = preferredMenuId != null ? String(preferredMenuId).trim() : '';
+  if (preferred && platforms.some(item => String(item?.id ?? '') === preferred)) {
+    return preferred;
+  }
+  const routeMenuId = props.menuId != null ? String(props.menuId).trim() : '';
+  if (routeMenuId && platforms.some(item => String(item?.id ?? '') === routeMenuId)) {
+    return routeMenuId;
+  }
+  return platforms.length ? String(platforms[0]?.id ?? '') : '';
+}
+
+async function loadAuthorizedPlatforms() {
+  try {
+    const res = await AdminApiActivityPage.getAuthorizedPlatforms();
+    const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+    authorizedPlatforms.value = list;
+    return list;
+  } catch (error) {
+    console.error('loadAuthorizedPlatforms failed:', error);
+    authorizedPlatforms.value = [];
+    message.error('获取授权平台失败');
+    return [];
+  }
 }
 
 /** 表格行：活动名称与节点「名称」一致；活动类型优先节点 pageType，否则用关联活动数据 */
@@ -338,8 +382,32 @@ const addForm = async () => {
   selectedRowKeys.value = [];
   selectedRow.value = {};
   drawer.value = true;
-  await loadActivityTree(buildSelectorRestoreState());
+  const restore = buildSelectorRestoreState();
+  const platforms = await loadAuthorizedPlatforms();
+  if (!platforms.length) {
+    activityTreeData.value = [];
+    treeSelectedKeys.value = [];
+    currentTreeId.value = '';
+    activeSelectorMenuId.value = '';
+    return;
+  }
+  activeSelectorMenuId.value = resolveDefaultSelectorMenuId(
+    platforms,
+    restore.preferredMenuId || lastSelectorMenuId.value || props.menuId,
+  );
+  await loadActivityTree(restore);
 };
+
+async function onSelectorPlatformTabChange(activeKey) {
+  activeSelectorMenuId.value = String(activeKey ?? '');
+  lastSelectorMenuId.value = activeSelectorMenuId.value;
+  treeSelectedKeys.value = [];
+  currentTreeId.value = '';
+  resetSelectorQueryState();
+  selectedRowKeys.value = [];
+  selectedRow.value = {};
+  await loadActivityTree({ preferredPageNum: 1 });
+}
 
 function getFirstNodeId(nodes) {
   if (!Array.isArray(nodes) || !nodes.length) return '';
@@ -365,7 +433,9 @@ function resolveSelectorTreeId(treeData, preferredId) {
 function buildSelectorRestoreState() {
   const linked = fieldList.value[0];
   const linkedTreeId = linked?.treeId != null ? String(linked.treeId).trim() : '';
+  const linkedMenuId = linked?.menuId != null ? String(linked.menuId).trim() : '';
   const linkedRowId = linked?.id != null ? linked.id : null;
+  const preferredMenuId = linkedMenuId || lastSelectorMenuId.value || props.menuId;
   const preferredTreeId = linkedTreeId || lastSelectorTreeId.value;
   const sameAsLastTree = !linkedTreeId || linkedTreeId === String(lastSelectorTreeId.value ?? '');
   let preferredPageNum = 1;
@@ -375,6 +445,7 @@ function buildSelectorRestoreState() {
   const preferredRowId = linkedRowId ?? lastSelectorRowId.value;
 
   return {
+    preferredMenuId,
     preferredTreeId,
     preferredPageNum,
     preferredRowId,
@@ -408,6 +479,9 @@ function restoreSelectorRowSelection(preferredRowId) {
 }
 
 function persistSelectorSession() {
+  if (activeSelectorMenuId.value) {
+    lastSelectorMenuId.value = activeSelectorMenuId.value;
+  }
   if (currentTreeId.value) {
     lastSelectorTreeId.value = currentTreeId.value;
   }
@@ -420,9 +494,17 @@ function persistSelectorSession() {
 }
 
 const loadActivityTree = async (restore = {}) => {
+  if (!activeSelectorMenuId.value) {
+    activityTreeData.value = [];
+    treeSelectedKeys.value = [];
+    currentTreeId.value = '';
+    formList.value = [];
+    total.value = 0;
+    return;
+  }
   try {
     const res = await AdminApiActivityPage.getActivityTree({
-      ...getMenuIdParam(),
+      ...getSelectorMenuIdParam(),
     });
     const treeData = Array.isArray(res?.data?.data) ? res.data.data : [];
     activityTreeData.value = treeData;
@@ -454,7 +536,7 @@ const getList = async () => {
     treeId: currentTreeId.value,
     pageNo: pageNum.value,
     pageSize: pageSize.value,
-    ...getMenuIdParam(),
+    ...getSelectorMenuIdParam(),
   };
   try {
     loading.value = true;
@@ -591,53 +673,76 @@ function flattenTreeNodes(nodes, acc = []) {
 async function tryHydrateFieldByFormKey(formKey, requestElementId, hydrateToken) {
   if (!formKey) return;
   try {
-    const treeRes = await AdminApiActivityPage.getActivityTree({
-      ...getMenuIdParam(),
+    const platforms = authorizedPlatforms.value.length ? authorizedPlatforms.value : await loadAuthorizedPlatforms();
+    if (!platforms.length) return;
+
+    const keyMap = getFormKeyBindingMap();
+    const map = getBindingMap();
+    const cached = requestElementId ? map[requestElementId] : null;
+    const preferredMenuId =
+      cached?.menuId != null
+        ? String(cached.menuId)
+        : keyMap[formKey]?.menuId != null
+          ? String(keyMap[formKey].menuId)
+          : props.menuId != null
+            ? String(props.menuId)
+            : '';
+
+    const orderedPlatforms = [...platforms].sort((a, b) => {
+      const aId = String(a?.id ?? '');
+      const bId = String(b?.id ?? '');
+      if (aId === preferredMenuId) return -1;
+      if (bId === preferredMenuId) return 1;
+      return 0;
     });
-    if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
-      return;
-    }
-    const treeData = Array.isArray(treeRes?.data?.data) ? treeRes.data.data : [];
-    const allNodes = flattenTreeNodes(treeData, []);
-    for (const node of allNodes) {
+
+    for (const platform of orderedPlatforms) {
       if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
         return;
       }
-      const treeId = String(node?.id ?? '').trim();
-      if (!treeId) continue;
-      const pageRes = await AdminApiActivityPage.getActivityPage({
-        pageName: '',
-        treeId,
-        pageNo: 1,
-        pageSize: 200,
-        ...getMenuIdParam(),
-      });
+      const menuId = platform?.id;
+      if (menuId == null || String(menuId).trim() === '') continue;
+      const treeRes = await AdminApiActivityPage.getActivityTree({ menuId });
       if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
         return;
       }
-      const list = Array.isArray(pageRes?.data?.data?.list) ? pageRes.data.data.list : [];
-      const matched = list.find(item => String(item.id) === String(formKey));
-      if (!matched) continue;
+      const treeData = Array.isArray(treeRes?.data?.data) ? treeRes.data.data : [];
+      const allNodes = flattenTreeNodes(treeData, []);
+      for (const node of allNodes) {
+        if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
+          return;
+        }
+        const treeId = String(node?.id ?? '').trim();
+        if (!treeId) continue;
+        const pageRes = await AdminApiActivityPage.getActivityPage({
+          pageName: '',
+          treeId,
+          pageNo: 1,
+          pageSize: 200,
+          menuId,
+        });
+        if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
+          return;
+        }
+        const list = Array.isArray(pageRes?.data?.data?.list) ? pageRes.data.data.list : [];
+        const matched = list.find(item => String(item.id) === String(formKey));
+        if (!matched) continue;
 
-      if (hydrateToken !== fieldListHydrateGeneration || getCurrentElementId() !== requestElementId) {
+        const hydrated = { ...matched, menuId };
+        fieldList.value = [hydrated];
+        if (requestElementId) {
+          map[requestElementId] = hydrated;
+          setBindingMap(map);
+        }
+        keyMap[String(formKey)] = hydrated;
+        setFormKeyBindingMap(keyMap);
+
+        const registryEl = window.bpmnInstances?.elementRegistry?.get(requestElementId);
+        if (registryEl && window.bpmnInstances?.modeling && String(registryEl.id) === String(requestElementId)) {
+          window.bpmnInstances.modeling.updateProperties(toRaw(registryEl), toRaw({ pageType: matched.pageType }));
+        }
         return;
       }
-
-      fieldList.value = [matched];
-      if (requestElementId) {
-        const map = getBindingMap();
-        map[requestElementId] = matched;
-        setBindingMap(map);
-      }
-      const keyMap = getFormKeyBindingMap();
-      keyMap[String(formKey)] = matched;
-      setFormKeyBindingMap(keyMap);
-
-      const registryEl = window.bpmnInstances?.elementRegistry?.get(requestElementId);
-      if (registryEl && window.bpmnInstances?.modeling && String(registryEl.id) === String(requestElementId)) {
-        window.bpmnInstances.modeling.updateProperties(toRaw(registryEl), toRaw({ pageType: matched.pageType }));
-      }
-      return;
     }
   } catch (error) {
     // 回查失败时保持现有展示，不阻断配置页使用
@@ -699,16 +804,16 @@ const confirm = () => {
     return;
   }
 
-  fieldList.value = [selectedRow.value];
+  fieldList.value = [{ ...selectedRow.value, menuId: activeSelectorMenuId.value || selectedRow.value.menuId }];
   const elementId = getCurrentElementId();
   if (elementId) {
     const map = getBindingMap();
-    map[elementId] = selectedRow.value;
+    map[elementId] = fieldList.value[0];
     setBindingMap(map);
   }
   if (selectedRow.value.id) {
     const formKeyMap = getFormKeyBindingMap();
-    formKeyMap[String(selectedRow.value.id)] = selectedRow.value;
+    formKeyMap[String(selectedRow.value.id)] = fieldList.value[0];
     setFormKeyBindingMap(formKeyMap);
   }
   // 更新 BPMN 属性
@@ -826,6 +931,23 @@ const cleanUp = () => {
   min-height: 480px;
   padding: 12px 16px 16px;
   box-sizing: border-box;
+}
+
+.selector-drawer__platform-tabs {
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+
+  :deep(.ant-tabs-nav) {
+    margin-bottom: 0;
+  }
+}
+
+.selector-drawer__empty-platform {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
 }
 
 .selector-drawer__main {

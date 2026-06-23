@@ -18,6 +18,12 @@ import { EpcIcon } from '@/components/icon/EpcIcon';
 import DesignResourceShareModal from '../../components/design-resource-share-modal.vue';
 import { normalizeListSnowflakeIds, toSnowflakeIdStr } from '@/utils/snowflakeId';
 import { formatDate } from '@/utils/formatTime';
+import { fetchPlatformPickerList } from '@/utils/platformPickerList';
+
+const emit = defineEmits<{
+  (e: 'category-assigned', menuId: string): void;
+}>();
+
 const props = defineProps<{
   menuId?: string | number;
   treeNodeKey?: string | number;
@@ -266,7 +272,9 @@ type TaskUsedParamItem = {
 };
 
 function resolveTaskUsedParamSourceText(source?: string) {
-  const s = String(source ?? '').trim().toUpperCase();
+  const s = String(source ?? '')
+    .trim()
+    .toUpperCase();
   if (s === 'COMPONENT') return '组件';
   if (s === 'FORMULA') return '公式';
   return source || '—';
@@ -417,10 +425,7 @@ async function handlePublishAction(record: FlowRow, publishType: PublishType) {
       await AdminApiSystemProcessTask.taskRevokePublish({ taskId, publishType }, requestOpts);
       message.success(publishType === 'COLLAB' ? '撤销发布任务成功' : '撤销发布应用成功');
     } else {
-      await AdminApiSystemProcessTask.taskPublish(
-        { taskId, publishType, publishedBy: userStore.getUser.id },
-        requestOpts,
-      );
+      await AdminApiSystemProcessTask.taskPublish({ taskId, publishType, publishedBy: userStore.getUser.id }, requestOpts);
       message.success(publishType === 'COLLAB' ? '发布任务成功' : '发布应用成功');
     }
     await loadFlowListData();
@@ -467,7 +472,9 @@ function getVersionText(versionNo?: number | string | null) {
 }
 
 function resolvePublishStatusText(status?: string) {
-  const s = String(status ?? '').trim().toUpperCase();
+  const s = String(status ?? '')
+    .trim()
+    .toUpperCase();
   if (s === 'PUBLISHED') return '已发布';
   if (s === 'REVOKED') return '已撤销';
   return status || '—';
@@ -484,10 +491,7 @@ async function showVersionHistory(record: FlowRow, publishType: PublishType) {
       taskId: record.id,
       publishType,
     });
-    historyList.value = (res?.data?.data || []).sort(
-      (a: TaskPublishVersionHistoryItem, b: TaskPublishVersionHistoryItem) =>
-        Number(b.versionNo || 0) - Number(a.versionNo || 0),
-    );
+    historyList.value = (res?.data?.data || []).sort((a: TaskPublishVersionHistoryItem, b: TaskPublishVersionHistoryItem) => Number(b.versionNo || 0) - Number(a.versionNo || 0));
   } catch {
     message.error('加载版本历史失败');
     historyList.value = [];
@@ -565,6 +569,173 @@ const canToolbarEdit = computed(() => {
   if (!canRowOperate(rows[0])) return false;
   return !isCollabPublished(rows[0]);
 });
+
+function getOperableSelectedRows() {
+  return selectedFlowRows.value.filter(row => canRowOperate(row));
+}
+
+const canAssignCategory = computed(() => getOperableSelectedRows().length > 0);
+
+// ---------------------------分配分类------------------------------------
+const assignCategoryModalVisible = ref(false);
+const assignCategoryLoading = ref(false);
+const assignCategorySubmitLoading = ref(false);
+const assignCategoryPlatforms = ref<any[]>([]);
+const assignCategoryActiveMenuId = ref<string>('');
+const assignCategoryTreeData = ref<any[]>([]);
+const assignCategorySelectedKey = ref<string>('');
+
+function convertAssignCategoryTreeNodes(data: any[]): any[] {
+  if (!data || !Array.isArray(data)) return [];
+  return data.map(item => {
+    const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
+    let level = 3;
+    if (hasChildren) {
+      level = 2;
+    }
+    return {
+      key: item.id?.toString() || item.tid?.toString() || '',
+      partName: item.name || '',
+      categoryType: item.type,
+      parentId: item.parentId,
+      level,
+      children: hasChildren ? convertAssignCategoryTreeNodes(item.children) : [],
+    };
+  });
+}
+
+function findAssignCategoryNodeById(tree: any[], targetId: string): any | null {
+  for (const node of tree) {
+    if (node.key === targetId) {
+      return node;
+    }
+    if (node.children?.length) {
+      const found = findAssignCategoryNodeById(node.children, targetId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function canAssignTaskToTargetNode(node: any) {
+  if (!node?.key) return false;
+  const categoryType = node.categoryType ?? node.type;
+  return categoryType === 2 || String(categoryType) === '2';
+}
+
+async function loadAssignCategoryTree(menuIdValue: string) {
+  if (!menuIdValue) {
+    assignCategoryTreeData.value = [];
+    return;
+  }
+  assignCategoryLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.getDesignTaskTreeList({ menuId: menuIdValue });
+    if ((res.data.code === 0 || res.data.code === 200) && res.data.data != null) {
+      const rawData = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+      assignCategoryTreeData.value = convertAssignCategoryTreeNodes(rawData);
+    } else {
+      assignCategoryTreeData.value = [];
+    }
+  } catch (error) {
+    console.error('loadAssignCategoryTree failed:', error);
+    assignCategoryTreeData.value = [];
+    message.error('加载分类树失败');
+  } finally {
+    assignCategoryLoading.value = false;
+  }
+}
+
+async function openAssignCategoryModal() {
+  const rows = getOperableSelectedRows();
+  if (!rows.length) {
+    message.warning('请先勾选要分配的设计任务');
+    return;
+  }
+  assignCategoryModalVisible.value = true;
+  assignCategorySelectedKey.value = '';
+  assignCategoryLoading.value = true;
+  try {
+    assignCategoryPlatforms.value = await fetchPlatformPickerList();
+    if (!assignCategoryPlatforms.value.length) {
+      message.warning('暂无可选产品平台');
+      assignCategoryTreeData.value = [];
+      return;
+    }
+    const defaultMenuId = String(props.menuId || assignCategoryPlatforms.value[0]?.id || '');
+    assignCategoryActiveMenuId.value = defaultMenuId;
+    await loadAssignCategoryTree(defaultMenuId);
+  } catch (error) {
+    console.error('openAssignCategoryModal failed:', error);
+    message.error('加载产品平台失败');
+  } finally {
+    assignCategoryLoading.value = false;
+  }
+}
+
+async function onAssignCategoryTabChange(activeKey: string | number) {
+  assignCategoryActiveMenuId.value = String(activeKey);
+  assignCategorySelectedKey.value = '';
+  await loadAssignCategoryTree(assignCategoryActiveMenuId.value);
+}
+
+function onAssignCategoryTreeSelect(selectedKeys: any[]) {
+  assignCategorySelectedKey.value = selectedKeys?.[0] ?? '';
+}
+
+function cancelAssignCategory() {
+  assignCategoryModalVisible.value = false;
+  assignCategorySelectedKey.value = '';
+  assignCategoryTreeData.value = [];
+}
+
+async function confirmAssignCategory() {
+  if (!assignCategorySelectedKey.value) {
+    message.warning('请选择目标分类节点');
+    return;
+  }
+  const targetNode = findAssignCategoryNodeById(assignCategoryTreeData.value, assignCategorySelectedKey.value);
+  if (!canAssignTaskToTargetNode(targetNode)) {
+    message.warning('请选择任务节点（末层节点）');
+    return;
+  }
+  if (!assignCategoryActiveMenuId.value) {
+    message.warning('请选择产品平台');
+    return;
+  }
+  const taskBasicInfoIds = getOperableSelectedRows()
+    .map(row => row.id)
+    .filter(id => id != null && id !== '');
+  if (!taskBasicInfoIds.length) {
+    message.warning('未找到有效的设计任务记录');
+    return;
+  }
+  assignCategorySubmitLoading.value = true;
+  try {
+    const res = await AdminApiSystemProcessTask.assignTasksToCategory({
+      taskBasicInfoIds,
+      treeId: assignCategorySelectedKey.value,
+      menuId: assignCategoryActiveMenuId.value,
+    });
+    if (res?.data?.code === 0 || res?.data?.code === 200) {
+      const resultMsg = res?.data?.data?.message || '分配成功';
+      message.success(resultMsg);
+      assignCategoryModalVisible.value = false;
+      selectedRowList.value = [];
+      selectedRowkeys.value = [];
+      await loadFlowListData();
+      emit('category-assigned', assignCategoryActiveMenuId.value);
+    } else {
+      message.error(res?.data?.msg || '分配失败');
+    }
+  } catch (error) {
+    console.error('confirmAssignCategory failed:', error);
+    message.error('分配失败');
+  } finally {
+    assignCategorySubmitLoading.value = false;
+    assignCategorySelectedKey.value = '';
+  }
+}
 
 const flowViewVisible = ref(false);
 const flowViewData = ref<{ xmlData?: string }>({});
@@ -783,6 +954,9 @@ defineExpose({
       <a-button type="primary" @click="openFlowFormAdd"><EpcIcon type="icon-tianjia1" style="font-size: 12px" /> {{ $t('新建') }}</a-button>
       <a-button type="primary" :disabled="!canToolbarView" @click="handleToolbarView()"><EpcIcon type="icon-liulan" style="font-size: 12px" />查看</a-button>
       <a-button type="primary" :disabled="!canToolbarEdit" @click="handleToolbarEdit"><EpcIcon type="icon-bianji" style="font-size: 12px" />编辑</a-button>
+      <a-button type="primary" :disabled="!canAssignCategory" @click="openAssignCategoryModal()">
+        <EpcIcon type="icon-fenpei" style="font-size: 12px" /> {{ $t('分配分类') }}
+      </a-button>
     </div>
 
     <a-card class="calc-table-card process-flow-table-card">
@@ -897,51 +1071,51 @@ defineExpose({
           <template v-else-if="column.dataIndex === 'operation'">
             <div class="calc-operation-links" @click.stop>
               <template v-if="canRowOperate(record)">
-              <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
-              <span v-else class="operation-disabled">配置</span>
+                <a v-if="isFlowConfigEditable(record)" href="#" @click.prevent="handleToolbarConfig(record)">配置</a>
+                <span v-else class="operation-disabled">配置</span>
               </template>
               <a href="#" @click.prevent="handleToolbarView(record)">预览</a>
               <template v-if="canRowOperate(record)">
-              <a-popconfirm
-                v-if="!isCollabPublished(record)"
-                placement="topLeft"
-                title="确定要发布任务吗？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
-                <a href="#" @click.prevent>发布任务</a>
-              </a-popconfirm>
-              <a-popconfirm
-                v-else
-                placement="topLeft"
-                title="确定要取消发布任务吗？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
-                <a href="#" @click.prevent>撤销任务</a>
-              </a-popconfirm>
-              <a-popconfirm
-                v-if="!isAppPublished(record)"
-                placement="topLeft"
-                title="确定要发布应用吗？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>发布应用</a>
-              </a-popconfirm>
-              <a-popconfirm
-                v-else
-                placement="topLeft"
-                title="确定要取消发布应用吗？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm.stop.prevent="handlePublishAction(record, 'APP')">
-                <a href="#" @click.prevent>撤销应用</a>
-              </a-popconfirm>
-              <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record)">
-                <a href="#" class="operation-danger" @click.prevent>删除</a>
-              </a-popconfirm>
-              <span v-else class="operation-disabled">删除</span>
+                <a-popconfirm
+                  v-if="!isCollabPublished(record)"
+                  placement="topLeft"
+                  title="确定要发布任务吗？"
+                  ok-text="确定"
+                  cancel-text="取消"
+                  @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
+                  <a href="#" @click.prevent>发布任务</a>
+                </a-popconfirm>
+                <a-popconfirm
+                  v-else
+                  placement="topLeft"
+                  title="确定要取消发布任务吗？"
+                  ok-text="确定"
+                  cancel-text="取消"
+                  @confirm.stop.prevent="handlePublishAction(record, 'COLLAB')">
+                  <a href="#" @click.prevent>撤销任务</a>
+                </a-popconfirm>
+                <a-popconfirm
+                  v-if="!isAppPublished(record)"
+                  placement="topLeft"
+                  title="确定要发布应用吗？"
+                  ok-text="确定"
+                  cancel-text="取消"
+                  @confirm.stop.prevent="handlePublishAction(record, 'APP')">
+                  <a href="#" @click.prevent>发布应用</a>
+                </a-popconfirm>
+                <a-popconfirm
+                  v-else
+                  placement="topLeft"
+                  title="确定要取消发布应用吗？"
+                  ok-text="确定"
+                  cancel-text="取消"
+                  @confirm.stop.prevent="handlePublishAction(record, 'APP')">
+                  <a href="#" @click.prevent>撤销应用</a>
+                </a-popconfirm>
+                <a-popconfirm v-if="!isCollabPublished(record)" title="确定要删除吗?" ok-text="确定" cancel-text="取消" @confirm="handleDeleteClick(record)">
+                  <a href="#" class="operation-danger" @click.prevent>删除</a>
+                </a-popconfirm>
+                <span v-else class="operation-disabled">删除</span>
               </template>
               <a v-if="canRowShare(record)" href="#" @click.prevent="openDesignShareModal(record)">共享</a>
               <a href="#" @click.prevent="openTaskUsedParamsModal(record)">使用参数</a>
@@ -951,11 +1125,7 @@ defineExpose({
       </a-table>
     </a-card>
 
-    <DesignResourceShareModal
-      v-model:visible="designShareModalVisible"
-      biz-type="TASK"
-      :biz-id="designShareTarget?.bizId"
-      @saved="onDesignShareSaved" />
+    <DesignResourceShareModal v-model:visible="designShareModalVisible" biz-type="TASK" :biz-id="designShareTarget?.bizId" @saved="onDesignShareSaved" />
 
     <a-modal
       v-model:visible="flowFormVisible"
@@ -1000,13 +1170,7 @@ defineExpose({
       </template>
     </a-modal>
 
-    <a-modal
-      v-model:visible="taskUsedParamModalVisible"
-      :title="taskUsedParamModalTitle"
-      :width="900"
-      :mask-closable="true"
-      destroy-on-close
-      @cancel="closeTaskUsedParamsModal">
+    <a-modal v-model:visible="taskUsedParamModalVisible" :title="taskUsedParamModalTitle" :width="900" :mask-closable="true" destroy-on-close @cancel="closeTaskUsedParamsModal">
       <a-spin :spinning="taskUsedParamLoading">
         <a-table
           v-if="taskUsedParamList.length"
@@ -1075,6 +1239,36 @@ defineExpose({
           <a-button type="primary" @click="closeHistoryModal">关闭</a-button>
         </div>
       </div>
+    </a-modal>
+
+    <!-- 分配分类弹窗 -->
+    <a-modal
+      v-model:visible="assignCategoryModalVisible"
+      :title="$t('分配分类')"
+      width="720px"
+      :confirm-loading="assignCategorySubmitLoading"
+      destroy-on-close
+      @ok="confirmAssignCategory"
+      @cancel="cancelAssignCategory">
+      <a-spin :spinning="assignCategoryLoading">
+        <a-tabs v-if="assignCategoryPlatforms.length" v-model:activeKey="assignCategoryActiveMenuId" @change="onAssignCategoryTabChange">
+          <a-tab-pane v-for="platform in assignCategoryPlatforms" :key="String(platform.id)" :tab="platform.categoryName || platform.name || String(platform.id)" />
+        </a-tabs>
+        <div v-if="assignCategoryTreeData.length" class="assign-category-tree-wrap">
+          <a-directory-tree
+            :show-icon="true"
+            :tree-data="assignCategoryTreeData"
+            :expand-action="false"
+            default-expand-all
+            :selected-keys="assignCategorySelectedKey ? [assignCategorySelectedKey] : []"
+            @select="onAssignCategoryTreeSelect">
+            <template #title="item">
+              {{ item.partName }}
+            </template>
+          </a-directory-tree>
+        </div>
+        <div v-else-if="!assignCategoryLoading" class="assign-category-empty">{{ $t('暂无分类数据') }}</div>
+      </a-spin>
     </a-modal>
   </div>
 </template>
@@ -1479,5 +1673,17 @@ defineExpose({
 .process-panel__flow-view-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+.assign-category-tree-wrap {
+  margin-top: 12px;
+  max-height: calc(100vh - 360px);
+  overflow-y: auto;
+}
+
+.assign-category-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.45);
 }
 </style>

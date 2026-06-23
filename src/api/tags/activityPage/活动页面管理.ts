@@ -28,6 +28,22 @@ export class AdminApiActivityPage {
     );
 
   /**
+   * 获取当前登录用户已授权的产品平台列表（关联活动 Tab）
+   *
+   * @request GET:/business-service/business/system-activity-design-tree/authorized-platforms
+   */
+  static getAuthorizedPlatforms = (params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/system-activity-design-tree/authorized-platforms`,
+        method: 'GET',
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
+
+  /**
    * 添加活动类型树节点
    *
    * @tags 管理后台 - 添加活动类型树节点

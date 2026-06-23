@@ -675,4 +675,30 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 批量分配设计任务到指定分类节点
+   *
+   * @request POST:/business-service/business/task-basic-info/assign-category
+   */
+  static assignTasksToCategory = <
+    Req extends { taskBasicInfoIds: Array<string | number>; treeId: string | number; menuId: string | number } = {
+      taskBasicInfoIds: Array<string | number>;
+      treeId: string | number;
+      menuId: string | number;
+    },
+  >(
+    query: Req,
+    params: RequestParams = {},
+  ) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/assign-category`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
