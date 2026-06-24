@@ -1044,13 +1044,12 @@ function buildCalcSubmitPayload() {
   const exputParam: ReturnType<typeof rowParamFromPreviewItem>[] = [];
   const list = previewList.value;
   list.forEach((item: any, index: number) => {
-    if (!calcIoParamComponentTypes.has(String(item?.componentType || ''))) return;
     const row = rowParamFromPreviewItem(item, index);
     if (!row.sheetNumber.trim() || !row.cellNumber.trim()) return;
+    inputParam.push(row);
+    if (!calcIoParamComponentTypes.has(String(item?.componentType || ''))) return;
     if (String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT') {
       exputParam.push(row);
-    } else {
-      inputParam.push(row);
     }
   });
   return { inputParam, exputParam, excelFileId };
