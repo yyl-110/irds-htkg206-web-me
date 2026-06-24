@@ -2,7 +2,8 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Form, Modal, message, type TableColumnsType, type UploadProps } from 'ant-design-vue';
-import { PlusCircleOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileOutlined } from '@ant-design/icons-vue';
+import { PlusCircleOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue';
+import reportTempImg from '@/assets/images/reportTemp.png';
 import { AdminApiReportPreparation, type ReportPreparationTemplateDTO } from '@/api/tags/product/报告编制';
 import { handleEpcDownload, parseUploadFileResponse } from '@/utils/file';
 import { formatDate } from '@/utils/formatTime';
@@ -562,6 +563,12 @@ onMounted(() => {
         <template #icon><PlusCircleOutlined /></template>
         添加
       </a-button>
+      <a-popover trigger="hover" placement="bottomRight" :overlay-inner-style="{ padding: '8px' }">
+        <template #content>
+          <img :src="reportTempImg" alt="模板说明" class="report-temp-help-img" />
+        </template>
+        <QuestionCircleOutlined class="toolbar-help-icon" />
+      </a-popover>
     </div>
 
     <a-table
@@ -686,6 +693,18 @@ onMounted(() => {
 
 .toolbar-btn {
   margin-right: 4px;
+}
+
+.toolbar-help-icon {
+  font-size: 18px;
+  color: #1890ff;
+  cursor: pointer;
+}
+
+.report-temp-help-img {
+  display: block;
+  max-width: min(90vw, 800px);
+  max-height: 70vh;
 }
 
 .toolbar-search {
