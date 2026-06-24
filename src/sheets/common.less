@@ -346,8 +346,13 @@ body {
   height: 32px !important;
 }
 
+/** 表格操作列删除链接颜色 */
+@table-op-delete-color: #ff4d4f;
+@table-op-delete-hover-color: #ff7875;
+@table-op-disabled-color: rgba(0, 0, 0, 0.25);
+
 /** 全局超链接：统一使用系统主题色（覆盖各页硬编码蓝色） */
-a:not(.danger-link):not(.del-text):not(.menuLi):not(.menuLi2):not([style*='color: #ff']):not([style*='color: red']):not([style*='color: green']):not([style*='color: #fff']):not([style*='color: white']) {
+a:not(.danger-link):not(.del-text):not(.operation-danger):not(.calc-operation-links__danger):not(.calc-operation-links__disabled):not(.calc-operation-links--disabled):not(.wbs-del-link):not(.wbs-ops__link--danger):not(.map-data-op-delete):not(.ant-typography-danger):not(.menuLi):not(.menuLi2):not([style*='color: #ff']):not([style*='color: red']):not([style*='color: green']):not([style*='color: #fff']):not([style*='color: white']) {
   color: var(--ant-primary-color) !important;
   text-decoration-color: var(--ant-primary-color);
 
@@ -428,4 +433,64 @@ a.menuLi2 {
   &:active {
     color: var(--ant-primary-color-hover, var(--ant-primary-color)) !important;
   }
+}
+
+/** 表格操作列删除链接：红色（只读/禁用除外） */
+.del-text:not(.operation-disabled):not(.calc-operation-links__disabled):not(.calc-operation-links--disabled),
+.danger-link:not(.operation-disabled):not(.calc-operation-links__disabled):not(.calc-operation-links--disabled),
+.operation-danger:not(.operation-disabled):not(.calc-operation-links__disabled):not(.calc-operation-links--disabled),
+.calc-operation-links__danger:not(.calc-operation-links__disabled):not(.calc-operation-links--disabled),
+.wbs-del-link:not(.wbs-ops__link--disabled),
+.wbs-ops__link--danger,
+.map-data-op-delete,
+a.ant-typography-danger:not(.platform-role-actions--disabled) {
+  color: @table-op-delete-color !important;
+  text-decoration-color: @table-op-delete-color;
+
+  &:link,
+  &:visited,
+  &:active {
+    color: @table-op-delete-color !important;
+    text-decoration-color: @table-op-delete-color;
+  }
+
+  &:hover {
+    color: @table-op-delete-hover-color !important;
+    text-decoration-color: @table-op-delete-hover-color;
+  }
+}
+
+/** 表格操作列删除链接：只读/禁用保持灰色 */
+.operation-disabled,
+.calc-operation-links__disabled,
+.calc-operation-links--disabled,
+.calc-operation-links__danger.calc-operation-links__disabled,
+.calc-operation-links__wbs-disabled,
+.platform-role-actions--disabled,
+.del-text--disabled,
+.wbs-ops__link--disabled {
+  &,
+  &:link,
+  &:visited,
+  &:hover,
+  &:active {
+    color: @table-op-disabled-color !important;
+    cursor: not-allowed;
+    text-decoration-color: @table-op-disabled-color;
+  }
+}
+
+.ant-btn-link.ant-btn-dangerous:not([disabled]):not(:disabled) {
+  color: @table-op-delete-color !important;
+
+  &:hover,
+  &:focus,
+  &:active {
+    color: @table-op-delete-hover-color !important;
+  }
+}
+
+.ant-btn-link.ant-btn-dangerous[disabled],
+.ant-btn-link.ant-btn-dangerous:disabled {
+  color: @table-op-disabled-color !important;
 }

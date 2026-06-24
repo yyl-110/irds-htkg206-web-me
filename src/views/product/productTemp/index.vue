@@ -536,7 +536,12 @@ function openWbsStructure(record: any) {
                   {{ $t('编辑') }}
                 </a>
                 <a-popconfirm :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" :disabled="isProductTempPublished(record)" @confirm.stop.prevent="handleDelete(record.id)">
-                  <a href="#" :class="{ 'calc-operation-links__disabled': isProductTempPublished(record) }" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                  <a
+                    href="#"
+                    :class="['calc-operation-links__danger', { 'calc-operation-links__disabled': isProductTempPublished(record) }]"
+                    @click.prevent>
+                    {{ $t('删除') }}
+                  </a>
                 </a-popconfirm>
                 <a-popconfirm v-if="record.status == '0'" :title="`${$t('确定要发布吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="pushFun(record.id)">
                   <a href="#" @click.prevent>{{ $t('发布') }}</a>

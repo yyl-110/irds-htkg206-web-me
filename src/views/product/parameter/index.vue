@@ -1709,7 +1709,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                       <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
                       <a @click.stop.prevent="showKnowledgeModal(record)">{{ $t('知识配置') }}</a>
                       <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                        <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                        <a href="#" class="calc-operation-links__danger" @click.prevent>{{ $t('删除') }}</a>
                       </a-popconfirm>
                     </div>
                   </template>

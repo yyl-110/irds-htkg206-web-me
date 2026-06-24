@@ -123,8 +123,8 @@ const approveStatus = computed(() => String(props.imgData.approveStatus ?? ''));
       </span>
       <span class="ml-[8px]">
         <a-popconfirm ok-text="确定" cancel-text="取消" title="确定要删除吗?" @confirm="deleteData">
-          <div class="flex items-center gap-[2px] text-[12px] text-primary cursor-pointer">
-            <delete-outlined class="imgColor" />
+          <div class="flex items-center gap-[2px] text-[12px] cursor-pointer calc-operation-links__danger">
+            <delete-outlined />
             <span>删除</span>
           </div>
         </a-popconfirm>

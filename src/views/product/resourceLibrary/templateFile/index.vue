@@ -593,12 +593,8 @@ onMounted(() => {
         </template>
         <template v-else-if="column.dataIndex === 'operation'">
           <div class="calc-operation-links" @click.stop>
-            <a
-              href="#"
-              :class="{ 'calc-operation-links__disabled': isPublished(record) }"
-              @click.prevent="!isPublished(record) && openEditRow(record)">
-              编辑
-            </a>
+            <span v-if="isPublished(record)" class="calc-operation-links__disabled">编辑</span>
+            <a v-else href="#" @click.prevent="openEditRow(record)">编辑</a>
             <a-popconfirm
               placement="topLeft"
               title="确定要删除吗？"
@@ -736,6 +732,13 @@ onMounted(() => {
   :deep(.ant-table-cell[data-column-key='remark']),
   :deep(.ant-table-cell[data-column-key='operation']) {
     text-align: left;
+  }
+
+  :deep(.calc-operation-links__disabled),
+  :deep(.calc-operation-links a.calc-operation-links__disabled) {
+    color: rgba(0, 0, 0, 0.25) !important;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 

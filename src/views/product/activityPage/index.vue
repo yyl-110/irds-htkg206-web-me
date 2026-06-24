@@ -1732,7 +1732,7 @@ const { leftTreeCollapsed, leftTreePaneSize, rightTreePaneSize, minExpanded, onS
                       <template v-if="canRowOperate(record)">
                         <a @click.stop.prevent="handleUpdate(record)">{{ $t('编辑') }}</a>
                         <a-popconfirm placement="topLeft" :title="`${$t('确定要删除吗')}?`" ok-text="确定" cancel-text="取消" @confirm.stop.prevent="handleParameterDelete(record)">
-                          <a href="#" style="color: #ff4d4f" @click.prevent>{{ $t('删除') }}</a>
+                          <a href="#" class="calc-operation-links__danger" @click.prevent>{{ $t('删除') }}</a>
                         </a-popconfirm>
                         <a @click.stop.prevent="handlePageConfigClick(record)">
                           {{ String(record.pageType) === '3' ? $t('参数配置') : $t('页面配置') }}
