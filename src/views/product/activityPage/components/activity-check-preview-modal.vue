@@ -1046,6 +1046,7 @@ function buildCalcSubmitPayload() {
   list.forEach((item: any, index: number) => {
     if (!calcIoParamComponentTypes.has(String(item?.componentType || ''))) return;
     const row = rowParamFromPreviewItem(item, index);
+    if (!row.sheetNumber.trim() || !row.cellNumber.trim()) return;
     if (String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT') {
       exputParam.push(row);
     } else {
