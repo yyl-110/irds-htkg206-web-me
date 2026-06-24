@@ -1722,6 +1722,19 @@ function getTypeText(type: string) {
 function getPreviewValue(item: any) {
   return item?.paramValue || '';
 }
+const IO_TYPE_COMPONENT_TYPES = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUTO_COMPLETE', 'DATA_VIEW', 'OUTPUT_IMAGE']);
+function componentHasIoType(item: any) {
+  return IO_TYPE_COMPONENT_TYPES.has(String(item?.componentType ?? ''));
+}
+function getPreviewIoTypeClass(item: any) {
+  if (!componentHasIoType(item)) return '';
+  const raw = item?.ioType;
+  if (raw == null || String(raw).trim() === '') return 'preview-io-undefined';
+  const io = String(raw).trim().toUpperCase();
+  if (io === 'INPUT') return 'preview-io-input';
+  if (io === 'OUTPUT') return 'preview-io-output';
+  return 'preview-io-undefined';
+}
 function normalizeRangeHintOperator(op: string) {
   const s = String(op ?? '')
     .trim()
@@ -2370,7 +2383,7 @@ watch(
             @dragover="handleItemDragOver(index, $event)"
             @drop="handleItemDrop(index, $event)"
             @dragend="handleItemDragEnd">
-            <div class="component-preview-wrap">
+            <div class="component-preview-wrap" :class="getPreviewIoTypeClass(item)">
               <div
                 v-if="item.componentType !== 'TITLE' && item.componentType !== 'DIVIDER' && item.componentType !== 'DATA_VIEW' && item.componentType !== 'CALC_BUTTON'"
                 class="component-title">
@@ -3261,12 +3274,25 @@ watch(
   padding: 10px 0;
   cursor: pointer;
   display: block;
+  position: relative;
 }
 .component-card.full-row-item {
   grid-column: 1 / -1;
 }
 .component-card.active {
-  background: transparent;
+  background: rgba(22, 119, 255, 0.04);
+}
+.component-card.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--project-system-primary, var(--ant-primary-color, #1677ff));
+}
+.component-card.active .component-preview-wrap {
+  margin-left: 10px;
 }
 .component-card.insert-before {
   border-top: 2px solid #ff4d4f;
@@ -3814,6 +3840,39 @@ watch(
 .preview-field {
   max-width: 270px;
   width: 100%;
+}
+.component-preview-wrap.preview-io-input :deep(.ant-input[disabled]),
+.component-preview-wrap.preview-io-input :deep(textarea.ant-input[disabled]),
+.component-preview-wrap.preview-io-input :deep(.ant-input-affix-wrapper-disabled),
+.component-preview-wrap.preview-io-input :deep(.ant-select-disabled .ant-select-selector),
+.component-preview-wrap.preview-io-input :deep(.ant-picker.ant-picker-disabled),
+.component-preview-wrap.preview-io-input :deep(.ck.ck-editor__editable) {
+  background: #fff !important;
+}
+.component-preview-wrap.preview-io-output :deep(.ant-input[disabled]),
+.component-preview-wrap.preview-io-output :deep(textarea.ant-input[disabled]),
+.component-preview-wrap.preview-io-output :deep(.ant-input-affix-wrapper-disabled),
+.component-preview-wrap.preview-io-output :deep(.ant-select-disabled .ant-select-selector),
+.component-preview-wrap.preview-io-output :deep(.ant-picker.ant-picker-disabled),
+.component-preview-wrap.preview-io-output :deep(.ck.ck-editor__editable) {
+  background: #f5f5f5 !important;
+}
+.component-preview-wrap.preview-io-undefined :deep(.ant-input[disabled]),
+.component-preview-wrap.preview-io-undefined :deep(textarea.ant-input[disabled]),
+.component-preview-wrap.preview-io-undefined :deep(.ant-input-affix-wrapper-disabled),
+.component-preview-wrap.preview-io-undefined :deep(.ant-select-disabled .ant-select-selector),
+.component-preview-wrap.preview-io-undefined :deep(.ant-picker.ant-picker-disabled),
+.component-preview-wrap.preview-io-undefined :deep(.ck.ck-editor__editable) {
+  background: #fffbe6 !important;
+}
+.component-preview-wrap.preview-io-input .output-image-placeholder {
+  background: #fff;
+}
+.component-preview-wrap.preview-io-output .output-image-placeholder {
+  background: #f5f5f5;
+}
+.component-preview-wrap.preview-io-undefined .output-image-placeholder {
+  background: #fffbe6;
 }
 .value-range-inline-row {
   display: flex;
