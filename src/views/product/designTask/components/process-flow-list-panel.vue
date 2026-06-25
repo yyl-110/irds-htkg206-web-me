@@ -576,6 +576,72 @@ function getOperableSelectedRows() {
 
 const canAssignCategory = computed(() => getOperableSelectedRows().length > 0);
 
+const saveAsLoading = ref(false);
+
+function resolveSaveAsTargetMenuId() {
+  const menuId = props.menuId ?? requestParams.menuId;
+  if (menuId === undefined || menuId === null || menuId === '') return '';
+  return menuId;
+}
+
+function resolveSaveAsTargetTreeId() {
+  const treeId = props.treeNodeKey ?? requestParams.treeId;
+  if (treeId === undefined || treeId === null || treeId === '') return '';
+  return treeId;
+}
+
+/** 勾选任务即可另存为（目标节点在点击时校验，与「新建」一致） */
+const canSaveAs = computed(() => selectedFlowRows.value.length > 0);
+
+function buildSaveAsProcessName(name?: string | null) {
+  return `${String(name ?? '').trim()}bak`;
+}
+
+async function handleSaveAs() {
+  const rows = selectedFlowRows.value;
+  if (!rows.length) {
+    message.warning('请先勾选要另存为的设计任务');
+    return;
+  }
+  const treeId = resolveSaveAsTargetTreeId();
+  if (treeId === '') {
+    message.warning('请先在左侧选择分类节点');
+    return;
+  }
+  const targetMenuId = resolveSaveAsTargetMenuId();
+  if (targetMenuId === '') {
+    message.warning('缺少产品平台信息');
+    return;
+  }
+
+  saveAsLoading.value = true;
+  try {
+    for (const row of rows) {
+      if (!row?.id) continue;
+      const res = await AdminApiSystemProcessTask.saveAsTaskBasicInfo({
+        sourceTaskBasicInfoId: row.id,
+        targetMenuId,
+        targetTreeId: treeId,
+        processName: buildSaveAsProcessName(row.processName),
+      });
+      const ok = res?.data?.code === 0 || res?.data?.code === 200;
+      if (!ok) {
+        message.error(res?.data?.msg || '另存为失败');
+        return;
+      }
+    }
+    message.success('另存为成功');
+    selectedRowList.value = [];
+    selectedRowkeys.value = [];
+    await loadFlowListData();
+  } catch (error) {
+    console.error('handleSaveAs failed:', error);
+    message.error('另存为失败');
+  } finally {
+    saveAsLoading.value = false;
+  }
+}
+
 // ---------------------------分配分类------------------------------------
 const assignCategoryModalVisible = ref(false);
 const assignCategoryLoading = ref(false);
@@ -956,6 +1022,9 @@ defineExpose({
       <a-button type="primary" :disabled="!canToolbarEdit" @click="handleToolbarEdit"><EpcIcon type="icon-bianji" style="font-size: 12px" />编辑</a-button>
       <a-button type="primary" :disabled="!canAssignCategory" @click="openAssignCategoryModal()">
         <EpcIcon type="icon-fenpei" style="font-size: 12px" /> {{ $t('分配分类') }}
+      </a-button>
+      <a-button type="primary" :loading="saveAsLoading" :disabled="!canSaveAs" @click="handleSaveAs">
+        <EpcIcon type="icon-daiyanshou1" style="font-size: 12px" /> {{ $t('另存为') }}
       </a-button>
     </div>
 

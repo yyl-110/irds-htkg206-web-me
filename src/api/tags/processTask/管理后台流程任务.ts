@@ -701,4 +701,21 @@ export class AdminApiSystemProcessTask {
       },
       CommonResultListDeptResponseDTOModel,
     );
+
+  /**
+   * 另存为：复制设计任务到指定产品平台的任务分类树节点
+   *
+   * @request POST:/business-service/business/task-basic-info/save-as
+   */
+  static saveAsTaskBasicInfo = <Req extends any = any>(query: Req, params: RequestParams = {}) =>
+    httpClient.request<CommonResultListDeptResponseDTOModel, any>(
+      {
+        path: `/business-service/business/task-basic-info/save-as`,
+        method: 'POST',
+        body: query,
+        secure: true,
+        ...params,
+      },
+      CommonResultListDeptResponseDTOModel,
+    );
 }
