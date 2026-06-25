@@ -485,9 +485,9 @@ function buildCalcSubmitPayload() {
   previewList.value.forEach((item: any, index: number) => {
     const row = rowParamFromPreviewItem(item, index);
     if (!row.sheetNumber.trim() || !row.cellNumber.trim()) return;
-    inputParam.push(row);
-    if (!calcIoParamComponentTypes.has(String(item?.componentType || ''))) return;
-    if (String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT') exputParam.push(row);
+    const ioType = String(item?.customProps?.calcIoType ?? item?.ioType ?? 'INPUT').toUpperCase();
+    if (ioType === 'INPUT') inputParam.push(row);
+    else exputParam.push(row);
   });
   return { inputParam, exputParam, calculateFileId, excelFileId: calculateFileId, ifImg: resolveIfImgParam() };
 }

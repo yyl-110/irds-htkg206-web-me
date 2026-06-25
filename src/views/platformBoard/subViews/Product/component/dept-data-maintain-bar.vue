@@ -1,7 +1,7 @@
 <template>
-  <div class="interaction-chart">
+  <div class="dept-data-maintain-bar">
     <v-chart v-if="hasChartOption" :option="chartOption" class="chart" autoresize />
-    <div v-else class="chart-empty">暂无应用数据</div>
+    <div v-else class="chart-empty">暂无维护数据</div>
   </div>
 </template>
 
@@ -22,25 +22,32 @@ const props = defineProps({
 });
 
 const SERIES_META = [
-  { name: '协同设计任务数', colors: ['#6A5FDC', '#8B7FE8'] },
-  { name: '独立应用任务数', colors: ['#FF8D1A', '#FFB366'] },
-  { name: '计算应用情况', colors: ['#43CF7C', '#7AE0A8'] },
+  { name: '活动页面创建量', colors: ['#6A5FDC', '#8B7FE8'] },
+  { name: '任务数据维护量', colors: ['#FF8D1A', '#FFB366'] },
+  { name: '计算数据维护量', colors: ['#43CF7C', '#7AE0A8'] },
 ];
 
 const pickRow = (row) => {
   if (!row || typeof row !== 'object') {
-    return { collab: 0, standalone: 0, calcApp: 0 };
+    return { activityPage: 0, task: 0, calc: 0 };
   }
-  const collab = Number(row.collabTaskCount ?? row.collabPublished ?? row.collabDesignTaskCount) || 0;
-  const standalone = Number(row.standaloneAppCount ?? row.standaloneAppTaskCount) || 0;
-  const calcApp =
+  const activityPage =
     Number(
-      row.calcAppCount ??
-        row.calculationAppCount ??
-        row.calcApplicationCount ??
-        row.calcAppTaskCount,
+      row.activityPageCount ??
+        row.activityPageCreateCount ??
+        row.activityPageNum ??
+        row.activityPageCreateNum,
     ) || 0;
-  return { collab, standalone, calcApp };
+  const task =
+    Number(row.taskCreateCount ?? row.taskCount ?? row.taskCreateNum ?? row.taskNum) || 0;
+  const calc =
+    Number(
+      row.calcCreateCount ??
+        row.calculationCreateCount ??
+        row.calcCount ??
+        row.calcCreateNum,
+    ) || 0;
+  return { activityPage, task, calc };
 };
 
 const calcYAxisMax = (values) => {
@@ -60,21 +67,20 @@ const initChart = () => {
 
   const keys = Object.keys(props.chartData);
   const seriesValues = [
-    keys.map((item) => pickRow(props.chartData[item]).collab),
-    keys.map((item) => pickRow(props.chartData[item]).standalone),
-    keys.map((item) => pickRow(props.chartData[item]).calcApp),
+    keys.map((item) => pickRow(props.chartData[item]).activityPage),
+    keys.map((item) => pickRow(props.chartData[item]).task),
+    keys.map((item) => pickRow(props.chartData[item]).calc),
   ];
   const yMax = calcYAxisMax(seriesValues.flat());
   const categoryCount = keys.length;
   const barWidth = categoryCount > 6 ? 10 : 12;
 
   chartOption.value = {
-    
     grid: {
-      left: '1%',
-      right: '1%',
-      bottom: '24%',
-      top: '16%',
+      left: '2%',
+      right: '2%',
+      top: 48,
+      bottom: 32,
       containLabel: true,
     },
     tooltip: {
@@ -83,13 +89,12 @@ const initChart = () => {
     },
     legend: {
       data: SERIES_META.map((item) => item.name),
-      right: '1%',
-      bottom: '1%',
-      align: 'left',
+      top: 4,
+      left: 'center',
       itemHeight: 10,
       icon: 'rect',
       itemWidth: 16,
-      itemGap: 14,
+      itemGap: 20,
       textStyle: {
         fontSize: 11,
         color: '#CCCCCC',
@@ -100,9 +105,9 @@ const initChart = () => {
       axisLabel: {
         interval: 0,
         color: '#fff',
-        fontSize: 12,
-        margin: 14,
-        lineHeight: 16,
+        fontSize: 11,
+        margin: 8,
+        lineHeight: 14,
         formatter: (value) =>
           value && value.length > 5 ? `${value.substring(0, 5)}…` : value,
       },
@@ -140,9 +145,9 @@ const initChart = () => {
       label: {
         show: true,
         color: '#fff',
-        fontSize: 11,
+        fontSize: 10,
         position: 'top',
-        distance: 5,
+        distance: 3,
         formatter: (params) => {
           const val = Number(params.value) || 0;
           return val > 0 ? String(val) : '';
@@ -167,15 +172,16 @@ watch(
 </script>
 
 <style lang="less" scoped>
-.interaction-chart {
+.dept-data-maintain-bar {
   width: 100%;
   height: 100%;
-  padding: 0 4px 4px;
+  padding: 0 8px 12px;
   box-sizing: border-box;
+  overflow: hidden;
 
   .chart {
     width: 100%;
-    height: 100%;
+    height: 94%;
   }
 
   .chart-empty {

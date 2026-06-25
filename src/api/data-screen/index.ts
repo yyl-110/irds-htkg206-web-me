@@ -91,9 +91,9 @@ export function deliveryReport(data: any) {
   });
 }
 /**
- * 产品设计看板-项目概览（按年度，business-service）
+ * 产品设计看板-项目概览（按时间范围，business-service）
  */
-export function productBoardProjectOverview(data: { year: number }) {
+export function productBoardProjectOverview(data: { timeType: string }) {
   return httpRequest({
     url: "/business-service/business/project-info/product-board-project-overview",
     method: "POST",
@@ -149,6 +149,33 @@ export function productBoardActivityPageRefRank(data: {
 export function productBoardDeliveryByMenu(data: { menuId: string | number }) {
   return httpRequest({
     url: "/business-service/business/project-wbs/product-board-delivery-by-menu",
+    method: "POST",
+    data,
+  });
+}
+/** 产品设计看板-各科室应用情况：按时间范围统计各科室协同设计、独立应用、计算应用任务数 */
+export function productBoardDeptAppByYear(data: { timeType: string }) {
+  return httpRequest({
+    url: "/business-service/business/project-info/product-board-dept-app-by-year",
+    method: "POST",
+    data,
+  });
+}
+/** 产品设计看板-各科室数据维护量：按时间范围统计活动页面/任务/计算数据维护量 */
+export function productBoardDeptDataMaintainByMenu(data: { timeType: string }) {
+  return httpRequest({
+    url: "/business-service/business/project-info/product-board-dept-data-maintain-by-menu",
+    method: "POST",
+    data,
+  });
+}
+/** 产品设计看板-产品设计活跃用户 Top10（按协同设计、独立应用、计算总和排序） */
+export function productBoardDesignActiveUserTop10(data: {
+  timeType: string;
+  limit?: number;
+}) {
+  return httpRequest({
+    url: "/business-service/business/project-info/product-board-design-active-user-top10",
     method: "POST",
     data,
   });

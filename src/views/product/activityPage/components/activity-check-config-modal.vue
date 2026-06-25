@@ -660,6 +660,7 @@ function mapComponentForApi(item: any, index: number, operationType: 'insert' | 
     paramCode: item?.paramCode ?? '',
     paramName: item?.paramName ?? '',
     ioType: item?.ioType ?? 'INPUT',
+    calcIoType: item?.customProps?.calcIoType ?? item?.calcIoType ?? item?.ioType ?? 'INPUT',
     sortNo: index + 1,
     constraintRules: mapConstraintRules(item?.constraintRules),
     customProps: item?.customProps ?? null,
@@ -1785,6 +1786,9 @@ function ensureTextLikeDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
   if (component.customProps.sheetNumber == null) component.customProps.sheetNumber = '';
   if (component.customProps.cellNumber == null) component.customProps.cellNumber = '';
+  if (component.customProps.calcIoType == null || String(component.customProps.calcIoType).trim() === '') {
+    component.customProps.calcIoType = component.calcIoType ?? component.ioType ?? 'INPUT';
+  }
   if (!Array.isArray(component.constraintRules)) component.constraintRules = [];
   if (!component.validateRule || typeof component.validateRule !== 'object') component.validateRule = {};
   if (!component.validateRule.valueRange || typeof component.validateRule.valueRange !== 'object') {
@@ -2486,8 +2490,18 @@ watch(
                     <div class="row-label">单元格编码：</div>
                     <div class="row-control"><a-input v-model:value="selectedComponent.customProps.cellNumber" placeholder="请输入" /></div>
                   </div>
+                  
                   <div class="row-field">
-                    <div class="row-label">输入输出类型：</div>
+                    <div class="row-label">计算输入输出类型：</div>
+                    <div class="row-control">
+                      <a-select v-model:value="selectedComponent.customProps.calcIoType">
+                        <a-select-option value="INPUT">输入</a-select-option>
+                        <a-select-option value="OUTPUT">输出</a-select-option>
+                      </a-select>
+                    </div>
+                  </div>
+                  <div class="row-field">
+                    <div class="row-label">页面输入输出类型：</div>
                     <div class="row-control">
                       <a-select v-model:value="selectedComponent.ioType">
                         <a-select-option value="INPUT">输入</a-select-option>

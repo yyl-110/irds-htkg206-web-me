@@ -1048,7 +1048,7 @@ function buildCalcSubmitPayload() {
     if (!row.sheetNumber.trim() || !row.cellNumber.trim()) return;
     inputParam.push(row);
     if (!calcIoParamComponentTypes.has(String(item?.componentType || ''))) return;
-    if (String(item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT') {
+    if (String(item?.calcIoType ?? item?.ioType ?? 'INPUT').toUpperCase() === 'OUTPUT') {
       exputParam.push(row);
     }
   });
