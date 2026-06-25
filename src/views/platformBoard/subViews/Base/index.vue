@@ -12,7 +12,14 @@
           <a-row style="height: 100%; padding: 30px 24px 42px" :gutter="24">
             <a-col :span="8" style="height: 50%">
               <div class="knowledge">
-                <Title text="知识看板" showSelect showTime :timeOptions="timeOptions" @changeTime="changeTime" />
+                <Title
+                  text="知识看板"
+                  showSelect
+                  showTime
+                  :timeOptions="timeOptions"
+                  :defaultTime="timeType"
+                  @changeTime="changeTime"
+                />
                 <div class="wrap">
                   <knowledge-bar :chartData="systemInfo?.knowledgeSummary?.categorySummary" />
                 </div>
@@ -44,9 +51,9 @@
             </a-col>
             <a-col :span="16" style="height: 50%">
               <div class="knowledgeBoard">
-                <Title text="知识访问看板"  />
+                <Title text="知识访问看板" />
                 <div class="wrap">
-                  <knowledge-board :chartData="systemInfo?.knowledgeSummary?.monthlyPreviewByFirstLevel" :timeType="timeType" />
+                  <knowledge-board :chartData="boardChartData" />
                 </div>
               </div>
             </a-col>
@@ -66,60 +73,59 @@ import resourceBar from "./component/resourceBar.vue";
 import knowledgeBoard from "./component/knowledgeBoard.vue";
 import knowledgeBar from "./component/knowledgeBar.vue";
 import knowledgeTotal from "./component/knowledgeTotal.vue";
-import { getModelVisitReport, getReportKnowledgeList } from "@/api/data-screen";
-
-const timeOptions = [
-  {
-    value: '1',
-    label: "近半年",
-  },
-  {
-    value: '2',
-    label: "近一年",
-  },
-];
-
-const timeOptions2 = [
-  {
-    value: '1',
-    label: "近一周",
-  },
-  {
-    value: '2',
-    label: "近一月",
-  },
-  {
-    value: '3',
-    label: "近一年",
-  },
-];
+import { getReportKnowledgeList } from "@/api/data-screen";
 
 const systemInfo = ref({});
-const timeType = ref('1')
+const boardChartData = ref(null);
+const timeType = ref('6');
 
-const fetchData = async (type) => {
+const timeOptions = computed(() => {
+  const currentYear = new Date().getFullYear();
+  const options = [
+    { value: '6', label: '近6个月' },
+    { value: '12', label: '近12个月' },
+  ];
+  for (let year = currentYear; year >= 2024; year--) {
+    options.push({ value: String(year), label: `${year}年` });
+  }
+  return options;
+});
+
+const resolveBoardChartData = (result) => {
+  const summary = result?.knowledgeSummary;
+  return summary?.monthlyPreviewByFirstLevel
+    ?? summary?.monthlyKnowledgeTrend
+    ?? summary?.monthlyKnowledgeAccess
+    ?? summary?.monthlyPreviewTrend
+    ?? result?.monthlyKnowledgeTrend
+    ?? null;
+};
+
+const fetchData = async (timeTypeVal = timeType.value) => {
   try {
-    const res = await getReportKnowledgeList({ type })
+    const res = await getReportKnowledgeList({ timeType: timeTypeVal });
     if (res.data.code === '0') {
-      systemInfo.value = res.data.data?.result
+      const result = res.data.data?.result;
+      systemInfo.value = result;
+      boardChartData.value = resolveBoardChartData(result);
     }
   } catch (error) {
-    console.log('error:', error)
+    console.log('error:', error);
   }
-}
+};
 
 const back = () => {
   window.history.back();
 };
 
 const changeTime = (val) => {
-  timeType.value = val
-  fetchData(val)
-}
+  timeType.value = val;
+  fetchData(val);
+};
 
 onMounted(() => {
-  fetchData('1') // 默认查询一周
-})
+  fetchData();
+});
 
 </script>
 

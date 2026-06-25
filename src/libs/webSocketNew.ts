@@ -344,6 +344,50 @@ export async function assembleModuleInfoNew(
 }
 
 /**
+ * 按坐标系装配模型（ApiAssembleModelRenamedByParameter）。
+ * 与 legacy {@link assembleModuleInfoByCsys} 参数一致，走统一 sendMessage。
+ */
+export async function assembleModuleInfoByCsysNew(
+  modelNum: string,
+  modelType: string,
+  parentAsmName: string,
+  newModelName: string,
+  commonName: string,
+  parametersStr: string,
+  childZbx: string,
+  parentZbx: string,
+): Promise<any> {
+  try {
+    const modelPath = buildOpenModelPath(modelNum, modelType);
+    insertModelLibraryStatisticsLog('装配模型', commonName, modelNum);
+    const ret = await sendMessage(
+      'ApiAssembleModelRenamedByParameter',
+      {
+        ModelPath: modelPath,
+        ParentAssemblyName: parentAsmName,
+        NewModelName: newModelName,
+        ParentCsysName: parentZbx,
+        ComponentCsysName: childZbx,
+        AllowAssembleManually: 'true',
+        Parameters: parseOpenModelParametersFragment(parametersStr),
+      },
+      { timeoutMs: 180000 },
+    );
+    console.log('[webSocketNew] ApiAssembleModelRenamedByParameter 返回:', ret);
+    if (isWsApiSuccess(ret)) {
+      message.success('装配成功');
+    } else {
+      message.error(getWsApiUserMessage(ret, '装配失败'));
+    }
+    return ret;
+  } catch (err) {
+    console.error('[webSocketNew] ApiAssembleModelRenamedByParameter 失败:', err);
+    message.error(err instanceof Error && err.message ? err.message : '装配失败');
+    return undefined;
+  }
+}
+
+/**
  * 打开工程图（ApiOpenDrawing）。走 sendMessage，路径规则与三维模型一致，扩展名为 .drw。
  */
 export async function openDrawingInfoNew(modelNum: string): Promise<any> {

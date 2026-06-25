@@ -28,7 +28,14 @@
             </a-col>
             <a-col :span="8" style="height: 50%">
               <div class="totalVisitBoard">
-                <Title text="总体访问看板" />
+                <Title
+                  text="总体访问看板"
+                  showSelect
+                  showTime
+                  :timeOptions="visitTimeOptions"
+                  :defaultTime="visitTimeType"
+                  @changeTime="changeVisitTime"
+                />
                 <div class="wrap">
                   <total-visit-board :chartData="baseInfo?.loginNumList" />
                 </div>
@@ -78,16 +85,34 @@ import systemAvailable from "./component/systemAvailable.vue";
 import { getReportSystemList } from "@/api/data-screen";
 
 const baseInfo = ref({});
+const visitTimeType = ref("6");
 
-const fetchData = async () => {
+const visitTimeOptions = computed(() => {
+  const currentYear = new Date().getFullYear();
+  const options = [
+    { value: "6", label: "近6个月" },
+    { value: "12", label: "近12个月" },
+  ];
+  for (let year = currentYear; year >= 2024; year--) {
+    options.push({ value: String(year), label: `${year}年` });
+  }
+  return options;
+});
+
+const fetchData = async (timeType = visitTimeType.value) => {
   try {
-    const res = await getReportSystemList({});
+    const res = await getReportSystemList({ timeType });
     if (res.data?.code == 200) {
       baseInfo.value = res.data?.data;
     }
   } catch (error) {
     console.log("error:", error);
   }
+};
+
+const changeVisitTime = (val) => {
+  visitTimeType.value = val;
+  fetchData(val);
 };
 
 const back = () => {

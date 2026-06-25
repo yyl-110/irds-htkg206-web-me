@@ -50,7 +50,8 @@ type ParameterPickTarget =
   | { type: 'component' }
   | { type: 'tableColDraft'; colIndex: number }
   | { type: 'tableCellInherit'; field: 'cellParamCode' | 'cellTableNumber' }
-  | { type: 'formulaExpression' };
+  | { type: 'formulaExpression' }
+  | { type: 'threeDAssembleParentParam' };
 const parameterPickTarget = ref<ParameterPickTarget>({ type: 'component' });
 const emit = defineEmits<{ close: []; save: [payload: any] }>();
 const visible = computed({ get: () => props.modalVisible, set: value => !value && emit('close') });
@@ -606,10 +607,16 @@ function createFileCollabTablePreset() {
   applyFileCollabFixedColumnSchema(item.customProps);
   return item;
 }
+function ensureThreeDAssembleModelFieldDefaults(p: Record<string, any>) {
+  if (p.installCoordinateSystem == null) p.installCoordinateSystem = '';
+  if (p.parentAssembleParamCode == null) p.parentAssembleParamCode = '';
+  if (p.parentAssembleParamId === undefined) p.parentAssembleParamId = null;
+}
 function createThreeDViewComponent(threeDSubtype: string) {
   const item = createDefaultComponent('3D_VIEW');
   if (!item.customProps) item.customProps = {};
   item.customProps.threeDSubtype = threeDSubtype;
+  ensureThreeDAssembleModelFieldDefaults(item.customProps);
   if (threeDSubtype === 'TEMPLATE_BROWSE') {
     item.paramName = '模板名称';
     item.customProps.templateName = '模板名称';
@@ -1059,6 +1066,12 @@ function handleSaveParameter(row: any) {
     }
   } else if (t.type === 'formulaExpression') {
     formulaEditorRef.value?.insertText?.(code);
+  } else if (t.type === 'threeDAssembleParentParam') {
+    const comp = selectedComponent.value;
+    if (comp?.customProps) {
+      comp.customProps.parentAssembleParamCode = code;
+      comp.customProps.parentAssembleParamId = parameterId;
+    }
   } else if (selectedComponent.value) {
     selectedComponent.value.paramCode = code;
     selectedComponent.value.parameterId = parameterId;
@@ -2502,6 +2515,7 @@ function ensureTemplateBrowse3dDefaults(component: any) {
   if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = false;
+  ensureThreeDAssembleModelFieldDefaults(p);
 }
 function ensureModelSelect3dDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
@@ -2513,6 +2527,7 @@ function ensureModelSelect3dDefaults(component: any) {
   if (p.relatedModelLibId == null) p.relatedModelLibId = '';
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = true;
+  ensureThreeDAssembleModelFieldDefaults(p);
 }
 function ensureFixedTemplate3dDefaults(component: any) {
   if (!component?.customProps) component.customProps = {};
@@ -2529,6 +2544,7 @@ function ensureFixedTemplate3dDefaults(component: any) {
   if (p.btnApplyPartNo == null) p.btnApplyPartNo = true;
   if (p.btnOpenModel == null) p.btnOpenModel = false;
   if (p.btnAssembleModel == null) p.btnAssembleModel = false;
+  ensureThreeDAssembleModelFieldDefaults(p);
 }
 function addConstraintRule() {
   if (!selectedComponent.value) return;
@@ -4015,6 +4031,19 @@ watch(
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
                   </div>
+                  <div v-if="selectedComponent.customProps.btnAssembleModel" class="three-d-assemble-model-fields">
+                    <div class="row-field">
+                      <div class="row-label">安装坐标系：</div>
+                      <div class="row-control"><a-input v-model:value="selectedComponent.customProps.installCoordinateSystem" placeholder="请输入" /></div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">父装配关联参数：</div>
+                      <div class="row-control">
+                        <a-input v-model:value="selectedComponent.customProps.parentAssembleParamCode" placeholder="请输入" class="browse-adjoined-input" disabled />
+                        <a-button type="primary" size="small" @click="showParameter({ type: 'threeDAssembleParentParam' })">浏览</a-button>
+                      </div>
+                    </div>
+                  </div>
                 </a-collapse-panel>
               </a-collapse>
             </template>
@@ -4045,6 +4074,19 @@ watch(
                   <div class="three-d-config-btn-checks">
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                  </div>
+                  <div v-if="selectedComponent.customProps.btnAssembleModel" class="three-d-assemble-model-fields">
+                    <div class="row-field">
+                      <div class="row-label">安装坐标系：</div>
+                      <div class="row-control"><a-input v-model:value="selectedComponent.customProps.installCoordinateSystem" placeholder="请输入" /></div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">父装配关联参数：</div>
+                      <div class="row-control">
+                        <a-input v-model:value="selectedComponent.customProps.parentAssembleParamCode" placeholder="请输入" class="browse-adjoined-input" disabled />
+                        <a-button type="primary" size="small" @click="showParameter({ type: 'threeDAssembleParentParam' })">浏览</a-button>
+                      </div>
+                    </div>
                   </div>
                 </a-collapse-panel>
               </a-collapse>
@@ -4083,6 +4125,19 @@ watch(
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnApplyPartNo">申请件号</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnOpenModel">打开模型</a-checkbox>
                     <a-checkbox v-model:checked="selectedComponent.customProps.btnAssembleModel">装配模型</a-checkbox>
+                  </div>
+                  <div v-if="selectedComponent.customProps.btnAssembleModel" class="three-d-assemble-model-fields">
+                    <div class="row-field">
+                      <div class="row-label">安装坐标系：</div>
+                      <div class="row-control"><a-input v-model:value="selectedComponent.customProps.installCoordinateSystem" placeholder="请输入" /></div>
+                    </div>
+                    <div class="row-field">
+                      <div class="row-label">父装配关联参数：</div>
+                      <div class="row-control">
+                        <a-input v-model:value="selectedComponent.customProps.parentAssembleParamCode" placeholder="请输入" class="browse-adjoined-input" disabled />
+                        <a-button type="primary" size="small" @click="showParameter({ type: 'threeDAssembleParentParam' })">浏览</a-button>
+                      </div>
+                    </div>
                   </div>
                 </a-collapse-panel>
               </a-collapse>
@@ -4757,6 +4812,13 @@ watch(
 }
 .three-d-config-btn-checks :deep(.ant-checkbox-wrapper) {
   margin-inline: 0 !important;
+}
+.three-d-assemble-model-fields {
+  margin-top: 12px;
+  width: 100%;
+}
+.three-d-assemble-model-fields .row-field + .row-field {
+  margin-top: 10px;
 }
 /* 文本框宽度与 .preview-field（单行输入）一致 */
 .template-browse-3d-input {

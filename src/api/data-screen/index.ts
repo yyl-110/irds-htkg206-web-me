@@ -4,7 +4,7 @@ import httpRequest from "@/httpRequest";
  * 报表--知识中心看板
  * @return {*}
  */
-export function getReportKnowledgeList(data: { type: string | number }) {
+export function getReportKnowledgeList(data: { timeType?: string; startTime?: string; endTime?: string }) {
   return httpRequest({
     url: "/knowledge-service/knowledgeReport/knowledgeList",
     method: "POST",
@@ -50,10 +50,11 @@ export function getReportProjectPhaseList() {
  * 报表--系统运行看板
  * @return {*}
  */
-export function getReportSystemList() {
+export function getReportSystemList(data?: { timeType?: string }) {
   return httpRequest({
     url: "/system-service/reportinfo/getReportSystemList",
     method: "POST",
+    data,
   });
 }
 /**

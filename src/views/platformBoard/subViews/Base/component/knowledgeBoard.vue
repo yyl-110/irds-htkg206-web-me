@@ -1,92 +1,237 @@
 <template>
-  <div class="moduleBoardWrap">
-    <div class="scrollBoard">
-      <ScrollBoard :config="config" style="width:100%;height:100%" />
-    </div>
+  <div class="knowledgeBoardChart">
+    <v-chart v-if="hasChartOption" :option="chartOption" class="chart" autoresize />
+    <div v-else class="chart-empty">暂无数据</div>
   </div>
 </template>
 
 <script setup>
-import ScrollBoard from '@/views/platformBoard/components/ScrollBoard.vue'
 import dayjs from 'dayjs';
 
 const props = defineProps({
   chartData: {
-    type: Object,
+    type: [Object, Array],
     default: () => null,
   },
-})
+});
 
-const config = ref({})
+const chartOption = ref({});
+const hasChartOption = computed(() => {
+  const opt = chartOption.value;
+  return opt && typeof opt === 'object' && Object.keys(opt).length > 0;
+});
 
-const initTable = () => {
-  const data = props.chartData
-  if (!data || !data.months || !data.firstLevelCategories) return
+const formatMonthLabel = (month) => {
+  if (!month) return '';
+  const parsed = dayjs(month);
+  return parsed.isValid() ? `${parsed.month() + 1}月` : String(month);
+};
 
-  // 表头：第一列为分类名，后面列为月份（格式化为 M月）
-  const header = ['分类', ...data.months.map(m => dayjs(m).format('M月'))]
+const parseChartData = (raw) => {
+  if (!raw) return null;
 
-  // 每一行：分类名 + 各月份数量（从 cells 中查找）
-  const tableData = data.firstLevelCategories.map(category => {
-    const row = [category]
-    data.months.forEach(month => {
-      const key = `${category}|${month}`
-      row.push(data.cells[key] || '0')
-    })
-    return row
-  })
-
-  config.value = {
-    header,
-    data: tableData,
-    columnWidth: [95],
-    align: ['center'],
-    headerBGC: '#043C64',
-    oddRowBGC: '#051841',
-    evenRowBGC: 'transparent',
-    waitTime: 3000,
-    rowNum: 7,
+  if (Array.isArray(raw)) {
+    const months = raw.map((item) => formatMonthLabel(item.month ?? item.monthLabel ?? item.label));
+    return {
+      months,
+      addedData: raw.map((item) => Number(item.addedCount ?? item.monthlyAdded ?? item.addCount ?? item.count ?? 0)),
+      totalData: raw.map((item) => Number(item.totalCount ?? item.total ?? item.cumulativeTotal ?? 0)),
+      previewData: raw.map((item) => Number(item.previewCount ?? item.preview ?? item.accessCount ?? item.clickCount ?? 0)),
+    };
   }
-}
 
-// ====== Mock 数据（预览用）======
-const mockData = () => {
-  config.value = {
-    header: ['分类', '1月', '2月', '3月', '4月', '5月', '6月'],
-    data: [
-      ['技术文档', '45', '67', '89', '56', '78', '92'],
-      ['操作手册', '32', '41', '58', '63', '47', '71'],
-      ['培训资料', '78', '92', '105', '87', '96', '113'],
-      ['规范标准', '23', '35', '42', '38', '29', '51'],
-      ['案例库', '56', '64', '73', '81', '69', '88'],
+  const months = (raw.months || raw.monthList || []).map(formatMonthLabel);
+  if (!months.length) return null;
+
+  return {
+    months,
+    addedData: (raw.monthlyAdded ?? raw.addedCounts ?? raw.monthlyAddedCounts ?? raw.addList ?? []).map(Number),
+    totalData: (raw.totalCount ?? raw.totalCounts ?? raw.monthlyTotalCounts ?? raw.totalList ?? []).map(Number),
+    previewData: (raw.previewCount ?? raw.previewCounts ?? raw.monthlyPreviewCounts ?? raw.previewList ?? []).map(Number),
+  };
+};
+
+const initChart = () => {
+  const parsed = parseChartData(props.chartData);
+  if (!parsed || !parsed.months.length) {
+    chartOption.value = {};
+    return;
+  }
+
+  const { months, addedData, totalData, previewData } = parsed;
+
+  chartOption.value = {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(17,95,182,0.5)',
+      textStyle: {
+        color: '#fff',
+      },
+    },
+    legend: {
+      x: 'center',
+      top: '2%',
+      align: 'left',
+      itemHeight: 10,
+      icon: 'rect',
+      itemWidth: 16,
+      itemGap: 24,
+      textStyle: {
+        fontSize: 12,
+        color: '#FFFFFF',
+      },
+      data: ['知识库', '知识总数量', '知识预览数量'],
+    },
+    grid: {
+      left: '4%',
+      right: '4%',
+      bottom: '8%',
+      top: '16%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: true,
+      axisLine: {
+        lineStyle: {
+          color: '#334984',
+        },
+      },
+      splitLine: {
+        show: false,
+      },
+      axisTick: {
+        show: false,
+      },
+      axisLabel: {
+        color: '#CAD9FA',
+        fontSize: 12,
+      },
+      data: months,
+    },
+    yAxis: [
+      {
+        type: 'value',
+        axisTick: {
+          show: false,
+        },
+        axisLabel: {
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: 12,
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#397cbc',
+          },
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: '#334984',
+            type: 'dashed',
+          },
+        },
+      },
+      {
+        type: 'value',
+        position: 'right',
+        axisTick: {
+          show: false,
+        },
+        axisLabel: {
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: 12,
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#397cbc',
+          },
+        },
+        splitLine: {
+          show: false,
+        },
+      },
     ],
-    columnWidth: [95],
-    align: ['center'],
-    headerBGC: '#043C64',
-    oddRowBGC: '#051841',
-    evenRowBGC: 'transparent',
-    waitTime: 3000,
-    rowNum: 7,
-  }
-}
+    series: [
+      {
+        name: '知识库',
+        type: 'bar',
+        barWidth: 18,
+        yAxisIndex: 0,
+        data: addedData,
+        itemStyle: {
+          color: 'rgba(146, 209, 222, 0.65)',
+          borderRadius: [2, 2, 0, 0],
+        },
+      },
+      {
+        name: '知识总数量',
+        type: 'line',
+        smooth: false,
+        showSymbol: true,
+        symbolSize: 6,
+        yAxisIndex: 0,
+        data: totalData,
+        itemStyle: {
+          color: '#77FF00',
+          borderColor: '#77FF00',
+          borderWidth: 1,
+        },
+        lineStyle: {
+          width: 2,
+          color: '#77FF00',
+        },
+      },
+      {
+        name: '知识预览数量',
+        type: 'line',
+        smooth: false,
+        showSymbol: true,
+        symbolSize: 6,
+        yAxisIndex: 1,
+        data: previewData,
+        itemStyle: {
+          color: '#FFAF1A',
+          borderColor: '#FFAF1A',
+          borderWidth: 1,
+        },
+        lineStyle: {
+          width: 2,
+          color: '#FFAF1A',
+        },
+      },
+    ],
+  };
+};
 
-watch(() => props.chartData, () => {
-  initTable()
-}, { deep: true })
-
+watch(
+  () => props.chartData,
+  () => {
+    initChart();
+  },
+  { deep: true, immediate: true },
+);
 </script>
 
 <style lang="less" scoped>
-.moduleBoardWrap {
-  display: flex;
-  align-items: center;
+.knowledgeBoardChart {
   width: 100%;
   height: 100%;
-  padding: 20px;
+  padding: 8px 16px 12px;
 
-  .scrollBoard {
+  .chart {
     width: 100%;
     height: 100%;
+  }
+
+  .chart-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 14px;
   }
 }
 </style>

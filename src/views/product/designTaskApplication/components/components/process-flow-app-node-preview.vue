@@ -24,7 +24,7 @@ import { useUserStore } from '@/store/modules/user';
 import { AdminApiSystemUploadFile } from '@/api/tags/文件上传';
 import { AdminApiSystemProcessTask } from '@/api/tags/processTask/管理后台流程任务';
 import { AdminApiProjectTemp } from '@/api/tags/project/项目信息后台';
-import { openModuleInfoNew, assembleModuleInfoNew, openDrawingInfoNew } from '@/libs/webSocketNew';
+import { openModuleInfoNew, assembleModuleInfoNew, assembleModuleInfoByCsysNew, openDrawingInfoNew } from '@/libs/webSocketNew';
 import { downloadFileFromStream, exportFile } from '@/utils/file';
 import * as XLSX from 'xlsx';
 import moduleIcon1 from '@/assets/images/module1.png';
@@ -783,6 +783,68 @@ function openRowModel(item: any, componentIndex: number, bodyRow: number) {
   const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
   void openModuleInfoNew(modelNum, modelType, '', '', '');
 }
+function buildAssemblyParametersStr(): string {
+  return getCurrentSaveParamValues()
+    .filter((row: any) => String(row?.paramKey ?? '').trim())
+    .map((row: any) => {
+      const name = String(row?.paramKey ?? '').trim();
+      const value = String(row?.paramValue ?? '');
+      return `{"Name":"${name}","Type":"double","Value":"${value}","Description":""}`;
+    })
+    .join(',');
+}
+function normalizeParentAsmName(raw: string): string {
+  let s = String(raw ?? '').trim();
+  if (s.toUpperCase().endsWith('.ASM')) {
+    s = s.slice(0, -4);
+  }
+  return s;
+}
+function resolveAssembleTargetNewModelName(newModelNum: string): string {
+  const raw = String(newModelNum ?? '').trim();
+  if (!raw) return '';
+  const dotIndex = raw.lastIndexOf('.');
+  return dotIndex > 0 ? raw.slice(0, dotIndex) : raw;
+}
+async function assembleModelByTemplateCsys(
+  modelNum: string,
+  modelType: string,
+  newModelNum: string,
+  installCoordinateSystem: string,
+  parentAsmName: string,
+  parametersStr: string,
+): Promise<boolean> {
+  const moduleCsysstr = String(installCoordinateSystem ?? '').split(';');
+  if (moduleCsysstr.length !== 2) {
+    message.warning('未定义安装坐标系信息！');
+    return false;
+  }
+  const childZbxList = moduleCsysstr[0]
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const parentZbx = String(moduleCsysstr[1] ?? '').trim();
+  if (!childZbxList.length || !parentZbx) {
+    message.warning('未定义安装坐标系信息！');
+    return false;
+  }
+  const targetNewModel = resolveAssembleTargetNewModelName(newModelNum);
+  for (const childZbx of childZbxList) {
+    await assembleModuleInfoByCsysNew(modelNum, modelType, parentAsmName, targetNewModel, '', parametersStr, childZbx, parentZbx);
+  }
+  return true;
+}
+async function tryAssembleModelByCsys(item: any, modelNum: string, modelType: string, newModelNum: string): Promise<boolean> {
+  const p = item?.customProps || {};
+  const installCoordinateSystem = String(p.installCoordinateSystem ?? '').trim();
+  const parentAssembleParamCode = String(p.parentAssembleParamCode ?? '').trim();
+  if (!installCoordinateSystem || !parentAssembleParamCode) return false;
+  const parentParamValue = getRefParamCurrentValueForPreview(parentAssembleParamCode).trim();
+  if (!parentParamValue) return false;
+  const parentAsmName = normalizeParentAsmName(parentParamValue);
+  const parametersStr = buildAssemblyParametersStr();
+  return assembleModelByTemplateCsys(modelNum, modelType, newModelNum, installCoordinateSystem, parentAsmName, parametersStr);
+}
 async function handle3dPreviewButtonClick(btn: string, item: any, index: number) {
   const text = String(btn ?? '').trim();
   if (text === '申请件号') {
@@ -827,7 +889,7 @@ async function handle3dPreviewButtonClick(btn: string, item: any, index: number)
       const dotIndex = modelPartNo.lastIndexOf('.');
       const modelType = dotIndex > 0 ? modelPartNo.slice(dotIndex + 1).toLowerCase() : 'prt';
       const modelNum = dotIndex > 0 ? modelPartNo.slice(0, dotIndex) : modelPartNo;
-      console.log(modelNum, modelType);
+      if (await tryAssembleModelByCsys(item, modelNum, modelType, '')) return;
       void assembleModuleInfoNew(modelNum, modelType, '', '', '', '');
     } else {
       const templateName = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'templateName')] ?? '').trim();
@@ -839,7 +901,7 @@ async function handle3dPreviewButtonClick(btn: string, item: any, index: number)
       const modelType = dotIndex > 0 ? templateName.slice(dotIndex + 1).toLowerCase() : 'prt';
       const modelNum = dotIndex > 0 ? templateName.slice(0, dotIndex) : templateName;
       const newModelNum = String(previewFieldValueMap.value[getPreview3dSubKey(item, index, 'modelName')] ?? '').trim();
-      console.log(modelNum, modelType, newModelNum);
+      if (await tryAssembleModelByCsys(item, modelNum, modelType, newModelNum)) return;
       void assembleModuleInfoNew(modelNum, modelType, '', newModelNum, '', '');
     }
     return;
